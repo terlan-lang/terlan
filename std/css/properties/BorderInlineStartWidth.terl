@@ -1,0 +1,108 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-inline-start-width
+ * Grammar: <line-width>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderInlineStartWidth.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length}.
+
+/**
+ * A nominal, specification-constrained border-inline-start-width value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_inline_start_width: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_inline_start_width: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword hairline.
+ */
+pub hairline(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "hairline"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "initial"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "medium"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword thick.
+ */
+pub thick(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "thick"}).
+
+/**
+ * Returns the CSS keyword thin.
+ */
+pub thin(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "thin"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-inline-start-width", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a border-inline-start-width value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {
+                        property: "border-inline-start-width",
+                        css: std.css.Values.length_css(value),
+                    },
+                ),
+            );
+        false -> None
+    }.

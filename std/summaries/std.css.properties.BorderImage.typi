@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-image
+//! Grammar: <'border-image-source'> || <'border-image-slice'> [ / <'border-image-width'> | / <'border-image-width'>? / <'border-image-outset'> ]? || <'border-image-repeat'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BorderImage.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    border_image: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    border_image: Value
+}.
+
+/// A nominal, specification-constrained border-image value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Checks the specification range and constructs a border-image value.
+
+pub number(value: Float): Option[Value].
+
+/// Checks the specification range and constructs a border-image value.
+
+pub percentage(value: std.css.Values.Percentage): Option[Value].
+
+/// Returns the CSS keyword repeat.
+
+pub repeat(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword round.
+
+pub round(): Value.
+
+/// Returns the CSS keyword space.
+
+pub space(): Value.
+
+/// Returns the CSS keyword stretch.
+
+pub stretch(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

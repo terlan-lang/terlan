@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-mode
+ * Grammar: <masking-mode>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.MaskMode.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained mask-mode value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    mask_mode: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    mask_mode: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword alpha.
+ */
+pub alpha(): Value ->
+    Value(Token {property: "mask-mode", css: "alpha"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "mask-mode", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "mask-mode", css: "initial"}).
+
+/**
+ * Returns the CSS keyword luminance.
+ */
+pub luminance(): Value ->
+    Value(Token {property: "mask-mode", css: "luminance"}).
+
+/**
+ * Returns the CSS keyword match-source.
+ */
+pub match_source(): Value ->
+    Value(Token {property: "mask-mode", css: "match-source"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "mask-mode", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "mask-mode", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "mask-mode", css: "unset"}).

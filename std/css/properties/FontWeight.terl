@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-weight
+ * Grammar: <font-weight-absolute> | bolder | lighter
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FontWeight.
+
+import std.core.Float.
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained font-weight value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    font_weight: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    font_weight: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword bold.
+ */
+pub bold(): Value ->
+    Value(Token {property: "font-weight", css: "bold"}).
+
+/**
+ * Returns the CSS keyword bolder.
+ */
+pub bolder(): Value ->
+    Value(Token {property: "font-weight", css: "bolder"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "font-weight", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "font-weight", css: "initial"}).
+
+/**
+ * Returns the CSS keyword lighter.
+ */
+pub lighter(): Value ->
+    Value(Token {property: "font-weight", css: "lighter"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "font-weight", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "font-weight", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "font-weight", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "font-weight", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a font-weight value.
+ */
+pub number(value: Float): Option[Value] ->
+    case value >= 1 and value <= 1000 {
+        true -> Some(Value(Token {property: "font-weight", css: std.core.Float.to_string(value)}));
+        false -> None
+    }.

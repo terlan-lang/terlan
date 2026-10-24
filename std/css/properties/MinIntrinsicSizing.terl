@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-sizing-4/#propdef-min-intrinsic-sizing
+ * Grammar: legacy | zero-if-scroll || zero-if-extrinsic
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.MinIntrinsicSizing.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained min-intrinsic-sizing value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    min_intrinsic_sizing: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    min_intrinsic_sizing: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "initial"}).
+
+/**
+ * Returns the CSS keyword legacy.
+ */
+pub legacy(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "legacy"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "unset"}).
+
+/**
+ * Returns the CSS keyword zero-if-extrinsic.
+ */
+pub zero_if_extrinsic(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "zero-if-extrinsic"}).
+
+/**
+ * Returns the CSS keyword zero-if-scroll.
+ */
+pub zero_if_scroll(): Value ->
+    Value(Token {property: "min-intrinsic-sizing", css: "zero-if-scroll"}).

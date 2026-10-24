@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty
+//! Grammar: none | <marker-ref>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.MarkerMid.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    marker_mid: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    marker_mid: Value
+}.
+
+/// A nominal, specification-constrained marker-mid value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

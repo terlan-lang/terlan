@@ -1,0 +1,139 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-end-radius
+ * Grammar: <length-percentage [0,∞]>{1,2} [ / <length-percentage [0,∞]>{1,2} ]?
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderBlockEndRadius.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained border-block-end-radius value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A single non-global border-block-end-radius shorthand component.
+ */
+pub opaque type Component = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_block_end_radius: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_block_end_radius: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-block-end-radius", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-block-end-radius", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-block-end-radius", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-block-end-radius", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-block-end-radius", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a border-block-end-radius value.
+ */
+pub length(value: Length): Option[Value] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "border-block-end-radius", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a border-block-end-radius value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case percentage_amount(value) >= 0 {
+        true ->
+            Some(Value(Token {property: "border-block-end-radius", css: percentage_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a border-block-end-radius value.
+ */
+pub component_length(value: Length): Option[Component] ->
+    case length_amount(value) >= 0 {
+        true ->
+            Some(Component(Token {property: "border-block-end-radius", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a border-block-end-radius value.
+ */
+pub component_percentage(value: Percentage): Option[Component] ->
+    case percentage_amount(value) >= 0 {
+        true ->
+            Some(Component(Token {property: "border-block-end-radius", css: percentage_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Serializes a library-owned shorthand component.
+ */
+component_css(value: Component): String ->
+    let token = component_token(value);
+    token.css.
+
+component_token(value: Component): Token ->
+    value.
+
+/**
+ * Combines 1 typed components in specification order.
+ */
+pub single(first: Component): Value ->
+    Value(Token {property: "border-block-end-radius", css: component_css(first)}).
+
+/**
+ * Combines 2 typed components in specification order.
+ */
+pub pair(first: Component, second: Component): Value ->
+    Value(
+        Token {
+            property: "border-block-end-radius",
+            css: component_css(first) + " " + component_css(second),
+        },
+    ).

@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-overflow-5/#propdef-scroll-axis-lock
+//! Grammar: auto | none
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ScrollAxisLock.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    scroll_axis_lock: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    scroll_axis_lock: Value
+}.
+
+/// A nominal, specification-constrained scroll-axis-lock value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

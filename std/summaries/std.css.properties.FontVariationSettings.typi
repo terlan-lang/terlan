@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variation-settings
+//! Grammar: normal | [ <opentype-tag> <number> ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariationSettings.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variation_settings: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variation_settings: Value
+}.
+
+/// A nominal, specification-constrained font-variation-settings value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

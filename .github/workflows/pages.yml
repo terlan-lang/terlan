@@ -17,6 +17,7 @@ on:
       - "sites/terlan.io/**"
       - "tools/web-toolchain/package.json"
       - "tools/web-toolchain/package-lock.json"
+      - "tools/web-toolchain/css-bundle.mjs"
       - ".github/actions/setup-rust/**"
       - ".github/actions/setup-native-dependencies/**"
       - ".github/workflows/pages.yml"

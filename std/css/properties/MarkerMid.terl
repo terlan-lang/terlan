@@ -1,0 +1,69 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#MarkerMidProperty
+ * Grammar: none | <marker-ref>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.MarkerMid.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained marker-mid value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    marker_mid: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    marker_mid: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "marker-mid", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "marker-mid", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "marker-mid", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "marker-mid", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "marker-mid", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "marker-mid", css: "unset"}).

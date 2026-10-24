@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-empty-cells
+//! Grammar: show | hide
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.EmptyCells.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    empty_cells: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    empty_cells: Value
+}.
+
+/// A nominal, specification-constrained empty-cells value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword hide.
+
+pub hide(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword show.
+
+pub show(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

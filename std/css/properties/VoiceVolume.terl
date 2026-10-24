@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-speech-1/#propdef-voice-volume
+ * Grammar: silent | [ [ x-soft | soft | medium | loud | x-loud ] || <decibel> ]
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.VoiceVolume.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained voice-volume value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    voice_volume: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    voice_volume: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "voice-volume", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "voice-volume", css: "initial"}).
+
+/**
+ * Returns the CSS keyword loud.
+ */
+pub loud(): Value ->
+    Value(Token {property: "voice-volume", css: "loud"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "voice-volume", css: "medium"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "voice-volume", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "voice-volume", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword silent.
+ */
+pub silent(): Value ->
+    Value(Token {property: "voice-volume", css: "silent"}).
+
+/**
+ * Returns the CSS keyword soft.
+ */
+pub soft(): Value ->
+    Value(Token {property: "voice-volume", css: "soft"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "voice-volume", css: "unset"}).
+
+/**
+ * Returns the CSS keyword x-loud.
+ */
+pub x_loud(): Value ->
+    Value(Token {property: "voice-volume", css: "x-loud"}).
+
+/**
+ * Returns the CSS keyword x-soft.
+ */
+pub x_soft(): Value ->
+    Value(Token {property: "voice-volume", css: "x-soft"}).

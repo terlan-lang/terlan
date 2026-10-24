@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ShapeRenderingProperty
+ * Grammar: auto | optimizeSpeed | crispEdges | geometricPrecision
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ShapeRendering.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained shape-rendering value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    shape_rendering: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    shape_rendering: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "shape-rendering", css: "auto"}).
+
+/**
+ * Returns the CSS keyword crispEdges.
+ */
+pub crispEdges(): Value ->
+    Value(Token {property: "shape-rendering", css: "crispEdges"}).
+
+/**
+ * Returns the CSS keyword geometricPrecision.
+ */
+pub geometricPrecision(): Value ->
+    Value(Token {property: "shape-rendering", css: "geometricPrecision"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "shape-rendering", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "shape-rendering", css: "initial"}).
+
+/**
+ * Returns the CSS keyword optimizeSpeed.
+ */
+pub optimizeSpeed(): Value ->
+    Value(Token {property: "shape-rendering", css: "optimizeSpeed"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "shape-rendering", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "shape-rendering", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "shape-rendering", css: "unset"}).

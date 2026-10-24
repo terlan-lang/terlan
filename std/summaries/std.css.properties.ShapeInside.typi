@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-shapes-2/#propdef-shape-inside
+//! Grammar: auto | outside-shape | [ <basic-shape> || shape-box ] | <image> | display
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ShapeInside.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    shape_inside: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    shape_inside: Value
+}.
+
+/// A nominal, specification-constrained shape-inside value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword display.
+
+pub display(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword outside-shape.
+
+pub outside_shape(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword shape-box.
+
+pub shape_box(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

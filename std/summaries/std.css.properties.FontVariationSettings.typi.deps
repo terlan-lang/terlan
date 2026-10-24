@@ -1,0 +1,9 @@
+module=std.css.properties.FontVariationSettings
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=3421191872748268180
+interface_hash=9458454249128719684
+interface_doc_hash=11867196314070443838
+deps=1
+std.core.Option=11539230284316612175

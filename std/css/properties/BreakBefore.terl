@@ -1,0 +1,147 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-before
+ * Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BreakBefore.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained break-before value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    break_before: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    break_before: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword all.
+ */
+pub all(): Value ->
+    Value(Token {property: "break-before", css: "all"}).
+
+/**
+ * Returns the CSS keyword always.
+ */
+pub always(): Value ->
+    Value(Token {property: "break-before", css: "always"}).
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "break-before", css: "auto"}).
+
+/**
+ * Returns the CSS keyword avoid.
+ */
+pub avoid(): Value ->
+    Value(Token {property: "break-before", css: "avoid"}).
+
+/**
+ * Returns the CSS keyword avoid-column.
+ */
+pub avoid_column(): Value ->
+    Value(Token {property: "break-before", css: "avoid-column"}).
+
+/**
+ * Returns the CSS keyword avoid-page.
+ */
+pub avoid_page(): Value ->
+    Value(Token {property: "break-before", css: "avoid-page"}).
+
+/**
+ * Returns the CSS keyword avoid-region.
+ */
+pub avoid_region(): Value ->
+    Value(Token {property: "break-before", css: "avoid-region"}).
+
+/**
+ * Returns the CSS keyword column.
+ */
+pub column(): Value ->
+    Value(Token {property: "break-before", css: "column"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "break-before", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "break-before", css: "initial"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "break-before", css: "left"}).
+
+/**
+ * Returns the CSS keyword page.
+ */
+pub page(): Value ->
+    Value(Token {property: "break-before", css: "page"}).
+
+/**
+ * Returns the CSS keyword recto.
+ */
+pub recto(): Value ->
+    Value(Token {property: "break-before", css: "recto"}).
+
+/**
+ * Returns the CSS keyword region.
+ */
+pub region(): Value ->
+    Value(Token {property: "break-before", css: "region"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "break-before", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "break-before", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "break-before", css: "right"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "break-before", css: "unset"}).
+
+/**
+ * Returns the CSS keyword verso.
+ */
+pub verso(): Value ->
+    Value(Token {property: "break-before", css: "verso"}).

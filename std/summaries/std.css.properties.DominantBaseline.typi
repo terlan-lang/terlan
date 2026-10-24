@@ -1,0 +1,80 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-dominant-baseline
+//! Grammar: auto | <baseline-metric>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.DominantBaseline.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    dominant_baseline: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    dominant_baseline: Value
+}.
+
+/// A nominal, specification-constrained dominant-baseline value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword alphabetic.
+
+pub alphabetic(): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword central.
+
+pub central(): Value.
+
+/// Returns the CSS keyword hanging.
+
+pub hanging(): Value.
+
+/// Returns the CSS keyword ideographic.
+
+pub ideographic(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword mathematical.
+
+pub mathematical(): Value.
+
+/// Returns the CSS keyword middle.
+
+pub middle(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword text-bottom.
+
+pub text_bottom(): Value.
+
+/// Returns the CSS keyword text-top.
+
+pub text_top(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

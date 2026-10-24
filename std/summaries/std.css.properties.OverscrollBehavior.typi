@@ -1,0 +1,88 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior
+//! Grammar: [ contain | none | auto | chain ]{1,2}
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.OverscrollBehavior.
+
+/// A single non-global overscroll-behavior shorthand component.
+
+pub opaque type Component.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    overscroll_behavior: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    overscroll_behavior: Value
+}.
+
+/// A nominal, specification-constrained overscroll-behavior value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword chain.
+
+pub chain(): Value.
+
+/// Constructs one overscroll-behavior shorthand component.
+
+pub component_auto(): Component.
+
+/// Constructs one overscroll-behavior shorthand component.
+
+pub component_chain(): Component.
+
+/// Constructs one overscroll-behavior shorthand component.
+
+pub component_contain(): Component.
+
+/// Constructs one overscroll-behavior shorthand component.
+
+pub component_none(): Component.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Combines 2 typed components in specification order.
+
+pub pair(first: Component, second: Component): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Combines 1 typed components in specification order.
+
+pub single(first: Component): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

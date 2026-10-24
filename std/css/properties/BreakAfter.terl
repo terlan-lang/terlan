@@ -1,0 +1,147 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-after
+ * Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BreakAfter.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained break-after value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    break_after: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    break_after: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword all.
+ */
+pub all(): Value ->
+    Value(Token {property: "break-after", css: "all"}).
+
+/**
+ * Returns the CSS keyword always.
+ */
+pub always(): Value ->
+    Value(Token {property: "break-after", css: "always"}).
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "break-after", css: "auto"}).
+
+/**
+ * Returns the CSS keyword avoid.
+ */
+pub avoid(): Value ->
+    Value(Token {property: "break-after", css: "avoid"}).
+
+/**
+ * Returns the CSS keyword avoid-column.
+ */
+pub avoid_column(): Value ->
+    Value(Token {property: "break-after", css: "avoid-column"}).
+
+/**
+ * Returns the CSS keyword avoid-page.
+ */
+pub avoid_page(): Value ->
+    Value(Token {property: "break-after", css: "avoid-page"}).
+
+/**
+ * Returns the CSS keyword avoid-region.
+ */
+pub avoid_region(): Value ->
+    Value(Token {property: "break-after", css: "avoid-region"}).
+
+/**
+ * Returns the CSS keyword column.
+ */
+pub column(): Value ->
+    Value(Token {property: "break-after", css: "column"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "break-after", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "break-after", css: "initial"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "break-after", css: "left"}).
+
+/**
+ * Returns the CSS keyword page.
+ */
+pub page(): Value ->
+    Value(Token {property: "break-after", css: "page"}).
+
+/**
+ * Returns the CSS keyword recto.
+ */
+pub recto(): Value ->
+    Value(Token {property: "break-after", css: "recto"}).
+
+/**
+ * Returns the CSS keyword region.
+ */
+pub region(): Value ->
+    Value(Token {property: "break-after", css: "region"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "break-after", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "break-after", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "break-after", css: "right"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "break-after", css: "unset"}).
+
+/**
+ * Returns the CSS keyword verso.
+ */
+pub verso(): Value ->
+    Value(Token {property: "break-after", css: "verso"}).

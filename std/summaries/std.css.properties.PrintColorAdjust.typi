@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-print-color-adjust
+//! Grammar: economy | exact
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.PrintColorAdjust.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    print_color_adjust: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    print_color_adjust: Value
+}.
+
+/// A nominal, specification-constrained print-color-adjust value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword economy.
+
+pub economy(): Value.
+
+/// Returns the CSS keyword exact.
+
+pub exact(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

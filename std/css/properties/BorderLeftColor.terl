@@ -1,0 +1,72 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-left-color
+ * Grammar: <color> | <image-1D>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderLeftColor.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Color}.
+
+/**
+ * A nominal, specification-constrained border-left-color value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_left_color: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_left_color: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-left-color", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-left-color", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-left-color", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-left-color", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-left-color", css: "unset"}).
+
+/**
+ * Constructs a border-left-color value from a typed color.
+ */
+pub color(value: Color): Value ->
+    Value(Token {property: "border-left-color", css: std.css.Values.color_css(value)}).

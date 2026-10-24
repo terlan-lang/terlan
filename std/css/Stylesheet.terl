@@ -1,0 +1,17 @@
+/**
+ * Typed stylesheet descriptors consumed during web builds.
+ */
+module std.css.Stylesheet.
+
+/**
+ * Associates a selector with a typed application style struct.
+ * Style fields use generated property Value types. Struct inclusion combines
+ * property groups with the language's normal conflict checks.
+ */
+pub type Rule[T] = {Atom["css_rule"], selector: String, style: T}.
+
+/**
+ * Constructs a rule while preserving its style's concrete type.
+ */
+pub rule[T](selector: String, style: T): Rule[T] ->
+    Rule(selector, style).

@@ -1,0 +1,10 @@
+module=std.css.properties.OverflowClipMarginInlineStart
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=12482957450851812501
+interface_hash=4430141943961648514
+interface_doc_hash=5189434912873190233
+deps=2
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-overlap
+ * Grammar: row-over-column | column-over-row
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.RuleOverlap.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained rule-overlap value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    rule_overlap: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    rule_overlap: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword column-over-row.
+ */
+pub column_over_row(): Value ->
+    Value(Token {property: "rule-overlap", css: "column-over-row"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "rule-overlap", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "rule-overlap", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "rule-overlap", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "rule-overlap", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword row-over-column.
+ */
+pub row_over_column(): Value ->
+    Value(Token {property: "rule-overlap", css: "row-over-column"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "rule-overlap", css: "unset"}).

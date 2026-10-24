@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linecap
+ * Grammar: butt | round | square
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.StrokeLinecap.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained stroke-linecap value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    stroke_linecap: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    stroke_linecap: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword butt.
+ */
+pub butt(): Value ->
+    Value(Token {property: "stroke-linecap", css: "butt"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "stroke-linecap", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "stroke-linecap", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "stroke-linecap", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "stroke-linecap", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword round.
+ */
+pub round(): Value ->
+    Value(Token {property: "stroke-linecap", css: "round"}).
+
+/**
+ * Returns the CSS keyword square.
+ */
+pub square(): Value ->
+    Value(Token {property: "stroke-linecap", css: "square"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "stroke-linecap", css: "unset"}).

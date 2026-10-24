@@ -1,0 +1,111 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-emphasis-style
+ * Grammar: none | [ [ filled | open ] || [ dot | circle | double-circle | triangle | sesame ] ] | <string>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextEmphasisStyle.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-emphasis-style value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_emphasis_style: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_emphasis_style: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword circle.
+ */
+pub circle(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "circle"}).
+
+/**
+ * Returns the CSS keyword dot.
+ */
+pub dot(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "dot"}).
+
+/**
+ * Returns the CSS keyword double-circle.
+ */
+pub double_circle(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "double-circle"}).
+
+/**
+ * Returns the CSS keyword filled.
+ */
+pub filled(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "filled"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "none"}).
+
+/**
+ * Returns the CSS keyword open.
+ */
+pub open(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "open"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword sesame.
+ */
+pub sesame(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "sesame"}).
+
+/**
+ * Returns the CSS keyword triangle.
+ */
+pub triangle(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "triangle"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-emphasis-style", css: "unset"}).

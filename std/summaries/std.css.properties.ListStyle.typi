@@ -1,0 +1,88 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style
+//! Grammar: <'list-style-position'> || <'list-style-image'> || <'list-style-type'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ListStyle.
+
+/// A non-global list-style-image component of list-style.
+
+pub opaque type ListStyleImagePart.
+
+/// A non-global list-style-position component of list-style.
+
+pub opaque type ListStylePositionPart.
+
+/// A non-global list-style-type component of list-style.
+
+pub opaque type ListStyleTypePart.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    list_style: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    list_style: Value
+}.
+
+/// A nominal, specification-constrained list-style value.
+
+pub opaque type Value.
+
+/// Combines every named specification group in canonical order.
+
+pub compose(list_style_position: ListStylePositionPart, list_style_image: ListStyleImagePart, list_style_type: ListStyleTypePart): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inside.
+
+pub inside(): Value.
+
+/// Constructs the list-style-image keyword none.
+
+pub list_style_image_none(): ListStyleImagePart.
+
+/// Constructs the list-style-position keyword inside.
+
+pub list_style_position_inside(): ListStylePositionPart.
+
+/// Constructs the list-style-position keyword outside.
+
+pub list_style_position_outside(): ListStylePositionPart.
+
+/// Constructs the list-style-type keyword none.
+
+pub list_style_type_none(): ListStyleTypePart.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword outside.
+
+pub outside(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

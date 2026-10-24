@@ -1,0 +1,105 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-transform
+ * Grammar: none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana | math-auto
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextTransform.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-transform value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_transform: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_transform: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword capitalize.
+ */
+pub capitalize(): Value ->
+    Value(Token {property: "text-transform", css: "capitalize"}).
+
+/**
+ * Returns the CSS keyword full-size-kana.
+ */
+pub full_size_kana(): Value ->
+    Value(Token {property: "text-transform", css: "full-size-kana"}).
+
+/**
+ * Returns the CSS keyword full-width.
+ */
+pub full_width(): Value ->
+    Value(Token {property: "text-transform", css: "full-width"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-transform", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-transform", css: "initial"}).
+
+/**
+ * Returns the CSS keyword lowercase.
+ */
+pub lowercase(): Value ->
+    Value(Token {property: "text-transform", css: "lowercase"}).
+
+/**
+ * Returns the CSS keyword math-auto.
+ */
+pub math_auto(): Value ->
+    Value(Token {property: "text-transform", css: "math-auto"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "text-transform", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-transform", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-transform", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-transform", css: "unset"}).
+
+/**
+ * Returns the CSS keyword uppercase.
+ */
+pub uppercase(): Value ->
+    Value(Token {property: "text-transform", css: "uppercase"}).

@@ -1,0 +1,93 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap-style
+ * Grammar: auto | balance | stable | pretty | avoid-short-last-line
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextWrapStyle.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-wrap-style value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_wrap_style: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_wrap_style: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "text-wrap-style", css: "auto"}).
+
+/**
+ * Returns the CSS keyword avoid-short-last-line.
+ */
+pub avoid_short_last_line(): Value ->
+    Value(Token {property: "text-wrap-style", css: "avoid-short-last-line"}).
+
+/**
+ * Returns the CSS keyword balance.
+ */
+pub balance(): Value ->
+    Value(Token {property: "text-wrap-style", css: "balance"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-wrap-style", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-wrap-style", css: "initial"}).
+
+/**
+ * Returns the CSS keyword pretty.
+ */
+pub pretty(): Value ->
+    Value(Token {property: "text-wrap-style", css: "pretty"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-wrap-style", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-wrap-style", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword stable.
+ */
+pub stable(): Value ->
+    Value(Token {property: "text-wrap-style", css: "stable"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-wrap-style", css: "unset"}).

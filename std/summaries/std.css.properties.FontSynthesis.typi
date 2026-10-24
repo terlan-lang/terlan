@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-synthesis
+//! Grammar: none | [ weight || style || small-caps || position]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontSynthesis.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_synthesis: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_synthesis: Value
+}.
+
+/// A nominal, specification-constrained font-synthesis value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword position.
+
+pub position(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword small-caps.
+
+pub small_caps(): Value.
+
+/// Returns the CSS keyword style.
+
+pub style(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword weight.
+
+pub weight(): Value.
+
+export type Token.

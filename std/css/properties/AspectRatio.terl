@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-sizing-4/#propdef-aspect-ratio
+ * Grammar: auto || <ratio>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.AspectRatio.
+
+import std.core.Float.
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained aspect-ratio value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    aspect_ratio: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    aspect_ratio: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "aspect-ratio", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "aspect-ratio", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "aspect-ratio", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "aspect-ratio", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "aspect-ratio", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "aspect-ratio", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a aspect-ratio value.
+ */
+pub number(value: Float): Option[Value] ->
+    case value >= 0 {
+        true -> Some(Value(Token {property: "aspect-ratio", css: std.core.Float.to_string(value)}));
+        false -> None
+    }.

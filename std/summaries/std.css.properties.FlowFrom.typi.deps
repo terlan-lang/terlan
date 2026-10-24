@@ -1,0 +1,9 @@
+module=std.css.properties.FlowFrom
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=12103942796930668681
+interface_hash=15235759188779311150
+interface_doc_hash=2076285928086767307
+deps=1
+std.core.Option=11539230284316612175

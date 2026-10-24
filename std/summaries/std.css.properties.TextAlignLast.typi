@@ -1,0 +1,76 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-align-last
+//! Grammar: auto | start | end | left | right | center | justify | match-parent
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextAlignLast.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_align_last: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_align_last: Value
+}.
+
+/// A nominal, specification-constrained text-align-last value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Returns the CSS keyword end.
+
+pub end_value(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword justify.
+
+pub justify(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Returns the CSS keyword match-parent.
+
+pub match_parent(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword start.
+
+pub start(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

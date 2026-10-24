@@ -1,0 +1,93 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css2/#propdef-page-break-before
+ * Grammar: auto | always | avoid | left | right | inherit
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.PageBreakBefore.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained page-break-before value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    page_break_before: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    page_break_before: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword always.
+ */
+pub always(): Value ->
+    Value(Token {property: "page-break-before", css: "always"}).
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "page-break-before", css: "auto"}).
+
+/**
+ * Returns the CSS keyword avoid.
+ */
+pub avoid(): Value ->
+    Value(Token {property: "page-break-before", css: "avoid"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "page-break-before", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "page-break-before", css: "initial"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "page-break-before", css: "left"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "page-break-before", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "page-break-before", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "page-break-before", css: "right"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "page-break-before", css: "unset"}).

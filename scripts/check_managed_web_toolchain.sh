@@ -36,6 +36,7 @@ const expected = {
   '@angular-wave/angular.ts': '0.32.0',
   '@rsbuild/core': '2.1.13',
   '@rspack/core': '2.1.10',
+  'lightningcss': '1.33.0',
 };
 const declared = JSON.parse(fs.readFileSync(path.join(root, 'package.json'))).dependencies;
 for (const [name, version] of Object.entries(expected)) {

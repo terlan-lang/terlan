@@ -2,6 +2,28 @@ use super::*;
 use crate::terlan_typeck::{CoreLetBinding, CorePattern};
 
 #[test]
+fn record_updates_preserve_the_receivers_concrete_generic_type() {
+    let ty = CoreType::Apply {
+        constructor: "app.Holder".into(),
+        args: vec![CoreType::Int],
+    };
+    let variables = HashMap::from([("base".into(), ty.clone())]);
+    let expr = CoreExpr::RecordUpdate {
+        base: Box::new(CoreExpr::Var("base".into())),
+        name: "app.Holder".into(),
+        fields: vec![],
+    };
+    assert_eq!(
+        infer_type(&expr, &variables, &Default::default(), "app"),
+        Some(ty)
+    );
+    assert_eq!(
+        infer_type(&expr, &Default::default(), &Default::default(), "app"),
+        None
+    );
+}
+
+#[test]
 fn lambda_inference_requires_checked_parameters_and_preserves_shadowing() {
     let outer = HashMap::from([("value".to_string(), CoreType::String)]);
     let mut expression = CoreExpr::Lam {

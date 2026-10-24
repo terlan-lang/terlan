@@ -1,0 +1,84 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-offset
+ * Grammar: auto | <length-percentage>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextUnderlineOffset.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained text-underline-offset value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_underline_offset: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_underline_offset: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "text-underline-offset", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-underline-offset", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-underline-offset", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-underline-offset", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-underline-offset", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-underline-offset", css: "unset"}).
+
+/**
+ * Constructs a text-underline-offset value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "text-underline-offset", css: std.css.Values.length_css(value)}).
+
+/**
+ * Constructs a text-underline-offset value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(Token {property: "text-underline-offset", css: std.css.Values.percentage_css(value)}).

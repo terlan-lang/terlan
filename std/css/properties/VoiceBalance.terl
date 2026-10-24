@@ -1,0 +1,101 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-speech-1/#propdef-voice-balance
+ * Grammar: <number> | left | center | right | leftwards | rightwards
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.VoiceBalance.
+
+import std.core.Float.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained voice-balance value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    voice_balance: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    voice_balance: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword center.
+ */
+pub center(): Value ->
+    Value(Token {property: "voice-balance", css: "center"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "voice-balance", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "voice-balance", css: "initial"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "voice-balance", css: "left"}).
+
+/**
+ * Returns the CSS keyword leftwards.
+ */
+pub leftwards(): Value ->
+    Value(Token {property: "voice-balance", css: "leftwards"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "voice-balance", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "voice-balance", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "voice-balance", css: "right"}).
+
+/**
+ * Returns the CSS keyword rightwards.
+ */
+pub rightwards(): Value ->
+    Value(Token {property: "voice-balance", css: "rightwards"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "voice-balance", css: "unset"}).
+
+/**
+ * Constructs a voice-balance value from a typed number.
+ */
+pub number(value: Float): Value ->
+    Value(Token {property: "voice-balance", css: std.core.Float.to_string(value)}).

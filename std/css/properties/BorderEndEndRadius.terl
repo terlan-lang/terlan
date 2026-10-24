@@ -1,0 +1,98 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-end-end-radius
+ * Grammar: <border-radius>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderEndEndRadius.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained border-end-end-radius value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_end_end_radius: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_end_end_radius: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-end-end-radius", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-end-end-radius", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-end-end-radius", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-end-end-radius", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-end-end-radius", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a border-end-end-radius value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {property: "border-end-end-radius", css: std.css.Values.length_css(value)},
+                ),
+            );
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a border-end-end-radius value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {
+                        property: "border-end-end-radius",
+                        css: std.css.Values.percentage_css(value),
+                    },
+                ),
+            );
+        false -> None
+    }.

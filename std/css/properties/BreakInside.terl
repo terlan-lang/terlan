@@ -1,0 +1,93 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-break-4/#propdef-break-inside
+ * Grammar: auto | avoid | avoid-page | avoid-column | avoid-region
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BreakInside.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained break-inside value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    break_inside: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    break_inside: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "break-inside", css: "auto"}).
+
+/**
+ * Returns the CSS keyword avoid.
+ */
+pub avoid(): Value ->
+    Value(Token {property: "break-inside", css: "avoid"}).
+
+/**
+ * Returns the CSS keyword avoid-column.
+ */
+pub avoid_column(): Value ->
+    Value(Token {property: "break-inside", css: "avoid-column"}).
+
+/**
+ * Returns the CSS keyword avoid-page.
+ */
+pub avoid_page(): Value ->
+    Value(Token {property: "break-inside", css: "avoid-page"}).
+
+/**
+ * Returns the CSS keyword avoid-region.
+ */
+pub avoid_region(): Value ->
+    Value(Token {property: "break-inside", css: "avoid-region"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "break-inside", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "break-inside", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "break-inside", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "break-inside", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "break-inside", css: "unset"}).

@@ -1,0 +1,186 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-flow
+ * Grammar: <'flex-direction'> || <'flex-wrap'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FlexFlow.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained flex-flow value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A non-global flex-direction component of flex-flow.
+ */
+pub opaque type FlexDirectionPart = String.
+
+/**
+ * A non-global flex-wrap component of flex-flow.
+ */
+pub opaque type FlexWrapPart = String.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    flex_flow: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    flex_flow: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword balance.
+ */
+pub balance(): Value ->
+    Value(Token {property: "flex-flow", css: "balance"}).
+
+/**
+ * Returns the CSS keyword column.
+ */
+pub column(): Value ->
+    Value(Token {property: "flex-flow", css: "column"}).
+
+/**
+ * Returns the CSS keyword column-reverse.
+ */
+pub column_reverse(): Value ->
+    Value(Token {property: "flex-flow", css: "column-reverse"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "flex-flow", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "flex-flow", css: "initial"}).
+
+/**
+ * Returns the CSS keyword nowrap.
+ */
+pub nowrap(): Value ->
+    Value(Token {property: "flex-flow", css: "nowrap"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "flex-flow", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "flex-flow", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword row.
+ */
+pub row(): Value ->
+    Value(Token {property: "flex-flow", css: "row"}).
+
+/**
+ * Returns the CSS keyword row-reverse.
+ */
+pub row_reverse(): Value ->
+    Value(Token {property: "flex-flow", css: "row-reverse"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "flex-flow", css: "unset"}).
+
+/**
+ * Returns the CSS keyword wrap.
+ */
+pub wrap(): Value ->
+    Value(Token {property: "flex-flow", css: "wrap"}).
+
+/**
+ * Returns the CSS keyword wrap-reverse.
+ */
+pub wrap_reverse(): Value ->
+    Value(Token {property: "flex-flow", css: "wrap-reverse"}).
+
+/**
+ * Constructs the flex-direction keyword column.
+ */
+pub flex_direction_column(): FlexDirectionPart ->
+    FlexDirectionPart("column").
+
+/**
+ * Constructs the flex-direction keyword column-reverse.
+ */
+pub flex_direction_column_reverse(): FlexDirectionPart ->
+    FlexDirectionPart("column-reverse").
+
+/**
+ * Constructs the flex-direction keyword row.
+ */
+pub flex_direction_row(): FlexDirectionPart ->
+    FlexDirectionPart("row").
+
+/**
+ * Constructs the flex-direction keyword row-reverse.
+ */
+pub flex_direction_row_reverse(): FlexDirectionPart ->
+    FlexDirectionPart("row-reverse").
+
+flex_direction_css(value: FlexDirectionPart): String ->
+    value.
+
+/**
+ * Constructs the flex-wrap keyword balance.
+ */
+pub flex_wrap_balance(): FlexWrapPart ->
+    FlexWrapPart("balance").
+
+/**
+ * Constructs the flex-wrap keyword nowrap.
+ */
+pub flex_wrap_nowrap(): FlexWrapPart ->
+    FlexWrapPart("nowrap").
+
+/**
+ * Constructs the flex-wrap keyword wrap.
+ */
+pub flex_wrap_wrap(): FlexWrapPart ->
+    FlexWrapPart("wrap").
+
+/**
+ * Constructs the flex-wrap keyword wrap-reverse.
+ */
+pub flex_wrap_wrap_reverse(): FlexWrapPart ->
+    FlexWrapPart("wrap-reverse").
+
+flex_wrap_css(value: FlexWrapPart): String ->
+    value.
+
+/**
+ * Combines every named specification group in canonical order.
+ */
+pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Value ->
+    Value(
+        Token {
+            property: "flex-flow",
+            css: flex_direction_css(flex_direction) + " " + flex_wrap_css(flex_wrap),
+        },
+    ).

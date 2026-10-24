@@ -1,0 +1,69 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-block
+ * Grammar: [ center | [ [ start | end ]? <length-percentage>? ]! ]#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BackgroundPositionBlock.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained background-position-block value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    background_position_block: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    background_position_block: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword center.
+ */
+pub center(): Value ->
+    Value(Token {property: "background-position-block", css: "center"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "background-position-block", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "background-position-block", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "background-position-block", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "background-position-block", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "background-position-block", css: "unset"}).

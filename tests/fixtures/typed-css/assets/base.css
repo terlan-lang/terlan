@@ -1,0 +1,2 @@
+/* Typed rules must override this declaration without changing import order. */
+.tile { width: 1px; color: red; }

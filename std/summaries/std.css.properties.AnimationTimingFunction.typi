@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-timing-function
+//! Grammar: <easing-function>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.AnimationTimingFunction.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    animation_timing_function: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    animation_timing_function: Value
+}.
+
+/// A nominal, specification-constrained animation-timing-function value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword ease.
+
+pub ease(): Value.
+
+/// Returns the CSS keyword ease-in.
+
+pub ease_in(): Value.
+
+/// Returns the CSS keyword ease-in-out.
+
+pub ease_in_out(): Value.
+
+/// Returns the CSS keyword ease-out.
+
+pub ease_out(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword linear.
+
+pub linear(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword step-end.
+
+pub step_end(): Value.
+
+/// Returns the CSS keyword step-start.
+
+pub step_start(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

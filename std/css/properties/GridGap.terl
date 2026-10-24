@@ -1,0 +1,116 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-grid-gap
+ * Grammar: <'row-gap'> <'column-gap'>?
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.GridGap.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained grid-gap value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    grid_gap: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    grid_gap: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword hairline.
+ */
+pub hairline(): Value ->
+    Value(Token {property: "grid-gap", css: "hairline"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "grid-gap", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "grid-gap", css: "initial"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "grid-gap", css: "medium"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "grid-gap", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "grid-gap", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "grid-gap", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword thick.
+ */
+pub thick(): Value ->
+    Value(Token {property: "grid-gap", css: "thick"}).
+
+/**
+ * Returns the CSS keyword thin.
+ */
+pub thin(): Value ->
+    Value(Token {property: "grid-gap", css: "thin"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "grid-gap", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a grid-gap value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "grid-gap", css: std.css.Values.length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a grid-gap value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true ->
+            Some(Value(Token {property: "grid-gap", css: std.css.Values.percentage_css(value)}));
+        false -> None
+    }.

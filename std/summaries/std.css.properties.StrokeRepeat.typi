@@ -1,0 +1,76 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-repeat
+//! Grammar: <repeat-style>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.StrokeRepeat.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    stroke_repeat: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    stroke_repeat: Value
+}.
+
+/// A nominal, specification-constrained stroke-repeat value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword no-repeat.
+
+pub no_repeat(): Value.
+
+/// Returns the CSS keyword repeat.
+
+pub repeat(): Value.
+
+/// Returns the CSS keyword repeat-block.
+
+pub repeat_block(): Value.
+
+/// Returns the CSS keyword repeat-inline.
+
+pub repeat_inline(): Value.
+
+/// Returns the CSS keyword repeat-x.
+
+pub repeat_x(): Value.
+
+/// Returns the CSS keyword repeat-y.
+
+pub repeat_y(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword round.
+
+pub round(): Value.
+
+/// Returns the CSS keyword space.
+
+pub space(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

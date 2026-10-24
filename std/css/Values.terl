@@ -1,0 +1,179 @@
+/**
+ * Shared typed CSS values. Property constructors enforce property-specific ranges.
+ */
+module std.css.Values.
+
+import std.core.Float.{to_string as float_text}.
+import std.core.Int.{to_string as int_text}.
+import std.core.Option.{None, Some}.
+import std.core.{Float, Int}.
+
+import type std.core.Option.
+
+/**
+ * A length with a finite magnitude and a library-owned CSS unit.
+ */
+pub struct Length {
+    #amount: Float,
+    #unit: String,
+}.
+
+/**
+ * A percentage; individual properties determine the permitted range.
+ */
+pub struct Percentage {
+    #amount: Float,
+}.
+
+/**
+ * A CSS angle with a library-owned unit.
+ */
+pub struct Angle {
+    #amount: Float,
+    #unit: String,
+}.
+
+/**
+ * A CSS time with a library-owned unit.
+ */
+pub struct Time {
+    #amount: Float,
+    #unit: String,
+}.
+
+/**
+ * A validated CSS color. Arbitrary strings cannot construct this value.
+ */
+pub opaque type Color = String.
+
+/**
+ * Constructs a pixel length.
+ */
+pub px(value: Float): Length ->
+    Length {#amount: value, #unit: "px"}.
+
+/**
+ * Constructs a root-font-relative length.
+ */
+pub root_em(value: Float): Length ->
+    Length {#amount: value, #unit: "rem"}.
+
+/**
+ * Constructs a font-relative length.
+ */
+pub em(value: Float): Length ->
+    Length {#amount: value, #unit: "em"}.
+
+/**
+ * Constructs a viewport-width-relative length.
+ */
+pub vw(value: Float): Length ->
+    Length {#amount: value, #unit: "vw"}.
+
+/**
+ * Constructs a viewport-height-relative length.
+ */
+pub vh(value: Float): Length ->
+    Length {#amount: value, #unit: "vh"}.
+
+/**
+ * Constructs a percentage.
+ */
+pub percent(value: Float): Percentage ->
+    Percentage {#amount: value}.
+
+/**
+ * Constructs an angle in degrees.
+ */
+pub deg(value: Float): Angle ->
+    Angle {#amount: value, #unit: "deg"}.
+
+/**
+ * Constructs a time in milliseconds.
+ */
+pub ms(value: Float): Time ->
+    Time {#amount: value, #unit: "ms"}.
+
+/**
+ * Constructs a time in seconds.
+ */
+pub seconds(value: Float): Time ->
+    Time {#amount: value, #unit: "s"}.
+
+/**
+ * Validates RGB channels in the inclusive range 0 through 255.
+ */
+pub rgb(red: Int, green: Int, blue: Int): Option[Color] ->
+    case red >= 0 and red <= 255 and green >= 0 and green <= 255 and blue >= 0 and blue <= 255 {
+        true ->
+            Some(
+                Color("rgb(" + int_text(red) + ", " + int_text(green) + ", " + int_text(blue) + ")"),
+            );
+        false -> None
+    }.
+
+/**
+ * Returns a fully transparent color.
+ */
+pub transparent(): Color ->
+    Color("transparent").
+
+/**
+ * Returns the current foreground color.
+ */
+pub current_color(): Color ->
+    Color("currentColor").
+
+/**
+ * Serializes a length without accepting arbitrary CSS text.
+ */
+pub length_css(value: Length): String ->
+    float_text(value.#amount) + value.#unit.
+
+/**
+ * Reads a length's magnitude for generated range checks.
+ */
+pub length_amount(value: Length): Float ->
+    value.#amount.
+
+/**
+ * Serializes a percentage.
+ */
+pub percentage_css(value: Percentage): String ->
+    float_text(value.#amount) + "%".
+
+/**
+ * Reads a percentage's magnitude for generated range checks.
+ */
+pub percentage_amount(value: Percentage): Float ->
+    value.#amount.
+
+/**
+ * Serializes a color.
+ */
+pub color_css(value: Color): String ->
+    value.
+
+/**
+ * Serializes an angle.
+ */
+pub angle_css(value: Angle): String ->
+    float_text(value.#amount) + value.#unit.
+
+/**
+ * Reads an angle's magnitude for generated range checks.
+ */
+pub angle_amount(value: Angle): Float ->
+    value.#amount.
+
+/**
+ * Serializes a time.
+ */
+pub time_css(value: Time): String ->
+    float_text(value.#amount) + value.#unit.
+
+/**
+ * Reads a time's magnitude for generated range checks.
+ */
+pub time_amount(value: Time): Float ->
+    value.#amount.

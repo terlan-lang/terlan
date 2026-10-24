@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-shrink
+//! Grammar: <number [0,∞]>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FlexShrink.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    flex_shrink: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    flex_shrink: Value
+}.
+
+/// A nominal, specification-constrained flex-shrink value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a flex-shrink value.
+
+pub number(value: Float): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

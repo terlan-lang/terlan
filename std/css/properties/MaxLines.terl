@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-overflow-4/#propdef-max-lines
+ * Grammar: auto || <integer [1,∞]>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.MaxLines.
+
+import std.core.Int.
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained max-lines value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    max_lines: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    max_lines: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "max-lines", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "max-lines", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "max-lines", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "max-lines", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "max-lines", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "max-lines", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a max-lines value.
+ */
+pub integer(value: Int): Option[Value] ->
+    case value >= 1 {
+        true -> Some(Value(Token {property: "max-lines", css: std.core.Int.to_string(value)}));
+        false -> None
+    }.

@@ -16,6 +16,8 @@ pub(crate) const RSBUILD_PACKAGE: &str = "@rsbuild/core";
 pub(crate) const RSBUILD_VERSION: &str = "2.1.13";
 pub(crate) const RSPACK_PACKAGE: &str = "@rspack/core";
 pub(crate) const RSPACK_VERSION: &str = "2.1.10";
+pub(crate) const LIGHTNING_CSS_PACKAGE: &str = "lightningcss";
+pub(crate) const LIGHTNING_CSS_VERSION: &str = "1.33.0";
 
 /// Adds browser-build context without losing the process failure as an error source.
 #[derive(Debug)]
@@ -107,6 +109,7 @@ fn validate_managed_web_toolchain(root: &Path) -> Result<ManagedWebToolchain, St
     validate_package_version(root, ANGULAR_TS_PACKAGE, ANGULAR_TS_VERSION)?;
     validate_package_version(root, RSBUILD_PACKAGE, RSBUILD_VERSION)?;
     validate_package_version(root, RSPACK_PACKAGE, RSPACK_VERSION)?;
+    validate_package_version(root, LIGHTNING_CSS_PACKAGE, LIGHTNING_CSS_VERSION)?;
 
     let rsbuild = root.join("node_modules/.bin/rsbuild");
     let angular_runtime = root
@@ -117,7 +120,12 @@ fn validate_managed_web_toolchain(root: &Path) -> Result<ManagedWebToolchain, St
         .join("node_modules")
         .join(ANGULAR_TS_PACKAGE)
         .join("@types/namespace.d.ts");
-    for required in [&rsbuild, &angular_runtime, &angular_types] {
+    for required in [
+        &rsbuild,
+        &angular_runtime,
+        &angular_types,
+        &root.join("css-bundle.mjs"),
+    ] {
         if !required.is_file() {
             return Err(format!(
                 "managed web toolchain file is missing: {}",

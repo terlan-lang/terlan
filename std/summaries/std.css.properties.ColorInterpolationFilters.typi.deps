@@ -1,0 +1,9 @@
+module=std.css.properties.ColorInterpolationFilters
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=1322036681125175007
+interface_hash=13930117477722617898
+interface_doc_hash=3952813906603575870
+deps=1
+std.core.Option=11539230284316612175

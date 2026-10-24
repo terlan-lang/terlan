@@ -1,0 +1,83 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-rhythm-1/#propdef-block-step-size
+ * Grammar: none | <length [0,∞]>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BlockStepSize.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length}.
+
+/**
+ * A nominal, specification-constrained block-step-size value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    block_step_size: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    block_step_size: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "block-step-size", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "block-step-size", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "block-step-size", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "block-step-size", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "block-step-size", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "block-step-size", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a block-step-size value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true ->
+            Some(Value(Token {property: "block-step-size", css: std.css.Values.length_css(value)}));
+        false -> None
+    }.

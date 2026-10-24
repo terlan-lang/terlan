@@ -1,0 +1,76 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-sizing-3/#propdef-min-height
+//! Grammar: auto | <box-size> | <anchor-size()>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.MinHeight.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    min_height: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    min_height: Value
+}.
+
+/// A nominal, specification-constrained min-height value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword fit-content.
+
+pub fit_content(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a min-height value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Returns the CSS keyword max-content.
+
+pub max_content(): Value.
+
+/// Returns the CSS keyword min-content.
+
+pub min_content(): Value.
+
+/// Checks the specification range and constructs a min-height value.
+
+pub percentage(value: std.css.Values.Percentage): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword stretch.
+
+pub stretch(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

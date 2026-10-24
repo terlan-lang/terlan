@@ -1,0 +1,76 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-contain-2/#propdef-contain
+//! Grammar: none | strict | content | [ [size | inline-size] || layout || style || paint ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Contain.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    contain: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    contain: Value
+}.
+
+/// A nominal, specification-constrained contain value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword content.
+
+pub content(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inline-size.
+
+pub inline_size(): Value.
+
+/// Returns the CSS keyword layout.
+
+pub layout(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword paint.
+
+pub paint(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword size.
+
+pub size(): Value.
+
+/// Returns the CSS keyword strict.
+
+pub strict(): Value.
+
+/// Returns the CSS keyword style.
+
+pub style(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

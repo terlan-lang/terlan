@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-view-timeline-inset
+//! Grammar: [ [ auto | <length-percentage> ]{1,2} ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ViewTimelineInset.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    view_timeline_inset: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    view_timeline_inset: Value
+}.
+
+/// A nominal, specification-constrained view-timeline-inset value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a view-timeline-inset value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Constructs a view-timeline-inset value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

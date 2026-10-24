@@ -1,0 +1,93 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-images-4/#propdef-object-fit
+ * Grammar: fill | none | [contain | cover] || scale-down
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ObjectFit.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained object-fit value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    object_fit: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    object_fit: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword contain.
+ */
+pub contain(): Value ->
+    Value(Token {property: "object-fit", css: "contain"}).
+
+/**
+ * Returns the CSS keyword cover.
+ */
+pub cover(): Value ->
+    Value(Token {property: "object-fit", css: "cover"}).
+
+/**
+ * Returns the CSS keyword fill.
+ */
+pub fill(): Value ->
+    Value(Token {property: "object-fit", css: "fill"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "object-fit", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "object-fit", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "object-fit", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "object-fit", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "object-fit", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword scale-down.
+ */
+pub scale_down(): Value ->
+    Value(Token {property: "object-fit", css: "scale-down"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "object-fit", css: "unset"}).

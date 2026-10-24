@@ -2,6 +2,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { output } from './inventory.mjs';
+import { port } from './server-config.mjs';
 
 const server = http.createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -23,4 +24,4 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(404).end();
   }
 });
-server.listen(4197, '127.0.0.1');
+server.listen(port, '127.0.0.1');

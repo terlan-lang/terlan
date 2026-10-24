@@ -38,6 +38,8 @@ mod args;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod build_orchestration;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod css;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod js;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod js_assets;

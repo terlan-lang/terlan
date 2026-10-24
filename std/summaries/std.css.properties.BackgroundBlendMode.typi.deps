@@ -1,0 +1,9 @@
+module=std.css.properties.BackgroundBlendMode
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=16718939446369774777
+interface_hash=13172696533856379947
+interface_doc_hash=4172570139836366007
+deps=1
+std.core.Option=11539230284316612175

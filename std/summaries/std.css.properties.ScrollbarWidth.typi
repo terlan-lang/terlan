@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-scrollbars-1/#propdef-scrollbar-width
+//! Grammar: auto | thin | none
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ScrollbarWidth.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    scrollbar_width: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    scrollbar_width: Value
+}.
+
+/// A nominal, specification-constrained scrollbar-width value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword thin.
+
+pub thin(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

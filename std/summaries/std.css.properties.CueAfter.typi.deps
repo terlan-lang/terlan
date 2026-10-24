@@ -1,0 +1,9 @@
+module=std.css.properties.CueAfter
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=16113416240059819730
+interface_hash=6367137019573338355
+interface_doc_hash=10152888532596171343
+deps=1
+std.core.Option=11539230284316612175

@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-position-3/#propdef-inset-inline-start
+//! Grammar: auto | <length-percentage>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.InsetInlineStart.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    inset_inline_start: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    inset_inline_start: Value
+}.
+
+/// A nominal, specification-constrained inset-inline-start value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a inset-inline-start value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Constructs a inset-inline-start value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

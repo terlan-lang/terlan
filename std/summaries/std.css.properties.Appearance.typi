@@ -1,0 +1,104 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-appearance
+//! Grammar: none | auto | base | base-select | <compat-auto> | <compat-special>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Appearance.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    appearance: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    appearance: Value
+}.
+
+/// A nominal, specification-constrained appearance value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword base.
+
+pub base(): Value.
+
+/// Returns the CSS keyword base-select.
+
+pub base_select(): Value.
+
+/// Returns the CSS keyword button.
+
+pub button(): Value.
+
+/// Returns the CSS keyword checkbox.
+
+pub checkbox(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword listbox.
+
+pub listbox(): Value.
+
+/// Returns the CSS keyword menulist.
+
+pub menulist(): Value.
+
+/// Returns the CSS keyword menulist-button.
+
+pub menulist_button(): Value.
+
+/// Returns the CSS keyword meter.
+
+pub meter(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword progress-bar.
+
+pub progress_bar(): Value.
+
+/// Returns the CSS keyword radio.
+
+pub radio(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword searchfield.
+
+pub searchfield(): Value.
+
+/// Returns the CSS keyword textarea.
+
+pub textarea(): Value.
+
+/// Returns the CSS keyword textfield.
+
+pub textfield(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

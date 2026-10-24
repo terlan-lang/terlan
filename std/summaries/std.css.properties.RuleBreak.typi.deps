@@ -1,0 +1,9 @@
+module=std.css.properties.RuleBreak
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=8993608584787509421
+interface_hash=13353619029141628070
+interface_doc_hash=6219348179621837182
+deps=1
+std.core.Option=11539230284316612175

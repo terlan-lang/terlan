@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-baseline-source
+//! Grammar: auto | first | last
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BaselineSource.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    baseline_source: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    baseline_source: Value
+}.
+
+/// A nominal, specification-constrained baseline-source value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword first.
+
+pub first(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword last.
+
+pub last(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

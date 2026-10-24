@@ -213,28 +213,9 @@ pub(crate) fn parse_project_manifest(source: &str, path: &Path) -> Result<Projec
                     ));
                 }
             },
-            ProjectManifestSection::WebAssets => match key {
-                "directory" => {
-                    web_assets.directory = Some(parse_string(value, path, line_no)?);
-                }
-                "public_path" => {
-                    web_assets.public_path = Some(parse_string(value, path, line_no)?);
-                }
-                "inline_limit" => {
-                    web_assets.inline_limit = Some(parse_non_negative_u64(value, path, line_no)?);
-                }
-                "rsbuild_config" => {
-                    web_assets.rsbuild_config = Some(parse_string(value, path, line_no)?);
-                }
-                _ => {
-                    return Err(format!(
-                        "{}:{}: unsupported [web.assets] key `{}`",
-                        path.display(),
-                        line_no,
-                        key
-                    ));
-                }
-            },
+            ProjectManifestSection::WebAssets => {
+                web_assets.parse_field(key, value, path, line_no)?;
+            }
             ProjectManifestSection::Scripts => {
                 if scripts
                     .iter()

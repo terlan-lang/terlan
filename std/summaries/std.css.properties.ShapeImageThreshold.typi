@@ -1,0 +1,44 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-shapes-1/#propdef-shape-image-threshold
+//! Grammar: <opacity-value>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ShapeImageThreshold.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    shape_image_threshold: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    shape_image_threshold: Value
+}.
+
+/// A nominal, specification-constrained shape-image-threshold value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

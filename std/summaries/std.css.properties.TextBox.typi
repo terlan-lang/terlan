@@ -1,0 +1,80 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box
+//! Grammar: normal | <'text-box-trim'> || <'text-box-edge'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextBox.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_box: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_box: Value
+}.
+
+/// A nominal, specification-constrained text-box value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword ideographic.
+
+pub ideographic(): Value.
+
+/// Returns the CSS keyword ideographic-ink.
+
+pub ideographic_ink(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword text.
+
+pub text(): Value.
+
+/// Returns the CSS keyword trim-both.
+
+pub trim_both(): Value.
+
+/// Returns the CSS keyword trim-end.
+
+pub trim_end(): Value.
+
+/// Returns the CSS keyword trim-start.
+
+pub trim_start(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

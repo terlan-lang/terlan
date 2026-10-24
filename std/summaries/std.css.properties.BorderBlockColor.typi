@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-block-color
+//! Grammar: <'border-top-color'>{1,2}
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BorderBlockColor.
+
+/// A single non-global border-block-color shorthand component.
+
+pub opaque type Component.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    border_block_color: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    border_block_color: Value
+}.
+
+/// A nominal, specification-constrained border-block-color value.
+
+pub opaque type Value.
+
+/// Constructs a border-block-color value from a typed color.
+
+pub color(value: std.css.Values.Color): Value.
+
+/// Constructs a border-block-color value from a typed color.
+
+pub component_color(value: std.css.Values.Color): Component.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Combines 2 typed components in specification order.
+
+pub pair(first: Component, second: Component): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Combines 1 typed components in specification order.
+
+pub single(first: Component): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

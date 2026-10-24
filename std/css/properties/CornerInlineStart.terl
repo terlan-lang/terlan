@@ -1,0 +1,203 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-inline-start
+ * Grammar: <'corner-top-shape'> || <'border-top-radius'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.CornerInlineStart.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained corner-inline-start value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A non-global corner-top-shape component of corner-inline-start.
+ */
+pub opaque type CornerTopShapePart = String.
+
+/**
+ * A non-global border-top-radius component of corner-inline-start.
+ */
+pub opaque type BorderTopRadiusPart = String.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    corner_inline_start: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    corner_inline_start: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword bevel.
+ */
+pub bevel(): Value ->
+    Value(Token {property: "corner-inline-start", css: "bevel"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "corner-inline-start", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "corner-inline-start", css: "initial"}).
+
+/**
+ * Returns the CSS keyword notch.
+ */
+pub notch(): Value ->
+    Value(Token {property: "corner-inline-start", css: "notch"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "corner-inline-start", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "corner-inline-start", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword round.
+ */
+pub round(): Value ->
+    Value(Token {property: "corner-inline-start", css: "round"}).
+
+/**
+ * Returns the CSS keyword scoop.
+ */
+pub scoop(): Value ->
+    Value(Token {property: "corner-inline-start", css: "scoop"}).
+
+/**
+ * Returns the CSS keyword square.
+ */
+pub square(): Value ->
+    Value(Token {property: "corner-inline-start", css: "square"}).
+
+/**
+ * Returns the CSS keyword squircle.
+ */
+pub squircle(): Value ->
+    Value(Token {property: "corner-inline-start", css: "squircle"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "corner-inline-start", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a corner-inline-start value.
+ */
+pub length(value: Length): Option[Value] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "corner-inline-start", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a corner-inline-start value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "corner-inline-start", css: percentage_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Constructs the corner-top-shape keyword bevel.
+ */
+pub corner_top_shape_bevel(): CornerTopShapePart ->
+    CornerTopShapePart("bevel").
+
+/**
+ * Constructs the corner-top-shape keyword notch.
+ */
+pub corner_top_shape_notch(): CornerTopShapePart ->
+    CornerTopShapePart("notch").
+
+/**
+ * Constructs the corner-top-shape keyword round.
+ */
+pub corner_top_shape_round(): CornerTopShapePart ->
+    CornerTopShapePart("round").
+
+/**
+ * Constructs the corner-top-shape keyword scoop.
+ */
+pub corner_top_shape_scoop(): CornerTopShapePart ->
+    CornerTopShapePart("scoop").
+
+/**
+ * Constructs the corner-top-shape keyword square.
+ */
+pub corner_top_shape_square(): CornerTopShapePart ->
+    CornerTopShapePart("square").
+
+/**
+ * Constructs the corner-top-shape keyword squircle.
+ */
+pub corner_top_shape_squircle(): CornerTopShapePart ->
+    CornerTopShapePart("squircle").
+
+corner_top_shape_css(value: CornerTopShapePart): String ->
+    value.
+
+/**
+ * Checks the specification range and constructs a corner-inline-start value.
+ */
+pub border_top_radius_length(value: Length): Option[BorderTopRadiusPart] ->
+    case length_amount(value) >= 0 {
+        true -> Some(BorderTopRadiusPart(length_css(value)));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a corner-inline-start value.
+ */
+pub border_top_radius_percentage(value: Percentage): Option[BorderTopRadiusPart] ->
+    case percentage_amount(value) >= 0 {
+        true -> Some(BorderTopRadiusPart(percentage_css(value)));
+        false -> None
+    }.
+
+border_top_radius_css(value: BorderTopRadiusPart): String ->
+    value.
+
+/**
+ * Combines every named specification group in canonical order.
+ */
+pub compose(corner_top_shape: CornerTopShapePart, border_top_radius: BorderTopRadiusPart): Value ->
+    Value(
+        Token {
+            property: "corner-inline-start",
+            css: corner_top_shape_css(corner_top_shape) + " " + border_top_radius_css(border_top_radius),
+        },
+    ).

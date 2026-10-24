@@ -1,0 +1,11 @@
+module=std.css.properties.StrokeDashoffset
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=6259321122289794973
+interface_hash=16735031976312820073
+interface_doc_hash=2067517306015472236
+deps=3
+std.core.Float=3784534907681217377
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

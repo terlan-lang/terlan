@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-line
+//! Grammar: none | [ underline || overline || line-through || blink ] | spelling-error | grammar-error
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextDecorationLine.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_decoration_line: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_decoration_line: Value
+}.
+
+/// A nominal, specification-constrained text-decoration-line value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword blink.
+
+pub blink(): Value.
+
+/// Returns the CSS keyword grammar-error.
+
+pub grammar_error(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword line-through.
+
+pub line_through(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword overline.
+
+pub overline(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword spelling-error.
+
+pub spelling_error(): Value.
+
+/// Returns the CSS keyword underline.
+
+pub underline(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

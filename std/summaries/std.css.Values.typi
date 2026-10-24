@@ -1,0 +1,132 @@
+//! Shared typed CSS values. Property constructors enforce property-specific ranges.
+
+module std.css.Values.
+
+/// A CSS angle with a library-owned unit.
+
+pub struct Angle {
+    #amount: Float,
+    #unit: String
+}.
+
+/// A validated CSS color. Arbitrary strings cannot construct this value.
+
+pub opaque type Color.
+
+/// A length with a finite magnitude and a library-owned CSS unit.
+
+pub struct Length {
+    #amount: Float,
+    #unit: String
+}.
+
+/// A percentage; individual properties determine the permitted range.
+
+pub struct Percentage {
+    #amount: Float
+}.
+
+/// A CSS time with a library-owned unit.
+
+pub struct Time {
+    #amount: Float,
+    #unit: String
+}.
+
+/// Reads an angle's magnitude for generated range checks.
+
+@pure
+pub angle_amount(value: Angle): Float.
+
+/// Serializes an angle.
+
+pub angle_css(value: Angle): String.
+
+/// Serializes a color.
+
+@pure
+pub color_css(value: Color): String.
+
+/// Returns the current foreground color.
+
+pub current_color(): Color.
+
+/// Constructs an angle in degrees.
+
+@pure
+pub deg(value: Float): Angle.
+
+/// Constructs a font-relative length.
+
+@pure
+pub em(value: Float): Length.
+
+/// Reads a length's magnitude for generated range checks.
+
+@pure
+pub length_amount(value: Length): Float.
+
+/// Serializes a length without accepting arbitrary CSS text.
+
+pub length_css(value: Length): String.
+
+/// Constructs a time in milliseconds.
+
+@pure
+pub ms(value: Float): Time.
+
+/// Constructs a percentage.
+
+@pure
+pub percent(value: Float): Percentage.
+
+/// Reads a percentage's magnitude for generated range checks.
+
+@pure
+pub percentage_amount(value: Percentage): Float.
+
+/// Serializes a percentage.
+
+pub percentage_css(value: Percentage): String.
+
+/// Constructs a pixel length.
+
+@pure
+pub px(value: Float): Length.
+
+/// Validates RGB channels in the inclusive range 0 through 255.
+
+pub rgb(red: Int, green: Int, blue: Int): Option[Color].
+
+/// Constructs a root-font-relative length.
+
+@pure
+pub root_em(value: Float): Length.
+
+/// Constructs a time in seconds.
+
+@pure
+pub seconds(value: Float): Time.
+
+/// Reads a time's magnitude for generated range checks.
+
+@pure
+pub time_amount(value: Time): Float.
+
+/// Serializes a time.
+
+pub time_css(value: Time): String.
+
+/// Returns a fully transparent color.
+
+pub transparent(): Color.
+
+/// Constructs a viewport-height-relative length.
+
+@pure
+pub vh(value: Float): Length.
+
+/// Constructs a viewport-width-relative length.
+
+@pure
+pub vw(value: Float): Length.

@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-5/#propdef-font-size-adjust
+//! Grammar: none | [ ex-height | cap-height | ch-width | ic-width | ic-height ]? [ from-font | <number [0,∞]> ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontSizeAdjust.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_size_adjust: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_size_adjust: Value
+}.
+
+/// A nominal, specification-constrained font-size-adjust value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword from-font.
+
+pub from_font(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Checks the specification range and constructs a font-size-adjust value.
+
+pub number(value: Float): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-5/#propdef-text-fit
+//! Grammar: [ none | grow | shrink ] [consistent | per-line | per-line-all]? <percentage>?
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextFit.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_fit: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_fit: Value
+}.
+
+/// A nominal, specification-constrained text-fit value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword grow.
+
+pub grow(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword shrink.
+
+pub shrink(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

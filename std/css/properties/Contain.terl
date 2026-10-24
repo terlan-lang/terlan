@@ -1,0 +1,111 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-contain-2/#propdef-contain
+ * Grammar: none | strict | content | [ [size | inline-size] || layout || style || paint ]
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Contain.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained contain value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    contain: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    contain: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword content.
+ */
+pub content(): Value ->
+    Value(Token {property: "contain", css: "content"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "contain", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "contain", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline-size.
+ */
+pub inline_size(): Value ->
+    Value(Token {property: "contain", css: "inline-size"}).
+
+/**
+ * Returns the CSS keyword layout.
+ */
+pub layout(): Value ->
+    Value(Token {property: "contain", css: "layout"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "contain", css: "none"}).
+
+/**
+ * Returns the CSS keyword paint.
+ */
+pub paint(): Value ->
+    Value(Token {property: "contain", css: "paint"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "contain", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "contain", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword size.
+ */
+pub size(): Value ->
+    Value(Token {property: "contain", css: "size"}).
+
+/**
+ * Returns the CSS keyword strict.
+ */
+pub strict(): Value ->
+    Value(Token {property: "contain", css: "strict"}).
+
+/**
+ * Returns the CSS keyword style.
+ */
+pub style(): Value ->
+    Value(Token {property: "contain", css: "style"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "contain", css: "unset"}).

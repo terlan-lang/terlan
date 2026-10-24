@@ -1,0 +1,68 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-word-break
+//! Grammar: normal | break-all | keep-all | manual | auto-phrase | break-word
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WordBreak.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    word_break: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    word_break: Value
+}.
+
+/// A nominal, specification-constrained word-break value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto-phrase.
+
+pub auto_phrase(): Value.
+
+/// Returns the CSS keyword break-all.
+
+pub break_all(): Value.
+
+/// Returns the CSS keyword break-word.
+
+pub break_word(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword keep-all.
+
+pub keep_all(): Value.
+
+/// Returns the CSS keyword manual.
+
+pub manual(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

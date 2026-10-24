@@ -1,0 +1,60 @@
+module typed_css.Styles.
+
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.css.Stylesheet.{rule}.
+import std.css.Values.{percent, px, rgb, root_em}.
+import std.css.properties.Height.{length as height_length}.
+import std.css.properties.Width.{length as width_length}.
+import std.css.properties.{Border, BorderRadius, Margin, Padding}.
+
+import type std.core.Result.
+import type std.css.Stylesheet.{Rule}.
+import type std.css.properties.Border.{Property as BorderProperty}.
+import type std.css.properties.BorderRadius.{Property as RadiusProperty}.
+import type std.css.properties.Height.{Property as HeightProperty}.
+import type std.css.properties.Margin.{Property as MarginProperty}.
+import type std.css.properties.Padding.{Property as PaddingProperty}.
+import type std.css.properties.Width.{Property as WidthProperty}.
+
+pub struct Dimensions includes WidthProperty, HeightProperty {
+}.
+
+pub struct Tile includes Dimensions, MarginProperty, PaddingProperty, RadiusProperty, BorderProperty {
+}.
+
+pub stylesheet(): Result[List[Rule[Tile]], String] ->
+    case {
+        width_length(px(30.0)),
+        height_length(px(30.0)),
+        Padding.component_length(root_em(1.0)),
+        Padding.component_percentage(percent(5.0)),
+        BorderRadius.component_length(px(1.0)),
+        BorderRadius.component_length(px(2.0)),
+        BorderRadius.component_length(px(3.0)),
+        Border.line_width_length(px(2.0)),
+        rgb(127, 136, 26),
+    } {
+        {Some(width), Some(height), Some(vertical), Some(horizontal), Some(first), Some(second), Some(third), Some(border_width), Some(color)} ->
+            Ok(
+                [
+                    rule(
+                        ".tile",
+                        Tile {
+                            width: width,
+                            height: height,
+                            margin: Margin.quad(
+                                Margin.component_length(px(-1.0)),
+                                Margin.component_percentage(percent(25.0)),
+                                Margin.component_auto(),
+                                Margin.component_length(root_em(2.0)),
+                            ),
+                            padding: Padding.pair(vertical, horizontal),
+                            border_radius: BorderRadius.triple(first, second, third),
+                            border: Border.compose(border_width, Border.line_style_solid(), color),
+                        },
+                    ),
+                ],
+            );
+        _ -> Err("invalid tile dimensions")
+    }.

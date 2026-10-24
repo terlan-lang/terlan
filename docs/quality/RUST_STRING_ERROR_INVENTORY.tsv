@@ -46,6 +46,7 @@ crates/terlan/src/commands/build/build_orchestration.rs	4	internal-helper	comman
 crates/terlan/src/commands/build/build_orchestration/package_outputs.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/build_orchestration/source_root_builds.rs	8	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/build_orchestration/test_dependencies.rs	2	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/css.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js.rs	6	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js_assets.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js_browser.rs	10	internal-helper	command-errors	0.0.9
@@ -62,7 +63,7 @@ crates/terlan/src/commands/build/package_layout.rs	1	internal-helper	command-err
 crates/terlan/src/commands/build/package_publish.rs	11	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/package_registry_mirror.rs	10	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/project_manifest/accelerator.rs	2	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/project_manifest/config.rs	7	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/project_manifest/config.rs	8	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/project_manifest/dependencies.rs	11	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/project_manifest/deployment.rs	8	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/project_manifest/inline_table.rs	4	internal-helper	command-errors	0.0.9
@@ -82,7 +83,8 @@ crates/terlan/src/commands/build/vm_artifact/native_debug.rs	1	internal-helper	c
 crates/terlan/src/commands/build/vm_artifact/native_image.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_image/serve_fixture.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_reuse.rs	1	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/vm_artifact/orchestration.rs	2	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/vm_artifact/orchestration.rs	4	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/vm_artifact/source_exports.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_launcher.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/wasm_artifact.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/web_toolchain.rs	4	internal-helper	command-errors	0.0.9

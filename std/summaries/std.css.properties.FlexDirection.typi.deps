@@ -1,0 +1,9 @@
+module=std.css.properties.FlexDirection
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=3087254649826806973
+interface_hash=7698657691871098745
+interface_doc_hash=270499190268522411
+deps=1
+std.core.Option=11539230284316612175

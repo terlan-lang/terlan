@@ -9,6 +9,7 @@
   "dependencies": {
     "@angular-wave/angular.ts": "0.32.0",
     "@rsbuild/core": "2.1.13",
-    "@rspack/core": "2.1.10"
+    "@rspack/core": "2.1.10",
+    "lightningcss": "1.33.0"
   }
 }

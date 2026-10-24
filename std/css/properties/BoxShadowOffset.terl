@@ -1,0 +1,78 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-box-shadow-offset
+ * Grammar: [ none | <length>{1,2} ]#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BoxShadowOffset.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length}.
+
+/**
+ * A nominal, specification-constrained box-shadow-offset value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    box_shadow_offset: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    box_shadow_offset: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "box-shadow-offset", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "box-shadow-offset", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "box-shadow-offset", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "box-shadow-offset", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "box-shadow-offset", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "box-shadow-offset", css: "unset"}).
+
+/**
+ * Constructs a box-shadow-offset value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "box-shadow-offset", css: std.css.Values.length_css(value)}).

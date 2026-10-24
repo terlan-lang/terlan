@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-overflow-4/#propdef-block-ellipsis
+//! Grammar: no-ellipsis | ellipsis | <string>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BlockEllipsis.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    block_ellipsis: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    block_ellipsis: Value
+}.
+
+/// A nominal, specification-constrained block-ellipsis value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword ellipsis.
+
+pub ellipsis(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword no-ellipsis.
+
+pub no_ellipsis(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

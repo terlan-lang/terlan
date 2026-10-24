@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-tables-3/#propdef-border-collapse
+//! Grammar: separate | collapse
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BorderCollapse.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    border_collapse: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    border_collapse: Value
+}.
+
+/// A nominal, specification-constrained border-collapse value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword collapse.
+
+pub collapse(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword separate.
+
+pub separate(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,68 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-line-grid-1/#propdef-box-snap
+//! Grammar: none | block-start | block-end | center | baseline | last-baseline
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BoxSnap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    box_snap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    box_snap: Value
+}.
+
+/// A nominal, specification-constrained box-snap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword baseline.
+
+pub baseline(): Value.
+
+/// Returns the CSS keyword block-end.
+
+pub block_end(): Value.
+
+/// Returns the CSS keyword block-start.
+
+pub block_start(): Value.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword last-baseline.
+
+pub last_baseline(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

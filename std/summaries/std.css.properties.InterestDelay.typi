@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-interest-delay
+//! Grammar: <'interest-delay-start'>{1,2}
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.InterestDelay.
+
+/// A single non-global interest-delay shorthand component.
+
+pub opaque type Component.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    interest_delay: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    interest_delay: Value
+}.
+
+/// A nominal, specification-constrained interest-delay value.
+
+pub opaque type Value.
+
+/// Constructs one interest-delay shorthand component.
+
+pub component_normal(): Component.
+
+/// Constructs a interest-delay value from a typed time.
+
+pub component_time(value: std.css.Values.Time): Component.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Combines 2 typed components in specification order.
+
+pub pair(first: Component, second: Component): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Combines 1 typed components in specification order.
+
+pub single(first: Component): Value.
+
+/// Constructs a interest-delay value from a typed time.
+
+pub time(value: std.css.Values.Time): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-position-3/#propdef-position
+//! Grammar: static | relative | absolute | sticky | fixed | <running()>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Position.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    position: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    position: Value
+}.
+
+/// A nominal, specification-constrained position value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword absolute.
+
+pub absolute(): Value.
+
+/// Returns the CSS keyword fixed.
+
+pub fixed(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword relative.
+
+pub relative(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword static.
+
+pub static(): Value.
+
+/// Returns the CSS keyword sticky.
+
+pub sticky(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box-trim
+//! Grammar: none | trim-start | trim-end | trim-both
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextBoxTrim.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_box_trim: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_box_trim: Value
+}.
+
+/// A nominal, specification-constrained text-box-trim value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword trim-both.
+
+pub trim_both(): Value.
+
+/// Returns the CSS keyword trim-end.
+
+pub trim_end(): Value.
+
+/// Returns the CSS keyword trim-start.
+
+pub trim_start(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-user-select
+//! Grammar: auto | text | none | contain | all
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.UserSelect.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    user_select: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    user_select: Value
+}.
+
+/// A nominal, specification-constrained user-select value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all.
+
+pub all(): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword text.
+
+pub text(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

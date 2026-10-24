@@ -1,0 +1,8 @@
+module typed_css.WrongProperty.
+
+import std.css.properties.Height.{auto}.
+
+import type std.css.properties.Width.{Value as Width}.
+
+pub invalid(): Width ->
+    auto().

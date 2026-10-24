@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-visibility
+ * Grammar: always | [ anchor-valid || anchor-visible || no-overflow ]
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.PositionVisibility.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained position-visibility value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    position_visibility: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    position_visibility: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword always.
+ */
+pub always(): Value ->
+    Value(Token {property: "position-visibility", css: "always"}).
+
+/**
+ * Returns the CSS keyword anchor-valid.
+ */
+pub anchor_valid(): Value ->
+    Value(Token {property: "position-visibility", css: "anchor-valid"}).
+
+/**
+ * Returns the CSS keyword anchor-visible.
+ */
+pub anchor_visible(): Value ->
+    Value(Token {property: "position-visibility", css: "anchor-visible"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "position-visibility", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "position-visibility", css: "initial"}).
+
+/**
+ * Returns the CSS keyword no-overflow.
+ */
+pub no_overflow(): Value ->
+    Value(Token {property: "position-visibility", css: "no-overflow"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "position-visibility", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "position-visibility", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "position-visibility", css: "unset"}).

@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-attachment
+ * Grammar: <attachment>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BackgroundAttachment.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained background-attachment value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    background_attachment: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    background_attachment: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword fixed.
+ */
+pub fixed(): Value ->
+    Value(Token {property: "background-attachment", css: "fixed"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "background-attachment", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "background-attachment", css: "initial"}).
+
+/**
+ * Returns the CSS keyword local.
+ */
+pub local(): Value ->
+    Value(Token {property: "background-attachment", css: "local"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "background-attachment", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "background-attachment", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword scroll.
+ */
+pub scroll(): Value ->
+    Value(Token {property: "background-attachment", css: "scroll"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "background-attachment", css: "unset"}).

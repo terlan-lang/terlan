@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-forced-color-adjust
+//! Grammar: auto | none | preserve-parent-color
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ForcedColorAdjust.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    forced_color_adjust: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    forced_color_adjust: Value
+}.
+
+/// A nominal, specification-constrained forced-color-adjust value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword preserve-parent-color.
+
+pub preserve_parent_color(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

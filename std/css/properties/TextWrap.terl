@@ -1,0 +1,174 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-wrap
+ * Grammar: <'text-wrap-mode'> || <'text-wrap-style'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextWrap.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-wrap value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A non-global text-wrap-mode component of text-wrap.
+ */
+pub opaque type TextWrapModePart = String.
+
+/**
+ * A non-global text-wrap-style component of text-wrap.
+ */
+pub opaque type TextWrapStylePart = String.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_wrap: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_wrap: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "text-wrap", css: "auto"}).
+
+/**
+ * Returns the CSS keyword avoid-short-last-line.
+ */
+pub avoid_short_last_line(): Value ->
+    Value(Token {property: "text-wrap", css: "avoid-short-last-line"}).
+
+/**
+ * Returns the CSS keyword balance.
+ */
+pub balance(): Value ->
+    Value(Token {property: "text-wrap", css: "balance"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-wrap", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-wrap", css: "initial"}).
+
+/**
+ * Returns the CSS keyword nowrap.
+ */
+pub nowrap(): Value ->
+    Value(Token {property: "text-wrap", css: "nowrap"}).
+
+/**
+ * Returns the CSS keyword pretty.
+ */
+pub pretty(): Value ->
+    Value(Token {property: "text-wrap", css: "pretty"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-wrap", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-wrap", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword stable.
+ */
+pub stable(): Value ->
+    Value(Token {property: "text-wrap", css: "stable"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-wrap", css: "unset"}).
+
+/**
+ * Returns the CSS keyword wrap.
+ */
+pub wrap(): Value ->
+    Value(Token {property: "text-wrap", css: "wrap"}).
+
+/**
+ * Constructs the text-wrap-mode keyword nowrap.
+ */
+pub text_wrap_mode_nowrap(): TextWrapModePart ->
+    TextWrapModePart("nowrap").
+
+/**
+ * Constructs the text-wrap-mode keyword wrap.
+ */
+pub text_wrap_mode_wrap(): TextWrapModePart ->
+    TextWrapModePart("wrap").
+
+text_wrap_mode_css(value: TextWrapModePart): String ->
+    value.
+
+/**
+ * Constructs the text-wrap-style keyword auto.
+ */
+pub text_wrap_style_auto(): TextWrapStylePart ->
+    TextWrapStylePart("auto").
+
+/**
+ * Constructs the text-wrap-style keyword avoid-short-last-line.
+ */
+pub text_wrap_style_avoid_short_last_line(): TextWrapStylePart ->
+    TextWrapStylePart("avoid-short-last-line").
+
+/**
+ * Constructs the text-wrap-style keyword balance.
+ */
+pub text_wrap_style_balance(): TextWrapStylePart ->
+    TextWrapStylePart("balance").
+
+/**
+ * Constructs the text-wrap-style keyword pretty.
+ */
+pub text_wrap_style_pretty(): TextWrapStylePart ->
+    TextWrapStylePart("pretty").
+
+/**
+ * Constructs the text-wrap-style keyword stable.
+ */
+pub text_wrap_style_stable(): TextWrapStylePart ->
+    TextWrapStylePart("stable").
+
+text_wrap_style_css(value: TextWrapStylePart): String ->
+    value.
+
+/**
+ * Combines every named specification group in canonical order.
+ */
+pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Value ->
+    Value(
+        Token {
+            property: "text-wrap",
+            css: text_wrap_mode_css(text_wrap_mode) + " " + text_wrap_style_css(text_wrap_style),
+        },
+    ).

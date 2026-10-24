@@ -229,7 +229,7 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
     incremental: bool,
 ) -> Result<bool, String> {
     let source_entry = config.source_dir.join("index.js");
-    if !source_entry.is_file() && !config.angular_ts {
+    if !source_entry.is_file() && !config.angular_ts && config.styles.is_empty() {
         return Ok(false);
     }
     let template = config.source_dir.join("index.html");
@@ -271,19 +271,27 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
     let toolchain = super::super::web_toolchain::resolve_managed_web_toolchain()?;
     let entry = if source_entry.is_file() {
         source_entry
-    } else {
+    } else if config.angular_ts {
         let generated_styles = build_root.join("terlan.angular.styles.generated.css");
-        write_build_file(
-            &generated_styles,
-            render_angular_ts_styles(config)?.as_bytes(),
-            incremental,
-        )?;
+        if config.styles.is_empty() {
+            write_build_file(
+                &generated_styles,
+                render_angular_ts_styles(config)?.as_bytes(),
+                incremental,
+            )?;
+        }
         let generated = build_root.join("terlan.angular.bootstrap.generated.js");
-        write_build_file(
-            &generated,
-            render_angular_ts_bootstrap().as_bytes(),
-            incremental,
-        )?;
+        let bootstrap = if config.styles.is_empty() {
+            render_angular_ts_bootstrap().to_string()
+        } else {
+            render_angular_ts_bootstrap()
+                .replace("import './terlan.angular.styles.generated.css';\n", "")
+        };
+        write_build_file(&generated, bootstrap.as_bytes(), incremental)?;
+        generated
+    } else {
+        let generated = build_root.join("terlan.css.bootstrap.generated.js");
+        write_build_file(&generated, b"export {};\n", incremental)?;
         generated
     };
     let entry = fs::canonicalize(&entry).map_err(|err| {
@@ -311,6 +319,25 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
         )
     })?;
 
+    let styles = super::super::css::bundle_stylesheets(&config.styles, &build_root, incremental)?;
+    if styles.is_some() && config.rsbuild_config.is_some() {
+        return Err(
+            "error[css_build]: manifest styles require compiler-managed browser configuration"
+                .into(),
+        );
+    }
+    let style_entry = if let Some(styles) = styles {
+        let entry = build_root.join("terlan.styles.generated.js");
+        let import = format!(
+            "import {};\n",
+            serde_json::to_string(&styles).map_err(|error| error.to_string())?
+        );
+        write_build_file(&entry, import.as_bytes(), incremental)?;
+        Some(entry)
+    } else {
+        None
+    };
+
     let config_path = if let Some(config_path) = config.rsbuild_config.as_ref() {
         if !config_path.is_file() {
             return Err(format!(
@@ -321,7 +348,13 @@ pub(super) fn bundle_manifest_static_assets_with_rsbuild(
         config_path.clone()
     } else {
         let config_path = build_root.join("rsbuild.terlan.generated.mjs");
-        let config_text = render_rsbuild_config(&entry, &template, &web_root, config.angular_ts)?;
+        let config_text = render_rsbuild_config(
+            &entry,
+            &template,
+            &web_root,
+            config.angular_ts,
+            style_entry.as_deref(),
+        )?;
         write_build_file(&config_path, config_text.as_bytes(), incremental)?;
         config_path
     };
@@ -371,6 +404,7 @@ fn render_rsbuild_config(
     template: &Path,
     web_root: &Path,
     angular_ts: bool,
+    style_entry: Option<&Path>,
 ) -> Result<String, String> {
     let build_root = web_root.parent().ok_or_else(|| {
         format!(
@@ -392,8 +426,13 @@ fn render_rsbuild_config(
     } else {
         String::new()
     };
+    let styles = style_entry
+        .map(|path| serde_json::to_string(path).map(|path| format!("preEntry: [{path}], ")))
+        .transpose()
+        .map_err(|error| error.to_string())?
+        .unwrap_or_default();
     Ok(format!(
-        "export default {{\n  root: {build_root},\n  source: {{ entry: {{ index: {entry} }} }},\n  html: {{ template: {template} }},\n{alias}  performance: {{ chunkSplit: {{ strategy: 'all-in-one' }} }},\n  output: {{\n    distPath: {{ root: {web_root} }},\n    cleanDistPath: false,\n    assetPrefix: '/',\n    filename: {{ js: 'static/[name].js', css: 'static/[name].css', media: 'static/[name][ext]', font: 'static/[name][ext]', image: 'static/[name][ext]' }}\n  }}\n}};\n"
+        "export default {{\n  root: {build_root},\n  source: {{ {styles}entry: {{ index: {entry} }} }},\n  html: {{ template: {template} }},\n  tools: {{ lightningcssLoader: true }},\n{alias}  performance: {{ chunkSplit: {{ strategy: 'all-in-one' }} }},\n  output: {{\n    sourceMap: {{ css: true }},\n    distPath: {{ root: {web_root} }},\n    cleanDistPath: false,\n    assetPrefix: '/',\n    filename: {{ js: 'static/[name].js', css: 'static/[name].css', media: 'static/[name][ext]', font: 'static/[name][ext]', image: 'static/[name][ext]' }}\n  }}\n}};\n"
     ))
 }
 

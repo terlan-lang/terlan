@@ -1,0 +1,10 @@
+module=std.css.properties.BookmarkLevel
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=5331470379757049070
+interface_hash=8829221538548372946
+interface_doc_hash=11280776865679519791
+deps=2
+std.core.Int=6981787512204747997
+std.core.Option=11539230284316612175

@@ -1,0 +1,138 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition
+ * Grammar: <single-transition>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Transition.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Time}.
+
+/**
+ * A nominal, specification-constrained transition value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    transition: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    transition: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword all.
+ */
+pub all(): Value ->
+    Value(Token {property: "transition", css: "all"}).
+
+/**
+ * Returns the CSS keyword allow-discrete.
+ */
+pub allow_discrete(): Value ->
+    Value(Token {property: "transition", css: "allow-discrete"}).
+
+/**
+ * Returns the CSS keyword ease.
+ */
+pub ease(): Value ->
+    Value(Token {property: "transition", css: "ease"}).
+
+/**
+ * Returns the CSS keyword ease-in.
+ */
+pub ease_in(): Value ->
+    Value(Token {property: "transition", css: "ease-in"}).
+
+/**
+ * Returns the CSS keyword ease-in-out.
+ */
+pub ease_in_out(): Value ->
+    Value(Token {property: "transition", css: "ease-in-out"}).
+
+/**
+ * Returns the CSS keyword ease-out.
+ */
+pub ease_out(): Value ->
+    Value(Token {property: "transition", css: "ease-out"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "transition", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "transition", css: "initial"}).
+
+/**
+ * Returns the CSS keyword linear.
+ */
+pub linear(): Value ->
+    Value(Token {property: "transition", css: "linear"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "transition", css: "none"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "transition", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "transition", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "transition", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword step-end.
+ */
+pub step_end(): Value ->
+    Value(Token {property: "transition", css: "step-end"}).
+
+/**
+ * Returns the CSS keyword step-start.
+ */
+pub step_start(): Value ->
+    Value(Token {property: "transition", css: "step-start"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "transition", css: "unset"}).
+
+/**
+ * Constructs a transition value from a typed time.
+ */
+pub time(value: Time): Value ->
+    Value(Token {property: "transition", css: std.css.Values.time_css(value)}).

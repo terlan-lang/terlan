@@ -1,0 +1,166 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-inline-width
+ * Grammar: <'border-top-width'>{1,2}
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderInlineWidth.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+import std.css.Values.{length_amount, length_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Length}.
+
+/**
+ * A nominal, specification-constrained border-inline-width value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A single non-global border-inline-width shorthand component.
+ */
+pub opaque type Component = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_inline_width: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_inline_width: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword hairline.
+ */
+pub hairline(): Value ->
+    Value(Token {property: "border-inline-width", css: "hairline"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-inline-width", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-inline-width", css: "initial"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "border-inline-width", css: "medium"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-inline-width", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-inline-width", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword thick.
+ */
+pub thick(): Value ->
+    Value(Token {property: "border-inline-width", css: "thick"}).
+
+/**
+ * Returns the CSS keyword thin.
+ */
+pub thin(): Value ->
+    Value(Token {property: "border-inline-width", css: "thin"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-inline-width", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a border-inline-width value.
+ */
+pub length(value: Length): Option[Value] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "border-inline-width", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Constructs one border-inline-width shorthand component.
+ */
+pub component_hairline(): Component ->
+    Component(Token {property: "border-inline-width", css: "hairline"}).
+
+/**
+ * Constructs one border-inline-width shorthand component.
+ */
+pub component_medium(): Component ->
+    Component(Token {property: "border-inline-width", css: "medium"}).
+
+/**
+ * Constructs one border-inline-width shorthand component.
+ */
+pub component_thick(): Component ->
+    Component(Token {property: "border-inline-width", css: "thick"}).
+
+/**
+ * Constructs one border-inline-width shorthand component.
+ */
+pub component_thin(): Component ->
+    Component(Token {property: "border-inline-width", css: "thin"}).
+
+/**
+ * Checks the specification range and constructs a border-inline-width value.
+ */
+pub component_length(value: Length): Option[Component] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Component(Token {property: "border-inline-width", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Serializes a library-owned shorthand component.
+ */
+component_css(value: Component): String ->
+    let token = component_token(value);
+    token.css.
+
+component_token(value: Component): Token ->
+    value.
+
+/**
+ * Combines 1 typed components in specification order.
+ */
+pub single(first: Component): Value ->
+    Value(Token {property: "border-inline-width", css: component_css(first)}).
+
+/**
+ * Combines 2 typed components in specification order.
+ */
+pub pair(first: Component, second: Component): Value ->
+    Value(
+        Token {
+            property: "border-inline-width",
+            css: component_css(first) + " " + component_css(second),
+        },
+    ).

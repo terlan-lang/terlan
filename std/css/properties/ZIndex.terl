@@ -1,0 +1,77 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css2/#propdef-z-index
+ * Grammar: auto | <integer> | inherit
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ZIndex.
+
+import std.core.Int.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained z-index value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    z_index: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    z_index: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "z-index", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "z-index", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "z-index", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "z-index", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "z-index", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "z-index", css: "unset"}).
+
+/**
+ * Constructs a z-index value from a typed integer.
+ */
+pub integer(value: Int): Value ->
+    Value(Token {property: "z-index", css: std.core.Int.to_string(value)}).

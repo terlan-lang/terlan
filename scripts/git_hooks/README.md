@@ -53,7 +53,15 @@ npm --prefix tests/js ci --ignore-scripts
 The browser matrix runs for every nonempty commit, including documentation-only
 commits. Its compiler, sources, and generated artifacts come from the staged
 snapshot. Reports and failure traces are under the snapshot's
-`target/js-browser/` directory.
+`target/js-browser/` directory. Set `TERLAN_JS_TEST_PORT` to an unused port when
+validating another checkout concurrently; the default is 4197. The server and
+Playwright share this setting, and each run starts its own server.
+
+Typed CSS changes also regenerate-check all 752 specification-derived bindings,
+check their types in bounded batches, execute native value tests and negative
+fixtures, and build the browser stylesheet fixture through Lightning CSS.
+The hook installs the pinned CSS and web toolchains for this gate. Standard-library
+summary generation batches the independent CSS property modules separately.
 
 | Staged changes | Local checks |
 | --- | --- |
@@ -67,6 +75,7 @@ snapshot. Reports and failure traces are under the snapshot's
 | Other Rust source, Cargo manifests/lockfile, Rust toolchain/config | Workspace tests, including binary and integration targets |
 | Root Makefile, isolated bootstrap Makefile, or hook runner | On Linux, run the real sandbox bootstrap integration suite; requires Bubblewrap and working user namespaces |
 | Other `tests/fixtures/` inputs | Workspace tests; negative fixtures are validated by their owning tests |
+| Typed CSS library, generator, bundler, or validation script | Complete typed CSS generation, type, native-value, rejection, and browser-build checks |
 | Terlan source and manifests | Build affected packages with their configured source roots; check standalone files; run changed or adjacent `*Test.terl` files |
 | Editor source | Tree-sitter package, generation, and corpus checks; requires Node/npm |
 | GitHub workflows/actions | Pinned actionlint, as in CI; requires Go |

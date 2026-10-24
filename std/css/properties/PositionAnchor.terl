@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-anchor
+ * Grammar: normal | none | auto | <anchor-name> | match-parent
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.PositionAnchor.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained position-anchor value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    position_anchor: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    position_anchor: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "position-anchor", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "position-anchor", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "position-anchor", css: "initial"}).
+
+/**
+ * Returns the CSS keyword match-parent.
+ */
+pub match_parent(): Value ->
+    Value(Token {property: "position-anchor", css: "match-parent"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "position-anchor", css: "none"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "position-anchor", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "position-anchor", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "position-anchor", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "position-anchor", css: "unset"}).

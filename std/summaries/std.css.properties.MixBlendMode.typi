@@ -1,0 +1,112 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/compositing-2/#propdef-mix-blend-mode
+//! Grammar: <blend-mode> | plus-lighter
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.MixBlendMode.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    mix_blend_mode: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    mix_blend_mode: Value
+}.
+
+/// A nominal, specification-constrained mix-blend-mode value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword color.
+
+pub color(): Value.
+
+/// Returns the CSS keyword color-burn.
+
+pub color_burn(): Value.
+
+/// Returns the CSS keyword color-dodge.
+
+pub color_dodge(): Value.
+
+/// Returns the CSS keyword darken.
+
+pub darken(): Value.
+
+/// Returns the CSS keyword difference.
+
+pub difference(): Value.
+
+/// Returns the CSS keyword exclusion.
+
+pub exclusion(): Value.
+
+/// Returns the CSS keyword hard-light.
+
+pub hard_light(): Value.
+
+/// Returns the CSS keyword hue.
+
+pub hue(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword lighten.
+
+pub lighten(): Value.
+
+/// Returns the CSS keyword luminosity.
+
+pub luminosity(): Value.
+
+/// Returns the CSS keyword multiply.
+
+pub multiply(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword overlay.
+
+pub overlay(): Value.
+
+/// Returns the CSS keyword plus-lighter.
+
+pub plus_lighter(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword saturation.
+
+pub saturation(): Value.
+
+/// Returns the CSS keyword screen.
+
+pub screen(): Value.
+
+/// Returns the CSS keyword soft-light.
+
+pub soft_light(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

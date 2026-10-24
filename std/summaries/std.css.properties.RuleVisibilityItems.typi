@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-visibility-items
+//! Grammar: <'column-rule-visibility-items'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.RuleVisibilityItems.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    rule_visibility_items: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    rule_visibility_items: Value
+}.
+
+/// A nominal, specification-constrained rule-visibility-items value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all.
+
+pub all(): Value.
+
+/// Returns the CSS keyword around.
+
+pub around(): Value.
+
+/// Returns the CSS keyword between.
+
+pub between(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,129 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProperty
+ * Grammar: auto | bounding-box | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | none
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.PointerEvents.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained pointer-events value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    pointer_events: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    pointer_events: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword all.
+ */
+pub all(): Value ->
+    Value(Token {property: "pointer-events", css: "all"}).
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "pointer-events", css: "auto"}).
+
+/**
+ * Returns the CSS keyword bounding-box.
+ */
+pub bounding_box(): Value ->
+    Value(Token {property: "pointer-events", css: "bounding-box"}).
+
+/**
+ * Returns the CSS keyword fill.
+ */
+pub fill(): Value ->
+    Value(Token {property: "pointer-events", css: "fill"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "pointer-events", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "pointer-events", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "pointer-events", css: "none"}).
+
+/**
+ * Returns the CSS keyword painted.
+ */
+pub painted(): Value ->
+    Value(Token {property: "pointer-events", css: "painted"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "pointer-events", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "pointer-events", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword stroke.
+ */
+pub stroke(): Value ->
+    Value(Token {property: "pointer-events", css: "stroke"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "pointer-events", css: "unset"}).
+
+/**
+ * Returns the CSS keyword visible.
+ */
+pub visible(): Value ->
+    Value(Token {property: "pointer-events", css: "visible"}).
+
+/**
+ * Returns the CSS keyword visibleFill.
+ */
+pub visibleFill(): Value ->
+    Value(Token {property: "pointer-events", css: "visibleFill"}).
+
+/**
+ * Returns the CSS keyword visiblePainted.
+ */
+pub visiblePainted(): Value ->
+    Value(Token {property: "pointer-events", css: "visiblePainted"}).
+
+/**
+ * Returns the CSS keyword visibleStroke.
+ */
+pub visibleStroke(): Value ->
+    Value(Token {property: "pointer-events", css: "visibleStroke"}).

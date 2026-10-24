@@ -1,0 +1,88 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-position-3/#propdef-inset
+//! Grammar: <'top'>{1,4}
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Inset.
+
+/// A single non-global inset shorthand component.
+
+pub opaque type Component.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    inset: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    inset: Value
+}.
+
+/// A nominal, specification-constrained inset value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Constructs one inset shorthand component.
+
+pub component_auto(): Component.
+
+/// Constructs a inset value from a typed length.
+
+pub component_length(value: std.css.Values.Length): Component.
+
+/// Constructs a inset value from a typed percentage.
+
+pub component_percentage(value: std.css.Values.Percentage): Component.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a inset value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Combines 2 typed components in specification order.
+
+pub pair(first: Component, second: Component): Value.
+
+/// Constructs a inset value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Combines 4 typed components in specification order.
+
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Combines 1 typed components in specification order.
+
+pub single(first: Component): Value.
+
+/// Combines 3 typed components in specification order.
+
+pub triple(first: Component, second: Component, third: Component): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

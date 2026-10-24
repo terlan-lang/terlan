@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/scroll-animations-1/#propdef-scroll-timeline-axis
+ * Grammar: [ block | inline | x | y ]#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ScrollTimelineAxis.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained scroll-timeline-axis value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    scroll_timeline_axis: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    scroll_timeline_axis: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword block.
+ */
+pub block(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "block"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline.
+ */
+pub inline(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "inline"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "unset"}).
+
+/**
+ * Returns the CSS keyword x.
+ */
+pub x(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "x"}).
+
+/**
+ * Returns the CSS keyword y.
+ */
+pub y(): Value ->
+    Value(Token {property: "scroll-timeline-axis", css: "y"}).

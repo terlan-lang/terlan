@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/filter-effects-1/#propdef-flood-opacity
+//! Grammar: <'opacity'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FloodOpacity.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    flood_opacity: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    flood_opacity: Value
+}.
+
+/// A nominal, specification-constrained flood-opacity value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a flood-opacity value from a typed number.
+
+pub number(value: Float): Value.
+
+/// Constructs a flood-opacity value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,9 @@
+module=std.css.properties.FillImage
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=4987793386506473146
+interface_hash=10696368416150443979
+interface_doc_hash=4712675211761034311
+deps=1
+std.core.Option=11539230284316612175

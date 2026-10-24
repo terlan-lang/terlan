@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ShapeRenderingProperty
+//! Grammar: auto | optimizeSpeed | crispEdges | geometricPrecision
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ShapeRendering.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    shape_rendering: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    shape_rendering: Value
+}.
+
+/// A nominal, specification-constrained shape-rendering value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword crispEdges.
+
+pub crispEdges(): Value.
+
+/// Returns the CSS keyword geometricPrecision.
+
+pub geometricPrecision(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword optimizeSpeed.
+
+pub optimizeSpeed(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

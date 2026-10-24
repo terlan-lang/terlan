@@ -1,0 +1,165 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/compositing-2/#propdef-background-blend-mode
+ * Grammar: <'mix-blend-mode'>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BackgroundBlendMode.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained background-blend-mode value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    background_blend_mode: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    background_blend_mode: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword color.
+ */
+pub color(): Value ->
+    Value(Token {property: "background-blend-mode", css: "color"}).
+
+/**
+ * Returns the CSS keyword color-burn.
+ */
+pub color_burn(): Value ->
+    Value(Token {property: "background-blend-mode", css: "color-burn"}).
+
+/**
+ * Returns the CSS keyword color-dodge.
+ */
+pub color_dodge(): Value ->
+    Value(Token {property: "background-blend-mode", css: "color-dodge"}).
+
+/**
+ * Returns the CSS keyword darken.
+ */
+pub darken(): Value ->
+    Value(Token {property: "background-blend-mode", css: "darken"}).
+
+/**
+ * Returns the CSS keyword difference.
+ */
+pub difference(): Value ->
+    Value(Token {property: "background-blend-mode", css: "difference"}).
+
+/**
+ * Returns the CSS keyword exclusion.
+ */
+pub exclusion(): Value ->
+    Value(Token {property: "background-blend-mode", css: "exclusion"}).
+
+/**
+ * Returns the CSS keyword hard-light.
+ */
+pub hard_light(): Value ->
+    Value(Token {property: "background-blend-mode", css: "hard-light"}).
+
+/**
+ * Returns the CSS keyword hue.
+ */
+pub hue(): Value ->
+    Value(Token {property: "background-blend-mode", css: "hue"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "background-blend-mode", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "background-blend-mode", css: "initial"}).
+
+/**
+ * Returns the CSS keyword lighten.
+ */
+pub lighten(): Value ->
+    Value(Token {property: "background-blend-mode", css: "lighten"}).
+
+/**
+ * Returns the CSS keyword luminosity.
+ */
+pub luminosity(): Value ->
+    Value(Token {property: "background-blend-mode", css: "luminosity"}).
+
+/**
+ * Returns the CSS keyword multiply.
+ */
+pub multiply(): Value ->
+    Value(Token {property: "background-blend-mode", css: "multiply"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "background-blend-mode", css: "normal"}).
+
+/**
+ * Returns the CSS keyword overlay.
+ */
+pub overlay(): Value ->
+    Value(Token {property: "background-blend-mode", css: "overlay"}).
+
+/**
+ * Returns the CSS keyword plus-lighter.
+ */
+pub plus_lighter(): Value ->
+    Value(Token {property: "background-blend-mode", css: "plus-lighter"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "background-blend-mode", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "background-blend-mode", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword saturation.
+ */
+pub saturation(): Value ->
+    Value(Token {property: "background-blend-mode", css: "saturation"}).
+
+/**
+ * Returns the CSS keyword screen.
+ */
+pub screen(): Value ->
+    Value(Token {property: "background-blend-mode", css: "screen"}).
+
+/**
+ * Returns the CSS keyword soft-light.
+ */
+pub soft_light(): Value ->
+    Value(Token {property: "background-blend-mode", css: "soft-light"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "background-blend-mode", css: "unset"}).

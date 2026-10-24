@@ -1,0 +1,105 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-line
+ * Grammar: none | [ underline || overline || line-through || blink ] | spelling-error | grammar-error
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextDecorationLine.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-decoration-line value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_decoration_line: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_decoration_line: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword blink.
+ */
+pub blink(): Value ->
+    Value(Token {property: "text-decoration-line", css: "blink"}).
+
+/**
+ * Returns the CSS keyword grammar-error.
+ */
+pub grammar_error(): Value ->
+    Value(Token {property: "text-decoration-line", css: "grammar-error"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-decoration-line", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-decoration-line", css: "initial"}).
+
+/**
+ * Returns the CSS keyword line-through.
+ */
+pub line_through(): Value ->
+    Value(Token {property: "text-decoration-line", css: "line-through"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "text-decoration-line", css: "none"}).
+
+/**
+ * Returns the CSS keyword overline.
+ */
+pub overline(): Value ->
+    Value(Token {property: "text-decoration-line", css: "overline"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-decoration-line", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-decoration-line", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword spelling-error.
+ */
+pub spelling_error(): Value ->
+    Value(Token {property: "text-decoration-line", css: "spelling-error"}).
+
+/**
+ * Returns the CSS keyword underline.
+ */
+pub underline(): Value ->
+    Value(Token {property: "text-decoration-line", css: "underline"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-decoration-line", css: "unset"}).

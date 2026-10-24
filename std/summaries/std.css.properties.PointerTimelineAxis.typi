@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/pointer-animations-1/#propdef-pointer-timeline-axis
+//! Grammar: [ block | inline | x | y ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.PointerTimelineAxis.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    pointer_timeline_axis: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    pointer_timeline_axis: Value
+}.
+
+/// A nominal, specification-constrained pointer-timeline-axis value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword block.
+
+pub block(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inline.
+
+pub inline(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword x.
+
+pub x(): Value.
+
+/// Returns the CSS keyword y.
+
+pub y(): Value.
+
+export type Token.

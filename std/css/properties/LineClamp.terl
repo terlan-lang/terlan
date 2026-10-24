@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-overflow-4/#propdef-line-clamp
+ * Grammar: none | [<'max-lines'> || <'block-ellipsis'>] -webkit-legacy?
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.LineClamp.
+
+import std.core.Int.
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained line-clamp value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    line_clamp: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    line_clamp: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "line-clamp", css: "auto"}).
+
+/**
+ * Returns the CSS keyword ellipsis.
+ */
+pub ellipsis(): Value ->
+    Value(Token {property: "line-clamp", css: "ellipsis"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "line-clamp", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "line-clamp", css: "initial"}).
+
+/**
+ * Returns the CSS keyword no-ellipsis.
+ */
+pub no_ellipsis(): Value ->
+    Value(Token {property: "line-clamp", css: "no-ellipsis"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "line-clamp", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "line-clamp", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "line-clamp", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "line-clamp", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a line-clamp value.
+ */
+pub integer(value: Int): Option[Value] ->
+    case value >= 1 {
+        true -> Some(Value(Token {property: "line-clamp", css: std.core.Int.to_string(value)}));
+        false -> None
+    }.

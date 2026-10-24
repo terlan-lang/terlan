@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-order
+//! Grammar: normal | <try-size>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.PositionTryOrder.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    position_try_order: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    position_try_order: Value
+}.
+
+/// A nominal, specification-constrained position-try-order value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword most-block-size.
+
+pub most_block_size(): Value.
+
+/// Returns the CSS keyword most-height.
+
+pub most_height(): Value.
+
+/// Returns the CSS keyword most-inline-size.
+
+pub most_inline_size(): Value.
+
+/// Returns the CSS keyword most-width.
+
+pub most_width(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

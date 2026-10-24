@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-content-3/#propdef-string-set
+//! Grammar: none | [ <custom-ident> <string>+ ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.StringSet.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    string_set: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    string_set: Value
+}.
+
+/// A nominal, specification-constrained string-set value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -13,6 +13,61 @@ mod tests;
 
 type Parameter = (usize, usize);
 
+/// Registers concrete ABI-visible callables before lifted callbacks converge.
+pub(super) fn seed_profiles(
+    candidates: &[Candidate<'_>],
+    selected: &[bool],
+    constructor_layouts: &HashMap<String, super::super::constructors::NativeConstructorLayouts>,
+) -> Result<super::super::call_composition::DynamicCallProfiles, super::super::NativeIrError> {
+    // A closure passed through a public AOT entry can name any admitted
+    // callable with the same checked signature even when there is no internal
+    // call site from which to infer that target. Seed those ABI-visible
+    // targets as pure, then replace the seed with the converged suspension
+    // profile below when the target can yield.
+    let mut profiles = HashMap::new();
+    for (candidate_index, candidate) in candidates.iter().enumerate() {
+        if !selected[candidate_index] {
+            continue;
+        }
+        let constructors = &constructor_layouts[&candidate.core.module];
+        let Some(parameters) = candidate
+            .function
+            .params
+            .iter()
+            .map(|parameter| {
+                super::native_type_with_constructors(
+                    parameter.core_ty.as_ref(),
+                    &parameter.ty,
+                    constructors,
+                )
+            })
+            .collect::<Option<Vec<_>>>()
+        else {
+            continue;
+        };
+        let Some(result) =
+            super::native_return_type_with_constructors(candidate.function, constructors)
+        else {
+            continue;
+        };
+        super::merge_dynamic_call_profile(
+            &mut profiles,
+            super::super::call_composition::DynamicCallSignature { parameters, result },
+            super::super::stable_export_id(
+                &candidate.core.module,
+                &candidate.function.name,
+                candidate.function.arity,
+            ),
+            format!(
+                "{}.{}/{}",
+                candidate.core.module, candidate.function.name, candidate.function.arity
+            ),
+            super::super::call_composition::ComposedCallProfile::pure(),
+        )?;
+    }
+    Ok(profiles)
+}
+
 pub(super) fn restrict_profiles<'a>(
     profiles: &'a super::super::call_composition::DynamicCallProfiles,
     allowed: Option<&HashSet<u64>>,
@@ -180,7 +235,7 @@ pub(super) fn candidate_parameter_targets(
     by_candidate
 }
 
-fn returned_lambda(expr: &CoreExpr) -> Option<(usize, &CoreExpr)> {
+pub(super) fn returned_lambda(expr: &CoreExpr) -> Option<(usize, &CoreExpr)> {
     match expr {
         CoreExpr::Lam { params, body, .. } => Some((params.len(), body)),
         CoreExpr::Let { body, .. } | CoreExpr::Cast { expr: body, .. } => returned_lambda(body),

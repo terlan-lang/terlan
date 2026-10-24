@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-palette
+ * Grammar: normal | light | dark | <palette-identifier> | <palette-mix()>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FontPalette.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained font-palette value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    font_palette: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    font_palette: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword dark.
+ */
+pub dark(): Value ->
+    Value(Token {property: "font-palette", css: "dark"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "font-palette", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "font-palette", css: "initial"}).
+
+/**
+ * Returns the CSS keyword light.
+ */
+pub light(): Value ->
+    Value(Token {property: "font-palette", css: "light"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "font-palette", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "font-palette", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "font-palette", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "font-palette", css: "unset"}).

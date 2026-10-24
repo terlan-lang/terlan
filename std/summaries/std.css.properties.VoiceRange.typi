@@ -1,0 +1,68 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-speech-1/#propdef-voice-range
+//! Grammar: <frequency [0Hz,∞]> && absolute | [ [ x-low | low | medium | high | x-high ] || [ <frequency [0Hz,∞]> | <semitones> | <percentage> ] ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.VoiceRange.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    voice_range: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    voice_range: Value
+}.
+
+/// A nominal, specification-constrained voice-range value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword high.
+
+pub high(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword low.
+
+pub low(): Value.
+
+/// Returns the CSS keyword medium.
+
+pub medium(): Value.
+
+/// Constructs a voice-range value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword x-high.
+
+pub x_high(): Value.
+
+/// Returns the CSS keyword x-low.
+
+pub x_low(): Value.
+
+export type Token.

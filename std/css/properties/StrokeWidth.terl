@@ -1,0 +1,120 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-width
+ * Grammar: [ <length-percentage> | <line-width> | <number> ]#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.StrokeWidth.
+
+import std.core.Float.
+import std.core.Option.{None, Some}.
+import std.css.Values.
+import std.css.Values.{length_amount, length_css, percentage_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained stroke-width value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    stroke_width: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    stroke_width: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword hairline.
+ */
+pub hairline(): Value ->
+    Value(Token {property: "stroke-width", css: "hairline"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "stroke-width", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "stroke-width", css: "initial"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "stroke-width", css: "medium"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "stroke-width", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "stroke-width", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword thick.
+ */
+pub thick(): Value ->
+    Value(Token {property: "stroke-width", css: "thick"}).
+
+/**
+ * Returns the CSS keyword thin.
+ */
+pub thin(): Value ->
+    Value(Token {property: "stroke-width", css: "thin"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "stroke-width", css: "unset"}).
+
+/**
+ * Constructs a stroke-width value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "stroke-width", css: length_css(value)}).
+
+/**
+ * Constructs a stroke-width value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(Token {property: "stroke-width", css: percentage_css(value)}).
+
+/**
+ * Checks the specification range and constructs a stroke-width value.
+ */
+pub length_2(value: Length): Option[Value] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "stroke-width", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Constructs a stroke-width value from a typed number.
+ */
+pub number(value: Float): Value ->
+    Value(Token {property: "stroke-width", css: std.core.Float.to_string(value)}).

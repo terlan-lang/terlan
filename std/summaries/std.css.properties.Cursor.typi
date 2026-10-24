@@ -1,0 +1,188 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-cursor
+//! Grammar: [<cursor-image>,]* <cursor-predefined>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Cursor.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    cursor: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    cursor: Value
+}.
+
+/// A nominal, specification-constrained cursor value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword alias.
+
+pub alias(): Value.
+
+/// Returns the CSS keyword all-scroll.
+
+pub all_scroll(): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword cell.
+
+pub cell(): Value.
+
+/// Returns the CSS keyword col-resize.
+
+pub col_resize(): Value.
+
+/// Returns the CSS keyword context-menu.
+
+pub context_menu(): Value.
+
+/// Returns the CSS keyword copy.
+
+pub copy(): Value.
+
+/// Returns the CSS keyword crosshair.
+
+pub crosshair(): Value.
+
+/// Returns the CSS keyword default.
+
+pub default(): Value.
+
+/// Returns the CSS keyword e-resize.
+
+pub e_resize(): Value.
+
+/// Returns the CSS keyword ew-resize.
+
+pub ew_resize(): Value.
+
+/// Returns the CSS keyword grab.
+
+pub grab(): Value.
+
+/// Returns the CSS keyword grabbing.
+
+pub grabbing(): Value.
+
+/// Returns the CSS keyword help.
+
+pub help(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword move.
+
+pub move(): Value.
+
+/// Returns the CSS keyword n-resize.
+
+pub n_resize(): Value.
+
+/// Returns the CSS keyword ne-resize.
+
+pub ne_resize(): Value.
+
+/// Returns the CSS keyword nesw-resize.
+
+pub nesw_resize(): Value.
+
+/// Returns the CSS keyword no-drop.
+
+pub no_drop(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword not-allowed.
+
+pub not_allowed(): Value.
+
+/// Returns the CSS keyword ns-resize.
+
+pub ns_resize(): Value.
+
+/// Returns the CSS keyword nw-resize.
+
+pub nw_resize(): Value.
+
+/// Returns the CSS keyword nwse-resize.
+
+pub nwse_resize(): Value.
+
+/// Returns the CSS keyword pointer.
+
+pub pointer(): Value.
+
+/// Returns the CSS keyword progress.
+
+pub progress(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword row-resize.
+
+pub row_resize(): Value.
+
+/// Returns the CSS keyword s-resize.
+
+pub s_resize(): Value.
+
+/// Returns the CSS keyword se-resize.
+
+pub se_resize(): Value.
+
+/// Returns the CSS keyword sw-resize.
+
+pub sw_resize(): Value.
+
+/// Returns the CSS keyword text.
+
+pub text(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword vertical-text.
+
+pub vertical_text(): Value.
+
+/// Returns the CSS keyword w-resize.
+
+pub w_resize(): Value.
+
+/// Returns the CSS keyword wait.
+
+pub wait(): Value.
+
+/// Returns the CSS keyword zoom-in.
+
+pub zoom_in(): Value.
+
+/// Returns the CSS keyword zoom-out.
+
+pub zoom_out(): Value.
+
+export type Token.

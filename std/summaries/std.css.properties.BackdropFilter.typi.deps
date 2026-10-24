@@ -1,0 +1,9 @@
+module=std.css.properties.BackdropFilter
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=10410506752158620551
+interface_hash=3447907832273732241
+interface_doc_hash=9791818816725823785
+deps=1
+std.core.Option=11539230284316612175

@@ -1,0 +1,92 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-float
+//! Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> | snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Float.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    float: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    float: Value
+}.
+
+/// A nominal, specification-constrained float value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword block-end.
+
+pub block_end(): Value.
+
+/// Returns the CSS keyword block-start.
+
+pub block_start(): Value.
+
+/// Returns the CSS keyword bottom.
+
+pub bottom(): Value.
+
+/// Returns the CSS keyword footnote.
+
+pub footnote(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inline-end.
+
+pub inline_end(): Value.
+
+/// Returns the CSS keyword inline-start.
+
+pub inline_start(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword snap-block.
+
+pub snap_block(): Value.
+
+/// Returns the CSS keyword snap-inline.
+
+pub snap_inline(): Value.
+
+/// Returns the CSS keyword top.
+
+pub top(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

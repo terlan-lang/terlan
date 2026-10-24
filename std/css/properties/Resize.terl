@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-resize
+ * Grammar: none | both | horizontal | vertical | block | inline
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Resize.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained resize value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    resize: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    resize: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword block.
+ */
+pub block(): Value ->
+    Value(Token {property: "resize", css: "block"}).
+
+/**
+ * Returns the CSS keyword both.
+ */
+pub both(): Value ->
+    Value(Token {property: "resize", css: "both"}).
+
+/**
+ * Returns the CSS keyword horizontal.
+ */
+pub horizontal(): Value ->
+    Value(Token {property: "resize", css: "horizontal"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "resize", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "resize", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline.
+ */
+pub inline(): Value ->
+    Value(Token {property: "resize", css: "inline"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "resize", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "resize", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "resize", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "resize", css: "unset"}).
+
+/**
+ * Returns the CSS keyword vertical.
+ */
+pub vertical(): Value ->
+    Value(Token {property: "resize", css: "vertical"}).

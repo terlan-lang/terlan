@@ -1,0 +1,135 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-float
+ * Grammar: block-start | block-end | inline-start | inline-end | snap-block | <snap-block()> | snap-inline | <snap-inline()> | left | right | top | bottom | none | footnote
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Float.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained float value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    float: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    float: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword block-end.
+ */
+pub block_end(): Value ->
+    Value(Token {property: "float", css: "block-end"}).
+
+/**
+ * Returns the CSS keyword block-start.
+ */
+pub block_start(): Value ->
+    Value(Token {property: "float", css: "block-start"}).
+
+/**
+ * Returns the CSS keyword bottom.
+ */
+pub bottom(): Value ->
+    Value(Token {property: "float", css: "bottom"}).
+
+/**
+ * Returns the CSS keyword footnote.
+ */
+pub footnote(): Value ->
+    Value(Token {property: "float", css: "footnote"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "float", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "float", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline-end.
+ */
+pub inline_end(): Value ->
+    Value(Token {property: "float", css: "inline-end"}).
+
+/**
+ * Returns the CSS keyword inline-start.
+ */
+pub inline_start(): Value ->
+    Value(Token {property: "float", css: "inline-start"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "float", css: "left"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "float", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "float", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "float", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "float", css: "right"}).
+
+/**
+ * Returns the CSS keyword snap-block.
+ */
+pub snap_block(): Value ->
+    Value(Token {property: "float", css: "snap-block"}).
+
+/**
+ * Returns the CSS keyword snap-inline.
+ */
+pub snap_inline(): Value ->
+    Value(Token {property: "float", css: "snap-inline"}).
+
+/**
+ * Returns the CSS keyword top.
+ */
+pub top(): Value ->
+    Value(Token {property: "float", css: "top"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "float", css: "unset"}).

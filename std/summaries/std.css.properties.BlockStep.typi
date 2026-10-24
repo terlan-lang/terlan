@@ -1,0 +1,160 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-rhythm-1/#propdef-block-step
+//! Grammar: <'block-step-size'> || <'block-step-insert'> || <'block-step-align'> || <'block-step-round'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BlockStep.
+
+/// A non-global block-step-align component of block-step.
+
+pub opaque type BlockStepAlignPart.
+
+/// A non-global block-step-insert component of block-step.
+
+pub opaque type BlockStepInsertPart.
+
+/// A non-global block-step-round component of block-step.
+
+pub opaque type BlockStepRoundPart.
+
+/// A non-global block-step-size component of block-step.
+
+pub opaque type BlockStepSizePart.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    block_step: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    block_step: Value
+}.
+
+/// A nominal, specification-constrained block-step value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Constructs the block-step-align keyword auto.
+
+pub block_step_align_auto(): BlockStepAlignPart.
+
+/// Constructs the block-step-align keyword center.
+
+pub block_step_align_center(): BlockStepAlignPart.
+
+/// Constructs the block-step-align keyword end.
+
+pub block_step_align_end_value(): BlockStepAlignPart.
+
+/// Constructs the block-step-align keyword start.
+
+pub block_step_align_start(): BlockStepAlignPart.
+
+/// Constructs the block-step-insert keyword content-box.
+
+pub block_step_insert_content_box(): BlockStepInsertPart.
+
+/// Constructs the block-step-insert keyword margin-box.
+
+pub block_step_insert_margin_box(): BlockStepInsertPart.
+
+/// Constructs the block-step-insert keyword padding-box.
+
+pub block_step_insert_padding_box(): BlockStepInsertPart.
+
+/// Constructs the block-step-round keyword down.
+
+pub block_step_round_down(): BlockStepRoundPart.
+
+/// Constructs the block-step-round keyword nearest.
+
+pub block_step_round_nearest(): BlockStepRoundPart.
+
+/// Constructs the block-step-round keyword up.
+
+pub block_step_round_up(): BlockStepRoundPart.
+
+/// Checks the specification range and constructs a block-step value.
+
+pub block_step_size_length(value: std.css.Values.Length): Option[BlockStepSizePart].
+
+/// Constructs the block-step-size keyword none.
+
+pub block_step_size_none(): BlockStepSizePart.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Combines every named specification group in canonical order.
+
+pub compose(block_step_size: BlockStepSizePart, block_step_insert: BlockStepInsertPart, block_step_align: BlockStepAlignPart, block_step_round: BlockStepRoundPart): Value.
+
+/// Returns the CSS keyword content-box.
+
+pub content_box(): Value.
+
+/// Returns the CSS keyword down.
+
+pub down(): Value.
+
+/// Returns the CSS keyword end.
+
+pub end_value(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a block-step value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Returns the CSS keyword margin-box.
+
+pub margin_box(): Value.
+
+/// Returns the CSS keyword nearest.
+
+pub nearest(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword padding-box.
+
+pub padding_box(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword start.
+
+pub start(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword up.
+
+pub up(): Value.
+
+export type Token.

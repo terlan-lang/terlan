@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-underline-position
+//! Grammar: auto | [ from-font | under ] || [ left | right ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextUnderlinePosition.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_underline_position: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_underline_position: Value
+}.
+
+/// A nominal, specification-constrained text-underline-position value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword from-font.
+
+pub from_font(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword under.
+
+pub under(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

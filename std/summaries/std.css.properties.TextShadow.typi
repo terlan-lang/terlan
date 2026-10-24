@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-shadow
+//! Grammar: none | <shadow>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextShadow.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_shadow: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_shadow: Value
+}.
+
+/// A nominal, specification-constrained text-shadow value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

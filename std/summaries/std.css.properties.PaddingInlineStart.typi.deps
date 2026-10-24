@@ -1,0 +1,10 @@
+module=std.css.properties.PaddingInlineStart
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=9222688616790618128
+interface_hash=8615388175658194697
+interface_doc_hash=4063425686871554018
+deps=2
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

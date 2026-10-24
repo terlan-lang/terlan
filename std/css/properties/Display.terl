@@ -1,0 +1,249 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-display-4/#propdef-display
+ * Grammar: [ <display-outside> || <display-inside> ] | <display-listitem> | <display-internal> | <display-box> | <display-legacy> | grid-lanes | inline-grid-lanes | <display-outside> || [ <display-inside> | math ]
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Display.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained display value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    display: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    display: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword block.
+ */
+pub block(): Value ->
+    Value(Token {property: "display", css: "block"}).
+
+/**
+ * Returns the CSS keyword contents.
+ */
+pub contents(): Value ->
+    Value(Token {property: "display", css: "contents"}).
+
+/**
+ * Returns the CSS keyword flex.
+ */
+pub flex(): Value ->
+    Value(Token {property: "display", css: "flex"}).
+
+/**
+ * Returns the CSS keyword flow.
+ */
+pub flow(): Value ->
+    Value(Token {property: "display", css: "flow"}).
+
+/**
+ * Returns the CSS keyword flow-root.
+ */
+pub flow_root(): Value ->
+    Value(Token {property: "display", css: "flow-root"}).
+
+/**
+ * Returns the CSS keyword grid.
+ */
+pub grid(): Value ->
+    Value(Token {property: "display", css: "grid"}).
+
+/**
+ * Returns the CSS keyword grid-lanes.
+ */
+pub grid_lanes(): Value ->
+    Value(Token {property: "display", css: "grid-lanes"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "display", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "display", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline.
+ */
+pub inline(): Value ->
+    Value(Token {property: "display", css: "inline"}).
+
+/**
+ * Returns the CSS keyword inline-block.
+ */
+pub inline_block(): Value ->
+    Value(Token {property: "display", css: "inline-block"}).
+
+/**
+ * Returns the CSS keyword inline-flex.
+ */
+pub inline_flex(): Value ->
+    Value(Token {property: "display", css: "inline-flex"}).
+
+/**
+ * Returns the CSS keyword inline-grid.
+ */
+pub inline_grid(): Value ->
+    Value(Token {property: "display", css: "inline-grid"}).
+
+/**
+ * Returns the CSS keyword inline-grid-lanes.
+ */
+pub inline_grid_lanes(): Value ->
+    Value(Token {property: "display", css: "inline-grid-lanes"}).
+
+/**
+ * Returns the CSS keyword inline-table.
+ */
+pub inline_table(): Value ->
+    Value(Token {property: "display", css: "inline-table"}).
+
+/**
+ * Returns the CSS keyword list-item.
+ */
+pub list_item(): Value ->
+    Value(Token {property: "display", css: "list-item"}).
+
+/**
+ * Returns the CSS keyword math.
+ */
+pub math(): Value ->
+    Value(Token {property: "display", css: "math"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "display", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "display", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "display", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword ruby.
+ */
+pub ruby(): Value ->
+    Value(Token {property: "display", css: "ruby"}).
+
+/**
+ * Returns the CSS keyword ruby-base.
+ */
+pub ruby_base(): Value ->
+    Value(Token {property: "display", css: "ruby-base"}).
+
+/**
+ * Returns the CSS keyword ruby-base-container.
+ */
+pub ruby_base_container(): Value ->
+    Value(Token {property: "display", css: "ruby-base-container"}).
+
+/**
+ * Returns the CSS keyword ruby-text.
+ */
+pub ruby_text(): Value ->
+    Value(Token {property: "display", css: "ruby-text"}).
+
+/**
+ * Returns the CSS keyword ruby-text-container.
+ */
+pub ruby_text_container(): Value ->
+    Value(Token {property: "display", css: "ruby-text-container"}).
+
+/**
+ * Returns the CSS keyword run-in.
+ */
+pub run_in(): Value ->
+    Value(Token {property: "display", css: "run-in"}).
+
+/**
+ * Returns the CSS keyword table.
+ */
+pub table(): Value ->
+    Value(Token {property: "display", css: "table"}).
+
+/**
+ * Returns the CSS keyword table-caption.
+ */
+pub table_caption(): Value ->
+    Value(Token {property: "display", css: "table-caption"}).
+
+/**
+ * Returns the CSS keyword table-cell.
+ */
+pub table_cell(): Value ->
+    Value(Token {property: "display", css: "table-cell"}).
+
+/**
+ * Returns the CSS keyword table-column.
+ */
+pub table_column(): Value ->
+    Value(Token {property: "display", css: "table-column"}).
+
+/**
+ * Returns the CSS keyword table-column-group.
+ */
+pub table_column_group(): Value ->
+    Value(Token {property: "display", css: "table-column-group"}).
+
+/**
+ * Returns the CSS keyword table-footer-group.
+ */
+pub table_footer_group(): Value ->
+    Value(Token {property: "display", css: "table-footer-group"}).
+
+/**
+ * Returns the CSS keyword table-header-group.
+ */
+pub table_header_group(): Value ->
+    Value(Token {property: "display", css: "table-header-group"}).
+
+/**
+ * Returns the CSS keyword table-row.
+ */
+pub table_row(): Value ->
+    Value(Token {property: "display", css: "table-row"}).
+
+/**
+ * Returns the CSS keyword table-row-group.
+ */
+pub table_row_group(): Value ->
+    Value(Token {property: "display", css: "table-row-group"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "display", css: "unset"}).

@@ -1,0 +1,168 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-position
+ * Grammar: normal | auto | <position>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.OffsetPosition.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained offset-position value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    offset_position: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    offset_position: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "offset-position", css: "auto"}).
+
+/**
+ * Returns the CSS keyword block-end.
+ */
+pub block_end(): Value ->
+    Value(Token {property: "offset-position", css: "block-end"}).
+
+/**
+ * Returns the CSS keyword block-start.
+ */
+pub block_start(): Value ->
+    Value(Token {property: "offset-position", css: "block-start"}).
+
+/**
+ * Returns the CSS keyword bottom.
+ */
+pub bottom(): Value ->
+    Value(Token {property: "offset-position", css: "bottom"}).
+
+/**
+ * Returns the CSS keyword center.
+ */
+pub center(): Value ->
+    Value(Token {property: "offset-position", css: "center"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "offset-position", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "offset-position", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline-end.
+ */
+pub inline_end(): Value ->
+    Value(Token {property: "offset-position", css: "inline-end"}).
+
+/**
+ * Returns the CSS keyword inline-start.
+ */
+pub inline_start(): Value ->
+    Value(Token {property: "offset-position", css: "inline-start"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "offset-position", css: "left"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "offset-position", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "offset-position", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "offset-position", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "offset-position", css: "right"}).
+
+/**
+ * Returns the CSS keyword top.
+ */
+pub top(): Value ->
+    Value(Token {property: "offset-position", css: "top"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "offset-position", css: "unset"}).
+
+/**
+ * Returns the CSS keyword x-end.
+ */
+pub x_end(): Value ->
+    Value(Token {property: "offset-position", css: "x-end"}).
+
+/**
+ * Returns the CSS keyword x-start.
+ */
+pub x_start(): Value ->
+    Value(Token {property: "offset-position", css: "x-start"}).
+
+/**
+ * Returns the CSS keyword y-end.
+ */
+pub y_end(): Value ->
+    Value(Token {property: "offset-position", css: "y-end"}).
+
+/**
+ * Returns the CSS keyword y-start.
+ */
+pub y_start(): Value ->
+    Value(Token {property: "offset-position", css: "y-start"}).
+
+/**
+ * Constructs a offset-position value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "offset-position", css: std.css.Values.length_css(value)}).
+
+/**
+ * Constructs a offset-position value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(Token {property: "offset-position", css: std.css.Values.percentage_css(value)}).

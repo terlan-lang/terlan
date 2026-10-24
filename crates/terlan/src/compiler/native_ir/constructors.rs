@@ -694,18 +694,28 @@ pub(super) fn lower_record_update(
                 field.key
             ));
         }
-        if !layout
+        let index = layout
             .descriptor
             .fields()
             .iter()
-            .any(|expected| expected.name() == Some(&field.key))
-        {
-            return Err(format!(
-                "error[native_ir.record_update_missing]: record `{name}` has no field `{}`",
-                field.key
-            ));
-        }
-        let (value, ty) = lower_value(&field.value)?;
+            .position(|expected| expected.name() == Some(field.key.as_str()))
+            .ok_or_else(|| {
+                format!(
+                    "error[native_ir.record_update_missing]: record `{name}` has no field `{}`",
+                    field.key
+                )
+            })?;
+        // Updates need the same checked field context as record construction,
+        // especially for Option/union values and empty collections.
+        let contextual = layout
+            .parameter_core_types
+            .get(index)
+            .and_then(Option::as_ref)
+            .map(|target_type| CoreExpr::Cast {
+                expr: Box::new(field.value.clone()),
+                target_type: target_type.clone(),
+            });
+        let (value, ty) = lower_value(contextual.as_ref().unwrap_or(&field.value))?;
         let value = rebase_callee_locals(&value, local_base, lowered.len().saturating_add(1));
         lowered.push((field, (value, ty)));
     }

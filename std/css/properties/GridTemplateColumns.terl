@@ -1,0 +1,128 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-template-columns
+ * Grammar: none | <track-list> | <auto-track-list> | subgrid <line-name-list>?
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.GridTemplateColumns.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained grid-template-columns value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    grid_template_columns: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    grid_template_columns: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "grid-template-columns", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "grid-template-columns", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "grid-template-columns", css: "initial"}).
+
+/**
+ * Returns the CSS keyword max-content.
+ */
+pub max_content(): Value ->
+    Value(Token {property: "grid-template-columns", css: "max-content"}).
+
+/**
+ * Returns the CSS keyword min-content.
+ */
+pub min_content(): Value ->
+    Value(Token {property: "grid-template-columns", css: "min-content"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "grid-template-columns", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "grid-template-columns", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "grid-template-columns", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword subgrid.
+ */
+pub subgrid(): Value ->
+    Value(Token {property: "grid-template-columns", css: "subgrid"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "grid-template-columns", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a grid-template-columns value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {property: "grid-template-columns", css: std.css.Values.length_css(value)},
+                ),
+            );
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a grid-template-columns value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {
+                        property: "grid-template-columns",
+                        css: std.css.Values.percentage_css(value),
+                    },
+                ),
+            );
+        false -> None
+    }.

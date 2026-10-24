@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linejoin
+ * Grammar: [ crop | arcs | miter ] || [ bevel | round | fallback ]
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.StrokeLinejoin.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained stroke-linejoin value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    stroke_linejoin: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    stroke_linejoin: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword arcs.
+ */
+pub arcs(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "arcs"}).
+
+/**
+ * Returns the CSS keyword bevel.
+ */
+pub bevel(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "bevel"}).
+
+/**
+ * Returns the CSS keyword crop.
+ */
+pub crop(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "crop"}).
+
+/**
+ * Returns the CSS keyword fallback.
+ */
+pub fallback(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "fallback"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "initial"}).
+
+/**
+ * Returns the CSS keyword miter.
+ */
+pub miter(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "miter"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword round.
+ */
+pub round(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "round"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "stroke-linejoin", css: "unset"}).

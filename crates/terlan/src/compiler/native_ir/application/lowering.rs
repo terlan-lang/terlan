@@ -52,6 +52,21 @@ pub(super) fn lower_selected_application(
         .collect::<HashMap<_, _>>();
     let dynamic_parameter_targets =
         dynamic_targets::candidate_parameter_targets(candidates, selected, candidate_resolvers);
+    let closure_factories = candidates
+        .iter()
+        .enumerate()
+        .filter(|(index, candidate)| {
+            selected[*index]
+                && candidate
+                    .function
+                    .clauses
+                    .first()
+                    .and_then(|clause| clause.body.core_expr.as_ref())
+                    .and_then(dynamic_targets::returned_lambda)
+                    .is_some()
+        })
+        .map(|(index, _)| index)
+        .collect::<HashSet<_>>();
     let mut internally_called = HashSet::new();
     for (caller_index, caller) in candidates.iter().enumerate() {
         if !selected[caller_index] {
@@ -178,6 +193,9 @@ pub(super) fn lower_selected_application(
         .iter()
         .enumerate()
         .filter_map(|(candidate_index, candidate)| {
+            if !suspending.contains(&candidate_index) {
+                return None;
+            }
             let native_index = candidate_to_native.get(&candidate_index).copied()?;
             let profile = recursive_reduction_profile(
                 candidate,
@@ -198,51 +216,8 @@ pub(super) fn lower_selected_application(
     let recursive_seed_profiles = call_profiles.keys().copied().collect::<HashSet<_>>();
     let recursive_seed_call_profiles = call_profiles.clone();
     let mut call_profile_gaps = HashMap::new();
-    // A closure passed through a public AOT entry can name any admitted
-    // callable with the same checked signature even when there is no internal
-    // call site from which to infer that target. Seed those ABI-visible
-    // targets as pure, then replace the seed with the converged suspension
-    // profile below when the target can yield.
-    let mut dynamic_call_profiles = HashMap::new();
-    for (candidate_index, candidate) in candidates.iter().enumerate() {
-        if !selected[candidate_index] {
-            continue;
-        }
-        let constructors = &constructor_layouts[&candidate.core.module];
-        let Some(parameters) = candidate
-            .function
-            .params
-            .iter()
-            .map(|parameter| {
-                native_type_with_constructors(
-                    parameter.core_ty.as_ref(),
-                    &parameter.ty,
-                    constructors,
-                )
-            })
-            .collect::<Option<Vec<_>>>()
-        else {
-            continue;
-        };
-        let Some(result) = native_return_type_with_constructors(candidate.function, constructors)
-        else {
-            continue;
-        };
-        merge_dynamic_call_profile(
-            &mut dynamic_call_profiles,
-            super::super::call_composition::DynamicCallSignature { parameters, result },
-            super::super::stable_export_id(
-                &candidate.core.module,
-                &candidate.function.name,
-                candidate.function.arity,
-            ),
-            format!(
-                "{}.{}/{}",
-                candidate.core.module, candidate.function.name, candidate.function.arity
-            ),
-            ComposedCallProfile::pure(),
-        )?;
-    }
+    let mut dynamic_call_profiles =
+        dynamic_targets::seed_profiles(candidates, selected, constructor_layouts)?;
     trace_native_aot(
         started,
         "dynamic-profile-seeds",
@@ -256,7 +231,10 @@ pub(super) fn lower_selected_application(
     // unchanged. A fixed number of caller passes is incorrect: candidate
     // order is not dependency order, so an earlier caller can otherwise cache
     // the previous generation of a later callee's continuation identities.
-    let maximum_profile_phases = suspending.len().saturating_add(4);
+    let maximum_profile_phases = suspending
+        .len()
+        .saturating_add(closure_factories.len())
+        .saturating_add(4);
     let mut profiles_converged = false;
     for phase in 0..maximum_profile_phases {
         let stable_snapshot =
@@ -280,18 +258,30 @@ pub(super) fn lower_selected_application(
                 if !selected[candidate_index] {
                     continue;
                 }
+                // Ordinary pure candidates have no continuation profile to
+                // converge. A pure factory still produces lifted callbacks;
+                // their profiles must exist before validating their callers.
+                let pure_factory = !suspending.contains(&candidate_index)
+                    && closure_factories.contains(&candidate_index);
+                if !suspending.contains(&candidate_index) && !pure_factory {
+                    continue;
+                }
                 let candidate = &candidates[candidate_index];
                 let native_index = candidate_to_native[&candidate_index];
                 let recursive_seed = recursive_seed_profiles.contains(&native_index);
-                let skip = match phase {
-                    0 => {
-                        call_profiles.contains_key(&native_index)
-                            && (!recursive_seed
-                                || refined_recursive_profiles.contains(&native_index))
+                let skip = if pure_factory {
+                    phase_refreshed.contains(&native_index)
+                } else {
+                    match phase {
+                        0 => {
+                            call_profiles.contains_key(&native_index)
+                                && (!recursive_seed
+                                    || refined_recursive_profiles.contains(&native_index))
+                        }
+                        1 => recursive_seed || phase_refreshed.contains(&native_index),
+                        2 => !recursive_seed || refined_recursive_profiles.contains(&native_index),
+                        3.. => phase_refreshed.contains(&native_index),
                     }
-                    1 => recursive_seed || phase_refreshed.contains(&native_index),
-                    2 => !recursive_seed || refined_recursive_profiles.contains(&native_index),
-                    3.. => phase_refreshed.contains(&native_index),
                 };
                 if skip {
                     continue;
@@ -418,6 +408,18 @@ pub(super) fn lower_selected_application(
                         profile,
                     )?;
                     dynamic_profile_gaps.remove(&lifted.export_id);
+                }
+                if pure_factory {
+                    // Keep the real lowered callbacks, including their yield
+                    // contracts, rather than manufacturing pure target seeds.
+                    // Final emission reuses this converged lowering once.
+                    profile_lowerings.insert(
+                        native_index,
+                        (native, continuations, profile_lifted, profile_ids),
+                    );
+                    phase_refreshed.insert(native_index);
+                    progress |= dynamic_progress;
+                    continue;
                 }
                 if !composable_candidates.contains(&candidate_index) {
                     let body = candidate

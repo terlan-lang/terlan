@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-lists-3/#propdef-list-style-position
+ * Grammar: inside | outside
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ListStylePosition.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained list-style-position value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    list_style_position: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    list_style_position: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "list-style-position", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "list-style-position", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inside.
+ */
+pub inside(): Value ->
+    Value(Token {property: "list-style-position", css: "inside"}).
+
+/**
+ * Returns the CSS keyword outside.
+ */
+pub outside(): Value ->
+    Value(Token {property: "list-style-position", css: "outside"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "list-style-position", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "list-style-position", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "list-style-position", css: "unset"}).

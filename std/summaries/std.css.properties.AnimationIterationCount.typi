@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-iteration-count
+//! Grammar: <single-animation-iteration-count>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.AnimationIterationCount.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    animation_iteration_count: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    animation_iteration_count: Value
+}.
+
+/// A nominal, specification-constrained animation-iteration-count value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword infinite.
+
+pub infinite(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a animation-iteration-count value.
+
+pub number(value: Float): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

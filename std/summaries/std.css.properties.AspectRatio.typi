@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-sizing-4/#propdef-aspect-ratio
+//! Grammar: auto || <ratio>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.AspectRatio.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    aspect_ratio: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    aspect_ratio: Value
+}.
+
+/// A nominal, specification-constrained aspect-ratio value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a aspect-ratio value.
+
+pub number(value: Float): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

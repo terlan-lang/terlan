@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-wrap
+//! Grammar: nowrap | [ wrap | wrap-reverse ] || balance
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FlexWrap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    flex_wrap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    flex_wrap: Value
+}.
+
+/// A nominal, specification-constrained flex-wrap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword balance.
+
+pub balance(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword nowrap.
+
+pub nowrap(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword wrap.
+
+pub wrap(): Value.
+
+/// Returns the CSS keyword wrap-reverse.
+
+pub wrap_reverse(): Value.
+
+export type Token.

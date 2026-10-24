@@ -1,0 +1,11 @@
+module=std.css.properties.Zoom
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=11268099928381483758
+interface_hash=11937051783065093541
+interface_doc_hash=10245537103485333271
+deps=3
+std.core.Float=3784534907681217377
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

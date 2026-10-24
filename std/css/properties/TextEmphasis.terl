@@ -1,0 +1,188 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-emphasis
+ * Grammar: <'text-emphasis-style'> || <'text-emphasis-color'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextEmphasis.
+
+import std.css.Values.
+import std.css.Values.{color_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Color}.
+
+/**
+ * A nominal, specification-constrained text-emphasis value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A non-global text-emphasis-style component of text-emphasis.
+ */
+pub opaque type TextEmphasisStylePart = String.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_emphasis: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_emphasis: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword circle.
+ */
+pub circle(): Value ->
+    Value(Token {property: "text-emphasis", css: "circle"}).
+
+/**
+ * Returns the CSS keyword dot.
+ */
+pub dot(): Value ->
+    Value(Token {property: "text-emphasis", css: "dot"}).
+
+/**
+ * Returns the CSS keyword double-circle.
+ */
+pub double_circle(): Value ->
+    Value(Token {property: "text-emphasis", css: "double-circle"}).
+
+/**
+ * Returns the CSS keyword filled.
+ */
+pub filled(): Value ->
+    Value(Token {property: "text-emphasis", css: "filled"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-emphasis", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-emphasis", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "text-emphasis", css: "none"}).
+
+/**
+ * Returns the CSS keyword open.
+ */
+pub open(): Value ->
+    Value(Token {property: "text-emphasis", css: "open"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-emphasis", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-emphasis", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword sesame.
+ */
+pub sesame(): Value ->
+    Value(Token {property: "text-emphasis", css: "sesame"}).
+
+/**
+ * Returns the CSS keyword triangle.
+ */
+pub triangle(): Value ->
+    Value(Token {property: "text-emphasis", css: "triangle"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-emphasis", css: "unset"}).
+
+/**
+ * Constructs a text-emphasis value from a typed color.
+ */
+pub color(value: Color): Value ->
+    Value(Token {property: "text-emphasis", css: color_css(value)}).
+
+/**
+ * Constructs the text-emphasis-style keyword circle.
+ */
+pub text_emphasis_style_circle(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("circle").
+
+/**
+ * Constructs the text-emphasis-style keyword dot.
+ */
+pub text_emphasis_style_dot(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("dot").
+
+/**
+ * Constructs the text-emphasis-style keyword double-circle.
+ */
+pub text_emphasis_style_double_circle(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("double-circle").
+
+/**
+ * Constructs the text-emphasis-style keyword filled.
+ */
+pub text_emphasis_style_filled(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("filled").
+
+/**
+ * Constructs the text-emphasis-style keyword none.
+ */
+pub text_emphasis_style_none(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("none").
+
+/**
+ * Constructs the text-emphasis-style keyword open.
+ */
+pub text_emphasis_style_open(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("open").
+
+/**
+ * Constructs the text-emphasis-style keyword sesame.
+ */
+pub text_emphasis_style_sesame(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("sesame").
+
+/**
+ * Constructs the text-emphasis-style keyword triangle.
+ */
+pub text_emphasis_style_triangle(): TextEmphasisStylePart ->
+    TextEmphasisStylePart("triangle").
+
+text_emphasis_style_css(value: TextEmphasisStylePart): String ->
+    value.
+
+/**
+ * Combines every named specification group in canonical order.
+ */
+pub compose(text_emphasis_style: TextEmphasisStylePart, text_emphasis_color: Color): Value ->
+    Value(
+        Token {
+            property: "text-emphasis",
+            css: text_emphasis_style_css(text_emphasis_style) + " " + color_css(text_emphasis_color),
+        },
+    ).

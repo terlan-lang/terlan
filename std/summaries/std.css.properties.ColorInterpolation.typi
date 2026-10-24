@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/painting.html#ColorInterpolationProperty
+//! Grammar: auto | sRGB | linearRGB
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ColorInterpolation.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    color_interpolation: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    color_interpolation: Value
+}.
+
+/// A nominal, specification-constrained color-interpolation value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword linearRGB.
+
+pub linearRGB(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword sRGB.
+
+pub sRGB(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

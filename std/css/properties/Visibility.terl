@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-display-4/#propdef-visibility
+ * Grammar: visible | hidden | force-hidden | collapse
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Visibility.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained visibility value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    visibility: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    visibility: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword collapse.
+ */
+pub collapse(): Value ->
+    Value(Token {property: "visibility", css: "collapse"}).
+
+/**
+ * Returns the CSS keyword force-hidden.
+ */
+pub force_hidden(): Value ->
+    Value(Token {property: "visibility", css: "force-hidden"}).
+
+/**
+ * Returns the CSS keyword hidden.
+ */
+pub hidden(): Value ->
+    Value(Token {property: "visibility", css: "hidden"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "visibility", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "visibility", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "visibility", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "visibility", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "visibility", css: "unset"}).
+
+/**
+ * Returns the CSS keyword visible.
+ */
+pub visible(): Value ->
+    Value(Token {property: "visibility", css: "visible"}).

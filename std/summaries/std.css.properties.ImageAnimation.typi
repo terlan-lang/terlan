@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-image-animation-1/#propdef-image-animation
+//! Grammar: normal | paused | stopped | running
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ImageAnimation.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    image_animation: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    image_animation: Value
+}.
+
+/// A nominal, specification-constrained image-animation value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword paused.
+
+pub paused(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword running.
+
+pub running(): Value.
+
+/// Returns the CSS keyword stopped.
+
+pub stopped(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

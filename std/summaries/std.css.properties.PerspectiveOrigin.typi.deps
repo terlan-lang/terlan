@@ -1,0 +1,10 @@
+module=std.css.properties.PerspectiveOrigin
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=398786979273996160
+interface_hash=3782300873056538935
+interface_doc_hash=17331720775884050836
+deps=2
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

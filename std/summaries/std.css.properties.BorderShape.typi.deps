@@ -1,0 +1,9 @@
+module=std.css.properties.BorderShape
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=11711336588658519835
+interface_hash=11443290010058175613
+interface_doc_hash=14093351531830765506
+deps=1
+std.core.Option=11539230284316612175

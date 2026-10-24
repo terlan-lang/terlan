@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-cascade-5/#propdef-all
+//! Grammar: initial | inherit | unset | revert | revert-layer | revert-rule
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.All.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    all: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    all: Value
+}.
+
+/// A nominal, specification-constrained all value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword revert-rule.
+
+pub revert_rule(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

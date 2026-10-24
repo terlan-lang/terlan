@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-top-right-radius
+//! Grammar: <border-radius>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BorderTopRightRadius.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    border_top_right_radius: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    border_top_right_radius: Value
+}.
+
+/// A nominal, specification-constrained border-top-right-radius value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a border-top-right-radius value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Checks the specification range and constructs a border-top-right-radius value.
+
+pub percentage(value: std.css.Values.Percentage): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

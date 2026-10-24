@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-emoji
+//! Grammar: normal | text | emoji | unicode
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariantEmoji.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variant_emoji: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variant_emoji: Value
+}.
+
+/// A nominal, specification-constrained font-variant-emoji value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword emoji.
+
+pub emoji(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword text.
+
+pub text(): Value.
+
+/// Returns the CSS keyword unicode.
+
+pub unicode(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

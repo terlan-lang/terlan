@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-row-start
+//! Grammar: <grid-line>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.GridRowStart.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    grid_row_start: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    grid_row_start: Value
+}.
+
+/// A nominal, specification-constrained grid-row-start value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a grid-row-start value.
+
+pub integer(value: Int): Option[Value].
+
+/// Checks the specification range and constructs a grid-row-start value.
+
+pub integer_1(value: Int): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

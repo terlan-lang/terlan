@@ -1,0 +1,88 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex
+//! Grammar: none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Flex.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    flex: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    flex: Value
+}.
+
+/// A nominal, specification-constrained flex value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword content.
+
+pub content(): Value.
+
+/// Returns the CSS keyword fit-content.
+
+pub fit_content(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a flex value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Returns the CSS keyword max-content.
+
+pub max_content(): Value.
+
+/// Returns the CSS keyword min-content.
+
+pub min_content(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Checks the specification range and constructs a flex value.
+
+pub number(value: Float): Option[Value].
+
+/// Checks the specification range and constructs a flex value.
+
+pub percentage(value: std.css.Values.Percentage): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword stretch.
+
+pub stretch(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

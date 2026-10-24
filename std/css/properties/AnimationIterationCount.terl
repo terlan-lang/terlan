@@ -1,0 +1,89 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-animations-1/#propdef-animation-iteration-count
+ * Grammar: <single-animation-iteration-count>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.AnimationIterationCount.
+
+import std.core.Float.
+import std.core.Option.{None, Some}.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained animation-iteration-count value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    animation_iteration_count: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    animation_iteration_count: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword infinite.
+ */
+pub infinite(): Value ->
+    Value(Token {property: "animation-iteration-count", css: "infinite"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "animation-iteration-count", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "animation-iteration-count", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "animation-iteration-count", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "animation-iteration-count", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "animation-iteration-count", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a animation-iteration-count value.
+ */
+pub number(value: Float): Option[Value] ->
+    case value >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {
+                        property: "animation-iteration-count",
+                        css: std.core.Float.to_string(value),
+                    },
+                ),
+            );
+        false -> None
+    }.

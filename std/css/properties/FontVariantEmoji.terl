@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-emoji
+ * Grammar: normal | text | emoji | unicode
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FontVariantEmoji.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained font-variant-emoji value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    font_variant_emoji: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    font_variant_emoji: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword emoji.
+ */
+pub emoji(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "emoji"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "initial"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword text.
+ */
+pub text(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "text"}).
+
+/**
+ * Returns the CSS keyword unicode.
+ */
+pub unicode(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "unicode"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "font-variant-emoji", css: "unset"}).

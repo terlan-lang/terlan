@@ -1,0 +1,80 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-numeric
+//! Grammar: normal | [ <numeric-figure-values> || <numeric-spacing-values> || <numeric-fraction-values> || ordinal || slashed-zero ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariantNumeric.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variant_numeric: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variant_numeric: Value
+}.
+
+/// A nominal, specification-constrained font-variant-numeric value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword diagonal-fractions.
+
+pub diagonal_fractions(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword lining-nums.
+
+pub lining_nums(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword oldstyle-nums.
+
+pub oldstyle_nums(): Value.
+
+/// Returns the CSS keyword ordinal.
+
+pub ordinal(): Value.
+
+/// Returns the CSS keyword proportional-nums.
+
+pub proportional_nums(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword slashed-zero.
+
+pub slashed_zero(): Value.
+
+/// Returns the CSS keyword stacked-fractions.
+
+pub stacked_fractions(): Value.
+
+/// Returns the CSS keyword tabular-nums.
+
+pub tabular_nums(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

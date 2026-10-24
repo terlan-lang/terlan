@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-window-drag
+//! Grammar: none | move
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WindowDrag.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    window_drag: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    window_drag: Value
+}.
+
+/// A nominal, specification-constrained window-drag value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword move.
+
+pub move(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

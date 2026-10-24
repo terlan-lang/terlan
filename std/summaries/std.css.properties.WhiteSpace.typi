@@ -1,0 +1,108 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-white-space
+//! Grammar: normal | pre | pre-wrap | pre-line | <'white-space-collapse'> || <'text-wrap-mode'> || <'white-space-trim'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WhiteSpace.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    white_space: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    white_space: Value
+}.
+
+/// A nominal, specification-constrained white-space value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword break-spaces.
+
+pub break_spaces(): Value.
+
+/// Returns the CSS keyword collapse.
+
+pub collapse(): Value.
+
+/// Returns the CSS keyword discard.
+
+pub discard(): Value.
+
+/// Returns the CSS keyword discard-after.
+
+pub discard_after(): Value.
+
+/// Returns the CSS keyword discard-before.
+
+pub discard_before(): Value.
+
+/// Returns the CSS keyword discard-inner.
+
+pub discard_inner(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword nowrap.
+
+pub nowrap(): Value.
+
+/// Returns the CSS keyword pre.
+
+pub pre(): Value.
+
+/// Returns the CSS keyword pre-line.
+
+pub pre_line(): Value.
+
+/// Returns the CSS keyword pre-wrap.
+
+pub pre_wrap(): Value.
+
+/// Returns the CSS keyword preserve.
+
+pub preserve(): Value.
+
+/// Returns the CSS keyword preserve-breaks.
+
+pub preserve_breaks(): Value.
+
+/// Returns the CSS keyword preserve-spaces.
+
+pub preserve_spaces(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword wrap.
+
+pub wrap(): Value.
+
+export type Token.

@@ -1,0 +1,120 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-emphasis
+//! Grammar: <'text-emphasis-style'> || <'text-emphasis-color'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextEmphasis.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_emphasis: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_emphasis: Value
+}.
+
+/// A non-global text-emphasis-style component of text-emphasis.
+
+pub opaque type TextEmphasisStylePart.
+
+/// A nominal, specification-constrained text-emphasis value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword circle.
+
+pub circle(): Value.
+
+/// Constructs a text-emphasis value from a typed color.
+
+pub color(value: std.css.Values.Color): Value.
+
+/// Combines every named specification group in canonical order.
+
+pub compose(text_emphasis_style: TextEmphasisStylePart, text_emphasis_color: std.css.Values.Color): Value.
+
+/// Returns the CSS keyword dot.
+
+pub dot(): Value.
+
+/// Returns the CSS keyword double-circle.
+
+pub double_circle(): Value.
+
+/// Returns the CSS keyword filled.
+
+pub filled(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword open.
+
+pub open(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword sesame.
+
+pub sesame(): Value.
+
+/// Constructs the text-emphasis-style keyword circle.
+
+pub text_emphasis_style_circle(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword dot.
+
+pub text_emphasis_style_dot(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword double-circle.
+
+pub text_emphasis_style_double_circle(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword filled.
+
+pub text_emphasis_style_filled(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword none.
+
+pub text_emphasis_style_none(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword open.
+
+pub text_emphasis_style_open(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword sesame.
+
+pub text_emphasis_style_sesame(): TextEmphasisStylePart.
+
+/// Constructs the text-emphasis-style keyword triangle.
+
+pub text_emphasis_style_triangle(): TextEmphasisStylePart.
+
+/// Returns the CSS keyword triangle.
+
+pub triangle(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

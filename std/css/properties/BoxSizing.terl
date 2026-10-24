@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-sizing-3/#propdef-box-sizing
+ * Grammar: content-box | border-box
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BoxSizing.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained box-sizing value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    box_sizing: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    box_sizing: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword border-box.
+ */
+pub border_box(): Value ->
+    Value(Token {property: "box-sizing", css: "border-box"}).
+
+/**
+ * Returns the CSS keyword content-box.
+ */
+pub content_box(): Value ->
+    Value(Token {property: "box-sizing", css: "content-box"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "box-sizing", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "box-sizing", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "box-sizing", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "box-sizing", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "box-sizing", css: "unset"}).

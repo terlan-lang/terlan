@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-style
+//! Grammar: solid | double | dotted | dashed | wavy
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextDecorationStyle.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_decoration_style: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_decoration_style: Value
+}.
+
+/// A nominal, specification-constrained text-decoration-style value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword dashed.
+
+pub dashed(): Value.
+
+/// Returns the CSS keyword dotted.
+
+pub dotted(): Value.
+
+/// Returns the CSS keyword double.
+
+pub double(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword solid.
+
+pub solid(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword wavy.
+
+pub wavy(): Value.
+
+export type Token.

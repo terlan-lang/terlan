@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchorProperty
+ * Grammar: start | middle | end
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextAnchor.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-anchor value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_anchor: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_anchor: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword end.
+ */
+pub end_value(): Value ->
+    Value(Token {property: "text-anchor", css: "end"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-anchor", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-anchor", css: "initial"}).
+
+/**
+ * Returns the CSS keyword middle.
+ */
+pub middle(): Value ->
+    Value(Token {property: "text-anchor", css: "middle"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-anchor", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-anchor", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword start.
+ */
+pub start(): Value ->
+    Value(Token {property: "text-anchor", css: "start"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-anchor", css: "unset"}).

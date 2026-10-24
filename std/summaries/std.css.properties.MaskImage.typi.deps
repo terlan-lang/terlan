@@ -1,0 +1,9 @@
+module=std.css.properties.MaskImage
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=10901804473746284369
+interface_hash=4759279136729521910
+interface_doc_hash=1900017031337616395
+deps=1
+std.core.Option=11539230284316612175

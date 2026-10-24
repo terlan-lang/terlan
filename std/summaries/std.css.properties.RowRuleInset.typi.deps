@@ -1,0 +1,10 @@
+module=std.css.properties.RowRuleInset
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=17783238068266026482
+interface_hash=785801312740432386
+interface_doc_hash=2194577432608426149
+deps=2
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

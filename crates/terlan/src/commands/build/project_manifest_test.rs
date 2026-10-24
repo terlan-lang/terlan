@@ -324,6 +324,7 @@ fn project_manifest_parses_web_assets_config() {
             public_path: Some("/assets".to_string()),
             inline_limit: Some(8192),
             rsbuild_config: Some("rsbuild.config.mjs".to_string()),
+            styles: Vec::new(),
         })
     );
 }
@@ -1200,4 +1201,23 @@ outbound_network = ["https://api.example.test/v1"]
             .expect_err("manifest should reject machine-local deployment metadata");
         assert!(error.contains(expected), "{error}");
     }
+}
+
+#[test]
+fn project_manifest_styles_preserve_mixed_input_order_and_require_assets() {
+    let header = "[package]\nname = \"demo\"\nversion = \"0.0.1\"\n\n[web.assets]\n";
+    let parsed = parse_project_manifest(
+        &format!("{header}directory = \"assets\"\nstyles = [\"assets/base.css\", \"src/demo/Styles.terl\"]\n"),
+        &manifest_path(),
+    ).unwrap();
+    assert_eq!(
+        parsed.web_assets.unwrap().styles,
+        ["assets/base.css", "src/demo/Styles.terl"]
+    );
+    let error = parse_project_manifest(
+        &format!("{header}styles = [\"src/demo/Styles.terl\"]\n"),
+        &manifest_path(),
+    )
+    .unwrap_err();
+    assert!(error.contains("requires directory"));
 }

@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-word-wrap
+//! Grammar: normal | break-word | anywhere
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WordWrap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    word_wrap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    word_wrap: Value
+}.
+
+/// A nominal, specification-constrained word-wrap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword anywhere.
+
+pub anywhere(): Value.
+
+/// Returns the CSS keyword break-word.
+
+pub break_word(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

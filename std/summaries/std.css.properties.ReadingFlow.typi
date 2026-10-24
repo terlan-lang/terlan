@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-display-4/#propdef-reading-flow
+//! Grammar: normal | source-order | flex-visual | flex-flow | grid-rows | grid-columns | grid-order
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ReadingFlow.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    reading_flow: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    reading_flow: Value
+}.
+
+/// A nominal, specification-constrained reading-flow value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword flex-flow.
+
+pub flex_flow(): Value.
+
+/// Returns the CSS keyword flex-visual.
+
+pub flex_visual(): Value.
+
+/// Returns the CSS keyword grid-columns.
+
+pub grid_columns(): Value.
+
+/// Returns the CSS keyword grid-order.
+
+pub grid_order(): Value.
+
+/// Returns the CSS keyword grid-rows.
+
+pub grid_rows(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword source-order.
+
+pub source_order(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

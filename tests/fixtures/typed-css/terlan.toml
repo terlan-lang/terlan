@@ -1,0 +1,10 @@
+[package]
+name = "typed_css"
+version = "0.0.1"
+
+[build]
+source_roots = ["src"]
+
+[web.assets]
+directory = "assets"
+styles = ["assets/base.css", "src/typed_css/Styles.terl"]

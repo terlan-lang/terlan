@@ -281,6 +281,21 @@ fn run_js_source_roots_build(
     }
     timings.mark("js.scan");
 
+    // Manifest-owned styles are evaluated by the CSS build path. Their source
+    // functions do not become browser JavaScript modules.
+    if let Some(assets) = &browser_static_assets {
+        let style_sources = assets
+            .styles
+            .iter()
+            .filter_map(|path| path.canonicalize().ok())
+            .collect::<std::collections::BTreeSet<_>>();
+        files.retain(|path| {
+            !path
+                .canonicalize()
+                .is_ok_and(|path| style_sources.contains(&path))
+        });
+    }
+
     let mut directory_state = state.clone();
     if directory_state.cache_dir.is_none() {
         directory_state.cache_dir = Some(js_build_root(state).join(".terlan"));

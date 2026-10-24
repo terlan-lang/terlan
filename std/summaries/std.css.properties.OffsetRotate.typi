@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/motion-1/#propdef-offset-rotate
+//! Grammar: [ auto | reverse ] || <angle>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.OffsetRotate.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    offset_rotate: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    offset_rotate: Value
+}.
+
+/// A nominal, specification-constrained offset-rotate value.
+
+pub opaque type Value.
+
+/// Constructs a offset-rotate value from a typed angle.
+
+pub angle(value: std.css.Values.Angle): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword reverse.
+
+pub reverse(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

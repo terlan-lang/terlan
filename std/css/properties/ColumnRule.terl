@@ -1,0 +1,166 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule
+ * Grammar: <gap-rule-list> | <gap-auto-rule-list>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ColumnRule.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Color, Length}.
+
+/**
+ * A nominal, specification-constrained column-rule value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    column_rule: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    column_rule: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword dashed.
+ */
+pub dashed(): Value ->
+    Value(Token {property: "column-rule", css: "dashed"}).
+
+/**
+ * Returns the CSS keyword dotted.
+ */
+pub dotted(): Value ->
+    Value(Token {property: "column-rule", css: "dotted"}).
+
+/**
+ * Returns the CSS keyword double.
+ */
+pub double(): Value ->
+    Value(Token {property: "column-rule", css: "double"}).
+
+/**
+ * Returns the CSS keyword groove.
+ */
+pub groove(): Value ->
+    Value(Token {property: "column-rule", css: "groove"}).
+
+/**
+ * Returns the CSS keyword hairline.
+ */
+pub hairline(): Value ->
+    Value(Token {property: "column-rule", css: "hairline"}).
+
+/**
+ * Returns the CSS keyword hidden.
+ */
+pub hidden(): Value ->
+    Value(Token {property: "column-rule", css: "hidden"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "column-rule", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "column-rule", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inset.
+ */
+pub inset(): Value ->
+    Value(Token {property: "column-rule", css: "inset"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "column-rule", css: "medium"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "column-rule", css: "none"}).
+
+/**
+ * Returns the CSS keyword outset.
+ */
+pub outset(): Value ->
+    Value(Token {property: "column-rule", css: "outset"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "column-rule", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "column-rule", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword ridge.
+ */
+pub ridge(): Value ->
+    Value(Token {property: "column-rule", css: "ridge"}).
+
+/**
+ * Returns the CSS keyword solid.
+ */
+pub solid(): Value ->
+    Value(Token {property: "column-rule", css: "solid"}).
+
+/**
+ * Returns the CSS keyword thick.
+ */
+pub thick(): Value ->
+    Value(Token {property: "column-rule", css: "thick"}).
+
+/**
+ * Returns the CSS keyword thin.
+ */
+pub thin(): Value ->
+    Value(Token {property: "column-rule", css: "thin"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "column-rule", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a column-rule value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "column-rule", css: std.css.Values.length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Constructs a column-rule value from a typed color.
+ */
+pub color(value: Color): Value ->
+    Value(Token {property: "column-rule", css: std.css.Values.color_css(value)}).

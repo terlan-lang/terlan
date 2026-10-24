@@ -1,0 +1,88 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-family
+//! Grammar: [ <font-family-name> | <generic-font-family> ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontFamily.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_family: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_family: Value
+}.
+
+/// A nominal, specification-constrained font-family value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword cursive.
+
+pub cursive(): Value.
+
+/// Returns the CSS keyword fantasy.
+
+pub fantasy(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword math.
+
+pub math(): Value.
+
+/// Returns the CSS keyword monospace.
+
+pub monospace(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword sans-serif.
+
+pub sans_serif(): Value.
+
+/// Returns the CSS keyword serif.
+
+pub serif(): Value.
+
+/// Returns the CSS keyword system-ui.
+
+pub system_ui(): Value.
+
+/// Returns the CSS keyword ui-monospace.
+
+pub ui_monospace(): Value.
+
+/// Returns the CSS keyword ui-rounded.
+
+pub ui_rounded(): Value.
+
+/// Returns the CSS keyword ui-sans-serif.
+
+pub ui_sans_serif(): Value.
+
+/// Returns the CSS keyword ui-serif.
+
+pub ui_serif(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -39,6 +39,11 @@ pub(super) fn browser_static_assets_from_manifest(
             .as_ref()
             .map(|config| project_dir.join(config)),
         angular_ts: false,
+        styles: assets
+            .styles
+            .iter()
+            .map(|style| project_dir.join(style))
+            .collect(),
     })
 }
 

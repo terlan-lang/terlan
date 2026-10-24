@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-spatial-nav-1/#propdef-spatial-navigation-contain
+//! Grammar: auto | contain
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.SpatialNavigationContain.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    spatial_navigation_contain: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    spatial_navigation_contain: Value
+}.
+
+/// A nominal, specification-constrained spatial-navigation-contain value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

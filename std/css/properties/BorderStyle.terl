@@ -1,0 +1,232 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-style
+ * Grammar: <'border-top-style'>{1,4}
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderStyle.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained border-style value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A single non-global border-style shorthand component.
+ */
+pub opaque type Component = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_style: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_style: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword dashed.
+ */
+pub dashed(): Value ->
+    Value(Token {property: "border-style", css: "dashed"}).
+
+/**
+ * Returns the CSS keyword dotted.
+ */
+pub dotted(): Value ->
+    Value(Token {property: "border-style", css: "dotted"}).
+
+/**
+ * Returns the CSS keyword double.
+ */
+pub double(): Value ->
+    Value(Token {property: "border-style", css: "double"}).
+
+/**
+ * Returns the CSS keyword groove.
+ */
+pub groove(): Value ->
+    Value(Token {property: "border-style", css: "groove"}).
+
+/**
+ * Returns the CSS keyword hidden.
+ */
+pub hidden(): Value ->
+    Value(Token {property: "border-style", css: "hidden"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-style", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-style", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inset.
+ */
+pub inset(): Value ->
+    Value(Token {property: "border-style", css: "inset"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "border-style", css: "none"}).
+
+/**
+ * Returns the CSS keyword outset.
+ */
+pub outset(): Value ->
+    Value(Token {property: "border-style", css: "outset"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-style", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-style", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword ridge.
+ */
+pub ridge(): Value ->
+    Value(Token {property: "border-style", css: "ridge"}).
+
+/**
+ * Returns the CSS keyword solid.
+ */
+pub solid(): Value ->
+    Value(Token {property: "border-style", css: "solid"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-style", css: "unset"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_dashed(): Component ->
+    Component(Token {property: "border-style", css: "dashed"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_dotted(): Component ->
+    Component(Token {property: "border-style", css: "dotted"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_double(): Component ->
+    Component(Token {property: "border-style", css: "double"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_groove(): Component ->
+    Component(Token {property: "border-style", css: "groove"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_hidden(): Component ->
+    Component(Token {property: "border-style", css: "hidden"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_inset(): Component ->
+    Component(Token {property: "border-style", css: "inset"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_none(): Component ->
+    Component(Token {property: "border-style", css: "none"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_outset(): Component ->
+    Component(Token {property: "border-style", css: "outset"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_ridge(): Component ->
+    Component(Token {property: "border-style", css: "ridge"}).
+
+/**
+ * Constructs one border-style shorthand component.
+ */
+pub component_solid(): Component ->
+    Component(Token {property: "border-style", css: "solid"}).
+
+/**
+ * Serializes a library-owned shorthand component.
+ */
+component_css(value: Component): String ->
+    let token = component_token(value);
+    token.css.
+
+component_token(value: Component): Token ->
+    value.
+
+/**
+ * Combines 1 typed components in specification order.
+ */
+pub single(first: Component): Value ->
+    Value(Token {property: "border-style", css: component_css(first)}).
+
+/**
+ * Combines 2 typed components in specification order.
+ */
+pub pair(first: Component, second: Component): Value ->
+    Value(Token {property: "border-style", css: component_css(first) + " " + component_css(second)}).
+
+/**
+ * Combines 3 typed components in specification order.
+ */
+pub triple(first: Component, second: Component, third: Component): Value ->
+    Value(
+        Token {
+            property: "border-style",
+            css: component_css(first) + " " + component_css(second) + " " + component_css(third),
+        },
+    ).
+
+/**
+ * Combines 4 typed components in specification order.
+ */
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
+    Value(
+        Token {
+            property: "border-style",
+            css: component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
+        },
+    ).

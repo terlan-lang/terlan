@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-display-4/#propdef-order
+//! Grammar: <integer>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Order.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    order: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    order: Value
+}.
+
+/// A nominal, specification-constrained order value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a order value from a typed integer.
+
+pub integer(value: Int): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

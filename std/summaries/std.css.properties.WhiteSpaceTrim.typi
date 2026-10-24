@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-white-space-trim
+//! Grammar: none | discard-before || discard-after || discard-inner
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WhiteSpaceTrim.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    white_space_trim: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    white_space_trim: Value
+}.
+
+/// A nominal, specification-constrained white-space-trim value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword discard-after.
+
+pub discard_after(): Value.
+
+/// Returns the CSS keyword discard-before.
+
+pub discard_before(): Value.
+
+/// Returns the CSS keyword discard-inner.
+
+pub discard_inner(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

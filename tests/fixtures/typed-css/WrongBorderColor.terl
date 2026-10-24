@@ -1,0 +1,6 @@
+module typed_css.WrongBorderColor.
+
+import std.css.properties.Border.
+
+pub invalid(): Border.Value ->
+    Border.compose(Border.line_width_thin(), Border.line_style_solid(), "red").

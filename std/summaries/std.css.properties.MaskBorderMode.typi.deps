@@ -1,0 +1,9 @@
+module=std.css.properties.MaskBorderMode
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=14569180579102502220
+interface_hash=12522680098654354834
+interface_doc_hash=1103314583528938607
+deps=1
+std.core.Option=11539230284316612175

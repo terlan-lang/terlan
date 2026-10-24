@@ -1,0 +1,84 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-east-asian
+//! Grammar: normal | [ <east-asian-variant-values> || <east-asian-width-values> || ruby ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariantEastAsian.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variant_east_asian: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variant_east_asian: Value
+}.
+
+/// A nominal, specification-constrained font-variant-east-asian value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword full-width.
+
+pub full_width(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword jis04.
+
+pub jis04(): Value.
+
+/// Returns the CSS keyword jis78.
+
+pub jis78(): Value.
+
+/// Returns the CSS keyword jis83.
+
+pub jis83(): Value.
+
+/// Returns the CSS keyword jis90.
+
+pub jis90(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword proportional-width.
+
+pub proportional_width(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword ruby.
+
+pub ruby(): Value.
+
+/// Returns the CSS keyword simplified.
+
+pub simplified(): Value.
+
+/// Returns the CSS keyword traditional.
+
+pub traditional(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

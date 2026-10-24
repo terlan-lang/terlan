@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-image
+//! Grammar: <paint>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FillImage.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    fill_image: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    fill_image: Value
+}.
+
+/// A nominal, specification-constrained fill-image value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword child.
+
+pub child(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

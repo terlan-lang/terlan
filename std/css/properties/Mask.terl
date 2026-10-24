@@ -1,0 +1,306 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask
+ * Grammar: <mask-layer>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Mask.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained mask value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    mask: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    mask: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword add.
+ */
+pub add(): Value ->
+    Value(Token {property: "mask", css: "add"}).
+
+/**
+ * Returns the CSS keyword alpha.
+ */
+pub alpha(): Value ->
+    Value(Token {property: "mask", css: "alpha"}).
+
+/**
+ * Returns the CSS keyword block-end.
+ */
+pub block_end(): Value ->
+    Value(Token {property: "mask", css: "block-end"}).
+
+/**
+ * Returns the CSS keyword block-start.
+ */
+pub block_start(): Value ->
+    Value(Token {property: "mask", css: "block-start"}).
+
+/**
+ * Returns the CSS keyword border-box.
+ */
+pub border_box(): Value ->
+    Value(Token {property: "mask", css: "border-box"}).
+
+/**
+ * Returns the CSS keyword bottom.
+ */
+pub bottom(): Value ->
+    Value(Token {property: "mask", css: "bottom"}).
+
+/**
+ * Returns the CSS keyword center.
+ */
+pub center(): Value ->
+    Value(Token {property: "mask", css: "center"}).
+
+/**
+ * Returns the CSS keyword content-box.
+ */
+pub content_box(): Value ->
+    Value(Token {property: "mask", css: "content-box"}).
+
+/**
+ * Returns the CSS keyword exclude.
+ */
+pub exclude(): Value ->
+    Value(Token {property: "mask", css: "exclude"}).
+
+/**
+ * Returns the CSS keyword fill-box.
+ */
+pub fill_box(): Value ->
+    Value(Token {property: "mask", css: "fill-box"}).
+
+/**
+ * Returns the CSS keyword half-border-box.
+ */
+pub half_border_box(): Value ->
+    Value(Token {property: "mask", css: "half-border-box"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "mask", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "mask", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline-end.
+ */
+pub inline_end(): Value ->
+    Value(Token {property: "mask", css: "inline-end"}).
+
+/**
+ * Returns the CSS keyword inline-start.
+ */
+pub inline_start(): Value ->
+    Value(Token {property: "mask", css: "inline-start"}).
+
+/**
+ * Returns the CSS keyword intersect.
+ */
+pub intersect(): Value ->
+    Value(Token {property: "mask", css: "intersect"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "mask", css: "left"}).
+
+/**
+ * Returns the CSS keyword luminance.
+ */
+pub luminance(): Value ->
+    Value(Token {property: "mask", css: "luminance"}).
+
+/**
+ * Returns the CSS keyword margin-box.
+ */
+pub margin_box(): Value ->
+    Value(Token {property: "mask", css: "margin-box"}).
+
+/**
+ * Returns the CSS keyword match-source.
+ */
+pub match_source(): Value ->
+    Value(Token {property: "mask", css: "match-source"}).
+
+/**
+ * Returns the CSS keyword no-clip.
+ */
+pub no_clip(): Value ->
+    Value(Token {property: "mask", css: "no-clip"}).
+
+/**
+ * Returns the CSS keyword no-repeat.
+ */
+pub no_repeat(): Value ->
+    Value(Token {property: "mask", css: "no-repeat"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "mask", css: "none"}).
+
+/**
+ * Returns the CSS keyword padding-box.
+ */
+pub padding_box(): Value ->
+    Value(Token {property: "mask", css: "padding-box"}).
+
+/**
+ * Returns the CSS keyword repeat.
+ */
+pub repeat(): Value ->
+    Value(Token {property: "mask", css: "repeat"}).
+
+/**
+ * Returns the CSS keyword repeat-block.
+ */
+pub repeat_block(): Value ->
+    Value(Token {property: "mask", css: "repeat-block"}).
+
+/**
+ * Returns the CSS keyword repeat-inline.
+ */
+pub repeat_inline(): Value ->
+    Value(Token {property: "mask", css: "repeat-inline"}).
+
+/**
+ * Returns the CSS keyword repeat-x.
+ */
+pub repeat_x(): Value ->
+    Value(Token {property: "mask", css: "repeat-x"}).
+
+/**
+ * Returns the CSS keyword repeat-y.
+ */
+pub repeat_y(): Value ->
+    Value(Token {property: "mask", css: "repeat-y"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "mask", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "mask", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "mask", css: "right"}).
+
+/**
+ * Returns the CSS keyword round.
+ */
+pub round(): Value ->
+    Value(Token {property: "mask", css: "round"}).
+
+/**
+ * Returns the CSS keyword space.
+ */
+pub space(): Value ->
+    Value(Token {property: "mask", css: "space"}).
+
+/**
+ * Returns the CSS keyword stroke-box.
+ */
+pub stroke_box(): Value ->
+    Value(Token {property: "mask", css: "stroke-box"}).
+
+/**
+ * Returns the CSS keyword subtract.
+ */
+pub subtract(): Value ->
+    Value(Token {property: "mask", css: "subtract"}).
+
+/**
+ * Returns the CSS keyword top.
+ */
+pub top(): Value ->
+    Value(Token {property: "mask", css: "top"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "mask", css: "unset"}).
+
+/**
+ * Returns the CSS keyword view-box.
+ */
+pub view_box(): Value ->
+    Value(Token {property: "mask", css: "view-box"}).
+
+/**
+ * Returns the CSS keyword x-end.
+ */
+pub x_end(): Value ->
+    Value(Token {property: "mask", css: "x-end"}).
+
+/**
+ * Returns the CSS keyword x-start.
+ */
+pub x_start(): Value ->
+    Value(Token {property: "mask", css: "x-start"}).
+
+/**
+ * Returns the CSS keyword y-end.
+ */
+pub y_end(): Value ->
+    Value(Token {property: "mask", css: "y-end"}).
+
+/**
+ * Returns the CSS keyword y-start.
+ */
+pub y_start(): Value ->
+    Value(Token {property: "mask", css: "y-start"}).
+
+/**
+ * Constructs a mask value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "mask", css: std.css.Values.length_css(value)}).
+
+/**
+ * Constructs a mask value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(Token {property: "mask", css: std.css.Values.percentage_css(value)}).

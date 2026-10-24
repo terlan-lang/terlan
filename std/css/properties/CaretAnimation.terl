@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-animation
+ * Grammar: auto | manual
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.CaretAnimation.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained caret-animation value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    caret_animation: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    caret_animation: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "caret-animation", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "caret-animation", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "caret-animation", css: "initial"}).
+
+/**
+ * Returns the CSS keyword manual.
+ */
+pub manual(): Value ->
+    Value(Token {property: "caret-animation", css: "manual"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "caret-animation", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "caret-animation", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "caret-animation", css: "unset"}).

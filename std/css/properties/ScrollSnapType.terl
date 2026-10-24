@@ -1,0 +1,105 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type
+ * Grammar: none | [ x | y | block | inline | both | pair ] [ mandatory | proximity ]?
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ScrollSnapType.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained scroll-snap-type value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    scroll_snap_type: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    scroll_snap_type: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword block.
+ */
+pub block(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "block"}).
+
+/**
+ * Returns the CSS keyword both.
+ */
+pub both(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "both"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline.
+ */
+pub inline(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "inline"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "none"}).
+
+/**
+ * Returns the CSS keyword pair.
+ */
+pub pair(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "pair"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "unset"}).
+
+/**
+ * Returns the CSS keyword x.
+ */
+pub x(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "x"}).
+
+/**
+ * Returns the CSS keyword y.
+ */
+pub y(): Value ->
+    Value(Token {property: "scroll-snap-type", css: "y"}).

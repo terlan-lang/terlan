@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-backgrounds-4/#propdef-background-attachment
+//! Grammar: <attachment>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BackgroundAttachment.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    background_attachment: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    background_attachment: Value
+}.
+
+/// A nominal, specification-constrained background-attachment value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword fixed.
+
+pub fixed(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword local.
+
+pub local(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword scroll.
+
+pub scroll(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

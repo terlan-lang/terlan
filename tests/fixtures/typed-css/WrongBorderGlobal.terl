@@ -1,0 +1,7 @@
+module typed_css.WrongBorderGlobal.
+
+import std.css.Values.{transparent}.
+import std.css.properties.Border.
+
+pub invalid(): Border.Value ->
+    Border.compose(Border.inherit(), Border.line_style_solid(), transparent()).

@@ -1,0 +1,100 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-active-range-start
+ * Grammar: [ auto | normal | <length-percentage> | <timeline-range-name> <length-percentage>? ]#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TimelineTriggerActiveRangeStart.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained timeline-trigger-active-range-start value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    timeline_trigger_active_range_start: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    timeline_trigger_active_range_start: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "initial"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "timeline-trigger-active-range-start", css: "unset"}).
+
+/**
+ * Constructs a timeline-trigger-active-range-start value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(
+        Token {
+            property: "timeline-trigger-active-range-start",
+            css: std.css.Values.length_css(value),
+        },
+    ).
+
+/**
+ * Constructs a timeline-trigger-active-range-start value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(
+        Token {
+            property: "timeline-trigger-active-range-start",
+            css: std.css.Values.percentage_css(value),
+        },
+    ).

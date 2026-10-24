@@ -1,0 +1,9 @@
+module=std.css.properties.AlignmentBaseline
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=10725459642763343808
+interface_hash=7814245156215067575
+interface_doc_hash=9627334317240258947
+deps=1
+std.core.Option=11539230284316612175

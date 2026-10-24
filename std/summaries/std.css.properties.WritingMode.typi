@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-writing-mode
+//! Grammar: horizontal-tb | vertical-rl | vertical-lr | sideways-rl | sideways-lr
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WritingMode.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    writing_mode: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    writing_mode: Value
+}.
+
+/// A nominal, specification-constrained writing-mode value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword horizontal-tb.
+
+pub horizontal_tb(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword sideways-lr.
+
+pub sideways_lr(): Value.
+
+/// Returns the CSS keyword sideways-rl.
+
+pub sideways_rl(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword vertical-lr.
+
+pub vertical_lr(): Value.
+
+/// Returns the CSS keyword vertical-rl.
+
+pub vertical_rl(): Value.
+
+export type Token.

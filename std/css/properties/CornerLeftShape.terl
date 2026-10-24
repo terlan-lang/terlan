@@ -1,0 +1,167 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-corner-left-shape
+ * Grammar: <'corner-top-left-shape'>{1,2}
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.CornerLeftShape.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained corner-left-shape value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A single non-global corner-left-shape shorthand component.
+ */
+pub opaque type Component = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    corner_left_shape: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    corner_left_shape: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword bevel.
+ */
+pub bevel(): Value ->
+    Value(Token {property: "corner-left-shape", css: "bevel"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "corner-left-shape", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "corner-left-shape", css: "initial"}).
+
+/**
+ * Returns the CSS keyword notch.
+ */
+pub notch(): Value ->
+    Value(Token {property: "corner-left-shape", css: "notch"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "corner-left-shape", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "corner-left-shape", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword round.
+ */
+pub round(): Value ->
+    Value(Token {property: "corner-left-shape", css: "round"}).
+
+/**
+ * Returns the CSS keyword scoop.
+ */
+pub scoop(): Value ->
+    Value(Token {property: "corner-left-shape", css: "scoop"}).
+
+/**
+ * Returns the CSS keyword square.
+ */
+pub square(): Value ->
+    Value(Token {property: "corner-left-shape", css: "square"}).
+
+/**
+ * Returns the CSS keyword squircle.
+ */
+pub squircle(): Value ->
+    Value(Token {property: "corner-left-shape", css: "squircle"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "corner-left-shape", css: "unset"}).
+
+/**
+ * Constructs one corner-left-shape shorthand component.
+ */
+pub component_bevel(): Component ->
+    Component(Token {property: "corner-left-shape", css: "bevel"}).
+
+/**
+ * Constructs one corner-left-shape shorthand component.
+ */
+pub component_notch(): Component ->
+    Component(Token {property: "corner-left-shape", css: "notch"}).
+
+/**
+ * Constructs one corner-left-shape shorthand component.
+ */
+pub component_round(): Component ->
+    Component(Token {property: "corner-left-shape", css: "round"}).
+
+/**
+ * Constructs one corner-left-shape shorthand component.
+ */
+pub component_scoop(): Component ->
+    Component(Token {property: "corner-left-shape", css: "scoop"}).
+
+/**
+ * Constructs one corner-left-shape shorthand component.
+ */
+pub component_square(): Component ->
+    Component(Token {property: "corner-left-shape", css: "square"}).
+
+/**
+ * Constructs one corner-left-shape shorthand component.
+ */
+pub component_squircle(): Component ->
+    Component(Token {property: "corner-left-shape", css: "squircle"}).
+
+/**
+ * Serializes a library-owned shorthand component.
+ */
+component_css(value: Component): String ->
+    let token = component_token(value);
+    token.css.
+
+component_token(value: Component): Token ->
+    value.
+
+/**
+ * Combines 1 typed components in specification order.
+ */
+pub single(first: Component): Value ->
+    Value(Token {property: "corner-left-shape", css: component_css(first)}).
+
+/**
+ * Combines 2 typed components in specification order.
+ */
+pub pair(first: Component, second: Component): Value ->
+    Value(
+        Token {
+            property: "corner-left-shape",
+            css: component_css(first) + " " + component_css(second),
+        },
+    ).

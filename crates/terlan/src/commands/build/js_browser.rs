@@ -38,6 +38,7 @@ pub(super) struct BrowserStaticAssetConfig {
     pub(super) inline_limit: Option<u64>,
     pub(super) rsbuild_config: Option<PathBuf>,
     pub(super) angular_ts: bool,
+    pub(super) styles: Vec<PathBuf>,
 }
 
 /// Source module used only for web route-manifest discovery.

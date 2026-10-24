@@ -1,0 +1,9 @@
+module=std.css.properties.Grid
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=10672138544892698956
+interface_hash=13228271827926443639
+interface_doc_hash=1856566349642825011
+deps=1
+std.core.Option=11539230284316612175

@@ -1,0 +1,10 @@
+module typed_css.WrongUnit.
+
+import std.css.Values.{ms}.
+import std.css.properties.Width.{length}.
+
+import type std.core.Option.
+import type std.css.properties.Width.{Value as Width}.
+
+pub invalid(): Option[Width] ->
+    length(ms(100.0)).

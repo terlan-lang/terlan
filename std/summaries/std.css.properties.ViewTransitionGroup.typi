@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+//! Grammar: normal | contain | nearest | <custom-ident>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ViewTransitionGroup.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    view_transition_group: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    view_transition_group: Value
+}.
+
+/// A nominal, specification-constrained view-transition-group value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword nearest.
+
+pub nearest(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

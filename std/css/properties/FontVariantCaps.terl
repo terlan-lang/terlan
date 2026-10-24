@@ -1,0 +1,105 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-caps
+ * Grammar: normal | small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FontVariantCaps.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained font-variant-caps value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    font_variant_caps: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    font_variant_caps: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword all-petite-caps.
+ */
+pub all_petite_caps(): Value ->
+    Value(Token {property: "font-variant-caps", css: "all-petite-caps"}).
+
+/**
+ * Returns the CSS keyword all-small-caps.
+ */
+pub all_small_caps(): Value ->
+    Value(Token {property: "font-variant-caps", css: "all-small-caps"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "font-variant-caps", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "font-variant-caps", css: "initial"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "font-variant-caps", css: "normal"}).
+
+/**
+ * Returns the CSS keyword petite-caps.
+ */
+pub petite_caps(): Value ->
+    Value(Token {property: "font-variant-caps", css: "petite-caps"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "font-variant-caps", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "font-variant-caps", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword small-caps.
+ */
+pub small_caps(): Value ->
+    Value(Token {property: "font-variant-caps", css: "small-caps"}).
+
+/**
+ * Returns the CSS keyword titling-caps.
+ */
+pub titling_caps(): Value ->
+    Value(Token {property: "font-variant-caps", css: "titling-caps"}).
+
+/**
+ * Returns the CSS keyword unicase.
+ */
+pub unicase(): Value ->
+    Value(Token {property: "font-variant-caps", css: "unicase"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "font-variant-caps", css: "unset"}).

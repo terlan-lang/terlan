@@ -1,0 +1,192 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-ui-4/#propdef-outline
+//! Grammar: <'outline-width'> || <'outline-style'> || <'outline-color'>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Outline.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    outline: std.core.Option.Option[Value]
+}.
+
+/// A non-global outline-color component of outline.
+
+pub opaque type OutlineColorPart.
+
+/// A non-global outline-style component of outline.
+
+pub opaque type OutlineStylePart.
+
+/// A non-global outline-width component of outline.
+
+pub opaque type OutlineWidthPart.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    outline: Value
+}.
+
+/// A nominal, specification-constrained outline value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Constructs a outline value from a typed color.
+
+pub color(value: std.css.Values.Color): Value.
+
+/// Combines every named specification group in canonical order.
+
+pub compose(outline_width: OutlineWidthPart, outline_style: OutlineStylePart, outline_color: OutlineColorPart): Value.
+
+/// Returns the CSS keyword dashed.
+
+pub dashed(): Value.
+
+/// Returns the CSS keyword dotted.
+
+pub dotted(): Value.
+
+/// Returns the CSS keyword double.
+
+pub double(): Value.
+
+/// Returns the CSS keyword groove.
+
+pub groove(): Value.
+
+/// Returns the CSS keyword hairline.
+
+pub hairline(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inset.
+
+pub inset(): Value.
+
+/// Checks the specification range and constructs a outline value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Returns the CSS keyword medium.
+
+pub medium(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Constructs the outline-color keyword auto.
+
+pub outline_color_auto(): OutlineColorPart.
+
+/// Constructs a outline value from a typed color.
+
+pub outline_color_color(value: std.css.Values.Color): OutlineColorPart.
+
+/// Constructs the outline-style keyword auto.
+
+pub outline_style_auto(): OutlineStylePart.
+
+/// Constructs the outline-style keyword dashed.
+
+pub outline_style_dashed(): OutlineStylePart.
+
+/// Constructs the outline-style keyword dotted.
+
+pub outline_style_dotted(): OutlineStylePart.
+
+/// Constructs the outline-style keyword double.
+
+pub outline_style_double(): OutlineStylePart.
+
+/// Constructs the outline-style keyword groove.
+
+pub outline_style_groove(): OutlineStylePart.
+
+/// Constructs the outline-style keyword inset.
+
+pub outline_style_inset(): OutlineStylePart.
+
+/// Constructs the outline-style keyword none.
+
+pub outline_style_none(): OutlineStylePart.
+
+/// Constructs the outline-style keyword outset.
+
+pub outline_style_outset(): OutlineStylePart.
+
+/// Constructs the outline-style keyword ridge.
+
+pub outline_style_ridge(): OutlineStylePart.
+
+/// Constructs the outline-style keyword solid.
+
+pub outline_style_solid(): OutlineStylePart.
+
+/// Constructs the outline-width keyword hairline.
+
+pub outline_width_hairline(): OutlineWidthPart.
+
+/// Checks the specification range and constructs a outline value.
+
+pub outline_width_length(value: std.css.Values.Length): Option[OutlineWidthPart].
+
+/// Constructs the outline-width keyword medium.
+
+pub outline_width_medium(): OutlineWidthPart.
+
+/// Constructs the outline-width keyword thick.
+
+pub outline_width_thick(): OutlineWidthPart.
+
+/// Constructs the outline-width keyword thin.
+
+pub outline_width_thin(): OutlineWidthPart.
+
+/// Returns the CSS keyword outset.
+
+pub outset(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword ridge.
+
+pub ridge(): Value.
+
+/// Returns the CSS keyword solid.
+
+pub solid(): Value.
+
+/// Returns the CSS keyword thick.
+
+pub thick(): Value.
+
+/// Returns the CSS keyword thin.
+
+pub thin(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

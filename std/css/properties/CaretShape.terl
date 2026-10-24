@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-ui-4/#propdef-caret-shape
+ * Grammar: auto | bar | block | underscore
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.CaretShape.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained caret-shape value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    caret_shape: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    caret_shape: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "caret-shape", css: "auto"}).
+
+/**
+ * Returns the CSS keyword bar.
+ */
+pub bar(): Value ->
+    Value(Token {property: "caret-shape", css: "bar"}).
+
+/**
+ * Returns the CSS keyword block.
+ */
+pub block(): Value ->
+    Value(Token {property: "caret-shape", css: "block"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "caret-shape", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "caret-shape", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "caret-shape", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "caret-shape", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword underscore.
+ */
+pub underscore(): Value ->
+    Value(Token {property: "caret-shape", css: "underscore"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "caret-shape", css: "unset"}).

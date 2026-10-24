@@ -1,0 +1,68 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-shapes-1/#propdef-shape-outside
+//! Grammar: none | [ <basic-shape> || <shape-box> ] | <image>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ShapeOutside.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    shape_outside: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    shape_outside: Value
+}.
+
+/// A nominal, specification-constrained shape-outside value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword border-box.
+
+pub border_box(): Value.
+
+/// Returns the CSS keyword content-box.
+
+pub content_box(): Value.
+
+/// Returns the CSS keyword half-border-box.
+
+pub half_border_box(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword margin-box.
+
+pub margin_box(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword padding-box.
+
+pub padding_box(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

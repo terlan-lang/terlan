@@ -1,0 +1,72 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-margin-block-start
+ * Grammar: <length>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ScrollMarginBlockStart.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length}.
+
+/**
+ * A nominal, specification-constrained scroll-margin-block-start value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    scroll_margin_block_start: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    scroll_margin_block_start: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "scroll-margin-block-start", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "scroll-margin-block-start", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "scroll-margin-block-start", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "scroll-margin-block-start", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "scroll-margin-block-start", css: "unset"}).
+
+/**
+ * Constructs a scroll-margin-block-start value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "scroll-margin-block-start", css: std.css.Values.length_css(value)}).

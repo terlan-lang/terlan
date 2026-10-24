@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-stop
+//! Grammar: normal | always
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ScrollSnapStop.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    scroll_snap_stop: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    scroll_snap_stop: Value
+}.
+
+/// A nominal, specification-constrained scroll-snap-stop value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword always.
+
+pub always(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

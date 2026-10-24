@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-break
+ * Grammar: bounding-box | slice | clone
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.StrokeBreak.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained stroke-break value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    stroke_break: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    stroke_break: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword bounding-box.
+ */
+pub bounding_box(): Value ->
+    Value(Token {property: "stroke-break", css: "bounding-box"}).
+
+/**
+ * Returns the CSS keyword clone.
+ */
+pub clone(): Value ->
+    Value(Token {property: "stroke-break", css: "clone"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "stroke-break", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "stroke-break", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "stroke-break", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "stroke-break", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword slice.
+ */
+pub slice(): Value ->
+    Value(Token {property: "stroke-break", css: "slice"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "stroke-break", css: "unset"}).

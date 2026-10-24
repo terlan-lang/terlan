@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-color-scheme
+//! Grammar: normal | [ light | dark | <custom-ident> ]+ && only?
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ColorScheme.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    color_scheme: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    color_scheme: Value
+}.
+
+/// A nominal, specification-constrained color-scheme value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword dark.
+
+pub dark(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword light.
+
+pub light(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

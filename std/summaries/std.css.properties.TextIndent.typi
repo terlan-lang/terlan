@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-indent
+//! Grammar: [ <length-percentage> ] && hanging? && each-line?
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextIndent.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_indent: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_indent: Value
+}.
+
+/// A nominal, specification-constrained text-indent value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a text-indent value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Constructs a text-indent value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

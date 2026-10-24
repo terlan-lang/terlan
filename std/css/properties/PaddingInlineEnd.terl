@@ -1,0 +1,96 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-padding-inline-end
+ * Grammar: <'padding-top'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.PaddingInlineEnd.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained padding-inline-end value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    padding_inline_end: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    padding_inline_end: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "padding-inline-end", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "padding-inline-end", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "padding-inline-end", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "padding-inline-end", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "padding-inline-end", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a padding-inline-end value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(Token {property: "padding-inline-end", css: std.css.Values.length_css(value)}),
+            );
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a padding-inline-end value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true ->
+            Some(
+                Value(
+                    Token {
+                        property: "padding-inline-end",
+                        css: std.css.Values.percentage_css(value),
+                    },
+                ),
+            );
+        false -> None
+    }.

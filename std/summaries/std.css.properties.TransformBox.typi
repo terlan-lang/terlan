@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-transforms-1/#propdef-transform-box
+//! Grammar: content-box | border-box | fill-box | stroke-box | view-box
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TransformBox.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    transform_box: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    transform_box: Value
+}.
+
+/// A nominal, specification-constrained transform-box value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword border-box.
+
+pub border_box(): Value.
+
+/// Returns the CSS keyword content-box.
+
+pub content_box(): Value.
+
+/// Returns the CSS keyword fill-box.
+
+pub fill_box(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword stroke-box.
+
+pub stroke_box(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword view-box.
+
+pub view_box(): Value.
+
+export type Token.

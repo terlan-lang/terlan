@@ -1,0 +1,132 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-logical-1/#propdef-margin-inline
+ * Grammar: <'margin-top'>{1,2}
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.MarginInline.
+
+import std.css.Values.
+import std.css.Values.{length_css, percentage_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained margin-inline value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A single non-global margin-inline shorthand component.
+ */
+pub opaque type Component = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    margin_inline: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    margin_inline: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "margin-inline", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "margin-inline", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "margin-inline", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "margin-inline", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "margin-inline", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "margin-inline", css: "unset"}).
+
+/**
+ * Constructs a margin-inline value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "margin-inline", css: length_css(value)}).
+
+/**
+ * Constructs a margin-inline value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(Token {property: "margin-inline", css: percentage_css(value)}).
+
+/**
+ * Constructs one margin-inline shorthand component.
+ */
+pub component_auto(): Component ->
+    Component(Token {property: "margin-inline", css: "auto"}).
+
+/**
+ * Constructs a margin-inline value from a typed length.
+ */
+pub component_length(value: Length): Component ->
+    Component(Token {property: "margin-inline", css: length_css(value)}).
+
+/**
+ * Constructs a margin-inline value from a typed percentage.
+ */
+pub component_percentage(value: Percentage): Component ->
+    Component(Token {property: "margin-inline", css: percentage_css(value)}).
+
+/**
+ * Serializes a library-owned shorthand component.
+ */
+component_css(value: Component): String ->
+    let token = component_token(value);
+    token.css.
+
+component_token(value: Component): Token ->
+    value.
+
+/**
+ * Combines 1 typed components in specification order.
+ */
+pub single(first: Component): Value ->
+    Value(Token {property: "margin-inline", css: component_css(first)}).
+
+/**
+ * Combines 2 typed components in specification order.
+ */
+pub pair(first: Component, second: Component): Value ->
+    Value(
+        Token {property: "margin-inline", css: component_css(first) + " " + component_css(second)},
+    ).

@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-view-transitions-2/#propdef-view-transition-group
+ * Grammar: normal | contain | nearest | <custom-ident>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ViewTransitionGroup.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained view-transition-group value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    view_transition_group: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    view_transition_group: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword contain.
+ */
+pub contain(): Value ->
+    Value(Token {property: "view-transition-group", css: "contain"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "view-transition-group", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "view-transition-group", css: "initial"}).
+
+/**
+ * Returns the CSS keyword nearest.
+ */
+pub nearest(): Value ->
+    Value(Token {property: "view-transition-group", css: "nearest"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "view-transition-group", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "view-transition-group", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "view-transition-group", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "view-transition-group", css: "unset"}).

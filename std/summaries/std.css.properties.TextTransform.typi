@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-transform
+//! Grammar: none | [capitalize | uppercase | lowercase ] || full-width || full-size-kana | math-auto
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextTransform.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_transform: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_transform: Value
+}.
+
+/// A nominal, specification-constrained text-transform value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword capitalize.
+
+pub capitalize(): Value.
+
+/// Returns the CSS keyword full-size-kana.
+
+pub full_size_kana(): Value.
+
+/// Returns the CSS keyword full-width.
+
+pub full_width(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword lowercase.
+
+pub lowercase(): Value.
+
+/// Returns the CSS keyword math-auto.
+
+pub math_auto(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword uppercase.
+
+pub uppercase(): Value.
+
+export type Token.

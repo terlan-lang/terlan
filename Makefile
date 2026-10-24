@@ -5519,3 +5519,7 @@ web-service-foundation-pruning-check: terlan-compiler-bootstrap
 
 web-service-foundation-check: web-service-foundation-contract-check web-service-foundation-runtime-check web-service-foundation-adapter-check web-service-foundation-pruning-check
 	target/debug/terlc run scripts/self_validation/WebServiceFoundation.terls -- report
+
+.PHONY: typed-css-check
+typed-css-check:
+	@scripts/check_typed_css.sh

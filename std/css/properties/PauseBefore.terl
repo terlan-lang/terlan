@@ -1,0 +1,108 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-speech-1/#propdef-pause-before
+ * Grammar: <time [0s,∞]> | none | x-weak | weak | medium | strong | x-strong
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.PauseBefore.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Time}.
+
+/**
+ * A nominal, specification-constrained pause-before value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    pause_before: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    pause_before: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "pause-before", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "pause-before", css: "initial"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "pause-before", css: "medium"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "pause-before", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "pause-before", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "pause-before", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword strong.
+ */
+pub strong(): Value ->
+    Value(Token {property: "pause-before", css: "strong"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "pause-before", css: "unset"}).
+
+/**
+ * Returns the CSS keyword weak.
+ */
+pub weak(): Value ->
+    Value(Token {property: "pause-before", css: "weak"}).
+
+/**
+ * Returns the CSS keyword x-strong.
+ */
+pub x_strong(): Value ->
+    Value(Token {property: "pause-before", css: "x-strong"}).
+
+/**
+ * Returns the CSS keyword x-weak.
+ */
+pub x_weak(): Value ->
+    Value(Token {property: "pause-before", css: "x-weak"}).
+
+/**
+ * Constructs a pause-before value from a typed time.
+ */
+pub time(value: Time): Value ->
+    Value(Token {property: "pause-before", css: std.css.Values.time_css(value)}).

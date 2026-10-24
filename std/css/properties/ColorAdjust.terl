@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-color-adjust-1/#propdef-color-adjust
+ * Grammar: <'print-color-adjust'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.ColorAdjust.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained color-adjust value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    color_adjust: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    color_adjust: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword economy.
+ */
+pub economy(): Value ->
+    Value(Token {property: "color-adjust", css: "economy"}).
+
+/**
+ * Returns the CSS keyword exact.
+ */
+pub exact(): Value ->
+    Value(Token {property: "color-adjust", css: "exact"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "color-adjust", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "color-adjust", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "color-adjust", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "color-adjust", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "color-adjust", css: "unset"}).

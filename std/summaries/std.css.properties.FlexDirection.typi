@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-direction
+//! Grammar: row | row-reverse | column | column-reverse
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FlexDirection.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    flex_direction: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    flex_direction: Value
+}.
+
+/// A nominal, specification-constrained flex-direction value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword column.
+
+pub column(): Value.
+
+/// Returns the CSS keyword column-reverse.
+
+pub column_reverse(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword row.
+
+pub row(): Value.
+
+/// Returns the CSS keyword row-reverse.
+
+pub row_reverse(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

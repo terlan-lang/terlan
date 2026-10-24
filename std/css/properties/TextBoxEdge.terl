@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge
+ * Grammar: auto | <text-edge>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextBoxEdge.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-box-edge value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_box_edge: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_box_edge: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "text-box-edge", css: "auto"}).
+
+/**
+ * Returns the CSS keyword ideographic.
+ */
+pub ideographic(): Value ->
+    Value(Token {property: "text-box-edge", css: "ideographic"}).
+
+/**
+ * Returns the CSS keyword ideographic-ink.
+ */
+pub ideographic_ink(): Value ->
+    Value(Token {property: "text-box-edge", css: "ideographic-ink"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-box-edge", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-box-edge", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-box-edge", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-box-edge", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword text.
+ */
+pub text(): Value ->
+    Value(Token {property: "text-box-edge", css: "text"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-box-edge", css: "unset"}).

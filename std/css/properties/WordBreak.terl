@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-word-break
+ * Grammar: normal | break-all | keep-all | manual | auto-phrase | break-word
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.WordBreak.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained word-break value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    word_break: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    word_break: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto-phrase.
+ */
+pub auto_phrase(): Value ->
+    Value(Token {property: "word-break", css: "auto-phrase"}).
+
+/**
+ * Returns the CSS keyword break-all.
+ */
+pub break_all(): Value ->
+    Value(Token {property: "word-break", css: "break-all"}).
+
+/**
+ * Returns the CSS keyword break-word.
+ */
+pub break_word(): Value ->
+    Value(Token {property: "word-break", css: "break-word"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "word-break", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "word-break", css: "initial"}).
+
+/**
+ * Returns the CSS keyword keep-all.
+ */
+pub keep_all(): Value ->
+    Value(Token {property: "word-break", css: "keep-all"}).
+
+/**
+ * Returns the CSS keyword manual.
+ */
+pub manual(): Value ->
+    Value(Token {property: "word-break", css: "manual"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "word-break", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "word-break", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "word-break", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "word-break", css: "unset"}).

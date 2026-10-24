@@ -1,0 +1,104 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-size
+ * Grammar: <bg-size>#
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.StrokeSize.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained stroke-size value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    stroke_size: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    stroke_size: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "stroke-size", css: "auto"}).
+
+/**
+ * Returns the CSS keyword contain.
+ */
+pub contain(): Value ->
+    Value(Token {property: "stroke-size", css: "contain"}).
+
+/**
+ * Returns the CSS keyword cover.
+ */
+pub cover(): Value ->
+    Value(Token {property: "stroke-size", css: "cover"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "stroke-size", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "stroke-size", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "stroke-size", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "stroke-size", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "stroke-size", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a stroke-size value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "stroke-size", css: std.css.Values.length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a stroke-size value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true ->
+            Some(Value(Token {property: "stroke-size", css: std.css.Values.percentage_css(value)}));
+        false -> None
+    }.

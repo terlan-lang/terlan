@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "cacbfdcdf75da0fba202bf63d5188c3ac7db02af8b5d80840595d63427d010c5",
+  "compilation_input_sha256": "51bd56256735729811914ffb43f7793956904b45e54a4e731a281f8117b31438",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -48,7 +48,7 @@
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 66,
+      "reference_sites": 69,
       "source_domains": [
         "commands",
         "lsp",
@@ -172,7 +172,7 @@
     },
     {
       "domain": "support",
-      "reference_sites": 82,
+      "reference_sites": 83,
       "source_domains": [
         "commands",
         "formal_pipeline",
@@ -735,7 +735,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 64,
+      "reference_sites": 67,
       "to": "formal_pipeline"
     },
     {
@@ -750,7 +750,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 67,
+      "reference_sites": 68,
       "to": "support"
     },
     {
@@ -832,17 +832,17 @@
     },
     {
       "name": "commands",
-      "physical_lines": 137040,
-      "rust_files": 398
+      "physical_lines": 137584,
+      "rust_files": 401
     },
     {
       "name": "compiler",
-      "physical_lines": 174790,
+      "physical_lines": 174858,
       "rust_files": 483
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 1484,
+      "physical_lines": 1514,
       "rust_files": 8
     },
     {
@@ -902,7 +902,7 @@
     },
     {
       "name": "root:formal_pipeline",
-      "physical_lines": 817,
+      "physical_lines": 818,
       "rust_files": 1
     },
     {
@@ -1304,18 +1304,18 @@
     },
     {
       "name": "commands",
-      "physical_lines": 49725,
-      "rust_files": 218
+      "physical_lines": 50066,
+      "rust_files": 221
     },
     {
       "name": "compiler",
-      "physical_lines": 50476,
+      "physical_lines": 50564,
       "rust_files": 227
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 106,
-      "rust_files": 1
+      "physical_lines": 122,
+      "rust_files": 2
     },
     {
       "name": "html",

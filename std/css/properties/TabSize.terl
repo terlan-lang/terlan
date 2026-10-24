@@ -1,0 +1,86 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-tab-size
+ * Grammar: <number [0,∞]> | <length [0,∞]>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TabSize.
+
+import std.core.Float.
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length}.
+
+/**
+ * A nominal, specification-constrained tab-size value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    tab_size: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    tab_size: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "tab-size", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "tab-size", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "tab-size", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "tab-size", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "tab-size", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a tab-size value.
+ */
+pub number(value: Float): Option[Value] ->
+    case value >= 0 {
+        true -> Some(Value(Token {property: "tab-size", css: std.core.Float.to_string(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a tab-size value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "tab-size", css: std.css.Values.length_css(value)}));
+        false -> None
+    }.

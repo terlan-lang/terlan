@@ -90,8 +90,40 @@ pub(crate) fn compile_serve_application(
     source_path: &std::path::Path,
     expected_module: &str,
 ) -> Result<CompiledServeApplication, String> {
-    let source_root = serve_application_source_root(web_root, source_path, expected_module)?;
-    let source_roots = super::super::terlan_vm_source_roots_for_directory(&source_root)?;
+    let source_root = application_source_root(source_path, expected_module)?;
+    if !super::super::project_manifest_path(&source_root).is_file()
+        && !web_root
+            .ancestors()
+            .any(|candidate| source_root.starts_with(candidate) && candidate.parent().is_some())
+    {
+        return Err(format!(
+            "serve source {} and web root {} do not share an application root",
+            source_path.display(),
+            web_root.display()
+        ));
+    }
+    compile_application_from_root(web_root, &source_root, expected_module, false)
+}
+
+/// Compiles a source export and its imports independently of the output location.
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) fn compile_source_application(
+    workspace: &std::path::Path,
+    source_path: &std::path::Path,
+    expected_module: &str,
+) -> Result<CompiledServeApplication, String> {
+    let source_root = application_source_root(source_path, expected_module)?;
+    compile_application_from_root(workspace, &source_root, expected_module, true)
+}
+
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+fn compile_application_from_root(
+    web_root: &std::path::Path,
+    source_root: &std::path::Path,
+    expected_module: &str,
+    selected_source: bool,
+) -> Result<CompiledServeApplication, String> {
+    let source_roots = super::super::terlan_vm_source_roots_for_directory(source_root)?;
     let state = CliState {
         out_dir: web_root.join(".terlan").join("serve-build"),
         cache_dir: Some(web_root.join(".terlan").join("serve-compiler")),
@@ -101,7 +133,12 @@ pub(crate) fn compile_serve_application(
     };
     let (paths, state) = super::super::prepare_source_roots_build(&source_roots, &state)
         .map_err(|status| format!("serve application preparation failed with {status:?}"))?;
-    let mut modules = compile_vm_modules(&paths, &state).map_err(|error| match error {
+    let compiled = if selected_source {
+        super::application_closure::compile_application_closure(&paths, expected_module, &state)
+    } else {
+        compile_vm_modules(&paths, &state)
+    };
+    let mut modules = compiled.map_err(|error| match error {
         BuildOneError::Message(message) => message,
         BuildOneError::Exit(status) => {
             format!("serve application compilation failed with {status:?}")
@@ -144,7 +181,7 @@ pub(crate) fn compile_serve_application(
         .collect::<Vec<_>>();
     let debug_source_paths = modules
         .iter()
-        .map(|module| stable_serve_debug_source_path(&source_root, &module.source_path))
+        .map(|module| stable_serve_debug_source_path(source_root, &module.source_path))
         .collect::<Vec<_>>();
     let debug_inputs = modules
         .iter()
@@ -201,8 +238,7 @@ fn stable_serve_debug_source_path(source_root: &std::path::Path, source_path: &s
 }
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
-fn serve_application_source_root(
-    web_root: &std::path::Path,
+fn application_source_root(
     source_path: &std::path::Path,
     expected_module: &str,
 ) -> Result<PathBuf, String> {
@@ -242,16 +278,6 @@ fn serve_application_source_root(
         return Err(format!(
             "serve source {} does not match module `{expected_module}`",
             source_path.display()
-        ));
-    }
-    if !web_root
-        .ancestors()
-        .any(|candidate| source_root.starts_with(candidate) && candidate.parent().is_some())
-    {
-        return Err(format!(
-            "serve source {} and web root {} do not share an application root",
-            source_path.display(),
-            web_root.display()
         ));
     }
     Ok(source_root.to_path_buf())

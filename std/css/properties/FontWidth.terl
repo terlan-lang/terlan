@@ -1,0 +1,131 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-width
+ * Grammar: normal | <percentage [0,∞]> | ultra-condensed | extra-condensed | condensed | semi-condensed | semi-expanded | expanded | extra-expanded | ultra-expanded
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FontWidth.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Percentage}.
+
+/**
+ * A nominal, specification-constrained font-width value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    font_width: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    font_width: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword condensed.
+ */
+pub condensed(): Value ->
+    Value(Token {property: "font-width", css: "condensed"}).
+
+/**
+ * Returns the CSS keyword expanded.
+ */
+pub expanded(): Value ->
+    Value(Token {property: "font-width", css: "expanded"}).
+
+/**
+ * Returns the CSS keyword extra-condensed.
+ */
+pub extra_condensed(): Value ->
+    Value(Token {property: "font-width", css: "extra-condensed"}).
+
+/**
+ * Returns the CSS keyword extra-expanded.
+ */
+pub extra_expanded(): Value ->
+    Value(Token {property: "font-width", css: "extra-expanded"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "font-width", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "font-width", css: "initial"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "font-width", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "font-width", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "font-width", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword semi-condensed.
+ */
+pub semi_condensed(): Value ->
+    Value(Token {property: "font-width", css: "semi-condensed"}).
+
+/**
+ * Returns the CSS keyword semi-expanded.
+ */
+pub semi_expanded(): Value ->
+    Value(Token {property: "font-width", css: "semi-expanded"}).
+
+/**
+ * Returns the CSS keyword ultra-condensed.
+ */
+pub ultra_condensed(): Value ->
+    Value(Token {property: "font-width", css: "ultra-condensed"}).
+
+/**
+ * Returns the CSS keyword ultra-expanded.
+ */
+pub ultra_expanded(): Value ->
+    Value(Token {property: "font-width", css: "ultra-expanded"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "font-width", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a font-width value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true ->
+            Some(Value(Token {property: "font-width", css: std.css.Values.percentage_css(value)}));
+        false -> None
+    }.

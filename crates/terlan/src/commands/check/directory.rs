@@ -401,6 +401,18 @@ pub(crate) fn run_check_dir(
         interfaces.extend(graph.interfaces);
     }
     crate::formal_pipeline::load_embedded_std_interfaces(&mut interfaces);
+    if let Some((file, _, _)) = parsed_modules.first() {
+        let required = parsed_modules
+            .iter()
+            .flat_map(|(_, _, module)| crate::formal_pipeline::source_dependency_modules(module))
+            .filter(|module| module.starts_with("std."))
+            .collect();
+        crate::formal_pipeline::load_required_standard_interfaces(
+            &file.to_string_lossy(),
+            required,
+            &mut interfaces,
+        );
+    }
 
     if state.incremental && !dependencies.is_empty() {
         for (file, _, syntax) in &parsed_modules {

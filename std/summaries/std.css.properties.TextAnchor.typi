@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/text.html#TextAnchorProperty
+//! Grammar: start | middle | end
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextAnchor.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_anchor: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_anchor: Value
+}.
+
+/// A nominal, specification-constrained text-anchor value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword end.
+
+pub end_value(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword middle.
+
+pub middle(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword start.
+
+pub start(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

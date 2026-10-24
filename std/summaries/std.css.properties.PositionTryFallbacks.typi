@@ -1,0 +1,268 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-anchor-position-1/#propdef-position-try-fallbacks
+//! Grammar: none | [ [<dashed-ident> || <try-tactic>] | <position-area> ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.PositionTryFallbacks.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    position_try_fallbacks: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    position_try_fallbacks: Value
+}.
+
+/// A nominal, specification-constrained position-try-fallbacks value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword block-end.
+
+pub block_end(): Value.
+
+/// Returns the CSS keyword block-start.
+
+pub block_start(): Value.
+
+/// Returns the CSS keyword bottom.
+
+pub bottom(): Value.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Returns the CSS keyword end.
+
+pub end_value(): Value.
+
+/// Returns the CSS keyword flip-block.
+
+pub flip_block(): Value.
+
+/// Returns the CSS keyword flip-inline.
+
+pub flip_inline(): Value.
+
+/// Returns the CSS keyword flip-start.
+
+pub flip_start(): Value.
+
+/// Returns the CSS keyword flip-x.
+
+pub flip_x(): Value.
+
+/// Returns the CSS keyword flip-y.
+
+pub flip_y(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inline-end.
+
+pub inline_end(): Value.
+
+/// Returns the CSS keyword inline-start.
+
+pub inline_start(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword self-block-end.
+
+pub self_block_end(): Value.
+
+/// Returns the CSS keyword self-block-start.
+
+pub self_block_start(): Value.
+
+/// Returns the CSS keyword self-end.
+
+pub self_end(): Value.
+
+/// Returns the CSS keyword self-inline-end.
+
+pub self_inline_end(): Value.
+
+/// Returns the CSS keyword self-inline-start.
+
+pub self_inline_start(): Value.
+
+/// Returns the CSS keyword self-start.
+
+pub self_start(): Value.
+
+/// Returns the CSS keyword self-x-end.
+
+pub self_x_end(): Value.
+
+/// Returns the CSS keyword self-x-start.
+
+pub self_x_start(): Value.
+
+/// Returns the CSS keyword self-y-end.
+
+pub self_y_end(): Value.
+
+/// Returns the CSS keyword self-y-start.
+
+pub self_y_start(): Value.
+
+/// Returns the CSS keyword span-all.
+
+pub span_all(): Value.
+
+/// Returns the CSS keyword span-block-end.
+
+pub span_block_end(): Value.
+
+/// Returns the CSS keyword span-block-start.
+
+pub span_block_start(): Value.
+
+/// Returns the CSS keyword span-bottom.
+
+pub span_bottom(): Value.
+
+/// Returns the CSS keyword span-end.
+
+pub span_end(): Value.
+
+/// Returns the CSS keyword span-inline-end.
+
+pub span_inline_end(): Value.
+
+/// Returns the CSS keyword span-inline-start.
+
+pub span_inline_start(): Value.
+
+/// Returns the CSS keyword span-left.
+
+pub span_left(): Value.
+
+/// Returns the CSS keyword span-right.
+
+pub span_right(): Value.
+
+/// Returns the CSS keyword span-self-block-end.
+
+pub span_self_block_end(): Value.
+
+/// Returns the CSS keyword span-self-block-start.
+
+pub span_self_block_start(): Value.
+
+/// Returns the CSS keyword span-self-end.
+
+pub span_self_end(): Value.
+
+/// Returns the CSS keyword span-self-inline-end.
+
+pub span_self_inline_end(): Value.
+
+/// Returns the CSS keyword span-self-inline-start.
+
+pub span_self_inline_start(): Value.
+
+/// Returns the CSS keyword span-self-start.
+
+pub span_self_start(): Value.
+
+/// Returns the CSS keyword span-self-x-end.
+
+pub span_self_x_end(): Value.
+
+/// Returns the CSS keyword span-self-x-start.
+
+pub span_self_x_start(): Value.
+
+/// Returns the CSS keyword span-self-y-end.
+
+pub span_self_y_end(): Value.
+
+/// Returns the CSS keyword span-self-y-start.
+
+pub span_self_y_start(): Value.
+
+/// Returns the CSS keyword span-start.
+
+pub span_start(): Value.
+
+/// Returns the CSS keyword span-top.
+
+pub span_top(): Value.
+
+/// Returns the CSS keyword span-x-end.
+
+pub span_x_end(): Value.
+
+/// Returns the CSS keyword span-x-start.
+
+pub span_x_start(): Value.
+
+/// Returns the CSS keyword span-y-end.
+
+pub span_y_end(): Value.
+
+/// Returns the CSS keyword span-y-start.
+
+pub span_y_start(): Value.
+
+/// Returns the CSS keyword start.
+
+pub start(): Value.
+
+/// Returns the CSS keyword top.
+
+pub top(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword x-end.
+
+pub x_end(): Value.
+
+/// Returns the CSS keyword x-start.
+
+pub x_start(): Value.
+
+/// Returns the CSS keyword y-end.
+
+pub y_end(): Value.
+
+/// Returns the CSS keyword y-start.
+
+pub y_start(): Value.
+
+export type Token.

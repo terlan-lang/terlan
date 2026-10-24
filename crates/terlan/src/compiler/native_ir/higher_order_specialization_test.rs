@@ -9,6 +9,33 @@ use crate::{
 use super::{higher_order_specialization::specialize_higher_order_helpers, NativeModule};
 
 #[test]
+fn pure_closure_factories_register_zero_capture_and_captured_callback_profiles() {
+    super::source_constructor_test::check_sources(&[r#"
+module factory_callback_profiles.
+positive(): (Int) -> Bool -> (value: Int) -> value > 0.
+at_least(minimum: Int): (Int) -> Bool -> (value: Int) -> value >= minimum.
+pub apply(value: Int, predicate: (Int) -> Bool): Bool -> predicate(value).
+pub check(): Bool ->
+    apply(7, positive()) and not apply(-1, positive())
+        and apply(7, at_least(5)) and not apply(3, at_least(5)).
+"#]);
+}
+
+#[test]
+fn pure_closure_factories_preserve_suspending_callback_profiles() {
+    super::source_constructor_test::check_sources(&[r#"
+module factory_suspending_callback_profiles.
+import std.vm.Process.
+at_least(minimum: Int): ((Int) -> Bool) ->
+    (value) ->
+        let _parked = Process.yield_now();
+        value >= minimum.
+pub apply(value: Int, predicate: (Int) -> Bool): Bool -> predicate(value).
+pub check(): Bool -> apply(7, at_least(5)) and not apply(3, at_least(5)).
+"#]);
+}
+
+#[test]
 fn private_helper_calls_in_collection_payloads_are_rewritten_before_removal() {
     super::source_constructor_test::check_sources(&[r#"
 module higher_order_collections.

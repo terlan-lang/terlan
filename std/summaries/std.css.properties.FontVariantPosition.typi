@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-position
+//! Grammar: normal | sub | super
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariantPosition.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variant_position: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variant_position: Value
+}.
+
+/// A nominal, specification-constrained font-variant-position value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword sub.
+
+pub sub(): Value.
+
+/// Returns the CSS keyword super.
+
+pub super(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

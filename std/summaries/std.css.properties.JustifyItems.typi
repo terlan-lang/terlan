@@ -1,0 +1,104 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-align-3/#propdef-justify-items
+//! Grammar: normal | stretch | <baseline-position> | <overflow-position>? [ <self-position> | left | right ] | legacy | legacy && [ left | right | center ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.JustifyItems.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    justify_items: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    justify_items: Value
+}.
+
+/// A nominal, specification-constrained justify-items value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword baseline.
+
+pub baseline(): Value.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Returns the CSS keyword end.
+
+pub end_value(): Value.
+
+/// Returns the CSS keyword flex-end.
+
+pub flex_end(): Value.
+
+/// Returns the CSS keyword flex-start.
+
+pub flex_start(): Value.
+
+/// Returns the CSS keyword flow-end.
+
+pub flow_end(): Value.
+
+/// Returns the CSS keyword flow-start.
+
+pub flow_start(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Returns the CSS keyword legacy.
+
+pub legacy(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword self-end.
+
+pub self_end(): Value.
+
+/// Returns the CSS keyword self-start.
+
+pub self_start(): Value.
+
+/// Returns the CSS keyword start.
+
+pub start(): Value.
+
+/// Returns the CSS keyword stretch.
+
+pub stretch(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

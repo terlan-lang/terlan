@@ -1,0 +1,9 @@
+module=std.css.properties.CornerTopLeftShape
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=6891435869094193239
+interface_hash=349254105672539793
+interface_doc_hash=3975243140270369290
+deps=1
+std.core.Option=11539230284316612175

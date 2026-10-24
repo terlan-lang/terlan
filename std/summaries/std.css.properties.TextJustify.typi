@@ -1,0 +1,68 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-text-justify
+//! Grammar: [ auto | none | inter-word | inter-character | ruby ] || no-compress
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextJustify.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_justify: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_justify: Value
+}.
+
+/// A nominal, specification-constrained text-justify value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inter-character.
+
+pub inter_character(): Value.
+
+/// Returns the CSS keyword inter-word.
+
+pub inter_word(): Value.
+
+/// Returns the CSS keyword no-compress.
+
+pub no_compress(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword ruby.
+
+pub ruby(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

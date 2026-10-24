@@ -1,0 +1,9 @@
+module=std.css.properties.PositionTry
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=15692593992097245985
+interface_hash=11700262087118852573
+interface_doc_hash=1683804215142101575
+deps=1
+std.core.Option=11539230284316612175

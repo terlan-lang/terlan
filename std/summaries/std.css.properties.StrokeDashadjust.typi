@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://svgwg.org/specs/strokes/#StrokeDashadjustProperty
+//! Grammar: none | [stretch | compress] [dashes | gaps]?
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.StrokeDashadjust.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    stroke_dashadjust: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    stroke_dashadjust: Value
+}.
+
+/// A nominal, specification-constrained stroke-dashadjust value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword compress.
+
+pub compress(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword stretch.
+
+pub stretch(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

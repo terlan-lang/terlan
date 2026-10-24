@@ -1,0 +1,72 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-caps
+//! Grammar: normal | small-caps | all-small-caps | petite-caps | all-petite-caps | unicase | titling-caps
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariantCaps.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variant_caps: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variant_caps: Value
+}.
+
+/// A nominal, specification-constrained font-variant-caps value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all-petite-caps.
+
+pub all_petite_caps(): Value.
+
+/// Returns the CSS keyword all-small-caps.
+
+pub all_small_caps(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword petite-caps.
+
+pub petite_caps(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword small-caps.
+
+pub small_caps(): Value.
+
+/// Returns the CSS keyword titling-caps.
+
+pub titling_caps(): Value.
+
+/// Returns the CSS keyword unicase.
+
+pub unicase(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

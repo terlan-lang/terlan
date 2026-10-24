@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-lists-3/#propdef-marker-side
+ * Grammar: match-self | match-parent
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.MarkerSide.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained marker-side value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    marker_side: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    marker_side: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "marker-side", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "marker-side", css: "initial"}).
+
+/**
+ * Returns the CSS keyword match-parent.
+ */
+pub match_parent(): Value ->
+    Value(Token {property: "marker-side", css: "match-parent"}).
+
+/**
+ * Returns the CSS keyword match-self.
+ */
+pub match_self(): Value ->
+    Value(Token {property: "marker-side", css: "match-self"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "marker-side", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "marker-side", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "marker-side", css: "unset"}).

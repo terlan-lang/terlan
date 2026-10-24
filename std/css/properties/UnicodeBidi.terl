@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-unicode-bidi
+ * Grammar: normal | embed | isolate | bidi-override | isolate-override | plaintext
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.UnicodeBidi.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained unicode-bidi value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    unicode_bidi: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    unicode_bidi: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword bidi-override.
+ */
+pub bidi_override(): Value ->
+    Value(Token {property: "unicode-bidi", css: "bidi-override"}).
+
+/**
+ * Returns the CSS keyword embed.
+ */
+pub embed(): Value ->
+    Value(Token {property: "unicode-bidi", css: "embed"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "unicode-bidi", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "unicode-bidi", css: "initial"}).
+
+/**
+ * Returns the CSS keyword isolate.
+ */
+pub isolate(): Value ->
+    Value(Token {property: "unicode-bidi", css: "isolate"}).
+
+/**
+ * Returns the CSS keyword isolate-override.
+ */
+pub isolate_override(): Value ->
+    Value(Token {property: "unicode-bidi", css: "isolate-override"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "unicode-bidi", css: "normal"}).
+
+/**
+ * Returns the CSS keyword plaintext.
+ */
+pub plaintext(): Value ->
+    Value(Token {property: "unicode-bidi", css: "plaintext"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "unicode-bidi", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "unicode-bidi", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "unicode-bidi", css: "unset"}).

@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-page-floats-3/#propdef-float-defer
+//! Grammar: <integer> | last | none
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FloatDefer.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    float_defer: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    float_defer: Value
+}.
+
+/// A nominal, specification-constrained float-defer value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a float-defer value from a typed integer.
+
+pub integer(value: Int): Value.
+
+/// Returns the CSS keyword last.
+
+pub last(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

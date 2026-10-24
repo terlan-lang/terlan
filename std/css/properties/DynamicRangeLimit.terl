@@ -1,0 +1,81 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-color-hdr-1/#propdef-dynamic-range-limit
+ * Grammar: standard | no-limit | constrained | <dynamic-range-limit-mix()>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.DynamicRangeLimit.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained dynamic-range-limit value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    dynamic_range_limit: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    dynamic_range_limit: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword constrained.
+ */
+pub constrained(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "constrained"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "initial"}).
+
+/**
+ * Returns the CSS keyword no-limit.
+ */
+pub no_limit(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "no-limit"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword standard.
+ */
+pub standard(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "standard"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "dynamic-range-limit", css: "unset"}).

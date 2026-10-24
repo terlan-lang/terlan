@@ -1,0 +1,99 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-text-4/#propdef-text-justify
+ * Grammar: [ auto | none | inter-word | inter-character | ruby ] || no-compress
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextJustify.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-justify value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_justify: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_justify: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "text-justify", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-justify", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-justify", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inter-character.
+ */
+pub inter_character(): Value ->
+    Value(Token {property: "text-justify", css: "inter-character"}).
+
+/**
+ * Returns the CSS keyword inter-word.
+ */
+pub inter_word(): Value ->
+    Value(Token {property: "text-justify", css: "inter-word"}).
+
+/**
+ * Returns the CSS keyword no-compress.
+ */
+pub no_compress(): Value ->
+    Value(Token {property: "text-justify", css: "no-compress"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "text-justify", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-justify", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-justify", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword ruby.
+ */
+pub ruby(): Value ->
+    Value(Token {property: "text-justify", css: "ruby"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-justify", css: "unset"}).

@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/geometry.html#XProperty
+//! Grammar: <length-percentage>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.X.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    x: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    x: Value
+}.
+
+/// A nominal, specification-constrained x value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a x value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Constructs a x value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

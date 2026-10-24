@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-stroke-linecap
+//! Grammar: butt | round | square
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.StrokeLinecap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    stroke_linecap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    stroke_linecap: Value
+}.
+
+/// A nominal, specification-constrained stroke-linecap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword butt.
+
+pub butt(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword round.
+
+pub round(): Value.
+
+/// Returns the CSS keyword square.
+
+pub square(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

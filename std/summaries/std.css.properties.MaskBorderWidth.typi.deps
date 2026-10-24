@@ -1,0 +1,11 @@
+module=std.css.properties.MaskBorderWidth
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=12059342794404499337
+interface_hash=2293832345640863011
+interface_doc_hash=5986310294732251045
+deps=3
+std.core.Float=3784534907681217377
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-forms-1/#propdef-slider-orientation
+//! Grammar: auto | left-to-right | right-to-left | top-to-bottom | bottom-to-top
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.SliderOrientation.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    slider_orientation: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    slider_orientation: Value
+}.
+
+/// A nominal, specification-constrained slider-orientation value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword bottom-to-top.
+
+pub bottom_to_top(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword left-to-right.
+
+pub left_to_right(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right-to-left.
+
+pub right_to_left(): Value.
+
+/// Returns the CSS keyword top-to-bottom.
+
+pub top_to_bottom(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

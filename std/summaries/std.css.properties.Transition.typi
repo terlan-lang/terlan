@@ -1,0 +1,92 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-transitions-1/#propdef-transition
+//! Grammar: <single-transition>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Transition.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    transition: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    transition: Value
+}.
+
+/// A nominal, specification-constrained transition value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all.
+
+pub all(): Value.
+
+/// Returns the CSS keyword allow-discrete.
+
+pub allow_discrete(): Value.
+
+/// Returns the CSS keyword ease.
+
+pub ease(): Value.
+
+/// Returns the CSS keyword ease-in.
+
+pub ease_in(): Value.
+
+/// Returns the CSS keyword ease-in-out.
+
+pub ease_in_out(): Value.
+
+/// Returns the CSS keyword ease-out.
+
+pub ease_out(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword linear.
+
+pub linear(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword step-end.
+
+pub step_end(): Value.
+
+/// Returns the CSS keyword step-start.
+
+pub step_start(): Value.
+
+/// Constructs a transition value from a typed time.
+
+pub time(value: std.css.Values.Time): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

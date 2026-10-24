@@ -1,0 +1,9 @@
+module=std.css.properties.TextRendering
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=16278559287465838019
+interface_hash=16981957675089725282
+interface_doc_hash=8324651461292253457
+deps=1
+std.core.Option=11539230284316612175

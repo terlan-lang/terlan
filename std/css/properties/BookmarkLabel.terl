@@ -1,0 +1,123 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-content-3/#propdef-bookmark-label
+ * Grammar: <content-list>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BookmarkLabel.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained bookmark-label value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    bookmark_label: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    bookmark_label: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword circle.
+ */
+pub circle(): Value ->
+    Value(Token {property: "bookmark-label", css: "circle"}).
+
+/**
+ * Returns the CSS keyword close-quote.
+ */
+pub close_quote(): Value ->
+    Value(Token {property: "bookmark-label", css: "close-quote"}).
+
+/**
+ * Returns the CSS keyword contents.
+ */
+pub contents(): Value ->
+    Value(Token {property: "bookmark-label", css: "contents"}).
+
+/**
+ * Returns the CSS keyword disc.
+ */
+pub disc(): Value ->
+    Value(Token {property: "bookmark-label", css: "disc"}).
+
+/**
+ * Returns the CSS keyword disclosure-closed.
+ */
+pub disclosure_closed(): Value ->
+    Value(Token {property: "bookmark-label", css: "disclosure-closed"}).
+
+/**
+ * Returns the CSS keyword disclosure-open.
+ */
+pub disclosure_open(): Value ->
+    Value(Token {property: "bookmark-label", css: "disclosure-open"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "bookmark-label", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "bookmark-label", css: "initial"}).
+
+/**
+ * Returns the CSS keyword no-close-quote.
+ */
+pub no_close_quote(): Value ->
+    Value(Token {property: "bookmark-label", css: "no-close-quote"}).
+
+/**
+ * Returns the CSS keyword no-open-quote.
+ */
+pub no_open_quote(): Value ->
+    Value(Token {property: "bookmark-label", css: "no-open-quote"}).
+
+/**
+ * Returns the CSS keyword open-quote.
+ */
+pub open_quote(): Value ->
+    Value(Token {property: "bookmark-label", css: "open-quote"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "bookmark-label", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "bookmark-label", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword square.
+ */
+pub square(): Value ->
+    Value(Token {property: "bookmark-label", css: "square"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "bookmark-label", css: "unset"}).

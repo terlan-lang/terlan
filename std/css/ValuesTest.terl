@@ -1,0 +1,38 @@
+module std.css.ValuesTest.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+import std.test.Test.{assert_equal}.
+
+@test
+pub lengths_preserve_units_and_signed_magnitudes(): Bool ->
+    assert_equal("-2.5px", Values.length_css(Values.px(-2.5)))
+        and assert_equal("0.5rem", Values.length_css(Values.root_em(0.5)))
+        and assert_equal("1em", Values.length_css(Values.em(1.0)))
+        and assert_equal("20vw", Values.length_css(Values.vw(20.0)))
+        and assert_equal("30vh", Values.length_css(Values.vh(30.0))).
+
+@test
+pub typed_numeric_values_preserve_their_css_units(): Bool ->
+    assert_equal("50%", Values.percentage_css(Values.percent(50.0)))
+        and assert_equal("45deg", Values.angle_css(Values.deg(45.0)))
+        and assert_equal("150ms", Values.time_css(Values.ms(150.0)))
+        and assert_equal("0.5s", Values.time_css(Values.seconds(0.5))).
+
+@test
+pub rgb_validates_all_channels_before_constructing_a_color(): Bool ->
+    case Values.rgb(75, 169, 255) {
+        Some(color) -> assert_equal("rgb(75, 169, 255)", Values.color_css(color));
+        None -> false
+    }.
+
+@test
+pub invalid_rgb_channels_cannot_construct_a_color(): Bool ->
+    assert_equal(None, Values.rgb(-1, 0, 0))
+        and assert_equal(None, Values.rgb(0, 256, 0))
+        and assert_equal(None, Values.rgb(0, 0, 256)).
+
+@test
+pub colors_include_transparent_and_current_color(): Bool ->
+    assert_equal("transparent", Values.color_css(Values.transparent()))
+        and assert_equal("currentColor", Values.color_css(Values.current_color())).

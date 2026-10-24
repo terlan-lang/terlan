@@ -1,0 +1,68 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-wrap-before
+//! Grammar: auto | avoid | avoid-line | avoid-flex | line | flex
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.WrapBefore.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    wrap_before: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    wrap_before: Value
+}.
+
+/// A nominal, specification-constrained wrap-before value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword avoid.
+
+pub avoid(): Value.
+
+/// Returns the CSS keyword avoid-flex.
+
+pub avoid_flex(): Value.
+
+/// Returns the CSS keyword avoid-line.
+
+pub avoid_line(): Value.
+
+/// Returns the CSS keyword flex.
+
+pub flex(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword line.
+
+pub line(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

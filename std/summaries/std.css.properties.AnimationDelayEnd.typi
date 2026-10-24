@@ -1,0 +1,48 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-animations-2/#propdef-animation-delay-end
+//! Grammar: <time [0s,∞]>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.AnimationDelayEnd.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    animation_delay_end: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    animation_delay_end: Value
+}.
+
+/// A nominal, specification-constrained animation-delay-end value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Constructs a animation-delay-end value from a typed time.
+
+pub time(value: std.css.Values.Time): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-rule-overlap
+//! Grammar: row-over-column | column-over-row
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.RuleOverlap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    rule_overlap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    rule_overlap: Value
+}.
+
+/// A nominal, specification-constrained rule-overlap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword column-over-row.
+
+pub column_over_row(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword row-over-column.
+
+pub row_over_column(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

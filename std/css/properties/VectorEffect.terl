@@ -1,0 +1,93 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://w3c.github.io/svgwg/svg2-draft/coords.html#VectorEffectProperty
+ * Grammar: none | non-scaling-stroke | non-scaling-size | non-rotation | fixed-position
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.VectorEffect.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained vector-effect value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    vector_effect: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    vector_effect: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword fixed-position.
+ */
+pub fixed_position(): Value ->
+    Value(Token {property: "vector-effect", css: "fixed-position"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "vector-effect", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "vector-effect", css: "initial"}).
+
+/**
+ * Returns the CSS keyword non-rotation.
+ */
+pub non_rotation(): Value ->
+    Value(Token {property: "vector-effect", css: "non-rotation"}).
+
+/**
+ * Returns the CSS keyword non-scaling-size.
+ */
+pub non_scaling_size(): Value ->
+    Value(Token {property: "vector-effect", css: "non-scaling-size"}).
+
+/**
+ * Returns the CSS keyword non-scaling-stroke.
+ */
+pub non_scaling_stroke(): Value ->
+    Value(Token {property: "vector-effect", css: "non-scaling-stroke"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "vector-effect", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "vector-effect", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "vector-effect", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "vector-effect", css: "unset"}).

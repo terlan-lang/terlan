@@ -1,0 +1,69 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-cascade-5/#propdef-all
+ * Grammar: initial | inherit | unset | revert | revert-layer | revert-rule
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.All.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained all value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    all: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    all: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "all", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "all", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "all", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "all", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword revert-rule.
+ */
+pub revert_rule(): Value ->
+    Value(Token {property: "all", css: "revert-rule"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "all", css: "unset"}).

@@ -1,0 +1,88 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://w3c.github.io/svgwg/svg2-draft/interact.html#PointerEventsProperty
+//! Grammar: auto | bounding-box | visiblePainted | visibleFill | visibleStroke | visible | painted | fill | stroke | all | none
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.PointerEvents.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    pointer_events: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    pointer_events: Value
+}.
+
+/// A nominal, specification-constrained pointer-events value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all.
+
+pub all(): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword bounding-box.
+
+pub bounding_box(): Value.
+
+/// Returns the CSS keyword fill.
+
+pub fill(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword painted.
+
+pub painted(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword stroke.
+
+pub stroke(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword visible.
+
+pub visible(): Value.
+
+/// Returns the CSS keyword visibleFill.
+
+pub visibleFill(): Value.
+
+/// Returns the CSS keyword visiblePainted.
+
+pub visiblePainted(): Value.
+
+/// Returns the CSS keyword visibleStroke.
+
+pub visibleStroke(): Value.
+
+export type Token.

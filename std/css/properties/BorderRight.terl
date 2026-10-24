@@ -1,0 +1,287 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-borders-4/#propdef-border-right
+ * Grammar: <line-width> || <line-style> || <color>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.BorderRight.
+
+import std.core.Option.{None, Some}.
+import std.css.Values.
+import std.css.Values.{color_css, length_amount, length_css}.
+
+import type std.core.Option.
+import type std.css.Values.{Color, Length}.
+
+/**
+ * A nominal, specification-constrained border-right value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A non-global line-width component of border-right.
+ */
+pub opaque type LineWidthPart = String.
+
+/**
+ * A non-global line-style component of border-right.
+ */
+pub opaque type LineStylePart = String.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    border_right: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    border_right: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword dashed.
+ */
+pub dashed(): Value ->
+    Value(Token {property: "border-right", css: "dashed"}).
+
+/**
+ * Returns the CSS keyword dotted.
+ */
+pub dotted(): Value ->
+    Value(Token {property: "border-right", css: "dotted"}).
+
+/**
+ * Returns the CSS keyword double.
+ */
+pub double(): Value ->
+    Value(Token {property: "border-right", css: "double"}).
+
+/**
+ * Returns the CSS keyword groove.
+ */
+pub groove(): Value ->
+    Value(Token {property: "border-right", css: "groove"}).
+
+/**
+ * Returns the CSS keyword hairline.
+ */
+pub hairline(): Value ->
+    Value(Token {property: "border-right", css: "hairline"}).
+
+/**
+ * Returns the CSS keyword hidden.
+ */
+pub hidden(): Value ->
+    Value(Token {property: "border-right", css: "hidden"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "border-right", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "border-right", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inset.
+ */
+pub inset(): Value ->
+    Value(Token {property: "border-right", css: "inset"}).
+
+/**
+ * Returns the CSS keyword medium.
+ */
+pub medium(): Value ->
+    Value(Token {property: "border-right", css: "medium"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "border-right", css: "none"}).
+
+/**
+ * Returns the CSS keyword outset.
+ */
+pub outset(): Value ->
+    Value(Token {property: "border-right", css: "outset"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "border-right", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "border-right", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword ridge.
+ */
+pub ridge(): Value ->
+    Value(Token {property: "border-right", css: "ridge"}).
+
+/**
+ * Returns the CSS keyword solid.
+ */
+pub solid(): Value ->
+    Value(Token {property: "border-right", css: "solid"}).
+
+/**
+ * Returns the CSS keyword thick.
+ */
+pub thick(): Value ->
+    Value(Token {property: "border-right", css: "thick"}).
+
+/**
+ * Returns the CSS keyword thin.
+ */
+pub thin(): Value ->
+    Value(Token {property: "border-right", css: "thin"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "border-right", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a border-right value.
+ */
+pub length(value: Length): Option[Value] ->
+    case length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "border-right", css: length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Constructs a border-right value from a typed color.
+ */
+pub color(value: Color): Value ->
+    Value(Token {property: "border-right", css: color_css(value)}).
+
+/**
+ * Constructs the line-width keyword hairline.
+ */
+pub line_width_hairline(): LineWidthPart ->
+    LineWidthPart("hairline").
+
+/**
+ * Constructs the line-width keyword medium.
+ */
+pub line_width_medium(): LineWidthPart ->
+    LineWidthPart("medium").
+
+/**
+ * Constructs the line-width keyword thick.
+ */
+pub line_width_thick(): LineWidthPart ->
+    LineWidthPart("thick").
+
+/**
+ * Constructs the line-width keyword thin.
+ */
+pub line_width_thin(): LineWidthPart ->
+    LineWidthPart("thin").
+
+/**
+ * Checks the specification range and constructs a border-right value.
+ */
+pub line_width_length(value: Length): Option[LineWidthPart] ->
+    case length_amount(value) >= 0 {
+        true -> Some(LineWidthPart(length_css(value)));
+        false -> None
+    }.
+
+line_width_css(value: LineWidthPart): String ->
+    value.
+
+/**
+ * Constructs the line-style keyword dashed.
+ */
+pub line_style_dashed(): LineStylePart ->
+    LineStylePart("dashed").
+
+/**
+ * Constructs the line-style keyword dotted.
+ */
+pub line_style_dotted(): LineStylePart ->
+    LineStylePart("dotted").
+
+/**
+ * Constructs the line-style keyword double.
+ */
+pub line_style_double(): LineStylePart ->
+    LineStylePart("double").
+
+/**
+ * Constructs the line-style keyword groove.
+ */
+pub line_style_groove(): LineStylePart ->
+    LineStylePart("groove").
+
+/**
+ * Constructs the line-style keyword hidden.
+ */
+pub line_style_hidden(): LineStylePart ->
+    LineStylePart("hidden").
+
+/**
+ * Constructs the line-style keyword inset.
+ */
+pub line_style_inset(): LineStylePart ->
+    LineStylePart("inset").
+
+/**
+ * Constructs the line-style keyword none.
+ */
+pub line_style_none(): LineStylePart ->
+    LineStylePart("none").
+
+/**
+ * Constructs the line-style keyword outset.
+ */
+pub line_style_outset(): LineStylePart ->
+    LineStylePart("outset").
+
+/**
+ * Constructs the line-style keyword ridge.
+ */
+pub line_style_ridge(): LineStylePart ->
+    LineStylePart("ridge").
+
+/**
+ * Constructs the line-style keyword solid.
+ */
+pub line_style_solid(): LineStylePart ->
+    LineStylePart("solid").
+
+line_style_css(value: LineStylePart): String ->
+    value.
+
+/**
+ * Combines every named specification group in canonical order.
+ */
+pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: Color): Value ->
+    Value(
+        Token {
+            property: "border-right",
+            css: line_width_css(line_width) + " " + line_style_css(line_style) + " " + color_css(color),
+        },
+    ).

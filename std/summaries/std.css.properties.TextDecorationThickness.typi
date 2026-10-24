@@ -1,0 +1,80 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-thickness
+//! Grammar: auto | from-font | <length-percentage> | <line-width>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextDecorationThickness.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_decoration_thickness: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_decoration_thickness: Value
+}.
+
+/// A nominal, specification-constrained text-decoration-thickness value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword from-font.
+
+pub from_font(): Value.
+
+/// Returns the CSS keyword hairline.
+
+pub hairline(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a text-decoration-thickness value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Checks the specification range and constructs a text-decoration-thickness value.
+
+pub length_2(value: std.css.Values.Length): Option[Value].
+
+/// Returns the CSS keyword medium.
+
+pub medium(): Value.
+
+/// Constructs a text-decoration-thickness value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword thick.
+
+pub thick(): Value.
+
+/// Returns the CSS keyword thin.
+
+pub thin(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

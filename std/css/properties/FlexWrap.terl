@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-flexbox-2/#propdef-flex-wrap
+ * Grammar: nowrap | [ wrap | wrap-reverse ] || balance
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.FlexWrap.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained flex-wrap value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    flex_wrap: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    flex_wrap: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword balance.
+ */
+pub balance(): Value ->
+    Value(Token {property: "flex-wrap", css: "balance"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "flex-wrap", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "flex-wrap", css: "initial"}).
+
+/**
+ * Returns the CSS keyword nowrap.
+ */
+pub nowrap(): Value ->
+    Value(Token {property: "flex-wrap", css: "nowrap"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "flex-wrap", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "flex-wrap", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "flex-wrap", css: "unset"}).
+
+/**
+ * Returns the CSS keyword wrap.
+ */
+pub wrap(): Value ->
+    Value(Token {property: "flex-wrap", css: "wrap"}).
+
+/**
+ * Returns the CSS keyword wrap-reverse.
+ */
+pub wrap_reverse(): Value ->
+    Value(Token {property: "flex-wrap", css: "wrap-reverse"}).

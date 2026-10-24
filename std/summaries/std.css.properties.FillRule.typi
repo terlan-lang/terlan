@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/fill-stroke-3/#propdef-fill-rule
+//! Grammar: nonzero | evenodd
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FillRule.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    fill_rule: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    fill_rule: Value
+}.
+
+/// A nominal, specification-constrained fill-rule value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword evenodd.
+
+pub evenodd(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword nonzero.
+
+pub nonzero(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

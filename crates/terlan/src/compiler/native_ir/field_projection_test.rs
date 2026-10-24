@@ -451,3 +451,42 @@ fn main() {
     assert_eq!(transition_len, 0);
 }
 "#;
+
+#[test]
+fn record_updates_construct_optional_fields_with_the_declared_union_layout() {
+    let core = super::source_constructor_test::checked_provider(
+        r#"
+module optional_record_update.
+pub type Missing = Atom["none"].
+pub type Present[T] = {Atom["some"], value: T}.
+pub type Maybe[T] = Missing | Present[T].
+pub struct Snapshot {value: Maybe[Int]}.
+pub answer(): Int ->
+    let base = Snapshot {value: Missing};
+    let updated = base#Snapshot{value: Present(42)};
+    case updated == Snapshot {value: Present(42)} and base == Snapshot {value: Missing} {
+        true -> 42;
+        false -> 0
+    }.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&core]).expect("lower optional record update");
+    let export = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .unwrap()
+        .export_id;
+    let object = emit_native_application_object("optional_record_update", &modules).unwrap();
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "optional-record-update",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id: export,
+            arguments: vec![],
+            expected_status: 0,
+            expected_result: Some(42),
+        }],
+    );
+}

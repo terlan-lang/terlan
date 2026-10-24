@@ -1,0 +1,162 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/motion-1/#propdef-offset-anchor
+ * Grammar: auto | <position>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.OffsetAnchor.
+
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained offset-anchor value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    offset_anchor: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    offset_anchor: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "offset-anchor", css: "auto"}).
+
+/**
+ * Returns the CSS keyword block-end.
+ */
+pub block_end(): Value ->
+    Value(Token {property: "offset-anchor", css: "block-end"}).
+
+/**
+ * Returns the CSS keyword block-start.
+ */
+pub block_start(): Value ->
+    Value(Token {property: "offset-anchor", css: "block-start"}).
+
+/**
+ * Returns the CSS keyword bottom.
+ */
+pub bottom(): Value ->
+    Value(Token {property: "offset-anchor", css: "bottom"}).
+
+/**
+ * Returns the CSS keyword center.
+ */
+pub center(): Value ->
+    Value(Token {property: "offset-anchor", css: "center"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "offset-anchor", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "offset-anchor", css: "initial"}).
+
+/**
+ * Returns the CSS keyword inline-end.
+ */
+pub inline_end(): Value ->
+    Value(Token {property: "offset-anchor", css: "inline-end"}).
+
+/**
+ * Returns the CSS keyword inline-start.
+ */
+pub inline_start(): Value ->
+    Value(Token {property: "offset-anchor", css: "inline-start"}).
+
+/**
+ * Returns the CSS keyword left.
+ */
+pub left(): Value ->
+    Value(Token {property: "offset-anchor", css: "left"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "offset-anchor", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "offset-anchor", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword right.
+ */
+pub right(): Value ->
+    Value(Token {property: "offset-anchor", css: "right"}).
+
+/**
+ * Returns the CSS keyword top.
+ */
+pub top(): Value ->
+    Value(Token {property: "offset-anchor", css: "top"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "offset-anchor", css: "unset"}).
+
+/**
+ * Returns the CSS keyword x-end.
+ */
+pub x_end(): Value ->
+    Value(Token {property: "offset-anchor", css: "x-end"}).
+
+/**
+ * Returns the CSS keyword x-start.
+ */
+pub x_start(): Value ->
+    Value(Token {property: "offset-anchor", css: "x-start"}).
+
+/**
+ * Returns the CSS keyword y-end.
+ */
+pub y_end(): Value ->
+    Value(Token {property: "offset-anchor", css: "y-end"}).
+
+/**
+ * Returns the CSS keyword y-start.
+ */
+pub y_start(): Value ->
+    Value(Token {property: "offset-anchor", css: "y-start"}).
+
+/**
+ * Constructs a offset-anchor value from a typed length.
+ */
+pub length(value: Length): Value ->
+    Value(Token {property: "offset-anchor", css: std.css.Values.length_css(value)}).
+
+/**
+ * Constructs a offset-anchor value from a typed percentage.
+ */
+pub percentage(value: Percentage): Value ->
+    Value(Token {property: "offset-anchor", css: std.css.Values.percentage_css(value)}).

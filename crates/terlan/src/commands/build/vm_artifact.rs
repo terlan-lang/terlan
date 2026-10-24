@@ -1,3 +1,5 @@
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+mod application_closure;
 mod artifact_cache_retention;
 #[cfg(test)]
 #[path = "vm_artifact/artifact_cache_retention_test.rs"]
@@ -35,11 +37,13 @@ mod parallel_compile;
 #[path = "vm_artifact/parallel_compile_test.rs"]
 #[cfg(test)]
 mod parallel_compile_test;
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) mod source_exports;
 mod std_source;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
-pub(crate) use orchestration::compile_serve_application;
 pub(super) use orchestration::{
     build_one_vm_artifact, build_vm_application_artifacts,
     build_vm_application_artifacts_with_entry,
 };
+#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+pub(crate) use orchestration::{compile_serve_application, compile_source_application};

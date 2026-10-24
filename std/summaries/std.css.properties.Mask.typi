@@ -1,0 +1,204 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask
+//! Grammar: <mask-layer>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.Mask.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    mask: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    mask: Value
+}.
+
+/// A nominal, specification-constrained mask value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword add.
+
+pub add(): Value.
+
+/// Returns the CSS keyword alpha.
+
+pub alpha(): Value.
+
+/// Returns the CSS keyword block-end.
+
+pub block_end(): Value.
+
+/// Returns the CSS keyword block-start.
+
+pub block_start(): Value.
+
+/// Returns the CSS keyword border-box.
+
+pub border_box(): Value.
+
+/// Returns the CSS keyword bottom.
+
+pub bottom(): Value.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Returns the CSS keyword content-box.
+
+pub content_box(): Value.
+
+/// Returns the CSS keyword exclude.
+
+pub exclude(): Value.
+
+/// Returns the CSS keyword fill-box.
+
+pub fill_box(): Value.
+
+/// Returns the CSS keyword half-border-box.
+
+pub half_border_box(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inline-end.
+
+pub inline_end(): Value.
+
+/// Returns the CSS keyword inline-start.
+
+pub inline_start(): Value.
+
+/// Returns the CSS keyword intersect.
+
+pub intersect(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Constructs a mask value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Returns the CSS keyword luminance.
+
+pub luminance(): Value.
+
+/// Returns the CSS keyword margin-box.
+
+pub margin_box(): Value.
+
+/// Returns the CSS keyword match-source.
+
+pub match_source(): Value.
+
+/// Returns the CSS keyword no-clip.
+
+pub no_clip(): Value.
+
+/// Returns the CSS keyword no-repeat.
+
+pub no_repeat(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword padding-box.
+
+pub padding_box(): Value.
+
+/// Constructs a mask value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword repeat.
+
+pub repeat(): Value.
+
+/// Returns the CSS keyword repeat-block.
+
+pub repeat_block(): Value.
+
+/// Returns the CSS keyword repeat-inline.
+
+pub repeat_inline(): Value.
+
+/// Returns the CSS keyword repeat-x.
+
+pub repeat_x(): Value.
+
+/// Returns the CSS keyword repeat-y.
+
+pub repeat_y(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword round.
+
+pub round(): Value.
+
+/// Returns the CSS keyword space.
+
+pub space(): Value.
+
+/// Returns the CSS keyword stroke-box.
+
+pub stroke_box(): Value.
+
+/// Returns the CSS keyword subtract.
+
+pub subtract(): Value.
+
+/// Returns the CSS keyword top.
+
+pub top(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword view-box.
+
+pub view_box(): Value.
+
+/// Returns the CSS keyword x-end.
+
+pub x_end(): Value.
+
+/// Returns the CSS keyword x-start.
+
+pub x_start(): Value.
+
+/// Returns the CSS keyword y-end.
+
+pub y_end(): Value.
+
+/// Returns the CSS keyword y-start.
+
+pub y_start(): Value.
+
+export type Token.

@@ -1,0 +1,150 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-overflow-3/#propdef-overflow
+ * Grammar: <'overflow-block'>{1,2}
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Overflow.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained overflow value.
+ */
+pub opaque type Value = Token.
+
+/**
+ * A single non-global overflow shorthand component.
+ */
+pub opaque type Component = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    overflow: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    overflow: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "overflow", css: "auto"}).
+
+/**
+ * Returns the CSS keyword clip.
+ */
+pub clip(): Value ->
+    Value(Token {property: "overflow", css: "clip"}).
+
+/**
+ * Returns the CSS keyword hidden.
+ */
+pub hidden(): Value ->
+    Value(Token {property: "overflow", css: "hidden"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "overflow", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "overflow", css: "initial"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "overflow", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "overflow", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword scroll.
+ */
+pub scroll(): Value ->
+    Value(Token {property: "overflow", css: "scroll"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "overflow", css: "unset"}).
+
+/**
+ * Returns the CSS keyword visible.
+ */
+pub visible(): Value ->
+    Value(Token {property: "overflow", css: "visible"}).
+
+/**
+ * Constructs one overflow shorthand component.
+ */
+pub component_auto(): Component ->
+    Component(Token {property: "overflow", css: "auto"}).
+
+/**
+ * Constructs one overflow shorthand component.
+ */
+pub component_clip(): Component ->
+    Component(Token {property: "overflow", css: "clip"}).
+
+/**
+ * Constructs one overflow shorthand component.
+ */
+pub component_hidden(): Component ->
+    Component(Token {property: "overflow", css: "hidden"}).
+
+/**
+ * Constructs one overflow shorthand component.
+ */
+pub component_scroll(): Component ->
+    Component(Token {property: "overflow", css: "scroll"}).
+
+/**
+ * Constructs one overflow shorthand component.
+ */
+pub component_visible(): Component ->
+    Component(Token {property: "overflow", css: "visible"}).
+
+/**
+ * Serializes a library-owned shorthand component.
+ */
+component_css(value: Component): String ->
+    let token = component_token(value);
+    token.css.
+
+component_token(value: Component): Token ->
+    value.
+
+/**
+ * Combines 1 typed components in specification order.
+ */
+pub single(first: Component): Value ->
+    Value(Token {property: "overflow", css: component_css(first)}).
+
+/**
+ * Combines 2 typed components in specification order.
+ */
+pub pair(first: Component, second: Component): Value ->
+    Value(Token {property: "overflow", css: component_css(first) + " " + component_css(second)}).

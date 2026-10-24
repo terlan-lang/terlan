@@ -1,0 +1,123 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://compat.spec.whatwg.org/#propdef-touch-action
+ * Grammar: auto | none | [ [ pan-x | pan-left | pan-right ] || [ pan-y | pan-up | pan-down ] || pinch-zoom ] | manipulation
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TouchAction.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained touch-action value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    touch_action: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    touch_action: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "touch-action", css: "auto"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "touch-action", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "touch-action", css: "initial"}).
+
+/**
+ * Returns the CSS keyword manipulation.
+ */
+pub manipulation(): Value ->
+    Value(Token {property: "touch-action", css: "manipulation"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "touch-action", css: "none"}).
+
+/**
+ * Returns the CSS keyword pan-down.
+ */
+pub pan_down(): Value ->
+    Value(Token {property: "touch-action", css: "pan-down"}).
+
+/**
+ * Returns the CSS keyword pan-left.
+ */
+pub pan_left(): Value ->
+    Value(Token {property: "touch-action", css: "pan-left"}).
+
+/**
+ * Returns the CSS keyword pan-right.
+ */
+pub pan_right(): Value ->
+    Value(Token {property: "touch-action", css: "pan-right"}).
+
+/**
+ * Returns the CSS keyword pan-up.
+ */
+pub pan_up(): Value ->
+    Value(Token {property: "touch-action", css: "pan-up"}).
+
+/**
+ * Returns the CSS keyword pan-x.
+ */
+pub pan_x(): Value ->
+    Value(Token {property: "touch-action", css: "pan-x"}).
+
+/**
+ * Returns the CSS keyword pan-y.
+ */
+pub pan_y(): Value ->
+    Value(Token {property: "touch-action", css: "pan-y"}).
+
+/**
+ * Returns the CSS keyword pinch-zoom.
+ */
+pub pinch_zoom(): Value ->
+    Value(Token {property: "touch-action", css: "pinch-zoom"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "touch-action", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "touch-action", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "touch-action", css: "unset"}).

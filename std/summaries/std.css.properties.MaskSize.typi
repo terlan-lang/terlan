@@ -1,0 +1,64 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-masking-1/#propdef-mask-size
+//! Grammar: <bg-size>#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.MaskSize.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    mask_size: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    mask_size: Value
+}.
+
+/// A nominal, specification-constrained mask-size value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword contain.
+
+pub contain(): Value.
+
+/// Returns the CSS keyword cover.
+
+pub cover(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a mask-size value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Checks the specification range and constructs a mask-size value.
+
+pub percentage(value: std.css.Values.Percentage): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

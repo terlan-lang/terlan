@@ -1,0 +1,60 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/animation-triggers-1/#propdef-timeline-trigger-active-range-start
+//! Grammar: [ auto | normal | <length-percentage> | <timeline-range-name> <length-percentage>? ]#
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TimelineTriggerActiveRangeStart.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    timeline_trigger_active_range_start: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    timeline_trigger_active_range_start: Value
+}.
+
+/// A nominal, specification-constrained timeline-trigger-active-range-start value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a timeline-trigger-active-range-start value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Constructs a timeline-trigger-active-range-start value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

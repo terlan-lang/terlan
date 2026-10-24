@@ -107,6 +107,7 @@ pub(in crate::compiler::native_ir) fn infer_type(
         CoreExpr::RecordConstruct { name, fields } => {
             super::constructor_signatures::infer_record(name, fields, variables, templates, module)
         }
+        CoreExpr::RecordUpdate { base, .. } => infer_type(base, variables, templates, module),
         CoreExpr::ConstructorCall {
             constructor,
             constructor_identity,

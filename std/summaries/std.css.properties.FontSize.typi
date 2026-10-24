@@ -1,0 +1,96 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-size
+//! Grammar: <absolute-size> | <relative-size> | <length-percentage [0,∞]> | math
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontSize.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_size: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_size: Value
+}.
+
+/// A nominal, specification-constrained font-size value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword large.
+
+pub large(): Value.
+
+/// Returns the CSS keyword larger.
+
+pub larger(): Value.
+
+/// Checks the specification range and constructs a font-size value.
+
+pub length(value: std.css.Values.Length): Option[Value].
+
+/// Returns the CSS keyword math.
+
+pub math(): Value.
+
+/// Returns the CSS keyword medium.
+
+pub medium(): Value.
+
+/// Checks the specification range and constructs a font-size value.
+
+pub percentage(value: std.css.Values.Percentage): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword small.
+
+pub small(): Value.
+
+/// Returns the CSS keyword smaller.
+
+pub smaller(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword x-large.
+
+pub x_large(): Value.
+
+/// Returns the CSS keyword x-small.
+
+pub x_small(): Value.
+
+/// Returns the CSS keyword xx-large.
+
+pub xx_large(): Value.
+
+/// Returns the CSS keyword xx-small.
+
+pub xx_small(): Value.
+
+/// Returns the CSS keyword xxx-large.
+
+pub xxx_large(): Value.
+
+export type Token.

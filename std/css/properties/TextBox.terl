@@ -1,0 +1,117 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-inline-3/#propdef-text-box
+ * Grammar: normal | <'text-box-trim'> || <'text-box-edge'>
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.TextBox.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained text-box value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    text_box: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    text_box: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "text-box", css: "auto"}).
+
+/**
+ * Returns the CSS keyword ideographic.
+ */
+pub ideographic(): Value ->
+    Value(Token {property: "text-box", css: "ideographic"}).
+
+/**
+ * Returns the CSS keyword ideographic-ink.
+ */
+pub ideographic_ink(): Value ->
+    Value(Token {property: "text-box", css: "ideographic-ink"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "text-box", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "text-box", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "text-box", css: "none"}).
+
+/**
+ * Returns the CSS keyword normal.
+ */
+pub normal(): Value ->
+    Value(Token {property: "text-box", css: "normal"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "text-box", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "text-box", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword text.
+ */
+pub text(): Value ->
+    Value(Token {property: "text-box", css: "text"}).
+
+/**
+ * Returns the CSS keyword trim-both.
+ */
+pub trim_both(): Value ->
+    Value(Token {property: "text-box", css: "trim-both"}).
+
+/**
+ * Returns the CSS keyword trim-end.
+ */
+pub trim_end(): Value ->
+    Value(Token {property: "text-box", css: "trim-end"}).
+
+/**
+ * Returns the CSS keyword trim-start.
+ */
+pub trim_start(): Value ->
+    Value(Token {property: "text-box", css: "trim-start"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "text-box", css: "unset"}).

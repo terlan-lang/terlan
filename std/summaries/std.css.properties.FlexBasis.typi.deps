@@ -1,0 +1,10 @@
+module=std.css.properties.FlexBasis
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=995535020565617222
+interface_hash=13416315991985515923
+interface_doc_hash=8524886934331424473
+deps=2
+std.core.Option=11539230284316612175
+std.css.Values=18073768816303954326

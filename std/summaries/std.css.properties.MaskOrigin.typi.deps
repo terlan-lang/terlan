@@ -1,0 +1,9 @@
+module=std.css.properties.MaskOrigin
+syntax_contract_schema=terlan-syntax-contract-v1
+syntax_contract_fingerprint_algorithm=fnv1a64
+syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+source_hash=10871490083322784548
+interface_hash=16378024774653578378
+interface_doc_hash=7843559426918904125
+deps=1
+std.core.Option=11539230284316612175

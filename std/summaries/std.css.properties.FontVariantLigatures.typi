@@ -1,0 +1,84 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-fonts-4/#propdef-font-variant-ligatures
+//! Grammar: normal | none | [ <common-lig-values> || <discretionary-lig-values> || <historical-lig-values> || <contextual-alt-values> ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.FontVariantLigatures.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    font_variant_ligatures: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    font_variant_ligatures: Value
+}.
+
+/// A nominal, specification-constrained font-variant-ligatures value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword common-ligatures.
+
+pub common_ligatures(): Value.
+
+/// Returns the CSS keyword contextual.
+
+pub contextual(): Value.
+
+/// Returns the CSS keyword discretionary-ligatures.
+
+pub discretionary_ligatures(): Value.
+
+/// Returns the CSS keyword historical-ligatures.
+
+pub historical_ligatures(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword no-common-ligatures.
+
+pub no_common_ligatures(): Value.
+
+/// Returns the CSS keyword no-contextual.
+
+pub no_contextual(): Value.
+
+/// Returns the CSS keyword no-discretionary-ligatures.
+
+pub no_discretionary_ligatures(): Value.
+
+/// Returns the CSS keyword no-historical-ligatures.
+
+pub no_historical_ligatures(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

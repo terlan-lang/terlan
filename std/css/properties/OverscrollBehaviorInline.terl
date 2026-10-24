@@ -1,0 +1,87 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-overscroll-1/#propdef-overscroll-behavior-inline
+ * Grammar: contain | none | auto | chain
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.OverscrollBehaviorInline.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained overscroll-behavior-inline value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    overscroll_behavior_inline: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    overscroll_behavior_inline: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "auto"}).
+
+/**
+ * Returns the CSS keyword chain.
+ */
+pub chain(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "chain"}).
+
+/**
+ * Returns the CSS keyword contain.
+ */
+pub contain(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "contain"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "initial"}).
+
+/**
+ * Returns the CSS keyword none.
+ */
+pub none(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "none"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "overscroll-behavior-inline", css: "unset"}).

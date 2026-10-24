@@ -1,0 +1,131 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-multicol-2/#propdef-columns
+ * Grammar: [ <'column-width'> || <'column-count'> ] [ / <'column-height'> ]?
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Columns.
+
+import std.core.Int.
+import std.core.Option.{None, Some}.
+import std.css.Values.
+
+import type std.core.Option.
+import type std.css.Values.{Length, Percentage}.
+
+/**
+ * A nominal, specification-constrained columns value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    columns: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    columns: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword auto.
+ */
+pub auto(): Value ->
+    Value(Token {property: "columns", css: "auto"}).
+
+/**
+ * Returns the CSS keyword contain.
+ */
+pub contain(): Value ->
+    Value(Token {property: "columns", css: "contain"}).
+
+/**
+ * Returns the CSS keyword fit-content.
+ */
+pub fit_content(): Value ->
+    Value(Token {property: "columns", css: "fit-content"}).
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "columns", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "columns", css: "initial"}).
+
+/**
+ * Returns the CSS keyword max-content.
+ */
+pub max_content(): Value ->
+    Value(Token {property: "columns", css: "max-content"}).
+
+/**
+ * Returns the CSS keyword min-content.
+ */
+pub min_content(): Value ->
+    Value(Token {property: "columns", css: "min-content"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "columns", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "columns", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword stretch.
+ */
+pub stretch(): Value ->
+    Value(Token {property: "columns", css: "stretch"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "columns", css: "unset"}).
+
+/**
+ * Checks the specification range and constructs a columns value.
+ */
+pub length(value: Length): Option[Value] ->
+    case std.css.Values.length_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "columns", css: std.css.Values.length_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a columns value.
+ */
+pub percentage(value: Percentage): Option[Value] ->
+    case std.css.Values.percentage_amount(value) >= 0 {
+        true -> Some(Value(Token {property: "columns", css: std.css.Values.percentage_css(value)}));
+        false -> None
+    }.
+
+/**
+ * Checks the specification range and constructs a columns value.
+ */
+pub integer(value: Int): Option[Value] ->
+    case value >= 1 {
+        true -> Some(Value(Token {property: "columns", css: std.core.Int.to_string(value)}));
+        false -> None
+    }.

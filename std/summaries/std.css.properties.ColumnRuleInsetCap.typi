@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-inset-cap
+//! Grammar: <inset-value> <inset-value>?
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ColumnRuleInsetCap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    column_rule_inset_cap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    column_rule_inset_cap: Value
+}.
+
+/// A nominal, specification-constrained column-rule-inset-cap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Constructs a column-rule-inset-cap value from a typed length.
+
+pub length(value: std.css.Values.Length): Value.
+
+/// Returns the CSS keyword overlap-join.
+
+pub overlap_join(): Value.
+
+/// Constructs a column-rule-inset-cap value from a typed percentage.
+
+pub percentage(value: std.css.Values.Percentage): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

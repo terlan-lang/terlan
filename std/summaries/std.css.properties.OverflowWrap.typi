@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-text-4/#propdef-overflow-wrap
+//! Grammar: normal | break-word | anywhere
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.OverflowWrap.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    overflow_wrap: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    overflow_wrap: Value
+}.
+
+/// A nominal, specification-constrained overflow-wrap value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword anywhere.
+
+pub anywhere(): Value.
+
+/// Returns the CSS keyword break-word.
+
+pub break_word(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

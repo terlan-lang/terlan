@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-text-combine-upright
+//! Grammar: none | all | [ digits <integer [2,4]>? ]
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TextCombineUpright.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    text_combine_upright: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    text_combine_upright: Value
+}.
+
+/// A nominal, specification-constrained text-combine-upright value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all.
+
+pub all(): Value.
+
+/// Returns the CSS keyword digits.
+
+pub digits(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

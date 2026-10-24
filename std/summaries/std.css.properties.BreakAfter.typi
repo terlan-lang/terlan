@@ -1,0 +1,100 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-break-4/#propdef-break-after
+//! Grammar: auto | avoid | always | all | avoid-page | page | left | right | recto | verso | avoid-column | column | avoid-region | region
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.BreakAfter.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    break_after: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    break_after: Value
+}.
+
+/// A nominal, specification-constrained break-after value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword all.
+
+pub all(): Value.
+
+/// Returns the CSS keyword always.
+
+pub always(): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword avoid.
+
+pub avoid(): Value.
+
+/// Returns the CSS keyword avoid-column.
+
+pub avoid_column(): Value.
+
+/// Returns the CSS keyword avoid-page.
+
+pub avoid_page(): Value.
+
+/// Returns the CSS keyword avoid-region.
+
+pub avoid_region(): Value.
+
+/// Returns the CSS keyword column.
+
+pub column(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword left.
+
+pub left(): Value.
+
+/// Returns the CSS keyword page.
+
+pub page(): Value.
+
+/// Returns the CSS keyword recto.
+
+pub recto(): Value.
+
+/// Returns the CSS keyword region.
+
+pub region(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword right.
+
+pub right(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+/// Returns the CSS keyword verso.
+
+pub verso(): Value.
+
+export type Token.

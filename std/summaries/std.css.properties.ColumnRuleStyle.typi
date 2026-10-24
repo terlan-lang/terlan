@@ -1,0 +1,84 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-gaps-1/#propdef-column-rule-style
+//! Grammar: <line-style-list> | <auto-line-style-list>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.ColumnRuleStyle.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    column_rule_style: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    column_rule_style: Value
+}.
+
+/// A nominal, specification-constrained column-rule-style value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword dashed.
+
+pub dashed(): Value.
+
+/// Returns the CSS keyword dotted.
+
+pub dotted(): Value.
+
+/// Returns the CSS keyword double.
+
+pub double(): Value.
+
+/// Returns the CSS keyword groove.
+
+pub groove(): Value.
+
+/// Returns the CSS keyword hidden.
+
+pub hidden(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword inset.
+
+pub inset(): Value.
+
+/// Returns the CSS keyword none.
+
+pub none(): Value.
+
+/// Returns the CSS keyword outset.
+
+pub outset(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword ridge.
+
+pub ridge(): Value.
+
+/// Returns the CSS keyword solid.
+
+pub solid(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

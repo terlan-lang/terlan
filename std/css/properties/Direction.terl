@@ -1,0 +1,75 @@
+/**
+ * Generated from @webref/css 8.7.8. Do not edit.
+ * Specification: https://drafts.csswg.org/css-writing-modes-4/#propdef-direction
+ * Grammar: ltr | rtl
+ * Constructors cover complete atomic alternatives; see bindings.json for scope.
+ */
+module std.css.properties.Direction.
+
+import type std.core.Option.
+
+/**
+ * A nominal, specification-constrained direction value.
+ */
+pub opaque type Value = Token.
+
+struct Token {
+    property: String,
+    css: String,
+}.
+
+/**
+ * Include this property in an application style struct.
+ */
+pub struct Property {
+    direction: Value,
+}.
+
+/**
+ * Include an optional declaration in a shared style block.
+ */
+pub struct OptionalProperty {
+    direction: std.core.Option.Option[Value],
+}.
+
+/**
+ * Returns the CSS keyword inherit.
+ */
+pub inherit(): Value ->
+    Value(Token {property: "direction", css: "inherit"}).
+
+/**
+ * Returns the CSS keyword initial.
+ */
+pub initial(): Value ->
+    Value(Token {property: "direction", css: "initial"}).
+
+/**
+ * Returns the CSS keyword ltr.
+ */
+pub ltr(): Value ->
+    Value(Token {property: "direction", css: "ltr"}).
+
+/**
+ * Returns the CSS keyword revert.
+ */
+pub revert(): Value ->
+    Value(Token {property: "direction", css: "revert"}).
+
+/**
+ * Returns the CSS keyword revert-layer.
+ */
+pub revert_layer(): Value ->
+    Value(Token {property: "direction", css: "revert-layer"}).
+
+/**
+ * Returns the CSS keyword rtl.
+ */
+pub rtl(): Value ->
+    Value(Token {property: "direction", css: "rtl"}).
+
+/**
+ * Returns the CSS keyword unset.
+ */
+pub unset(): Value ->
+    Value(Token {property: "direction", css: "unset"}).

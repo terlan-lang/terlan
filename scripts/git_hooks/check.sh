@@ -12,8 +12,17 @@ echo 'pre-commit: build the staged compiler, VM, native worker, and service runt
 cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 terlc="$CARGO_TARGET_DIR/debug/terlc"
+export TERLC="$terlc"
 echo 'pre-commit: Terlan formatting'
 make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
+typed_css_checked=false
+if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
+  echo 'pre-commit: typed CSS generation, types, native values, and browser build'
+  npm ci --ignore-scripts --prefix tools/css
+  npm ci --ignore-scripts --prefix tools/web-toolchain
+  TERLC="$terlc" bash scripts/check_typed_css.sh
+  typed_css_checked=true
+fi
 echo 'pre-commit: complete Playwright browser matrix'
 bash scripts/git_hooks/js_browser.sh
 echo 'pre-commit: hook policy and snapshot regression tests'
@@ -95,6 +104,9 @@ while IFS= read -r lane; do
     terlan)
       while IFS= read -r path; do
         if [[ "$path" == tests/fixtures/* || "$path" == docs/grammar/fixtures/* ]]; then continue; fi
+        # The typed CSS gate checks every generated property in bounded batches
+        # and executes the handwritten CSS tests and browser fixture.
+        if [[ "$typed_css_checked" == true && "$path" == std/css/* ]]; then continue; fi
         # JavaScript sources execute through the browser matrix above.
         if [[ "$path" == std/js/* || "$path" == tests/js/* ]]; then continue; fi
         if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then

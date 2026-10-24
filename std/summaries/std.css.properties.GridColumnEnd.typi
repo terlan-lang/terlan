@@ -1,0 +1,56 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-grid-2/#propdef-grid-column-end
+//! Grammar: <grid-line>
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.GridColumnEnd.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    grid_column_end: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    grid_column_end: Value
+}.
+
+/// A nominal, specification-constrained grid-column-end value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Checks the specification range and constructs a grid-column-end value.
+
+pub integer(value: Int): Option[Value].
+
+/// Checks the specification range and constructs a grid-column-end value.
+
+pub integer_1(value: Int): Option[Value].
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

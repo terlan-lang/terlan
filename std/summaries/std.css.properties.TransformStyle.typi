@@ -1,0 +1,52 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-transforms-2/#propdef-transform-style
+//! Grammar: flat | preserve-3d
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.TransformStyle.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    transform_style: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    transform_style: Value
+}.
+
+/// A nominal, specification-constrained transform-style value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword flat.
+
+pub flat(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword preserve-3d.
+
+pub preserve_3d(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.

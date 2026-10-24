@@ -1,0 +1,100 @@
+//! Generated from @webref/css 8.7.8. Do not edit.
+//! Specification: https://drafts.csswg.org/css-align-3/#propdef-align-self
+//! Grammar: auto | <overflow-position>? [ normal | <self-position> ]| stretch | <baseline-position> | anchor-center
+//! Constructors cover complete atomic alternatives; see bindings.json for scope.
+
+module std.css.properties.AlignSelf.
+
+/// Include an optional declaration in a shared style block.
+
+pub struct OptionalProperty {
+    align_self: std.core.Option.Option[Value]
+}.
+
+/// Include this property in an application style struct.
+
+pub struct Property {
+    align_self: Value
+}.
+
+/// A nominal, specification-constrained align-self value.
+
+pub opaque type Value.
+
+/// Returns the CSS keyword anchor-center.
+
+pub anchor_center(): Value.
+
+/// Returns the CSS keyword auto.
+
+pub auto(): Value.
+
+/// Returns the CSS keyword baseline.
+
+pub baseline(): Value.
+
+/// Returns the CSS keyword center.
+
+pub center(): Value.
+
+/// Returns the CSS keyword end.
+
+pub end_value(): Value.
+
+/// Returns the CSS keyword flex-end.
+
+pub flex_end(): Value.
+
+/// Returns the CSS keyword flex-start.
+
+pub flex_start(): Value.
+
+/// Returns the CSS keyword flow-end.
+
+pub flow_end(): Value.
+
+/// Returns the CSS keyword flow-start.
+
+pub flow_start(): Value.
+
+/// Returns the CSS keyword inherit.
+
+pub inherit(): Value.
+
+/// Returns the CSS keyword initial.
+
+pub initial(): Value.
+
+/// Returns the CSS keyword normal.
+
+pub normal(): Value.
+
+/// Returns the CSS keyword revert.
+
+pub revert(): Value.
+
+/// Returns the CSS keyword revert-layer.
+
+pub revert_layer(): Value.
+
+/// Returns the CSS keyword self-end.
+
+pub self_end(): Value.
+
+/// Returns the CSS keyword self-start.
+
+pub self_start(): Value.
+
+/// Returns the CSS keyword start.
+
+pub start(): Value.
+
+/// Returns the CSS keyword stretch.
+
+pub stretch(): Value.
+
+/// Returns the CSS keyword unset.
+
+pub unset(): Value.
+
+export type Token.
