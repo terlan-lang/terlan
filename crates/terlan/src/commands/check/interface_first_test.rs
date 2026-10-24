@@ -719,3 +719,41 @@ fn interface_first_public_type_representations_hide_private_aliases() {
     assert!(declarations.contains("value: number"), "{declarations}");
     assert!(!declarations.contains("Hidden"), "{declarations}");
 }
+
+#[test]
+fn directory_check_reads_generated_package_bindings() {
+    const CHILD_ROOT: &str = "TERLAN_GENERATED_BINDING_CHECK_ROOT";
+    if let Some(root) = std::env::var_os(CHILD_ROOT) {
+        assert_eq!(check(Path::new(&root), &[]), ExitCode::SUCCESS);
+        return;
+    }
+    let dir = TestDirectory::new("check", "generated_package_bindings");
+    write(
+        dir.path(),
+        "bindings/Host.typi",
+        "module example.Host.\npub opaque type Host.\npub (receiver: Host) value(): Int.\n",
+    );
+    write(
+        dir.path(),
+        "bindings/manifest.json",
+        r#"{"outputs":[{"module":"example.Host","summary":"Host.typi","members":[{"name":"value","js_name":"value","kind":"property","arity":1,"return_type":"Int"}]}]}"#,
+    );
+    write(dir.path(), "source/client/Main.terl", "module client.Main.\nimport example.Host.\nimport type example.Host.{Host}.\npub read(host: Host): Int -> Host.value(host).\n");
+    // The host registry is process-local, so load this package in a fresh process.
+    let thread = std::thread::current();
+    let output = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", thread.name().unwrap(), "--nocapture"])
+        .env(CHILD_ROOT, dir.path().join("source"))
+        .env(
+            "TERLAN_JS_BINDING_MANIFESTS",
+            dir.path().join("bindings/manifest.json"),
+        )
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

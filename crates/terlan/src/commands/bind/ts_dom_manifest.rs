@@ -18,33 +18,46 @@ pub(super) fn render_binding_manifest(
         .modules
         .iter()
         .map(|module| {
+            let mut members = module.members.iter().map(|member| match member {
+                DomMemberPlan::Property(property) => json!({
+                    "name": property.terlan_name, "js_name": property.js_name,
+                    "kind": "property", "return_type": property.terlan_type, "arity": 1,
+                    "undefined_only": property.undefined_only,
+                }),
+                DomMemberPlan::Method(method) => json!({
+                    "name": method.terlan_name, "js_name": method.js_name, "kind": "method",
+                    "return_type": method.return_type, "arity": method.params.len() + 1,
+                    "undefined_only": method.undefined_only,
+                    "parameters": method.params.iter().map(|parameter| json!({
+                        "optional": parameter.optional, "rest": parameter.rest, "type": parameter.terlan_type,
+                    })).collect::<Vec<_>>(),
+                }),
+            }).collect::<Vec<_>>();
+            if let Some(methods) = module.callback_members() {
+                members.push(json!({
+                    "name": "with_members", "js_name": "", "kind": "mixin",
+                    "return_type": "BindingTarget", "arity": methods.len() + 1,
+                    "js_names": methods.iter().map(|method| &method.js_name).collect::<Vec<_>>(),
+                    "parameters": methods.iter().map(|method| json!({
+                        "optional": false, "type": format!("({}) -> {}",
+                            method.params.iter().map(|parameter| parameter.terlan_type.as_str()).collect::<Vec<_>>().join(", "), method.return_type),
+                    })).collect::<Vec<_>>(),
+                }));
+            }
+            if manifest.generator.profile == "typescript-declarations" {
+                members.extend(super::ts_record_helpers::operations(module).into_iter().map(|operation| operation.manifest()));
+            }
             json!({
                 "module": module.module_path,
+                "typescript_type": if manifest.generator.profile == "typescript-declarations"
+                    && manifest.inputs.len() == 1 && !module.source_interface.contains('.') {
+                    Some(json!({"source": manifest.inputs[0].path, "name": module.source_interface}))
+                } else { None },
                 "source": module.source_path,
                 "interface": module.interface_path,
                 "summary": module.summary_path,
                 "test": module.test_path,
-                "members": module.members.iter().map(|member| match member {
-                    DomMemberPlan::Property(property) => json!({
-                        "name": property.terlan_name,
-                        "js_name": property.js_name,
-                        "kind": "property",
-                        "return_type": property.terlan_type,
-                        "arity": 1,
-                    }),
-                    DomMemberPlan::Method(method) => json!({
-                        "name": method.terlan_name,
-                        "js_name": method.js_name,
-                        "kind": "method",
-                        "return_type": method.return_type,
-                        "arity": method.params.len() + 1,
-                        "parameters": method.params.iter().map(|parameter| json!({
-                            "optional": parameter.optional,
-                            "rest": parameter.rest,
-                            "type": parameter.terlan_type,
-                        })).collect::<Vec<_>>(),
-                    }),
-                }).collect::<Vec<_>>(),
+                "members": members,
             })
         })
         .collect::<Vec<_>>();

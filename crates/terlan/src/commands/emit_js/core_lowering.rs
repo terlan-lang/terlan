@@ -120,6 +120,9 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         CoreExpr::Atom(value) | CoreExpr::Var(value) if value == "true" || value == "false" => {
             Some(value.clone())
         }
+        CoreExpr::Atom(value) | CoreExpr::Var(value) if value == "Unit" => {
+            Some(js_string_literal("unit"))
+        }
         CoreExpr::Binary(value) | CoreExpr::Atom(value) => Some(js_string_literal(value)),
         CoreExpr::Var(name) if is_js_identifier(name) => Some(name.clone()),
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
@@ -208,6 +211,19 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
 ///   operations while keeping JavaScript names out of CoreIR and source syntax.
 fn core_intrinsic_call_expr_to_js(call: &CoreIntrinsicCall) -> Option<String> {
     match &call.id {
+        CoreIntrinsicId::Primitive(
+            intrinsic @ (CorePrimitiveIntrinsic::FloatFloor | CorePrimitiveIntrinsic::FloatCeil),
+        ) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            let method = if matches!(intrinsic, CorePrimitiveIntrinsic::FloatFloor) {
+                "floor"
+            } else {
+                "ceil"
+            };
+            Some(format!("Math.{method}({})", core_expr_to_js(value)?))
+        }
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringContains) => {
             let [value, pattern] = call.args.as_slice() else {
                 return None;

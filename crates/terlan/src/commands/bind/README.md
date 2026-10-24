@@ -12,14 +12,27 @@ This module owns `terlc bind`, the package-binding generator surface.
 
 ## Current Scope
 
-The current binding command owns four deterministic generator surfaces:
+The current binding command owns six deterministic generator surfaces:
 
 ```sh
 terlc bind native --crate polars --out packages/std/native/polars
+terlc bind angular-ts --out generated/angular-ts
+terlc bind typescript --input bindings/Host.d.ts --namespace app.host --out generated/host
 terlc bind js-dom --manifest std/js/manifests/std_js_dom_inputs.json --out generated/std-js
 terlc bind cpp --manifest cpp-project/native-binding.json --out generated/cpp-project
 terlc bind c --manifest c-project/native-binding.json --out generated/c-project
 ```
+
+The direct TypeScript target pins a local declaration file and emits getters,
+setters for supported writable properties, and `construct` for complete data
+interfaces. Generated operations preserve the original JavaScript keys, including
+reserved words and uppercase names. Optional fields accept `Option` values;
+`None` writes `undefined` for optional/undefined fields and `null` for required
+nullable fields. Generic payload identity is preserved. Readonly properties have
+no setter. Constructors are withheld for inherited, constrained, partial, or
+unsupported records; literal types keep read access without a widened write API.
+Colliding helper names receive a stable numeric suffix. The generated manifest
+records every operation and drives JavaScript emission without application glue.
 
 The manifest-backed C++ generator is the first general C++ package path.
 It reads normalized symbol metadata from maintained C++ tooling using schema
@@ -324,14 +337,31 @@ interfaces into `std.js.Dom.*` module plans, and writes deterministic `.terl`,
 `.typi`, and generated binding manifest files. It does not use npm
 resolution, Node package lookup, or the network during normal generation.
 
+Generated TypeScript bindings can use package namespaces as well as `std.js`.
+Select their metadata when compiling a consumer:
+
+```sh
+TERLAN_JS_BINDING_MANIFESTS=generated/std-js/std/js/manifests/std_js_bindings.json \
+  terlc build app --target js.browser
+```
+
+The variable accepts an operating-system path list. The compiler loads each
+manifest's callable contracts and adjacent generated summaries, then emits host
+property and method operations using the original TypeScript names. Fixed-arity
+callback parameters retain their Terlan function types. Generic, optional, and
+variadic callback parameters carry explicit skipped-shape diagnostics.
+
+Angular namespace aliases for imported implementation types currently map to
+`Dynamic`. Resolving those imports and class contracts remains necessary for a
+complete migration of Angular service and controller factories.
+
 ## Boundaries
 
 - Do not fetch Cargo metadata from the network.
 - Do not inspect Rust crate sources.
 - Do not parse C or C++ source in the compiler. Consume normalized metadata
   from maintained tooling and copy only explicitly declared build inputs.
-- Do not generate cache `.deps` summaries until interface dependency hashing is
-  wired into the binding pipeline.
+- Keep generated `.deps` summaries synchronized with interface dependency hashes.
 - Do not link the real `polars` crate until the DataFrame native smoke wrapper
   slice opens.
 - Do not add real third-party native libraries to the compiler workspace;

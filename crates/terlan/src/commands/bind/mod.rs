@@ -55,6 +55,8 @@ mod ts_generated_artifact;
 mod ts_input_manifest;
 mod ts_parser_adapter;
 mod ts_type_mapping;
+mod ts_record_helpers;
+mod typescript;
 
 use polars_probe::{GeneratedFile, POLARS_FILES};
 use ts_dom_generator::{generate_js_dom_bindings, generate_js_dom_bindings_from_manifest};
@@ -90,9 +92,10 @@ pub(crate) fn run(cmd: CliCommand) -> ExitCode {
         "cpp" => run_cpp(&cmd.args[1..]),
         "js-dom" => run_js_dom(&cmd.args[1..]),
         "native" => run_native(&cmd.args[1..]),
+        "typescript" => typescript::run(&cmd.args[1..]),
         other => {
             eprintln!(
-                "unsupported bind target `{other}`; supported targets: angular-ts, c, cpp, js-dom, native"
+                "unsupported bind target `{other}`; supported targets: angular-ts, c, cpp, js-dom, native, typescript"
             );
             print_usage();
             ExitCode::from(2)
@@ -137,6 +140,10 @@ fn generate_managed_angular_ts_bindings(out_dir: &Path) -> Result<(), String> {
     let portable_input = relative_input
         .to_string_lossy()
         .replace(std::path::MAIN_SEPARATOR, "/");
+    let interface_input = relative_input.with_file_name("interface.d.ts");
+    let interface_types = toolchain.angular_types.with_file_name("interface.d.ts");
+    let interface_sha256 = crate::support::sha256sum_file(&interface_types)
+        .map_err(|error| format!("ts_bindgen.angular_types_hash_failed: {error}"))?;
     let manifest = ts_input_manifest::TsInputManifest {
         schema: "terlan.std.js.input-manifest.v1".to_string(),
         generator: ts_input_manifest::TsInputGenerator {
@@ -151,12 +158,22 @@ fn generate_managed_angular_ts_bindings(out_dir: &Path) -> Result<(), String> {
             version: crate::commands::build::web_toolchain::ANGULAR_TS_VERSION.to_string(),
             resolution: portable_input.clone(),
         },
-        inputs: vec![ts_input_manifest::TsInputFile {
-            path: portable_input,
-            sha256,
-            kind: "typescript-declaration".to_string(),
-            namespace: "terlan.angular".to_string(),
-        }],
+        inputs: vec![
+            ts_input_manifest::TsInputFile {
+                path: portable_input,
+                sha256,
+                kind: "typescript-declaration".to_string(),
+                namespace: "terlan.angular".to_string(),
+            },
+            ts_input_manifest::TsInputFile {
+                path: interface_input
+                    .to_string_lossy()
+                    .replace(std::path::MAIN_SEPARATOR, "/"),
+                sha256: interface_sha256,
+                kind: "typescript-declaration".to_string(),
+                namespace: "terlan.angular.interfaces".to_string(),
+            },
+        ],
     };
     generate_js_dom_bindings_from_manifest(
         &toolchain.root,
@@ -670,6 +687,7 @@ fn parse_bind_c_args(args: &[String]) -> Result<BindCArgs, String> {
 /// - Emits static help text without inspecting command state or filesystem
 ///   paths.
 fn print_usage() {
+    eprintln!("terlc bind typescript --input <file.d.ts> --namespace <module.prefix> --out <dir>");
     eprintln!("terlc bind angular-ts --out <dir>");
     eprintln!("terlc bind native --crate <crate-name> --out <dir>");
     eprintln!("terlc bind js-dom --manifest <path> --out <dir>");

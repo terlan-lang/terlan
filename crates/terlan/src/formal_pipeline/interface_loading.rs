@@ -40,10 +40,44 @@ pub(crate) fn load_external_interfaces_for_module(
             .filter(|entry| entry.module == "std.core" || entry.module.starts_with("std.core."))
             .map(|entry| entry.module.to_string()),
     );
+    load_required_standard_interfaces(path, required, &mut interfaces);
+    interfaces
+}
+
+/// Loads reachable shipped summaries before batch declarations are expanded.
+/// This includes generated library modules that are shipped on disk rather
+/// than embedded in the compiler's fixed core-interface inventory.
+pub(crate) fn load_required_standard_interfaces(
+    path: &str,
+    mut required: BTreeSet<String>,
+    interfaces: &mut HashMap<String, ModuleInterface>,
+) {
     let mut visited = BTreeSet::new();
     while let Some(module_name) = required.pop_first() {
         if !visited.insert(module_name.clone()) {
             continue;
+        }
+        if let Some(summary) = crate::support::library_paths::imported_std_summary_path(
+            &module_name,
+            std::path::Path::new(path),
+        ) {
+            if let Ok(source) = std::fs::read_to_string(&summary) {
+                if let Some((name, interface)) = parse_interface_text(&source) {
+                    if name == module_name {
+                        if let Ok(manifest) =
+                            std::fs::read_to_string(summary.with_extension("typi.deps"))
+                        {
+                            if let Some(dependencies) =
+                                parse_interface_dependency_entries(&manifest)
+                            {
+                                required.extend(dependencies.into_iter().map(|(name, _)| name));
+                            }
+                        }
+                        interfaces.insert(name, interface);
+                        continue;
+                    }
+                }
+            }
         }
         let entry = EMBEDDED_STD_INTERFACES
             .iter()
@@ -84,7 +118,6 @@ pub(crate) fn load_external_interfaces_for_module(
             }
         }
     }
-    interfaces
 }
 
 /// Source-declared dependency identities, including default imports and remote calls.

@@ -433,7 +433,11 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
     let namespace_path = root.join("@types/namespace.d.ts");
     fs::create_dir_all(namespace_path.parent().expect("namespace parent"))
         .expect("create namespace parent");
-    let namespace_source = r#"declare global {
+    let namespace_source = r#"export interface LifecycleCallbacks {
+    $onInit(): void;
+    $onDestroy(): void;
+}
+declare global {
   export namespace ng {
     type Angular = TAngular;
     type NgModule = TNgModule;
@@ -544,6 +548,31 @@ fn generate_js_dom_bindings_writes_angular_namespace_facade() {
 
     let manifest = fs::read_to_string(out_dir.join("std/js/manifests/std_js_bindings.json"))
         .expect("read binding manifest");
+    let callbacks = fs::read_to_string(out_dir.join("terlan/angular/LifecycleCallbacks.terl"))
+        .expect("read lifecycle callbacks");
+    assert!(
+        callbacks.contains("pub with_members[BindingTarget]("),
+        "{callbacks}"
+    );
+    let bindings: serde_json::Value = serde_json::from_str(&manifest).unwrap();
+    let lifecycle = bindings["outputs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|module| module["module"] == "terlan.angular.LifecycleCallbacks")
+        .unwrap();
+    let mixin = lifecycle["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|member| member["name"] == "with_members")
+        .unwrap();
+    assert_eq!(mixin["kind"], "mixin");
+    assert_eq!(
+        mixin["js_names"],
+        serde_json::json!(["$onInit", "$onDestroy"])
+    );
+    assert_eq!(mixin["parameters"][0]["type"], "() -> std.core.Unit.Unit");
     assert!(manifest.contains("\"module\": \"terlan.angular.Ng\""));
     assert!(manifest.contains("\"source\": \"terlan/angular/Ng.terl\""));
     assert!(manifest.contains("\"summary\": \"std/summaries/terlan.angular.Ng.typi\""));

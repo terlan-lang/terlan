@@ -2,41 +2,8 @@
 
 use std::collections::BTreeMap;
 use std::fmt;
-use std::sync::OnceLock;
 
 use crate::terlan_typeck::{visit_core_expr_mut, CoreExpr, CoreIntrinsicId, CoreModule};
-
-#[derive(serde::Deserialize)]
-struct BindingManifest {
-    outputs: Vec<BindingModule>,
-}
-
-#[derive(serde::Deserialize)]
-struct BindingModule {
-    module: String,
-    #[serde(default)]
-    members: Vec<BindingMember>,
-}
-
-#[derive(Clone, serde::Deserialize)]
-struct BindingMember {
-    name: String,
-    js_name: String,
-    kind: String,
-    arity: usize,
-    return_type: String,
-    #[serde(default)]
-    parameters: Vec<BindingParameter>,
-}
-
-#[derive(Clone, serde::Deserialize)]
-struct BindingParameter {
-    optional: bool,
-    #[serde(default)]
-    rest: bool,
-    #[serde(rename = "type")]
-    ty: String,
-}
 
 /// A checked host call has no matching binding or has an incompatible arity.
 #[derive(Debug)]
@@ -50,25 +17,10 @@ impl fmt::Display for BindingError {
 
 impl std::error::Error for BindingError {}
 
-fn bindings() -> &'static BTreeMap<String, Vec<BindingMember>> {
-    static BINDINGS: OnceLock<BTreeMap<String, Vec<BindingMember>>> = OnceLock::new();
-    BINDINGS.get_or_init(|| {
-        let manifest: BindingManifest = serde_json::from_str(include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../std/js/manifests/std_js_bindings.json"
-        )))
-        .expect("compiler-owned JavaScript binding manifest");
-        manifest
-            .outputs
-            .into_iter()
-            .map(|module| (module.module, module.members))
-            .collect()
-    })
-}
-
 /// Native-only providers are supplied by the selected JavaScript host.
 pub(super) fn is_binding_module(module: &str) -> bool {
-    bindings().contains_key(module)
+    crate::support::js_binding_registry::registry()
+        .is_ok_and(|registry| registry.modules.contains_key(module))
 }
 
 /// Materializes foreign declarations as typed host operations before source linking.
@@ -77,7 +29,7 @@ pub(super) fn materialize(core: &mut CoreModule) {
         CoreEffectSet, CoreExprSummary, CoreFunctionClause, CoreIntrinsicCall, CorePattern,
         CoreProofCoverage,
     };
-    if !core.module.starts_with("std.js.") {
+    if !core.module.starts_with("std.js.") && !is_binding_module(&core.module) {
         return;
     }
     for function in &mut core.functions {
@@ -142,6 +94,7 @@ pub(super) fn materialize(core: &mut CoreModule) {
 
 /// Lowers checked foreign calls and emits only the host adapters they require.
 pub(super) fn lower(core: &mut CoreModule) -> Result<String, BindingError> {
+    crate::support::js_binding_registry::registry().map_err(BindingError)?;
     let mut required = BTreeMap::new();
     let mut failure = None;
     for function in &mut core.functions {
@@ -156,9 +109,7 @@ pub(super) fn lower(core: &mut CoreModule) -> Result<String, BindingError> {
                 };
                 visit_core_expr_mut(expression, &mut |expression| {
                     let (operation, arity) = match expression {
-                        CoreExpr::Call { function, args, .. }
-                            if function.starts_with("std.js.") =>
-                        {
+                        CoreExpr::Call { function, args, .. } if is_host_operation(function) => {
                             (function.clone(), args.len())
                         }
                         CoreExpr::RemoteCall {
@@ -166,7 +117,7 @@ pub(super) fn lower(core: &mut CoreModule) -> Result<String, BindingError> {
                             function,
                             args,
                             ..
-                        } if module.starts_with("std.js.") => {
+                        } if is_binding_module(module) => {
                             (format!("{module}.{function}"), args.len())
                         }
                         CoreExpr::Intrinsic(call) => {
@@ -174,7 +125,7 @@ pub(super) fn lower(core: &mut CoreModule) -> Result<String, BindingError> {
                             else {
                                 return;
                             };
-                            if !operation.starts_with("std.js.") {
+                            if !is_host_operation(operation) {
                                 return;
                             }
                             (operation.clone(), call.args.len())
@@ -227,6 +178,13 @@ pub(super) fn lower(core: &mut CoreModule) -> Result<String, BindingError> {
         .collect())
 }
 
+fn is_host_operation(operation: &str) -> bool {
+    operation.starts_with("std.js.")
+        || operation
+            .rsplit_once('.')
+            .is_some_and(|(module, _)| is_binding_module(module))
+}
+
 fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingError> {
     let bridge = match operation {
         "std.js.String.from_core"
@@ -246,15 +204,59 @@ fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingErro
         return checked_arity(operation, arity, expected).map(|()| (arity, expression.into()));
     }
     let (module, name) = operation.rsplit_once('.').unwrap_or(("", ""));
-    let member = bindings()
+    let registry = crate::support::js_binding_registry::registry().map_err(BindingError)?;
+    let member = registry
+        .modules
         .get(module)
         .into_iter()
         .flatten()
         .find(|member| member.name == name && member.arity == arity)
         .ok_or_else(|| BindingError(format!("unsupported host operation {operation}/{arity}")))?;
+    member_expression(member).map(|expression| (arity, expression))
+}
+
+fn member_expression(
+    member: &crate::support::js_binding_registry::Member,
+) -> Result<String, BindingError> {
     let key = serde_json::to_string(&member.js_name).expect("serializable property name");
     let result = match member.kind.as_str() {
+        "mixin" => {
+            let fields = member
+                .js_names
+                .iter()
+                .enumerate()
+                .map(|(index, name)| {
+                    format!(
+                        "{}: a{}",
+                        serde_json::to_string(name).expect("serializable member name"),
+                        index + 1
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Object.assign(a0, {{{fields}}})")
+        }
         "property" => format!("a0[{key}]"),
+        "setter" => {
+            let value = parameter_argument(&member.parameters[0], "a1");
+            format!("(a0[{key}] = {value})")
+        }
+        "record" => {
+            let fields = member
+                .js_names
+                .iter()
+                .zip(&member.parameters)
+                .enumerate()
+                .map(|(index, (name, parameter))| {
+                    let key = serde_json::to_string(name).expect("serializable record key");
+                    let value = parameter_argument(parameter, &format!("a{index}"));
+                    // Computed keys create an own property even for __proto__.
+                    format!("[{key}]: {value}")
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("({{{fields}}})")
+        }
         "method" => {
             let arguments = member
                 .parameters
@@ -262,14 +264,7 @@ fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingErro
                 .enumerate()
                 .map(|(index, parameter)| {
                     let argument = format!("a{}", index + 1);
-                    let value = decode_nullable_argument(&argument, &parameter.ty);
-                    let value = if parameter.optional {
-                        let inner =
-                            decode_nullable_argument(&format!("{argument}[1]"), &parameter.ty);
-                        format!("({argument} === 'none' ? undefined : {inner})")
-                    } else {
-                        value
-                    };
+                    let value = parameter_argument(parameter, &argument);
                     if parameter.rest {
                         format!("...{value}")
                     } else {
@@ -290,23 +285,45 @@ fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingErro
     let result = if member.return_type.starts_with("Option[")
         || member.return_type.starts_with("std.core.Option.Option[")
     {
-        format!("((value) => value == null ? 'none' : ['some', value])({result})")
+        let missing = if member.undefined_only {
+            "value === undefined"
+        } else {
+            "value == null"
+        };
+        format!("((value) => {missing} ? 'none' : ['some', value])({result})")
     } else if matches!(member.return_type.as_str(), "Unit" | "std.core.Unit.Unit") {
         format!("({result}, 'unit')")
     } else {
         result
     };
-    Ok((arity, result))
+    Ok(result)
 }
 
-fn decode_nullable_argument(argument: &str, ty: &str) -> String {
+fn parameter_argument(
+    parameter: &crate::support::js_binding_registry::Parameter,
+    argument: &str,
+) -> String {
+    let missing = if parameter.undefined_only {
+        "undefined"
+    } else {
+        "null"
+    };
+    if parameter.optional {
+        let inner = decode_nullable_argument(&format!("{argument}[1]"), &parameter.ty, missing);
+        format!("({argument} === 'none' ? undefined : {inner})")
+    } else {
+        decode_nullable_argument(argument, &parameter.ty, missing)
+    }
+}
+
+fn decode_nullable_argument(argument: &str, ty: &str, missing: &str) -> String {
     let inner = ty
         .strip_prefix("Option[")
         .or_else(|| ty.strip_prefix("std.core.Option.Option["))
         .and_then(|inner| inner.strip_suffix(']'));
     if let Some(inner) = inner {
-        let present = decode_nullable_argument(&format!("{argument}[1]"), inner);
-        format!("({argument} === 'none' ? null : {present})")
+        let present = decode_nullable_argument(&format!("{argument}[1]"), inner, "null");
+        format!("({argument} === 'none' ? {missing} : {present})")
     } else {
         argument.into()
     }

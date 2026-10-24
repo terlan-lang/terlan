@@ -82,7 +82,7 @@ fn angular_namespace_facade_plan(mapping: &DomModuleMapping) -> Option<DomModule
     ];
     if required.iter().all(|module| modules.contains(module)) {
         Some(DomModulePlan {
-            module_path: "terlan.angular.Ng".to_string(),
+            constructible: false,            module_path: "terlan.angular.Ng".to_string(),
             source_interface: "AngularNamespaceFacade".to_string(),
             doc: Some(
                 "Generated Angular.ts facade for Terlan-owned modules, directives, templates, machines, workflows, SSE, WebSocket, and worker lifecycles."

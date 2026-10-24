@@ -1,4 +1,4 @@
-//! Preserve renamed singleton type values before import aliases leave the typed boundary.
+//! Preserve imported singleton values before their type aliases leave the typed boundary.
 
 use super::*;
 use crate::terlan_syntax::{SyntaxPatternKind, SyntaxPatternOutput};
@@ -13,9 +13,6 @@ pub(super) fn canonicalize(module: &mut SyntaxModuleOutput, resolved: &ResolvedM
         .imported_types
         .iter()
         .filter_map(|(local, imported)| {
-            if local == &imported.source_name {
-                return None;
-            }
             let alias = aliases.get(local)?;
             if alias.is_opaque || !alias.params.is_empty() {
                 return None;

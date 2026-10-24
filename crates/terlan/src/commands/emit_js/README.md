@@ -108,7 +108,7 @@ Dependency rules:
   codegen` lowering for the first real CoreIR expression subset: public,
   single-clause functions with variable parameters, integer/string-like literal
   returns, boolean literal returns, finite float literal returns,
-  tuple/list/fixed-array literal returns, expression-side list cons, index
+  tuple/list/array literal returns, expression-side list cons, index
   expressions, identifier-key map literals, field/record access, record
   construction/update, literal-pattern case expressions with a variable
   scrutinee, atom/boolean/integer/finite-float literal clauses, and a final

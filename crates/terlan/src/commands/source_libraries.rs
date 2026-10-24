@@ -5,6 +5,28 @@ use std::path::{Path, PathBuf};
 
 pub(crate) fn imported_std_source_path(module: &str, active_path: &Path) -> Option<PathBuf> {
     if !module.starts_with("std.") {
+        for root in active_path.ancestors().skip(1) {
+            let adjacent = root.join(&relative);
+            if adjacent.is_file() {
+                return Some(adjacent);
+            }
+            let manifest_path = root.join("terlan.toml");
+            if manifest_path.is_file() {
+                if let Ok(manifest) =
+                    crate::commands::build::project_manifest::read_project_manifest(&manifest_path)
+                {
+                    for source in manifest.source_roots {
+                        let candidate = root.join(source).join(&relative);
+                        if candidate.is_file() {
+                            return Some(candidate);
+                        }
+                    }
+                }
+            }
+        }
+        return None;
+    }
+    if !module.starts_with("std.") {
         return None;
     }
     let literal = PathBuf::from(format!("{}.terl", module.replace('.', "/")));

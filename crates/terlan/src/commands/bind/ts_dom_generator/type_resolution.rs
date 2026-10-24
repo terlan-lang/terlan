@@ -26,6 +26,7 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
     }
     for module in &mut mapping.modules {
         let mut members = std::mem::take(&mut module.members);
+        let original_count = members.len();
         members.retain_mut(|member| {
             let mut unknown = Vec::new();
             let (name, annotations) = match member {
@@ -56,6 +57,7 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
             }
             unknown.is_empty()
         });
+        module.constructible &= members.len() == original_count;
         module.members = members;
         // JavaScript has one callable per property, while Terlan exports need
         // distinct names. Preserve every supported overload under a stable name.

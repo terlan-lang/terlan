@@ -380,6 +380,17 @@ pub(crate) fn run_check_dir(
     let mut interfaces: HashMap<String, ModuleInterface> = HashMap::new();
     load_interfaces_from_dir(&cache_dir, &mut interfaces);
     crate::formal_pipeline::load_embedded_std_interfaces(&mut interfaces);
+    if let Some((file, _, _)) = parsed_modules.first() {
+        let required = parsed_modules
+            .iter()
+            .flat_map(|(_, _, module)| crate::formal_pipeline::source_dependency_modules(module))
+            .collect();
+        crate::formal_pipeline::load_required_standard_interfaces(
+            &file.to_string_lossy(),
+            required,
+            &mut interfaces,
+        );
+    }
 
     let mut has_errors = false;
     for (file, source, syntax_output) in &parsed_modules {

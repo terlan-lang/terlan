@@ -41,6 +41,7 @@ pub(crate) use interface_loading::source_dependency_modules;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use interface_loading::{
     load_embedded_std_interfaces, load_external_interfaces_for_module,
+    load_required_standard_interfaces,
 };
 
 /// Checked artifacts produced by the formal compile pipeline.

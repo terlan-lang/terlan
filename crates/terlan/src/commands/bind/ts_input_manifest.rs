@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::support::{is_valid_sha256_hex, sha256sum_file};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// Expected schema for committed TypeScript input manifests.
 const TS_INPUT_MANIFEST_SCHEMA: &str = "terlan.std.js.input-manifest.v1";
@@ -19,7 +19,7 @@ const TS_INPUT_MANIFEST_SCHEMA: &str = "terlan.std.js.input-manifest.v1";
 /// Transformation:
 /// - Serde maps the committed JSON contract into typed fields so tests and
 ///   later generator commands do not depend on ad hoc JSON lookups.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub(super) struct TsInputManifest {
     pub(super) schema: String,
     pub(super) generator: TsInputGenerator,
@@ -29,7 +29,7 @@ pub(super) struct TsInputManifest {
 }
 
 /// Generator metadata recorded in a TypeScript input manifest.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub(super) struct TsInputGenerator {
     pub(super) name: String,
     pub(super) version: String,
@@ -38,7 +38,7 @@ pub(super) struct TsInputGenerator {
 }
 
 /// Source package metadata recorded in a TypeScript input manifest.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub(super) struct TsSourcePackage {
     pub(super) name: String,
     pub(super) version: String,
@@ -46,7 +46,7 @@ pub(super) struct TsSourcePackage {
 }
 
 /// One pinned TypeScript declaration input.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub(super) struct TsInputFile {
     pub(super) path: String,
     pub(super) sha256: String,

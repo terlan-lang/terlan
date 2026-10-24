@@ -26,8 +26,10 @@ impl SourceInterfaceGraph {
         cache_dir: Option<&Path>,
     ) -> Self {
         let mut directories = BTreeSet::new();
+        let mut active_path = None;
         let mut local_modules: BTreeMap<String, SyntaxModuleOutput> = BTreeMap::new();
         for (path, syntax) in sources {
+            active_path.get_or_insert_with(|| path.to_path_buf());
             directories.insert(
                 path.parent()
                     .filter(|parent| !parent.as_os_str().is_empty())
@@ -79,6 +81,17 @@ impl SourceInterfaceGraph {
         // Handwritten declarations override generated summaries across the
         // inventory; explicit source modules then override cached copies.
         declarations.extend(local_modules);
+        if let Some(path) = active_path {
+            let required = declarations
+                .values()
+                .flat_map(super::interface_loading::source_dependency_modules)
+                .collect();
+            super::interface_loading::load_required_standard_interfaces(
+                &path.to_string_lossy(),
+                required,
+                &mut interfaces,
+            );
+        }
         for (name, syntax) in &declarations {
             interfaces.insert(name.clone(), syntax_module_output_to_interface(syntax));
         }

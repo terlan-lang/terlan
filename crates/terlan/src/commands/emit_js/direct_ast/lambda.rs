@@ -97,7 +97,7 @@ pub(in crate::commands::emit_js) fn core_lam_param_to_oxc_formal_parameter<'a>(
 /// - `param`: CoreIR lambda parameter pattern.
 ///
 /// Output:
-/// - `Some(BindingPattern)` for variable, sequence, map, and record patterns.
+/// - `Some(BindingPattern)` for variable, sequence, head/tail, map, and record patterns.
 /// - `None` for wildcards at the top level or unsupported nested patterns.
 ///
 /// Transformation:
@@ -121,6 +121,37 @@ fn core_pattern_to_oxc_binding_pattern<'a>(
                 elements.push(core_pattern_to_oxc_array_binding_element(ast, item)?);
             }
             Some(ast.binding_pattern_array_pattern(SPAN, elements, oxc_ast::NONE))
+        }
+        crate::terlan_typeck::CorePattern::ListCons { head, tail } => {
+            let mut elements = ast.vec();
+            let mut head = head.as_ref();
+            let mut tail = tail.as_ref();
+            loop {
+                elements.push(core_pattern_to_oxc_array_binding_element(ast, head)?);
+                match tail {
+                    crate::terlan_typeck::CorePattern::ListCons {
+                        head: next,
+                        tail: rest,
+                    } => {
+                        head = next;
+                        tail = rest;
+                    }
+                    crate::terlan_typeck::CorePattern::Wildcard => {
+                        return Some(ast.binding_pattern_array_pattern(
+                            SPAN,
+                            elements,
+                            oxc_ast::NONE,
+                        ));
+                    }
+                    _ => {
+                        let rest = ast.alloc_binding_rest_element(
+                            SPAN,
+                            core_pattern_to_oxc_binding_pattern(ast, tail)?,
+                        );
+                        return Some(ast.binding_pattern_array_pattern(SPAN, elements, Some(rest)));
+                    }
+                }
+            }
         }
         crate::terlan_typeck::CorePattern::Map(fields) => {
             let mut properties = ast.vec();
