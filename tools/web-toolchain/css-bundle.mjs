@@ -5,6 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundleAsync, transform } from 'lightningcss';
 
+const externalUrl = /^(?:[a-z][a-z\d+.-]*:|\/\/)/i;
+
 export function rebaseUrl(url, filename) {
   if (/^(?:[a-z][a-z\d+.-]*:|\/|#)/i.test(url)) return url;
   // Query strings and fragments belong to the URL, not the filesystem path.
@@ -14,12 +16,35 @@ export function rebaseUrl(url, filename) {
   return path.resolve(path.dirname(filename), file).replaceAll('\\', '/') + suffix;
 }
 
+function rebaseImage(image, filename) {
+  if (image.type === 'url') {
+    return { ...image, value: { ...image.value, url: rebaseUrl(image.value.url, filename) } };
+  }
+  if (image.type === 'image-set') {
+    return {
+      ...image,
+      value: {
+        ...image.value,
+        options: image.value.options.map(option => ({
+          ...option, image: rebaseImage(option.image, filename),
+        })),
+      },
+    };
+  }
+  return image;
+}
+
 export async function bundleStyles(filename, output) {
   const result = await bundleAsync({
     filename,
     minify: false,
     sourceMap: true,
     resolver: {
+      resolve(specifier, originatingFile) {
+        return externalUrl.test(specifier)
+          ? { external: specifier }
+          : path.resolve(path.dirname(originatingFile), specifier);
+      },
       async read(filename) {
         const code = await readFile(filename);
         // Rebase before serializing so source maps describe the changed URLs.
@@ -30,6 +55,11 @@ export async function bundleStyles(filename, output) {
           sourceMap: true,
           visitor: {
             Url(value) { return { ...value, url: rebaseUrl(value.url, filename) }; },
+            // Lightning CSS visits image-set as one Image, without visiting
+            // its nested URLs (including options written as CSS strings).
+            Image(value) {
+              if (value.type === 'image-set') return rebaseImage(value, filename);
+            },
           },
         });
         return transformed.code.toString() + '\n/*# sourceMappingURL=data:application/json;base64,'
