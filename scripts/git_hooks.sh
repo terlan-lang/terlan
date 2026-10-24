@@ -16,8 +16,9 @@ case "${1:-check}" in
       exit 1
     fi
     test -x .githooks/pre-commit
+    test -x .githooks/commit-msg
     git config --local core.hooksPath .githooks
-    echo 'Installed staged-source pre-commit checks for this checkout.'
+    echo 'Installed staged-source and short-message commit checks for this checkout.'
     exit 0
     ;;
   check) ;;

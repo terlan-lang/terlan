@@ -486,10 +486,11 @@ pub(super) fn build_command_defaults_project_directory_to_terlan_vm_artifacts() 
         "default project build target must not emit VM bytecode"
     );
 
-    let descriptor = inspect_native_descriptor(&out_dir.join("vm/app_Main.tvm"));
+    let descriptor =
+        inspect_native_descriptor(&out_dir.join(".terlan/application/vm/app_Main.tvm"));
     assert_eq!(descriptor.identity.module, "app.Main");
     assert_eq!(descriptor.exports[0].name, "app.Main.main/0");
-    assert!(out_dir.join("bin/app").is_file());
+    assert!(application_executable(&out_dir).is_file());
 }
 
 /// Verifies single-file JavaScript builds emit JS modules and a manifest.

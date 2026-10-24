@@ -105,7 +105,7 @@ fn build_command_compiles_project_manifest_source_root() {
     assert_eq!(status, ExitCode::SUCCESS);
     assert!(!out_dir.join("src").exists());
     assert!(!out_dir.join("ebin").exists());
-    let image_path = out_dir.join("vm/app_Main.tvm");
+    let image_path = out_dir.join(".terlan/application/vm/app_Main.tvm");
     assert_eq!(
         native_image_export_names(&image_path),
         vec!["app.Main.main/0"]

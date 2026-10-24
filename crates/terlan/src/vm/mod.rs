@@ -37,6 +37,7 @@ use native_image_runner::{is_tvm_image_path, render_tvm_support_bundle, run_tvm_
 
 mod arguments;
 mod cli;
+mod embedded;
 mod execution;
 
 use arguments::*;
@@ -50,5 +51,29 @@ mod main_test;
 
 /// Runs the standalone VM command using process arguments.
 pub fn run_from_env() -> ExitCode {
+    if embedded::worker_role() {
+        return crate::native_worker::run_from_env();
+    }
+    let application = crate::runtime::executable::EmbeddedApplication::open_current();
+    match application {
+        Ok(Some(mut application)) => {
+            return embedded::run(&mut application).unwrap_or_else(|message| {
+                eprintln!("{message}");
+                ExitCode::FAILURE
+            })
+        }
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::FAILURE;
+        }
+        Ok(None) => {}
+    }
+    if std::env::args_os()
+        .skip(1)
+        .eq(["--executable-format-version"])
+    {
+        println!("1");
+        return ExitCode::SUCCESS;
+    }
     cli::run()
 }

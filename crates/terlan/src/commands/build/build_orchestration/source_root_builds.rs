@@ -276,22 +276,6 @@ pub(in crate::commands::build) fn copy_bundled_terlan_vm_runner(
     copy_bundled_vm_runtime(&source, destination, "terlan-vm runtime")
 }
 
-/// Copies the compiler-paired native worker into the executable package bundle.
-pub(in crate::commands::build) fn copy_bundled_terlan_native_worker(
-    destination: &Path,
-) -> Result<(), String> {
-    let source = terlan_native_worker_source_path()?;
-    copy_bundled_vm_runtime(&source, destination, "terlan native worker")
-}
-
-/// Copies the compiler-paired compiler-free HTTP service runtime.
-pub(in crate::commands::build) fn copy_bundled_terlan_serve_runtime(
-    destination: &Path,
-) -> Result<(), String> {
-    let source = terlan_serve_runtime_source_path()?;
-    copy_bundled_vm_runtime(&source, destination, "Terlan service runtime")
-}
-
 pub(in crate::commands::build) fn copy_bundled_vm_runtime(
     source: &Path,
     destination: &Path,
@@ -318,30 +302,6 @@ pub(in crate::commands::build) fn copy_bundled_vm_runtime(
 /// Resolves the VM runtime paired with this compiler.
 pub(in crate::commands::build) fn terlan_vm_runner_source_path() -> Result<PathBuf, String> {
     paired_vm_runtime_path("TERLAN_VM_RUNNER", terlan_vm_runner_name())
-}
-
-pub(in crate::commands::build) fn terlan_native_worker_name() -> &'static str {
-    if cfg!(windows) {
-        "terlan-native-worker.exe"
-    } else {
-        "terlan-native-worker"
-    }
-}
-
-pub(in crate::commands::build) fn terlan_native_worker_source_path() -> Result<PathBuf, String> {
-    paired_vm_runtime_path("TERLAN_NATIVE_WORKER", terlan_native_worker_name())
-}
-
-pub(in crate::commands::build) fn terlan_serve_runtime_name() -> &'static str {
-    if cfg!(windows) {
-        "terlan-serve-runtime.exe"
-    } else {
-        "terlan-serve-runtime"
-    }
-}
-
-pub(in crate::commands::build) fn terlan_serve_runtime_source_path() -> Result<PathBuf, String> {
-    paired_vm_runtime_path("TERLAN_SERVE_RUNTIME", terlan_serve_runtime_name())
 }
 
 pub(in crate::commands::build) fn paired_vm_runtime_path(
@@ -376,59 +336,6 @@ pub(in crate::commands::build) fn paired_vm_runtime_path(
     Err(format!(
         "terlc build could not find paired `{runtime_name}` runtime; install the complete VM runtime or set {environment}"
     ))
-}
-
-/// Writes the executable launcher for a VM artifact.
-pub(in crate::commands::build) fn write_vm_launcher(
-    executable_path: &Path,
-    artifact_relative_path: &Path,
-    incremental: bool,
-) -> Result<(), String> {
-    if let Some(parent) = executable_path.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "failed to create launcher directory `{}`: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let artifact = path_to_manifest_string(artifact_relative_path);
-    let contents = if cfg!(windows) {
-        format!(
-            "@echo off\r\nset SCRIPT_DIR=%~dp0\r\nif exist \"%SCRIPT_DIR%terlan-vm.exe\" (\r\n  \"%SCRIPT_DIR%terlan-vm.exe\" run \"%SCRIPT_DIR%..\\{}\" -- %*\r\n) else if not \"%TERLAN_VM_RUNNER%\"==\"\" (\r\n  \"%TERLAN_VM_RUNNER%\" run \"%SCRIPT_DIR%..\\{}\" -- %*\r\n) else (\r\n  terlan-vm run \"%SCRIPT_DIR%..\\{}\" -- %*\r\n)\r\n",
-            artifact.replace('/', "\\"),
-            artifact.replace('/', "\\"),
-            artifact.replace('/', "\\")
-        )
-    } else {
-        format!(
-            "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif [ -x \"$SCRIPT_DIR/terlan-vm\" ]; then\n  VM=\"$SCRIPT_DIR/terlan-vm\"\nelif [ -n \"${{TERLAN_VM_RUNNER:-}}\" ]; then\n  VM=$TERLAN_VM_RUNNER\nelse\n  VM=$(command -v terlan-vm)\nfi\nexec \"$VM\" run \"$SCRIPT_DIR/../{artifact}\" -- \"$@\"\n"
-        )
-    };
-    write_build_file(executable_path, contents.as_bytes(), incremental)?;
-    set_launcher_executable(executable_path)
-}
-
-/// Writes the launcher for a compiler-free native Terlan HTTP service.
-pub(in crate::commands::build) fn write_vm_service_launcher(
-    executable_path: &Path,
-    incremental: bool,
-) -> Result<(), String> {
-    if let Some(parent) = executable_path.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "failed to create service launcher directory `{}`: {err}",
-                parent.display()
-            )
-        })?;
-    }
-    let contents = if cfg!(windows) {
-        "@echo off\r\nset SCRIPT_DIR=%~dp0\r\nif not defined TERLAN_SERVE_PORT if defined PORT set TERLAN_SERVE_PORT=%PORT%\r\nif not defined TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES set TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1\r\nset TERLAN_SERVE_MANIFEST_ONLY=1\r\n\"%SCRIPT_DIR%terlan-serve-runtime.exe\" \"%SCRIPT_DIR%..\\web\" %*\r\n".to_string()
-    } else {
-        "#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif [ -z \"${TERLAN_SERVE_PORT:-}\" ] && [ -n \"${PORT:-}\" ]; then\n  export TERLAN_SERVE_PORT=$PORT\nfi\nexport TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}\nexport TERLAN_SERVE_MANIFEST_ONLY=1\nexec \"$SCRIPT_DIR/terlan-serve-runtime\" \"$SCRIPT_DIR/../web\" \"$@\"\n".to_string()
-    };
-    write_build_file(executable_path, contents.as_bytes(), incremental)?;
-    set_launcher_executable(executable_path)
 }
 
 /// Marks a launcher executable on Unix platforms.
@@ -470,11 +377,7 @@ pub(in crate::commands::build) fn executable_vm_artifact_stem(
 
 /// Returns the emitted package executable filename.
 pub(in crate::commands::build) fn package_executable_name(package_name: &str) -> String {
-    if cfg!(windows) {
-        format!("{package_name}.cmd")
-    } else {
-        package_name.to_string()
-    }
+    format!("{package_name}{}", std::env::consts::EXE_SUFFIX)
 }
 
 /// Prefers the package's Main only when that module exists. Libraries and

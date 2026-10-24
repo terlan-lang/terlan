@@ -40,13 +40,13 @@ fn parallel_frontend_compilation_preserves_one_application_link() {
     };
 
     assert_eq!(run(command.clone(), state.clone()), ExitCode::SUCCESS);
-    let image_path = out_dir.join("vm/app_Main.tvm");
+    let image_path = out_dir.join(".terlan/application/vm/app_Main.tvm");
     let first_image = fs::read(&image_path).expect("read first native image");
     let units_dir = out_dir.join(".terlan/native-aot/units-v2/entries");
     let first_units = native_unit_snapshots(&units_dir);
     assert_eq!(first_units.len(), 3);
     assert_eq!(
-        fs::read_dir(out_dir.join("vm"))
+        fs::read_dir(out_dir.join(".terlan/application/vm"))
             .expect("read VM output")
             .filter_map(Result::ok)
             .filter(|entry| entry.path().extension().is_some_and(|value| value == "tvm"))

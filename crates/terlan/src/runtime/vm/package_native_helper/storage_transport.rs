@@ -19,6 +19,12 @@ pub(super) fn installed_worker_path(executable: &Path) -> VmRuntimeResult<PathBu
             "error[vm.distributed_storage.executable]: expected an absolute executable path".into(),
         );
     }
+    if let Some(pinned) = crate::runtime::executable::pinned_worker_path()? {
+        return Ok(pinned);
+    }
+    if executable.is_file() && crate::runtime::executable::is_application(executable)? {
+        return Ok(executable.to_path_buf());
+    }
     let directory = executable
         .parent()
         .ok_or("error[vm.distributed_storage.executable]: missing executable directory")?;

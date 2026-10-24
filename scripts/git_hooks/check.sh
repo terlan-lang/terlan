@@ -19,6 +19,7 @@ bash scripts/git_hooks/js_browser.sh
 echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh
+bash scripts/git_commit_message_test.sh
 tested_terlan=(scripts/git_hooks/src/git_hooks/PlanTest.terl)
 run_terlan_test() {
   local previous

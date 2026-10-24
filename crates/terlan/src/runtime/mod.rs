@@ -10,6 +10,7 @@
 //! - Keeps safety contracts separate from concrete native implementations
 //!   while both remain inside the single shipped compiler crate.
 
+pub(crate) mod executable;
 #[path = "vm/map_layout.rs"]
 pub(crate) mod map_layout;
 pub mod native;

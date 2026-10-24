@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Check the message after Git has collected it, without rewriting it.
+set -euo pipefail
+if (( $# != 1 )); then
+  echo 'Usage: commit-msg MESSAGE_FILE' >&2
+  exit 2
+fi
+if [[ "${GIT_EDITOR:-}" == : ]]; then
+  # -m/-F messages retain literal '#' lines under Git's default cleanup.
+  message=$(git stripspace < "$1")
+else
+  editor_message() {
+    local line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      # Verbose commits append a diff after Git's comment-prefixed scissors.
+      if [[ "$line" == ?' ------------------------ >8 ------------------------' ]]; then break; fi
+      printf '%s\n' "$line"
+    done
+  }
+  message=$(editor_message < "$1" | git stripspace --strip-comments)
+fi
+if [[ -z "$message" || "$message" == *$'\n'* || ${#message} -gt 50 ]]; then
+  echo 'commit-msg: use one nonempty line of at most 50 characters.' >&2
+  exit 1
+fi

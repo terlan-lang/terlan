@@ -30,10 +30,7 @@ for required in \
   routes.json \
   capabilities.json \
   sources.json \
-  artifact/bin/terlan-registry \
-  artifact/bin/terlan-vm \
-  artifact/bin/terlan-native-worker \
-  artifact/vm/terlan_registry_Main.tvm; do
+  artifact/bin/terlan-registry; do
   test -f "${bundle_a}/${required}"
   test -f "${bundle_b}/${required}"
 done
@@ -65,7 +62,7 @@ jq -e '
   .toolchain.stdlib_version != "" and
   .target.artifact == "terlan-vm" and
   .target.runtime == "terlan-vm" and
-  (.artifact.files | length == 4) and
+  (.artifact.files | length == 1) and
   (.routes | length == 2) and
   (.sources | length == 2) and
   (.migrations | length == 1) and
@@ -82,5 +79,62 @@ if rg -q 'postgres://|"value"[[:space:]]*:' "${bundle_a}"/*.json; then
   exit 1
 fi
 
-"${bundle_a}/artifact/bin/terlan-registry"
+# The fixture owns HTTP routes, so exercise its deployed binary with bounded
+# readiness and teardown rather than waiting indefinitely for the service.
+node --input-type=module - "${bundle_a}/artifact/bin/terlan-registry" <<'NODE'
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+import { setTimeout as delay } from 'node:timers/promises';
+
+const listener = createServer();
+await new Promise(resolve => listener.listen(0, '127.0.0.1', resolve));
+const { port } = listener.address();
+await new Promise(resolve => listener.close(resolve));
+const child = spawn(process.argv[2], [], {
+  env: { ...process.env, PORT: String(port), TERLAN_SERVE_PORT: String(port) },
+  stdio: ['ignore', 'pipe', 'pipe'],
+});
+let stopped = false;
+let diagnostics = '';
+const capture = bytes => { diagnostics = (diagnostics + bytes).slice(-65536); };
+child.stdout.on('data', capture);
+child.stderr.on('data', capture);
+const done = new Promise(resolve => {
+  child.once('exit', (code, signal) => {
+    stopped = true;
+    diagnostics += `\nservice exited: ${code ?? signal}`;
+    resolve();
+  });
+  child.once('error', error => {
+    stopped = true;
+    diagnostics += `\n${error}`;
+    resolve();
+  });
+});
+try {
+  const deadline = Date.now() + 15000;
+  for (;;) {
+    assert(!stopped, diagnostics);
+    assert(Date.now() < deadline, `service readiness timed out: ${diagnostics}`);
+    let response;
+    try {
+      response = await fetch(`http://127.0.0.1:${port}/health`, {
+        signal: AbortSignal.timeout(1000),
+      });
+    } catch {
+      await delay(50);
+      continue;
+    }
+    assert.equal(response.status, 200, diagnostics);
+    assert.equal(await response.text(), 'ok');
+    break;
+  }
+} finally {
+  if (!stopped) child.kill('SIGTERM');
+  await Promise.race([done, delay(3000, undefined, { ref: false })]);
+  if (!stopped) child.kill('SIGKILL');
+  await done;
+}
+NODE
 echo "Cloud release bundle v1 is deterministic, checksummed, portable, and executable"

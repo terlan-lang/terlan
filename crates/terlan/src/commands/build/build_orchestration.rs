@@ -407,7 +407,13 @@ pub(super) fn build_target_inference_sources(path: &Path) -> Result<Vec<PathBuf>
 /// - Emits post-OTP VM artifacts for a source file or source-root project
 ///   without generating Vm source or VM bytecode.
 pub(super) fn run_terlan_vm_build(args: &BuildArgs, state: &CliState) -> ExitCode {
-    if !state.no_emit {
+    let source_path = Path::new(&args.path);
+    // Application publication needs the prior report to retire its legacy bundle.
+    let application_project = source_path.is_dir()
+        && project_manifest::read_project_manifest(&project_manifest_path(source_path)).is_ok_and(
+            |manifest| manifest.artifact == project_manifest::ProjectArtifactKind::TerlanVm,
+        );
+    if !state.no_emit && !application_project {
         let metadata_path = state.out_dir.join(BUILD_PACKAGE_METADATA_FILE);
         if let Err(error) = fs::remove_file(&metadata_path) {
             if error.kind() != std::io::ErrorKind::NotFound {
@@ -419,7 +425,6 @@ pub(super) fn run_terlan_vm_build(args: &BuildArgs, state: &CliState) -> ExitCod
             }
         }
     }
-    let source_path = Path::new(&args.path);
     if source_path.is_dir() {
         return run_terlan_vm_directory_build(source_path, state, args.native_codegen_policy);
     }
@@ -725,13 +730,20 @@ pub(super) fn run_terlan_vm_directory_build(
                 package_path: Some(root.package_path.clone()),
             })
             .collect::<Vec<_>>();
+        let mut artifact_state = state.clone();
+        if manifest.artifact == project_manifest::ProjectArtifactKind::TerlanVm {
+            artifact_state.out_dir = state.out_dir.join(".terlan/application");
+            artifact_state
+                .cache_dir
+                .get_or_insert_with(|| state.out_dir.join(".terlan"));
+        }
         let status = match manifest.artifact {
             project_manifest::ProjectArtifactKind::WasmCore => {
                 run_wasm_core_source_roots_build(&source_roots, state)
             }
             project_manifest::ProjectArtifactKind::TerlanVm
             | project_manifest::ProjectArtifactKind::Library => {
-                run_terlan_vm_source_roots_build(&source_roots, state, policy)
+                run_terlan_vm_source_roots_build(&source_roots, &artifact_state, policy)
             }
             _ => {
                 if let Some(message) = reserved_project_artifact_build_error(&manifest) {
@@ -785,7 +797,7 @@ pub(super) fn run_terlan_vm_directory_build(
                 }
                 if let Err(message) = js_browser::write_vm_service_package(
                     dir,
-                    &state.out_dir,
+                    &artifact_state.out_dir,
                     &manifest.source_roots,
                     &route_sources,
                     browser_static_assets.as_ref(),
@@ -798,10 +810,9 @@ pub(super) fn run_terlan_vm_directory_build(
             if let Err(message) = write_terlan_vm_executable_package_outputs(
                 dir,
                 &manifest,
-                &roots.native_rust_dependencies,
-                &roots.native_artifact_environment,
-                roots.accelerator_closure.as_ref(),
+                &roots,
                 vm_service,
+                &artifact_state,
                 state,
             ) {
                 eprintln!("{message}");

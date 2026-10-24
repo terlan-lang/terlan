@@ -1,53 +1,5 @@
 use super::*;
 
-/// Verifies a native Terlan service launcher targets its bundled HTTP runtime.
-///
-/// Inputs:
-/// - A package-local launcher path.
-///
-/// Output:
-/// - Test passes when the launcher maps the platform port, enables trusted
-///   service capabilities by default, and executes the adjacent runtime over
-///   the packaged web root.
-///
-/// Transformation:
-/// - Writes the portable service entrypoint without requiring a compiler or a
-///   live HTTP listener.
-#[test]
-fn vm_service_launcher_executes_bundled_service_runtime() {
-    let dir = make_temp_dir("vm_service_launcher");
-    let launcher = dir.join("bin/app");
-
-    write_vm_service_launcher(&launcher, false).expect("write VM service launcher");
-
-    let contents = fs::read_to_string(&launcher).expect("read VM service launcher");
-    if cfg!(windows) {
-        assert!(contents.contains("TERLAN_SERVE_PORT=%PORT%"));
-        assert!(contents.contains("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=1"));
-        assert!(contents.contains("TERLAN_SERVE_MANIFEST_ONLY=1"));
-        assert!(contents.contains("terlan-serve-runtime.exe"));
-        assert!(contents.contains("..\\web"));
-    } else {
-        assert!(contents.contains("export TERLAN_SERVE_PORT=$PORT"));
-        assert!(contents.contains(
-            "export TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES=${TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES:-1}"
-        ));
-        assert!(contents.contains("export TERLAN_SERVE_MANIFEST_ONLY=1"));
-        assert!(contents.contains("exec \"$SCRIPT_DIR/terlan-serve-runtime\""));
-        assert!(contents.contains("\"$SCRIPT_DIR/../web\""));
-    }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        let mode = fs::metadata(&launcher)
-            .expect("service launcher metadata")
-            .permissions()
-            .mode();
-        assert_ne!(mode & 0o111, 0, "service launcher should be executable");
-    }
-}
-
 /// Verifies executable VM artifact packages require an executable entrypoint.
 ///
 /// Inputs:
@@ -95,14 +47,14 @@ fn build_command_rejects_project_manifest_without_main_entrypoint_for_vm_artifac
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::from(1));
-    assert!(out_dir.join("vm/app_Main.tvm").exists());
-    assert!(!out_dir.join("bin/app").exists());
+    assert!(out_dir.join(".terlan/application/vm/app_Main.tvm").exists());
+    assert!(!application_executable(&out_dir).exists());
     assert!(!out_dir.join(BUILD_PACKAGE_METADATA_FILE).exists());
 }
 
-/// Router-backed VM services use the serve runtime and need no fake `Main.main/0`.
+/// Router-backed services embed their resources and need no fake `Main.main/0`.
 #[test]
-fn build_command_emits_service_launcher_without_main_entrypoint() {
+fn build_command_emits_single_service_executable_without_main_entrypoint() {
     let dir = make_temp_dir("directory_project_manifest_router_service");
     let project_dir = dir.join("project");
     let app_dir = project_dir.join("src/app");
@@ -143,37 +95,39 @@ pub router(): Router -> Router.new().get("/health", health).
     );
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("bin/app").is_file());
-    assert!(out_dir.join("bin/terlan-serve-runtime").is_file());
-    assert!(!out_dir.join("vm/app_Main.tvm").exists());
+    assert!(application_executable(&out_dir).is_file());
+    assert!(!out_dir.join("bin/terlan-serve-runtime").exists());
+    assert!(!out_dir.join(".terlan/application/vm/app_Main.tvm").exists());
     let metadata: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(out_dir.join(BUILD_PACKAGE_METADATA_FILE))
             .expect("read service package metadata"),
     )
     .expect("parse service package metadata");
     assert!(metadata["executable"].get("image").is_none());
+    assert_eq!(metadata["executable"]["embedded"], true);
     assert_eq!(
         metadata["executable"]["service_runtime"],
-        "bin/terlan-serve-runtime"
+        format!("bin/app{}", std::env::consts::EXE_SUFFIX)
     );
-    assert_eq!(metadata["executable"]["web_root"], "web");
+    assert!(metadata["executable"].get("web_root").is_none());
+    assert!(!out_dir.join("web").exists());
 }
 
-/// Verifies executable VM artifact packages emit a runnable launcher contract.
+/// Verifies application builds publish one directly runnable native executable.
 ///
 /// Inputs:
 /// - A project manifest selecting the default executable `terlan-vm` artifact.
 /// - A package-rooted `app.Main.main/0` entrypoint.
 ///
 /// Output:
-/// - Test passes when the build emits the VM artifact, `_build/bin/app`
-///   launcher, and package metadata pointing at that launcher.
+/// - Test passes when the application image stays in the private compiler cache
+///   and package metadata names the directly executable application.
 ///
 /// Transformation:
 /// - Exercises the package build contract that prevents `terlc build` from
 ///   succeeding without producing an executable artifact.
 #[test]
-fn build_command_emits_executable_launcher_for_vm_artifact_package() {
+fn build_command_emits_single_executable_for_vm_artifact_package() {
     let dir = make_temp_dir("directory_project_manifest_executable_launcher");
     let project_dir = dir.join("project");
     let app_dir = project_dir.join("src/app");
@@ -206,9 +160,11 @@ fn build_command_emits_executable_launcher_for_vm_artifact_package() {
     let status = run(cmd, state);
 
     assert_eq!(status, ExitCode::SUCCESS);
-    let image_path = out_dir.join("vm/app_Main.tvm");
+    let image_path = out_dir.join(".terlan/application/vm/app_Main.tvm");
     assert!(image_path.exists());
-    assert!(!out_dir.join("vm/app_Main.tvm.json").exists());
+    assert!(!out_dir
+        .join(".terlan/application/vm/app_Main.tvm.json")
+        .exists());
     let image = fs::read(&image_path).expect("read native package image");
     let target = crate::runtime::native_image::host_tvm_target().expect("host TVM target");
     let inspection = crate::runtime::native_image::inspect_tvm_image(&image, &target.triple)
@@ -223,10 +179,10 @@ fn build_command_emits_executable_launcher_for_vm_artifact_package() {
         vec!["app.Main.main/0"],
         "private native helpers must not cross the image boundary"
     );
-    let launcher = out_dir.join("bin/app");
+    let launcher = application_executable(&out_dir);
     assert!(launcher.exists());
-    assert!(out_dir.join("bin/terlan-vm").exists());
-    assert!(out_dir.join("bin/terlan-native-worker").exists());
+    assert!(!out_dir.join("bin/terlan-vm").exists());
+    assert!(!out_dir.join("bin/terlan-native-worker").exists());
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -241,13 +197,14 @@ fn build_command_emits_executable_launcher_for_vm_artifact_package() {
         .expect("read package build metadata");
     let metadata: serde_json::Value =
         serde_json::from_str(&metadata_text).expect("parse package build metadata");
-    assert_eq!(metadata["executable"]["path"], "bin/app");
-    assert_eq!(metadata["executable"]["image"], "vm/app_Main.tvm");
-    assert_eq!(metadata["executable"]["runtime"], "bin/terlan-vm");
-    assert_eq!(
-        metadata["executable"]["native_worker"],
-        "bin/terlan-native-worker"
-    );
+    let relative = format!("bin/app{}", std::env::consts::EXE_SUFFIX);
+    assert_eq!(metadata["executable"]["path"], relative);
+    assert!(metadata["executable"].get("image").is_none());
+    assert_eq!(metadata["executable"]["embedded"], true);
+    assert_eq!(metadata["executable"]["runtime"], relative);
+    assert_eq!(metadata["executable"]["native_worker"], relative);
+    assert!(!out_dir.join("vm").exists());
+    assert_eq!(fs::read_dir(out_dir.join("bin")).unwrap().count(), 1);
     let output = std::process::Command::new(&launcher)
         .output()
         .expect("run native package launcher");

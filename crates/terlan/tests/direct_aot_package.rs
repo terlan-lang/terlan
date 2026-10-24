@@ -4,6 +4,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
 
+#[path = "support/single_executable.rs"]
+mod single_executable;
+
 #[test]
 fn package_build_emits_one_tvm_image_with_qualified_module_exports() {
     let root = std::env::temp_dir().join(format!(
@@ -52,12 +55,13 @@ fn package_build_emits_one_tvm_image_with_qualified_module_exports() {
     );
 
     let image_name = "app_Main.tvm";
-    let image_path = output_dir.join("vm").join(image_name);
-    assert!(!output_dir.join("vm/app_Main.tvm.json").exists());
-    assert!(!output_dir.join("vm/app_Math.tvm.json").exists());
+    let vm_dir = output_dir.join(".terlan/application/vm");
+    let image_path = vm_dir.join(image_name);
+    assert!(!vm_dir.join("app_Main.tvm.json").exists());
+    assert!(!vm_dir.join("app_Math.tvm.json").exists());
     let original_sha256 = Sha256::digest(fs::read(&image_path).expect("read package TVM image"));
 
-    fs::write(output_dir.join("vm/stale.tvm"), b"stale image")
+    fs::write(vm_dir.join("stale.tvm"), b"stale image")
         .expect("write stale deployable image fixture");
     fs::write(
         &math_source,
@@ -84,7 +88,7 @@ fn package_build_emits_one_tvm_image_with_qualified_module_exports() {
         Sha256::digest(fs::read(&image_path).expect("read changed package image")),
         original_sha256
     );
-    assert!(!output_dir.join("vm/stale.tvm").exists());
+    assert!(!vm_dir.join("stale.tvm").exists());
 
     fs::write(
         &math_source,
@@ -113,7 +117,6 @@ fn package_build_emits_one_tvm_image_with_qualified_module_exports() {
         original_sha256
     );
 
-    let vm_dir = output_dir.join("vm");
     let tvm_images = fs::read_dir(&vm_dir)
         .expect("read VM output directory")
         .map(|entry| entry.expect("read VM output entry").path())

@@ -1,3 +1,4 @@
+use super::super::metadata::ProjectBuildRoots;
 use super::*;
 
 /// Discovers route-owning source modules in the root executable package.
@@ -42,14 +43,13 @@ pub(super) fn root_vm_service_route_sources(
     Ok(routes)
 }
 
-/// Writes launcher and metadata outputs for a VM executable package.
+/// Writes one executable and build metadata for a native application package.
 pub(in crate::commands::build) fn write_terlan_vm_executable_package_outputs(
     project_dir: &Path,
     manifest: &project_manifest::ProjectManifest,
-    native_rust_dependencies: &[ProjectNativeRustDependency],
-    native_artifact_environment: &[(String, PathBuf)],
-    accelerator_closure: Option<&crate::compiler::accelerator::AcceleratorDependencyClosure>,
+    roots: &ProjectBuildRoots,
     vm_service: bool,
+    artifact_state: &CliState,
     state: &CliState,
 ) -> Result<(), String> {
     let executable_name = package_executable_name(&manifest.package.name);
@@ -57,7 +57,12 @@ pub(in crate::commands::build) fn write_terlan_vm_executable_package_outputs(
     let executable_path = state.out_dir.join(&executable_relative_path);
     let artifact_relative_path =
         PathBuf::from("vm").join(format!("{}.tvm", executable_vm_artifact_stem(manifest)));
-    let artifact_path = state.out_dir.join(&artifact_relative_path);
+    let artifact_path = artifact_state.out_dir.join(&artifact_relative_path);
+    let legacy = super::super::single_executable::LegacyOutputs::capture(
+        &state.out_dir,
+        &manifest.package.name,
+        &artifact_relative_path,
+    );
     if !vm_service && !artifact_path.is_file() {
         return Err(format!(
             "terlc build executable package `{}` requires entry artifact `{}`; define `{}.Main.main/0` or set [build] artifact = \"library\"",
@@ -75,38 +80,41 @@ pub(in crate::commands::build) fn write_terlan_vm_executable_package_outputs(
             source_package_path(&manifest.package).join(".")
         ));
     }
-    let bundled_runner_path = state.out_dir.join("bin").join(terlan_vm_runner_name());
-    copy_bundled_terlan_vm_runner(&bundled_runner_path)?;
-    let bundled_worker_path = state.out_dir.join("bin").join(terlan_native_worker_name());
-    copy_bundled_terlan_native_worker(&bundled_worker_path)?;
-    let service_runtime_relative =
-        vm_service.then(|| PathBuf::from("bin").join(terlan_serve_runtime_name()));
-    if let Some(relative) = &service_runtime_relative {
-        copy_bundled_terlan_serve_runtime(&state.out_dir.join(relative))?;
-        write_vm_service_launcher(&executable_path, state.incremental)?;
+    let entry = if vm_service {
+        crate::runtime::executable::ApplicationEntry::Service {
+            web_root: "web".into(),
+        }
     } else {
-        write_vm_launcher(&executable_path, &artifact_relative_path, state.incremental)?;
-    }
+        crate::runtime::executable::ApplicationEntry::Cli {
+            image: path_to_manifest_string(&artifact_relative_path),
+            function: format!("{entry_module}.main"),
+        }
+    };
+    super::super::single_executable::write(
+        &executable_path,
+        &artifact_state.out_dir,
+        entry,
+        &roots.native_artifact_environment,
+        state.incremental,
+    )?;
 
     let mut metadata = build_package_metadata_with_artifacts(
         project_dir,
         manifest,
-        native_rust_dependencies,
-        native_artifact_environment,
-        accelerator_closure,
+        &roots.native_rust_dependencies,
+        &roots.native_artifact_environment,
+        roots.accelerator_closure.as_ref(),
     );
     metadata.executable = Some(BuildPackageExecutable {
         path: path_to_manifest_string(&executable_relative_path),
-        image: (!vm_service).then(|| path_to_manifest_string(&artifact_relative_path)),
-        runtime: path_to_manifest_string(&PathBuf::from("bin").join(terlan_vm_runner_name())),
-        native_worker: path_to_manifest_string(
-            &PathBuf::from("bin").join(terlan_native_worker_name()),
-        ),
-        service_runtime: service_runtime_relative
-            .as_ref()
-            .map(|path| path_to_manifest_string(path)),
-        web_root: vm_service.then(|| "web".to_string()),
+        embedded: true,
+        image: None,
+        runtime: path_to_manifest_string(&executable_relative_path),
+        native_worker: path_to_manifest_string(&executable_relative_path),
+        service_runtime: vm_service.then(|| path_to_manifest_string(&executable_relative_path)),
+        web_root: None,
     });
+    legacy.remove(&state.out_dir, &executable_relative_path)?;
     write_package_metadata(&metadata, state)
 }
 

@@ -44,7 +44,7 @@ crates/terlan/src/commands/bind/ts_input_manifest.rs	7	internal-helper	command-e
 crates/terlan/src/commands/build/args.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/build_orchestration.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/build_orchestration/package_outputs.rs	3	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/build_orchestration/source_root_builds.rs	14	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/build_orchestration/source_root_builds.rs	8	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/build_orchestration/test_dependencies.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js.rs	6	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/js_assets.rs	2	internal-helper	command-errors	0.0.9
@@ -74,6 +74,8 @@ crates/terlan/src/commands/build/project_manifest/validation.rs	5	internal-helpe
 crates/terlan/src/commands/build/project_manifest/vm_tls.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/project_roots.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/release_bundle.rs	11	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/single_executable.rs	6	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/single_executable/legacy.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/source_roots.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/target_gate.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_debug.rs	1	internal-helper	command-errors	0.0.9
@@ -293,6 +295,10 @@ crates/terlan/src/package_registry/output.rs	3	internal-helper	support-errors	0.
 crates/terlan/src/quality/no_default_tokio_runtime.rs	1	internal-helper	quality-errors	0.0.9
 crates/terlan/src/quality/std_package_full_coverage.rs	1	internal-helper	quality-errors	0.0.9
 crates/terlan/src/quality/vm_db_migration_command.rs	1	internal-helper	quality-errors	0.0.9
+crates/terlan/src/runtime/executable/materialize.rs	2	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/executable/mod.rs	10	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/executable/worker.rs	3	internal-helper	runtime-errors	0.0.9
+crates/terlan/src/runtime/executable/write.rs	1	internal-helper	runtime-errors	0.0.9
 crates/terlan/src/runtime/native_boundary/adapter_abi.rs	4	internal-helper	native-boundary-errors	0.0.9
 crates/terlan/src/runtime/native_boundary/capability_sandbox.rs	2	internal-helper	native-boundary-errors	0.0.9
 crates/terlan/src/runtime/native_boundary/capability_wire.rs	5	internal-helper	native-boundary-errors	0.0.9
@@ -481,6 +487,7 @@ crates/terlan/src/validation/proof_baseline/mod.rs	4	internal-helper	support-err
 crates/terlan/src/validation/static_output/mod.rs	5	internal-helper	support-errors	0.0.9
 crates/terlan/src/vm/arguments.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/cli.rs	1	internal-helper	command-errors	0.0.9
+crates/terlan/src/vm/embedded.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/execution.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/main/framing_benchmark.rs	7	internal-helper	command-errors	0.0.9
 crates/terlan/src/vm/main/inspection.rs	1	internal-helper	command-errors	0.0.9

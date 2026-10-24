@@ -309,7 +309,9 @@ fn copy_executable_artifacts(
     }
     if let Some(value) = executable.get("image").and_then(Value::as_str) {
         paths.insert(validate_portable_relative_path(value)?);
-    } else if executable.get("service_runtime").is_none() {
+    } else if executable.get("service_runtime").is_none()
+        && executable.get("embedded").and_then(Value::as_bool) != Some(true)
+    {
         return Err("release executable metadata is missing `image`".to_string());
     }
     if let Some(value) = executable.get("service_runtime").and_then(Value::as_str) {

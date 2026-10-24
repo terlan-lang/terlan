@@ -36,6 +36,10 @@ mod tests {
         test_fs::temp_dir("build_command", name)
     }
 
+    fn application_executable(output: &std::path::Path) -> PathBuf {
+        output.join(format!("bin/app{}", std::env::consts::EXE_SUFFIX))
+    }
+
     #[cfg(test)]
     mod annotation_isolation_artifact_test;
     #[cfg(test)]

@@ -160,6 +160,13 @@ pub(super) fn linux_worker_command(
             .arg("terlan-capability-worker-fd-sanitizer")
             .arg(BUBBLEWRAP_PATH);
         append_namespace_policy(&mut command, capabilities);
+        if crate::runtime::executable::is_application(&executable)? {
+            command.args([
+                "--setenv",
+                crate::runtime::executable::ROLE_ENV,
+                crate::runtime::executable::WORKER_ROLE,
+            ]);
+        }
         append_filesystem_policy(&mut command, &executable, work_dir);
         if let Some(directory) = storage_directory {
             append_storage_binding(&mut command, capabilities, directory, work_dir)

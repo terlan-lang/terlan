@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "e7a004e621eb180aa337c7c3e045619fe16673291ecdfedcaf3abfb37ecd89e2",
+  "compilation_input_sha256": "8d05e59747c7a1c08d25a533a4a4926f585afb93ac93e910b15aa8b803e55fc4",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -41,7 +41,7 @@
     },
     {
       "domain": "compiler",
-      "reference_sites": 22,
+      "reference_sites": 21,
       "source_domains": [
         "commands"
       ]
@@ -72,8 +72,10 @@
     },
     {
       "domain": "native_worker",
-      "reference_sites": 0,
-      "source_domains": []
+      "reference_sites": 2,
+      "source_domains": [
+        "vm"
+      ]
     },
     {
       "domain": "package_registry",
@@ -155,10 +157,12 @@
     },
     {
       "domain": "runtime",
-      "reference_sites": 61,
+      "reference_sites": 68,
       "source_domains": [
         "commands",
-        "compiler"
+        "compiler",
+        "native_worker",
+        "vm"
       ]
     },
     {
@@ -224,13 +228,15 @@
       "domain": "compiler"
     },
     {
-      "dependent_count": 5,
+      "dependent_count": 7,
       "dependent_domains": [
         "commands",
         "compiler",
         "lsp",
+        "native_worker",
         "root:cli_usage",
-        "runtime"
+        "runtime",
+        "vm"
       ],
       "domain": "formal_pipeline"
     },
@@ -250,17 +256,21 @@
       "domain": "lsp"
     },
     {
-      "dependent_count": 0,
-      "dependent_domains": [],
+      "dependent_count": 1,
+      "dependent_domains": [
+        "vm"
+      ],
       "domain": "native_worker"
     },
     {
-      "dependent_count": 4,
+      "dependent_count": 6,
       "dependent_domains": [
         "commands",
         "compiler",
+        "native_worker",
         "root:cli_usage",
-        "runtime"
+        "runtime",
+        "vm"
       ],
       "domain": "package_registry"
     },
@@ -335,11 +345,13 @@
       "domain": "root:web_route"
     },
     {
-      "dependent_count": 3,
+      "dependent_count": 5,
       "dependent_domains": [
         "commands",
         "compiler",
-        "root:cli_usage"
+        "native_worker",
+        "root:cli_usage",
+        "vm"
       ],
       "domain": "runtime"
     },
@@ -349,15 +361,17 @@
       "domain": "serve_runtime"
     },
     {
-      "dependent_count": 7,
+      "dependent_count": 9,
       "dependent_domains": [
         "commands",
         "compiler",
         "formal_pipeline",
         "lsp",
+        "native_worker",
         "root:cli_usage",
         "root:formal_pipeline",
-        "runtime"
+        "runtime",
+        "vm"
       ],
       "domain": "support"
     },
@@ -716,7 +730,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 22,
+      "reference_sites": 21,
       "to": "compiler"
     },
     {
@@ -731,7 +745,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 43,
+      "reference_sites": 45,
       "to": "runtime"
     },
     {
@@ -760,6 +774,11 @@
       "to": "formal_pipeline"
     },
     {
+      "from": "native_worker",
+      "reference_sites": 4,
+      "to": "runtime"
+    },
+    {
       "from": "root:cli_usage",
       "reference_sites": 1,
       "to": "commands"
@@ -783,6 +802,16 @@
       "from": "runtime",
       "reference_sites": 3,
       "to": "support"
+    },
+    {
+      "from": "vm",
+      "reference_sites": 2,
+      "to": "native_worker"
+    },
+    {
+      "from": "vm",
+      "reference_sites": 1,
+      "to": "runtime"
     }
   ],
   "production_domains": [
@@ -803,8 +832,8 @@
     },
     {
       "name": "commands",
-      "physical_lines": 136664,
-      "rust_files": 395
+      "physical_lines": 136917,
+      "rust_files": 397
     },
     {
       "name": "compiler",
@@ -833,7 +862,7 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 2083,
+      "physical_lines": 2091,
       "rust_files": 9
     },
     {
@@ -913,8 +942,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 141060,
-      "rust_files": 469
+      "physical_lines": 141704,
+      "rust_files": 473
     },
     {
       "name": "serve_runtime",
@@ -933,8 +962,8 @@
     },
     {
       "name": "vm",
-      "physical_lines": 2647,
-      "rust_files": 12
+      "physical_lines": 2723,
+      "rust_files": 13
     }
   ],
   "resolved_dependency_duplicates": [
@@ -1275,8 +1304,8 @@
     },
     {
       "name": "commands",
-      "physical_lines": 49550,
-      "rust_files": 217
+      "physical_lines": 49665,
+      "rust_files": 218
     },
     {
       "name": "compiler",
@@ -1340,8 +1369,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 81718,
-      "rust_files": 363
+      "physical_lines": 82004,
+      "rust_files": 364
     },
     {
       "name": "support",

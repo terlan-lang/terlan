@@ -70,12 +70,20 @@ fn verify_environment() -> Result<(), String> {
             Ok((key, value))
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let expected = BTreeSet::from([
+    let mut expected = BTreeSet::from([
         ("HOME".to_string(), SANDBOX_WORK_DIR.to_string()),
         ("LANG".to_string(), SANDBOX_LOCALE.to_string()),
         ("PWD".to_string(), SANDBOX_WORK_DIR.to_string()),
         ("TMPDIR".to_string(), SANDBOX_TEMP_DIR.to_string()),
     ]);
+    if std::env::var(crate::runtime::executable::ROLE_ENV).as_deref()
+        == Ok(crate::runtime::executable::WORKER_ROLE)
+    {
+        expected.insert((
+            crate::runtime::executable::ROLE_ENV.to_owned(),
+            crate::runtime::executable::WORKER_ROLE.to_owned(),
+        ));
+    }
     let observed = observed.into_iter().collect::<BTreeSet<_>>();
     if observed == expected {
         Ok(())

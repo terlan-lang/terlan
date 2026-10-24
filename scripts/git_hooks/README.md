@@ -5,6 +5,13 @@ the checkout-local `core.hooksPath` to `.githooks`; existing custom hooks requir
 integration first. Git does not activate hooks automatically when cloning.
 `bash scripts/git_hooks.sh check` runs the same checks without committing.
 
+Commit messages must contain one nonempty line of at most 50 characters. Put
+detailed explanations in the code, documentation, or pull request. Git's
+`commit-msg` hook checks the message after it is collected; long subjects and
+message bodies reject the commit. Editor-generated Git comments are ignored.
+Run `bash scripts/git_commit_message_test.sh` to test this policy through real
+commits in a temporary repository.
+
 The hook reads the Git index, checks whitespace, and exports its exact tree into
 an isolated clone at `target/git-hooks/source`. Its Cargo build cache lives at
 `target/git-hooks/build` (or the supplied `CARGO_TARGET_DIR`). It never stashes,

@@ -47,5 +47,7 @@ fn project_vm_build_links_imported_std_source_closure() {
     );
 
     assert_eq!(status, ExitCode::SUCCESS);
-    assert!(out_dir.join("vm/app_Main.tvm").is_file());
+    assert!(out_dir
+        .join(".terlan/application/vm/app_Main.tvm")
+        .is_file());
 }

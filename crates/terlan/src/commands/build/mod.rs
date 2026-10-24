@@ -81,6 +81,7 @@ mod package_registry_yank;
 mod project_roots;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod release_bundle;
+mod single_executable;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod source_roots;
 #[cfg(test)]

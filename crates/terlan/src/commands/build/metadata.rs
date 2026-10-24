@@ -134,6 +134,7 @@ pub(super) struct BuildPackageAdapter {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(super) struct BuildPackageExecutable {
     pub(super) path: String,
+    pub(super) embedded: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) image: Option<String>,
     pub(super) runtime: String,

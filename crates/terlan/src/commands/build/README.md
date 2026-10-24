@@ -33,7 +33,30 @@ the release path does not claim an external LLVM LTO stage. Development and
 release policy identities are included in object, image, and warm-reuse cache
 keys and can never share a cached native image.
 
-The default VM path writes:
+Manifest-backed native application builds publish one executable:
+
+```text
+_build/
+  bin/<application>          # <application>.exe on Windows
+  terlan-package-build.json # build-tool report
+  .terlan/application/      # private image and service-resource cache
+  .terlan/native-aot/       # reusable compiler objects
+```
+
+Copy `bin/<application>` to deploy the application. Its AOT image, entrypoint,
+HTTP resources, and declared native helper artifacts are embedded in that file.
+The runtime launches the same executable for sandboxed native workers. Program
+arguments reach the application directly, including arguments such as `--help`.
+HTTP services retain `PORT` configuration and require no synthetic `Main.main/0`.
+Build metadata and compiler caches are optional at deployment. Native packages
+retain their declared operating-system and system-library requirements.
+
+The runtime admits the embedded native image through the existing sealed-image
+loader. Resource files live in a private directory while the application runs;
+the runtime removes that directory on normal shutdown. Applications do not unpack
+resources beside their executable.
+
+Explicit library and module-image builds retain their image output:
 
 ```text
 _build/
@@ -45,8 +68,9 @@ _build/
 The application-code path does not generate Rust or invoke `rustc`; Cranelift
 object emission occurs in the compiler process. Native objects and descriptor
 objects are content-addressed compiler cache entries and are not runtime
-artifacts. Manifest-backed executable packages also bundle `terlan-vm`,
-`terlan-native-worker`, a launcher, and metadata naming all package members.
+artifacts. Application images remain under `.terlan/application/vm` while library
+images remain under `vm`. The single-executable format and worker lifecycle are
+specified in `docs/runtime/SINGLE_EXECUTABLE_SPEC.md`.
 
 `terlan-package-build.json` is a manifest-backed package/build metadata file,
 not a debug map and not a package-manager lockfile. It records the package name,
