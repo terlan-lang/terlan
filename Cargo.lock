@@ -1270,9 +1270,9 @@ dependencies = [
 
 [[package]]
 name = "foundations"
-version = "5.10.3"
+version = "5.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28037925204b8dad3d2992c1edfe77f3d8bd2733ab76e34e5268bd53ce8580d4"
+checksum = "7be3f08b01315c9c412acde79c59e9f3473c6279fa6d92252f2a08a98965db3b"
 dependencies = [
  "anyhow",
  "crossbeam-utils",
@@ -1297,9 +1297,9 @@ dependencies = [
 
 [[package]]
 name = "foundations-macros"
-version = "5.10.3"
+version = "5.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7db5f4eb948b440321063d4be387faae5c968632afa92801a62a29a049bce8d4"
+checksum = "fdfe26a89dcad61441a0c654197c5171612e96acdb6def7775b4b292de5d61ff"
 dependencies = [
  "darling 0.23.0",
  "proc-macro2",
