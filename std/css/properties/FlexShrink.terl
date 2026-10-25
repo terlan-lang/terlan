@@ -22,33 +22,24 @@
  */
 module std.css.properties.FlexShrink.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    flex_shrink: Value,
+    flex_shrink: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for flex-shrink. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the flex-shrink number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("flex-shrink", Atom.to_string(css))).
-
-/**
- * Sets flex-shrink from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("flex-shrink", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("flex-shrink", std.core.Float.to_string(value))));
         false -> Absent
     }.

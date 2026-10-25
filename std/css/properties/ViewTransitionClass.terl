@@ -19,27 +19,13 @@
  */
 module std.css.properties.ViewTransitionClass.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * No class would apply to the named view transition pseudo-elements generated for this element.
  */
 pub type None.
 
-pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    view_transition_class: Value,
+    view_transition_class: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for view-transition-class. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("view-transition-class", Atom.to_string(css))).

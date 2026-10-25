@@ -28,19 +28,6 @@ pub type Block =
 pub type Both =
     Atom["both"].
 
-pub type Css =
-    None
-  | Both
-  | Horizontal
-  | Vertical
-  | Block
-  | Inline
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element displays a mechanism for allowing the user to resize it in the _horizontal_
 /// direction.
 
@@ -59,17 +46,10 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    resize: Value
+    resize: None | Both | Horizontal | Vertical | Block | Inline | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// The element displays a mechanism for allowing the user to resize it in the _vertical_ direction.
 
 pub type Vertical =
     Atom["vertical"].
-
-/// Selects a keyword for resize. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

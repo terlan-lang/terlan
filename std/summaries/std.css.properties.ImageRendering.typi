@@ -33,17 +33,6 @@ pub type Auto =
 pub type CrispEdges =
     Atom["crisp-edges"].
 
-pub type Css =
-    Auto
-  | Smooth
-  | Pixelated
-  | CrispEdges
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The image is scaled with the "nearest neighbor" or similar algorithm to the nearest integer
 /// multiple of the original image size, then uses smooth interpolation to bring the image to the
 /// final desired size. This is intended to preserve a "pixelated" look without introducing scaling
@@ -53,7 +42,7 @@ pub type Pixelated =
     Atom["pixelated"].
 
 pub struct Property {
-    image_rendering: Value
+    image_rendering: Auto | Smooth | Pixelated | CrispEdges | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The image should be scaled with an algorithm that maximizes the appearance of the image. In
@@ -62,10 +51,3 @@ pub struct Property {
 
 pub type Smooth =
     Atom["smooth"].
-
-pub opaque type Value.
-
-/// Selects a keyword for image-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

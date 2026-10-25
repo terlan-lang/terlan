@@ -21,17 +21,6 @@ module std.css.properties.TextBoxEdge.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | TextKeyword
-  | Ideographic
-  | IdeographicInk
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Ideographic =
     Atom["ideographic"].
 
@@ -39,7 +28,7 @@ pub type IdeographicInk =
     Atom["ideographic-ink"].
 
 pub struct Property {
-    text_box_edge: Value
+    text_box_edge: Auto | TextKeyword | Ideographic | IdeographicInk | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The font's over edge is its text-over baseline (includes the font's ascenders but excludes the
@@ -51,10 +40,3 @@ pub struct Property {
 
 pub type TextKeyword =
     Atom["text"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-box-edge. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

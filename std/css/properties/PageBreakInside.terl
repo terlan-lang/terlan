@@ -18,10 +18,7 @@
  */
 module std.css.properties.PageBreakInside.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Initial value. Automatic page breaks (neither forced nor forbidden).
@@ -33,17 +30,6 @@ pub type Auto.
  */
 pub type Avoid.
 
-pub type Css = Avoid | Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    page_break_inside: Value,
+    page_break_inside: Avoid | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for page-break-inside. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("page-break-inside", Atom.to_string(css))).

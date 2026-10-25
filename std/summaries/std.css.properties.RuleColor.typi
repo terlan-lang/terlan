@@ -15,20 +15,6 @@
 
 module std.css.properties.RuleColor.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    rule_color: Value
+    rule_color: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for rule-color. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

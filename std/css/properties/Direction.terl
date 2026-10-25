@@ -19,10 +19,7 @@
  */
 module std.css.properties.Direction.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Text and other elements go from left to right. This is the default value.
@@ -34,17 +31,6 @@ pub type Ltr.
  */
 pub type Rtl.
 
-pub type Css = Ltr | Rtl | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    direction: Value,
+    direction: Ltr | Rtl | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("direction", Atom.to_string(css))).

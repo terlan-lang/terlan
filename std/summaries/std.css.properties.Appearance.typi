@@ -36,27 +36,6 @@ pub type Button =
 pub type Checkbox =
     Atom["checkbox"].
 
-pub type Css =
-    None
-  | Auto
-  | BaseSelect
-  | Searchfield
-  | Textarea
-  | Checkbox
-  | Radio
-  | Menulist
-  | Listbox
-  | Meter
-  | ProgressBar
-  | Button
-  | Textfield
-  | MenulistButton
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Listbox =
     Atom["listbox"].
 
@@ -79,7 +58,7 @@ pub type ProgressBar =
     Atom["progress-bar"].
 
 pub struct Property {
-    appearance: Value
+    appearance: None | Auto | BaseSelect | Searchfield | Textarea | Checkbox | Radio | Menulist | Listbox | Meter | ProgressBar | Button | Textfield | MenulistButton | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type Radio =
@@ -93,10 +72,3 @@ pub type Textarea =
 
 pub type Textfield =
     Atom["textfield"].
-
-pub opaque type Value.
-
-/// Selects a keyword for appearance. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

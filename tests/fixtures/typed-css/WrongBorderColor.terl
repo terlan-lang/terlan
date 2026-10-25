@@ -2,6 +2,4 @@ module typed_css.WrongBorderColor.
 
 import std.css.properties.Border.
 import std.css.properties.Border.{Solid, Thin}.
-
-pub invalid(): Border.Value ->
-    Border.compose(Border.line_width(Thin), Solid, "red").
+pub invalid(): Border.Checked -> Border.compose(Thin, Solid, "red").

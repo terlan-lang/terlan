@@ -23,18 +23,6 @@ module std.css.properties.HangingPunctuation.
 pub type AllowEnd =
     Atom["allow-end"].
 
-pub type Css =
-    None
-  | First
-  | ForceEnd
-  | AllowEnd
-  | Last
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// An opening bracket or quote at the start of the first formatted line of an element hangs. This
 /// applies to: - all characters in the Unicode categories [Ps](https://unicodeplus.com/category/Ps),
 /// [Pf](https://unicodeplus.com/category/Pf), [Pi](https://unicodeplus.com/category/Pi) - the quote
@@ -60,12 +48,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    hanging_punctuation: Value
+    hanging_punctuation: None | First | ForceEnd | AllowEnd | Last | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for hanging-punctuation. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

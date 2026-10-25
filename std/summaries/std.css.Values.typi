@@ -11,7 +11,9 @@ pub struct Angle {
 
 /// A validated CSS color. Arbitrary strings cannot construct this value.
 
-pub opaque type Color.
+pub struct Color {
+    #css: String
+}.
 
 pub type ColorCss =
     Transparent
@@ -89,7 +91,7 @@ pub type Second =
 
 /// Serialized stylesheet declaration consumed by the compiler's existing CSS
 /// pipeline. Property modules accept enums or typed inputs, validate them, and
-/// produce this representation behind their property-specific opaque Value.
+/// produce this representation behind their checked result types.
 
 pub struct SerializedValue {
     property: String,
@@ -129,10 +131,6 @@ pub angle_amount(value: Angle): Float.
 /// Serializes an angle.
 
 pub angle_css(value: Angle): String.
-
-/// Constructs a validated color from a closed color-keyword enum.
-
-pub color(css: ColorCss): Color.
 
 /// Serializes a color.
 

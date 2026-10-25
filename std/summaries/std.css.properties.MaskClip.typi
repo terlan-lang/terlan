@@ -27,20 +27,6 @@ pub type BorderBox =
 pub type ContentBox =
     Atom["content-box"].
 
-pub type Css =
-    ContentBox
-  | PaddingBox
-  | BorderBox
-  | FillBox
-  | StrokeBox
-  | ViewBox
-  | NoClip
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The painted content is clipped to the object bounding box.
 
 pub type FillBox =
@@ -57,15 +43,13 @@ pub type PaddingBox =
     Atom["padding-box"].
 
 pub struct Property {
-    mask_clip: Value
+    mask_clip: ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | NoClip | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The painted content is clipped to the stroke bounding box.
 
 pub type StrokeBox =
     Atom["stroke-box"].
-
-pub opaque type Value.
 
 /// Uses the nearest SVG viewport as reference box. If a
 /// [`viewBox`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/viewBox)
@@ -75,8 +59,3 @@ pub opaque type Value.
 
 pub type ViewBox =
     Atom["view-box"].
-
-/// Selects a keyword for mask-clip. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

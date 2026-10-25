@@ -20,7 +20,6 @@
  */
 module std.css.properties.FontStretch.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{percentage_amount, percentage_css, serialize}.
@@ -77,40 +76,17 @@ pub type UltraCondensed = Atom["ultra-condensed"].
  */
 pub type UltraExpanded = Atom["ultra-expanded"].
 
-pub type Css =
-      Normal
-    | UltraCondensed
-    | ExtraCondensed
-    | Condensed
-    | SemiCondensed
-    | SemiExpanded
-    | Expanded
-    | ExtraExpanded
-    | UltraExpanded
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    font_stretch: Value,
+    font_stretch: Normal | UltraCondensed | ExtraCondensed | Condensed | SemiCondensed | SemiExpanded | Expanded | ExtraExpanded | UltraExpanded | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for font-stretch. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the font-stretch percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("font-stretch", Atom.to_string(css))).
-
-/**
- * Sets font-stretch from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
- */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("font-stretch", percentage_css(value))));
+        true -> Some(Checked(serialize("font-stretch", percentage_css(value))));
         false -> Absent
     }.

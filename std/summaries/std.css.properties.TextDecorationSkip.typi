@@ -22,15 +22,6 @@ module std.css.properties.TextDecorationSkip.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    None
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Nothing is skipped. Thus, text decoration is drawn for all text content and across atomic
 /// inline-level boxes.
 
@@ -38,12 +29,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    text_decoration_skip: Value
+    text_decoration_skip: None | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for text-decoration-skip. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

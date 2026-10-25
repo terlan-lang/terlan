@@ -23,19 +23,8 @@ module std.css.properties.RubyAlign.
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Start
-  | Center
-  | SpaceBetween
-  | SpaceAround
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    ruby_align: Value
+    ruby_align: Start | Center | SpaceBetween | SpaceAround | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Is a keyword indicating that the extra space will be distributed between the elements of the
@@ -54,10 +43,3 @@ pub type SpaceBetween =
 
 pub type Start =
     Atom["start"].
-
-pub opaque type Value.
-
-/// Selects a keyword for ruby-align. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

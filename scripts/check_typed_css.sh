@@ -19,14 +19,14 @@ for source in WrongProperty RawString RawSerializedValue InvalidEnum InvalidComp
     echo "typed CSS accepted invalid input: ${source}" >&2
     exit 1
   fi
-  rg -q 'type_mismatch' "${output}/${source}.log"
+  rg -q 'type_mismatch|= field .* expected .* found ' "${output}/${source}.log"
 done
 
 if "${terlc}" check "${fixture}/ForgedValue.terl" > "${output}/ForgedValue.log" 2>&1; then
   echo 'typed CSS accepted an externally constructed opaque value' >&2
   exit 1
 fi
-rg -q 'cannot construct opaque type .*Width.Value outside defining module' "${output}/ForgedValue.log"
+rg -q 'cannot construct opaque type .*Width.Checked outside defining module' "${output}/ForgedValue.log"
 
 "${terlc}" build "${fixture}" --target js.browser --out-dir "${output}/build"
 node --input-type=module - "${output}/build" <<'NODE'
@@ -39,6 +39,10 @@ const styles = manifest.assets.filter(asset => asset.kind === 'css');
 assert.equal(styles.length, 1);
 const css = fs.readFileSync(path.join(build, 'web', styles[0].web_relative_path), 'utf8');
 assert.match(css, /width:30px/);
+assert.match(css, /animation-direction:alternate/);
+assert.match(css, /display:none/);
+assert.match(css, /list-style-type:none/);
+assert.ok(!css.includes('animation-play-state'));
 assert.match(css, /height:30px/);
 assert.match(css, /margin:-1px 25% auto 2rem/);
 assert.match(css, /padding:1rem 5%/);

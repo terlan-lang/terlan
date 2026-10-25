@@ -20,22 +20,6 @@
 
 module std.css.properties.FontVariantNumeric.
 
-pub type Css =
-    Normal
-  | LiningNums
-  | OldstyleNums
-  | ProportionalNums
-  | TabularNums
-  | DiagonalFractions
-  | StackedFractions
-  | Ordinal
-  | SlashedZero
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Enables display of lining diagonal fractions.
 
 pub type DiagonalFractions =
@@ -63,7 +47,7 @@ pub type Ordinal =
     Atom["ordinal"].
 
 pub struct Property {
-    font_variant_numeric: Value
+    font_variant_numeric: Normal | LiningNums | OldstyleNums | ProportionalNums | TabularNums | DiagonalFractions | StackedFractions | Ordinal | SlashedZero | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Enables display of proportional numerals.
@@ -86,10 +70,3 @@ pub type StackedFractions =
 
 pub type TabularNums =
     Atom["tabular-nums"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant-numeric. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

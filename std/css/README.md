@@ -1,123 +1,90 @@
 # Typed CSS
 
-CSS properties are generated from the pinned `@webref/css` specification dataset.
-Generation keeps standards-track properties with an unprefixed, unflagged
-implementation in at least one current released browser, using pinned MDN
-browser-compatibility data. MDN's property grammars and value-level compatibility
-records also exclude proposed additions to otherwise implemented properties.
-An editor-draft specification URL alone does not make an implemented feature
-ineligible. The generator removes obsolete generated modules and interfaces.
-Each `std.css.properties.Name` module exposes a nominal `Value`, a `Property`
-struct for inclusion, and constructors for supported values. Width values cannot
-be assigned to height properties; raw strings cannot become property values.
-The per-property opaque `Value` declarations give each property a distinct type
-over the shared serialized representation. They also keep construction inside
-the module that checks its enum choices and numeric ranges.
-
-Each style struct chooses its declarations by including the properties it needs.
-For a conditional declaration in a shared style shape, declare the optional
-field in that application struct:
+CSS property modules expose a `Property` struct whose field accepts the allowed
+keyword enums and typed units directly. Include these structs to compose an
+application style:
 
 ```terlan
-import type std.core.Option.
-import type std.css.properties.AnimationRange.{Value as AnimationRangeValue}.
+import std.css.properties.BoxSizing.{BorderBox}.
+import type std.css.properties.BoxSizing.{Property as SizingProperty}.
 
-pub struct AnimatedStyle {
-    animation_range: Option[AnimationRangeValue],
-}.
+pub struct TileStyle includes SizingProperty {}.
+
+pub tile(): TileStyle ->
+    TileStyle {box_sizing: BorderBox}.
 ```
 
-Use `None` to omit that declaration and `Some(value)` to emit it. Property
-modules generate one `Property` struct each; optionality belongs to the
-application style. Shared value structs live once in `std.css.Values`.
+The field supplies the property name, and its union type supplies the permitted
+inputs. Keyword values need no wrapping function or serialized property record.
+For example, `animation_direction: Alternate` emits `animation-direction: alternate`.
+CSS-wide `Inherit`, `Initial`, `Unset`, `Revert`, and `RevertLayer` are accepted by
+every property.
 
-Compose application styles with ordinary struct inclusion:
+Each style chooses its declarations by including the properties it needs.
+For a conditional declaration, define an application field such as
+`animation_direction: Option[Alternate]`; `None` omits it and `Some(Alternate)`
+emits it. `Some(None)` emits the CSS keyword `none` when that keyword belongs to
+the field's permitted enum. Its distinction from an omitted declaration follows
+the checked optional field type.
 
-```terlan
-import type std.css.properties.Width.{Property as WidthProperty}.
-import type std.css.properties.Height.{Property as HeightProperty}.
+`std.css.Values` supplies lengths, percentages, colors, angles, and times.
+Unconstrained inputs are assigned directly, such as `margin_left: px(-10.0)`.
+Color fields accept `Transparent` and `CurrentColor` directly; `rgb` validates
+channel bounds. Units are constrained by their shared types.
 
-pub struct Dimensions includes WidthProperty, HeightProperty {}.
-pub struct TileStyle includes Dimensions {}.
-```
+Numeric ranges retain actual validators. `Width.length(px(30.0))` returns
+`Some(checked)`, while a negative width returns `None`. Assign the checked result
+to the width field. A checked width cannot be substituted for a checked height.
+Properties that need these validators expose a `Checked` type; keyword-only
+properties have no opaque result type or constructor.
 
-Keyword inputs are closed enums. Import keyword types from the property module
-and select them with `value`, rather than calling a function for every keyword:
-
-```terlan
-import std.css.properties.BoxSizing.
-import type std.css.properties.BoxSizing.{BorderBox}.
-
-pub sizing(): BoxSizing.Value ->
-    BoxSizing.value(BorderBox).
-```
-
-Every property also accepts `Inherit`, `Initial`, `Unset`, `Revert`, and
-`RevertLayer` from `std.css.Values`. The property-specific opaque `Value`
-preserves property identity while sharing one serialized representation.
-
-`std.css.Values` supplies typed lengths, percentages, colors, angles, and times.
-Use `color(Transparent)` or `color(CurrentColor)` for shared color keywords;
-length and time structs constrain their units with enums.
-Property constructors enforce numeric ranges from the grammar. For example,
-`Width.length(px(30.0))` returns `Some(value)`, while a negative width returns
-`None`. Negative margins remain valid. RGB construction checks channel bounds.
-
-Bounded space-separated shorthands expose a separate nominal `Component` type.
-Use `component_length`, `component_percentage`, or supported keyword constructors
-such as `component(Auto)`, then combine them with `single`, `pair`, `triple`, or
-`quad` as permitted by the specification's repetition bounds:
+Bounded shorthands accept keywords and unconstrained typed units directly:
 
 ```terlan
 import std.css.Values.{px, root_em}.
 import std.css.properties.Margin.
-import type std.css.properties.Margin.{Auto}.
+import std.css.properties.Margin.{Auto}.
 
-pub centered(): Margin.Value ->
-    Margin.pair(Margin.component_length(px(0.0)), Margin.component(Auto)).
+pub centered(): Margin.Checked ->
+    Margin.pair(px(0.0), Auto).
 
-pub spacing(): Margin.Value ->
-    Margin.quad(
-        Margin.component_length(root_em(1.0)),
-        Margin.component_length(px(0.0)),
-        Margin.component_length(root_em(1.5)),
-        Margin.component_length(root_em(1.0)),
-    ).
+pub spacing(): Margin.Checked ->
+    Margin.quad(root_em(1.0), px(0.0), root_em(1.5), root_em(1.0)).
 ```
 
-Component constructors preserve the specification's numeric ranges: for
-example, `Padding.component_length` returns `Option[Padding.Component]` and
-rejects negative lengths. Components from another property, complete shorthand
-values, and CSS-wide keywords cannot be passed to a composition function.
-`MarginInline` permits two components, while `Margin` permits up to four.
-The generator currently finds supported repetitions in 48 property definitions.
+`Component` is the permitted input union for that shorthand. Padding components
+retain `component_length` and `component_percentage` validators because their
+amounts must be nonnegative. Complete shorthand values and CSS-wide keywords
+cannot be passed as components. `MarginInline` permits two components; `Margin`
+permits four. There are 48 supported repetitions.
 
-Named `&&` and `||` groups expose `compose`, which supplies every group in
-specification order. Each group with keywords, alternatives, or range checks
-uses a closed enum for keyword choices. Mixed numeric and keyword groups
-have an opaque part type with typed constructors. A group containing one
-unconstrained primitive accepts that shared type directly, such as `Color`:
+Named `&&` and `||` groups expose `compose` with distinct typed part unions:
 
 ```terlan
 import std.core.Option.{None, Some}.
 import std.css.Values.{px, rgb}.
 import std.css.properties.Border.
-import type std.css.properties.Border.{Solid}.
+import std.css.properties.Border.{Solid}.
 import type std.core.Option.
 
-pub unit_border(): Option[Border.Value] ->
+pub unit_border(): Option[Border.Checked] ->
     case {Border.line_width_length(px(2.0)), rgb(127, 136, 26)} {
-        {Some(width), Some(color)} ->
-            Some(Border.compose(width, Solid, color));
+        {Some(width), Some(color)} -> Some(Border.compose(width, Solid, color));
         _ -> None
     }.
 ```
 
-Width and style parts cannot be interchanged, and parts from another property
-or CSS-wide keywords cannot fill those slots. Numeric constraints are checked
-before parts are constructed. This API currently covers 18 properties,
-including borders, outlines, flex-flow, and text decoration. `compose` supplies
-all groups; APIs for partial combinations of `||` groups are future work.
+Width and style part unions constrain the arguments. Checked numeric parts
+cannot be forged outside their module. This API covers 18 properties, including
+borders, outlines, flex-flow, and text decoration. Partial combinations of `||`
+groups are future work. Compounds retain typed sequences and tuples until the
+stylesheet output boundary, where their parts are serialized in order.
+
+Generation keeps standards-track CSS implemented without prefixes or flags in
+at least one current released browser. Pinned MDN compatibility and grammar data
+filter unimplemented proposals, including additions to implemented properties.
+A specification's editor-draft URL alone does not exclude an implemented feature.
+Obsolete generated modules and interfaces are removed during generation.
 
 An application stylesheet exports a pure `stylesheet/0` function returning a
 list of `std.css.Stylesheet.Rule[T]` values, optionally wrapped in `Result`.
@@ -167,7 +134,7 @@ repetitions of up to four components and complete compositions of named
 `&&`/`||` groups with up to four terms. Other compound forms, CSS functions,
 typed custom properties, and typed at-rules are future work; use handwritten CSS
 for those forms. `bindings.json` records the exact dataset version and checksum,
-source grammars, supported constructor forms, and specification links. It also
+source grammars, supported direct values and checked forms, and specification links. It also
 records the pinned adoption datasets, implemented browsers, and reasons for
 excluding 182 property definitions. Presence in the package means at least one
 released browser implements the property; support across every browser is not
@@ -181,8 +148,8 @@ and borders alongside a handwritten CSS entry.
 
 Each generated module describes the property's purpose, its initial value,
 inheritance and percentage behavior when available, and links to the specification
-and author guide. Keyword type comments explain the effect of each documented
-choice. Numeric constructors document accepted ranges and failure results;
+and author guide. Keyword documentation explains the effect of each documented
+choice. Numeric validators document accepted ranges and failure results;
 shorthand functions document component order and four-side expansion.
 
 Generation reads the checked-in `tools/css/documentation-data.json` snapshot.

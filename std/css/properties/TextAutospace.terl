@@ -18,10 +18,7 @@
  */
 module std.css.properties.TextAutospace.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Lets the browser choose typographically appropriate spacing. The spacing may vary across browsers
@@ -44,28 +41,6 @@ pub type NoAutospace = Atom["no-autospace"].
  */
 pub type Normal.
 
-pub type Css =
-      Normal
-    | NoAutospace
-    | IdeographAlpha
-    | IdeographNumeric
-    | Insert
-    | Auto
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_autospace: Value,
+    text_autospace: Normal | NoAutospace | IdeographAlpha | IdeographNumeric | Insert | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-autospace. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-autospace", Atom.to_string(css))).

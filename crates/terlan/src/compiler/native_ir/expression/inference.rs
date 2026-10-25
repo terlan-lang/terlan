@@ -273,6 +273,9 @@ pub(super) fn infer_native_type_impl(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            if super::super::union_values::is_boxed(target_type) {
+                return native_type(Some(target_type), &target_type.contract_text());
+            }
             let target = native_type(Some(target_type), &target_type.contract_text());
             if let (Some(target), Some(constructors)) = (target, constructors) {
                 match super::super::constructors::zero_field_managed_variant_layout(

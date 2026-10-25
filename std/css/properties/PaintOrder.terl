@@ -18,10 +18,7 @@
  */
 module std.css.properties.PaintOrder.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Fill.
 
@@ -34,17 +31,6 @@ pub type Normal.
 
 pub type Stroke.
 
-pub type Css = Normal | Fill | Stroke | Markers | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    paint_order: Value,
+    paint_order: Normal | Fill | Stroke | Markers | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for paint-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("paint-order", Atom.to_string(css))).

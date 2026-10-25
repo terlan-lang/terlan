@@ -19,10 +19,7 @@
  */
 module std.css.properties.OverflowAnchor.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element becomes a potential anchor when adjusting scroll position.
@@ -34,17 +31,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    overflow_anchor: Value,
+    overflow_anchor: Auto | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for overflow-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("overflow-anchor", Atom.to_string(css))).

@@ -18,24 +18,12 @@
 
 module std.css.properties.FlexLineCount.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub struct Property {
-    flex_line_count: Value
+    flex_line_count: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the flex-line-count integer range. Returns Some when amount >= 1; otherwise returns None.
 
-/// Sets flex-line-count from a typed integer. Returns Some for amount >= 1; otherwise returns None.
-
-pub integer(value: Int): Option[Value].
-
-/// Selects a keyword for flex-line-count. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub integer(value: Int): Option[Checked].

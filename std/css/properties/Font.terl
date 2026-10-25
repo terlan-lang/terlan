@@ -24,10 +24,7 @@
  */
 module std.css.properties.Font.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The font used for captioned controls (e.g., buttons, drop-downs, etc.).
@@ -59,28 +56,6 @@ pub type SmallCaption = Atom["small-caption"].
  */
 pub type StatusBar = Atom["status-bar"].
 
-pub type Css =
-      Caption
-    | Icon
-    | Menu
-    | MessageBox
-    | SmallCaption
-    | StatusBar
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font: Value,
+    font: Caption | Icon | Menu | MessageBox | SmallCaption | StatusBar | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font", Atom.to_string(css))).

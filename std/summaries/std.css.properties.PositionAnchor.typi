@@ -27,17 +27,6 @@ module std.css.properties.PositionAnchor.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Normal
-  | None
-  | Auto
-  | MatchParent
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Uses the same default anchor element as the parent element, or the originating element if this is
 /// a [pseudo-element](https://developer.mozilla.org/en-US/docs/Glossary/Pseudo-element), provided
 /// that would be an acceptable anchor element (that is [part of the
@@ -58,12 +47,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    position_anchor: Value
+    position_anchor: Normal | None | Auto | MatchParent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for position-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

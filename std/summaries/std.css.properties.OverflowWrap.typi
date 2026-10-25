@@ -33,28 +33,11 @@ pub type Anywhere =
 pub type BreakWord =
     Atom["break-word"].
 
-pub type Css =
-    Normal
-  | BreakWord
-  | Anywhere
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Lines may only break at normal word break points (such as a space between two words).
 
 pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    overflow_wrap: Value
+    overflow_wrap: Normal | BreakWord | Anywhere | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for overflow-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

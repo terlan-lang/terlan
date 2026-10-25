@@ -21,10 +21,7 @@
  */
 module std.css.properties.PlaceSelf.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * In the case of
@@ -110,34 +107,6 @@ pub type Start.
  */
 pub type Stretch.
 
-pub type Css =
-      Auto
-    | Normal
-    | Center
-    | Start
-    | End
-    | SelfStart
-    | SelfEnd
-    | FlexStart
-    | FlexEnd
-    | Stretch
-    | Baseline
-    | AnchorCenter
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    place_self: Value,
+    place_self: Auto | Normal | Center | Start | End | SelfStart | SelfEnd | FlexStart | FlexEnd | Stretch | Baseline | AnchorCenter | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for place-self. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("place-self", Atom.to_string(css))).

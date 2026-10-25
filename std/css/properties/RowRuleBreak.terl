@@ -15,10 +15,7 @@
  */
 module std.css.properties.RowRuleBreak.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Row rules always break when they intersect column gaps, with row rule segments starting and
@@ -37,17 +34,6 @@ pub type None.
  */
 pub type Normal.
 
-pub type Css = None | Normal | Intersection | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    row_rule_break: Value,
+    row_rule_break: None | Normal | Intersection | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for row-rule-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("row-rule-break", Atom.to_string(css))).

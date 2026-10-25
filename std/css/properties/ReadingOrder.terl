@@ -19,28 +19,8 @@
  */
 module std.css.properties.ReadingOrder.
 
-import std.core.{Atom, Int}.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    reading_order: Value,
+    reading_order: Int | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for reading-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("reading-order", Atom.to_string(css))).
-
-/**
- * Sets reading-order from a typed integer.
- */
-pub integer(value: Int): Value ->
-    Value(serialize("reading-order", std.core.Int.to_string(value))).

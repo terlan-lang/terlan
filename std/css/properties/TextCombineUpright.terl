@@ -21,10 +21,7 @@
  */
 module std.css.properties.TextCombineUpright.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Attempts to typeset all consecutive characters within the box horizontally, such that they take
@@ -39,17 +36,6 @@ pub type Digits.
  */
 pub type None.
 
-pub type Css = None | All | Digits | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_combine_upright: Value,
+    text_combine_upright: None | All | Digits | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-combine-upright. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-combine-upright", Atom.to_string(css))).

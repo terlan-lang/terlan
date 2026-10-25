@@ -19,30 +19,11 @@
 
 module std.css.properties.InterestDelayEnd.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Sets the delay to the browser's default delay. This is the initial value.
 
 pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    interest_delay_end: Value
+    interest_delay_end: Normal | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets interest-delay-end from a typed time.
-
-pub time(value: std.css.Values.Time): Value.
-
-/// Selects a keyword for interest-delay-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

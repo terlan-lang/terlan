@@ -20,10 +20,7 @@
  */
 module std.css.properties.MaskBorderRepeat.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
@@ -48,47 +45,22 @@ pub type Space.
  */
 pub type Stretch.
 
-pub type Css = Stretch | Repeat | Round | Space | Inherit | Initial | Unset | Revert | RevertLayer.
+pub type Component = Stretch | Repeat | Round | Space.
 
-pub type ComponentCss = Stretch | Repeat | Round | Space.
-
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked = {Atom["css_parts"], List[Atom["stretch"] | Atom["repeat"] | Atom["round"] | Atom["space"]]}.
 
 pub struct Property {
-    mask_border_repeat: Value,
+    mask_border_repeat: Stretch | Repeat | Round | Space | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for mask-border-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Supplies 1 components in grammar order.
  */
-pub value(css: Css): Value ->
-    Value(serialize("mask-border-repeat", Atom.to_string(css))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Chooses one mask-border-repeat shorthand component. CSS-wide keywords are accepted only by
- * value(css) for the whole declaration.
+ * Supplies 2 components in grammar order.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("mask-border-repeat", Atom.to_string(css))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
-
-/**
- * Supplies 1 components in the grammar order shown above.
- */
-pub single(first: Component): Value ->
-    Value(serialize("mask-border-repeat", component_css(first))).
-
-/**
- * Supplies 2 components in the grammar order shown above.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("mask-border-repeat", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

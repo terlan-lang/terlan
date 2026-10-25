@@ -26,16 +26,6 @@ module std.css.properties.TextCombineUpright.
 pub type All =
     Atom["all"].
 
-pub type Css =
-    None
-  | All
-  | Digits
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Digits =
     Atom["digits"].
 
@@ -45,12 +35,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    text_combine_upright: Value
+    text_combine_upright: None | All | Digits | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for text-combine-upright. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -18,11 +18,7 @@
  */
 module std.css.properties.OffsetAnchor.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * `offset-anchor` is given the same value as the element's `transform-origin`, unless `offset-path`
@@ -48,45 +44,6 @@ pub type YEnd = Atom["y-end"].
 
 pub type YStart = Atom["y-start"].
 
-pub type Css =
-      Auto
-    | Left
-    | Center
-    | Right
-    | Top
-    | Bottom
-    | XStart
-    | XEnd
-    | YStart
-    | YEnd
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    offset_anchor: Value,
+    offset_anchor: Auto | Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for offset-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("offset-anchor", Atom.to_string(css))).
-
-/**
- * Sets offset-anchor from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
- * the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("offset-anchor", length_css(value))).
-
-/**
- * Sets offset-anchor from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("offset-anchor", percentage_css(value))).

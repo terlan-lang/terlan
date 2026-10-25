@@ -19,7 +19,6 @@
  */
 module std.css.properties.BorderTopRightRadius.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -27,37 +26,28 @@ import std.css.Values.{length_amount, length_css, percentage_amount, percentage_
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    border_top_right_radius: Value,
+    border_top_right_radius: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-top-right-radius. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("border-top-right-radius", Atom.to_string(css))).
-
-/**
- * Sets border-top-right-radius from a typed length. Returns Some for amount >= 0; otherwise returns
+ * Checks the border-top-right-radius length range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-top-right-radius", length_css(value))));
+        true -> Some(Checked(serialize("border-top-right-radius", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets border-top-right-radius from a typed percentage. Returns Some for amount >= 0; otherwise
+ * Checks the border-top-right-radius percentage range. Returns Some when amount >= 0; otherwise
  * returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-top-right-radius", percentage_css(value))));
+        true -> Some(Checked(serialize("border-top-right-radius", percentage_css(value))));
         false -> Absent
     }.

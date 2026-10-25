@@ -18,10 +18,7 @@
  */
 module std.css.properties.TextWrap.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Text is wrapped in the most performant way for the browser and does not take into account the
@@ -68,44 +65,23 @@ pub type Stable.
  */
 pub type Wrap.
 
-pub type Css =
-      Wrap
-    | Nowrap
-    | Auto
-    | Balance
-    | Stable
-    | Pretty
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
 pub type TextWrapModePart = Wrap | Nowrap.
 
 pub type TextWrapStylePart = Auto | Balance | Stable | Pretty.
 
-pub opaque type Value = SerializedValue.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["wrap"] | Atom["nowrap"], Atom["auto"] | Atom["balance"] | Atom["stable"] | Atom["pretty"]}
+      }.
 
 pub struct Property {
-    text_wrap: Value,
+    text_wrap: Wrap | Nowrap | Auto | Balance | Stable | Pretty | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for text-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Combines text-wrap-mode, text-wrap-style for text-wrap. Each parameter accepts its own keyword or
+ * typed unit choices directly.
  */
-pub value(css: Css): Value ->
-    Value(serialize("text-wrap", Atom.to_string(css))).
-
-/**
- * Sets text-wrap by combining text-wrap-mode, text-wrap-style in grammar order. Each argument
- * describes a distinct part of the declaration.
- */
-pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Value ->
-    Value(
-        serialize(
-            "text-wrap",
-            Atom.to_string(text_wrap_mode) + " " + Atom.to_string(text_wrap_style),
-        ),
-    ).
+pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Checked ->
+    Checked({Atom["css_parts"], {text_wrap_mode, text_wrap_style}}).

@@ -34,17 +34,6 @@ pub type Auto =
 pub type CrispEdges =
     Atom["crispEdges"].
 
-pub type Css =
-    Auto
-  | OptimizeSpeed
-  | CrispEdges
-  | GeometricPrecision
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// This value directs the user agent to emphasize geometric precision over speed or crisp edges. The
 /// final rendering may involve techniques such as anti-aliasing.
 
@@ -58,12 +47,5 @@ pub type OptimizeSpeed =
     Atom["optimizeSpeed"].
 
 pub struct Property {
-    shape_rendering: Value
+    shape_rendering: Auto | OptimizeSpeed | CrispEdges | GeometricPrecision | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for shape-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

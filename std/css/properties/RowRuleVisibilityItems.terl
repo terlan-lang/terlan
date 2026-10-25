@@ -15,10 +15,7 @@
  */
 module std.css.properties.RowRuleVisibilityItems.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The row rule should be painted in all gap segments, regardless of whether adjacent areas contain
@@ -42,17 +39,6 @@ pub type Between.
  */
 pub type Normal.
 
-pub type Css = All | Around | Between | Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    row_rule_visibility_items: Value,
+    row_rule_visibility_items: All | Around | Between | Normal | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for row-rule-visibility-items. CSS-wide choices Inherit, Initial, Unset,
- * Revert, and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("row-rule-visibility-items", Atom.to_string(css))).

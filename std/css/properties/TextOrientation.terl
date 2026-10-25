@@ -20,10 +20,7 @@
  */
 module std.css.properties.TextOrientation.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Rotates the characters of horizontal scripts 90° clockwise. Lays out the characters of vertical
@@ -44,17 +41,6 @@ pub type Sideways.
  */
 pub type Upright.
 
-pub type Css = Mixed | Upright | Sideways | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_orientation: Value,
+    text_orientation: Mixed | Upright | Sideways | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-orientation. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-orientation", Atom.to_string(css))).

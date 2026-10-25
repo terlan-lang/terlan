@@ -18,35 +18,8 @@
  */
 module std.css.properties.FloodOpacity.
 
-import std.core.{Atom, Float}.
-import std.css.Values.
-import std.css.Values.{percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    flood_opacity: Value,
+    flood_opacity: Float | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for flood-opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("flood-opacity", Atom.to_string(css))).
-
-/**
- * Sets flood-opacity from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(serialize("flood-opacity", std.core.Float.to_string(value))).
-
-/**
- * Sets flood-opacity from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("flood-opacity", percentage_css(value))).

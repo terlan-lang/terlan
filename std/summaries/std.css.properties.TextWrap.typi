@@ -34,18 +34,7 @@ pub type Auto =
 pub type Balance =
     Atom["balance"].
 
-pub type Css =
-    Wrap
-  | Nowrap
-  | Auto
-  | Balance
-  | Stable
-  | Pretty
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Text does not wrap across lines. It will overflow its containing element rather than breaking
 /// onto a new line.
@@ -63,7 +52,7 @@ pub type Pretty =
     Atom["pretty"].
 
 pub struct Property {
-    text_wrap: Value
+    text_wrap: Wrap | Nowrap | Auto | Balance | Stable | Pretty | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Results in the same behavior as `wrap`, except that when the user is editing the content, the
@@ -83,20 +72,13 @@ pub type TextWrapStylePart =
   | Stable
   | Pretty.
 
-pub opaque type Value.
-
 /// Text is wrapped across lines at appropriate characters (for example spaces, in languages like
 /// English that use space separators) to minimize overflow. This is the default value.
 
 pub type Wrap =
     Atom["wrap"].
 
-/// Sets text-wrap by combining text-wrap-mode, text-wrap-style in grammar order. Each argument
-/// describes a distinct part of the declaration.
+/// Combines text-wrap-mode, text-wrap-style for text-wrap. Each parameter accepts its own keyword or
+/// typed unit choices directly.
 
-pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Value.
-
-/// Selects a keyword for text-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Checked.

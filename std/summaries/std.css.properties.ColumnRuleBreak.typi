@@ -14,16 +14,6 @@
 
 module std.css.properties.ColumnRuleBreak.
 
-pub type Css =
-    None
-  | Normal
-  | Intersection
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Column rules always break when they intersect row gaps, with column rule segments starting and
 /// ending at container and gap edges.
 
@@ -43,12 +33,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    column_rule_break: Value
+    column_rule_break: None | Normal | Intersection | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for column-rule-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

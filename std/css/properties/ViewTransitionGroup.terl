@@ -12,10 +12,7 @@
  */
 module std.css.properties.ViewTransitionGroup.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Establishes a container for descendant transition groups.
@@ -32,17 +29,6 @@ pub type Nearest.
  */
 pub type Normal.
 
-pub type Css = Normal | Contain | Nearest | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    view_transition_group: Value,
+    view_transition_group: Normal | Contain | Nearest | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for view-transition-group. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("view-transition-group", Atom.to_string(css))).

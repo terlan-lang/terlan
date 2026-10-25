@@ -17,32 +17,16 @@
 
 module std.css.properties.AnimationPlayState.
 
-pub type Css =
-    Running
-  | Paused
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The animation is currently paused.
 
 pub type Paused =
     Atom["paused"].
 
 pub struct Property {
-    animation_play_state: Value
+    animation_play_state: Running | Paused | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The animation is currently playing.
 
 pub type Running =
     Atom["running"].
-
-pub opaque type Value.
-
-/// Selects a keyword for animation-play-state. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -24,16 +24,6 @@ module std.css.properties.Hyphens.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    None
-  | Manual
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Default value. Words are broken for line-wrapping only where characters inside the word suggest
 /// line break opportunities. See [Suggesting line break
 /// opportunities](#suggesting_line_break_opportunities) below for details.
@@ -48,12 +38,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    hyphens: Value
+    hyphens: None | Manual | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for hyphens. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

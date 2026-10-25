@@ -18,24 +18,6 @@
 
 module std.css.properties.ReadingOrder.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    reading_order: Value
+    reading_order: Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets reading-order from a typed integer.
-
-pub integer(value: Int): Value.
-
-/// Selects a keyword for reading-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

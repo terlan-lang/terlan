@@ -24,25 +24,9 @@ module std.css.properties.Outline.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Thin
-  | Medium
-  | Thick
-  | Auto
-  | None
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
+
+pub opaque type CheckedOutlineWidth.
 
 /// The outline is a series of short line segments.
 ///
@@ -94,10 +78,11 @@ pub type Medium =
 pub type None =
     Atom["none"].
 
-pub type OutlineColorCss =
-    Auto.
-
-pub opaque type OutlineColorPart.
+pub type OutlineColorPart =
+    Auto
+  | std.css.Values.Color
+  | std.css.Values.Transparent
+  | std.css.Values.CurrentColor.
 
 pub type OutlineStylePart =
     Auto
@@ -111,12 +96,11 @@ pub type OutlineStylePart =
   | Inset
   | Outset.
 
-pub type OutlineWidthCss =
+pub type OutlineWidthPart =
     Thin
   | Medium
-  | Thick.
-
-pub opaque type OutlineWidthPart.
+  | Thick
+  | CheckedOutlineWidth.
 
 /// The opposite of `inset`: the outline makes the box look as though it were coming out of the page.
 ///
@@ -126,7 +110,7 @@ pub type Outset =
     Atom["outset"].
 
 pub struct Property {
-    outline: Value
+    outline: Thin | Medium | Thick | Auto | None | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// The opposite of `groove`: the outline looks as though it were extruded from the page.
@@ -157,40 +141,15 @@ pub type Thick =
 pub type Thin =
     Atom["thin"].
 
-pub opaque type Value.
+/// Combines outline-width, outline-style, outline-color for outline. Each parameter accepts its own
+/// keyword or typed unit choices directly.
 
-/// Sets outline from a typed color. Use std.css.Values.rgb or color to choose the paint.
+pub compose(outline_width: OutlineWidthPart, outline_style: OutlineStylePart, outline_color: OutlineColorPart): Checked.
 
-pub color(value: std.css.Values.Color): Value.
+/// Checks the outline length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets outline by combining outline-width, outline-style, outline-color in grammar order. Each
-/// argument describes a distinct part of the declaration.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub compose(outline_width: OutlineWidthPart, outline_style: OutlineStylePart, outline_color: OutlineColorPart): Value.
+/// Checks the outline length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets outline from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Chooses the outline-color part for compose. See the keyword types for their visual behavior.
-
-pub outline_color(css: OutlineColorCss): OutlineColorPart.
-
-/// Sets outline OutlineColorPart part from a typed color. Use std.css.Values.rgb or color to choose
-/// the paint.
-
-pub outline_color_color(value: std.css.Values.Color): OutlineColorPart.
-
-/// Chooses the outline-width part for compose. See the keyword types for their visual behavior.
-
-pub outline_width(css: OutlineWidthCss): OutlineWidthPart.
-
-/// Sets outline OutlineWidthPart part from a typed length. Returns Some for amount >= 0; otherwise
-/// returns None.
-
-pub outline_width_length(value: std.css.Values.Length): Option[OutlineWidthPart].
-
-/// Selects a keyword for outline. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub outline_width_length(value: std.css.Values.Length): Option[CheckedOutlineWidth].

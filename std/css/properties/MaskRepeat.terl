@@ -18,10 +18,7 @@
  */
 module std.css.properties.MaskRepeat.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The mask image is not repeated (and hence the mask painting area will not necessarily be entirely
@@ -70,28 +67,6 @@ pub type Round.
  */
 pub type Space.
 
-pub type Css =
-      RepeatX
-    | RepeatY
-    | Repeat
-    | Space
-    | Round
-    | NoRepeat
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    mask_repeat: Value,
+    mask_repeat: RepeatX | RepeatY | Repeat | Space | Round | NoRepeat | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for mask-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("mask-repeat", Atom.to_string(css))).

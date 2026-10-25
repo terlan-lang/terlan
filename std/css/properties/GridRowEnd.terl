@@ -20,9 +20,9 @@
  */
 module std.css.properties.GridRowEnd.
 
+import std.core.Int.
 import std.core.Int.{to_string}.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Int}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
@@ -34,35 +34,26 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    grid_row_end: Value,
+    grid_row_end: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for grid-row-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the grid-row-end integer range. Returns Some when amount <= -1; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("grid-row-end", Atom.to_string(css))).
-
-/**
- * Sets grid-row-end from a typed integer. Returns Some for amount <= -1; otherwise returns None.
- */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value <= -1 {
-        true -> Some(Value(serialize("grid-row-end", to_string(value))));
+        true -> Some(Checked(serialize("grid-row-end", to_string(value))));
         false -> Absent
     }.
 
 /**
- * Sets grid-row-end from a typed integer. Returns Some for amount >= 1; otherwise returns None.
+ * Checks the grid-row-end integer range. Returns Some when amount >= 1; otherwise returns None.
  */
-pub integer_1(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 1 {
-        true -> Some(Value(serialize("grid-row-end", to_string(value))));
+        true -> Some(Checked(serialize("grid-row-end", to_string(value))));
         false -> Absent
     }.

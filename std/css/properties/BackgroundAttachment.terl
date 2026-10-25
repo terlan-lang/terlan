@@ -19,10 +19,7 @@
  */
 module std.css.properties.BackgroundAttachment.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The background is fixed relative to the viewport. Even if an element has a scrolling mechanism,
@@ -45,17 +42,6 @@ pub type Local.
  */
 pub type Scroll.
 
-pub type Css = Scroll | Fixed | Local | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    background_attachment: Value,
+    background_attachment: Scroll | Fixed | Local | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for background-attachment. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("background-attachment", Atom.to_string(css))).

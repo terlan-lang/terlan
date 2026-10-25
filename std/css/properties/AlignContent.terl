@@ -23,10 +23,7 @@
  */
 module std.css.properties.AlignContent.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies participation in first- or last-baseline alignment: aligns the alignment baseline of
@@ -103,33 +100,6 @@ pub type Start.
  */
 pub type Stretch.
 
-pub type Css =
-      Normal
-    | Baseline
-    | SpaceBetween
-    | SpaceAround
-    | SpaceEvenly
-    | Stretch
-    | Center
-    | Start
-    | End
-    | FlexStart
-    | FlexEnd
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    align_content: Value,
+    align_content: Normal | Baseline | SpaceBetween | SpaceAround | SpaceEvenly | Stretch | Center | Start | End | FlexStart | FlexEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for align-content. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("align-content", Atom.to_string(css))).

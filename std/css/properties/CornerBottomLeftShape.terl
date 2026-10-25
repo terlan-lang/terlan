@@ -18,10 +18,7 @@
  */
 module std.css.properties.CornerBottomLeftShape.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Bevel.
 
@@ -35,28 +32,6 @@ pub type Square.
 
 pub type Squircle.
 
-pub type Css =
-      Round
-    | Scoop
-    | Bevel
-    | Notch
-    | Square
-    | Squircle
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    corner_bottom_left_shape: Value,
+    corner_bottom_left_shape: Round | Scoop | Bevel | Notch | Square | Squircle | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for corner-bottom-left-shape. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("corner-bottom-left-shape", Atom.to_string(css))).

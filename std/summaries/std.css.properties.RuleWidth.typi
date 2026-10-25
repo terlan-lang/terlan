@@ -15,16 +15,6 @@
 
 module std.css.properties.RuleWidth.
 
-pub type Css =
-    Thin
-  | Medium
-  | Thick
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Same as `3px`.
 ///
 /// Author guide:
@@ -34,7 +24,7 @@ pub type Medium =
     Atom["medium"].
 
 pub struct Property {
-    rule_width: Value
+    rule_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Same as `5px`.
@@ -52,10 +42,3 @@ pub type Thick =
 
 pub type Thin =
     Atom["thin"].
-
-pub opaque type Value.
-
-/// Selects a keyword for rule-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

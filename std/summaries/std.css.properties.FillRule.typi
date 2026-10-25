@@ -17,15 +17,6 @@
 
 module std.css.properties.FillRule.
 
-pub type Css =
-    Nonzero
-  | Evenodd
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// For every point in the fill rule's box, a ray is drawn in a random direction. The number of path
 /// segments from the given shape that the ray crosses are counted. If this number is odd, the point
 /// is inside; if even, the point is outside. Zero is taken to be even.
@@ -43,12 +34,5 @@ pub type Nonzero =
     Atom["nonzero"].
 
 pub struct Property {
-    fill_rule: Value
+    fill_rule: Nonzero | Evenodd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for fill-rule. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

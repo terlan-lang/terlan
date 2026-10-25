@@ -20,29 +20,8 @@
  */
 module std.css.properties.AnimationDelay.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{serialize, time_css}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Time, Unset}.
 
 pub struct Property {
-    animation_delay: Value,
+    animation_delay: Time | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-delay. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-delay", Atom.to_string(css))).
-
-/**
- * Sets animation-delay from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(serialize("animation-delay", time_css(value))).

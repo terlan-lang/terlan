@@ -22,15 +22,6 @@ module std.css.properties.TableLayout.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Fixed
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The fixed table layout algorithm is used. When using this keyword, the table's width _needs to be
 /// specified explicitly_ using the `width` property. If the value of the `width` property is set to
 /// `auto` or is not specified, the browser uses the automatic table layout algorithm, in which case
@@ -43,12 +34,5 @@ pub type Fixed =
     Atom["fixed"].
 
 pub struct Property {
-    table_layout: Value
+    table_layout: Auto | Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for table-layout. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

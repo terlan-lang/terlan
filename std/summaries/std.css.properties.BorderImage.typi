@@ -23,17 +23,7 @@
 
 module std.css.properties.BorderImage.
 
-pub type Css =
-    None
-  | Stretch
-  | Repeat
-  | Round
-  | Space
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Use the border styles.
 
@@ -41,7 +31,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    border_image: Value
+    border_image: None | Stretch | Repeat | Round | Space | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// The image is tiled (repeated) to fill the area.
@@ -66,17 +56,10 @@ pub type Space =
 pub type Stretch =
     Atom["stretch"].
 
-pub opaque type Value.
+/// Checks the border-image number range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-image from a typed number. Returns Some for amount >= 0; otherwise returns None.
+pub number(value: Float): Option[Checked].
 
-pub number(value: Float): Option[Value].
+/// Checks the border-image percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-image from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for border-image. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

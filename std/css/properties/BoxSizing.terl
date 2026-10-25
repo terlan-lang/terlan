@@ -17,10 +17,7 @@
  */
 module std.css.properties.BoxSizing.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The `width` and `height` properties include the content, padding, and border, but do not include
@@ -38,17 +35,6 @@ pub type BorderBox = Atom["border-box"].
  */
 pub type ContentBox = Atom["content-box"].
 
-pub type Css = ContentBox | BorderBox | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    box_sizing: Value,
+    box_sizing: ContentBox | BorderBox | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for box-sizing. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("box-sizing", Atom.to_string(css))).

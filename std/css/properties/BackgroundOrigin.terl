@@ -18,10 +18,7 @@
  */
 module std.css.properties.BackgroundOrigin.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The background is positioned relative to the border box.
@@ -38,25 +35,6 @@ pub type ContentBox = Atom["content-box"].
  */
 pub type PaddingBox = Atom["padding-box"].
 
-pub type Css =
-      ContentBox
-    | PaddingBox
-    | BorderBox
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    background_origin: Value,
+    background_origin: ContentBox | PaddingBox | BorderBox | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for background-origin. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("background-origin", Atom.to_string(css))).

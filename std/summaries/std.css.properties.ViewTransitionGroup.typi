@@ -16,16 +16,6 @@ module std.css.properties.ViewTransitionGroup.
 pub type Contain =
     Atom["contain"].
 
-pub type Css =
-    Normal
-  | Contain
-  | Nearest
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Nests inside the nearest ancestor transition group, even without explicit containment.
 
 pub type Nearest =
@@ -37,12 +27,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    view_transition_group: Value
+    view_transition_group: Normal | Contain | Nearest | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for view-transition-group. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

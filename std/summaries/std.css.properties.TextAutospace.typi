@@ -23,19 +23,6 @@ module std.css.properties.TextAutospace.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Normal
-  | NoAutospace
-  | IdeographAlpha
-  | IdeographNumeric
-  | Insert
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type IdeographAlpha =
     Atom["ideograph-alpha"].
 
@@ -56,12 +43,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    text_autospace: Value
+    text_autospace: Normal | NoAutospace | IdeographAlpha | IdeographNumeric | Insert | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for text-autospace. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

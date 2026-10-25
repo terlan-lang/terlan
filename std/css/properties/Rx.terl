@@ -18,11 +18,7 @@
  */
 module std.css.properties.Rx.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * When set or defaulting to `auto`, the `rx` value equals the absolute length value used for `ry`.
@@ -30,29 +26,6 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    rx: Value,
+    rx: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for rx. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer apply
- * to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("rx", Atom.to_string(css))).
-
-/**
- * Sets rx from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("rx", length_css(value))).
-
-/**
- * Sets rx from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("rx", percentage_css(value))).

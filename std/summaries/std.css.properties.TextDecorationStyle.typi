@@ -20,18 +20,6 @@
 
 module std.css.properties.TextDecorationStyle.
 
-pub type Css =
-    Solid
-  | Double
-  | Dotted
-  | Dashed
-  | Wavy
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Produces a dashed line style.
 
 pub type Dashed =
@@ -48,7 +36,7 @@ pub type Double =
     Atom["double"].
 
 pub struct Property {
-    text_decoration_style: Value
+    text_decoration_style: Solid | Double | Dotted | Dashed | Wavy | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Produces a solid line.
@@ -56,14 +44,7 @@ pub struct Property {
 pub type Solid =
     Atom["solid"].
 
-pub opaque type Value.
-
 /// Produces a wavy line.
 
 pub type Wavy =
     Atom["wavy"].
-
-/// Selects a keyword for text-decoration-style. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

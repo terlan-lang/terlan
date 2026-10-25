@@ -18,10 +18,7 @@
  */
 module std.css.properties.BorderCollapse.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Adjacent cells have shared borders (the collapsed-border table rendering model).
@@ -33,17 +30,6 @@ pub type Collapse.
  */
 pub type Separate.
 
-pub type Css = Separate | Collapse | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    border_collapse: Value,
+    border_collapse: Separate | Collapse | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for border-collapse. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("border-collapse", Atom.to_string(css))).

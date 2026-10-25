@@ -21,14 +21,6 @@
 
 module std.css.properties.ViewTransitionName.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The selected element will not participate in a separate snapshot, unless it has a parent element
 /// with a `view-transition-name` set, in which case it will be snapshotted as part of that element.
 
@@ -36,12 +28,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    view_transition_name: Value
+    view_transition_name: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for view-transition-name. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

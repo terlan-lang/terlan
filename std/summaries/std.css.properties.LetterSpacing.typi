@@ -19,14 +19,6 @@
 
 module std.css.properties.LetterSpacing.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The normal letter spacing for the current font. Unlike a value of `0`, this keyword allows the
 /// `user agent` to alter the space between characters in order to justify text.
 
@@ -34,17 +26,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    letter_spacing: Value
+    letter_spacing: Normal | std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets letter-spacing from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Selects a keyword for letter-spacing. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

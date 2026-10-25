@@ -26,22 +26,6 @@ module std.css.properties.TextBox.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Normal
-  | None
-  | TrimStart
-  | TrimEnd
-  | TrimBoth
-  | Auto
-  | TextKeyword
-  | Ideographic
-  | IdeographicInk
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Ideographic =
     Atom["ideographic"].
 
@@ -59,7 +43,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    text_box: Value
+    text_box: Normal | None | TrimStart | TrimEnd | TrimBoth | Auto | TextKeyword | Ideographic | IdeographicInk | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The font's over edge is its text-over baseline (includes the font's ascenders but excludes the
@@ -92,10 +76,3 @@ pub type TrimEnd =
 
 pub type TrimStart =
     Atom["trim-start"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-box. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

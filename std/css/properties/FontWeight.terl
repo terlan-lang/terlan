@@ -20,8 +20,8 @@
  */
 module std.css.properties.FontWeight.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
@@ -51,27 +51,18 @@ pub type Lighter.
  */
 pub type Normal.
 
-pub type Css = Normal | Bold | Bolder | Lighter | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    font_weight: Value,
+    font_weight: Normal | Bold | Bolder | Lighter | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for font-weight. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-weight", Atom.to_string(css))).
-
-/**
- * Sets font-weight from a typed number. Returns Some for amount >= 1 and amount <= 1000; otherwise
+ * Checks the font-weight number range. Returns Some when amount >= 1 and amount <= 1000; otherwise
  * returns None.
  */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 1 and value <= 1000 {
-        true -> Some(Value(serialize("font-weight", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("font-weight", std.core.Float.to_string(value))));
         false -> Absent
     }.

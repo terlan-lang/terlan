@@ -17,29 +17,6 @@
 
 module std.css.properties.OffsetDistance.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    offset_distance: Value
+    offset_distance: std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets offset-distance from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets offset-distance from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for offset-distance. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

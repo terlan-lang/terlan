@@ -19,10 +19,7 @@
  */
 module std.css.properties.Appearance.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Sets interactive widgets to render with their _OS-native_ appearance. Behaves as `none` on
@@ -64,36 +61,6 @@ pub type Textarea.
 
 pub type Textfield.
 
-pub type Css =
-      None
-    | Auto
-    | BaseSelect
-    | Searchfield
-    | Textarea
-    | Checkbox
-    | Radio
-    | Menulist
-    | Listbox
-    | Meter
-    | ProgressBar
-    | Button
-    | Textfield
-    | MenulistButton
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    appearance: Value,
+    appearance: None | Auto | BaseSelect | Searchfield | Textarea | Checkbox | Radio | Menulist | Listbox | Meter | ProgressBar | Button | Textfield | MenulistButton | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for appearance. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("appearance", Atom.to_string(css))).

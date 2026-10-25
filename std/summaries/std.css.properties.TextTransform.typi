@@ -26,20 +26,6 @@ module std.css.properties.TextTransform.
 pub type Capitalize =
     Atom["capitalize"].
 
-pub type Css =
-    None
-  | Capitalize
-  | Uppercase
-  | Lowercase
-  | FullWidth
-  | FullSizeKana
-  | MathAuto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Generally used for `ruby` annotation text, the keyword converts all small Kana characters to the
 /// equivalent full-size Kana, to compensate for legibility issues at the small font sizes typically
 /// used in ruby.
@@ -74,17 +60,10 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    text_transform: Value
+    text_transform: None | Capitalize | Uppercase | Lowercase | FullWidth | FullSizeKana | MathAuto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Is a keyword that converts all characters to uppercase.
 
 pub type Uppercase =
     Atom["uppercase"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-transform. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

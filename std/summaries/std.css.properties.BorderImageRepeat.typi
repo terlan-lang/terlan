@@ -20,27 +20,16 @@
 
 module std.css.properties.BorderImageRepeat.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
+pub type Component =
     Stretch
   | Repeat
   | Round
   | Space.
 
-pub type Css =
-    Stretch
-  | Repeat
-  | Round
-  | Space
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    border_image_repeat: Value
+    border_image_repeat: Stretch | Repeat | Round | Space | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
@@ -66,22 +55,10 @@ pub type Space =
 pub type Stretch =
     Atom["stretch"].
 
-pub opaque type Value.
+/// Supplies 2 components in grammar order.
 
-/// Chooses one border-image-repeat shorthand component. CSS-wide keywords are accepted only by
-/// value(css) for the whole declaration.
+pub pair(first: Component, second: Component): Checked.
 
-pub component(css: ComponentCss): Component.
+/// Supplies 1 components in grammar order.
 
-/// Supplies 2 components in the grammar order shown above.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for border-image-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

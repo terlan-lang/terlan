@@ -17,14 +17,6 @@
 
 module std.css.properties.FontLanguageOverride.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Tells the browser to use font glyphs that are appropriate for the language specified by the
 /// `lang` attribute. This is the default value.
 
@@ -32,12 +24,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_language_override: Value
+    font_language_override: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-language-override. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

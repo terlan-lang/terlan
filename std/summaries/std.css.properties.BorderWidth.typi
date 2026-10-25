@@ -18,22 +18,15 @@
 
 module std.css.properties.BorderWidth.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
-    Thin
-  | Medium
-  | Thick.
+pub opaque type CheckedComponent.
 
-pub type Css =
+pub type Component =
     Thin
   | Medium
   | Thick
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+  | CheckedComponent.
 
 /// Same as `3px`.
 ///
@@ -44,7 +37,7 @@ pub type Medium =
     Atom["medium"].
 
 pub struct Property {
-    border_width: Value
+    border_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Same as `5px`.
@@ -63,39 +56,26 @@ pub type Thick =
 pub type Thin =
     Atom["thin"].
 
-pub opaque type Value.
+/// Checks the border-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Chooses one border-width shorthand component. CSS-wide keywords are accepted only by value(css)
-/// for the whole declaration.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-pub component(css: ComponentCss): Component.
+/// Checks the border-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-width shorthand component from a typed length. Returns Some for amount >= 0;
-/// otherwise returns None.
-
-pub component_length(value: std.css.Values.Length): Option[Component].
-
-/// Sets border-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
+pub length(value: std.css.Values.Length): Option[Checked].
 
 /// First sets top/bottom; second sets left/right.
 
-pub pair(first: Component, second: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
 /// Sets top, right, bottom, and left in that order.
 
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
 /// Applies to all four sides.
 
-pub single(first: Component): Value.
+pub single(first: Component): Checked.
 
 /// First sets top; second sets left/right; third sets bottom.
 
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Selects a keyword for border-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub triple(first: Component, second: Component, third: Component): Checked.

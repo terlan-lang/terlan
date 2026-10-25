@@ -19,10 +19,7 @@
  */
 module std.css.properties.BorderStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Displays a series of short square-ended dashes or line segments. The exact size and length of the
@@ -111,24 +108,7 @@ pub type Ridge.
  */
 pub type Solid.
 
-pub type Css =
-      None
-    | Hidden
-    | Dotted
-    | Dashed
-    | Solid
-    | Double
-    | Groove
-    | Ridge
-    | Inset
-    | Outset
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub type ComponentCss =
+pub type Component =
       None
     | Hidden
     | Dotted
@@ -140,65 +120,36 @@ pub type ComponentCss =
     | Inset
     | Outset.
 
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          List[Atom["none"] | Atom["hidden"] | Atom["dotted"] | Atom["dashed"] | Atom["solid"] | Atom["double"] | Atom["groove"] | Atom["ridge"] | Atom["inset"] | Atom["outset"]]
+      }.
 
 pub struct Property {
-    border_style: Value,
+    border_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
-
-/**
- * Selects a keyword for border-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("border-style", Atom.to_string(css))).
-
-/**
- * Chooses one border-style shorthand component. CSS-wide keywords are accepted only by value(css)
- * for the whole declaration.
- */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("border-style", Atom.to_string(css))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
 
 /**
  * Applies to all four sides.
  */
-pub single(first: Component): Value ->
-    Value(serialize("border-style", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
  * First sets top/bottom; second sets left/right.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("border-style", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
  * First sets top; second sets left/right; third sets bottom.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        serialize(
-            "border-style",
-            component_css(first) + " " + component_css(second) + " " + component_css(third),
-        ),
-    ).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
  * Sets top, right, bottom, and left in that order.
  */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        serialize(
-            "border-style",
-            component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        ),
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

@@ -22,10 +22,7 @@
  */
 module std.css.properties.ReadingFlow.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Only affects flex containers. The reading order follows the `flex-flow` direction.
@@ -70,29 +67,6 @@ pub type Normal.
  */
 pub type SourceOrder = Atom["source-order"].
 
-pub type Css =
-      Normal
-    | SourceOrder
-    | FlexVisual
-    | FlexFlow
-    | GridRows
-    | GridColumns
-    | GridOrder
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    reading_flow: Value,
+    reading_flow: Normal | SourceOrder | FlexVisual | FlexFlow | GridRows | GridColumns | GridOrder | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for reading-flow. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("reading-flow", Atom.to_string(css))).

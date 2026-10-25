@@ -19,10 +19,7 @@
  */
 module std.css.properties.TextJustify.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The browser chooses the best type of justification for the current situation based on a balance
@@ -50,26 +47,6 @@ pub type InterWord = Atom["inter-word"].
  */
 pub type None.
 
-pub type Css =
-      Auto
-    | None
-    | InterWord
-    | InterCharacter
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_justify: Value,
+    text_justify: Auto | None | InterWord | InterCharacter | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-justify. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-justify", Atom.to_string(css))).

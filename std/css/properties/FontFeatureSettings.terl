@@ -20,27 +20,13 @@
  */
 module std.css.properties.FontFeatureSettings.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates that text is laid out using default font settings. This is the default value.
  */
 pub type Normal.
 
-pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_feature_settings: Value,
+    font_feature_settings: Normal | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-feature-settings. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-feature-settings", Atom.to_string(css))).

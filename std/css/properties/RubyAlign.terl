@@ -19,10 +19,7 @@
  */
 module std.css.properties.RubyAlign.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Is a keyword indicating that the ruby will be aligned at the middle of the base text.
@@ -46,26 +43,6 @@ pub type SpaceBetween = Atom["space-between"].
  */
 pub type Start.
 
-pub type Css =
-      Start
-    | Center
-    | SpaceBetween
-    | SpaceAround
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    ruby_align: Value,
+    ruby_align: Start | Center | SpaceBetween | SpaceAround | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for ruby-align. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("ruby-align", Atom.to_string(css))).

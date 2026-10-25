@@ -27,19 +27,6 @@ module std.css.properties.UnicodeBidi.
 pub type BidiOverride =
     Atom["bidi-override"].
 
-pub type Css =
-    Normal
-  | Embed
-  | Isolate
-  | BidiOverride
-  | IsolateOverride
-  | Plaintext
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// If the element is inline, this value opens an additional level of embedding with respect to the
 /// bidirectional algorithm. The direction of this embedding level is given by the `direction`
 /// property.
@@ -76,12 +63,5 @@ pub type Plaintext =
     Atom["plaintext"].
 
 pub struct Property {
-    unicode_bidi: Value
+    unicode_bidi: Normal | Embed | Isolate | BidiOverride | IsolateOverride | Plaintext | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for unicode-bidi. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

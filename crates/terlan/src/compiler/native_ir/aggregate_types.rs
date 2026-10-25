@@ -83,6 +83,12 @@ pub(super) fn map_record_descriptor(
 }
 
 fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), String> {
+    if super::union_values::is_boxed(ty) {
+        for (_, descriptor) in super::union_values::layouts(ty)? {
+            layouts
+                .insert(encode_aggregate_layout(&descriptor).map_err(|error| error.to_string())?);
+        }
+    }
     match ty {
         CoreType::Tuple(elements) => {
             let fields = elements

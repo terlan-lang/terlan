@@ -19,10 +19,7 @@
  */
 module std.css.properties.FontVariantCaps.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Enables display of petite capitals for both upper and lowercase letters (OpenType features:
@@ -65,29 +62,6 @@ pub type TitlingCaps = Atom["titling-caps"].
  */
 pub type Unicase.
 
-pub type Css =
-      Normal
-    | SmallCaps
-    | AllSmallCaps
-    | PetiteCaps
-    | AllPetiteCaps
-    | Unicase
-    | TitlingCaps
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_caps: Value,
+    font_variant_caps: Normal | SmallCaps | AllSmallCaps | PetiteCaps | AllPetiteCaps | Unicase | TitlingCaps | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-caps. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-caps", Atom.to_string(css))).

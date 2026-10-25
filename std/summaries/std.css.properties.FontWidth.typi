@@ -17,27 +17,13 @@
 
 module std.css.properties.FontWidth.
 
+pub opaque type Checked.
+
 /// Specifies a more condensed font face than normal, with `ultra-condensed` being the most
 /// condensed.
 
 pub type Condensed =
     Atom["condensed"].
-
-pub type Css =
-    Normal
-  | UltraCondensed
-  | ExtraCondensed
-  | Condensed
-  | SemiCondensed
-  | SemiExpanded
-  | Expanded
-  | ExtraExpanded
-  | UltraExpanded
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
 
 /// Specifies a more expanded font face than normal, with `ultra-expanded` being the most expanded.
 
@@ -61,7 +47,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_width: Value
+    font_width: Normal | UltraCondensed | ExtraCondensed | Condensed | SemiCondensed | SemiExpanded | Expanded | ExtraExpanded | UltraExpanded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Specifies a more condensed font face than normal, with `ultra-condensed` being the most
@@ -86,13 +72,6 @@ pub type UltraCondensed =
 pub type UltraExpanded =
     Atom["ultra-expanded"].
 
-pub opaque type Value.
+/// Checks the font-width percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets font-width from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for font-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

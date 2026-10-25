@@ -18,10 +18,7 @@
  */
 module std.css.properties.CaptionSide.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The caption box should be positioned at the block end side of the table.
@@ -33,17 +30,6 @@ pub type Bottom.
  */
 pub type Top.
 
-pub type Css = Top | Bottom | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    caption_side: Value,
+    caption_side: Top | Bottom | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for caption-side. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("caption-side", Atom.to_string(css))).

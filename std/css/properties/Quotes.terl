@@ -19,10 +19,7 @@
  */
 module std.css.properties.Quotes.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Quotation marks that are typographically appropriate for the inherited language (i.e., via the
@@ -37,17 +34,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    quotes: Value,
+    quotes: Auto | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for quotes. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("quotes", Atom.to_string(css))).

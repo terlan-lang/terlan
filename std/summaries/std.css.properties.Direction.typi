@@ -18,32 +18,16 @@
 
 module std.css.properties.Direction.
 
-pub type Css =
-    Ltr
-  | Rtl
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Text and other elements go from left to right. This is the default value.
 
 pub type Ltr =
     Atom["ltr"].
 
 pub struct Property {
-    direction: Value
+    direction: Ltr | Rtl | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Text and other elements go from right to left.
 
 pub type Rtl =
     Atom["rtl"].
-
-pub opaque type Value.
-
-/// Selects a keyword for direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

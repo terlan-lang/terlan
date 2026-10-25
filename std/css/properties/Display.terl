@@ -26,10 +26,7 @@
  */
 module std.css.properties.Display.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element generates a block-level box
@@ -236,53 +233,6 @@ pub type TableRow = Atom["table-row"].
  */
 pub type TableRowGroup = Atom["table-row-group"].
 
-pub type Css =
-      Block
-    | Inline
-    | RunIn
-    | Flow
-    | FlowRoot
-    | Table
-    | Flex
-    | Grid
-    | Ruby
-    | ListItem
-    | TableRowGroup
-    | TableHeaderGroup
-    | TableFooterGroup
-    | TableRow
-    | TableCell
-    | TableColumnGroup
-    | TableColumn
-    | TableCaption
-    | RubyBase
-    | RubyText
-    | RubyBaseContainer
-    | RubyTextContainer
-    | Contents
-    | None
-    | InlineBlock
-    | InlineTable
-    | InlineFlex
-    | InlineGrid
-    | GridLanes
-    | InlineGridLanes
-    | Math
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    display: Value,
+    display: Block | Inline | RunIn | Flow | FlowRoot | Table | Flex | Grid | Ruby | ListItem | TableRowGroup | TableHeaderGroup | TableFooterGroup | TableRow | TableCell | TableColumnGroup | TableColumn | TableCaption | RubyBase | RubyText | RubyBaseContainer | RubyTextContainer | Contents | None | InlineBlock | InlineTable | InlineFlex | InlineGrid | GridLanes | InlineGridLanes | Math | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for display. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("display", Atom.to_string(css))).

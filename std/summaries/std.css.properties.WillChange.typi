@@ -31,18 +31,8 @@ pub type Auto =
 pub type Contents =
     Atom["contents"].
 
-pub type Css =
-    Auto
-  | ScrollPosition
-  | Contents
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    will_change: Value
+    will_change: Auto | ScrollPosition | Contents | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Indicates that the author expects to animate or change the scroll position of the element in the
@@ -50,10 +40,3 @@ pub struct Property {
 
 pub type ScrollPosition =
     Atom["scroll-position"].
-
-pub opaque type Value.
-
-/// Selects a keyword for will-change. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

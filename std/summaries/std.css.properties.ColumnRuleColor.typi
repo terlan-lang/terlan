@@ -17,24 +17,6 @@
 
 module std.css.properties.ColumnRuleColor.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    column_rule_color: Value
+    column_rule_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets column-rule-color from a typed color. Use std.css.Values.rgb or color to choose the paint.
-
-pub color(value: std.css.Values.Color): Value.
-
-/// Selects a keyword for column-rule-color. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -27,14 +27,6 @@
 
 module std.css.properties.TimelineTriggerActivationRange.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// A `<length>` or `<percentage>` value specifies an offset from the beginning of the `normal`
 /// timeline, which again defaults to
 /// [`cover`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/timeline-range-name#cover)
@@ -48,21 +40,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    timeline_trigger_activation_range: Value
+    timeline_trigger_activation_range: Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets timeline-trigger-activation-range from a typed length. Use std.css.Values.px, root_em, em,
-/// vw, or vh to choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets timeline-trigger-activation-range from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for timeline-trigger-activation-range. CSS-wide choices Inherit, Initial,
-/// Unset, Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

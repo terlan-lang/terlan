@@ -19,10 +19,7 @@
  */
 module std.css.properties.ColumnRuleStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Displays a series of short square-ended dashes or line segments. The exact size and length of the
@@ -111,32 +108,6 @@ pub type Ridge.
  */
 pub type Solid.
 
-pub type Css =
-      None
-    | Hidden
-    | Dotted
-    | Dashed
-    | Solid
-    | Double
-    | Groove
-    | Ridge
-    | Inset
-    | Outset
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    column_rule_style: Value,
+    column_rule_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for column-rule-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("column-rule-style", Atom.to_string(css))).

@@ -1,6 +1,6 @@
 module typed_css.Styles.
 
-import std.core.Option.{Some}.
+import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.css.Stylesheet.{rule}.
 import std.css.Values.{percent, px, rgb, root_em}.
@@ -18,11 +18,20 @@ import type std.css.properties.Height.{Property as HeightProperty}.
 import type std.css.properties.Margin.{Property as MarginProperty}.
 import type std.css.properties.Padding.{Property as PaddingProperty}.
 import type std.css.properties.Width.{Property as WidthProperty}.
+import type std.css.properties.AnimationDirection.{Property as DirectionProperty}.
+import type std.css.properties.ListStyleType.{Property as ListProperty}.
+import type std.css.properties.AnimationPlayState.{Running}.
+import type std.core.Option.
+import std.css.properties.ListStyleType.{None as ListNone}.
+import std.css.properties.AnimationDirection.{Alternate}.
+import std.css.properties.Display.{None as DisplayNone}.
 
 pub struct Dimensions includes WidthProperty, HeightProperty {
 }.
 
-pub struct Tile includes Dimensions, MarginProperty, PaddingProperty, RadiusProperty, BorderProperty {
+pub struct Tile includes Dimensions, MarginProperty, PaddingProperty, RadiusProperty, BorderProperty, DirectionProperty, ListProperty {
+    display: Option[DisplayNone],
+    animation_play_state: Option[Running],
 }.
 
 pub stylesheet(): Result[List[Rule[Tile]], String] ->
@@ -43,13 +52,17 @@ pub stylesheet(): Result[List[Rule[Tile]], String] ->
                     rule(
                         ".tile",
                         Tile {
+                            animation_direction: Alternate,
+                            display: Some(DisplayNone),
+                            animation_play_state: None,
+                            list_style_type: ListNone,
                             width: width,
                             height: height,
                             margin: Margin.quad(
-                                Margin.component_length(px(-1.0)),
-                                Margin.component_percentage(percent(25.0)),
-                                Margin.component(MarginAuto),
-                                Margin.component_length(root_em(2.0)),
+                                px(-1.0),
+                                percent(25.0),
+                                MarginAuto,
+                                root_em(2.0),
                             ),
                             padding: Padding.pair(vertical, horizontal),
                             border_radius: BorderRadius.triple(first, second, third),

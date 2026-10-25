@@ -25,19 +25,6 @@ module std.css.properties.Clear.
 pub type Both =
     Atom["both"].
 
-pub type Css =
-    InlineStart
-  | InlineEnd
-  | Left
-  | Right
-  | Both
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Is a keyword indicating that the element is moved down to clear floats on _end side of its
 /// containing block_, that is the _right_ floats on ltr scripts and the _left_ floats on rtl
 /// scripts.
@@ -63,17 +50,10 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    clear: Value
+    clear: InlineStart | InlineEnd | Left | Right | Both | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Is a keyword indicating that the element is moved down to clear past _right_ floats.
 
 pub type Right =
     Atom["right"].
-
-pub opaque type Value.
-
-/// Selects a keyword for clear. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

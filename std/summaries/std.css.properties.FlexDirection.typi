@@ -29,19 +29,8 @@ pub type Column =
 pub type ColumnReverse =
     Atom["column-reverse"].
 
-pub type Css =
-    Row
-  | RowReverse
-  | Column
-  | ColumnReverse
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    flex_direction: Value
+    flex_direction: Row | RowReverse | Column | ColumnReverse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Specifies the flex container's main-axis to be the same as the text direction. This is the
@@ -55,10 +44,3 @@ pub type Row =
 
 pub type RowReverse =
     Atom["row-reverse"].
-
-pub opaque type Value.
-
-/// Selects a keyword for flex-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

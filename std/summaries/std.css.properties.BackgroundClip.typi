@@ -35,18 +35,6 @@ pub type BorderBox =
 pub type ContentBox =
     Atom["content-box"].
 
-pub type Css =
-    ContentBox
-  | PaddingBox
-  | BorderBox
-  | BorderArea
-  | TextKeyword
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The background extends to the outside edge of the padding. No background is drawn beneath the
 /// border.
 
@@ -54,17 +42,10 @@ pub type PaddingBox =
     Atom["padding-box"].
 
 pub struct Property {
-    background_clip: Value
+    background_clip: ContentBox | PaddingBox | BorderBox | BorderArea | TextKeyword | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The background is painted within (clipped to) the foreground text.
 
 pub type TextKeyword =
     Atom["text"].
-
-pub opaque type Value.
-
-/// Selects a keyword for background-clip. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

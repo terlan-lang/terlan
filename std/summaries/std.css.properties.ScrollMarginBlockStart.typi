@@ -20,25 +20,6 @@
 
 module std.css.properties.ScrollMarginBlockStart.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    scroll_margin_block_start: Value
+    scroll_margin_block_start: std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets scroll-margin-block-start from a typed length. Use std.css.Values.px, root_em, em, vw, or vh
-/// to choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Selects a keyword for scroll-margin-block-start. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

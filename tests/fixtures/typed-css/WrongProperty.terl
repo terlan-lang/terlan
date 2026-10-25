@@ -1,8 +1,7 @@
 module typed_css.WrongProperty.
 
-import std.css.properties.Height.{Auto, value}.
-
-import type std.css.properties.Width.{Value as Width}.
-
-pub invalid(): Width ->
-    value(Auto).
+import std.css.Values.{px}.
+import std.css.properties.Height.
+import type std.core.Option.
+import type std.css.properties.Width.{Checked}.
+pub invalid(): Option[Checked] -> Height.length(px(10.0)).

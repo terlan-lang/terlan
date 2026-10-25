@@ -20,7 +20,6 @@
  */
 module std.css.properties.BorderRadius.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -28,98 +27,90 @@ import std.css.Values.{length_amount, length_css, percentage_amount, percentage_
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
+pub opaque type CheckedComponent = SerializedValue.
 
-pub opaque type Value = SerializedValue.
+pub type Component = CheckedComponent.
 
-pub opaque type Component = SerializedValue.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[SerializedValue]}.
 
 pub struct Property {
-    border_radius: Value,
+    border_radius: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-radius. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the border-radius length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("border-radius", Atom.to_string(css))).
-
-/**
- * Sets border-radius from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-radius", length_css(value))));
+        true -> Some(Checked(serialize("border-radius", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets border-radius from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the border-radius percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-radius", percentage_css(value))));
+        true -> Some(Checked(serialize("border-radius", percentage_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets border-radius shorthand component from a typed length. Returns Some for amount >= 0;
- * otherwise returns None.
+ * Checks the border-radius length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(serialize("border-radius", length_css(value))));
+        true -> Some(CheckedComponent(serialize("border-radius", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets border-radius shorthand component from a typed percentage. Returns Some for amount >= 0;
- * otherwise returns None.
+ * Checks the border-radius percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Component(serialize("border-radius", percentage_css(value))));
+        true -> Some(CheckedComponent(serialize("border-radius", percentage_css(value))));
         false -> Absent
     }.
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
 
 component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Supplies 1 components in the grammar order shown above.
+ * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(serialize("border-radius", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
- * Supplies 2 components in the grammar order shown above.
+ * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("border-radius", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).
 
 /**
- * Supplies 3 components in the grammar order shown above.
+ * Supplies 3 components in grammar order.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        serialize(
-            "border-radius",
-            component_css(first) + " " + component_css(second) + " " + component_css(third),
-        ),
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked(
+        {
+            Atom["css_parts"],
+            [component_value(first), component_value(second), component_value(third)],
+        },
     ).
 
 /**
- * Supplies 4 components in the grammar order shown above.
+ * Supplies 4 components in grammar order.
  */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        serialize(
-            "border-radius",
-            component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        ),
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked(
+        {
+            Atom["css_parts"],
+            [
+                component_value(first),
+                component_value(second),
+                component_value(third),
+                component_value(fourth),
+            ],
+        },
     ).

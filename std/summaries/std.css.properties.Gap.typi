@@ -20,13 +20,7 @@
 
 module std.css.properties.Gap.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Sets the gap to `1em` in multi-column layouts and to `0` in all other contexts. This is the
 /// default value.
@@ -35,20 +29,13 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    gap: Value
+    gap: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the gap length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets gap from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
+/// Checks the gap percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets gap from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for gap. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

@@ -16,24 +16,13 @@
 
 module std.css.properties.TextBoxTrim.
 
-pub type Css =
-    None
-  | TrimStart
-  | TrimEnd
-  | TrimBoth
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The default value. No space is trimmed from the text.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    text_box_trim: Value
+    text_box_trim: None | TrimStart | TrimEnd | TrimBoth | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The start (over) and end (under) edges are both trimmed.
@@ -50,10 +39,3 @@ pub type TrimEnd =
 
 pub type TrimStart =
     Atom["trim-start"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-box-trim. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

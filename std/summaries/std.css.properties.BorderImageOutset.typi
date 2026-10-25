@@ -19,58 +19,49 @@
 
 module std.css.properties.BorderImageOutset.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type CheckedComponent.
+
+pub type Component =
+    CheckedComponent.
 
 pub struct Property {
-    border_image_outset: Value
+    border_image_outset: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
-
-/// Sets border-image-outset shorthand component from a typed length. Returns Some for amount >= 0;
-/// otherwise returns None.
-
-pub component_length(value: std.css.Values.Length): Option[Component].
-
-/// Sets border-image-outset shorthand component from a typed number. Returns Some for amount >= 0;
-/// otherwise returns None.
-
-pub component_number(value: Float): Option[Component].
-
-/// Sets border-image-outset from a typed length. Returns Some for amount >= 0; otherwise returns
+/// Checks the border-image-outset length range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Sets border-image-outset from a typed number. Returns Some for amount >= 0; otherwise returns
+/// Checks the border-image-outset number range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub number(value: Float): Option[Value].
+pub component_number(value: Float): Option[CheckedComponent].
 
-/// Supplies 2 components in the grammar order shown above.
+/// Checks the border-image-outset length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub pair(first: Component, second: Component): Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Supplies 4 components in the grammar order shown above.
+/// Checks the border-image-outset number range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+pub number(value: Float): Option[Checked].
 
-/// Supplies 1 components in the grammar order shown above.
+/// Supplies 2 components in grammar order.
 
-pub single(first: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Supplies 3 components in the grammar order shown above.
+/// Supplies 4 components in grammar order.
 
-pub triple(first: Component, second: Component, third: Component): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
-/// Selects a keyword for border-image-outset. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
+/// Supplies 1 components in grammar order.
 
-pub value(css: Css): Value.
+pub single(first: Component): Checked.
+
+/// Supplies 3 components in grammar order.
+
+pub triple(first: Component, second: Component, third: Component): Checked.

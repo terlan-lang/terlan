@@ -18,22 +18,11 @@
 
 module std.css.properties.TextSpacingTrim.
 
-pub type Css =
-    SpaceAll
-  | Normal
-  | SpaceFirst
-  | TrimStart
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    text_spacing_trim: Value
+    text_spacing_trim: SpaceAll | Normal | SpaceFirst | TrimStart | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type SpaceAll =
@@ -44,10 +33,3 @@ pub type SpaceFirst =
 
 pub type TrimStart =
     Atom["trim-start"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-spacing-trim. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

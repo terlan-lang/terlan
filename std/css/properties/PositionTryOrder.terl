@@ -20,10 +20,7 @@
  */
 module std.css.properties.PositionTryOrder.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type MostBlockSize = Atom["most-block-size"].
 
@@ -38,27 +35,6 @@ pub type MostWidth = Atom["most-width"].
  */
 pub type Normal.
 
-pub type Css =
-      Normal
-    | MostWidth
-    | MostHeight
-    | MostBlockSize
-    | MostInlineSize
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    position_try_order: Value,
+    position_try_order: Normal | MostWidth | MostHeight | MostBlockSize | MostInlineSize | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for position-try-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("position-try-order", Atom.to_string(css))).

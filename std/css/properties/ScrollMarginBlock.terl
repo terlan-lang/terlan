@@ -19,58 +19,24 @@
  */
 module std.css.properties.ScrollMarginBlock.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, serialize}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
-import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
+pub type Component = Length.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked = {Atom["css_parts"], List[std.css.Values.Length]}.
 
 pub struct Property {
-    scroll_margin_block: Value,
+    scroll_margin_block: Length | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for scroll-margin-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Supplies 1 components in grammar order.
  */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-margin-block", Atom.to_string(css))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Sets scroll-margin-block from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
+ * Supplies 2 components in grammar order.
  */
-pub length(value: Length): Value ->
-    Value(serialize("scroll-margin-block", length_css(value))).
-
-/**
- * Sets scroll-margin-block shorthand component from a typed length. Use std.css.Values.px, root_em,
- * em, vw, or vh to choose the unit.
- */
-pub component_length(value: Length): Component ->
-    Component(serialize("scroll-margin-block", length_css(value))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
-
-/**
- * Supplies 1 components in the grammar order shown above.
- */
-pub single(first: Component): Value ->
-    Value(serialize("scroll-margin-block", component_css(first))).
-
-/**
- * Supplies 2 components in the grammar order shown above.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("scroll-margin-block", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

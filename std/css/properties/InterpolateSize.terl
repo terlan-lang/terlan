@@ -20,10 +20,7 @@
  */
 module std.css.properties.InterpolateSize.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Enables [interpolation](https://developer.mozilla.org/en-US/docs/Glossary/Interpolation) between
@@ -36,17 +33,6 @@ pub type AllowKeywords = Atom["allow-keywords"].
  */
 pub type NumericOnly = Atom["numeric-only"].
 
-pub type Css = NumericOnly | AllowKeywords | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    interpolate_size: Value,
+    interpolate_size: NumericOnly | AllowKeywords | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for interpolate-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("interpolate-size", Atom.to_string(css))).

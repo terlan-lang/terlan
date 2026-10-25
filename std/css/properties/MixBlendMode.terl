@@ -22,10 +22,7 @@
  */
 module std.css.properties.MixBlendMode.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Creates a color with the hue and saturation of the source color and the luminosity of the
@@ -119,39 +116,6 @@ pub type Screen.
  */
 pub type SoftLight = Atom["soft-light"].
 
-pub type Css =
-      Normal
-    | Darken
-    | Multiply
-    | ColorBurn
-    | Lighten
-    | Screen
-    | ColorDodge
-    | Overlay
-    | SoftLight
-    | HardLight
-    | Difference
-    | Exclusion
-    | Hue
-    | Saturation
-    | ColorKeyword
-    | Luminosity
-    | PlusLighter
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    mix_blend_mode: Value,
+    mix_blend_mode: Normal | Darken | Multiply | ColorBurn | Lighten | Screen | ColorDodge | Overlay | SoftLight | HardLight | Difference | Exclusion | Hue | Saturation | ColorKeyword | Luminosity | PlusLighter | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for mix-blend-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("mix-blend-mode", Atom.to_string(css))).

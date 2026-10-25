@@ -53,29 +53,6 @@ pub type Center =
 pub type Central =
     Atom["central"].
 
-pub type Css =
-    First
-  | Last
-  | Baseline
-  | TextBottom
-  | Alphabetic
-  | Ideographic
-  | Middle
-  | Central
-  | Mathematical
-  | Hanging
-  | TextTop
-  | Sub
-  | Super
-  | Top
-  | Center
-  | Bottom
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type First =
     Atom["first"].
 
@@ -109,7 +86,7 @@ pub type Middle =
     Atom["middle"].
 
 pub struct Property {
-    vertical_align: Value
+    vertical_align: First | Last | Baseline | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | Sub | Super | Top | Center | Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Aligns the baseline of the cell with the baseline of all other cells in the row that are
@@ -140,19 +117,3 @@ pub type TextTop =
 
 pub type Top =
     Atom["top"].
-
-pub opaque type Value.
-
-/// Sets vertical-align from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets vertical-align from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for vertical-align. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

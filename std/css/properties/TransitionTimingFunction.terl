@@ -19,10 +19,7 @@
  */
 module std.css.properties.TransitionTimingFunction.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Equal to `cubic-bezier(0.25, 0.1, 0.25, 1.0)`, the default value, increases in velocity towards
@@ -89,29 +86,6 @@ pub type StepEnd = Atom["step-end"].
  */
 pub type StepStart = Atom["step-start"].
 
-pub type Css =
-      Linear
-    | Ease
-    | EaseIn
-    | EaseOut
-    | EaseInOut
-    | StepStart
-    | StepEnd
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    transition_timing_function: Value,
+    transition_timing_function: Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for transition-timing-function. CSS-wide choices Inherit, Initial, Unset,
- * Revert, and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("transition-timing-function", Atom.to_string(css))).

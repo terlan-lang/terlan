@@ -25,18 +25,8 @@ module std.css.properties.StrokeLinecap.
 pub type Butt =
     Atom["butt"].
 
-pub type Css =
-    Butt
-  | Round
-  | Square
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    stroke_linecap: Value
+    stroke_linecap: Butt | Round | Square | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Indicates that at the end of each subpath the stroke will be extended by a half circle with a
@@ -53,10 +43,3 @@ pub type Round =
 
 pub type Square =
     Atom["square"].
-
-pub opaque type Value.
-
-/// Selects a keyword for stroke-linecap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

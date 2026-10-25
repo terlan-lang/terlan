@@ -23,22 +23,8 @@
  */
 module std.css.properties.GridArea.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    grid_area: Value,
+    grid_area: Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for grid-area. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("grid-area", Atom.to_string(css))).

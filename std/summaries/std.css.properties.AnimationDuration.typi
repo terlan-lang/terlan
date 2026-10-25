@@ -25,25 +25,6 @@ module std.css.properties.AnimationDuration.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    animation_duration: Value
+    animation_duration: Auto | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets animation-duration from a typed time.
-
-pub time(value: std.css.Values.Time): Value.
-
-/// Selects a keyword for animation-duration. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

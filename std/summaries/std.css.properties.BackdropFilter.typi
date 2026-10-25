@@ -19,26 +19,11 @@
 
 module std.css.properties.BackdropFilter.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// No filter is applied to the backdrop.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    backdrop_filter: Value
+    backdrop_filter: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for backdrop-filter. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

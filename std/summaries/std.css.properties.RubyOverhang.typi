@@ -25,25 +25,9 @@ module std.css.properties.RubyOverhang.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Spaces
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    ruby_overhang: Value
+    ruby_overhang: Auto | Spaces | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type Spaces =
     Atom["spaces"].
-
-pub opaque type Value.
-
-/// Selects a keyword for ruby-overhang. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

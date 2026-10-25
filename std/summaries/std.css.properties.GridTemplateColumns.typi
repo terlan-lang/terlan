@@ -24,17 +24,7 @@ module std.css.properties.GridTemplateColumns.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    None
-  | MinContent
-  | MaxContent
-  | Auto
-  | Subgrid
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Represents the largest max-content contribution of the grid items occupying the grid track.
 
@@ -53,7 +43,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    grid_template_columns: Value
+    grid_template_columns: None | MinContent | MaxContent | Auto | Subgrid | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// The `subgrid` value indicates that the grid will adopt the spanned portion of its parent grid in
@@ -63,19 +53,12 @@ pub struct Property {
 pub type Subgrid =
     Atom["subgrid"].
 
-pub opaque type Value.
-
-/// Sets grid-template-columns from a typed length. Returns Some for amount >= 0; otherwise returns
+/// Checks the grid-template-columns length range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Sets grid-template-columns from a typed percentage. Returns Some for amount >= 0; otherwise
+/// Checks the grid-template-columns percentage range. Returns Some when amount >= 0; otherwise
 /// returns None.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for grid-template-columns. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

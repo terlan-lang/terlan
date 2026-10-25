@@ -23,27 +23,13 @@
  */
 module std.css.properties.Stroke.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * No paint is applied in this layer.
  */
 pub type None.
 
-pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    stroke: Value,
+    stroke: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for stroke. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("stroke", Atom.to_string(css))).

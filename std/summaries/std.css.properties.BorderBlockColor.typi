@@ -21,39 +21,21 @@
 
 module std.css.properties.BorderBlockColor.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub type Component =
+    std.css.Values.Color
+  | std.css.Values.Transparent
+  | std.css.Values.CurrentColor.
 
 pub struct Property {
-    border_block_color: Value
+    border_block_color: std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Supplies 2 components in grammar order.
 
-/// Sets border-block-color from a typed color. Use std.css.Values.rgb or color to choose the paint.
+pub pair(first: Component, second: Component): Checked.
 
-pub color(value: std.css.Values.Color): Value.
+/// Supplies 1 components in grammar order.
 
-/// Sets border-block-color shorthand component from a typed color. Use std.css.Values.rgb or color
-/// to choose the paint.
-
-pub component_color(value: std.css.Values.Color): Component.
-
-/// Supplies 2 components in the grammar order shown above.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for border-block-color. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

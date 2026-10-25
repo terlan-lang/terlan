@@ -19,10 +19,7 @@
  */
 module std.css.properties.ScrollInitialTarget.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element is potentially an initial scroll target for its nearest scroll container ancestor.
@@ -34,17 +31,6 @@ pub type Nearest.
  */
 pub type None.
 
-pub type Css = None | Nearest | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    scroll_initial_target: Value,
+    scroll_initial_target: None | Nearest | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for scroll-initial-target. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-initial-target", Atom.to_string(css))).

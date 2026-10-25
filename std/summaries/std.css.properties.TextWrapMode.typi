@@ -17,15 +17,6 @@
 
 module std.css.properties.TextWrapMode.
 
-pub type Css =
-    Wrap
-  | Nowrap
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Text does not wrap across lines. It will overflow its containing element rather than breaking
 /// onto a new line.
 
@@ -33,18 +24,11 @@ pub type Nowrap =
     Atom["nowrap"].
 
 pub struct Property {
-    text_wrap_mode: Value
+    text_wrap_mode: Wrap | Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// Text is wrapped across lines at appropriate characters (for example spaces, in languages like
 /// English that use space separators) to minimize overflow. This is the default value.
 
 pub type Wrap =
     Atom["wrap"].
-
-/// Selects a keyword for text-wrap-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

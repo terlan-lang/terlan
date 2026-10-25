@@ -19,16 +19,6 @@
 
 module std.css.properties.TextOrientation.
 
-pub type Css =
-    Mixed
-  | Upright
-  | Sideways
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Rotates the characters of horizontal scripts 90° clockwise. Lays out the characters of vertical
 /// scripts naturally. Default value.
 
@@ -36,7 +26,7 @@ pub type Mixed =
     Atom["mixed"].
 
 pub struct Property {
-    text_orientation: Value
+    text_orientation: Mixed | Upright | Sideways | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Causes characters to be laid out as they would be horizontally, but with the whole line rotated
@@ -51,10 +41,3 @@ pub type Sideways =
 
 pub type Upright =
     Atom["upright"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-orientation. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

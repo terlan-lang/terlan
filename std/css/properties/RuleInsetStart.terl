@@ -14,27 +14,13 @@
  */
 module std.css.properties.RuleInsetStart.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps.
  */
 pub type OverlapJoin = Atom["overlap-join"].
 
-pub type Css = OverlapJoin | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    rule_inset_start: Value,
+    rule_inset_start: OverlapJoin | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for rule-inset-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("rule-inset-start", Atom.to_string(css))).

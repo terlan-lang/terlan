@@ -21,11 +21,7 @@
  */
 module std.css.properties.VerticalAlign.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * Used in writing Latin, Cyrillic, Greek, and many other scripts; matches the box's alphabetic
@@ -117,51 +113,6 @@ pub type TextTop = Atom["text-top"].
  */
 pub type Top.
 
-pub type Css =
-      First
-    | Last
-    | Baseline
-    | TextBottom
-    | Alphabetic
-    | Ideographic
-    | Middle
-    | Central
-    | Mathematical
-    | Hanging
-    | TextTop
-    | Sub
-    | Super
-    | Top
-    | Center
-    | Bottom
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    vertical_align: Value,
+    vertical_align: First | Last | Baseline | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | Sub | Super | Top | Center | Bottom | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for vertical-align. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("vertical-align", Atom.to_string(css))).
-
-/**
- * Sets vertical-align from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
- * the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("vertical-align", length_css(value))).
-
-/**
- * Sets vertical-align from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("vertical-align", percentage_css(value))).

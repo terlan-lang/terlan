@@ -44,22 +44,6 @@ pub type Auto =
 pub type Central =
     Atom["central"].
 
-pub type Css =
-    Auto
-  | TextBottom
-  | Alphabetic
-  | Ideographic
-  | Middle
-  | Central
-  | Mathematical
-  | Hanging
-  | TextTop
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The baseline-identifier for the dominant-baseline is set to be `hanging`, the derived
 /// baseline-table is constructed using the `hanging` baseline-table in the font, and the
 /// baseline-table font-size is changed to the value of the `font-size` SVG attribute of `font-size`
@@ -94,7 +78,7 @@ pub type Middle =
     Atom["middle"].
 
 pub struct Property {
-    dominant_baseline: Value
+    dominant_baseline: Auto | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The _line-under_ edge is used as the baseline, which is usually the bottom edge of the font's em
@@ -107,10 +91,3 @@ pub type TextBottom =
 
 pub type TextTop =
     Atom["text-top"].
-
-pub opaque type Value.
-
-/// Selects a keyword for dominant-baseline. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

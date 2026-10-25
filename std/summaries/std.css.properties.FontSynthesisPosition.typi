@@ -24,27 +24,11 @@ module std.css.properties.FontSynthesisPosition.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that the synthesis of a missing position typeface by the browser is not allowed.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    font_synthesis_position: Value
+    font_synthesis_position: Auto | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-synthesis-position. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

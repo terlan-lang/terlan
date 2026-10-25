@@ -20,10 +20,7 @@
  */
 module std.css.properties.UnicodeBidi.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * For inline elements this creates an override. For block container elements this creates an
@@ -68,28 +65,6 @@ pub type Normal.
  */
 pub type Plaintext.
 
-pub type Css =
-      Normal
-    | Embed
-    | Isolate
-    | BidiOverride
-    | IsolateOverride
-    | Plaintext
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    unicode_bidi: Value,
+    unicode_bidi: Normal | Embed | Isolate | BidiOverride | IsolateOverride | Plaintext | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for unicode-bidi. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("unicode-bidi", Atom.to_string(css))).

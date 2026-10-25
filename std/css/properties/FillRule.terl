@@ -18,10 +18,7 @@
  */
 module std.css.properties.FillRule.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * For every point in the fill rule's box, a ray is drawn in a random direction. The number of path
@@ -39,17 +36,6 @@ pub type Evenodd.
  */
 pub type Nonzero.
 
-pub type Css = Nonzero | Evenodd | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    fill_rule: Value,
+    fill_rule: Nonzero | Evenodd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for fill-rule. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("fill-rule", Atom.to_string(css))).

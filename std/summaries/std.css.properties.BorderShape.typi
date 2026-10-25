@@ -16,26 +16,11 @@
 
 module std.css.properties.BorderShape.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that no border shape is defined. This is the initial value.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    border_shape: Value
+    border_shape: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for border-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

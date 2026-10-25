@@ -20,34 +20,13 @@
  */
 module std.css.properties.InterestDelayStart.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{serialize, time_css}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Time, Unset}.
 
 /**
  * Sets the delay to the browser's default delay. This is the initial value.
  */
 pub type Normal.
 
-pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    interest_delay_start: Value,
+    interest_delay_start: Normal | Time | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for interest-delay-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("interest-delay-start", Atom.to_string(css))).
-
-/**
- * Sets interest-delay-start from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(serialize("interest-delay-start", time_css(value))).

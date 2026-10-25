@@ -19,56 +19,45 @@
 
 module std.css.properties.Padding.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type CheckedComponent.
+
+pub type Component =
+    CheckedComponent.
 
 pub struct Property {
-    padding: Value
+    padding: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the padding length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets padding shorthand component from a typed length. Returns Some for amount >= 0; otherwise
-/// returns None.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+/// Checks the padding percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets padding shorthand component from a typed percentage. Returns Some for amount >= 0; otherwise
-/// returns None.
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
+/// Checks the padding length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets padding from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
+pub length(value: std.css.Values.Length): Option[Checked].
 
 /// First sets top/bottom; second sets left/right.
 
-pub pair(first: Component, second: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Sets padding from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+/// Checks the padding percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
 
 /// Sets top, right, bottom, and left in that order.
 
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
 /// Applies to all four sides.
 
-pub single(first: Component): Value.
+pub single(first: Component): Checked.
 
 /// First sets top; second sets left/right; third sets bottom.
 
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Selects a keyword for padding. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub triple(first: Component, second: Component, third: Component): Checked.

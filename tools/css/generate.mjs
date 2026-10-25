@@ -11,6 +11,7 @@ import webref from '@webref/css';
 import mdn from 'mdn-data';
 import { atomAdopted, propertyAdoption } from './adoption.mjs';
 import { comment, normalize } from './documentation.mjs';
+import { renderProperty } from './property.mjs';
 const documentation = JSON.parse(await readFile(new URL('documentation-data.json', import.meta.url)));
 const cssLabels = JSON.parse(await readFile(new URL('node_modules/mdn-data/l10n/css.json', import.meta.url)));
 const label = key => Array.isArray(key) ? key.map(name => `${name}: ${label(mdn.css.properties[name]?.percentages ?? 'see specification')}`).join('; ') : normalize(cssLabels[key]?.['en-US'] ?? String(key));
@@ -128,141 +129,10 @@ const callable = name => {
 };
 
 export function generateProperty(property, definitions, adoptedAtoms = null) {
-  const name = typeName(property.name);
-  const grammar = definitionSyntax.parse(property.syntax);
-  const supported = atoms => adoptedAtoms === null ? atoms : atoms.filter(atom => atomAdopted(property.name, atom, adoptedAtoms));
-  const atoms = [...new Map(supported(atomicValues(grammar, definitions, new Set(), property.name))
-    .map(value => [JSON.stringify(value), value])).values()];
-  let repeated = repeatedValues(grammar, definitions, new Set(), property.name);
-  if (repeated) {
-    repeated = { ...repeated, atoms: supported(repeated.atoms) };
-    if (!repeated.atoms.length) repeated = null;
-  }
-  let grouped = groupedValues(grammar, definitions, new Set(), property.name);
-  if (grouped) {
-    grouped = { ...grouped, groups: grouped.groups.map(group => ({ ...group, atoms: supported(group.atoms) })) };
-    if (grouped.groups.some(group => !group.atoms.length)) grouped = null;
-  }
-  const keywordAtoms = [...atoms, ...(repeated?.atoms ?? []), ...(grouped?.groups.flatMap(group => group.atoms) ?? [])]
-    .filter(atom => atom.kind === 'keyword' && !globals.includes(atom.name));
-  const reservedTypes = new Set(['Value', 'Css', 'CssWide', 'Property', 'Component', 'ComponentCss', 'SerializedValue', 'Absent', 'Some', 'Option', 'Length', 'Percentage', 'Color', 'Angle', 'Time',
-    'Int', 'Float', 'Number', 'Binary', 'String', 'Text', 'Atom', 'Bool', 'Term', 'Dynamic', 'Never', 'Unit', 'List', 'Map', 'Set', 'Iterator', 'Task',
-    ...(grouped?.groups.flatMap(group => [`${typeName(group.name)}Part`, `${typeName(group.name)}Css`]) ?? [])]);
-  const keywordNames = new Map([...new Set(keywordAtoms.map(atom => atom.name))].sort().map(keyword => {
-    const name = typeName(keyword);
-    return [keyword, reservedTypes.has(name) ? name + 'Keyword' : name];
-  }));
-  const docs = documentation.properties[property.name];
-  const declarations = [...keywordNames].map(([keyword, name]) => (docs?.values[keyword] ? comment(docs.values[keyword] + (docs.valueSources?.[keyword] ? `\n\nAuthor guide: ${docs.valueSources[keyword]}` : '')) + '\n' : '') + `pub type ${name} = Atom[${JSON.stringify(keyword)}].`);
-  const keywordTypes = values => [...new Set(values.filter(atom => atom.kind === 'keyword' && !globals.includes(atom.name)).map(atom => keywordNames.get(atom.name)))];
-  const constructors = [];
-  const imports = new Set(['import std.core.Atom.', 'import std.css.Values.{serialize}.', 'import type std.css.Values.{Inherit, Initial, Unset, Revert, RevertLayer, SerializedValue}.']);
-  const token = (resultType, css) => `${resultType}(serialize(${JSON.stringify(property.name)}, ${css}))`;
-  const cssChoices = [...keywordTypes(atoms), 'Inherit', 'Initial', 'Unset', 'Revert', 'RevertLayer'];
-  declarations.push(`pub type Css = ${cssChoices.join(' | ')}.`);
-  constructors.push(`${comment(`Selects a keyword for ${property.name}. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer apply to the entire declaration.`)}\npub value(css: Css): Value ->\n    ${token('Value', 'Atom.to_string(css)')}.`);
-  let needsOption = false;
-  const emitPrimitives = (values, resultType, prefix = '', construct = css => token(resultType, css)) => {
-    const emitted = new Set();
-    for (const atom of values.filter(a => a.kind === 'primitive')) {
-      const primitive = primitives.get(atom.name);
-      const [valueType, render] = primitive ?? [atom.name === 'integer' ? 'Int' : 'Float', null];
-      const min = typeof atom.range?.min === 'number' ? atom.range.min : null;
-      const max = typeof atom.range?.max === 'number' ? atom.range.max : null;
-      let fn = prefix + atom.name;
-      if (emitted.has(fn)) fn += `_${emitted.size}`;
-      emitted.add(fn);
-      let expression;
-      if (primitive) {
-        imports.add(`import type std.css.Values.{${valueType}}.`);
-        imports.add('import std.css.Values.');
-        expression = `std.css.Values.${render}(value)`;
-      } else {
-        imports.add(`import std.core.${valueType}.`);
-        expression = `std.core.${valueType}.to_string(value)`;
-      }
-      const check = primitive && (min !== null || max !== null) ? `std.css.Values.${atom.name}_amount(value)` : 'value';
-      const conditions = [min !== null ? `${check} >= ${min}` : null, max !== null ? `${check} <= ${max}` : null].filter(Boolean);
-      if (conditions.length) {
-        needsOption = true;
-        constructors.push(`${comment(`Sets ${property.name}${resultType === 'Component' ? ' shorthand component' : resultType !== 'Value' ? ' ' + resultType + ' part' : ''} from a typed ${atom.name}. Returns Some for ${min !== null ? 'amount >= ' + min : ''}${min !== null && max !== null ? ' and ' : ''}${max !== null ? 'amount <= ' + max : ''}; otherwise returns None.`)}\npub ${fn}(value: ${valueType}): Option[${resultType}] ->\n    case ${conditions.join(' and ')} {\n        true -> Some(${construct(expression)});\n        false -> Absent\n    }.`);
-      } else {
-        constructors.push(`${comment(`Sets ${property.name}${resultType === 'Component' ? ' shorthand component' : resultType !== 'Value' ? ' ' + resultType + ' part' : ''} from a typed ${atom.name}. ${atom.name === 'length' ? 'Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.' : atom.name === 'color' ? 'Use std.css.Values.rgb or color to choose the paint.' : ''}`)}\npub ${fn}(value: ${valueType}): ${resultType} ->\n    ${construct(expression)}.`);
-      }
-    }
-  };
-  emitPrimitives(atoms, 'Value');
-  if (repeated) {
-    const choices = keywordTypes(repeated.atoms);
-    if (choices.length) {
-      declarations.push(`pub type ComponentCss = ${choices.join(' | ')}.`);
-      constructors.push(`${comment(`Chooses one ${property.name} shorthand component. CSS-wide keywords are accepted only by value(css) for the whole declaration.`)}\npub component(css: ComponentCss): Component ->\n    ${token('Component', 'Atom.to_string(css)')}.`);
-    }
-    emitPrimitives(repeated.atoms, 'Component', 'component_');
-    constructors.push('component_css(value: Component): String ->\n    let serialized = component_value(value);\n    serialized.css.\n\ncomponent_value(value: Component): SerializedValue ->\n    value.');
-    const parameters = ['first', 'second', 'third', 'fourth'];
-    const arities = ['single', 'pair', 'triple', 'quad'];
-    for (let count = repeated.min; count <= repeated.max; count++) {
-      const names = parameters.slice(0, count);
-      const args = names.map(name => `${name}: Component`).join(', ');
-      const css = names.map(name => `component_css(${name})`).join(' + " " + ');
-      const fourSides = ['margin', 'padding', 'inset', 'border-color', 'border-width', 'border-style', 'scroll-margin', 'scroll-padding'].includes(property.name);
-      const expansion = fourSides ? ['Applies to all four sides.', 'First sets top/bottom; second sets left/right.', 'First sets top; second sets left/right; third sets bottom.', 'Sets top, right, bottom, and left in that order.'][count - 1] : `Supplies ${count} components in the grammar order shown above.`;
-      constructors.push(`${comment(expansion)}\npub ${arities[count - 1]}(${args}): Value ->\n    ${token('Value', css)}.`);
-    }
-  }
-  if (grouped) {
-    const parameters = [];
-    const expressions = [];
-    for (const group of grouped.groups) {
-      const parameter = callable(group.name);
-      const [atom] = group.atoms;
-      const direct = group.atoms.length === 1 && atom.kind === 'primitive'
-        && atom.range?.min == null && atom.range?.max == null;
-      if (direct) {
-        const primitive = primitives.get(atom.name);
-        const [valueType, render] = primitive ?? [atom.name === 'integer' ? 'Int' : 'Float', null];
-        if (primitive) {
-          imports.add(`import type std.css.Values.{${valueType}}.`);
-          imports.add('import std.css.Values.');
-          expressions.push(`std.css.Values.${render}(${parameter})`);
-        } else {
-          imports.add(`import std.core.${valueType}.`);
-          expressions.push(`std.core.${valueType}.to_string(${parameter})`);
-        }
-        parameters.push(`${parameter}: ${valueType}`);
-        continue;
-      }
-      const partType = `${typeName(group.name)}Part`;
-      const choices = keywordTypes(group.atoms);
-      const keywordOnly = group.atoms.every(atom => atom.kind === 'keyword');
-      const prefix = identifier(group.name) + '_';
-      if (keywordOnly) {
-        declarations.push(`pub type ${partType} = ${choices.join(' | ')}.`);
-        expressions.push(`Atom.to_string(${parameter})`);
-      } else {
-        declarations.push(`pub opaque type ${partType} = String.`);
-        if (choices.length) {
-          const cssType = `${typeName(group.name)}Css`;
-          declarations.push(`pub type ${cssType} = ${choices.join(' | ')}.`);
-          constructors.push(`${comment(`Chooses the ${group.name} part for compose. See the keyword types for their visual behavior.`)}\npub ${parameter}(css: ${cssType}): ${partType} ->\n    ${partType}(Atom.to_string(css)).`);
-        }
-        emitPrimitives(group.atoms, partType, prefix, css => `${partType}(${css})`);
-        constructors.push(`${prefix}css(value: ${partType}): String ->\n    value.`);
-        expressions.push(`${prefix}css(${parameter})`);
-      }
-      parameters.push(`${parameter}: ${partType}`);
-    }
-    constructors.push(`${comment(`Sets ${property.name} by combining ${grouped.groups.map(group => group.name).join(', ')} in grammar order. Each argument describes a distinct part of the declaration.`)}\npub compose(${parameters.join(', ')}): Value ->\n    ${token('Value', expressions.join(' + " " + '))}.`);
-  }
-  if (needsOption) {
-    imports.add('import std.core.Option.{None as Absent, Some}.');
-    imports.add('import type std.core.Option.');
-  }
-  const component = repeated ? 'pub opaque type Component = SerializedValue.\n\n' : '';
-  const overview = [docs?.description, propertyFacts(property.name), `Grammar: ${property.syntax}`, `Specification: ${property.href}`, ...(docs ? [`Author guide: ${docs.source}`, ...(docs.license ? ['Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).'] : []), ...(docs.microsoftValues ? ['Additional value descriptions: Microsoft (MIT).'] : [])] : []), 'Generated from @webref/css 8.7.8. Do not edit.'].filter(Boolean).join('\n\n');
-  const source = `${comment(overview)}\nmodule std.css.properties.${name}.\n\n${[...imports].sort().join('\n')}\n\n${declarations.join('\n\n')}\n\npub opaque type Value = SerializedValue.\n\n${component}pub struct Property {\n    ${identifier(property.name)}: Value,\n}.\n\n${constructors.join('\n\n')}\n`;
-  return { source, atoms, repeated, grouped };
+  return renderProperty(property, definitions, adoptedAtoms, {
+    identifier, typeName, atomicValues, repeatedValues, groupedValues,
+    documentation, propertyFacts, keywordModule: null
+  });
 }
 
 async function main() {

@@ -1,6 +1,5 @@
 module typed_css.InvalidColorEnum.
 
-import std.css.Values.
-
-pub invalid(): Values.Color ->
-    Values.color(Atom["not-a-color-keyword"]).
+import type std.css.properties.BackgroundColor.{Property as BaseProperty}.
+pub struct Style includes BaseProperty {}.
+pub invalid(): Style -> Style {background_color: Atom["not-a-color-keyword"]}.

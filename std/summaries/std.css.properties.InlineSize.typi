@@ -26,17 +26,7 @@ module std.css.properties.InlineSize.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Stretch
-  | MinContent
-  | MaxContent
-  | FitContent
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub type FitContent =
     Atom["fit-content"].
@@ -48,23 +38,16 @@ pub type MinContent =
     Atom["min-content"].
 
 pub struct Property {
-    inline_size: Value
+    inline_size: Auto | Stretch | MinContent | MaxContent | FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 pub type Stretch =
     Atom["stretch"].
 
-pub opaque type Value.
+/// Checks the inline-size length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets inline-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
+/// Checks the inline-size percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets inline-size from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for inline-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

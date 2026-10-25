@@ -19,10 +19,7 @@
  */
 module std.css.properties.AnchorName.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The default value. Setting `anchor-name: none` on an element means that it is not defined as an
@@ -31,17 +28,6 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type None.
 
-pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    anchor_name: Value,
+    anchor_name: None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for anchor-name. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("anchor-name", Atom.to_string(css))).

@@ -20,10 +20,7 @@
  */
 module std.css.properties.PositionAnchor.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Associates a positioned element with its implicit anchor element, if it has one — for example as
@@ -52,26 +49,6 @@ pub type None.
  */
 pub type Normal.
 
-pub type Css =
-      Normal
-    | None
-    | Auto
-    | MatchParent
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    position_anchor: Value,
+    position_anchor: Normal | None | Auto | MatchParent | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for position-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("position-anchor", Atom.to_string(css))).

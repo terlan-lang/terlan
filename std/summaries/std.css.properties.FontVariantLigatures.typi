@@ -31,23 +31,6 @@ pub type CommonLigatures =
 pub type Contextual =
     Atom["contextual"].
 
-pub type Css =
-    Normal
-  | None
-  | CommonLigatures
-  | NoCommonLigatures
-  | DiscretionaryLigatures
-  | NoDiscretionaryLigatures
-  | HistoricalLigatures
-  | NoHistoricalLigatures
-  | Contextual
-  | NoContextual
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Enables display of discretionary ligatures.
 
 pub type DiscretionaryLigatures =
@@ -91,12 +74,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_variant_ligatures: Value
+    font_variant_ligatures: Normal | None | CommonLigatures | NoCommonLigatures | DiscretionaryLigatures | NoDiscretionaryLigatures | HistoricalLigatures | NoHistoricalLigatures | Contextual | NoContextual | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant-ligatures. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

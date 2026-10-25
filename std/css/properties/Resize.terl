@@ -17,10 +17,7 @@
  */
 module std.css.properties.Resize.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element displays a mechanism for allowing the user to resize it in the _block_ direction
@@ -56,28 +53,6 @@ pub type None.
  */
 pub type Vertical.
 
-pub type Css =
-      None
-    | Both
-    | Horizontal
-    | Vertical
-    | Block
-    | Inline
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    resize: Value,
+    resize: None | Both | Horizontal | Vertical | Block | Inline | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for resize. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("resize", Atom.to_string(css))).

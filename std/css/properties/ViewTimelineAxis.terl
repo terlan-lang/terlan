@@ -19,10 +19,7 @@
  */
 module std.css.properties.ViewTimelineAxis.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Block.
 
@@ -32,17 +29,6 @@ pub type X.
 
 pub type Y.
 
-pub type Css = Block | Inline | X | Y | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    view_timeline_axis: Value,
+    view_timeline_axis: Block | Inline | X | Y | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for view-timeline-axis. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("view-timeline-axis", Atom.to_string(css))).

@@ -18,10 +18,7 @@
  */
 module std.css.properties.BreakInside.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Allows, but does not force, any break (page, column, or region) to be inserted within the
@@ -49,27 +46,6 @@ pub type AvoidPage = Atom["avoid-page"].
  */
 pub type AvoidRegion = Atom["avoid-region"].
 
-pub type Css =
-      Auto
-    | Avoid
-    | AvoidPage
-    | AvoidColumn
-    | AvoidRegion
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    break_inside: Value,
+    break_inside: Auto | Avoid | AvoidPage | AvoidColumn | AvoidRegion | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for break-inside. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("break-inside", Atom.to_string(css))).

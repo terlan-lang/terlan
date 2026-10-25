@@ -36,17 +36,6 @@ pub type All =
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | TextKeyword
-  | None
-  | All
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The text of the element and its sub-elements is not selectable. Note that the `Selection` object
 /// can contain these elements.
 
@@ -54,17 +43,10 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    user_select: Value
+    user_select: Auto | TextKeyword | None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The text can be selected by the user.
 
 pub type TextKeyword =
     Atom["text"].
-
-pub opaque type Value.
-
-/// Selects a keyword for user-select. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

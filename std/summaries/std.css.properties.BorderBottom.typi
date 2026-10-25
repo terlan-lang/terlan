@@ -20,25 +20,14 @@
 
 module std.css.properties.BorderBottom.
 
-pub type Css =
-    Thin
-  | Medium
-  | Thick
-  | None
-  | Hidden
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
+
+pub opaque type CheckedLineWidth.
+
+pub type ColorPart =
+    std.css.Values.Color
+  | std.css.Values.Transparent
+  | std.css.Values.CurrentColor.
 
 /// Displays a series of short square-ended dashes or line segments. The exact size and length of the
 /// segments are not defined by the specification and are implementation-specific.
@@ -105,12 +94,11 @@ pub type LineStylePart =
   | Inset
   | Outset.
 
-pub type LineWidthCss =
+pub type LineWidthPart =
     Thin
   | Medium
-  | Thick.
-
-pub opaque type LineWidthPart.
+  | Thick
+  | CheckedLineWidth.
 
 /// Same as `3px`.
 ///
@@ -140,7 +128,7 @@ pub type Outset =
     Atom["outset"].
 
 pub struct Property {
-    border_bottom: Value
+    border_bottom: Thin | Medium | Thick | None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Displays a border with an extruded appearance. This value is the opposite of `groove`.
@@ -171,31 +159,15 @@ pub type Thick =
 pub type Thin =
     Atom["thin"].
 
-pub opaque type Value.
+/// Combines line-width, line-style, color for border-bottom. Each parameter accepts its own keyword
+/// or typed unit choices directly.
 
-/// Sets border-bottom from a typed color. Use std.css.Values.rgb or color to choose the paint.
+pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart): Checked.
 
-pub color(value: std.css.Values.Color): Value.
+/// Checks the border-bottom length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-bottom by combining line-width, line-style, color in grammar order. Each argument
-/// describes a distinct part of the declaration.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: std.css.Values.Color): Value.
+/// Checks the border-bottom length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-bottom from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Chooses the line-width part for compose. See the keyword types for their visual behavior.
-
-pub line_width(css: LineWidthCss): LineWidthPart.
-
-/// Sets border-bottom LineWidthPart part from a typed length. Returns Some for amount >= 0;
-/// otherwise returns None.
-
-pub line_width_length(value: std.css.Values.Length): Option[LineWidthPart].
-
-/// Selects a keyword for border-bottom. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub line_width_length(value: std.css.Values.Length): Option[CheckedLineWidth].

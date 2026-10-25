@@ -22,23 +22,6 @@ module std.css.properties.OutlineStyle.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The outline is a series of short line segments.
 
 pub type Dashed =
@@ -76,7 +59,7 @@ pub type Outset =
     Atom["outset"].
 
 pub struct Property {
-    outline_style: Value
+    outline_style: Auto | None | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The opposite of `groove`: the outline looks as though it were extruded from the page.
@@ -88,10 +71,3 @@ pub type Ridge =
 
 pub type Solid =
     Atom["solid"].
-
-pub opaque type Value.
-
-/// Selects a keyword for outline-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

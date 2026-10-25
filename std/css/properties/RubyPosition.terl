@@ -20,10 +20,7 @@
  */
 module std.css.properties.RubyPosition.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Is a keyword indicating that the ruby alternates between over and under, when there are multiple
@@ -49,26 +46,6 @@ pub type Over.
  */
 pub type Under.
 
-pub type Css =
-      Alternate
-    | Over
-    | Under
-    | InterCharacter
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    ruby_position: Value,
+    ruby_position: Alternate | Over | Under | InterCharacter | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for ruby-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("ruby-position", Atom.to_string(css))).

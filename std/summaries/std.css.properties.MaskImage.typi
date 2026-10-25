@@ -20,26 +20,11 @@
 
 module std.css.properties.MaskImage.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// This keyword is interpreted as a transparent black image layer.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    mask_image: Value
+    mask_image: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for mask-image. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

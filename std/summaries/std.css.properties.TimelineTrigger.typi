@@ -25,14 +25,6 @@
 
 module std.css.properties.TimelineTrigger.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that the element does not create a trigger, resetting all four longhand properties to
 /// their default values.
 
@@ -40,12 +32,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    timeline_trigger: Value
+    timeline_trigger: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for timeline-trigger. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

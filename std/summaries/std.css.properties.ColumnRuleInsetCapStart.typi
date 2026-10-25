@@ -16,26 +16,11 @@
 
 module std.css.properties.ColumnRuleInsetCapStart.
 
-pub type Css =
-    OverlapJoin
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Resolves to `0`.
 
 pub type OverlapJoin =
     Atom["overlap-join"].
 
 pub struct Property {
-    column_rule_inset_cap_start: Value
+    column_rule_inset_cap_start: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for column-rule-inset-cap-start. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

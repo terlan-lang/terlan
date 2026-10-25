@@ -17,13 +17,7 @@
 
 module std.css.properties.ColumnGap.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// For multi-column layout, sets the gap to `1em`; otherwise `0`. This is the default value.
 
@@ -31,20 +25,13 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    column_gap: Value
+    column_gap: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the column-gap length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets column-gap from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
+/// Checks the column-gap percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets column-gap from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for column-gap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

@@ -23,27 +23,11 @@ module std.css.properties.TransitionBehavior.
 pub type AllowDiscrete =
     Atom["allow-discrete"].
 
-pub type Css =
-    Normal
-  | AllowDiscrete
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Transitions will _not_ be started on the element for discrete animated properties.
 
 pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    transition_behavior: Value
+    transition_behavior: Normal | AllowDiscrete | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for transition-behavior. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

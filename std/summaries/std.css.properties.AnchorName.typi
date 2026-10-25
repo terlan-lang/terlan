@@ -18,14 +18,6 @@
 
 module std.css.properties.AnchorName.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The default value. Setting `anchor-name: none` on an element means that it is not defined as an
 /// anchor element. If the element was previously defined as an anchor and associated with a
 /// positioned element, setting `anchor-name: none` disassociates the two.
@@ -34,12 +26,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    anchor_name: Value
+    anchor_name: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for anchor-name. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

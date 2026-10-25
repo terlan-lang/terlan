@@ -19,10 +19,7 @@
  */
 module std.css.properties.TextDecorationSkipInk.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The browser _must_ interrupt underlines and overlines so that they do not touch or closely
@@ -44,17 +41,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | All | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_decoration_skip_ink: Value,
+    text_decoration_skip_ink: Auto | None | All | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-decoration-skip-ink. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-decoration-skip-ink", Atom.to_string(css))).

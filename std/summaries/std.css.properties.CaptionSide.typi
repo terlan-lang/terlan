@@ -22,27 +22,11 @@ module std.css.properties.CaptionSide.
 pub type Bottom =
     Atom["bottom"].
 
-pub type Css =
-    Top
-  | Bottom
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    caption_side: Value
+    caption_side: Top | Bottom | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The caption box should be positioned at the block start side of the table.
 
 pub type Top =
     Atom["top"].
-
-pub opaque type Value.
-
-/// Selects a keyword for caption-side. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

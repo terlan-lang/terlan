@@ -22,10 +22,7 @@
  */
 module std.css.properties.FontVariantLigatures.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Enables display of common ligatures.
@@ -79,32 +76,6 @@ pub type None.
  */
 pub type Normal.
 
-pub type Css =
-      Normal
-    | None
-    | CommonLigatures
-    | NoCommonLigatures
-    | DiscretionaryLigatures
-    | NoDiscretionaryLigatures
-    | HistoricalLigatures
-    | NoHistoricalLigatures
-    | Contextual
-    | NoContextual
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_ligatures: Value,
+    font_variant_ligatures: Normal | None | CommonLigatures | NoCommonLigatures | DiscretionaryLigatures | NoDiscretionaryLigatures | HistoricalLigatures | NoHistoricalLigatures | Contextual | NoContextual | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-ligatures. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-ligatures", Atom.to_string(css))).

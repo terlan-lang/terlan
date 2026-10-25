@@ -24,10 +24,7 @@
  */
 module std.css.properties.JustifyContent.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The items are packed flush to each other toward the center of the alignment container along the
@@ -116,34 +113,6 @@ pub type Start.
  */
 pub type Stretch.
 
-pub type Css =
-      Normal
-    | SpaceBetween
-    | SpaceAround
-    | SpaceEvenly
-    | Stretch
-    | Center
-    | Start
-    | End
-    | FlexStart
-    | FlexEnd
-    | Left
-    | Right
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    justify_content: Value,
+    justify_content: Normal | SpaceBetween | SpaceAround | SpaceEvenly | Stretch | Center | Start | End | FlexStart | FlexEnd | Left | Right | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for justify-content. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("justify-content", Atom.to_string(css))).

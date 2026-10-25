@@ -20,14 +20,6 @@
 
 module std.css.properties.AnimationRange.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Represents the start of the timeline. This is the default value.
 ///
 /// Author guide:
@@ -37,21 +29,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    animation_range: Value
+    animation_range: Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets animation-range from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets animation-range from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for animation-range. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

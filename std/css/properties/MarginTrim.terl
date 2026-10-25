@@ -17,10 +17,7 @@
  */
 module std.css.properties.MarginTrim.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Margins provided to the block children where they adjoin the container's edges are trimmed to
@@ -43,26 +40,6 @@ pub type BlockStart = Atom["block-start"].
  */
 pub type None.
 
-pub type Css =
-      None
-    | Block
-    | BlockStart
-    | BlockEnd
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    margin_trim: Value,
+    margin_trim: None | Block | BlockStart | BlockEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for margin-trim. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("margin-trim", Atom.to_string(css))).

@@ -22,10 +22,7 @@
  */
 module std.css.properties.PositionTryFallbacks.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type BlockEnd = Atom["block-end"].
 
@@ -163,78 +160,6 @@ pub type YEnd = Atom["y-end"].
 
 pub type YStart = Atom["y-start"].
 
-pub type Css =
-      None
-    | FlipBlock
-    | FlipInline
-    | FlipStart
-    | FlipX
-    | FlipY
-    | Left
-    | Center
-    | Right
-    | SpanLeft
-    | SpanRight
-    | XStart
-    | XEnd
-    | SpanXStart
-    | SpanXEnd
-    | SelfXStart
-    | SelfXEnd
-    | SpanSelfXStart
-    | SpanSelfXEnd
-    | SpanAll
-    | Top
-    | Bottom
-    | SpanTop
-    | SpanBottom
-    | YStart
-    | YEnd
-    | SpanYStart
-    | SpanYEnd
-    | SelfYStart
-    | SelfYEnd
-    | SpanSelfYStart
-    | SpanSelfYEnd
-    | BlockStart
-    | BlockEnd
-    | SpanBlockStart
-    | SpanBlockEnd
-    | InlineStart
-    | InlineEnd
-    | SpanInlineStart
-    | SpanInlineEnd
-    | SelfBlockStart
-    | SelfBlockEnd
-    | SpanSelfBlockStart
-    | SpanSelfBlockEnd
-    | SelfInlineStart
-    | SelfInlineEnd
-    | SpanSelfInlineStart
-    | SpanSelfInlineEnd
-    | Start
-    | End
-    | SpanStart
-    | SpanEnd
-    | SelfStart
-    | SelfEnd
-    | SpanSelfStart
-    | SpanSelfEnd
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    position_try_fallbacks: Value,
+    position_try_fallbacks: None | FlipBlock | FlipInline | FlipStart | FlipX | FlipY | Left | Center | Right | SpanLeft | SpanRight | XStart | XEnd | SpanXStart | SpanXEnd | SelfXStart | SelfXEnd | SpanSelfXStart | SpanSelfXEnd | SpanAll | Top | Bottom | SpanTop | SpanBottom | YStart | YEnd | SpanYStart | SpanYEnd | SelfYStart | SelfYEnd | SpanSelfYStart | SpanSelfYEnd | BlockStart | BlockEnd | SpanBlockStart | SpanBlockEnd | InlineStart | InlineEnd | SpanInlineStart | SpanInlineEnd | SelfBlockStart | SelfBlockEnd | SpanSelfBlockStart | SpanSelfBlockEnd | SelfInlineStart | SelfInlineEnd | SpanSelfInlineStart | SpanSelfInlineEnd | Start | End | SpanStart | SpanEnd | SelfStart | SelfEnd | SpanSelfStart | SpanSelfEnd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for position-try-fallbacks. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("position-try-fallbacks", Atom.to_string(css))).

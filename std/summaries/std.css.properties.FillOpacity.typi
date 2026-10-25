@@ -19,28 +19,6 @@
 
 module std.css.properties.FillOpacity.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    fill_opacity: Value
+    fill_opacity: Float | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets fill-opacity from a typed number.
-
-pub number(value: Float): Value.
-
-/// Sets fill-opacity from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for fill-opacity. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

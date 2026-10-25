@@ -29,16 +29,6 @@ module std.css.properties.Visibility.
 pub type Collapse =
     Atom["collapse"].
 
-pub type Css =
-    Visible
-  | Hidden
-  | Collapse
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element box is invisible (not drawn), but still affects layout as normal. Descendants of the
 /// element will be visible if they have `visibility` set to `visible`. The element cannot receive
 /// focus (such as when navigating through [tab
@@ -48,17 +38,10 @@ pub type Hidden =
     Atom["hidden"].
 
 pub struct Property {
-    visibility: Value
+    visibility: Visible | Hidden | Collapse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// The element box is visible.
 
 pub type Visible =
     Atom["visible"].
-
-/// Selects a keyword for visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

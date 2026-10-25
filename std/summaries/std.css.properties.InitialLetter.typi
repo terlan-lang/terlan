@@ -18,13 +18,7 @@
 
 module std.css.properties.InitialLetter.
 
-pub type Css =
-    Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// No special initial-letter effect. Text behaves as normal.
 
@@ -32,16 +26,9 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    initial_letter: Value
+    initial_letter: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the initial-letter number range. Returns Some when amount >= 1; otherwise returns None.
 
-/// Sets initial-letter from a typed number. Returns Some for amount >= 1; otherwise returns None.
-
-pub number(value: Float): Option[Value].
-
-/// Selects a keyword for initial-letter. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub number(value: Float): Option[Checked].

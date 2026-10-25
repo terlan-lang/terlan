@@ -13,26 +13,11 @@
 
 module std.css.properties.RowRuleInsetEnd.
 
-pub type Css =
-    OverlapJoin
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Extends intersecting segments to meet across the gap junction; uses zero inset at outer caps.
 
 pub type OverlapJoin =
     Atom["overlap-join"].
 
 pub struct Property {
-    row_rule_inset_end: Value
+    row_rule_inset_end: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for row-rule-inset-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

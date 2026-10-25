@@ -31,64 +31,29 @@ module std.css.properties.Inset.
 pub type Auto =
     Atom["auto"].
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
-    Auto.
-
-pub type Css =
+pub type Component =
     Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+  | std.css.Values.Length
+  | std.css.Values.Percentage.
 
 pub struct Property {
-    inset: Value
+    inset: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
-
-pub opaque type Value.
-
-/// Chooses one inset shorthand component. CSS-wide keywords are accepted only by value(css) for the
-/// whole declaration.
-
-pub component(css: ComponentCss): Component.
-
-/// Sets inset shorthand component from a typed length. Use std.css.Values.px, root_em, em, vw, or vh
-/// to choose the unit.
-
-pub component_length(value: std.css.Values.Length): Component.
-
-/// Sets inset shorthand component from a typed percentage.
-
-pub component_percentage(value: std.css.Values.Percentage): Component.
-
-/// Sets inset from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
 
 /// First sets top/bottom; second sets left/right.
 
-pub pair(first: Component, second: Component): Value.
-
-/// Sets inset from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
+pub pair(first: Component, second: Component): Checked.
 
 /// Sets top, right, bottom, and left in that order.
 
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
 /// Applies to all four sides.
 
-pub single(first: Component): Value.
+pub single(first: Component): Checked.
 
 /// First sets top; second sets left/right; third sets bottom.
 
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Selects a keyword for inset. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub triple(first: Component, second: Component, third: Component): Checked.

@@ -23,44 +23,27 @@ module std.css.properties.OverflowClipMargin.
 pub type BorderBox =
     Atom["border-box"].
 
+pub opaque type Checked.
+
 pub type ContentBox =
     Atom["content-box"].
 
-pub type Css =
-    ContentBox
-  | PaddingBox
-  | BorderBox
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub type LengthPart =
+    std.css.Values.Length.
 
 pub type PaddingBox =
     Atom["padding-box"].
 
 pub struct Property {
-    overflow_clip_margin: Value
+    overflow_clip_margin: ContentBox | PaddingBox | BorderBox | std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
-
-pub opaque type Value.
 
 pub type VisualBoxPart =
     ContentBox
   | PaddingBox
   | BorderBox.
 
-/// Sets overflow-clip-margin by combining visual-box, length in grammar order. Each argument
-/// describes a distinct part of the declaration.
+/// Combines visual-box, length for overflow-clip-margin. Each parameter accepts its own keyword or
+/// typed unit choices directly.
 
-pub compose(visual_box: VisualBoxPart, length: std.css.Values.Length): Value.
-
-/// Sets overflow-clip-margin from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
-/// choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Selects a keyword for overflow-clip-margin. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub compose(visual_box: VisualBoxPart, length: LengthPart): Checked.

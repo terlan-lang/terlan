@@ -18,10 +18,7 @@
  */
 module std.css.properties.OverscrollBehaviorY.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Allows the default behavior at a scroll boundary. Scrolling may continue in another scroll
@@ -47,17 +44,6 @@ pub type Contain.
  */
 pub type None.
 
-pub type Css = Contain | None | Auto | Chain | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    overscroll_behavior_y: Value,
+    overscroll_behavior_y: Contain | None | Auto | Chain | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for overscroll-behavior-y. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("overscroll-behavior-y", Atom.to_string(css))).

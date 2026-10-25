@@ -34,18 +34,6 @@ pub type BreakAll =
 pub type BreakWord =
     Atom["break-word"].
 
-pub type Css =
-    Normal
-  | BreakAll
-  | KeepAll
-  | AutoPhrase
-  | BreakWord
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Word breaks should not be used for Chinese/Japanese/Korean (CJK) text. Non-CJK text behavior is
 /// the same as for `normal`.
 
@@ -58,12 +46,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    word_break: Value
+    word_break: Normal | BreakAll | KeepAll | AutoPhrase | BreakWord | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for word-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

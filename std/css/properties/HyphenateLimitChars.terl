@@ -19,9 +19,9 @@
  */
 module std.css.properties.HyphenateLimitChars.
 
+import std.core.Int.
 import std.core.Int.{to_string}.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Int}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
@@ -29,78 +29,60 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
 
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
+pub opaque type CheckedComponent = SerializedValue.
 
-pub type ComponentCss = Auto.
+pub type Component = Auto | CheckedComponent.
 
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      SerializedValue
+    | {Atom["css_parts"], List[Atom["auto"] | SerializedValue]}.
 
 pub struct Property {
-    hyphenate_limit_chars: Value,
+    hyphenate_limit_chars: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for hyphenate-limit-chars. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("hyphenate-limit-chars", Atom.to_string(css))).
-
-/**
- * Sets hyphenate-limit-chars from a typed integer. Returns Some for amount >= 0; otherwise returns
+ * Checks the hyphenate-limit-chars integer range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("hyphenate-limit-chars", to_string(value))));
+        true -> Some(Checked(serialize("hyphenate-limit-chars", to_string(value))));
         false -> Absent
     }.
 
 /**
- * Chooses one hyphenate-limit-chars shorthand component. CSS-wide keywords are accepted only by
- * value(css) for the whole declaration.
+ * Checks the hyphenate-limit-chars integer range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("hyphenate-limit-chars", Atom.to_string(css))).
-
-/**
- * Sets hyphenate-limit-chars shorthand component from a typed integer. Returns Some for amount >=
- * 0; otherwise returns None.
- */
-pub component_integer(value: Int): Option[Component] ->
+pub component_integer(value: Int): Option[CheckedComponent] ->
     case value >= 0 {
-        true -> Some(Component(serialize("hyphenate-limit-chars", to_string(value))));
+        true -> Some(CheckedComponent(serialize("hyphenate-limit-chars", to_string(value))));
         false -> Absent
     }.
 
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
+component_value(value: Component): Atom["auto"] | SerializedValue ->
     value.
 
 /**
- * Supplies 1 components in the grammar order shown above.
+ * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(serialize("hyphenate-limit-chars", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
- * Supplies 2 components in the grammar order shown above.
+ * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("hyphenate-limit-chars", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).
 
 /**
- * Supplies 3 components in the grammar order shown above.
+ * Supplies 3 components in grammar order.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        serialize(
-            "hyphenate-limit-chars",
-            component_css(first) + " " + component_css(second) + " " + component_css(third),
-        ),
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked(
+        {
+            Atom["css_parts"],
+            [component_value(first), component_value(second), component_value(third)],
+        },
     ).

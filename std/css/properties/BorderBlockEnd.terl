@@ -21,13 +21,12 @@
  */
 module std.css.properties.BorderBlockEnd.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
-import std.css.Values.{color_css, length_amount, length_css, serialize}.
+import std.css.Values.{length_amount, length_css, serialize}.
 
 import type std.core.Option.
-import type std.css.Values.{Color, Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Color, CurrentColor, Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Transparent, Unset}.
 
 /**
  * Displays a series of short square-ended dashes or line segments. The exact size and length of the
@@ -137,29 +136,9 @@ pub type Thick.
  */
 pub type Thin.
 
-pub type Css =
-      Thin
-    | Medium
-    | Thick
-    | None
-    | Hidden
-    | Dotted
-    | Dashed
-    | Solid
-    | Double
-    | Groove
-    | Ridge
-    | Inset
-    | Outset
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
+pub opaque type CheckedLineWidth = SerializedValue.
 
-pub opaque type LineWidthPart = String.
-
-pub type LineWidthCss = Thin | Medium | Thick.
+pub type LineWidthPart = Thin | Medium | Thick | CheckedLineWidth.
 
 pub type LineStylePart =
       None
@@ -173,61 +152,42 @@ pub type LineStylePart =
     | Inset
     | Outset.
 
-pub opaque type Value = SerializedValue.
+pub type ColorPart = Color | Transparent | CurrentColor.
+
+pub opaque type Checked =
+      SerializedValue
+    | {Atom["css_parts"], {Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue, Atom["none"] | Atom["hidden"] | Atom["dotted"] | Atom["dashed"] | Atom["solid"] | Atom["double"] | Atom["groove"] | Atom["ridge"] | Atom["inset"] | Atom["outset"], std.css.Values.Color | Atom["transparent"] | Atom["currentColor"]}}.
 
 pub struct Property {
-    border_block_end: Value,
+    border_block_end: Thin | Medium | Thick | None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-block-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the border-block-end length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("border-block-end", Atom.to_string(css))).
-
-/**
- * Sets border-block-end from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-block-end", length_css(value))));
+        true -> Some(Checked(serialize("border-block-end", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets border-block-end from a typed color. Use std.css.Values.rgb or color to choose the paint.
+ * Checks the border-block-end length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub color(value: Color): Value ->
-    Value(serialize("border-block-end", color_css(value))).
-
-/**
- * Chooses the line-width part for compose. See the keyword types for their visual behavior.
- */
-pub line_width(css: LineWidthCss): LineWidthPart ->
-    LineWidthPart(Atom.to_string(css)).
-
-/**
- * Sets border-block-end LineWidthPart part from a typed length. Returns Some for amount >= 0;
- * otherwise returns None.
- */
-pub line_width_length(value: Length): Option[LineWidthPart] ->
+pub line_width_length(value: Length): Option[CheckedLineWidth] ->
     case length_amount(value) >= 0 {
-        true -> Some(LineWidthPart(length_css(value)));
+        true -> Some(CheckedLineWidth(serialize("border-block-end", length_css(value))));
         false -> Absent
     }.
 
-line_width_css(value: LineWidthPart): String ->
+line_width_value(
+    value: LineWidthPart,
+): Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue ->
     value.
 
 /**
- * Sets border-block-end by combining line-width, line-style, color in grammar order. Each argument
- * describes a distinct part of the declaration.
+ * Combines line-width, line-style, color for border-block-end. Each parameter accepts its own
+ * keyword or typed unit choices directly.
  */
-pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: Color): Value ->
-    Value(
-        serialize(
-            "border-block-end",
-            line_width_css(line_width) + " " + Atom.to_string(line_style) + " " + color_css(color),
-        ),
-    ).
+pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart): Checked ->
+    Checked({Atom["css_parts"], {line_width_value(line_width), line_style, color}}).

@@ -24,10 +24,7 @@
  */
 module std.css.properties.FontVariantAlternates.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * This keyword enables historical forms — glyphs that were common in the past but not today. It
@@ -40,17 +37,6 @@ pub type HistoricalForms = Atom["historical-forms"].
  */
 pub type Normal.
 
-pub type Css = Normal | HistoricalForms | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_alternates: Value,
+    font_variant_alternates: Normal | HistoricalForms | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-alternates. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-alternates", Atom.to_string(css))).

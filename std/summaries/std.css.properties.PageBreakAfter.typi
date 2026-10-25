@@ -32,18 +32,6 @@ pub type Auto =
 pub type Avoid =
     Atom["avoid"].
 
-pub type Css =
-    Auto
-  | Always
-  | Avoid
-  | Left
-  | Right
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Force page breaks after the element so that the next page is formatted as a left page. It's the
 /// page placed on the left side of the spine of the book or the back side of the page in duplex
 /// printing.
@@ -52,7 +40,7 @@ pub type Left =
     Atom["left"].
 
 pub struct Property {
-    page_break_after: Value
+    page_break_after: Auto | Always | Avoid | Left | Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Force page breaks after the element so that the next page is formatted as a right page. It's the
@@ -61,10 +49,3 @@ pub struct Property {
 
 pub type Right =
     Atom["right"].
-
-pub opaque type Value.
-
-/// Selects a keyword for page-break-after. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

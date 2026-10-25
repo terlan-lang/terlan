@@ -23,27 +23,11 @@ module std.css.properties.ColumnSpan.
 pub type All =
     Atom["all"].
 
-pub type Css =
-    None
-  | All
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element does not span multiple columns.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    column_span: Value
+    column_span: None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for column-span. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

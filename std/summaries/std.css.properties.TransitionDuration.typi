@@ -18,24 +18,6 @@
 
 module std.css.properties.TransitionDuration.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    transition_duration: Value
+    transition_duration: std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets transition-duration from a typed time.
-
-pub time(value: std.css.Values.Time): Value.
-
-/// Selects a keyword for transition-duration. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

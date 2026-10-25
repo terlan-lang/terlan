@@ -24,27 +24,11 @@ module std.css.properties.FontSynthesisSmallCaps.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that the synthesis of the missing small-caps typeface by the browser is not allowed.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    font_synthesis_small_caps: Value
+    font_synthesis_small_caps: Auto | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-synthesis-small-caps. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

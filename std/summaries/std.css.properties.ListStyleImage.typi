@@ -17,14 +17,6 @@
 
 module std.css.properties.ListStyleImage.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that no image is used as the marker. If this value is set, the marker defined in will
 /// be used instead. This is the default value for `list-style`.
 
@@ -32,12 +24,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    list_style_image: Value
+    list_style_image: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for list-style-image. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

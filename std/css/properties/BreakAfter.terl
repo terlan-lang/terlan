@@ -19,10 +19,7 @@
  */
 module std.css.properties.BreakAfter.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Forces a page break right after the principal box. Breaking through all possible fragmentation
@@ -107,36 +104,6 @@ pub type Right.
  */
 pub type Verso.
 
-pub type Css =
-      Auto
-    | Avoid
-    | Always
-    | All
-    | AvoidPage
-    | Page
-    | Left
-    | Right
-    | Recto
-    | Verso
-    | AvoidColumn
-    | Column
-    | AvoidRegion
-    | Region
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    break_after: Value,
+    break_after: Auto | Avoid | Always | All | AvoidPage | Page | Left | Right | Recto | Verso | AvoidColumn | Column | AvoidRegion | Region | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for break-after. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("break-after", Atom.to_string(css))).

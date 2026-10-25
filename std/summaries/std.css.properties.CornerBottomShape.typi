@@ -21,9 +21,9 @@ module std.css.properties.CornerBottomShape.
 pub type Bevel =
     Atom["bevel"].
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
+pub type Component =
     Round
   | Scoop
   | Bevel
@@ -31,24 +31,11 @@ pub type ComponentCss =
   | Square
   | Squircle.
 
-pub type Css =
-    Round
-  | Scoop
-  | Bevel
-  | Notch
-  | Square
-  | Squircle
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Notch =
     Atom["notch"].
 
 pub struct Property {
-    corner_bottom_shape: Value
+    corner_bottom_shape: Round | Scoop | Bevel | Notch | Square | Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 pub type Round =
@@ -63,22 +50,10 @@ pub type Square =
 pub type Squircle =
     Atom["squircle"].
 
-pub opaque type Value.
+/// Supplies 2 components in grammar order.
 
-/// Chooses one corner-bottom-shape shorthand component. CSS-wide keywords are accepted only by
-/// value(css) for the whole declaration.
+pub pair(first: Component, second: Component): Checked.
 
-pub component(css: ComponentCss): Component.
+/// Supplies 1 components in grammar order.
 
-/// Supplies 2 components in the grammar order shown above.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for corner-bottom-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

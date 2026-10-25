@@ -22,23 +22,13 @@ module std.css.properties.ScrollbarWidth.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Thin
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// No scrollbar shown, however the element will still be scrollable.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    scrollbar_width: Value
+    scrollbar_width: Auto | Thin | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// A thin scrollbar width variant on platforms that provide that option, or a thinner scrollbar than
@@ -46,10 +36,3 @@ pub struct Property {
 
 pub type Thin =
     Atom["thin"].
-
-pub opaque type Value.
-
-/// Selects a keyword for scrollbar-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

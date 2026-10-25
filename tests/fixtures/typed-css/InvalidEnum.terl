@@ -1,6 +1,5 @@
 module typed_css.InvalidEnum.
 
-import std.css.properties.Width.
-
-pub invalid(): Width.Value ->
-    Width.value(Atom["not-a-width-value"]).
+import type std.css.properties.Width.{Property as BaseProperty}.
+pub struct Style includes BaseProperty {}.
+pub invalid(): Style -> Style {width: Atom["not-a-width-value"]}.

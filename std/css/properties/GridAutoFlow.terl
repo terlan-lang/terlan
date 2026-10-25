@@ -19,10 +19,7 @@
  */
 module std.css.properties.GridAutoFlow.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Items are placed by filling each column in turn, adding new columns as necessary.
@@ -42,17 +39,6 @@ pub type Dense.
  */
 pub type Row.
 
-pub type Css = Row | Column | Dense | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    grid_auto_flow: Value,
+    grid_auto_flow: Row | Column | Dense | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for grid-auto-flow. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("grid-auto-flow", Atom.to_string(css))).

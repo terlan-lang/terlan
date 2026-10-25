@@ -21,11 +21,7 @@
  */
 module std.css.properties.Transition.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{serialize, time_css}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Time, Unset}.
 
 /**
  * Every property that is able to undergo a transition will do so.
@@ -124,39 +120,6 @@ pub type StepEnd = Atom["step-end"].
  */
 pub type StepStart = Atom["step-start"].
 
-pub type Css =
-      None
-    | All
-    | Linear
-    | Ease
-    | EaseIn
-    | EaseOut
-    | EaseInOut
-    | StepStart
-    | StepEnd
-    | Normal
-    | AllowDiscrete
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    transition: Value,
+    transition: None | All | Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Normal | AllowDiscrete | Time | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for transition. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("transition", Atom.to_string(css))).
-
-/**
- * Sets transition from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(serialize("transition", time_css(value))).

@@ -17,13 +17,7 @@
 
 module std.css.properties.Perspective.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Indicates that no perspective transform is to be applied.
 
@@ -31,16 +25,9 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    perspective: Value
+    perspective: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the perspective length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets perspective from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Selects a keyword for perspective. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub length(value: std.css.Values.Length): Option[Checked].

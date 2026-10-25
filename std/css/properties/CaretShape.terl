@@ -18,10 +18,7 @@
  */
 module std.css.properties.CaretShape.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The default value. The browser determines the caret shape. This typically follows platform
@@ -47,17 +44,6 @@ pub type Block.
  */
 pub type Underscore.
 
-pub type Css = Auto | Bar | Block | Underscore | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    caret_shape: Value,
+    caret_shape: Auto | Bar | Block | Underscore | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for caret-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("caret-shape", Atom.to_string(css))).

@@ -18,16 +18,6 @@
 
 module std.css.properties.BackgroundAttachment.
 
-pub type Css =
-    Scroll
-  | Fixed
-  | Local
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The background is fixed relative to the viewport. Even if an element has a scrolling mechanism,
 /// the background doesn't move with the element. If set, the `background-origin` property is
 /// ignored.
@@ -44,7 +34,7 @@ pub type Local =
     Atom["local"].
 
 pub struct Property {
-    background_attachment: Value
+    background_attachment: Scroll | Fixed | Local | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The background is fixed relative to the element itself and does not scroll with its contents. (It
@@ -52,10 +42,3 @@ pub struct Property {
 
 pub type Scroll =
     Atom["scroll"].
-
-pub opaque type Value.
-
-/// Selects a keyword for background-attachment. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

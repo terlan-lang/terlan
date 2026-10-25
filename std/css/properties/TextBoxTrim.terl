@@ -17,10 +17,7 @@
  */
 module std.css.properties.TextBoxTrim.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The default value. No space is trimmed from the text.
@@ -42,26 +39,6 @@ pub type TrimEnd = Atom["trim-end"].
  */
 pub type TrimStart = Atom["trim-start"].
 
-pub type Css =
-      None
-    | TrimStart
-    | TrimEnd
-    | TrimBoth
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_box_trim: Value,
+    text_box_trim: None | TrimStart | TrimEnd | TrimBoth | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-box-trim. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-box-trim", Atom.to_string(css))).

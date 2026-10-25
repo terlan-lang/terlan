@@ -43,7 +43,7 @@ pub type CssWide = Inherit | Initial | Unset | Revert | RevertLayer.
 /**
  * Serialized stylesheet declaration consumed by the compiler's existing CSS
  * pipeline. Property modules accept enums or typed inputs, validate them, and
- * produce this representation behind their property-specific opaque Value.
+ * produce this representation behind their checked result types.
  */
 pub struct SerializedValue {
     property: String,
@@ -116,7 +116,9 @@ pub struct Time {
 /**
  * A validated CSS color. Arbitrary strings cannot construct this value.
  */
-pub opaque type Color = String.
+pub struct Color {
+    #css: String,
+}.
 
 /**
  * Constructs a pixel length.
@@ -179,16 +181,10 @@ pub rgb(red: Int, green: Int, blue: Int): Option[Color] ->
     case red >= 0 and red <= 255 and green >= 0 and green <= 255 and blue >= 0 and blue <= 255 {
         true ->
             Some(
-                Color("rgb(" + int_text(red) + ", " + int_text(green) + ", " + int_text(blue) + ")"),
+                Color {#css: "rgb(" + int_text(red) + ", " + int_text(green) + ", " + int_text(blue) + ")"},
             );
         false -> None
     }.
-
-/**
- * Constructs a validated color from a closed color-keyword enum.
- */
-pub color(css: ColorCss): Color ->
-    Color(Atom.to_string(css)).
 
 /**
  * Serializes a length without accepting arbitrary CSS text.
@@ -218,7 +214,7 @@ pub percentage_amount(value: Percentage): Float ->
  * Serializes a color.
  */
 pub color_css(value: Color): String ->
-    value.
+    value.#css.
 
 /**
  * Serializes an angle.

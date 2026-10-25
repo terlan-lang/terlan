@@ -18,10 +18,7 @@
  */
 module std.css.properties.HyphenateCharacter.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The user-agent selects an appropriate string based on the content language's typographic
@@ -30,17 +27,6 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    hyphenate_character: Value,
+    hyphenate_character: Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for hyphenate-character. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("hyphenate-character", Atom.to_string(css))).

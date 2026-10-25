@@ -30,18 +30,6 @@ pub type Auto =
 pub type Clip =
     Atom["clip"].
 
-pub type Css =
-    Visible
-  | Hidden
-  | Clip
-  | Scroll
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Content is clipped if necessary to fit the block dimension in the padding box. No scrollbars are
 /// provided.
 
@@ -49,7 +37,7 @@ pub type Hidden =
     Atom["hidden"].
 
 pub struct Property {
-    overflow_block: Value
+    overflow_block: Visible | Hidden | Clip | Scroll | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Content is clipped if necessary to fit in the block dimension in the padding box. Browsers
@@ -60,15 +48,8 @@ pub struct Property {
 pub type Scroll =
     Atom["scroll"].
 
-pub opaque type Value.
-
 /// Content is not clipped and may be rendered outside the padding box's block start and block end
 /// edges.
 
 pub type Visible =
     Atom["visible"].
-
-/// Selects a keyword for overflow-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

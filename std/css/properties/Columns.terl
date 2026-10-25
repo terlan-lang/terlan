@@ -21,8 +21,8 @@
  */
 module std.css.properties.Columns.
 
+import std.core.Int.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Int}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, serialize}.
 
@@ -34,35 +34,26 @@ import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Seria
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    columns: Value,
+    columns: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for columns. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the columns length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("columns", Atom.to_string(css))).
-
-/**
- * Sets columns from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("columns", length_css(value))));
+        true -> Some(Checked(serialize("columns", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets columns from a typed integer. Returns Some for amount >= 1; otherwise returns None.
+ * Checks the columns integer range. Returns Some when amount >= 1; otherwise returns None.
  */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 1 {
-        true -> Some(Value(serialize("columns", std.core.Int.to_string(value))));
+        true -> Some(Checked(serialize("columns", std.core.Int.to_string(value))));
         false -> Absent
     }.

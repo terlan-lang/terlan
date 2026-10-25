@@ -28,6 +28,8 @@ module std.css.properties.FlexFlow.
 pub type Balance =
     Atom["balance"].
 
+pub opaque type Checked.
+
 /// The flex container's main axis has the same orientation as the block axis of the current writing
 /// mode.
 
@@ -38,21 +40,6 @@ pub type Column =
 
 pub type ColumnReverse =
     Atom["column-reverse"].
-
-pub type Css =
-    Row
-  | RowReverse
-  | Column
-  | ColumnReverse
-  | Nowrap
-  | Wrap
-  | WrapReverse
-  | Balance
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
 
 pub type FlexDirectionPart =
     Row
@@ -72,7 +59,7 @@ pub type Nowrap =
     Atom["nowrap"].
 
 pub struct Property {
-    flex_flow: Value
+    flex_flow: Row | RowReverse | Column | ColumnReverse | Nowrap | Wrap | WrapReverse | Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// The flex container's main axis has the same orientation as the inline axis of the current writing
@@ -86,8 +73,6 @@ pub type Row =
 pub type RowReverse =
     Atom["row-reverse"].
 
-pub opaque type Value.
-
 /// The flexbox is multi-line.
 
 pub type Wrap =
@@ -98,12 +83,7 @@ pub type Wrap =
 pub type WrapReverse =
     Atom["wrap-reverse"].
 
-/// Sets flex-flow by combining flex-direction, flex-wrap in grammar order. Each argument describes a
-/// distinct part of the declaration.
+/// Combines flex-direction, flex-wrap for flex-flow. Each parameter accepts its own keyword or typed
+/// unit choices directly.
 
-pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Value.
-
-/// Selects a keyword for flex-flow. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Checked.

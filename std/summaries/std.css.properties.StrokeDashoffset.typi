@@ -21,33 +21,6 @@
 
 module std.css.properties.StrokeDashoffset.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    stroke_dashoffset: Value
+    stroke_dashoffset: std.css.Values.Length | std.css.Values.Percentage | Float | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets stroke-dashoffset from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
-/// choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets stroke-dashoffset from a typed number.
-
-pub number(value: Float): Value.
-
-/// Sets stroke-dashoffset from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for stroke-dashoffset. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

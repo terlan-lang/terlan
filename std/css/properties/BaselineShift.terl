@@ -20,11 +20,7 @@
  */
 module std.css.properties.BaselineShift.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 pub type Bottom.
 
@@ -42,40 +38,6 @@ pub type Super.
 
 pub type Top.
 
-pub type Css =
-      Sub
-    | Super
-    | Top
-    | Center
-    | Bottom
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    baseline_shift: Value,
+    baseline_shift: Sub | Super | Top | Center | Bottom | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for baseline-shift. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("baseline-shift", Atom.to_string(css))).
-
-/**
- * Sets baseline-shift from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
- * the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("baseline-shift", length_css(value))).
-
-/**
- * Sets baseline-shift from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("baseline-shift", percentage_css(value))).

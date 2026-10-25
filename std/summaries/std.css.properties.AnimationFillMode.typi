@@ -31,17 +31,6 @@ pub type Backwards =
 pub type Both =
     Atom["both"].
 
-pub type Css =
-    None
-  | Forwards
-  | Backwards
-  | Both
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The target will retain the computed values set by the last
 /// [keyframe](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@keyframes)
 /// encountered during execution. The last keyframe depends on the value of `animation-direction` and
@@ -57,12 +46,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    animation_fill_mode: Value
+    animation_fill_mode: None | Forwards | Backwards | Both | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for animation-fill-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

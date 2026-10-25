@@ -19,18 +19,6 @@
 
 module std.css.properties.PositionTryOrder.
 
-pub type Css =
-    Normal
-  | MostWidth
-  | MostHeight
-  | MostBlockSize
-  | MostInlineSize
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type MostBlockSize =
     Atom["most-block-size"].
 
@@ -49,12 +37,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    position_try_order: Value
+    position_try_order: Normal | MostWidth | MostHeight | MostBlockSize | MostInlineSize | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for position-try-order. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

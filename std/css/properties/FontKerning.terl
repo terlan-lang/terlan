@@ -17,10 +17,7 @@
  */
 module std.css.properties.FontKerning.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The browser determines whether font kerning should be used or not. For example, some browsers
@@ -38,17 +35,6 @@ pub type None.
  */
 pub type Normal.
 
-pub type Css = Auto | Normal | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_kerning: Value,
+    font_kerning: Auto | Normal | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-kerning. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-kerning", Atom.to_string(css))).

@@ -24,6 +24,8 @@ module std.css.properties.BackgroundSize.
 pub type Auto =
     Atom["auto"].
 
+pub opaque type Checked.
+
 /// Scales the image as large as possible within its container without cropping or stretching the
 /// image. If the container is larger than the image, this will result in image tiling, unless the
 /// `background-repeat` property is set to `no-repeat`.
@@ -39,32 +41,15 @@ pub type Contain =
 pub type Cover =
     Atom["cover"].
 
-pub type Css =
-    Auto
-  | Cover
-  | Contain
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    background_size: Value
+    background_size: Auto | Cover | Contain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the background-size length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets background-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Sets background-size from a typed percentage. Returns Some for amount >= 0; otherwise returns
+/// Checks the background-size percentage range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for background-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

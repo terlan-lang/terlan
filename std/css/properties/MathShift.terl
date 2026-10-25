@@ -17,10 +17,7 @@
  */
 module std.css.properties.MathShift.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates compact rendering. Superscripts in MathML formulas use the
@@ -36,17 +33,6 @@ pub type Compact.
  */
 pub type Normal.
 
-pub type Css = Normal | Compact | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    math_shift: Value,
+    math_shift: Normal | Compact | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for math-shift. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("math-shift", Atom.to_string(css))).

@@ -18,10 +18,7 @@
  */
 module std.css.properties.BackfaceVisibility.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The back face is hidden, effectively making the element invisible when turned away from the user.
@@ -33,17 +30,6 @@ pub type Hidden.
  */
 pub type Visible.
 
-pub type Css = Visible | Hidden | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    backface_visibility: Value,
+    backface_visibility: Visible | Hidden | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for backface-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("backface-visibility", Atom.to_string(css))).

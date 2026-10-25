@@ -24,16 +24,6 @@ module std.css.properties.ForcedColorAdjust.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | PreserveParentColor
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element's colors are not automatically adjusted by the `user agent` in forced colors mode.
 
 pub type None =
@@ -50,12 +40,5 @@ pub type PreserveParentColor =
     Atom["preserve-parent-color"].
 
 pub struct Property {
-    forced_color_adjust: Value
+    forced_color_adjust: Auto | None | PreserveParentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for forced-color-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

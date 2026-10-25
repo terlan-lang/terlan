@@ -21,8 +21,8 @@
  */
 module std.css.properties.Flex.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
 
@@ -81,56 +81,35 @@ pub type None.
  */
 pub type Stretch.
 
-pub type Css =
-      None
-    | Content
-    | Auto
-    | Stretch
-    | MinContent
-    | MaxContent
-    | FitContent
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    flex: Value,
+    flex: None | Content | Auto | Stretch | MinContent | MaxContent | FitContent | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for flex. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the flex number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("flex", Atom.to_string(css))).
-
-/**
- * Sets flex from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("flex", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("flex", std.core.Float.to_string(value))));
         false -> Absent
     }.
 
 /**
- * Sets flex from a typed length. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the flex length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("flex", length_css(value))));
+        true -> Some(Checked(serialize("flex", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets flex from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the flex percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("flex", percentage_css(value))));
+        true -> Some(Checked(serialize("flex", percentage_css(value))));
         false -> Absent
     }.

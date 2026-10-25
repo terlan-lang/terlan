@@ -19,10 +19,7 @@
  */
 module std.css.properties.TouchAction.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Enable browser handling of all panning and zooming gestures.
@@ -100,32 +97,6 @@ pub type PanY = Atom["pan-y"].
  */
 pub type PinchZoom = Atom["pinch-zoom"].
 
-pub type Css =
-      Auto
-    | None
-    | PanX
-    | PanLeft
-    | PanRight
-    | PanY
-    | PanUp
-    | PanDown
-    | PinchZoom
-    | Manipulation
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    touch_action: Value,
+    touch_action: Auto | None | PanX | PanLeft | PanRight | PanY | PanUp | PanDown | PinchZoom | Manipulation | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for touch-action. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("touch-action", Atom.to_string(css))).

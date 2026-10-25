@@ -18,11 +18,7 @@
  */
 module std.css.properties.AnimationDuration.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{serialize, time_css}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Time, Unset}.
 
 /**
  * For time-based animations, `auto` is equivalent to a value of `0s` (see below). For [CSS
@@ -32,23 +28,6 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    animation_duration: Value,
+    animation_duration: Auto | Time | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-duration. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-duration", Atom.to_string(css))).
-
-/**
- * Sets animation-duration from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(serialize("animation-duration", time_css(value))).

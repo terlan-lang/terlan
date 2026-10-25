@@ -25,21 +25,6 @@ pub type BorderBox =
 pub type ContentBox =
     Atom["content-box"].
 
-pub type Css =
-    ContentBox
-  | PaddingBox
-  | BorderBox
-  | MarginBox
-  | FillBox
-  | StrokeBox
-  | ViewBox
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type FillBox =
     Atom["fill-box"].
 
@@ -55,18 +40,11 @@ pub type PaddingBox =
     Atom["padding-box"].
 
 pub struct Property {
-    clip_path: Value
+    clip_path: ContentBox | PaddingBox | BorderBox | MarginBox | FillBox | StrokeBox | ViewBox | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type StrokeBox =
     Atom["stroke-box"].
 
-pub opaque type Value.
-
 pub type ViewBox =
     Atom["view-box"].
-
-/// Selects a keyword for clip-path. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

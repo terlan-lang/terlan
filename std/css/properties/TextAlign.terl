@@ -18,10 +18,7 @@
  */
 module std.css.properties.TextAlign.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The inline contents are centered within the line box.
@@ -60,29 +57,6 @@ pub type Right.
  */
 pub type Start.
 
-pub type Css =
-      Start
-    | End
-    | Left
-    | Right
-    | Center
-    | Justify
-    | MatchParent
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_align: Value,
+    text_align: Start | End | Left | Right | Center | Justify | MatchParent | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-align. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-align", Atom.to_string(css))).

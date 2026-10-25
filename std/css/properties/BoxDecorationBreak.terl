@@ -20,10 +20,7 @@
  */
 module std.css.properties.BoxDecorationBreak.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Each box fragment is rendered independently with the specified border, padding, and margin
@@ -42,17 +39,6 @@ pub type Clone.
  */
 pub type Slice.
 
-pub type Css = Slice | Clone | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    box_decoration_break: Value,
+    box_decoration_break: Slice | Clone | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for box-decoration-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("box-decoration-break", Atom.to_string(css))).

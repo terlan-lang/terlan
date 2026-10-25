@@ -18,15 +18,6 @@
 
 module std.css.properties.ScrollInitialTarget.
 
-pub type Css =
-    None
-  | Nearest
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element is potentially an initial scroll target for its nearest scroll container ancestor.
 
 pub type Nearest =
@@ -38,12 +29,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    scroll_initial_target: Value
+    scroll_initial_target: None | Nearest | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for scroll-initial-target. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

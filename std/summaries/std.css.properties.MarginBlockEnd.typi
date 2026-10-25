@@ -25,30 +25,6 @@ module std.css.properties.MarginBlockEnd.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    margin_block_end: Value
+    margin_block_end: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets margin-block-end from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
-/// choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets margin-block-end from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for margin-block-end. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -63,7 +63,7 @@ test('unimplemented value proposals are excluded from otherwise implemented prop
 test('generation excludes proposed keywords from both complete values and grouped parts', () => {
   const grammar = [{ kind: 'keyword', name: 'auto' }, { kind: 'primitive', name: 'length' }];
   const width = generateProperty({ name: 'width', syntax: 'auto | contain | <length>', href: 'spec' }, new Map(), grammar);
-  assert.match(width.source, /pub type Css = Auto \|/);
+  assert.match(width.source, /width: Auto \|/);
   assert.doesNotMatch(width.source, /pub type Contain =/);
   const definitions = new Map([
     ['Type:line-width', definitionSyntax.parse('hairline | thin | <length>')],

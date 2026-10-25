@@ -28,19 +28,6 @@ module std.css.properties.Font.
 pub type Caption =
     Atom["caption"].
 
-pub type Css =
-    Caption
-  | Icon
-  | Menu
-  | MessageBox
-  | SmallCaption
-  | StatusBar
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The font used to label icons.
 
 pub type Icon =
@@ -57,7 +44,7 @@ pub type MessageBox =
     Atom["message-box"].
 
 pub struct Property {
-    font: Value
+    font: Caption | Icon | Menu | MessageBox | SmallCaption | StatusBar | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The font used for labeling small controls.
@@ -69,10 +56,3 @@ pub type SmallCaption =
 
 pub type StatusBar =
     Atom["status-bar"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

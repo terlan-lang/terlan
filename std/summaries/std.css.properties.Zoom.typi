@@ -17,28 +17,16 @@
 
 module std.css.properties.Zoom.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub struct Property {
-    zoom: Value
+    zoom: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the zoom number range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets zoom from a typed number. Returns Some for amount >= 0; otherwise returns None.
+pub number(value: Float): Option[Checked].
 
-pub number(value: Float): Option[Value].
+/// Checks the zoom percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets zoom from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for zoom. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

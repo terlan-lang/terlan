@@ -63,27 +63,6 @@ pub type AvoidRegion =
 pub type Column =
     Atom["column"].
 
-pub type Css =
-    Auto
-  | Avoid
-  | Always
-  | All
-  | AvoidPage
-  | Page
-  | Left
-  | Right
-  | Recto
-  | Verso
-  | AvoidColumn
-  | Column
-  | AvoidRegion
-  | Region
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Forces one or two page breaks right after the principal box, whichever will make the next page
 /// into a left page. It's the page placed on the left side of the spine of the book or the back side
 /// of the page in duplex printing.
@@ -97,7 +76,7 @@ pub type Page =
     Atom["page"].
 
 pub struct Property {
-    break_after: Value
+    break_after: Auto | Avoid | Always | All | AvoidPage | Page | Left | Right | Recto | Verso | AvoidColumn | Column | AvoidRegion | Region | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Forces one or two page breaks right after the principal box, whichever will make the next page
@@ -119,16 +98,9 @@ pub type Region =
 pub type Right =
     Atom["right"].
 
-pub opaque type Value.
-
 /// Forces one or two page breaks right after the principal box, whichever will make the next page
 /// into a verso page. (A verso page is a left page in a left-to-right spread or a right page in a
 /// right-to-left spread.)
 
 pub type Verso =
     Atom["verso"].
-
-/// Selects a keyword for break-after. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

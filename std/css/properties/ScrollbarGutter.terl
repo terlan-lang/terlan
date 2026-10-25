@@ -19,10 +19,7 @@
  */
 module std.css.properties.ScrollbarGutter.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The initial value. Classic scrollbars create a gutter when `overflow` is `scroll`, or when
@@ -37,17 +34,6 @@ pub type Auto.
  */
 pub type Stable.
 
-pub type Css = Auto | Stable | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    scrollbar_gutter: Value,
+    scrollbar_gutter: Auto | Stable | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for scrollbar-gutter. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scrollbar-gutter", Atom.to_string(css))).

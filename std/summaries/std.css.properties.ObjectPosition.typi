@@ -24,27 +24,11 @@ pub type Bottom =
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Left
-  | Center
-  | Right
-  | Top
-  | Bottom
-  | XStart
-  | XEnd
-  | YStart
-  | YEnd
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Left =
     Atom["left"].
 
 pub struct Property {
-    object_position: Value
+    object_position: Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type Right =
@@ -52,8 +36,6 @@ pub type Right =
 
 pub type Top =
     Atom["top"].
-
-pub opaque type Value.
 
 pub type XEnd =
     Atom["x-end"].
@@ -66,17 +48,3 @@ pub type YEnd =
 
 pub type YStart =
     Atom["y-start"].
-
-/// Sets object-position from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets object-position from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for object-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

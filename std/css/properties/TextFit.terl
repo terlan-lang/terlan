@@ -19,10 +19,7 @@
  */
 module std.css.properties.TextFit.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The text node's rendered font size is scaled up until it exactly fits inside its containing box's
@@ -41,17 +38,6 @@ pub type None.
  */
 pub type Shrink.
 
-pub type Css = None | Grow | Shrink | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_fit: Value,
+    text_fit: None | Grow | Shrink | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-fit. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-fit", Atom.to_string(css))).

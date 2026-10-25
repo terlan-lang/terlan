@@ -23,15 +23,6 @@ module std.css.properties.MathShift.
 pub type Compact =
     Atom["compact"].
 
-pub type Css =
-    Normal
-  | Compact
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The initial value, indicates normal rendering. Superscripts in MathML formulas use the
 /// [superscriptShiftUp](https://w3c.github.io/mathml-core/#dfn-superscriptshiftup) parameter from
 /// the OpenType MATH table.
@@ -40,12 +31,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    math_shift: Value
+    math_shift: Normal | Compact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for math-shift. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

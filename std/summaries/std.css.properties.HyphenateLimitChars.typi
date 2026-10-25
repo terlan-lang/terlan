@@ -21,53 +21,36 @@ module std.css.properties.HyphenateLimitChars.
 pub type Auto =
     Atom["auto"].
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
-    Auto.
+pub opaque type CheckedComponent.
 
-pub type Css =
+pub type Component =
     Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+  | CheckedComponent.
 
 pub struct Property {
-    hyphenate_limit_chars: Value
+    hyphenate_limit_chars: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
-
-/// Chooses one hyphenate-limit-chars shorthand component. CSS-wide keywords are accepted only by
-/// value(css) for the whole declaration.
-
-pub component(css: ComponentCss): Component.
-
-/// Sets hyphenate-limit-chars shorthand component from a typed integer. Returns Some for amount >=
-/// 0; otherwise returns None.
-
-pub component_integer(value: Int): Option[Component].
-
-/// Sets hyphenate-limit-chars from a typed integer. Returns Some for amount >= 0; otherwise returns
+/// Checks the hyphenate-limit-chars integer range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub integer(value: Int): Option[Value].
+pub component_integer(value: Int): Option[CheckedComponent].
 
-/// Supplies 2 components in the grammar order shown above.
+/// Checks the hyphenate-limit-chars integer range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub pair(first: Component, second: Component): Value.
+pub integer(value: Int): Option[Checked].
 
-/// Supplies 1 components in the grammar order shown above.
+/// Supplies 2 components in grammar order.
 
-pub single(first: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Supplies 3 components in the grammar order shown above.
+/// Supplies 1 components in grammar order.
 
-pub triple(first: Component, second: Component, third: Component): Value.
+pub single(first: Component): Checked.
 
-/// Selects a keyword for hyphenate-limit-chars. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
+/// Supplies 3 components in grammar order.
 
-pub value(css: Css): Value.
+pub triple(first: Component, second: Component, third: Component): Checked.

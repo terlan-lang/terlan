@@ -18,10 +18,7 @@
  */
 module std.css.properties.ContainerType.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Establishes a query container for dimensional queries on the [inline
@@ -63,26 +60,6 @@ pub type ScrollState = Atom["scroll-state"].
  */
 pub type Size.
 
-pub type Css =
-      Normal
-    | Size
-    | InlineSize
-    | ScrollState
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    container_type: Value,
+    container_type: Normal | Size | InlineSize | ScrollState | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for container-type. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("container-type", Atom.to_string(css))).

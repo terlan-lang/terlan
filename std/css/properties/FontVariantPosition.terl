@@ -18,10 +18,7 @@
  */
 module std.css.properties.FontVariantPosition.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Deactivates alternate superscript and subscript glyphs.
@@ -40,17 +37,6 @@ pub type Sub.
  */
 pub type Super.
 
-pub type Css = Normal | Sub | Super | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_position: Value,
+    font_variant_position: Normal | Sub | Super | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-position. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-position", Atom.to_string(css))).

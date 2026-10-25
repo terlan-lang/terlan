@@ -20,10 +20,7 @@
  */
 module std.css.properties.FontSynthesis.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates that no bold, italic, or small-caps typeface may be synthesized by the browser.
@@ -51,27 +48,6 @@ pub type Style.
  */
 pub type Weight.
 
-pub type Css =
-      None
-    | Weight
-    | Style
-    | SmallCaps
-    | Position
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_synthesis: Value,
+    font_synthesis: None | Weight | Style | SmallCaps | Position | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-synthesis. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-synthesis", Atom.to_string(css))).

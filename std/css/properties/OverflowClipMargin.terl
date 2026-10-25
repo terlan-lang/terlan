@@ -21,11 +21,7 @@
  */
 module std.css.properties.OverflowClipMargin.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
 pub type BorderBox = Atom["border-box"].
 
@@ -33,41 +29,23 @@ pub type ContentBox = Atom["content-box"].
 
 pub type PaddingBox = Atom["padding-box"].
 
-pub type Css =
-      ContentBox
-    | PaddingBox
-    | BorderBox
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
 pub type VisualBoxPart = ContentBox | PaddingBox | BorderBox.
 
-pub opaque type Value = SerializedValue.
+pub type LengthPart = Length.
+
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["content-box"] | Atom["padding-box"] | Atom["border-box"], std.css.Values.Length}
+      }.
 
 pub struct Property {
-    overflow_clip_margin: Value,
+    overflow_clip_margin: ContentBox | PaddingBox | BorderBox | Length | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for overflow-clip-margin. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Combines visual-box, length for overflow-clip-margin. Each parameter accepts its own keyword or
+ * typed unit choices directly.
  */
-pub value(css: Css): Value ->
-    Value(serialize("overflow-clip-margin", Atom.to_string(css))).
-
-/**
- * Sets overflow-clip-margin from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("overflow-clip-margin", length_css(value))).
-
-/**
- * Sets overflow-clip-margin by combining visual-box, length in grammar order. Each argument
- * describes a distinct part of the declaration.
- */
-pub compose(visual_box: VisualBoxPart, length: Length): Value ->
-    Value(serialize("overflow-clip-margin", Atom.to_string(visual_box) + " " + length_css(length))).
+pub compose(visual_box: VisualBoxPart, length: LengthPart): Checked ->
+    Checked({Atom["css_parts"], {visual_box, length}}).

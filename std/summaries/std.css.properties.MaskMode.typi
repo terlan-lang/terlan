@@ -24,16 +24,6 @@ module std.css.properties.MaskMode.
 pub type Alpha =
     Atom["alpha"].
 
-pub type Css =
-    Alpha
-  | Luminance
-  | MatchSource
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that the [luminance (brightness)](#understanding_luminance) values of the mask image
 /// should be used.
 
@@ -50,12 +40,5 @@ pub type MatchSource =
     Atom["match-source"].
 
 pub struct Property {
-    mask_mode: Value
+    mask_mode: Alpha | Luminance | MatchSource | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for mask-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

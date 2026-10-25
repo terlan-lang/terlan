@@ -45,27 +45,6 @@ pub type Baseline =
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Auto
-  | Normal
-  | Center
-  | Start
-  | End
-  | SelfStart
-  | SelfEnd
-  | FlexStart
-  | FlexEnd
-  | Left
-  | Right
-  | Stretch
-  | Baseline
-  | AnchorCenter
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The item is packed flush to each other toward the end edge of the alignment container in the
 /// appropriate axis.
 
@@ -100,7 +79,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    justify_self: Value
+    justify_self: Auto | Normal | Center | Start | End | SelfStart | SelfEnd | FlexStart | FlexEnd | Left | Right | Stretch | Baseline | AnchorCenter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The items are packed flush to each other toward the right edge of the alignment container in the
@@ -135,10 +114,3 @@ pub type Start =
 
 pub type Stretch =
     Atom["stretch"].
-
-pub opaque type Value.
-
-/// Selects a keyword for justify-self. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

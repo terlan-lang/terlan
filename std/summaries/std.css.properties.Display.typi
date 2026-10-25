@@ -36,44 +36,6 @@ pub type Block =
 pub type Contents =
     Atom["contents"].
 
-pub type Css =
-    Block
-  | Inline
-  | RunIn
-  | Flow
-  | FlowRoot
-  | Table
-  | Flex
-  | Grid
-  | Ruby
-  | ListItem
-  | TableRowGroup
-  | TableHeaderGroup
-  | TableFooterGroup
-  | TableRow
-  | TableCell
-  | TableColumnGroup
-  | TableColumn
-  | TableCaption
-  | RubyBase
-  | RubyText
-  | RubyBaseContainer
-  | RubyTextContainer
-  | Contents
-  | None
-  | InlineBlock
-  | InlineTable
-  | InlineFlex
-  | InlineGrid
-  | GridLanes
-  | InlineGridLanes
-  | Math
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element generates a principal flex container box and establishes a flex formatting context.
 
 pub type Flex =
@@ -170,7 +132,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    display: Value
+    display: Block | Inline | RunIn | Flow | FlowRoot | Table | Flex | Grid | Ruby | ListItem | TableRowGroup | TableHeaderGroup | TableFooterGroup | TableRow | TableCell | TableColumnGroup | TableColumn | TableCaption | RubyBase | RubyText | RubyBaseContainer | RubyTextContainer | Contents | None | InlineBlock | InlineTable | InlineFlex | InlineGrid | GridLanes | InlineGridLanes | Math | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The element generates a principal ruby container box, and establishes a ruby formatting context.
@@ -273,10 +235,3 @@ pub type TableRow =
 
 pub type TableRowGroup =
     Atom["table-row-group"].
-
-pub opaque type Value.
-
-/// Selects a keyword for display. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

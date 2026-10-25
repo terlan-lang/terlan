@@ -19,10 +19,7 @@
  */
 module std.css.properties.TimelineTriggerSource.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element's trigger source is the document's default time-based `DocumentTimeline`. This is the
@@ -36,17 +33,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = None | Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    timeline_trigger_source: Value,
+    timeline_trigger_source: None | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for timeline-trigger-source. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("timeline-trigger-source", Atom.to_string(css))).

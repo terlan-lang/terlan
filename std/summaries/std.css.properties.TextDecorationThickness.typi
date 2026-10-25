@@ -23,14 +23,7 @@ module std.css.properties.TextDecorationThickness.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | FromFont
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// If the font file includes information about a preferred thickness, use that value. If the font
 /// file doesn't include this information, behave as if `auto` was set, with the browser choosing an
@@ -40,26 +33,10 @@ pub type FromFont =
     Atom["from-font"].
 
 pub struct Property {
-    text_decoration_thickness: Value
+    text_decoration_thickness: Auto | FromFont | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
-
-/// Sets text-decoration-thickness from a typed length. Use std.css.Values.px, root_em, em, vw, or vh
-/// to choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets text-decoration-thickness from a typed length. Returns Some for amount >= 0; otherwise
+/// Checks the text-decoration-thickness length range. Returns Some when amount >= 0; otherwise
 /// returns None.
 
-pub length_2(value: std.css.Values.Length): Option[Value].
-
-/// Sets text-decoration-thickness from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for text-decoration-thickness. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub length(value: std.css.Values.Length): Option[Checked].

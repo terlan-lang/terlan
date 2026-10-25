@@ -19,10 +19,7 @@
  */
 module std.css.properties.FrameSizing.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The initial value. The `<iframe>` element's size is not affected by the layout size of its
@@ -52,27 +49,6 @@ pub type ContentInlineSize = Atom["content-inline-size"].
  */
 pub type ContentWidth = Atom["content-width"].
 
-pub type Css =
-      Auto
-    | ContentWidth
-    | ContentHeight
-    | ContentBlockSize
-    | ContentInlineSize
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    frame_sizing: Value,
+    frame_sizing: Auto | ContentWidth | ContentHeight | ContentBlockSize | ContentInlineSize | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for frame-sizing. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("frame-sizing", Atom.to_string(css))).

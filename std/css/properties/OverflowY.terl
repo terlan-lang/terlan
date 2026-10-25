@@ -19,10 +19,7 @@
  */
 module std.css.properties.OverflowY.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Overflow content is clipped at the element's padding box, and overflow content can be scrolled
@@ -62,27 +59,6 @@ pub type Scroll.
  */
 pub type Visible.
 
-pub type Css =
-      Visible
-    | Hidden
-    | Clip
-    | Scroll
-    | Auto
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    overflow_y: Value,
+    overflow_y: Visible | Hidden | Clip | Scroll | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for overflow-y. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("overflow-y", Atom.to_string(css))).

@@ -23,11 +23,7 @@
  */
 module std.css.properties.TimelineTriggerActivationRangeStart.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * A `<length>` or `<percentage>` value specifies an offset from the beginning of the `normal`
@@ -37,30 +33,6 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Normal.
 
-pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    timeline_trigger_activation_range_start: Value,
+    timeline_trigger_activation_range_start: Normal | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for timeline-trigger-activation-range-start. CSS-wide choices Inherit, Initial,
- * Unset, Revert, and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("timeline-trigger-activation-range-start", Atom.to_string(css))).
-
-/**
- * Sets timeline-trigger-activation-range-start from a typed length. Use std.css.Values.px, root_em,
- * em, vw, or vh to choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("timeline-trigger-activation-range-start", length_css(value))).
-
-/**
- * Sets timeline-trigger-activation-range-start from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("timeline-trigger-activation-range-start", percentage_css(value))).

@@ -19,18 +19,6 @@
 
 module std.css.properties.FontSynthesis.
 
-pub type Css =
-    None
-  | Weight
-  | Style
-  | SmallCaps
-  | Position
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that no bold, italic, or small-caps typeface may be synthesized by the browser.
 
 pub type None =
@@ -43,7 +31,7 @@ pub type Position =
     Atom["position"].
 
 pub struct Property {
-    font_synthesis: Value
+    font_synthesis: None | Weight | Style | SmallCaps | Position | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Indicates that the small-caps typeface may be synthesized by the browser if needed.
@@ -56,14 +44,7 @@ pub type SmallCaps =
 pub type Style =
     Atom["style"].
 
-pub opaque type Value.
-
 /// Indicates that the missing bold typeface may be synthesized by the browser if needed.
 
 pub type Weight =
     Atom["weight"].
-
-/// Selects a keyword for font-synthesis. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

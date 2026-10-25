@@ -20,10 +20,7 @@
  */
 module std.css.properties.MathDepth.
 
-import std.core.{Atom, Int}.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Set to the inherited `math-depth` plus 1 when inherited
@@ -32,23 +29,6 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type AutoAdd = Atom["auto-add"].
 
-pub type Css = AutoAdd | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    math_depth: Value,
+    math_depth: AutoAdd | Int | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for math-depth. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("math-depth", Atom.to_string(css))).
-
-/**
- * Sets math-depth from a typed integer.
- */
-pub integer(value: Int): Value ->
-    Value(serialize("math-depth", std.core.Int.to_string(value))).

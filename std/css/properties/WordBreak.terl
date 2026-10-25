@@ -17,10 +17,7 @@
  */
 module std.css.properties.WordBreak.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Has the same effect as `word-break: normal` except that language-specific analysis is performed
@@ -51,27 +48,6 @@ pub type KeepAll = Atom["keep-all"].
  */
 pub type Normal.
 
-pub type Css =
-      Normal
-    | BreakAll
-    | KeepAll
-    | AutoPhrase
-    | BreakWord
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    word_break: Value,
+    word_break: Normal | BreakAll | KeepAll | AutoPhrase | BreakWord | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for word-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("word-break", Atom.to_string(css))).

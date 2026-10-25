@@ -21,10 +21,7 @@
  */
 module std.css.properties.FontVariantNumeric.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Enables display of lining diagonal fractions.
@@ -73,31 +70,6 @@ pub type StackedFractions = Atom["stacked-fractions"].
  */
 pub type TabularNums = Atom["tabular-nums"].
 
-pub type Css =
-      Normal
-    | LiningNums
-    | OldstyleNums
-    | ProportionalNums
-    | TabularNums
-    | DiagonalFractions
-    | StackedFractions
-    | Ordinal
-    | SlashedZero
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_numeric: Value,
+    font_variant_numeric: Normal | LiningNums | OldstyleNums | ProportionalNums | TabularNums | DiagonalFractions | StackedFractions | Ordinal | SlashedZero | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-numeric. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-numeric", Atom.to_string(css))).

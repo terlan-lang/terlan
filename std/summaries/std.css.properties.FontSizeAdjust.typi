@@ -20,14 +20,7 @@
 
 module std.css.properties.FontSizeAdjust.
 
-pub type Css =
-    None
-  | FromFont
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Uses the `<number>` value for the specified `<font-metric>` from the first available font.
 
@@ -40,16 +33,9 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    font_size_adjust: Value
+    font_size_adjust: None | FromFont | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the font-size-adjust number range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets font-size-adjust from a typed number. Returns Some for amount >= 0; otherwise returns None.
-
-pub number(value: Float): Option[Value].
-
-/// Selects a keyword for font-size-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub number(value: Float): Option[Checked].

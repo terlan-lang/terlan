@@ -19,10 +19,7 @@
  */
 module std.css.properties.Cursor.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates an alias of/shortcut to something is to be created. Often rendered as an arrow with a
@@ -218,58 +215,6 @@ pub type ZoomIn = Atom["zoom-in"].
  */
 pub type ZoomOut = Atom["zoom-out"].
 
-pub type Css =
-      Auto
-    | Default
-    | None
-    | ContextMenu
-    | Help
-    | Pointer
-    | Progress
-    | Wait
-    | Cell
-    | Crosshair
-    | TextKeyword
-    | VerticalText
-    | Alias
-    | Copy
-    | Move
-    | NoDrop
-    | NotAllowed
-    | Grab
-    | Grabbing
-    | EResize
-    | NResize
-    | NeResize
-    | NwResize
-    | SResize
-    | SeResize
-    | SwResize
-    | WResize
-    | EwResize
-    | NsResize
-    | NeswResize
-    | NwseResize
-    | ColResize
-    | RowResize
-    | AllScroll
-    | ZoomIn
-    | ZoomOut
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    cursor: Value,
+    cursor: Auto | Default | None | ContextMenu | Help | Pointer | Progress | Wait | Cell | Crosshair | TextKeyword | VerticalText | Alias | Copy | Move | NoDrop | NotAllowed | Grab | Grabbing | EResize | NResize | NeResize | NwResize | SResize | SeResize | SwResize | WResize | EwResize | NsResize | NeswResize | NwseResize | ColResize | RowResize | AllScroll | ZoomIn | ZoomOut | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for cursor. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("cursor", Atom.to_string(css))).

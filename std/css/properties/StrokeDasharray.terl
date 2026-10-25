@@ -21,47 +21,13 @@
  */
 module std.css.properties.StrokeDasharray.
 
-import std.core.{Atom, Float}.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * The stroke will be drawn without any dashes. The default value.
  */
 pub type None.
 
-pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    stroke_dasharray: Value,
+    stroke_dasharray: None | Length | Percentage | Float | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for stroke-dasharray. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("stroke-dasharray", Atom.to_string(css))).
-
-/**
- * Sets stroke-dasharray from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("stroke-dasharray", length_css(value))).
-
-/**
- * Sets stroke-dasharray from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("stroke-dasharray", percentage_css(value))).
-
-/**
- * Sets stroke-dasharray from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(serialize("stroke-dasharray", std.core.Float.to_string(value))).

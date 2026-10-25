@@ -61,44 +61,6 @@ pub type Center =
 pub type ContentBox =
     Atom["content-box"].
 
-pub type Css =
-    None
-  | Left
-  | Center
-  | Right
-  | Top
-  | Bottom
-  | XStart
-  | XEnd
-  | YStart
-  | YEnd
-  | RepeatX
-  | RepeatY
-  | Repeat
-  | Space
-  | Round
-  | NoRepeat
-  | ContentBox
-  | PaddingBox
-  | BorderBox
-  | MarginBox
-  | FillBox
-  | StrokeBox
-  | ViewBox
-  | NoClip
-  | Add
-  | Subtract
-  | Intersect
-  | Exclude
-  | Alpha
-  | Luminance
-  | MatchSource
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The non-overlapping regions of the associated mask image and the mask layers below it, with their
 /// corresponding compositing operators applied, are combined.
 ///
@@ -180,7 +142,7 @@ pub type PaddingBox =
     Atom["padding-box"].
 
 pub struct Property {
-    mask: Value
+    mask: None | Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | RepeatX | RepeatY | Repeat | Space | Round | NoRepeat | ContentBox | PaddingBox | BorderBox | MarginBox | FillBox | StrokeBox | ViewBox | NoClip | Add | Subtract | Intersect | Exclude | Alpha | Luminance | MatchSource | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The image is repeated as much as needed to cover the whole mask painting area. Mask images along
@@ -255,8 +217,6 @@ pub type Subtract =
 pub type Top =
     Atom["top"].
 
-pub opaque type Value.
-
 /// Uses the nearest SVG viewport as reference box. If a
 /// [`viewBox`](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/viewBox)
 /// attribute is specified for the element creating the SVG viewport, the reference box is positioned
@@ -279,16 +239,3 @@ pub type YEnd =
 
 pub type YStart =
     Atom["y-start"].
-
-/// Sets mask from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets mask from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for mask. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -26,19 +26,6 @@ module std.css.properties.Content.
 pub type CloseQuote =
     Atom["close-quote"].
 
-pub type Css =
-    Normal
-  | None
-  | OpenQuote
-  | CloseQuote
-  | NoOpenQuote
-  | NoCloseQuote
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type NoCloseQuote =
     Atom["no-close-quote"].
 
@@ -63,12 +50,5 @@ pub type OpenQuote =
     Atom["open-quote"].
 
 pub struct Property {
-    content: Value
+    content: Normal | None | OpenQuote | CloseQuote | NoOpenQuote | NoCloseQuote | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for content. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

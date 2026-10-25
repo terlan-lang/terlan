@@ -21,10 +21,7 @@
  */
 module std.css.properties.TextUnderlinePosition.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The `user agent` uses its own algorithm to place the line at or under the `alphabetic baseline`.
@@ -57,27 +54,6 @@ pub type Right.
  */
 pub type Under.
 
-pub type Css =
-      Auto
-    | FromFont
-    | Under
-    | Left
-    | Right
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_underline_position: Value,
+    text_underline_position: Auto | FromFont | Under | Left | Right | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-underline-position. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-underline-position", Atom.to_string(css))).

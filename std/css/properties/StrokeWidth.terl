@@ -20,52 +20,23 @@
 module std.css.properties.StrokeWidth.
 
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.
-import std.css.Values.{length_amount, length_css, percentage_css, serialize}.
+import std.css.Values.{length_amount, length_css, serialize}.
 
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    stroke_width: Value,
+    stroke_width: Length | Percentage | Float | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for stroke-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the stroke-width length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("stroke-width", Atom.to_string(css))).
-
-/**
- * Sets stroke-width from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
- * the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("stroke-width", length_css(value))).
-
-/**
- * Sets stroke-width from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("stroke-width", percentage_css(value))).
-
-/**
- * Sets stroke-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length_2(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("stroke-width", length_css(value))));
+        true -> Some(Checked(serialize("stroke-width", length_css(value))));
         false -> Absent
     }.
-
-/**
- * Sets stroke-width from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(serialize("stroke-width", std.core.Float.to_string(value))).

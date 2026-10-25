@@ -19,16 +19,6 @@
 
 module std.css.properties.TextAnchor.
 
-pub type Css =
-    Start
-  | Middle
-  | End
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Aligns the text such that the inline end of the text string is aligned with the anchor point.
 /// This alignment is relative to the writing direction of the text; thus, for example, in
 /// right-to-left top-to-bottom writing, the text will be placed to the right of the anchor point. If
@@ -45,7 +35,7 @@ pub type Middle =
     Atom["middle"].
 
 pub struct Property {
-    text_anchor: Value
+    text_anchor: Start | Middle | End | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Aligns the text such that the inline start of the text string is aligned with the anchor point.
@@ -56,10 +46,3 @@ pub struct Property {
 
 pub type Start =
     Atom["start"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

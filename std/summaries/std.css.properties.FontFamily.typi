@@ -17,24 +17,6 @@
 
 module std.css.properties.FontFamily.
 
-pub type Css =
-    Serif
-  | SansSerif
-  | SystemUi
-  | Cursive
-  | Fantasy
-  | Math
-  | Monospace
-  | UiSerif
-  | UiSansSerif
-  | UiMonospace
-  | UiRounded
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Glyphs in cursive fonts generally have either joining strokes or other cursive characteristics
 /// beyond those of italic typefaces. The glyphs are partially or completely connected, and the
 /// result looks more like handwritten pen or brush writing than printed letter work.
@@ -56,7 +38,7 @@ pub type Monospace =
     Atom["monospace"].
 
 pub struct Property {
-    font_family: Value
+    font_family: Serif | SansSerif | SystemUi | Cursive | Fantasy | Math | Monospace | UiSerif | UiSansSerif | UiMonospace | UiRounded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Glyphs have stroke endings that are plain.
@@ -99,10 +81,3 @@ pub type UiSansSerif =
 
 pub type UiSerif =
     Atom["ui-serif"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-family. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

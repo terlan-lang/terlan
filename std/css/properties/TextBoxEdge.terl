@@ -17,10 +17,7 @@
  */
 module std.css.properties.TextBoxEdge.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The default value. Equivalent to the `text-edge` value `text`.
@@ -41,26 +38,6 @@ pub type IdeographicInk = Atom["ideographic-ink"].
  */
 pub type TextKeyword = Atom["text"].
 
-pub type Css =
-      Auto
-    | TextKeyword
-    | Ideographic
-    | IdeographicInk
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_box_edge: Value,
+    text_box_edge: Auto | TextKeyword | Ideographic | IdeographicInk | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-box-edge. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-box-edge", Atom.to_string(css))).

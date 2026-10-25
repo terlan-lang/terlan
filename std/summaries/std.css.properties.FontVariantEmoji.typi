@@ -17,17 +17,6 @@
 
 module std.css.properties.FontVariantEmoji.
 
-pub type Css =
-    Normal
-  | TextKeyword
-  | Emoji
-  | Unicode
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Renders the emoji as if it were using the unicode emoji variation selector (`U+FE0F`).
 
 pub type Emoji =
@@ -40,7 +29,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_variant_emoji: Value
+    font_variant_emoji: Normal | TextKeyword | Emoji | Unicode | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Renders the emoji as if it were using the unicode text variation selector (`U+FE0E`).
@@ -54,10 +43,3 @@ pub type TextKeyword =
 
 pub type Unicode =
     Atom["unicode"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant-emoji. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -19,23 +19,6 @@
 
 module std.css.properties.FontVariantEastAsian.
 
-pub type Css =
-    Normal
-  | Jis78
-  | Jis83
-  | Jis90
-  | Jis04
-  | Simplified
-  | Traditional
-  | FullWidth
-  | ProportionalWidth
-  | Ruby
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Enables rendering of full-width variants.
 
 pub type FullWidth =
@@ -67,7 +50,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_variant_east_asian: Value
+    font_variant_east_asian: Normal | Jis78 | Jis83 | Jis90 | Jis04 | Simplified | Traditional | FullWidth | ProportionalWidth | Ruby | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Enables rendering of proportionally-spaced variants.
@@ -91,10 +74,3 @@ pub type Simplified =
 
 pub type Traditional =
     Atom["traditional"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant-east-asian. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

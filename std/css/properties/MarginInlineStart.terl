@@ -21,11 +21,7 @@
  */
 module std.css.properties.MarginInlineStart.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * The browser selects a suitable value to use. See `margin`.
@@ -34,30 +30,6 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    margin_inline_start: Value,
+    margin_inline_start: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for margin-inline-start. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("margin-inline-start", Atom.to_string(css))).
-
-/**
- * Sets margin-inline-start from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("margin-inline-start", length_css(value))).
-
-/**
- * Sets margin-inline-start from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("margin-inline-start", percentage_css(value))).

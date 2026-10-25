@@ -22,7 +22,6 @@
  */
 module std.css.properties.BorderInlineEndWidth.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, serialize}.
@@ -51,27 +50,18 @@ pub type Thick.
  */
 pub type Thin.
 
-pub type Css = Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    border_inline_end_width: Value,
+    border_inline_end_width: Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-inline-end-width. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("border-inline-end-width", Atom.to_string(css))).
-
-/**
- * Sets border-inline-end-width from a typed length. Returns Some for amount >= 0; otherwise returns
+ * Checks the border-inline-end-width length range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-inline-end-width", length_css(value))));
+        true -> Some(Checked(serialize("border-inline-end-width", length_css(value))));
         false -> Absent
     }.

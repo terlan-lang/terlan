@@ -1,8 +1,6 @@
 module typed_css.WrongBorderGlobal.
 
-import std.css.Values.{Inherit, Transparent, color}.
+import std.css.Values.{Inherit, Transparent}.
 import std.css.properties.Border.
-import std.css.properties.Border.{Solid, Thin}.
-
-pub invalid(): Border.Value ->
-    Border.compose(Border.value(Inherit), Solid, color(Transparent)).
+import std.css.properties.Border.{Solid}.
+pub invalid(): Border.Checked -> Border.compose(Inherit, Solid, Transparent).

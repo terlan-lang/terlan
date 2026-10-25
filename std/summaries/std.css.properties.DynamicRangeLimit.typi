@@ -24,16 +24,6 @@ module std.css.properties.DynamicRangeLimit.
 pub type Constrained =
     Atom["constrained"].
 
-pub type Css =
-    Standard
-  | NoLimit
-  | Constrained
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies the maximum luminance as much greater than that of HDR reference white. The precise
 /// level is not specified. This is the initial value.
 
@@ -41,7 +31,7 @@ pub type NoLimit =
     Atom["no-limit"].
 
 pub struct Property {
-    dynamic_range_limit: Value
+    dynamic_range_limit: Standard | NoLimit | Constrained | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Specifies the maximum luminance as High Dynamic Range (HDR) reference white, which is the CSS
@@ -49,10 +39,3 @@ pub struct Property {
 
 pub type Standard =
     Atom["standard"].
-
-pub opaque type Value.
-
-/// Selects a keyword for dynamic-range-limit. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

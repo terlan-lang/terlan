@@ -16,24 +16,12 @@
 
 module std.css.properties.TabSize.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub struct Property {
-    tab_size: Value
+    tab_size: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the tab-size length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets tab-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Selects a keyword for tab-size. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub length(value: std.css.Values.Length): Option[Checked].

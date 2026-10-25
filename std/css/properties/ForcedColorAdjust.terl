@@ -19,10 +19,7 @@
  */
 module std.css.properties.ForcedColorAdjust.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element's colors are adjusted by the `user agent` in forced colors mode. This is the default
@@ -45,17 +42,6 @@ pub type None.
  */
 pub type PreserveParentColor = Atom["preserve-parent-color"].
 
-pub type Css = Auto | None | PreserveParentColor | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    forced_color_adjust: Value,
+    forced_color_adjust: Auto | None | PreserveParentColor | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for forced-color-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("forced-color-adjust", Atom.to_string(css))).

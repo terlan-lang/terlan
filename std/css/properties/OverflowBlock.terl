@@ -19,10 +19,7 @@
  */
 module std.css.properties.OverflowBlock.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Depends on the user agent. If content fits inside the padding box, it looks the same as
@@ -56,27 +53,6 @@ pub type Scroll.
  */
 pub type Visible.
 
-pub type Css =
-      Visible
-    | Hidden
-    | Clip
-    | Scroll
-    | Auto
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    overflow_block: Value,
+    overflow_block: Visible | Hidden | Clip | Scroll | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for overflow-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("overflow-block", Atom.to_string(css))).

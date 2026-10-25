@@ -17,23 +17,13 @@
 
 module std.css.properties.FontVariantPosition.
 
-pub type Css =
-    Normal
-  | Sub
-  | Super
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Deactivates alternate superscript and subscript glyphs.
 
 pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_variant_position: Value
+    font_variant_position: Normal | Sub | Super | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Activates subscript alternate glyphs. If, in a given run, one such glyph is not available for a
@@ -47,10 +37,3 @@ pub type Sub =
 
 pub type Super =
     Atom["super"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant-position. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

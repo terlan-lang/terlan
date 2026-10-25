@@ -18,10 +18,7 @@
  */
 module std.css.properties.BackgroundClip.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The background is painted within (clipped to) the area painted by the border, taking
@@ -52,27 +49,6 @@ pub type PaddingBox = Atom["padding-box"].
  */
 pub type TextKeyword = Atom["text"].
 
-pub type Css =
-      ContentBox
-    | PaddingBox
-    | BorderBox
-    | BorderArea
-    | TextKeyword
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    background_clip: Value,
+    background_clip: ContentBox | PaddingBox | BorderBox | BorderArea | TextKeyword | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for background-clip. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("background-clip", Atom.to_string(css))).

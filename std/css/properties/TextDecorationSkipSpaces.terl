@@ -12,10 +12,7 @@
  */
 module std.css.properties.TextDecorationSkipSpaces.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Omits decorations across all spaces.
@@ -37,17 +34,6 @@ pub type None.
  */
 pub type Start.
 
-pub type Css = None | All | Start | End | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_decoration_skip_spaces: Value,
+    text_decoration_skip_spaces: None | All | Start | End | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-decoration-skip-spaces. CSS-wide choices Inherit, Initial, Unset,
- * Revert, and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-decoration-skip-spaces", Atom.to_string(css))).

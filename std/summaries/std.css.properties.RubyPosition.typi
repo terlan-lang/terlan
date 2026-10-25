@@ -25,17 +25,6 @@ module std.css.properties.RubyPosition.
 pub type Alternate =
     Atom["alternate"].
 
-pub type Css =
-    Alternate
-  | Over
-  | Under
-  | InterCharacter
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Is a keyword indicating that the ruby annotation is placed to the right of the base text
 /// characters. This value is intended for bopomofo (zhuyin fuhao) ruby.
 
@@ -49,7 +38,7 @@ pub type Over =
     Atom["over"].
 
 pub struct Property {
-    ruby_position: Value
+    ruby_position: Alternate | Over | Under | InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// ![Under example](screen_shot_2015-03-04_at_13.02.07.png) Is a keyword indicating that the ruby
@@ -57,10 +46,3 @@ pub struct Property {
 
 pub type Under =
     Atom["under"].
-
-pub opaque type Value.
-
-/// Selects a keyword for ruby-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

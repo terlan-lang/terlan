@@ -22,7 +22,6 @@
  */
 module std.css.properties.Width.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -62,45 +61,26 @@ pub type MinContent = Atom["min-content"].
  */
 pub type Stretch.
 
-pub type Css =
-      Auto
-    | Stretch
-    | MinContent
-    | MaxContent
-    | FitContent
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    width: Value,
+    width: Auto | Stretch | MinContent | MaxContent | FitContent | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for width. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the width length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("width", Atom.to_string(css))).
-
-/**
- * Sets width from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("width", length_css(value))));
+        true -> Some(Checked(serialize("width", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets width from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the width percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("width", percentage_css(value))));
+        true -> Some(Checked(serialize("width", percentage_css(value))));
         false -> Absent
     }.

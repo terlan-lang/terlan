@@ -18,10 +18,7 @@
  */
 module std.css.properties.OverflowWrap.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * To prevent overflow, an otherwise unbreakable string of characters — like a long word or URL —
@@ -44,17 +41,6 @@ pub type BreakWord = Atom["break-word"].
  */
 pub type Normal.
 
-pub type Css = Normal | BreakWord | Anywhere | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    overflow_wrap: Value,
+    overflow_wrap: Normal | BreakWord | Anywhere | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for overflow-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("overflow-wrap", Atom.to_string(css))).

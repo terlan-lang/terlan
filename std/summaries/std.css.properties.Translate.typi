@@ -18,35 +18,11 @@
 
 module std.css.properties.Translate.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that no translation should be applied.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    translate: Value
+    translate: None | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets translate from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the
-/// unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets translate from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for translate. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

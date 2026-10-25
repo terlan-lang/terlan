@@ -25,21 +25,6 @@ module std.css.properties.Contain.
 pub type Content =
     Atom["content"].
 
-pub type Css =
-    None
-  | Strict
-  | Content
-  | Size
-  | InlineSize
-  | Layout
-  | Style
-  | Paint
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Inline size containment is applied to the element. The inline size of the element can be computed
 /// in isolation, ignoring the child elements. This value cannot be combined with `size`.
 
@@ -67,7 +52,7 @@ pub type Paint =
     Atom["paint"].
 
 pub struct Property {
-    contain: Value
+    contain: None | Strict | Content | Size | InlineSize | Layout | Style | Paint | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Size containment is applied to the element in both the inline and block directions. The size of
@@ -88,10 +73,3 @@ pub type Strict =
 
 pub type Style =
     Atom["style"].
-
-pub opaque type Value.
-
-/// Selects a keyword for contain. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

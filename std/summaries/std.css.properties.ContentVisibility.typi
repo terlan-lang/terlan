@@ -31,16 +31,6 @@ module std.css.properties.ContentVisibility.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Visible
-  | Auto
-  | Hidden
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element [skips its
 /// contents](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Containment/Using#skips_its_contents).
 /// The skipped contents must not be accessible to user-agent features, such as find-in-page,
@@ -51,17 +41,10 @@ pub type Hidden =
     Atom["hidden"].
 
 pub struct Property {
-    content_visibility: Value
+    content_visibility: Visible | Auto | Hidden | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// No effect. The element's contents are laid out and rendered as normal. This is the default value.
 
 pub type Visible =
     Atom["visible"].
-
-/// Selects a keyword for content-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -21,10 +21,7 @@
  */
 module std.css.properties.ViewTransitionScope.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Limits the discoverability of elements to snapshot during a view transition to the subtree of the
@@ -39,17 +36,6 @@ pub type All.
  */
 pub type None.
 
-pub type Css = None | All | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    view_transition_scope: Value,
+    view_transition_scope: None | All | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for view-transition-scope. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("view-transition-scope", Atom.to_string(css))).

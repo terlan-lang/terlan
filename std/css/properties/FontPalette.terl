@@ -19,10 +19,7 @@
  */
 module std.css.properties.FontPalette.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies the first palette in the font that matches 'dark' to be used for the font. Some fonts
@@ -44,17 +41,6 @@ pub type Light.
  */
 pub type Normal.
 
-pub type Css = Normal | Light | Dark | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_palette: Value,
+    font_palette: Normal | Light | Dark | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-palette. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-palette", Atom.to_string(css))).

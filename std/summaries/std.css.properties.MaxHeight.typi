@@ -23,17 +23,7 @@
 
 module std.css.properties.MaxHeight.
 
-pub type Css =
-    None
-  | Stretch
-  | MinContent
-  | MaxContent
-  | FitContent
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Use the fit-content inline size or fit-content block size, as appropriate to the writing mode.
 
@@ -56,7 +46,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    max_height: Value
+    max_height: None | Stretch | MinContent | MaxContent | FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Limits the maximum height of the element's [margin
@@ -71,17 +61,10 @@ pub struct Property {
 pub type Stretch =
     Atom["stretch"].
 
-pub opaque type Value.
+/// Checks the max-height length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets max-height from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
+/// Checks the max-height percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets max-height from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for max-height. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

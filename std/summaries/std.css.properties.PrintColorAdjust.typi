@@ -20,15 +20,6 @@
 
 module std.css.properties.PrintColorAdjust.
 
-pub type Css =
-    Economy
-  | Exact
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The user agent is allowed to make adjustments to the element as it deems appropriate and prudent
 /// in order to optimize the output for the device it's being rendered for. For example, when
 /// printing, a browser might opt to leave out all background images and to adjust text colors to be
@@ -48,12 +39,5 @@ pub type Exact =
     Atom["exact"].
 
 pub struct Property {
-    print_color_adjust: Value
+    print_color_adjust: Economy | Exact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for print-color-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -21,10 +21,7 @@
  */
 module std.css.properties.Overflow.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Overflow content is clipped at the element's padding box. When overflowing, the element box is a
@@ -59,57 +56,26 @@ pub type Scroll.
  */
 pub type Visible.
 
-pub type Css =
-      Visible
-    | Hidden
-    | Clip
-    | Scroll
-    | Auto
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
+pub type Component = Visible | Hidden | Clip | Scroll | Auto.
 
-pub type ComponentCss = Visible | Hidden | Clip | Scroll | Auto.
-
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          List[Atom["visible"] | Atom["hidden"] | Atom["clip"] | Atom["scroll"] | Atom["auto"]]
+      }.
 
 pub struct Property {
-    overflow: Value,
+    overflow: Visible | Hidden | Clip | Scroll | Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for overflow. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Supplies 1 components in grammar order.
  */
-pub value(css: Css): Value ->
-    Value(serialize("overflow", Atom.to_string(css))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Chooses one overflow shorthand component. CSS-wide keywords are accepted only by value(css) for
- * the whole declaration.
+ * Supplies 2 components in grammar order.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("overflow", Atom.to_string(css))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
-
-/**
- * Supplies 1 components in the grammar order shown above.
- */
-pub single(first: Component): Value ->
-    Value(serialize("overflow", component_css(first))).
-
-/**
- * Supplies 2 components in the grammar order shown above.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("overflow", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

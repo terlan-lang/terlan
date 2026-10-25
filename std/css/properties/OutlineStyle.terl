@@ -18,10 +18,7 @@
  */
 module std.css.properties.OutlineStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Permits the user agent to render a custom outline style.
@@ -74,32 +71,6 @@ pub type Ridge.
  */
 pub type Solid.
 
-pub type Css =
-      Auto
-    | None
-    | Dotted
-    | Dashed
-    | Solid
-    | Double
-    | Groove
-    | Ridge
-    | Inset
-    | Outset
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    outline_style: Value,
+    outline_style: Auto | None | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for outline-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("outline-style", Atom.to_string(css))).

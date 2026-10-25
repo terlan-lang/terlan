@@ -22,7 +22,6 @@
  */
 module std.css.properties.BorderInlineWidth.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, serialize}.
@@ -51,67 +50,51 @@ pub type Thick.
  */
 pub type Thin.
 
-pub type Css = Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer.
+pub opaque type CheckedComponent = SerializedValue.
 
-pub type ComponentCss = Thin | Medium | Thick.
+pub type Component = Thin | Medium | Thick | CheckedComponent.
 
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      SerializedValue
+    | {Atom["css_parts"], List[Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue]}.
 
 pub struct Property {
-    border_inline_width: Value,
+    border_inline_width: Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-inline-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("border-inline-width", Atom.to_string(css))).
-
-/**
- * Sets border-inline-width from a typed length. Returns Some for amount >= 0; otherwise returns
+ * Checks the border-inline-width length range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-inline-width", length_css(value))));
+        true -> Some(Checked(serialize("border-inline-width", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Chooses one border-inline-width shorthand component. CSS-wide keywords are accepted only by
- * value(css) for the whole declaration.
+ * Checks the border-inline-width length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("border-inline-width", Atom.to_string(css))).
-
-/**
- * Sets border-inline-width shorthand component from a typed length. Returns Some for amount >= 0;
- * otherwise returns None.
- */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(serialize("border-inline-width", length_css(value))));
+        true -> Some(CheckedComponent(serialize("border-inline-width", length_css(value))));
         false -> Absent
     }.
 
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
+component_value(
+    value: Component,
+): Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue ->
     value.
 
 /**
- * Supplies 1 components in the grammar order shown above.
+ * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(serialize("border-inline-width", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
- * Supplies 2 components in the grammar order shown above.
+ * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("border-inline-width", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).

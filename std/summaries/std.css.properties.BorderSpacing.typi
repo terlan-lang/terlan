@@ -18,39 +18,29 @@
 
 module std.css.properties.BorderSpacing.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type CheckedComponent.
+
+pub type Component =
+    CheckedComponent.
 
 pub struct Property {
-    border_spacing: Value
+    border_spacing: std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the border-spacing length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-spacing shorthand component from a typed length. Returns Some for amount >= 0;
-/// otherwise returns None.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-pub component_length(value: std.css.Values.Length): Option[Component].
+/// Checks the border-spacing length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets border-spacing from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
+/// Supplies 2 components in grammar order.
 
-/// Supplies 2 components in the grammar order shown above.
+pub pair(first: Component, second: Component): Checked.
 
-pub pair(first: Component, second: Component): Value.
+/// Supplies 1 components in grammar order.
 
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for border-spacing. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

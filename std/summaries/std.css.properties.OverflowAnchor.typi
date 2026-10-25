@@ -23,27 +23,11 @@ module std.css.properties.OverflowAnchor.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element won't be selected as a potential anchor.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    overflow_anchor: Value
+    overflow_anchor: Auto | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for overflow-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

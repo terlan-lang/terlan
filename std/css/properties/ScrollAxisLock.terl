@@ -15,10 +15,7 @@
  */
 module std.css.properties.ScrollAxisLock.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Allows the browser to lock a gesture to one scrolling axis.
@@ -30,17 +27,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    scroll_axis_lock: Value,
+    scroll_axis_lock: Auto | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for scroll-axis-lock. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-axis-lock", Atom.to_string(css))).

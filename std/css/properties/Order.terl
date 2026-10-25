@@ -19,28 +19,8 @@
  */
 module std.css.properties.Order.
 
-import std.core.{Atom, Int}.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    order: Value,
+    order: Int | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for order. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("order", Atom.to_string(css))).
-
-/**
- * Sets order from a typed integer.
- */
-pub integer(value: Int): Value ->
-    Value(serialize("order", std.core.Int.to_string(value))).

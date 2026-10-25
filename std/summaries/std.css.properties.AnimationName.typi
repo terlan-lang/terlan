@@ -19,14 +19,6 @@
 
 module std.css.properties.AnimationName.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// A special keyword denoting no keyframes. It can be used to deactivate an animation without
 /// changing the ordering of the other identifiers, or to deactivate animations coming from the
 /// cascade.
@@ -35,12 +27,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    animation_name: Value
+    animation_name: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for animation-name. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

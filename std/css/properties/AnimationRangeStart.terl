@@ -19,41 +19,13 @@
  */
 module std.css.properties.AnimationRangeStart.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * Represents the start of the timeline. This is the default value.
  */
 pub type Normal.
 
-pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    animation_range_start: Value,
+    animation_range_start: Normal | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-range-start. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-range-start", Atom.to_string(css))).
-
-/**
- * Sets animation-range-start from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("animation-range-start", length_css(value))).
-
-/**
- * Sets animation-range-start from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("animation-range-start", percentage_css(value))).

@@ -19,11 +19,7 @@
  */
 module std.css.properties.Top.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies that: - for _absolutely positioned elements_, the position of the element is based on
@@ -35,29 +31,6 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    top: Value,
+    top: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for top. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("top", Atom.to_string(css))).
-
-/**
- * Sets top from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("top", length_css(value))).
-
-/**
- * Sets top from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("top", percentage_css(value))).

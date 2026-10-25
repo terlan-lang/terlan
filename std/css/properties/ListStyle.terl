@@ -21,10 +21,7 @@
  */
 module std.css.properties.ListStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The marker box is outside the principal block box, as described in the section on the ::marker
@@ -43,39 +40,25 @@ pub type None.
  */
 pub type Outside.
 
-pub type Css = Inside | Outside | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
 pub type ListStylePositionPart = Inside | Outside.
 
 pub type ListStyleImagePart = None.
 
 pub type ListStyleTypePart = None.
 
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = {Atom["css_parts"], {Atom["inside"] | Atom["outside"], Atom["none"], Atom["none"]}}.
 
 pub struct Property {
-    list_style: Value,
+    list_style: Inside | Outside | None | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for list-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("list-style", Atom.to_string(css))).
-
-/**
- * Sets list-style by combining list-style-position, list-style-image, list-style-type in grammar
- * order. Each argument describes a distinct part of the declaration.
+ * Combines list-style-position, list-style-image, list-style-type for list-style. Each parameter
+ * accepts its own keyword or typed unit choices directly.
  */
 pub compose(
     list_style_position: ListStylePositionPart,
     list_style_image: ListStyleImagePart,
     list_style_type: ListStyleTypePart,
-): Value ->
-    Value(
-        serialize(
-            "list-style",
-            Atom.to_string(list_style_position) + " " + Atom.to_string(list_style_image) + " " + Atom.to_string(list_style_type),
-        ),
-    ).
+): Checked ->
+    Checked({Atom["css_parts"], {list_style_position, list_style_image, list_style_type}}).

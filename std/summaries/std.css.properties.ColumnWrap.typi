@@ -23,33 +23,16 @@ module std.css.properties.ColumnWrap.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Nowrap
-  | Wrap
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Columns overflow in the inline direction.
 
 pub type Nowrap =
     Atom["nowrap"].
 
 pub struct Property {
-    column_wrap: Value
+    column_wrap: Auto | Nowrap | Wrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// Overflow columns are placed in a new row in the block direction.
 
 pub type Wrap =
     Atom["wrap"].
-
-/// Selects a keyword for column-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -21,9 +21,9 @@
 
 module std.css.properties.BorderBlockStyle.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
+pub type Component =
     None
   | Hidden
   | Dotted
@@ -34,23 +34,6 @@ pub type ComponentCss =
   | Ridge
   | Inset
   | Outset.
-
-pub type Css =
-    None
-  | Hidden
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
 
 /// Displays a series of short square-ended dashes or line segments. The exact size and length of the
 /// segments are not defined by the specification and are implementation-specific.
@@ -126,7 +109,7 @@ pub type Outset =
     Atom["outset"].
 
 pub struct Property {
-    border_block_style: Value
+    border_block_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Displays a border with an extruded appearance. This value is the opposite of `groove`.
@@ -143,22 +126,10 @@ pub type Ridge =
 pub type Solid =
     Atom["solid"].
 
-pub opaque type Value.
+/// Supplies 2 components in grammar order.
 
-/// Chooses one border-block-style shorthand component. CSS-wide keywords are accepted only by
-/// value(css) for the whole declaration.
+pub pair(first: Component, second: Component): Checked.
 
-pub component(css: ComponentCss): Component.
+/// Supplies 1 components in grammar order.
 
-/// Supplies 2 components in the grammar order shown above.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for border-block-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

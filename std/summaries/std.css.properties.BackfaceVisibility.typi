@@ -17,32 +17,16 @@
 
 module std.css.properties.BackfaceVisibility.
 
-pub type Css =
-    Visible
-  | Hidden
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The back face is hidden, effectively making the element invisible when turned away from the user.
 
 pub type Hidden =
     Atom["hidden"].
 
 pub struct Property {
-    backface_visibility: Value
+    backface_visibility: Visible | Hidden | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// The back face is visible when turned towards the user.
 
 pub type Visible =
     Atom["visible"].
-
-/// Selects a keyword for backface-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

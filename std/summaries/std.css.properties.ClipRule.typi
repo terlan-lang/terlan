@@ -21,15 +21,6 @@
 
 module std.css.properties.ClipRule.
 
-pub type Css =
-    Nonzero
-  | Evenodd
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Determines the 'insideness' of a point on the canvas by drawing a ray from that point to infinity
 /// in any direction and counting the number of path segments from the given shape that the ray
 /// crosses.
@@ -47,12 +38,5 @@ pub type Nonzero =
     Atom["nonzero"].
 
 pub struct Property {
-    clip_rule: Value
+    clip_rule: Nonzero | Evenodd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for clip-rule. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

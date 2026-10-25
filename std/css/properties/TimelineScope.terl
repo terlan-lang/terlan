@@ -18,10 +18,7 @@
  */
 module std.css.properties.TimelineScope.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Sets the scope so that any timeline names set on the element or in its subtree are matched only
@@ -34,17 +31,6 @@ pub type All.
  */
 pub type None.
 
-pub type Css = None | All | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    timeline_scope: Value,
+    timeline_scope: None | All | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for timeline-scope. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("timeline-scope", Atom.to_string(css))).

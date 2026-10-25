@@ -18,27 +18,11 @@ module std.css.properties.RuleOverlap.
 pub type ColumnOverRow =
     Atom["column-over-row"].
 
-pub type Css =
-    RowOverColumn
-  | ColumnOverRow
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    rule_overlap: Value
+    rule_overlap: RowOverColumn | ColumnOverRow | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Specifies that row rules are painted over column rules. This is the default value.
 
 pub type RowOverColumn =
     Atom["row-over-column"].
-
-pub opaque type Value.
-
-/// Selects a keyword for rule-overlap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

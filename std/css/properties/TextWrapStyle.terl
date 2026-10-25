@@ -19,10 +19,7 @@
  */
 module std.css.properties.TextWrapStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Text is wrapped in the most performant way for the browser and does not take into account the
@@ -52,17 +49,6 @@ pub type Pretty.
  */
 pub type Stable.
 
-pub type Css = Auto | Balance | Stable | Pretty | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_wrap_style: Value,
+    text_wrap_style: Auto | Balance | Stable | Pretty | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-wrap-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-wrap-style", Atom.to_string(css))).

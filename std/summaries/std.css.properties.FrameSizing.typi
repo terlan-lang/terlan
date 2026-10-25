@@ -46,25 +46,6 @@ pub type ContentInlineSize =
 pub type ContentWidth =
     Atom["content-width"].
 
-pub type Css =
-    Auto
-  | ContentWidth
-  | ContentHeight
-  | ContentBlockSize
-  | ContentInlineSize
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    frame_sizing: Value
+    frame_sizing: Auto | ContentWidth | ContentHeight | ContentBlockSize | ContentInlineSize | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for frame-sizing. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

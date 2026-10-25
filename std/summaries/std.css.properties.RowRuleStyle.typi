@@ -14,23 +14,6 @@
 
 module std.css.properties.RowRuleStyle.
 
-pub type Css =
-    None
-  | Hidden
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Displays a series of short square-ended dashes or line segments. The exact size and length of the
 /// segments are not defined by the specification and are implementation-specific.
 ///
@@ -105,7 +88,7 @@ pub type Outset =
     Atom["outset"].
 
 pub struct Property {
-    row_rule_style: Value
+    row_rule_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Displays a border with an extruded appearance. This value is the opposite of `groove`.
@@ -121,10 +104,3 @@ pub type Ridge =
 
 pub type Solid =
     Atom["solid"].
-
-pub opaque type Value.
-
-/// Selects a keyword for row-rule-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

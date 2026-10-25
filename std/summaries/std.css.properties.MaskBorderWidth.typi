@@ -25,75 +25,56 @@ module std.css.properties.MaskBorderWidth.
 pub type Auto =
     Atom["auto"].
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
-    Auto.
+pub opaque type CheckedComponent.
 
-pub type Css =
+pub type Component =
     Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+  | CheckedComponent.
 
 pub struct Property {
-    mask_border_width: Value
+    mask_border_width: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the mask-border-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Chooses one mask-border-width shorthand component. CSS-wide keywords are accepted only by
-/// value(css) for the whole declaration.
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-pub component(css: ComponentCss): Component.
+/// Checks the mask-border-width number range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets mask-border-width shorthand component from a typed length. Returns Some for amount >= 0;
-/// otherwise returns None.
+pub component_number(value: Float): Option[CheckedComponent].
 
-pub component_length(value: std.css.Values.Length): Option[Component].
-
-/// Sets mask-border-width shorthand component from a typed number. Returns Some for amount >= 0;
-/// otherwise returns None.
-
-pub component_number(value: Float): Option[Component].
-
-/// Sets mask-border-width shorthand component from a typed percentage. Returns Some for amount >= 0;
-/// otherwise returns None.
-
-pub component_percentage(value: std.css.Values.Percentage): Option[Component].
-
-/// Sets mask-border-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Sets mask-border-width from a typed number. Returns Some for amount >= 0; otherwise returns None.
-
-pub number(value: Float): Option[Value].
-
-/// Supplies 2 components in the grammar order shown above.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Sets mask-border-width from a typed percentage. Returns Some for amount >= 0; otherwise returns
+/// Checks the mask-border-width percentage range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
+pub component_percentage(value: std.css.Values.Percentage): Option[CheckedComponent].
 
-/// Supplies 4 components in the grammar order shown above.
+/// Checks the mask-border-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Supplies 1 components in the grammar order shown above.
+/// Checks the mask-border-width number range. Returns Some when amount >= 0; otherwise returns None.
 
-pub single(first: Component): Value.
+pub number(value: Float): Option[Checked].
 
-/// Supplies 3 components in the grammar order shown above.
+/// Supplies 2 components in grammar order.
 
-pub triple(first: Component, second: Component, third: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Selects a keyword for mask-border-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
+/// Checks the mask-border-width percentage range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].
+
+/// Supplies 4 components in grammar order.
+
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
+
+/// Supplies 1 components in grammar order.
+
+pub single(first: Component): Checked.
+
+/// Supplies 3 components in grammar order.
+
+pub triple(first: Component, second: Component, third: Component): Checked.

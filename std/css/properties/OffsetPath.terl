@@ -19,10 +19,7 @@
  */
 module std.css.properties.OffsetPath.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type BorderBox = Atom["border-box"].
 
@@ -45,29 +42,6 @@ pub type StrokeBox = Atom["stroke-box"].
 
 pub type ViewBox = Atom["view-box"].
 
-pub type Css =
-      None
-    | ContentBox
-    | PaddingBox
-    | BorderBox
-    | FillBox
-    | StrokeBox
-    | ViewBox
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    offset_path: Value,
+    offset_path: None | ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for offset-path. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("offset-path", Atom.to_string(css))).

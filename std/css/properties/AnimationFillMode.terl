@@ -18,10 +18,7 @@
  */
 module std.css.properties.AnimationFillMode.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The animation will apply the values defined in the first relevant
@@ -51,26 +48,6 @@ pub type Forwards.
  */
 pub type None.
 
-pub type Css =
-      None
-    | Forwards
-    | Backwards
-    | Both
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    animation_fill_mode: Value,
+    animation_fill_mode: None | Forwards | Backwards | Both | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-fill-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-fill-mode", Atom.to_string(css))).

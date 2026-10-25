@@ -29,17 +29,6 @@ pub type AnchorValid =
 pub type AnchorVisible =
     Atom["anchor-visible"].
 
-pub type Css =
-    Always
-  | AnchorValid
-  | AnchorVisible
-  | NoOverflow
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// If the positioned element starts to overflow its containing element or the viewport, it will be
 /// strongly hidden.
 
@@ -47,12 +36,5 @@ pub type NoOverflow =
     Atom["no-overflow"].
 
 pub struct Property {
-    position_visibility: Value
+    position_visibility: Always | AnchorValid | AnchorVisible | NoOverflow | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for position-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

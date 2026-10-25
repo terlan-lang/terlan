@@ -59,31 +59,7 @@ pub type Backwards =
 pub type Both =
     Atom["both"].
 
-pub type Css =
-    Auto
-  | Linear
-  | Ease
-  | EaseIn
-  | EaseOut
-  | EaseInOut
-  | StepStart
-  | StepEnd
-  | Infinite
-  | Normal
-  | Reverse
-  | Alternate
-  | AlternateReverse
-  | None
-  | Forwards
-  | Backwards
-  | Both
-  | Running
-  | Paused
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub type Ease =
     Atom["ease"].
@@ -159,7 +135,7 @@ pub type Paused =
     Atom["paused"].
 
 pub struct Property {
-    animation: Value
+    animation: Auto | Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Infinite | Normal | Reverse | Alternate | AlternateReverse | None | Forwards | Backwards | Both | Running | Paused | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// All iterations of the animation are played in the reverse direction from the way they were
@@ -193,17 +169,6 @@ pub type StepEnd =
 pub type StepStart =
     Atom["step-start"].
 
-pub opaque type Value.
+/// Checks the animation number range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets animation from a typed number. Returns Some for amount >= 0; otherwise returns None.
-
-pub number(value: Float): Option[Value].
-
-/// Sets animation from a typed time.
-
-pub time(value: std.css.Values.Time): Value.
-
-/// Selects a keyword for animation. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub number(value: Float): Option[Checked].

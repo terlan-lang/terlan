@@ -20,24 +20,11 @@ module std.css.properties.CornerEndEndShape.
 pub type Bevel =
     Atom["bevel"].
 
-pub type Css =
-    Round
-  | Scoop
-  | Bevel
-  | Notch
-  | Square
-  | Squircle
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Notch =
     Atom["notch"].
 
 pub struct Property {
-    corner_end_end_shape: Value
+    corner_end_end_shape: Round | Scoop | Bevel | Notch | Square | Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type Round =
@@ -51,10 +38,3 @@ pub type Square =
 
 pub type Squircle =
     Atom["squircle"].
-
-pub opaque type Value.
-
-/// Selects a keyword for corner-end-end-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

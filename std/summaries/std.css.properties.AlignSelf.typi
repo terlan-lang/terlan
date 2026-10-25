@@ -46,25 +46,6 @@ pub type Baseline =
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Auto
-  | Normal
-  | Center
-  | Start
-  | End
-  | SelfStart
-  | SelfEnd
-  | FlexStart
-  | FlexEnd
-  | Stretch
-  | Baseline
-  | AnchorCenter
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Aligns the alignment subject flush with the alignment container's end edge.
 ///
 /// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/self-position
@@ -94,7 +75,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    align_self: Value
+    align_self: Auto | Normal | Center | Start | End | SelfStart | SelfEnd | FlexStart | FlexEnd | Stretch | Baseline | AnchorCenter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Aligns the items to be flush with the edge of the alignment container corresponding to the item's
@@ -123,10 +104,3 @@ pub type Start =
 
 pub type Stretch =
     Atom["stretch"].
-
-pub opaque type Value.
-
-/// Selects a keyword for align-self. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -19,10 +19,7 @@
  */
 module std.css.properties.TransitionBehavior.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Transitions will be started on the element for discrete animated properties.
@@ -34,17 +31,6 @@ pub type AllowDiscrete = Atom["allow-discrete"].
  */
 pub type Normal.
 
-pub type Css = Normal | AllowDiscrete | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    transition_behavior: Value,
+    transition_behavior: Normal | AllowDiscrete | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for transition-behavior. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("transition-behavior", Atom.to_string(css))).

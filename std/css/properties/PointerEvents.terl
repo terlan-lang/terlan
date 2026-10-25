@@ -20,10 +20,7 @@
  */
 module std.css.properties.PointerEvents.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * SVG only (experimental for HTML). The element can only be the target of a pointer event when the
@@ -108,33 +105,6 @@ pub type VisiblePainted = Atom["visiblePainted"].
  */
 pub type VisibleStroke = Atom["visibleStroke"].
 
-pub type Css =
-      Auto
-    | BoundingBox
-    | VisiblePainted
-    | VisibleFill
-    | VisibleStroke
-    | Visible
-    | Painted
-    | Fill
-    | Stroke
-    | All
-    | None
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    pointer_events: Value,
+    pointer_events: Auto | BoundingBox | VisiblePainted | VisibleFill | VisibleStroke | Visible | Painted | Fill | Stroke | All | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for pointer-events. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("pointer-events", Atom.to_string(css))).

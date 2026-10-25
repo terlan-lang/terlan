@@ -32,18 +32,6 @@ pub type Contain =
 pub type Cover =
     Atom["cover"].
 
-pub type Css =
-    Fill
-  | None
-  | Contain
-  | Cover
-  | ScaleDown
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The replaced content is sized to fill the element's content box. This is the `initial` value. The
 /// entire object will completely fill the box. If the object's `aspect ratio` does not match the
 /// aspect ratio of its box, then the object will be stretched to fit.
@@ -57,7 +45,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    object_fit: Value
+    object_fit: Fill | None | Contain | Cover | ScaleDown | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The content is sized as if `none` or `contain` were specified, whichever would result in a
@@ -65,10 +53,3 @@ pub struct Property {
 
 pub type ScaleDown =
     Atom["scale-down"].
-
-pub opaque type Value.
-
-/// Selects a keyword for object-fit. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

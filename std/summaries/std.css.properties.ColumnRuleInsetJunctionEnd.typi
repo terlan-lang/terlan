@@ -16,14 +16,6 @@
 
 module std.css.properties.ColumnRuleInsetJunctionEnd.
 
-pub type Css =
-    OverlapJoin
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that the junction segment should extend across the row-rule, resolving to half the
 /// `row-gap` value plus half the used `row-rule-width` value.
 
@@ -31,12 +23,5 @@ pub type OverlapJoin =
     Atom["overlap-join"].
 
 pub struct Property {
-    column_rule_inset_junction_end: Value
+    column_rule_inset_junction_end: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for column-rule-inset-junction-end. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

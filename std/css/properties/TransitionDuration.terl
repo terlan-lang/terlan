@@ -19,29 +19,8 @@
  */
 module std.css.properties.TransitionDuration.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{serialize, time_css}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Time, Unset}.
 
 pub struct Property {
-    transition_duration: Value,
+    transition_duration: Time | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for transition-duration. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("transition-duration", Atom.to_string(css))).
-
-/**
- * Sets transition-duration from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(serialize("transition-duration", time_css(value))).

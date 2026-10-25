@@ -20,10 +20,7 @@
  */
 module std.css.properties.TextAnchor.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Aligns the text such that the inline end of the text string is aligned with the anchor point.
@@ -49,17 +46,6 @@ pub type Middle.
  */
 pub type Start.
 
-pub type Css = Start | Middle | End | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_anchor: Value,
+    text_anchor: Start | Middle | End | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-anchor. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-anchor", Atom.to_string(css))).

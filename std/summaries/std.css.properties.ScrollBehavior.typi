@@ -23,17 +23,8 @@ module std.css.properties.ScrollBehavior.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Smooth
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    scroll_behavior: Value
+    scroll_behavior: Auto | Smooth | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The scrolling box scrolls in a smooth fashion using a user-agent-defined easing function over a
@@ -41,10 +32,3 @@ pub struct Property {
 
 pub type Smooth =
     Atom["smooth"].
-
-pub opaque type Value.
-
-/// Selects a keyword for scroll-behavior. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

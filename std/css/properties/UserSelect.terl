@@ -20,10 +20,7 @@
  */
 module std.css.properties.UserSelect.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The content of the element shall be selected atomically: If a selection would contain part of the
@@ -53,17 +50,6 @@ pub type None.
  */
 pub type TextKeyword = Atom["text"].
 
-pub type Css = Auto | TextKeyword | None | All | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    user_select: Value,
+    user_select: Auto | TextKeyword | None | All | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for user-select. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("user-select", Atom.to_string(css))).

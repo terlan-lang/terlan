@@ -17,10 +17,7 @@
  */
 module std.css.properties.LineBreak.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * There is a soft wrap opportunity around every typographic character unit, including around any
@@ -52,27 +49,6 @@ pub type Normal.
  */
 pub type Strict.
 
-pub type Css =
-      Auto
-    | Loose
-    | Normal
-    | Strict
-    | Anywhere
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    line_break: Value,
+    line_break: Auto | Loose | Normal | Strict | Anywhere | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for line-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("line-break", Atom.to_string(css))).

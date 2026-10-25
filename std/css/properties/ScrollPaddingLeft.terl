@@ -21,7 +21,6 @@
  */
 module std.css.properties.ScrollPaddingLeft.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -35,37 +34,28 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    scroll_padding_left: Value,
+    scroll_padding_left: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for scroll-padding-left. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-padding-left", Atom.to_string(css))).
-
-/**
- * Sets scroll-padding-left from a typed length. Returns Some for amount >= 0; otherwise returns
+ * Checks the scroll-padding-left length range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("scroll-padding-left", length_css(value))));
+        true -> Some(Checked(serialize("scroll-padding-left", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets scroll-padding-left from a typed percentage. Returns Some for amount >= 0; otherwise returns
+ * Checks the scroll-padding-left percentage range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("scroll-padding-left", percentage_css(value))));
+        true -> Some(Checked(serialize("scroll-padding-left", percentage_css(value))));
         false -> Absent
     }.

@@ -20,10 +20,7 @@
  */
 module std.css.properties.TextEmphasisStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Display large circles as marks. The filled circle is `'●'` (`U+25CF`), and the open circle is
@@ -71,30 +68,6 @@ pub type Sesame.
  */
 pub type Triangle.
 
-pub type Css =
-      None
-    | Filled
-    | Open
-    | Dot
-    | Circle
-    | DoubleCircle
-    | Triangle
-    | Sesame
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_emphasis_style: Value,
+    text_emphasis_style: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-emphasis-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-emphasis-style", Atom.to_string(css))).

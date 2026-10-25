@@ -19,10 +19,7 @@
  */
 module std.css.properties.WhiteSpace.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The behavior is identical to `preserve`, except that: - Any sequence of preserved white space
@@ -116,33 +113,6 @@ pub type PreserveSpaces = Atom["preserve-spaces"].
  */
 pub type Wrap.
 
-pub type Css =
-      Normal
-    | Pre
-    | PreWrap
-    | PreLine
-    | Collapse
-    | Preserve
-    | PreserveBreaks
-    | PreserveSpaces
-    | BreakSpaces
-    | Wrap
-    | Nowrap
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    white_space: Value,
+    white_space: Normal | Pre | PreWrap | PreLine | Collapse | Preserve | PreserveBreaks | PreserveSpaces | BreakSpaces | Wrap | Nowrap | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for white-space. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("white-space", Atom.to_string(css))).

@@ -16,16 +16,6 @@
 
 module std.css.properties.FontStyle.
 
-pub type Css =
-    Normal
-  | Italic
-  | Oblique
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Selects a font that is classified as `italic`. If no italic version of the face is available, one
 /// classified as `oblique` is used instead. If neither is available, the style is artificially
 /// simulated.
@@ -50,12 +40,5 @@ pub type Oblique =
     Atom["oblique"].
 
 pub struct Property {
-    font_style: Value
+    font_style: Normal | Italic | Oblique | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

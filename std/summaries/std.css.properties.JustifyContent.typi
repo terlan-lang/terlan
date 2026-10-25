@@ -29,25 +29,6 @@ module std.css.properties.JustifyContent.
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Normal
-  | SpaceBetween
-  | SpaceAround
-  | SpaceEvenly
-  | Stretch
-  | Center
-  | Start
-  | End
-  | FlexStart
-  | FlexEnd
-  | Left
-  | Right
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The items are packed flush to each other toward the end edge of the alignment container in the
 /// main axis.
 
@@ -86,7 +67,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    justify_content: Value
+    justify_content: Normal | SpaceBetween | SpaceAround | SpaceEvenly | Stretch | Center | Start | End | FlexStart | FlexEnd | Left | Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The items are packed flush to each other toward the right edge of the alignment container in the
@@ -132,10 +113,3 @@ pub type Start =
 
 pub type Stretch =
     Atom["stretch"].
-
-pub opaque type Value.
-
-/// Selects a keyword for justify-content. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -21,25 +21,12 @@ module std.css.properties.ColumnWidth.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub struct Property {
-    column_width: Value
+    column_width: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Checks the column-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets column-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Selects a keyword for column-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub length(value: std.css.Values.Length): Option[Checked].

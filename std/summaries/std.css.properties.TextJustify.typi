@@ -26,17 +26,6 @@ module std.css.properties.TextJustify.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | InterWord
-  | InterCharacter
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The text is justified by adding space between characters (effectively varying `letter-spacing`),
 /// which is most appropriate for languages like Japanese.
 
@@ -56,12 +45,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    text_justify: Value
+    text_justify: Auto | None | InterWord | InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for text-justify. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

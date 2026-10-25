@@ -18,10 +18,7 @@
  */
 module std.css.properties.ColumnWrap.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The initial value. If the content container's `column-height` is set to a `<length>`, `auto`
@@ -39,17 +36,6 @@ pub type Nowrap.
  */
 pub type Wrap.
 
-pub type Css = Auto | Nowrap | Wrap | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    column_wrap: Value,
+    column_wrap: Auto | Nowrap | Wrap | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for column-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("column-wrap", Atom.to_string(css))).

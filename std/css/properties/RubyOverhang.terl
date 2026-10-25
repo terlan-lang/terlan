@@ -19,10 +19,7 @@
  */
 module std.css.properties.RubyOverhang.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * When a ruby annotation container is longer than its corresponding base container, the annotation
@@ -33,17 +30,6 @@ pub type Auto.
 
 pub type Spaces.
 
-pub type Css = Auto | Spaces | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    ruby_overhang: Value,
+    ruby_overhang: Auto | Spaces | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for ruby-overhang. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("ruby-overhang", Atom.to_string(css))).

@@ -18,10 +18,7 @@
  */
 module std.css.properties.AnimationTimeline.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The animation's timeline is the document's default `DocumentTimeline`. This is the default value.
@@ -33,17 +30,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    animation_timeline: Value,
+    animation_timeline: Auto | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-timeline. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-timeline", Atom.to_string(css))).

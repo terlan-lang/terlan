@@ -65,49 +65,6 @@ pub type Copy =
 pub type Crosshair =
     Atom["crosshair"].
 
-pub type Css =
-    Auto
-  | Default
-  | None
-  | ContextMenu
-  | Help
-  | Pointer
-  | Progress
-  | Wait
-  | Cell
-  | Crosshair
-  | TextKeyword
-  | VerticalText
-  | Alias
-  | Copy
-  | Move
-  | NoDrop
-  | NotAllowed
-  | Grab
-  | Grabbing
-  | EResize
-  | NResize
-  | NeResize
-  | NwResize
-  | SResize
-  | SeResize
-  | SwResize
-  | WResize
-  | EwResize
-  | NsResize
-  | NeswResize
-  | NwseResize
-  | ColResize
-  | RowResize
-  | AllScroll
-  | ZoomIn
-  | ZoomOut
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The platform-dependent default cursor. Often rendered as an arrow.
 
 pub type Default =
@@ -204,7 +161,7 @@ pub type Progress =
     Atom["progress"].
 
 pub struct Property {
-    cursor: Value
+    cursor: Auto | Default | None | ContextMenu | Help | Pointer | Progress | Wait | Cell | Crosshair | TextKeyword | VerticalText | Alias | Copy | Move | NoDrop | NotAllowed | Grab | Grabbing | EResize | NResize | NeResize | NwResize | SResize | SeResize | SwResize | WResize | EwResize | NsResize | NeswResize | NwseResize | ColResize | RowResize | AllScroll | ZoomIn | ZoomOut | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Indicates that the item/row can be resized vertically. Often rendered as arrows pointing up and
@@ -233,8 +190,6 @@ pub type SwResize =
 pub type TextKeyword =
     Atom["text"].
 
-pub opaque type Value.
-
 /// Indicates vertical-text that may be selected. Often rendered as a horizontal I-beam.
 
 pub type VerticalText =
@@ -260,8 +215,3 @@ pub type ZoomIn =
 
 pub type ZoomOut =
     Atom["zoom-out"].
-
-/// Selects a keyword for cursor. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

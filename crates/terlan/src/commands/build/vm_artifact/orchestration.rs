@@ -20,6 +20,7 @@ mod tests;
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) struct CompiledServeApplication {
     pub(crate) core: CoreModule,
+    pub(crate) interfaces: Vec<crate::terlan_hir::ModuleInterface>,
     pub(crate) image: native_image::CompiledServeNativeImage,
 }
 
@@ -212,7 +213,15 @@ fn compile_application_from_root(
             "error[serve.aot.image_required]: application route module `{expected_module}` did not produce a native image"
         )
     })?;
-    Ok(CompiledServeApplication { core, image })
+    let interfaces = modules
+        .iter()
+        .map(|module| module.compiled.core.interface.clone())
+        .collect();
+    Ok(CompiledServeApplication {
+        core,
+        image,
+        interfaces,
+    })
 }
 
 /// Removes the build output root from source identities embedded in packaged

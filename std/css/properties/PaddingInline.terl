@@ -20,7 +20,6 @@
  */
 module std.css.properties.PaddingInline.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -28,77 +27,65 @@ import std.css.Values.{length_amount, length_css, percentage_amount, percentage_
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
+pub opaque type CheckedComponent = SerializedValue.
 
-pub opaque type Value = SerializedValue.
+pub type Component = CheckedComponent.
 
-pub opaque type Component = SerializedValue.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[SerializedValue]}.
 
 pub struct Property {
-    padding_inline: Value,
+    padding_inline: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for padding-inline. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the padding-inline length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("padding-inline", Atom.to_string(css))).
-
-/**
- * Sets padding-inline from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("padding-inline", length_css(value))));
+        true -> Some(Checked(serialize("padding-inline", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets padding-inline from a typed percentage. Returns Some for amount >= 0; otherwise returns
+ * Checks the padding-inline percentage range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("padding-inline", percentage_css(value))));
+        true -> Some(Checked(serialize("padding-inline", percentage_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets padding-inline shorthand component from a typed length. Returns Some for amount >= 0;
- * otherwise returns None.
+ * Checks the padding-inline length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(serialize("padding-inline", length_css(value))));
+        true -> Some(CheckedComponent(serialize("padding-inline", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets padding-inline shorthand component from a typed percentage. Returns Some for amount >= 0;
- * otherwise returns None.
+ * Checks the padding-inline percentage range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Component(serialize("padding-inline", percentage_css(value))));
+        true -> Some(CheckedComponent(serialize("padding-inline", percentage_css(value))));
         false -> Absent
     }.
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
 
 component_value(value: Component): SerializedValue ->
     value.
 
 /**
- * Supplies 1 components in the grammar order shown above.
+ * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(serialize("padding-inline", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
- * Supplies 2 components in the grammar order shown above.
+ * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("padding-inline", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).

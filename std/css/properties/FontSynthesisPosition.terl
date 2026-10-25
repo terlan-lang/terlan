@@ -20,10 +20,7 @@
  */
 module std.css.properties.FontSynthesisPosition.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates that a missing position typeface may be synthesized by the browser if needed.
@@ -35,17 +32,6 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_synthesis_position: Value,
+    font_synthesis_position: Auto | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-synthesis-position. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-synthesis-position", Atom.to_string(css))).

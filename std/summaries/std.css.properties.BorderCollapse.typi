@@ -22,27 +22,11 @@ module std.css.properties.BorderCollapse.
 pub type Collapse =
     Atom["collapse"].
 
-pub type Css =
-    Separate
-  | Collapse
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    border_collapse: Value
+    border_collapse: Separate | Collapse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Adjacent cells have distinct borders (the separated-border table rendering model).
 
 pub type Separate =
     Atom["separate"].
-
-pub opaque type Value.
-
-/// Selects a keyword for border-collapse. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

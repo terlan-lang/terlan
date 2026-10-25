@@ -17,15 +17,7 @@
 
 module std.css.properties.ColumnRuleWidth.
 
-pub type Css =
-    Thin
-  | Medium
-  | Thick
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Same as `3px`.
 ///
@@ -35,7 +27,7 @@ pub type Medium =
     Atom["medium"].
 
 pub struct Property {
-    column_rule_width: Value
+    column_rule_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Same as `5px`.
@@ -52,13 +44,6 @@ pub type Thick =
 pub type Thin =
     Atom["thin"].
 
-pub opaque type Value.
+/// Checks the column-rule-width length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets column-rule-width from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length(value: std.css.Values.Length): Option[Value].
-
-/// Selects a keyword for column-rule-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub length(value: std.css.Values.Length): Option[Checked].

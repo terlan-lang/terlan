@@ -15,10 +15,7 @@
  */
 module std.css.properties.ColorInterpolation.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates that the user agent can choose either the `sRGB` or `linearRGB` spaces for color
@@ -39,17 +36,6 @@ pub type LinearRGB = Atom["linearRGB"].
  */
 pub type SRGB = Atom["sRGB"].
 
-pub type Css = Auto | SRGB | LinearRGB | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    color_interpolation: Value,
+    color_interpolation: Auto | SRGB | LinearRGB | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for color-interpolation. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("color-interpolation", Atom.to_string(css))).

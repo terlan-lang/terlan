@@ -17,11 +17,7 @@
  */
 module std.css.properties.OffsetRotate.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{angle_css, serialize}.
-
-import type std.css.Values.{Angle, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Angle, Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element is rotated by the angle of the direction of the `offset-path`, relative to the
@@ -35,23 +31,6 @@ pub type Auto.
  */
 pub type Reverse.
 
-pub type Css = Auto | Reverse | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    offset_rotate: Value,
+    offset_rotate: Auto | Reverse | Angle | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for offset-rotate. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("offset-rotate", Atom.to_string(css))).
-
-/**
- * Sets offset-rotate from a typed angle.
- */
-pub angle(value: Angle): Value ->
-    Value(serialize("offset-rotate", angle_css(value))).

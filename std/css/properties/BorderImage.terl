@@ -24,8 +24,8 @@
  */
 module std.css.properties.BorderImage.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.
 import std.css.Values.{percentage_amount, percentage_css, serialize}.
 
@@ -59,45 +59,26 @@ pub type Space.
  */
 pub type Stretch.
 
-pub type Css =
-      None
-    | Stretch
-    | Repeat
-    | Round
-    | Space
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    border_image: Value,
+    border_image: None | Stretch | Repeat | Round | Space | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-image. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the border-image number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("border-image", Atom.to_string(css))).
-
-/**
- * Sets border-image from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("border-image", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("border-image", std.core.Float.to_string(value))));
         false -> Absent
     }.
 
 /**
- * Sets border-image from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the border-image percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("border-image", percentage_css(value))));
+        true -> Some(Checked(serialize("border-image", percentage_css(value))));
         false -> Absent
     }.

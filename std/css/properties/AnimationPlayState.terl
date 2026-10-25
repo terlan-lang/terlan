@@ -18,10 +18,7 @@
  */
 module std.css.properties.AnimationPlayState.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The animation is currently paused.
@@ -33,17 +30,6 @@ pub type Paused.
  */
 pub type Running.
 
-pub type Css = Running | Paused | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    animation_play_state: Value,
+    animation_play_state: Running | Paused | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-play-state. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-play-state", Atom.to_string(css))).

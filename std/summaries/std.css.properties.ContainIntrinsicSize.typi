@@ -20,18 +20,13 @@
 
 module std.css.properties.ContainIntrinsicSize.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
-    None.
+pub opaque type CheckedComponent.
 
-pub type Css =
+pub type Component =
     None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+  | CheckedComponent.
 
 /// The element has no intrinsic size in the given dimension(s).
 
@@ -39,35 +34,23 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    contain_intrinsic_size: Value
+    contain_intrinsic_size: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
-
-/// Chooses one contain-intrinsic-size shorthand component. CSS-wide keywords are accepted only by
-/// value(css) for the whole declaration.
-
-pub component(css: ComponentCss): Component.
-
-/// Sets contain-intrinsic-size shorthand component from a typed length. Returns Some for amount >=
-/// 0; otherwise returns None.
-
-pub component_length(value: std.css.Values.Length): Option[Component].
-
-/// Sets contain-intrinsic-size from a typed length. Returns Some for amount >= 0; otherwise returns
+/// Checks the contain-intrinsic-size length range. Returns Some when amount >= 0; otherwise returns
 /// None.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub component_length(value: std.css.Values.Length): Option[CheckedComponent].
 
-/// Supplies 2 components in the grammar order shown above.
+/// Checks the contain-intrinsic-size length range. Returns Some when amount >= 0; otherwise returns
+/// None.
 
-pub pair(first: Component, second: Component): Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Supplies 1 components in the grammar order shown above.
+/// Supplies 2 components in grammar order.
 
-pub single(first: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
-/// Selects a keyword for contain-intrinsic-size. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
+/// Supplies 1 components in grammar order.
 
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

@@ -20,35 +20,8 @@
  */
 module std.css.properties.X.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    x: Value,
+    x: Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for x. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer apply
- * to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("x", Atom.to_string(css))).
-
-/**
- * Sets x from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("x", length_css(value))).
-
-/**
- * Sets x from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("x", percentage_css(value))).

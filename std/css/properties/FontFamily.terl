@@ -18,10 +18,7 @@
  */
 module std.css.properties.FontFamily.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Glyphs in cursive fonts generally have either joining strokes or other cursive characteristics
@@ -78,33 +75,6 @@ pub type UiSansSerif = Atom["ui-sans-serif"].
 
 pub type UiSerif = Atom["ui-serif"].
 
-pub type Css =
-      Serif
-    | SansSerif
-    | SystemUi
-    | Cursive
-    | Fantasy
-    | Math
-    | Monospace
-    | UiSerif
-    | UiSansSerif
-    | UiMonospace
-    | UiRounded
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_family: Value,
+    font_family: Serif | SansSerif | SystemUi | Cursive | Fantasy | Math | Monospace | UiSerif | UiSansSerif | UiMonospace | UiRounded | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-family. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-family", Atom.to_string(css))).

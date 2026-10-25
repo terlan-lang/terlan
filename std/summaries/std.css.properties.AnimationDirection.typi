@@ -30,17 +30,6 @@ pub type Alternate =
 pub type AlternateReverse =
     Atom["alternate-reverse"].
 
-pub type Css =
-    Normal
-  | Reverse
-  | Alternate
-  | AlternateReverse
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The animation plays _forwards_ each cycle. In other words, each time the animation cycles, the
 /// animation will reset to the beginning state and start over again. This is the default value.
 
@@ -48,7 +37,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    animation_direction: Value
+    animation_direction: Normal | Reverse | Alternate | AlternateReverse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The animation plays _backwards_ each cycle. In other words, each time the animation cycles, the
@@ -58,10 +47,3 @@ pub struct Property {
 
 pub type Reverse =
     Atom["reverse"].
-
-pub opaque type Value.
-
-/// Selects a keyword for animation-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

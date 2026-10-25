@@ -19,10 +19,7 @@
  */
 module std.css.properties.HangingPunctuation.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * A stop or comma at the end of a line hangs if it does not otherwise fit prior to justification.
@@ -52,27 +49,6 @@ pub type Last.
  */
 pub type None.
 
-pub type Css =
-      None
-    | First
-    | ForceEnd
-    | AllowEnd
-    | Last
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    hanging_punctuation: Value,
+    hanging_punctuation: None | First | ForceEnd | AllowEnd | Last | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for hanging-punctuation. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("hanging-punctuation", Atom.to_string(css))).

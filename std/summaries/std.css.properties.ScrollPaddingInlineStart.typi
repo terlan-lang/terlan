@@ -26,31 +26,18 @@ module std.css.properties.ScrollPaddingInlineStart.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub struct Property {
-    scroll_padding_inline_start: Value
+    scroll_padding_inline_start: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
-
-/// Sets scroll-padding-inline-start from a typed length. Returns Some for amount >= 0; otherwise
+/// Checks the scroll-padding-inline-start length range. Returns Some when amount >= 0; otherwise
 /// returns None.
 
-pub length(value: std.css.Values.Length): Option[Value].
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Sets scroll-padding-inline-start from a typed percentage. Returns Some for amount >= 0; otherwise
+/// Checks the scroll-padding-inline-start percentage range. Returns Some when amount >= 0; otherwise
 /// returns None.
 
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for scroll-padding-inline-start. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

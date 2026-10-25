@@ -18,10 +18,7 @@
  */
 module std.css.properties.DynamicRangeLimit.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies the maximum luminance as somewhat greater than that of HDR reference white, such that a
@@ -42,17 +39,6 @@ pub type NoLimit = Atom["no-limit"].
  */
 pub type Standard.
 
-pub type Css = Standard | NoLimit | Constrained | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    dynamic_range_limit: Value,
+    dynamic_range_limit: Standard | NoLimit | Constrained | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for dynamic-range-limit. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("dynamic-range-limit", Atom.to_string(css))).

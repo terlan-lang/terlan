@@ -18,30 +18,11 @@
 
 module std.css.properties.Rotate.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that no rotation should be applied.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    rotate: Value
+    rotate: None | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets rotate from a typed angle.
-
-pub angle(value: std.css.Values.Angle): Value.
-
-/// Selects a keyword for rotate. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

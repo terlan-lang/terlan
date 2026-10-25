@@ -14,16 +14,6 @@
 
 module std.css.properties.RowRuleWidth.
 
-pub type Css =
-    Thin
-  | Medium
-  | Thick
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Same as `3px`.
 ///
 /// Author guide: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/line-width
@@ -32,7 +22,7 @@ pub type Medium =
     Atom["medium"].
 
 pub struct Property {
-    row_rule_width: Value
+    row_rule_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Same as `5px`.
@@ -48,10 +38,3 @@ pub type Thick =
 
 pub type Thin =
     Atom["thin"].
-
-pub opaque type Value.
-
-/// Selects a keyword for row-rule-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

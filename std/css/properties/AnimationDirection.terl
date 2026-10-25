@@ -19,10 +19,7 @@
  */
 module std.css.properties.AnimationDirection.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The animation reverses direction each cycle, with the first iteration being played _forwards_.
@@ -50,26 +47,6 @@ pub type Normal.
  */
 pub type Reverse.
 
-pub type Css =
-      Normal
-    | Reverse
-    | Alternate
-    | AlternateReverse
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    animation_direction: Value,
+    animation_direction: Normal | Reverse | Alternate | AlternateReverse | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for animation-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("animation-direction", Atom.to_string(css))).

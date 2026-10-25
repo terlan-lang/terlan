@@ -18,10 +18,7 @@
  */
 module std.css.properties.TextWrapMode.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Text does not wrap across lines. It will overflow its containing element rather than breaking
@@ -35,17 +32,6 @@ pub type Nowrap.
  */
 pub type Wrap.
 
-pub type Css = Wrap | Nowrap | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_wrap_mode: Value,
+    text_wrap_mode: Wrap | Nowrap | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-wrap-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-wrap-mode", Atom.to_string(css))).

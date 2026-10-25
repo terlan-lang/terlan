@@ -42,13 +42,13 @@ test('outer ranges cannot weaken a referenced type constraint', () => {
   assert.deepEqual(atomicValues(parse('<bounded [21,100]>'), definitions), []);
 });
 
-test('property bindings preserve nominal identity, property spelling, and range checks', () => {
+test('property fields accept enums directly and preserve checked numeric constraints', () => {
   const { source } = generateProperty({name: 'margin-left', syntax: '<length [0,100]> | auto', href: 'spec'}, new Map());
   assert.match(source, /module std\.css\.properties\.MarginLeft/);
-  assert.match(source, /pub opaque type Value = SerializedValue/);
-  assert.match(source, /margin_left: Value/);
+  assert.match(source, /pub opaque type Checked = SerializedValue/);
+  assert.match(source, /margin_left: .*Auto.*Checked/);
   assert.match(source, /length_amount\(value\) >= 0 and std\.css\.Values\.length_amount\(value\) <= 100/);
-  assert.match(source, /Option\[Value\]/);
+  assert.match(source, /Option\[Checked\]/);
   assert.doesNotMatch(source, /from_string|trusted/);
 });
 
@@ -59,8 +59,9 @@ test('keyword enums replace zero-argument wrappers in values, components, and gr
   ]);
   for (const syntax of ['auto | contain', 'auto | <length [0,100]>', '[auto | <length>]{1,4}', '<line-width> || <line-style> || <color>']) {
     const { source } = generateProperty({ name: 'example', syntax, href: 'spec' }, definitions);
-    assert.match(source, /pub type Css = /);
-    assert.match(source, /pub value\(css: Css\): Value/);
+    assert.match(source, /pub struct Property/);
+    assert.doesNotMatch(source, /pub (opaque type Value|type Css|value\()/);
+    assert.ok(source.includes("example:"));
     assert.doesNotMatch(source, /pub\s+[a-z][a-z_]*\(\):/);
     assert.doesNotMatch(source, /struct (Token|SerializedValue)/);
   }
@@ -74,12 +75,12 @@ test('bounded space-separated repetitions generate exactly the permitted arities
   const {source, repeated} = generateProperty(property, new Map());
   assert.equal(repeated.min, 2);
   assert.equal(repeated.max, 3);
-  assert.match(source, /pub opaque type Component = SerializedValue/);
-  assert.match(source, /pub type ComponentCss = Auto/);
-  assert.match(source, /pub component\(css: ComponentCss\): Component/);
-  assert.match(source, /pub component_length\(value: Length\): Component/);
-  assert.match(source, /pub pair\(first: Component, second: Component\): Value/);
-  assert.match(source, /pub triple\(first: Component, second: Component, third: Component\): Value/);
+  assert.match(source, /pub type Component = Auto \| Length/);
+  assert.doesNotMatch(source, /ComponentCss/);
+  assert.doesNotMatch(source, /pub component\(/);
+  assert.doesNotMatch(source, /pub component_length\(/);
+  assert.match(source, /pub pair\(first: Component, second: Component\): Checked/);
+  assert.match(source, /pub triple\(first: Component, second: Component, third: Component\): Checked/);
   assert.doesNotMatch(source, /pub (single|quad)\(/);
   assert.doesNotMatch(source, /pub component_(inherit|initial|unset|revert)/);
 });
@@ -101,7 +102,7 @@ test('repeated components retain property-scoped definitions and numeric constra
   const property = {name: 'example', syntax: "<'edge'>{1,4}", href: 'spec'};
   const {source, repeated} = generateProperty(property, definitions);
   assert.deepEqual(repeated.atoms[0].range, {type: 'Range', min: 10, max: 20});
-  assert.match(source, /pub component_length\(value: Length\): Option\[Component\]/);
+  assert.match(source, /pub component_length\(value: Length\): Option\[CheckedComponent\]/);
   assert.match(source, /length_amount\(value\) >= 10 and std.css.Values.length_amount\(value\) <= 20/);
   assert.equal(repeatedValues(parse('<loop>'), definitions), null);
 });
@@ -114,14 +115,14 @@ test('named unordered groups produce distinct part types and a complete composit
   for (const combinator of ['&&', '||']) {
     const {source, grouped} = generateProperty({name: 'example', syntax: `<line-width> ${combinator} <line-style> ${combinator} <color>`, href: 'spec'}, definitions);
     assert.equal(grouped.combinator, combinator);
-    assert.match(source, /pub opaque type LineWidthPart = String/);
+    assert.match(source, /pub opaque type CheckedLineWidth = SerializedValue/);
     assert.match(source, /pub type LineStylePart = None \| Solid/);
-    assert.match(source, /pub line_width_length\(value: Length\): Option\[LineWidthPart\]/);
+    assert.match(source, /pub line_width_length\(value: Length\): Option\[CheckedLineWidth\]/);
     assert.match(source, /length_amount\(value\) >= 0 and std.css.Values.length_amount\(value\) <= 100/);
     assert.match(source, /pub type Solid = Atom\["solid"\]/);
     assert.doesNotMatch(source, /pub line_style_solid\(/);
-    assert.match(source, /pub compose\(line_width: LineWidthPart, line_style: LineStylePart, color: Color\): Value/);
-    assert.match(source, /line_width_css\(line_width\) \+ " " \+ Atom.to_string\(line_style\) \+ " " \+ std.css.Values.color_css\(color\)/);
+    assert.match(source, /pub compose\(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart\): Checked/);
+    assert.match(source, /\{Atom\["css_parts"\], \{line_width_value\(line_width\), line_style, color\}\}/);
     assert.doesNotMatch(source, /pub (line_width|line_style)_(inherit|initial|unset|revert)/);
   }
 });
@@ -140,8 +141,8 @@ test('scoped grouped aliases retain constraints and CSS-wide keywords stay out o
   ]);
   const {source, grouped} = generateProperty({name: 'example', syntax: '<layout>', href: 'spec'}, definitions);
   assert.equal(grouped.groups[0].atoms.length, 1);
-  assert.match(source, /pub width_number\(value: Float\): Option\[WidthPart\]/);
+  assert.match(source, /pub width_number\(value: Float\): Option\[CheckedWidth\]/);
   assert.match(source, /value >= 10 and value <= 20/);
   assert.doesNotMatch(source, /pub width_inherit/);
-  assert.match(source, /pub compose\(width: WidthPart, color: Color\): Value/);
+  assert.match(source, /pub compose\(width: WidthPart, color: ColorPart\): Checked/);
 });

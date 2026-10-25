@@ -29,69 +29,6 @@ pub type Bottom =
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    None
-  | FlipBlock
-  | FlipInline
-  | FlipStart
-  | FlipX
-  | FlipY
-  | Left
-  | Center
-  | Right
-  | SpanLeft
-  | SpanRight
-  | XStart
-  | XEnd
-  | SpanXStart
-  | SpanXEnd
-  | SelfXStart
-  | SelfXEnd
-  | SpanSelfXStart
-  | SpanSelfXEnd
-  | SpanAll
-  | Top
-  | Bottom
-  | SpanTop
-  | SpanBottom
-  | YStart
-  | YEnd
-  | SpanYStart
-  | SpanYEnd
-  | SelfYStart
-  | SelfYEnd
-  | SpanSelfYStart
-  | SpanSelfYEnd
-  | BlockStart
-  | BlockEnd
-  | SpanBlockStart
-  | SpanBlockEnd
-  | InlineStart
-  | InlineEnd
-  | SpanInlineStart
-  | SpanInlineEnd
-  | SelfBlockStart
-  | SelfBlockEnd
-  | SpanSelfBlockStart
-  | SpanSelfBlockEnd
-  | SelfInlineStart
-  | SelfInlineEnd
-  | SpanSelfInlineStart
-  | SpanSelfInlineEnd
-  | Start
-  | End
-  | SpanStart
-  | SpanEnd
-  | SelfStart
-  | SelfEnd
-  | SpanSelfStart
-  | SpanSelfEnd
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type End =
     Atom["end"].
 
@@ -155,7 +92,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    position_try: Value
+    position_try: None | FlipBlock | FlipInline | FlipStart | FlipX | FlipY | Left | Center | Right | SpanLeft | SpanRight | XStart | XEnd | SpanXStart | SpanXEnd | SelfXStart | SelfXEnd | SpanSelfXStart | SpanSelfXEnd | SpanAll | Top | Bottom | SpanTop | SpanBottom | YStart | YEnd | SpanYStart | SpanYEnd | SelfYStart | SelfYEnd | SpanSelfYStart | SpanSelfYEnd | BlockStart | BlockEnd | SpanBlockStart | SpanBlockEnd | InlineStart | InlineEnd | SpanInlineStart | SpanInlineEnd | SelfBlockStart | SelfBlockEnd | SpanSelfBlockStart | SpanSelfBlockEnd | SelfInlineStart | SelfInlineEnd | SpanSelfInlineStart | SpanSelfInlineEnd | Start | End | SpanStart | SpanEnd | SelfStart | SelfEnd | SpanSelfStart | SpanSelfEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type Right =
@@ -272,8 +209,6 @@ pub type Start =
 pub type Top =
     Atom["top"].
 
-pub opaque type Value.
-
 pub type XEnd =
     Atom["x-end"].
 
@@ -285,8 +220,3 @@ pub type YEnd =
 
 pub type YStart =
     Atom["y-start"].
-
-/// Selects a keyword for position-try. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

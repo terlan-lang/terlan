@@ -17,19 +17,6 @@
 
 module std.css.properties.MaskRepeat.
 
-pub type Css =
-    RepeatX
-  | RepeatY
-  | Repeat
-  | Space
-  | Round
-  | NoRepeat
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The mask image is not repeated (and hence the mask painting area will not necessarily be entirely
 /// covered). The position of the non-repeated mask image is defined by the `mask-position` CSS
 /// property.
@@ -38,7 +25,7 @@ pub type NoRepeat =
     Atom["no-repeat"].
 
 pub struct Property {
-    mask_repeat: Value
+    mask_repeat: RepeatX | RepeatY | Repeat | Space | Round | NoRepeat | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The image is repeated as much as needed to cover the whole mask painting area. Mask images along
@@ -80,10 +67,3 @@ pub type Round =
 
 pub type Space =
     Atom["space"].
-
-pub opaque type Value.
-
-/// Selects a keyword for mask-repeat. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

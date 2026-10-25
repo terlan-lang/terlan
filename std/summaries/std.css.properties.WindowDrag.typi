@@ -14,15 +14,6 @@
 
 module std.css.properties.WindowDrag.
 
-pub type Css =
-    None
-  | Move
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Uses this element as an area for dragging the window.
 
 pub type Move =
@@ -34,12 +25,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    window_drag: Value
+    window_drag: None | Move | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for window-drag. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

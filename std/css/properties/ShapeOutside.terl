@@ -21,10 +21,7 @@
  */
 module std.css.properties.ShapeOutside.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type BorderBox = Atom["border-box"].
 
@@ -42,27 +39,6 @@ pub type None.
 
 pub type PaddingBox = Atom["padding-box"].
 
-pub type Css =
-      None
-    | ContentBox
-    | PaddingBox
-    | BorderBox
-    | MarginBox
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    shape_outside: Value,
+    shape_outside: None | ContentBox | PaddingBox | BorderBox | MarginBox | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for shape-outside. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("shape-outside", Atom.to_string(css))).

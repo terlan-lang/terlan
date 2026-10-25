@@ -18,9 +18,9 @@
 
 module std.css.properties.BorderStyle.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type ComponentCss =
+pub type Component =
     None
   | Hidden
   | Dotted
@@ -31,23 +31,6 @@ pub type ComponentCss =
   | Ridge
   | Inset
   | Outset.
-
-pub type Css =
-    None
-  | Hidden
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
 
 /// Displays a series of short square-ended dashes or line segments. The exact size and length of the
 /// segments are not defined by the specification and are implementation-specific.
@@ -123,7 +106,7 @@ pub type Outset =
     Atom["outset"].
 
 pub struct Property {
-    border_style: Value
+    border_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Displays a border with an extruded appearance. This value is the opposite of `groove`.
@@ -140,30 +123,18 @@ pub type Ridge =
 pub type Solid =
     Atom["solid"].
 
-pub opaque type Value.
-
-/// Chooses one border-style shorthand component. CSS-wide keywords are accepted only by value(css)
-/// for the whole declaration.
-
-pub component(css: ComponentCss): Component.
-
 /// First sets top/bottom; second sets left/right.
 
-pub pair(first: Component, second: Component): Value.
+pub pair(first: Component, second: Component): Checked.
 
 /// Sets top, right, bottom, and left in that order.
 
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value.
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked.
 
 /// Applies to all four sides.
 
-pub single(first: Component): Value.
+pub single(first: Component): Checked.
 
 /// First sets top; second sets left/right; third sets bottom.
 
-pub triple(first: Component, second: Component, third: Component): Value.
-
-/// Selects a keyword for border-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub triple(first: Component, second: Component, third: Component): Checked.

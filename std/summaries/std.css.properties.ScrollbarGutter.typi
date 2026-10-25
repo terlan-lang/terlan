@@ -24,17 +24,8 @@ module std.css.properties.ScrollbarGutter.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Stable
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    scrollbar_gutter: Value
+    scrollbar_gutter: Auto | Stable | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// When using classic scrollbars, the gutter will be present if `overflow` is `auto`, `scroll`, or
@@ -43,10 +34,3 @@ pub struct Property {
 
 pub type Stable =
     Atom["stable"].
-
-pub opaque type Value.
-
-/// Selects a keyword for scrollbar-gutter. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

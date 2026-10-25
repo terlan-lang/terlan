@@ -25,15 +25,6 @@ module std.css.properties.Quotes.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The `open-quote` and `close-quote` values of the `content` property produce no quotation marks,
 /// as if `no-open-quote` and `no-close-quote` were set, respectively.
 
@@ -41,12 +32,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    quotes: Value
+    quotes: Auto | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for quotes. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

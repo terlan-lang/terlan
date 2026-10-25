@@ -23,33 +23,15 @@ module std.css.properties.ScrollTimelineAxis.
 pub type Block =
     Atom["block"].
 
-pub type Css =
-    Block
-  | Inline
-  | X
-  | Y
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Inline =
     Atom["inline"].
 
 pub struct Property {
-    scroll_timeline_axis: Value
+    scroll_timeline_axis: Block | Inline | X | Y | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 pub type X =
     Atom["x"].
 
 pub type Y =
     Atom["y"].
-
-/// Selects a keyword for scroll-timeline-axis. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -30,18 +30,6 @@ pub type Anywhere =
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Loose
-  | Normal
-  | Strict
-  | Anywhere
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Break text using the least restrictive line break rule. Typically used for short lines, such as
 /// in newspapers.
 
@@ -54,17 +42,10 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    line_break: Value
+    line_break: Auto | Loose | Normal | Strict | Anywhere | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Break text using the most stringent line break rule.
 
 pub type Strict =
     Atom["strict"].
-
-pub opaque type Value.
-
-/// Selects a keyword for line-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

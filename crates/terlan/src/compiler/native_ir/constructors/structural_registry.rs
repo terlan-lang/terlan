@@ -27,7 +27,32 @@ pub(in crate::compiler::native_ir) fn install_structural_type_layouts<'a>(
 }
 
 fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result<(), String> {
-    if let Some(variants) = structural_variants(ty) {
+    if crate::compiler::native_ir::union_values::is_boxed(ty) {
+        let result = native_type(Some(ty), &ty.contract_text())
+            .ok_or("closed union has no native identity")?;
+        let canonical = managed_semantic_contract(ty);
+        for (index, (kind, descriptor)) in crate::compiler::native_ir::union_values::layouts(ty)?
+            .into_iter()
+            .enumerate()
+        {
+            let encoded_layout = encode_aggregate_layout(&descriptor)
+                .map_err(|error| error.to_string())?
+                .into();
+            layouts
+                .entry((format!("$boxed_union.{canonical}.{index}"), 1))
+                .or_insert(NativeConstructorLayout {
+                    parameters: vec![kind],
+                    parameter_core_types: vec![None],
+                    result,
+                    result_core_type: Some(ty.clone()),
+                    descriptor,
+                    encoded_layout,
+                });
+        }
+    }
+    if let Some(variants) =
+        structural_variants(ty).filter(|_| !crate::compiler::native_ir::union_values::is_boxed(ty))
+    {
         let mut names = std::collections::HashSet::new();
         if variants.iter().any(|name| !names.insert(name)) {
             return Err("error[native_ir.structural_registry_variant]: ambiguous public union variant identity".into());

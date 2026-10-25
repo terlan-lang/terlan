@@ -32,17 +32,6 @@ pub type Arcs =
 pub type Bevel =
     Atom["bevel"].
 
-pub type Css =
-    Arcs
-  | Miter
-  | Bevel
-  | Round
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that a sharp corner is to be used to join path segments. The corner is formed by
 /// extending the outer edges of the stroke at the tangents of the path segments until they
 /// intersect. This is the default value.
@@ -51,7 +40,7 @@ pub type Miter =
     Atom["miter"].
 
 pub struct Property {
-    stroke_linejoin: Value
+    stroke_linejoin: Arcs | Miter | Bevel | Round | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Indicates that a round corner is to be used to join path segments. This is accomplished by
@@ -60,10 +49,3 @@ pub struct Property {
 
 pub type Round =
     Atom["round"].
-
-pub opaque type Value.
-
-/// Selects a keyword for stroke-linejoin. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

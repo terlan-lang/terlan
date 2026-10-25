@@ -18,43 +18,34 @@
  */
 module std.css.properties.Zoom.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.
 import std.css.Values.{percentage_amount, percentage_css, serialize}.
 
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    zoom: Value,
+    zoom: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for zoom. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the zoom number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("zoom", Atom.to_string(css))).
-
-/**
- * Sets zoom from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("zoom", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("zoom", std.core.Float.to_string(value))));
         false -> Absent
     }.
 
 /**
- * Sets zoom from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the zoom percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("zoom", percentage_css(value))));
+        true -> Some(Checked(serialize("zoom", percentage_css(value))));
         false -> Absent
     }.

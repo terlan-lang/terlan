@@ -1,7 +1,5 @@
 module typed_css.InvalidComponentEnum.
 
 import std.css.Values.{Inherit}.
-import std.css.properties.Margin.
-
-pub invalid(): Margin.Component ->
-    Margin.component(Inherit).
+import type std.css.properties.Margin.{Component}.
+pub invalid(): Component -> Inherit.

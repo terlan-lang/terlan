@@ -19,10 +19,7 @@
  */
 module std.css.properties.SpeakAs.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Numbers are pronounced as individual digits. For example, "31" would be pronounced as "three
@@ -54,27 +51,6 @@ pub type Normal.
  */
 pub type SpellOut = Atom["spell-out"].
 
-pub type Css =
-      Normal
-    | SpellOut
-    | Digits
-    | LiteralPunctuation
-    | NoPunctuation
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    speak_as: Value,
+    speak_as: Normal | SpellOut | Digits | LiteralPunctuation | NoPunctuation | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for speak-as. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("speak-as", Atom.to_string(css))).

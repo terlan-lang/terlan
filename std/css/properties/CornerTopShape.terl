@@ -18,10 +18,7 @@
  */
 module std.css.properties.CornerTopShape.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Bevel.
 
@@ -35,58 +32,26 @@ pub type Square.
 
 pub type Squircle.
 
-pub type Css =
-      Round
-    | Scoop
-    | Bevel
-    | Notch
-    | Square
-    | Squircle
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
+pub type Component = Round | Scoop | Bevel | Notch | Square | Squircle.
 
-pub type ComponentCss = Round | Scoop | Bevel | Notch | Square | Squircle.
-
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          List[Atom["round"] | Atom["scoop"] | Atom["bevel"] | Atom["notch"] | Atom["square"] | Atom["squircle"]]
+      }.
 
 pub struct Property {
-    corner_top_shape: Value,
+    corner_top_shape: Round | Scoop | Bevel | Notch | Square | Squircle | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for corner-top-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Supplies 1 components in grammar order.
  */
-pub value(css: Css): Value ->
-    Value(serialize("corner-top-shape", Atom.to_string(css))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Chooses one corner-top-shape shorthand component. CSS-wide keywords are accepted only by
- * value(css) for the whole declaration.
+ * Supplies 2 components in grammar order.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("corner-top-shape", Atom.to_string(css))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
-
-/**
- * Supplies 1 components in the grammar order shown above.
- */
-pub single(first: Component): Value ->
-    Value(serialize("corner-top-shape", component_css(first))).
-
-/**
- * Supplies 2 components in the grammar order shown above.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("corner-top-shape", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

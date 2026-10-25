@@ -17,35 +17,13 @@
  */
 module std.css.properties.WordSpacing.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
 /**
  * The normal inter-word spacing, as defined by the current font and/or the browser.
  */
 pub type Normal.
 
-pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    word_spacing: Value,
+    word_spacing: Normal | Length | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for word-spacing. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("word-spacing", Atom.to_string(css))).
-
-/**
- * Sets word-spacing from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
- * the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("word-spacing", length_css(value))).

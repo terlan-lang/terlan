@@ -36,29 +36,6 @@ pub type ColorDodge =
 pub type ColorKeyword =
     Atom["color"].
 
-pub type Css =
-    Normal
-  | Darken
-  | Multiply
-  | ColorBurn
-  | Lighten
-  | Screen
-  | ColorDodge
-  | Overlay
-  | SoftLight
-  | HardLight
-  | Difference
-  | Exclusion
-  | Hue
-  | Saturation
-  | ColorKeyword
-  | Luminosity
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Selects the darker of the backdrop and source colors.
 
 pub type Darken =
@@ -112,7 +89,7 @@ pub type Overlay =
     Atom["overlay"].
 
 pub struct Property {
-    background_blend_mode: Value
+    background_blend_mode: Normal | Darken | Multiply | ColorBurn | Lighten | Screen | ColorDodge | Overlay | SoftLight | HardLight | Difference | Exclusion | Hue | Saturation | ColorKeyword | Luminosity | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Creates a color with the saturation of the source color and the hue and luminosity of the
@@ -130,10 +107,3 @@ pub type Screen =
 
 pub type SoftLight =
     Atom["soft-light"].
-
-pub opaque type Value.
-
-/// Selects a keyword for background-blend-mode. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

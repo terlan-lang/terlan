@@ -19,11 +19,7 @@
  */
 module std.css.properties.PerspectiveOrigin.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 pub type Bottom.
 
@@ -43,44 +39,6 @@ pub type YEnd = Atom["y-end"].
 
 pub type YStart = Atom["y-start"].
 
-pub type Css =
-      Left
-    | Center
-    | Right
-    | Top
-    | Bottom
-    | XStart
-    | XEnd
-    | YStart
-    | YEnd
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    perspective_origin: Value,
+    perspective_origin: Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for perspective-origin. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("perspective-origin", Atom.to_string(css))).
-
-/**
- * Sets perspective-origin from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("perspective-origin", length_css(value))).
-
-/**
- * Sets perspective-origin from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("perspective-origin", percentage_css(value))).

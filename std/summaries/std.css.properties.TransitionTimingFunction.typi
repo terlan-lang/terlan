@@ -18,20 +18,6 @@
 
 module std.css.properties.TransitionTimingFunction.
 
-pub type Css =
-    Linear
-  | Ease
-  | EaseIn
-  | EaseOut
-  | EaseInOut
-  | StepStart
-  | StepEnd
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Equal to `cubic-bezier(0.25, 0.1, 0.25, 1.0)`, the default value, increases in velocity towards
 /// the middle of the transition, slowing back down at the end. - `linear` - : Equal to
 /// `cubic-bezier(0.0, 0.0, 1.0, 1.0)`, transitions at an even speed. - `ease-in` - : Equal to
@@ -85,7 +71,7 @@ pub type Linear =
     Atom["linear"].
 
 pub struct Property {
-    transition_timing_function: Value
+    transition_timing_function: Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Represents the easing function `steps(1, jump-end)` or `steps(1, end)`. It indicates that the
@@ -101,10 +87,3 @@ pub type StepEnd =
 
 pub type StepStart =
     Atom["step-start"].
-
-pub opaque type Value.
-
-/// Selects a keyword for transition-timing-function. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

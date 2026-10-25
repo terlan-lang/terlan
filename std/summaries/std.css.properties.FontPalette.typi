@@ -18,16 +18,6 @@
 
 module std.css.properties.FontPalette.
 
-pub type Css =
-    Normal
-  | Light
-  | Dark
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies the first palette in the font that matches 'dark' to be used for the font. Some fonts
 /// contain metadata that identify a palette as applicable for a dark (close to black) background. If
 /// a font does not have this metadata, the value behaves as `normal`.
@@ -49,12 +39,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    font_palette: Value
+    font_palette: Normal | Light | Dark | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-palette. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

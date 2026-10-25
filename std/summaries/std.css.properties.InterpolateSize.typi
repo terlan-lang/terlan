@@ -25,27 +25,11 @@ module std.css.properties.InterpolateSize.
 pub type AllowKeywords =
     Atom["allow-keywords"].
 
-pub type Css =
-    NumericOnly
-  | AllowKeywords
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The default behavior — intrinsic size values cannot be interpolated.
 
 pub type NumericOnly =
     Atom["numeric-only"].
 
 pub struct Property {
-    interpolate_size: Value
+    interpolate_size: NumericOnly | AllowKeywords | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for interpolate-size. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -27,15 +27,6 @@ module std.css.properties.ViewTransitionScope.
 pub type All =
     Atom["all"].
 
-pub type Css =
-    None
-  | All
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The initial value. Discoverability of elements to snapshot during a view transition is not
 /// limited to any specific subtree.
 
@@ -43,12 +34,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    view_transition_scope: Value
+    view_transition_scope: None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for view-transition-scope. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

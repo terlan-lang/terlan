@@ -22,10 +22,7 @@
  */
 module std.css.properties.ClipRule.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Determines the 'insideness' of a point on the canvas by drawing a ray from that point to infinity
@@ -43,17 +40,6 @@ pub type Evenodd.
  */
 pub type Nonzero.
 
-pub type Css = Nonzero | Evenodd | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    clip_rule: Value,
+    clip_rule: Nonzero | Evenodd | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for clip-rule. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("clip-rule", Atom.to_string(css))).

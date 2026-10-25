@@ -22,10 +22,7 @@
  */
 module std.css.properties.ContentVisibility.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element turns on layout containment, style containment, and paint containment. If the element
@@ -51,17 +48,6 @@ pub type Hidden.
  */
 pub type Visible.
 
-pub type Css = Visible | Auto | Hidden | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    content_visibility: Value,
+    content_visibility: Visible | Auto | Hidden | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for content-visibility. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("content-visibility", Atom.to_string(css))).

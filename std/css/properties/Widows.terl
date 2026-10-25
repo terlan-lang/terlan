@@ -19,33 +19,24 @@
  */
 module std.css.properties.Widows.
 
+import std.core.Int.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Int}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    widows: Value,
+    widows: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for widows. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the widows integer range. Returns Some when amount >= 1; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("widows", Atom.to_string(css))).
-
-/**
- * Sets widows from a typed integer. Returns Some for amount >= 1; otherwise returns None.
- */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 1 {
-        true -> Some(Value(serialize("widows", std.core.Int.to_string(value))));
+        true -> Some(Checked(serialize("widows", std.core.Int.to_string(value))));
         false -> Absent
     }.

@@ -30,20 +30,6 @@ pub type AllPetiteCaps =
 pub type AllSmallCaps =
     Atom["all-small-caps"].
 
-pub type Css =
-    Normal
-  | SmallCaps
-  | AllSmallCaps
-  | PetiteCaps
-  | AllPetiteCaps
-  | Unicase
-  | TitlingCaps
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Deactivates of the use of alternate glyphs.
 
 pub type Normal =
@@ -55,7 +41,7 @@ pub type PetiteCaps =
     Atom["petite-caps"].
 
 pub struct Property {
-    font_variant_caps: Value
+    font_variant_caps: Normal | SmallCaps | AllSmallCaps | PetiteCaps | AllPetiteCaps | Unicase | TitlingCaps | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Enables display of small capitals (OpenType feature: `smcp`). Small-caps glyphs typically use the
@@ -76,10 +62,3 @@ pub type TitlingCaps =
 
 pub type Unicase =
     Atom["unicase"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant-caps. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

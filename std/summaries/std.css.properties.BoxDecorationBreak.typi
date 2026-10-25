@@ -27,17 +27,8 @@ module std.css.properties.BoxDecorationBreak.
 pub type Clone =
     Atom["clone"].
 
-pub type Css =
-    Slice
-  | Clone
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    box_decoration_break: Value
+    box_decoration_break: Slice | Clone | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The element is initially rendered as if its box were not fragmented, after which the rendering
@@ -48,10 +39,3 @@ pub struct Property {
 
 pub type Slice =
     Atom["slice"].
-
-pub opaque type Value.
-
-/// Selects a keyword for box-decoration-break. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

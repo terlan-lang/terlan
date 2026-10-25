@@ -21,11 +21,7 @@
  */
 module std.css.properties.ViewTimelineInset.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * If set, the corresponding `scroll-padding` (or equivalent longhand value) for that edge of the
@@ -34,30 +30,6 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    view_timeline_inset: Value,
+    view_timeline_inset: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for view-timeline-inset. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("view-timeline-inset", Atom.to_string(css))).
-
-/**
- * Sets view-timeline-inset from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
- * choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("view-timeline-inset", length_css(value))).
-
-/**
- * Sets view-timeline-inset from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("view-timeline-inset", percentage_css(value))).

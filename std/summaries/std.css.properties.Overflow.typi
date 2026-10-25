@@ -26,6 +26,8 @@ module std.css.properties.Overflow.
 pub type Auto =
     Atom["auto"].
 
+pub opaque type Checked.
+
 /// Overflow content is clipped at the element's _overflow clip edge_ defined by the
 /// `overflow-clip-margin` property. The element box is not a scroll container, clipped content is
 /// not visible, and programmatic scrolling is not supported.
@@ -33,26 +35,12 @@ pub type Auto =
 pub type Clip =
     Atom["clip"].
 
-pub opaque type Component.
-
-pub type ComponentCss =
+pub type Component =
     Visible
   | Hidden
   | Clip
   | Scroll
   | Auto.
-
-pub type Css =
-    Visible
-  | Hidden
-  | Clip
-  | Scroll
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
 
 /// Overflow content is clipped at the element's padding box, hiding the clipped content. When
 /// overflowing, the element box is a `scroll container` with no scroll bars; scrolling is still
@@ -63,7 +51,7 @@ pub type Hidden =
     Atom["hidden"].
 
 pub struct Property {
-    overflow: Value
+    overflow: Visible | Hidden | Clip | Scroll | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Overflow content is clipped at the element's padding box. Whether overflowing or not, the element
@@ -72,28 +60,16 @@ pub struct Property {
 pub type Scroll =
     Atom["scroll"].
 
-pub opaque type Value.
-
 /// Overflow content is not clipped and may be visible outside the element's padding box. The element
 /// box is not a `scroll container`. This is the default value.
 
 pub type Visible =
     Atom["visible"].
 
-/// Chooses one overflow shorthand component. CSS-wide keywords are accepted only by value(css) for
-/// the whole declaration.
+/// Supplies 2 components in grammar order.
 
-pub component(css: ComponentCss): Component.
+pub pair(first: Component, second: Component): Checked.
 
-/// Supplies 2 components in the grammar order shown above.
+/// Supplies 1 components in grammar order.
 
-pub pair(first: Component, second: Component): Value.
-
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for overflow. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

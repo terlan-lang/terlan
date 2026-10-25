@@ -17,27 +17,14 @@
 
 module std.css.properties.TextEmphasis.
 
+pub opaque type Checked.
+
 /// Display large circles as marks. The filled circle is `'●'` (`U+25CF`), and the open circle is
 /// `'○'` (`U+25CB`). This is the default shape in horizontal writing modes when no other shape is
 /// given.
 
 pub type Circle =
     Atom["circle"].
-
-pub type Css =
-    None
-  | Filled
-  | Open
-  | Dot
-  | Circle
-  | DoubleCircle
-  | Triangle
-  | Sesame
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
 
 /// Display small circles as marks. The filled dot is `'•'` (`U+2022`), and the open dot is `'◦'`
 /// (`U+25E6`).
@@ -68,7 +55,7 @@ pub type Open =
     Atom["open"].
 
 pub struct Property {
-    text_emphasis: Value
+    text_emphasis: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Display sesames as marks. The filled sesame is `'﹅'` (`U+FE45`), and the open sesame is `'﹆'`
@@ -76,6 +63,11 @@ pub struct Property {
 
 pub type Sesame =
     Atom["sesame"].
+
+pub type TextEmphasisColorPart =
+    std.css.Values.Color
+  | std.css.Values.Transparent
+  | std.css.Values.CurrentColor.
 
 pub type TextEmphasisStylePart =
     None
@@ -93,18 +85,7 @@ pub type TextEmphasisStylePart =
 pub type Triangle =
     Atom["triangle"].
 
-pub opaque type Value.
+/// Combines text-emphasis-style, text-emphasis-color for text-emphasis. Each parameter accepts its
+/// own keyword or typed unit choices directly.
 
-/// Sets text-emphasis from a typed color. Use std.css.Values.rgb or color to choose the paint.
-
-pub color(value: std.css.Values.Color): Value.
-
-/// Sets text-emphasis by combining text-emphasis-style, text-emphasis-color in grammar order. Each
-/// argument describes a distinct part of the declaration.
-
-pub compose(text_emphasis_style: TextEmphasisStylePart, text_emphasis_color: std.css.Values.Color): Value.
-
-/// Selects a keyword for text-emphasis. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub compose(text_emphasis_style: TextEmphasisStylePart, text_emphasis_color: TextEmphasisColorPart): Checked.

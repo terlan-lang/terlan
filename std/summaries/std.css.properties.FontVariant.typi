@@ -45,52 +45,6 @@ pub type CommonLigatures =
 pub type Contextual =
     Atom["contextual"].
 
-pub type Css =
-    Normal
-  | None
-  | CommonLigatures
-  | NoCommonLigatures
-  | DiscretionaryLigatures
-  | NoDiscretionaryLigatures
-  | HistoricalLigatures
-  | NoHistoricalLigatures
-  | Contextual
-  | NoContextual
-  | SmallCaps
-  | AllSmallCaps
-  | PetiteCaps
-  | AllPetiteCaps
-  | Unicase
-  | TitlingCaps
-  | HistoricalForms
-  | LiningNums
-  | OldstyleNums
-  | ProportionalNums
-  | TabularNums
-  | DiagonalFractions
-  | StackedFractions
-  | Ordinal
-  | SlashedZero
-  | Jis78
-  | Jis83
-  | Jis90
-  | Jis04
-  | Simplified
-  | Traditional
-  | FullWidth
-  | ProportionalWidth
-  | Ruby
-  | Sub
-  | Super
-  | TextKeyword
-  | Emoji
-  | Unicode
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type DiagonalFractions =
     Atom["diagonal-fractions"].
 
@@ -169,7 +123,7 @@ pub type PetiteCaps =
     Atom["petite-caps"].
 
 pub struct Property {
-    font_variant: Value
+    font_variant: Normal | None | CommonLigatures | NoCommonLigatures | DiscretionaryLigatures | NoDiscretionaryLigatures | HistoricalLigatures | NoHistoricalLigatures | Contextual | NoContextual | SmallCaps | AllSmallCaps | PetiteCaps | AllPetiteCaps | Unicase | TitlingCaps | HistoricalForms | LiningNums | OldstyleNums | ProportionalNums | TabularNums | DiagonalFractions | StackedFractions | Ordinal | SlashedZero | Jis78 | Jis83 | Jis90 | Jis04 | Simplified | Traditional | FullWidth | ProportionalWidth | Ruby | Sub | Super | TextKeyword | Emoji | Unicode | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 pub type ProportionalNums =
@@ -244,10 +198,3 @@ pub type Unicase =
 
 pub type Unicode =
     Atom["unicode"].
-
-pub opaque type Value.
-
-/// Selects a keyword for font-variant. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

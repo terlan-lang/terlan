@@ -27,15 +27,6 @@ module std.css.properties.TimelineTriggerActiveRangeStart.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// A `<length>` or `<percentage>` value specifies an offset from the beginning of the `normal`
 /// timeline of
 /// [`cover`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/timeline-range-name#cover)
@@ -48,21 +39,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    timeline_trigger_active_range_start: Value
+    timeline_trigger_active_range_start: Auto | Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Sets timeline-trigger-active-range-start from a typed length. Use std.css.Values.px, root_em, em,
-/// vw, or vh to choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets timeline-trigger-active-range-start from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for timeline-trigger-active-range-start. CSS-wide choices Inherit, Initial,
-/// Unset, Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

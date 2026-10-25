@@ -21,30 +21,8 @@
  */
 module std.css.properties.ScrollMarginInlineStart.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    scroll_margin_inline_start: Value,
+    scroll_margin_inline_start: Length | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for scroll-margin-inline-start. CSS-wide choices Inherit, Initial, Unset,
- * Revert, and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-margin-inline-start", Atom.to_string(css))).
-
-/**
- * Sets scroll-margin-inline-start from a typed length. Use std.css.Values.px, root_em, em, vw, or
- * vh to choose the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("scroll-margin-inline-start", length_css(value))).

@@ -24,27 +24,11 @@ module std.css.properties.TriggerScope.
 pub type All =
     Atom["all"].
 
-pub type Css =
-    None
-  | All
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Specifies that no trigger scoping is set. This is the default value.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    trigger_scope: Value
+    trigger_scope: None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for trigger-scope. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

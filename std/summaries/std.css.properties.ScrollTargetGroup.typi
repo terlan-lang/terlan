@@ -22,27 +22,11 @@ module std.css.properties.ScrollTargetGroup.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    None
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element is not a scroll marker group container.
 
 pub type None =
     Atom["none"].
 
 pub struct Property {
-    scroll_target_group: Value
+    scroll_target_group: None | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for scroll-target-group. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

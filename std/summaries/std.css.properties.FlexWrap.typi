@@ -24,17 +24,6 @@ module std.css.properties.FlexWrap.
 pub type Balance =
     Atom["balance"].
 
-pub type Css =
-    Nowrap
-  | Wrap
-  | WrapReverse
-  | Balance
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The flex items are laid out in a single line which may cause the flex container to overflow. This
 /// is the initial value.
 
@@ -42,10 +31,8 @@ pub type Nowrap =
     Atom["nowrap"].
 
 pub struct Property {
-    flex_wrap: Value
+    flex_wrap: Nowrap | Wrap | WrapReverse | Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// The flex items can break into multiple lines.
 
@@ -56,8 +43,3 @@ pub type Wrap =
 
 pub type WrapReverse =
     Atom["wrap-reverse"].
-
-/// Selects a keyword for flex-wrap. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

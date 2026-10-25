@@ -18,40 +18,19 @@
 
 module std.css.properties.ScrollMarginBlock.
 
-pub opaque type Component.
+pub opaque type Checked.
 
-pub type Css =
-    std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub type Component =
+    std.css.Values.Length.
 
 pub struct Property {
-    scroll_margin_block: Value
+    scroll_margin_block: std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
+/// Supplies 2 components in grammar order.
 
-/// Sets scroll-margin-block shorthand component from a typed length. Use std.css.Values.px, root_em,
-/// em, vw, or vh to choose the unit.
+pub pair(first: Component, second: Component): Checked.
 
-pub component_length(value: std.css.Values.Length): Component.
+/// Supplies 1 components in grammar order.
 
-/// Sets scroll-margin-block from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to
-/// choose the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Supplies 2 components in the grammar order shown above.
-
-pub pair(first: Component, second: Component): Value.
-
-/// Supplies 1 components in the grammar order shown above.
-
-pub single(first: Component): Value.
-
-/// Selects a keyword for scroll-margin-block. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub single(first: Component): Checked.

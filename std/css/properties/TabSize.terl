@@ -17,7 +17,6 @@
  */
 module std.css.properties.TabSize.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, serialize}.
@@ -25,26 +24,17 @@ import std.css.Values.{length_amount, length_css, serialize}.
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    tab_size: Value,
+    tab_size: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for tab-size. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the tab-size length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("tab-size", Atom.to_string(css))).
-
-/**
- * Sets tab-size from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("tab-size", length_css(value))));
+        true -> Some(Checked(serialize("tab-size", length_css(value))));
         false -> Absent
     }.

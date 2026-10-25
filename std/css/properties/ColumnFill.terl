@@ -17,10 +17,7 @@
  */
 module std.css.properties.ColumnFill.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Columns are filled sequentially. Content takes up only the room it needs, possibly resulting in
@@ -36,17 +33,6 @@ pub type Auto.
  */
 pub type Balance.
 
-pub type Css = Auto | Balance | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    column_fill: Value,
+    column_fill: Auto | Balance | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for column-fill. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("column-fill", Atom.to_string(css))).

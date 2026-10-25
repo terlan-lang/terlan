@@ -14,22 +14,8 @@
  */
 module std.css.properties.GlyphOrientationVertical.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub struct Property {
-    glyph_orientation_vertical: Value,
+    glyph_orientation_vertical: Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for glyph-orientation-vertical. CSS-wide choices Inherit, Initial, Unset,
- * Revert, and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("glyph-orientation-vertical", Atom.to_string(css))).

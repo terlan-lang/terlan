@@ -26,16 +26,6 @@ module std.css.properties.ColorInterpolationFilters.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | SRGB
-  | LinearRGB
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that color interpolation should occur in the linearized RGB color space as described in
 /// [the sRGB specification](https://webstore.iec.ch/en/publication/6169). This is the default
 /// property value.
@@ -44,17 +34,10 @@ pub type LinearRGB =
     Atom["linearRGB"].
 
 pub struct Property {
-    color_interpolation_filters: Value
+    color_interpolation_filters: Auto | SRGB | LinearRGB | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Indicates that color interpolation should occur in the gamma-encoded sRGB color space.
 
 pub type SRGB =
     Atom["sRGB"].
-
-pub opaque type Value.
-
-/// Selects a keyword for color-interpolation-filters. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -24,27 +24,11 @@ module std.css.properties.Interactivity.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Inert
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Selected elements and their descendants are inert.
 
 pub type Inert =
     Atom["inert"].
 
 pub struct Property {
-    interactivity: Value
+    interactivity: Auto | Inert | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for interactivity. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -26,17 +26,7 @@ module std.css.properties.Width.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Stretch
-  | MinContent
-  | MaxContent
-  | FitContent
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// Use the fit-content inline size or fit-content block size, as appropriate to the writing mode.
 
@@ -54,7 +44,7 @@ pub type MinContent =
     Atom["min-content"].
 
 pub struct Property {
-    width: Value
+    width: Auto | Stretch | MinContent | MaxContent | FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Sets the width of the element's [margin
@@ -69,17 +59,10 @@ pub struct Property {
 pub type Stretch =
     Atom["stretch"].
 
-pub opaque type Value.
+/// Checks the width length range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets width from a typed length. Returns Some for amount >= 0; otherwise returns None.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-pub length(value: std.css.Values.Length): Option[Value].
+/// Checks the width percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets width from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for width. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

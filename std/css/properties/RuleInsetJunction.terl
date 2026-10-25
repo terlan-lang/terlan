@@ -18,10 +18,7 @@
  */
 module std.css.properties.RuleInsetJunction.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies that the junction segment should extend across the row-rule, resolving to half the
@@ -29,17 +26,6 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type OverlapJoin = Atom["overlap-join"].
 
-pub type Css = OverlapJoin | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    rule_inset_junction: Value,
+    rule_inset_junction: OverlapJoin | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for rule-inset-junction. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("rule-inset-junction", Atom.to_string(css))).

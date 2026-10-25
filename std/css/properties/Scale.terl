@@ -19,40 +19,13 @@
  */
 module std.css.properties.Scale.
 
-import std.core.{Atom, Float}.
-import std.css.Values.
-import std.css.Values.{percentage_css, serialize}.
-
-import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Percentage, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies that no scaling should be applied.
  */
 pub type None.
 
-pub type Css = None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    scale: Value,
+    scale: None | Float | Percentage | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for scale. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scale", Atom.to_string(css))).
-
-/**
- * Sets scale from a typed number.
- */
-pub number(value: Float): Value ->
-    Value(serialize("scale", std.core.Float.to_string(value))).
-
-/**
- * Sets scale from a typed percentage.
- */
-pub percentage(value: Percentage): Value ->
-    Value(serialize("scale", percentage_css(value))).

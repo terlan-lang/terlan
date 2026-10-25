@@ -17,8 +17,8 @@
  */
 module std.css.properties.ColumnCount.
 
+import std.core.Int.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Int}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
@@ -29,26 +29,17 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    column_count: Value,
+    column_count: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for column-count. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the column-count integer range. Returns Some when amount >= 1; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("column-count", Atom.to_string(css))).
-
-/**
- * Sets column-count from a typed integer. Returns Some for amount >= 1; otherwise returns None.
- */
-pub integer(value: Int): Option[Value] ->
+pub integer(value: Int): Option[Checked] ->
     case value >= 1 {
-        true -> Some(Value(serialize("column-count", std.core.Int.to_string(value))));
+        true -> Some(Checked(serialize("column-count", std.core.Int.to_string(value))));
         false -> Absent
     }.

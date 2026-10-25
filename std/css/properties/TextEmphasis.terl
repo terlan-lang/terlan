@@ -18,11 +18,7 @@
  */
 module std.css.properties.TextEmphasis.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{color_css, serialize}.
-
-import type std.css.Values.{Color, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Color, CurrentColor, Inherit, Initial, Revert, RevertLayer, Transparent, Unset}.
 
 /**
  * Display large circles as marks. The filled circle is `'●'` (`U+25CF`), and the open circle is
@@ -71,21 +67,6 @@ pub type Sesame.
  */
 pub type Triangle.
 
-pub type Css =
-      None
-    | Filled
-    | Open
-    | Dot
-    | Circle
-    | DoubleCircle
-    | Triangle
-    | Sesame
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
 pub type TextEmphasisStylePart =
       None
     | Filled
@@ -96,33 +77,24 @@ pub type TextEmphasisStylePart =
     | Triangle
     | Sesame.
 
-pub opaque type Value = SerializedValue.
+pub type TextEmphasisColorPart = Color | Transparent | CurrentColor.
+
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["none"] | Atom["filled"] | Atom["open"] | Atom["dot"] | Atom["circle"] | Atom["double-circle"] | Atom["triangle"] | Atom["sesame"], std.css.Values.Color | Atom["transparent"] | Atom["currentColor"]}
+      }.
 
 pub struct Property {
-    text_emphasis: Value,
+    text_emphasis: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for text-emphasis. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Combines text-emphasis-style, text-emphasis-color for text-emphasis. Each parameter accepts its
+ * own keyword or typed unit choices directly.
  */
-pub value(css: Css): Value ->
-    Value(serialize("text-emphasis", Atom.to_string(css))).
-
-/**
- * Sets text-emphasis from a typed color. Use std.css.Values.rgb or color to choose the paint.
- */
-pub color(value: Color): Value ->
-    Value(serialize("text-emphasis", color_css(value))).
-
-/**
- * Sets text-emphasis by combining text-emphasis-style, text-emphasis-color in grammar order. Each
- * argument describes a distinct part of the declaration.
- */
-pub compose(text_emphasis_style: TextEmphasisStylePart, text_emphasis_color: Color): Value ->
-    Value(
-        serialize(
-            "text-emphasis",
-            Atom.to_string(text_emphasis_style) + " " + color_css(text_emphasis_color),
-        ),
-    ).
+pub compose(
+    text_emphasis_style: TextEmphasisStylePart,
+    text_emphasis_color: TextEmphasisColorPart,
+): Checked ->
+    Checked({Atom["css_parts"], {text_emphasis_style, text_emphasis_color}}).

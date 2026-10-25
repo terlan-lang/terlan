@@ -23,23 +23,6 @@ module std.css.properties.TouchAction.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | PanX
-  | PanLeft
-  | PanRight
-  | PanY
-  | PanUp
-  | PanDown
-  | PinchZoom
-  | Manipulation
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Enable panning and pinch zoom gestures, but disable additional non-standard gestures such as
 /// double-tap to zoom. Disabling double-tap to zoom removes the need for browsers to delay the
 /// generation of click events when the user taps the screen. This is an alias for "pan-x pan-y
@@ -112,12 +95,5 @@ pub type PinchZoom =
     Atom["pinch-zoom"].
 
 pub struct Property {
-    touch_action: Value
+    touch_action: Auto | None | PanX | PanLeft | PanRight | PanY | PanUp | PanDown | PinchZoom | Manipulation | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for touch-action. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

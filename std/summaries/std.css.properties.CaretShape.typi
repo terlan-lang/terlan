@@ -35,19 +35,8 @@ pub type Bar =
 pub type Block =
     Atom["block"].
 
-pub type Css =
-    Auto
-  | Bar
-  | Block
-  | Underscore
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    caret_shape: Value
+    caret_shape: Auto | Bar | Block | Underscore | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The caret appears as a thin horizontal line underneath the next character after the insertion
@@ -55,10 +44,3 @@ pub struct Property {
 
 pub type Underscore =
     Atom["underscore"].
-
-pub opaque type Value.
-
-/// Selects a keyword for caret-shape. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

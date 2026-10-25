@@ -32,17 +32,6 @@ pub type Auto =
 pub type Balance =
     Atom["balance"].
 
-pub type Css =
-    Auto
-  | Balance
-  | Stable
-  | Pretty
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Text is wrapped using a slower algorithm that favors better layout over speed. This is intended
 /// for body copy where good typography is favored over performance (for example, when the number of
 /// [orphans](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/orphans) should
@@ -52,7 +41,7 @@ pub type Pretty =
     Atom["pretty"].
 
 pub struct Property {
-    text_wrap_style: Value
+    text_wrap_style: Auto | Balance | Stable | Pretty | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Text is wrapped such that when the user is editing the content, the lines that come before the
@@ -60,10 +49,3 @@ pub struct Property {
 
 pub type Stable =
     Atom["stable"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-wrap-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -42,26 +42,9 @@ pub type Auto =
 pub type Blink =
     Atom["blink"].
 
-pub type Css =
-    None
-  | Underline
-  | Overline
-  | LineThrough
-  | Blink
-  | SpellingError
-  | GrammarError
-  | Auto
-  | FromFont
-  | Solid
-  | Double
-  | Dotted
-  | Dashed
-  | Wavy
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
+
+pub opaque type CheckedTextDecorationThickness.
 
 /// Produces a dashed line style.
 
@@ -113,7 +96,7 @@ pub type Overline =
     Atom["overline"].
 
 pub struct Property {
-    text_decoration: Value
+    text_decoration: None | Underline | Overline | LineThrough | Blink | SpellingError | GrammarError | Auto | FromFont | Solid | Double | Dotted | Dashed | Wavy | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Produces a solid line.
@@ -129,6 +112,11 @@ pub type Solid =
 
 pub type SpellingError =
     Atom["spelling-error"].
+
+pub type TextDecorationColorPart =
+    std.css.Values.Color
+  | std.css.Values.Transparent
+  | std.css.Values.CurrentColor.
 
 pub type TextDecorationLinePart =
     None
@@ -146,67 +134,33 @@ pub type TextDecorationStylePart =
   | Dashed
   | Wavy.
 
-pub type TextDecorationThicknessCss =
+pub type TextDecorationThicknessPart =
     Auto
-  | FromFont.
-
-pub opaque type TextDecorationThicknessPart.
+  | FromFont
+  | std.css.Values.Length
+  | std.css.Values.Percentage
+  | CheckedTextDecorationThickness.
 
 /// Each line of text is underlined.
 
 pub type Underline =
     Atom["underline"].
 
-pub opaque type Value.
-
 /// Produces a wavy line.
 
 pub type Wavy =
     Atom["wavy"].
 
-/// Sets text-decoration from a typed color. Use std.css.Values.rgb or color to choose the paint.
+/// Combines text-decoration-line, text-decoration-thickness, text-decoration-style,
+/// text-decoration-color for text-decoration. Each parameter accepts its own keyword or typed unit
+/// choices directly.
 
-pub color(value: std.css.Values.Color): Value.
+pub compose(text_decoration_line: TextDecorationLinePart, text_decoration_thickness: TextDecorationThicknessPart, text_decoration_style: TextDecorationStylePart, text_decoration_color: TextDecorationColorPart): Checked.
 
-/// Sets text-decoration by combining text-decoration-line, text-decoration-thickness,
-/// text-decoration-style, text-decoration-color in grammar order. Each argument describes a distinct
-/// part of the declaration.
+/// Checks the text-decoration length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub compose(text_decoration_line: TextDecorationLinePart, text_decoration_thickness: TextDecorationThicknessPart, text_decoration_style: TextDecorationStylePart, text_decoration_color: std.css.Values.Color): Value.
+pub length(value: std.css.Values.Length): Option[Checked].
 
-/// Sets text-decoration from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
+/// Checks the text-decoration length range. Returns Some when amount >= 0; otherwise returns None.
 
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets text-decoration from a typed length. Returns Some for amount >= 0; otherwise returns None.
-
-pub length_2(value: std.css.Values.Length): Option[Value].
-
-/// Sets text-decoration from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Chooses the text-decoration-thickness part for compose. See the keyword types for their visual
-/// behavior.
-
-pub text_decoration_thickness(css: TextDecorationThicknessCss): TextDecorationThicknessPart.
-
-/// Sets text-decoration TextDecorationThicknessPart part from a typed length. Use std.css.Values.px,
-/// root_em, em, vw, or vh to choose the unit.
-
-pub text_decoration_thickness_length(value: std.css.Values.Length): TextDecorationThicknessPart.
-
-/// Sets text-decoration TextDecorationThicknessPart part from a typed length. Returns Some for
-/// amount >= 0; otherwise returns None.
-
-pub text_decoration_thickness_length_2(value: std.css.Values.Length): Option[TextDecorationThicknessPart].
-
-/// Sets text-decoration TextDecorationThicknessPart part from a typed percentage.
-
-pub text_decoration_thickness_percentage(value: std.css.Values.Percentage): TextDecorationThicknessPart.
-
-/// Selects a keyword for text-decoration. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub text_decoration_thickness_length(value: std.css.Values.Length): Option[CheckedTextDecorationThickness].

@@ -25,20 +25,8 @@ pub type Bottom =
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Sub
-  | Super
-  | Top
-  | Center
-  | Bottom
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    baseline_shift: Value
+    baseline_shift: Sub | Super | Top | Center | Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The dominant-baseline is shifted to the default position for subscripts.
@@ -53,19 +41,3 @@ pub type Super =
 
 pub type Top =
     Atom["top"].
-
-pub opaque type Value.
-
-/// Sets baseline-shift from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
-/// the unit.
-
-pub length(value: std.css.Values.Length): Value.
-
-/// Sets baseline-shift from a typed percentage.
-
-pub percentage(value: std.css.Values.Percentage): Value.
-
-/// Selects a keyword for baseline-shift. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

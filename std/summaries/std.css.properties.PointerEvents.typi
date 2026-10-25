@@ -38,24 +38,6 @@ pub type Auto =
 pub type BoundingBox =
     Atom["bounding-box"].
 
-pub type Css =
-    Auto
-  | BoundingBox
-  | VisiblePainted
-  | VisibleFill
-  | VisibleStroke
-  | Visible
-  | Painted
-  | Fill
-  | Stroke
-  | All
-  | None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// SVG only. The element can only be the target of a pointer event when the pointer is over the
 /// interior (i.e., fill) of the element. The values of the `fill` and `visibility` properties do not
 /// affect event processing.
@@ -83,7 +65,7 @@ pub type Painted =
     Atom["painted"].
 
 pub struct Property {
-    pointer_events: Value
+    pointer_events: Auto | BoundingBox | VisiblePainted | VisibleFill | VisibleStroke | Visible | Painted | Fill | Stroke | All | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// SVG only. The element can only be the target of a pointer event when the pointer is over the
@@ -92,8 +74,6 @@ pub struct Property {
 
 pub type Stroke =
     Atom["stroke"].
-
-pub opaque type Value.
 
 /// SVG only (experimental for HTML). The element can be the target of a pointer event when the
 /// `visibility` property is set to `visible` and e.g., the mouse cursor is over either the interior
@@ -125,8 +105,3 @@ pub type VisiblePainted =
 
 pub type VisibleStroke =
     Atom["visibleStroke"].
-
-/// Selects a keyword for pointer-events. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

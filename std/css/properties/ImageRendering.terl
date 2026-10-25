@@ -21,10 +21,7 @@
  */
 module std.css.properties.ImageRendering.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The scaling algorithm is UA dependent. Since version 1.9 (Firefox 3.0), Gecko uses _bilinear_
@@ -54,26 +51,6 @@ pub type Pixelated.
  */
 pub type Smooth.
 
-pub type Css =
-      Auto
-    | Smooth
-    | Pixelated
-    | CrispEdges
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    image_rendering: Value,
+    image_rendering: Auto | Smooth | Pixelated | CrispEdges | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for image-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("image-rendering", Atom.to_string(css))).

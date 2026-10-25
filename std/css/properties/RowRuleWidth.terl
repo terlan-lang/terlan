@@ -15,10 +15,7 @@
  */
 module std.css.properties.RowRuleWidth.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Same as `3px`.
@@ -41,17 +38,6 @@ pub type Thick.
  */
 pub type Thin.
 
-pub type Css = Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    row_rule_width: Value,
+    row_rule_width: Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for row-rule-width. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("row-rule-width", Atom.to_string(css))).

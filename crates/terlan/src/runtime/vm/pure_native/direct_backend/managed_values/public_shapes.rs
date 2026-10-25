@@ -131,8 +131,17 @@ pub(crate) fn type_name_matches(canonical: &str, public: &str) -> bool {
 /// Rebuilds one public aggregate while retaining source field identities.
 pub(super) fn public_aggregate(
     descriptor: &ManagedAggregateDescriptor,
-    values: Vec<ReplValue>,
+    mut values: Vec<ReplValue>,
 ) -> ReplValue {
+    if descriptor
+        .variant_name()
+        .is_some_and(|name| name.starts_with("$native.union."))
+        && values.len() == 1
+        && descriptor.fields().len() == 1
+        && descriptor.fields()[0].name() == Some("value")
+    {
+        return values.pop().expect("checked one closed union payload");
+    }
     match descriptor.kind() {
         ManagedAggregateKind::Tuple => ReplValue::Tuple(values),
         ManagedAggregateKind::FixedArray => ReplValue::List(values),

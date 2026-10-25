@@ -17,18 +17,6 @@
 
 module std.css.properties.WritingMode.
 
-pub type Css =
-    HorizontalTb
-  | VerticalRl
-  | VerticalLr
-  | SidewaysRl
-  | SidewaysLr
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// For `ltr` scripts, content flows horizontally from left to right. For `rtl` scripts, content
 /// flows horizontally from right to left. The next horizontal line is positioned below the previous
 /// line.
@@ -37,7 +25,7 @@ pub type HorizontalTb =
     Atom["horizontal-tb"].
 
 pub struct Property {
-    writing_mode: Value
+    writing_mode: HorizontalTb | VerticalRl | VerticalLr | SidewaysRl | SidewaysLr | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// For `ltr` scripts, content flows vertically from bottom to top. For `rtl` scripts, content flows
@@ -54,8 +42,6 @@ pub type SidewaysLr =
 pub type SidewaysRl =
     Atom["sideways-rl"].
 
-pub opaque type Value.
-
 /// For `ltr` scripts, content flows vertically from top to bottom, and the next vertical line is
 /// positioned to the right of the previous line. For `rtl` scripts, content flows vertically from
 /// bottom to top, and the next vertical line is positioned to the right of the previous line.
@@ -69,8 +55,3 @@ pub type VerticalLr =
 
 pub type VerticalRl =
     Atom["vertical-rl"].
-
-/// Selects a keyword for writing-mode. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

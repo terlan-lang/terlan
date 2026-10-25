@@ -17,10 +17,7 @@
  */
 module std.css.properties.TableLayout.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The automatic table layout algorithm is used. The widths of the table and its cells are adjusted
@@ -39,17 +36,6 @@ pub type Auto.
  */
 pub type Fixed.
 
-pub type Css = Auto | Fixed | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    table_layout: Value,
+    table_layout: Auto | Fixed | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for table-layout. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("table-layout", Atom.to_string(css))).

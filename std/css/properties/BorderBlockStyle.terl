@@ -22,10 +22,7 @@
  */
 module std.css.properties.BorderBlockStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Displays a series of short square-ended dashes or line segments. The exact size and length of the
@@ -114,24 +111,7 @@ pub type Ridge.
  */
 pub type Solid.
 
-pub type Css =
-      None
-    | Hidden
-    | Dotted
-    | Dashed
-    | Solid
-    | Double
-    | Groove
-    | Ridge
-    | Inset
-    | Outset
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub type ComponentCss =
+pub type Component =
       None
     | Hidden
     | Dotted
@@ -143,43 +123,24 @@ pub type ComponentCss =
     | Inset
     | Outset.
 
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          List[Atom["none"] | Atom["hidden"] | Atom["dotted"] | Atom["dashed"] | Atom["solid"] | Atom["double"] | Atom["groove"] | Atom["ridge"] | Atom["inset"] | Atom["outset"]]
+      }.
 
 pub struct Property {
-    border_block_style: Value,
+    border_block_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for border-block-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Supplies 1 components in grammar order.
  */
-pub value(css: Css): Value ->
-    Value(serialize("border-block-style", Atom.to_string(css))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
- * Chooses one border-block-style shorthand component. CSS-wide keywords are accepted only by
- * value(css) for the whole declaration.
+ * Supplies 2 components in grammar order.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("border-block-style", Atom.to_string(css))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
-
-/**
- * Supplies 1 components in the grammar order shown above.
- */
-pub single(first: Component): Value ->
-    Value(serialize("border-block-style", component_css(first))).
-
-/**
- * Supplies 2 components in the grammar order shown above.
- */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("border-block-style", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).

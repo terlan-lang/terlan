@@ -19,10 +19,7 @@
  */
 module std.css.properties.FontSynthesisStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Indicates that the missing oblique typeface may be synthesized by the browser if needed.
@@ -39,17 +36,6 @@ pub type None.
  */
 pub type ObliqueOnly = Atom["oblique-only"].
 
-pub type Css = Auto | None | ObliqueOnly | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_synthesis_style: Value,
+    font_synthesis_style: Auto | None | ObliqueOnly | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-synthesis-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-synthesis-style", Atom.to_string(css))).

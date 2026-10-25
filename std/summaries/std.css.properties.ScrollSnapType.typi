@@ -30,20 +30,6 @@ pub type Block =
 pub type Both =
     Atom["both"].
 
-pub type Css =
-    None
-  | X
-  | Y
-  | Block
-  | Inline
-  | Both
-  | Pair
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The scroll container snaps to snap positions in its inline axis only.
 
 pub type Inline =
@@ -58,10 +44,8 @@ pub type Pair =
     Atom["pair"].
 
 pub struct Property {
-    scroll_snap_type: Value
+    scroll_snap_type: None | X | Y | Block | Inline | Both | Pair | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// The scroll container snaps to snap positions in its horizontal axis only.
 
@@ -72,8 +56,3 @@ pub type X =
 
 pub type Y =
     Atom["y"].
-
-/// Selects a keyword for scroll-snap-type. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

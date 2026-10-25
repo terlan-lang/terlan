@@ -17,6 +17,21 @@ pub(in crate::compiler::native_ir) fn try_lower_typed_value(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<Option<NativeExpr>, String> {
+    if super::super::union_values::is_boxed(expected) {
+        let cast = CoreExpr::Cast {
+            expr: Box::new(value.clone()),
+            target_type: expected.clone(),
+        };
+        return lower_expr_with_constructors(
+            &cast,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        )
+        .map(Some);
+    }
     if let Some(boxed) = super::super::effect_values::boxed_field(value, expected) {
         return lower_expr_with_constructors(
             &boxed,

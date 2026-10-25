@@ -15,10 +15,7 @@
  */
 module std.css.properties.WindowDrag.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Uses this element as an area for dragging the window.
@@ -30,17 +27,6 @@ pub type Move.
  */
 pub type None.
 
-pub type Css = None | Move | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    window_drag: Value,
+    window_drag: None | Move | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for window-drag. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("window-drag", Atom.to_string(css))).

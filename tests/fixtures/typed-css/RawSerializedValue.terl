@@ -1,8 +1,6 @@
 module typed_css.RawSerializedValue.
 
 import std.css.Values.{serialize}.
-
-import type std.css.properties.Width.{Value}.
-
-pub invalid(): Value ->
-    serialize("width", "auto").
+import type std.css.properties.Width.{Property as BaseProperty}.
+pub struct Style includes BaseProperty {}.
+pub invalid(): Style -> Style {width: serialize("width", "auto")}.

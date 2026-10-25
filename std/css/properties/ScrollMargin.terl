@@ -20,80 +20,36 @@
  */
 module std.css.properties.ScrollMargin.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{length_css, serialize}.
+import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset}.
 
-import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, SerializedValue, Unset}.
+pub type Component = Length.
 
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked = {Atom["css_parts"], List[std.css.Values.Length]}.
 
 pub struct Property {
-    scroll_margin: Value,
+    scroll_margin: Length | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
-
-/**
- * Selects a keyword for scroll-margin. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-margin", Atom.to_string(css))).
-
-/**
- * Sets scroll-margin from a typed length. Use std.css.Values.px, root_em, em, vw, or vh to choose
- * the unit.
- */
-pub length(value: Length): Value ->
-    Value(serialize("scroll-margin", length_css(value))).
-
-/**
- * Sets scroll-margin shorthand component from a typed length. Use std.css.Values.px, root_em, em,
- * vw, or vh to choose the unit.
- */
-pub component_length(value: Length): Component ->
-    Component(serialize("scroll-margin", length_css(value))).
-
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
-    value.
 
 /**
  * Applies to all four sides.
  */
-pub single(first: Component): Value ->
-    Value(serialize("scroll-margin", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [first]}).
 
 /**
  * First sets top/bottom; second sets left/right.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("scroll-margin", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second]}).
 
 /**
  * First sets top; second sets left/right; third sets bottom.
  */
-pub triple(first: Component, second: Component, third: Component): Value ->
-    Value(
-        serialize(
-            "scroll-margin",
-            component_css(first) + " " + component_css(second) + " " + component_css(third),
-        ),
-    ).
+pub triple(first: Component, second: Component, third: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
  * Sets top, right, bottom, and left in that order.
  */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Value ->
-    Value(
-        serialize(
-            "scroll-margin",
-            component_css(first) + " " + component_css(second) + " " + component_css(third) + " " + component_css(fourth),
-        ),
-    ).
+pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+    Checked({Atom["css_parts"], [first, second, third, fourth]}).

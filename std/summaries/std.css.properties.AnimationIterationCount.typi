@@ -17,13 +17,7 @@
 
 module std.css.properties.AnimationIterationCount.
 
-pub type Css =
-    Infinite
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 /// The animation will repeat forever.
 
@@ -31,17 +25,10 @@ pub type Infinite =
     Atom["infinite"].
 
 pub struct Property {
-    animation_iteration_count: Value
+    animation_iteration_count: Infinite | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
-pub opaque type Value.
-
-/// Sets animation-iteration-count from a typed number. Returns Some for amount >= 0; otherwise
+/// Checks the animation-iteration-count number range. Returns Some when amount >= 0; otherwise
 /// returns None.
 
-pub number(value: Float): Option[Value].
-
-/// Selects a keyword for animation-iteration-count. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub number(value: Float): Option[Checked].

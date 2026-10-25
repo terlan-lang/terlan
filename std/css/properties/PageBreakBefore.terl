@@ -18,10 +18,7 @@
  */
 module std.css.properties.PageBreakBefore.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Always force page breaks before the element.
@@ -52,27 +49,6 @@ pub type Left.
  */
 pub type Right.
 
-pub type Css =
-      Auto
-    | Always
-    | Avoid
-    | Left
-    | Right
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    page_break_before: Value,
+    page_break_before: Auto | Always | Avoid | Left | Right | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for page-break-before. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("page-break-before", Atom.to_string(css))).

@@ -10,6 +10,7 @@ pub(crate) use crate::runtime::native_image::debug::tvm_coverage_callable_id as 
 mod coverage_callable_id_test;
 
 mod aggregate_types;
+mod union_values;
 #[cfg(test)]
 #[path = "native_ir/aot3_conformance_test.rs"]
 #[cfg(test)]

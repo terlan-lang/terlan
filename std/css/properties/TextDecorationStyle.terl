@@ -21,10 +21,7 @@
  */
 module std.css.properties.TextDecorationStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Produces a dashed line style.
@@ -51,27 +48,6 @@ pub type Solid.
  */
 pub type Wavy.
 
-pub type Css =
-      Solid
-    | Double
-    | Dotted
-    | Dashed
-    | Wavy
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_decoration_style: Value,
+    text_decoration_style: Solid | Double | Dotted | Dashed | Wavy | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-decoration-style. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-decoration-style", Atom.to_string(css))).

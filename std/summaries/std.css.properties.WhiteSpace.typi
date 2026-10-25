@@ -39,24 +39,6 @@ pub type BreakSpaces =
 pub type Collapse =
     Atom["collapse"].
 
-pub type Css =
-    Normal
-  | Pre
-  | PreWrap
-  | PreLine
-  | Collapse
-  | Preserve
-  | PreserveBreaks
-  | PreserveSpaces
-  | BreakSpaces
-  | Wrap
-  | Nowrap
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Sequences of white space are
 /// [collapsed](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#collapsing_and_transformation).
 /// Newline characters in the source are handled the same as other white spaces. Lines are broken as
@@ -120,10 +102,8 @@ pub type PreserveSpaces =
     Atom["preserve-spaces"].
 
 pub struct Property {
-    white_space: Value
+    white_space: Normal | Pre | PreWrap | PreLine | Collapse | Preserve | PreserveBreaks | PreserveSpaces | BreakSpaces | Wrap | Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
 
 /// Text is wrapped across lines at appropriate characters (for example spaces, in languages like
 /// English that use space separators) to minimize overflow. This is the default value.
@@ -133,8 +113,3 @@ pub opaque type Value.
 
 pub type Wrap =
     Atom["wrap"].
-
-/// Selects a keyword for white-space. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

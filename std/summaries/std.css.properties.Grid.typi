@@ -25,14 +25,6 @@
 
 module std.css.properties.Grid.
 
-pub type Css =
-    None
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Sets all three longhand properties to `none`, meaning there is no explicit grid. There are no
 /// named grid areas. Rows and columns will be implicitly generated; their size will be determined by
 /// the `grid-auto-rows` and `grid-auto-columns` properties. This is the default value.
@@ -43,12 +35,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    grid: Value
+    grid: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for grid. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
-/// apply to the entire declaration.
-
-pub value(css: Css): Value.

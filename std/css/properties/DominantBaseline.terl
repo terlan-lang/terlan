@@ -22,10 +22,7 @@
  */
 module std.css.properties.DominantBaseline.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The baseline-identifier for the dominant-baseline is set to be `alphabetic`, the derived
@@ -94,31 +91,6 @@ pub type TextBottom = Atom["text-bottom"].
  */
 pub type TextTop = Atom["text-top"].
 
-pub type Css =
-      Auto
-    | TextBottom
-    | Alphabetic
-    | Ideographic
-    | Middle
-    | Central
-    | Mathematical
-    | Hanging
-    | TextTop
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    dominant_baseline: Value,
+    dominant_baseline: Auto | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for dominant-baseline. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("dominant-baseline", Atom.to_string(css))).

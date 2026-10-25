@@ -17,8 +17,8 @@
  */
 module std.css.properties.AspectRatio.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
@@ -31,26 +31,17 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    aspect_ratio: Value,
+    aspect_ratio: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for aspect-ratio. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the aspect-ratio number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("aspect-ratio", Atom.to_string(css))).
-
-/**
- * Sets aspect-ratio from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("aspect-ratio", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("aspect-ratio", std.core.Float.to_string(value))));
         false -> Absent
     }.

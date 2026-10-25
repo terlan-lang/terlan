@@ -31,29 +31,11 @@ pub type Around =
 pub type Between =
     Atom["between"].
 
-pub type Css =
-    All
-  | Around
-  | Between
-  | Normal
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Behaves the same as `all`. This is the default.
 
 pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    row_rule_visibility_items: Value
+    row_rule_visibility_items: All | Around | Between | Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for row-rule-visibility-items. CSS-wide choices Inherit, Initial, Unset,
-/// Revert, and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

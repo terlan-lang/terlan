@@ -19,10 +19,7 @@
  */
 module std.css.properties.CaretAnimation.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The caret blinks on and off. This is the default (initial) value.
@@ -34,17 +31,6 @@ pub type Auto.
  */
 pub type Manual.
 
-pub type Css = Auto | Manual | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    caret_animation: Value,
+    caret_animation: Auto | Manual | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for caret-animation. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("caret-animation", Atom.to_string(css))).

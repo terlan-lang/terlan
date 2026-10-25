@@ -18,10 +18,7 @@
  */
 module std.css.properties.ListStylePosition.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The `::marker` is the first element among the list item's contents.
@@ -33,17 +30,6 @@ pub type Inside.
  */
 pub type Outside.
 
-pub type Css = Inside | Outside | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    list_style_position: Value,
+    list_style_position: Inside | Outside | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for list-style-position. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("list-style-position", Atom.to_string(css))).

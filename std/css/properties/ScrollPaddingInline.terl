@@ -19,7 +19,6 @@
  */
 module std.css.properties.ScrollPaddingInline.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -33,87 +32,69 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
+pub opaque type CheckedComponent = SerializedValue.
 
-pub type ComponentCss = Auto.
+pub type Component = Auto | CheckedComponent.
 
-pub opaque type Value = SerializedValue.
-
-pub opaque type Component = SerializedValue.
+pub opaque type Checked =
+      SerializedValue
+    | {Atom["css_parts"], List[Atom["auto"] | SerializedValue]}.
 
 pub struct Property {
-    scroll_padding_inline: Value,
+    scroll_padding_inline: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for scroll-padding-inline. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-padding-inline", Atom.to_string(css))).
-
-/**
- * Sets scroll-padding-inline from a typed length. Returns Some for amount >= 0; otherwise returns
+ * Checks the scroll-padding-inline length range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("scroll-padding-inline", length_css(value))));
+        true -> Some(Checked(serialize("scroll-padding-inline", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets scroll-padding-inline from a typed percentage. Returns Some for amount >= 0; otherwise
+ * Checks the scroll-padding-inline percentage range. Returns Some when amount >= 0; otherwise
  * returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("scroll-padding-inline", percentage_css(value))));
+        true -> Some(Checked(serialize("scroll-padding-inline", percentage_css(value))));
         false -> Absent
     }.
 
 /**
- * Chooses one scroll-padding-inline shorthand component. CSS-wide keywords are accepted only by
- * value(css) for the whole declaration.
+ * Checks the scroll-padding-inline length range. Returns Some when amount >= 0; otherwise returns
+ * None.
  */
-pub component(css: ComponentCss): Component ->
-    Component(serialize("scroll-padding-inline", Atom.to_string(css))).
-
-/**
- * Sets scroll-padding-inline shorthand component from a typed length. Returns Some for amount >= 0;
- * otherwise returns None.
- */
-pub component_length(value: Length): Option[Component] ->
+pub component_length(value: Length): Option[CheckedComponent] ->
     case length_amount(value) >= 0 {
-        true -> Some(Component(serialize("scroll-padding-inline", length_css(value))));
+        true -> Some(CheckedComponent(serialize("scroll-padding-inline", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets scroll-padding-inline shorthand component from a typed percentage. Returns Some for amount
- * >= 0; otherwise returns None.
+ * Checks the scroll-padding-inline percentage range. Returns Some when amount >= 0; otherwise
+ * returns None.
  */
-pub component_percentage(value: Percentage): Option[Component] ->
+pub component_percentage(value: Percentage): Option[CheckedComponent] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Component(serialize("scroll-padding-inline", percentage_css(value))));
+        true -> Some(CheckedComponent(serialize("scroll-padding-inline", percentage_css(value))));
         false -> Absent
     }.
 
-component_css(value: Component): String ->
-    let serialized = component_value(value);
-    serialized.css.
-
-component_value(value: Component): SerializedValue ->
+component_value(value: Component): Atom["auto"] | SerializedValue ->
     value.
 
 /**
- * Supplies 1 components in the grammar order shown above.
+ * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Value ->
-    Value(serialize("scroll-padding-inline", component_css(first))).
+pub single(first: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
- * Supplies 2 components in the grammar order shown above.
+ * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Value ->
-    Value(serialize("scroll-padding-inline", component_css(first) + " " + component_css(second))).
+pub pair(first: Component, second: Component): Checked ->
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).

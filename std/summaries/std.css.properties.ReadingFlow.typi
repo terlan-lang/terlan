@@ -21,20 +21,6 @@
 
 module std.css.properties.ReadingFlow.
 
-pub type Css =
-    Normal
-  | SourceOrder
-  | FlexVisual
-  | FlexFlow
-  | GridRows
-  | GridColumns
-  | GridOrder
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Only affects flex containers. The reading order follows the `flex-flow` direction.
 
 pub type FlexFlow =
@@ -72,7 +58,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    reading_flow: Value
+    reading_flow: Normal | SourceOrder | FlexVisual | FlexFlow | GridRows | GridColumns | GridOrder | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Affects grid, flex, and block containers. Has no effect on its own — the container's reading
@@ -81,10 +67,3 @@ pub struct Property {
 
 pub type SourceOrder =
     Atom["source-order"].
-
-pub opaque type Value.
-
-/// Selects a keyword for reading-flow. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

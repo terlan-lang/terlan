@@ -18,30 +18,8 @@
  */
 module std.css.properties.TextDecorationColor.
 
-import std.core.Atom.
-import std.css.Values.
-import std.css.Values.{color_css, serialize}.
-
-import type std.css.Values.{Color, Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
-
-pub type Css = Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+import type std.css.Values.{Color, CurrentColor, Inherit, Initial, Revert, RevertLayer, Transparent, Unset}.
 
 pub struct Property {
-    text_decoration_color: Value,
+    text_decoration_color: Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-decoration-color. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-decoration-color", Atom.to_string(css))).
-
-/**
- * Sets text-decoration-color from a typed color. Use std.css.Values.rgb or color to choose the
- * paint.
- */
-pub color(value: Color): Value ->
-    Value(serialize("text-decoration-color", color_css(value))).

@@ -19,10 +19,7 @@
  */
 module std.css.properties.FlexDirection.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies the flex container's main-axis to be the same as the block-axis.
@@ -47,26 +44,6 @@ pub type Row.
  */
 pub type RowReverse = Atom["row-reverse"].
 
-pub type Css =
-      Row
-    | RowReverse
-    | Column
-    | ColumnReverse
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    flex_direction: Value,
+    flex_direction: Row | RowReverse | Column | ColumnReverse | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for flex-direction. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("flex-direction", Atom.to_string(css))).

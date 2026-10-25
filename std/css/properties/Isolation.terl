@@ -17,10 +17,7 @@
  */
 module std.css.properties.Isolation.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * A new stacking context is created only if one of the properties applied to the element requires
@@ -33,17 +30,6 @@ pub type Auto.
  */
 pub type Isolate.
 
-pub type Css = Auto | Isolate | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    isolation: Value,
+    isolation: Auto | Isolate | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for isolation. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("isolation", Atom.to_string(css))).

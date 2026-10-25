@@ -23,19 +23,7 @@ module std.css.properties.MaskBorder.
 pub type Alpha =
     Atom["alpha"].
 
-pub type Css =
-    None
-  | Stretch
-  | Repeat
-  | Round
-  | Space
-  | Luminance
-  | Alpha
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
+pub opaque type Checked.
 
 pub type Luminance =
     Atom["luminance"].
@@ -49,7 +37,7 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    mask_border: Value
+    mask_border: None | Stretch | Repeat | Round | Space | Luminance | Alpha | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// The source image's edge regions are tiled (repeated) to fill the gap between each border. Tiles
@@ -87,17 +75,10 @@ pub type Space =
 pub type Stretch =
     Atom["stretch"].
 
-pub opaque type Value.
+/// Checks the mask-border number range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets mask-border from a typed number. Returns Some for amount >= 0; otherwise returns None.
+pub number(value: Float): Option[Checked].
 
-pub number(value: Float): Option[Value].
+/// Checks the mask-border percentage range. Returns Some when amount >= 0; otherwise returns None.
 
-/// Sets mask-border from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
-
-pub percentage(value: std.css.Values.Percentage): Option[Value].
-
-/// Selects a keyword for mask-border. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.
+pub percentage(value: std.css.Values.Percentage): Option[Checked].

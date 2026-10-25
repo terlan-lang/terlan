@@ -40,22 +40,6 @@ pub type Baseline =
 pub type Central =
     Atom["central"].
 
-pub type Css =
-    Baseline
-  | TextBottom
-  | Alphabetic
-  | Ideographic
-  | Middle
-  | Central
-  | Mathematical
-  | Hanging
-  | TextTop
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub type Hanging =
     Atom["hanging"].
 
@@ -81,7 +65,7 @@ pub type Middle =
     Atom["middle"].
 
 pub struct Property {
-    alignment_baseline: Value
+    alignment_baseline: Baseline | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Matches the bottom of the box to the top of the parent's content area, using the line-under edge
@@ -95,10 +79,3 @@ pub type TextBottom =
 
 pub type TextTop =
     Atom["text-top"].
-
-pub opaque type Value.
-
-/// Selects a keyword for alignment-baseline. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

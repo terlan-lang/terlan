@@ -20,10 +20,7 @@
  */
 module std.css.properties.FlexFlow.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Specifies that flex items broken across multiple lines are distributed so that the line lengths
@@ -71,41 +68,23 @@ pub type Wrap.
  */
 pub type WrapReverse = Atom["wrap-reverse"].
 
-pub type Css =
-      Row
-    | RowReverse
-    | Column
-    | ColumnReverse
-    | Nowrap
-    | Wrap
-    | WrapReverse
-    | Balance
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
 pub type FlexDirectionPart = Row | RowReverse | Column | ColumnReverse.
 
 pub type FlexWrapPart = Nowrap | Wrap | WrapReverse | Balance.
 
-pub opaque type Value = SerializedValue.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["row"] | Atom["row-reverse"] | Atom["column"] | Atom["column-reverse"], Atom["nowrap"] | Atom["wrap"] | Atom["wrap-reverse"] | Atom["balance"]}
+      }.
 
 pub struct Property {
-    flex_flow: Value,
+    flex_flow: Row | RowReverse | Column | ColumnReverse | Nowrap | Wrap | WrapReverse | Balance | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for flex-flow. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Combines flex-direction, flex-wrap for flex-flow. Each parameter accepts its own keyword or typed
+ * unit choices directly.
  */
-pub value(css: Css): Value ->
-    Value(serialize("flex-flow", Atom.to_string(css))).
-
-/**
- * Sets flex-flow by combining flex-direction, flex-wrap in grammar order. Each argument describes a
- * distinct part of the declaration.
- */
-pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Value ->
-    Value(serialize("flex-flow", Atom.to_string(flex_direction) + " " + Atom.to_string(flex_wrap))).
+pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Checked ->
+    Checked({Atom["css_parts"], {flex_direction, flex_wrap}}).

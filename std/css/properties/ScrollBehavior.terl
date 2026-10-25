@@ -19,10 +19,7 @@
  */
 module std.css.properties.ScrollBehavior.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The scrolling box scrolls instantly.
@@ -35,17 +32,6 @@ pub type Auto.
  */
 pub type Smooth.
 
-pub type Css = Auto | Smooth | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    scroll_behavior: Value,
+    scroll_behavior: Auto | Smooth | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for scroll-behavior. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("scroll-behavior", Atom.to_string(css))).

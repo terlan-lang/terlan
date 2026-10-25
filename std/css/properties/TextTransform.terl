@@ -19,10 +19,7 @@
  */
 module std.css.properties.TextTransform.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Is a keyword that converts the first _letter_ of each word to uppercase. Other characters remain
@@ -70,29 +67,6 @@ pub type None.
  */
 pub type Uppercase.
 
-pub type Css =
-      None
-    | Capitalize
-    | Uppercase
-    | Lowercase
-    | FullWidth
-    | FullSizeKana
-    | MathAuto
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    text_transform: Value,
+    text_transform: None | Capitalize | Uppercase | Lowercase | FullWidth | FullSizeKana | MathAuto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for text-transform. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-transform", Atom.to_string(css))).

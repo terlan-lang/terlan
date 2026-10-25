@@ -19,10 +19,7 @@
  */
 module std.css.properties.ZIndex.
 
-import std.core.{Atom, Int}.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The box does not establish a new local stacking context. The stack level of the generated box in
@@ -30,23 +27,6 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedVal
  */
 pub type Auto.
 
-pub type Css = Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    z_index: Value,
+    z_index: Auto | Int | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for z-index. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("z-index", Atom.to_string(css))).
-
-/**
- * Sets z-index from a typed integer.
- */
-pub integer(value: Int): Value ->
-    Value(serialize("z-index", std.core.Int.to_string(value))).

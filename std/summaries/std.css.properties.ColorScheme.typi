@@ -17,16 +17,6 @@
 
 module std.css.properties.ColorScheme.
 
-pub type Css =
-    Normal
-  | Light
-  | Dark
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that the element can be rendered using the operating system _dark_ color scheme.
 
 pub type Dark =
@@ -46,12 +36,5 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    color_scheme: Value
+    color_scheme: Normal | Light | Dark | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for color-scheme. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

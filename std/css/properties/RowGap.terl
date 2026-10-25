@@ -17,7 +17,6 @@
  */
 module std.css.properties.RowGap.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{length_amount, length_css, percentage_amount, percentage_css, serialize}.
@@ -30,35 +29,26 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
  */
 pub type Normal.
 
-pub type Css = Normal | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    row_gap: Value,
+    row_gap: Normal | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for row-gap. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
+ * Checks the row-gap length range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("row-gap", Atom.to_string(css))).
-
-/**
- * Sets row-gap from a typed length. Returns Some for amount >= 0; otherwise returns None.
- */
-pub length(value: Length): Option[Value] ->
+pub length(value: Length): Option[Checked] ->
     case length_amount(value) >= 0 {
-        true -> Some(Value(serialize("row-gap", length_css(value))));
+        true -> Some(Checked(serialize("row-gap", length_css(value))));
         false -> Absent
     }.
 
 /**
- * Sets row-gap from a typed percentage. Returns Some for amount >= 0; otherwise returns None.
+ * Checks the row-gap percentage range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("row-gap", percentage_css(value))));
+        true -> Some(Checked(serialize("row-gap", percentage_css(value))));
         false -> Absent
     }.

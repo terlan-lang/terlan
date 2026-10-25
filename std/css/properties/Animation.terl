@@ -26,10 +26,9 @@
  */
 module std.css.properties.Animation.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
-import std.css.Values.
-import std.css.Values.{serialize, time_css}.
+import std.css.Values.{serialize}.
 
 import type std.core.Option.
 import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Time, Unset}.
@@ -171,56 +170,17 @@ pub type StepEnd = Atom["step-end"].
  */
 pub type StepStart = Atom["step-start"].
 
-pub type Css =
-      Auto
-    | Linear
-    | Ease
-    | EaseIn
-    | EaseOut
-    | EaseInOut
-    | StepStart
-    | StepEnd
-    | Infinite
-    | Normal
-    | Reverse
-    | Alternate
-    | AlternateReverse
-    | None
-    | Forwards
-    | Backwards
-    | Both
-    | Running
-    | Paused
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    animation: Value,
+    animation: Auto | Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Infinite | Normal | Reverse | Alternate | AlternateReverse | None | Forwards | Backwards | Both | Running | Paused | Time | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for animation. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the animation number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("animation", Atom.to_string(css))).
-
-/**
- * Sets animation from a typed time.
- */
-pub time(value: Time): Value ->
-    Value(serialize("animation", time_css(value))).
-
-/**
- * Sets animation from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("animation", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("animation", std.core.Float.to_string(value))));
         false -> Absent
     }.

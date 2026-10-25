@@ -19,7 +19,6 @@
  */
 module std.css.properties.TextSizeAdjust.
 
-import std.core.Atom.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.
 import std.css.Values.{percentage_amount, percentage_css, serialize}.
@@ -38,27 +37,18 @@ pub type Auto.
  */
 pub type None.
 
-pub type Css = Auto | None | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    text_size_adjust: Value,
+    text_size_adjust: Auto | None | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for text-size-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("text-size-adjust", Atom.to_string(css))).
-
-/**
- * Sets text-size-adjust from a typed percentage. Returns Some for amount >= 0; otherwise returns
+ * Checks the text-size-adjust percentage range. Returns Some when amount >= 0; otherwise returns
  * None.
  */
-pub percentage(value: Percentage): Option[Value] ->
+pub percentage(value: Percentage): Option[Checked] ->
     case percentage_amount(value) >= 0 {
-        true -> Some(Value(serialize("text-size-adjust", percentage_css(value))));
+        true -> Some(Checked(serialize("text-size-adjust", percentage_css(value))));
         false -> Absent
     }.

@@ -17,10 +17,7 @@
  */
 module std.css.properties.Hyphens.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The browser is free to automatically break words at appropriate hyphenation points, following
@@ -43,17 +40,6 @@ pub type Manual.
  */
 pub type None.
 
-pub type Css = None | Manual | Auto | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    hyphens: Value,
+    hyphens: None | Manual | Auto | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for hyphens. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("hyphens", Atom.to_string(css))).

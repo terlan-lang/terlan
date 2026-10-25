@@ -24,15 +24,6 @@ module std.css.properties.TimelineTriggerSource.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    None
-  | Auto
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The element's trigger does not have a source: it is not associated with any timeline and the
 /// animation does not happen.
 
@@ -40,12 +31,5 @@ pub type None =
     Atom["none"].
 
 pub struct Property {
-    timeline_trigger_source: Value
+    timeline_trigger_source: None | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for timeline-trigger-source. CSS-wide choices Inherit, Initial, Unset, Revert,
-/// and RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

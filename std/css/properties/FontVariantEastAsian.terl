@@ -20,10 +20,7 @@
  */
 module std.css.properties.FontVariantEastAsian.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Enables rendering of full-width variants.
@@ -77,32 +74,6 @@ pub type Simplified.
  */
 pub type Traditional.
 
-pub type Css =
-      Normal
-    | Jis78
-    | Jis83
-    | Jis90
-    | Jis04
-    | Simplified
-    | Traditional
-    | FullWidth
-    | ProportionalWidth
-    | Ruby
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_east_asian: Value,
+    font_variant_east_asian: Normal | Jis78 | Jis83 | Jis90 | Jis04 | Simplified | Traditional | FullWidth | ProportionalWidth | Ruby | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-east-asian. CSS-wide choices Inherit, Initial, Unset, Revert,
- * and RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-east-asian", Atom.to_string(css))).

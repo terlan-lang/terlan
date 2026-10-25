@@ -24,17 +24,6 @@ module std.css.properties.TextRendering.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | OptimizeSpeed
-  | OptimizeLegibility
-  | GeometricPrecision
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The browser emphasizes geometric precision over rendering speed and legibility. Certain aspects
 /// of fonts — such as kerning — don't scale linearly. So this value can make text using those fonts
 /// look good.
@@ -55,12 +44,5 @@ pub type OptimizeSpeed =
     Atom["optimizeSpeed"].
 
 pub struct Property {
-    text_rendering: Value
+    text_rendering: Auto | OptimizeSpeed | OptimizeLegibility | GeometricPrecision | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for text-rendering. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

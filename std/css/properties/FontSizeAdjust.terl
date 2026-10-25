@@ -21,8 +21,8 @@
  */
 module std.css.properties.FontSizeAdjust.
 
+import std.core.Float.
 import std.core.Option.{None as Absent, Some}.
-import std.core.{Atom, Float}.
 import std.css.Values.{serialize}.
 
 import type std.core.Option.
@@ -38,26 +38,17 @@ pub type FromFont = Atom["from-font"].
  */
 pub type None.
 
-pub type Css = None | FromFont | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
+pub opaque type Checked = SerializedValue.
 
 pub struct Property {
-    font_size_adjust: Value,
+    font_size_adjust: None | FromFont | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
 }.
 
 /**
- * Selects a keyword for font-size-adjust. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
+ * Checks the font-size-adjust number range. Returns Some when amount >= 0; otherwise returns None.
  */
-pub value(css: Css): Value ->
-    Value(serialize("font-size-adjust", Atom.to_string(css))).
-
-/**
- * Sets font-size-adjust from a typed number. Returns Some for amount >= 0; otherwise returns None.
- */
-pub number(value: Float): Option[Value] ->
+pub number(value: Float): Option[Checked] ->
     case value >= 0 {
-        true -> Some(Value(serialize("font-size-adjust", std.core.Float.to_string(value))));
+        true -> Some(Checked(serialize("font-size-adjust", std.core.Float.to_string(value))));
         false -> Absent
     }.

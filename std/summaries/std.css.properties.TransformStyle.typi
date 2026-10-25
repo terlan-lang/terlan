@@ -18,15 +18,6 @@
 
 module std.css.properties.TransformStyle.
 
-pub type Css =
-    Flat
-  | Preserve3d
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that the children of the element are lying in the plane of the element itself.
 
 pub type Flat =
@@ -38,12 +29,5 @@ pub type Preserve3d =
     Atom["preserve-3d"].
 
 pub struct Property {
-    transform_style: Value
+    transform_style: Flat | Preserve3d | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for transform-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

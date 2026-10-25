@@ -22,17 +22,8 @@ module std.css.properties.OffsetRotate.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | Reverse
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 pub struct Property {
-    offset_rotate: Value
+    offset_rotate: Auto | Reverse | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The element is rotated similar to `auto`, except it faces the opposite direction. It is the same
@@ -40,14 +31,3 @@ pub struct Property {
 
 pub type Reverse =
     Atom["reverse"].
-
-pub opaque type Value.
-
-/// Sets offset-rotate from a typed angle.
-
-pub angle(value: std.css.Values.Angle): Value.
-
-/// Selects a keyword for offset-rotate. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

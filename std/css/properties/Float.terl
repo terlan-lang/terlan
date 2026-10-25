@@ -21,10 +21,7 @@
  */
 module std.css.properties.Float.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * The element must float on the end side of its containing block. That is the right side with `ltr`
@@ -53,27 +50,6 @@ pub type None.
  */
 pub type Right.
 
-pub type Css =
-      InlineStart
-    | InlineEnd
-    | Left
-    | Right
-    | None
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    float: Value,
+    float: InlineStart | InlineEnd | Left | Right | None | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for float. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("float", Atom.to_string(css))).

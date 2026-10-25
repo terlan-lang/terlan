@@ -17,10 +17,7 @@
  */
 module std.css.properties.FontStyle.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Selects a font that is classified as `italic`. If no italic version of the face is available, one
@@ -45,17 +42,6 @@ pub type Normal.
  */
 pub type Oblique.
 
-pub type Css = Normal | Italic | Oblique | Inherit | Initial | Unset | Revert | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_style: Value,
+    font_style: Normal | Italic | Oblique | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-style", Atom.to_string(css))).

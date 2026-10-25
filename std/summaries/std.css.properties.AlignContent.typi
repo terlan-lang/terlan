@@ -35,24 +35,6 @@ pub type Baseline =
 pub type Center =
     Atom["center"].
 
-pub type Css =
-    Normal
-  | Baseline
-  | SpaceBetween
-  | SpaceAround
-  | SpaceEvenly
-  | Stretch
-  | Center
-  | Start
-  | End
-  | FlexStart
-  | FlexEnd
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// The items are packed flush to each other against the end edge of the alignment container in the
 /// cross axis.
 
@@ -79,7 +61,7 @@ pub type Normal =
     Atom["normal"].
 
 pub struct Property {
-    align_content: Value
+    align_content: Normal | Baseline | SpaceBetween | SpaceAround | SpaceEvenly | Stretch | Center | Start | End | FlexStart | FlexEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// The items are evenly distributed within the alignment container along the cross axis. The spacing
@@ -118,10 +100,3 @@ pub type Start =
 
 pub type Stretch =
     Atom["stretch"].
-
-pub opaque type Value.
-
-/// Selects a keyword for align-content. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

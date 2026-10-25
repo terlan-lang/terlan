@@ -23,16 +23,6 @@ module std.css.properties.FontSynthesisStyle.
 pub type Auto =
     Atom["auto"].
 
-pub type Css =
-    Auto
-  | None
-  | ObliqueOnly
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Indicates that the synthesis of the missing oblique typeface by the browser is _not_ allowed.
 
 pub type None =
@@ -44,12 +34,5 @@ pub type ObliqueOnly =
     Atom["oblique-only"].
 
 pub struct Property {
-    font_synthesis_style: Value
+    font_synthesis_style: Auto | None | ObliqueOnly | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
-
-pub opaque type Value.
-
-/// Selects a keyword for font-synthesis-style. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

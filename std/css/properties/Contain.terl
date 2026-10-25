@@ -20,10 +20,7 @@
  */
 module std.css.properties.Contain.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * All containment rules except `size` are applied to the element. This is equivalent to `contain:
@@ -76,30 +73,6 @@ pub type Strict.
  */
 pub type Style.
 
-pub type Css =
-      None
-    | Strict
-    | Content
-    | Size
-    | InlineSize
-    | Layout
-    | Style
-    | Paint
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    contain: Value,
+    contain: None | Strict | Content | Size | InlineSize | Layout | Style | Paint | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for contain. CSS-wide choices Inherit, Initial, Unset, Revert, and RevertLayer
- * apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("contain", Atom.to_string(css))).

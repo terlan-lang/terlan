@@ -25,20 +25,6 @@ module std.css.properties.TextDecorationLine.
 pub type Blink =
     Atom["blink"].
 
-pub type Css =
-    None
-  | Underline
-  | Overline
-  | LineThrough
-  | Blink
-  | SpellingError
-  | GrammarError
-  | std.css.Values.Inherit
-  | std.css.Values.Initial
-  | std.css.Values.Unset
-  | std.css.Values.Revert
-  | std.css.Values.RevertLayer.
-
 /// Each line of text uses the user agents' method of highlighting grammar mistakes, which is a
 /// dotted green line in most browsers.
 
@@ -61,7 +47,7 @@ pub type Overline =
     Atom["overline"].
 
 pub struct Property {
-    text_decoration_line: Value
+    text_decoration_line: None | Underline | Overline | LineThrough | Blink | SpellingError | GrammarError | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.
 
 /// Each line of text uses the user agents' method of highlighting spelling mistakes, which is a
@@ -74,10 +60,3 @@ pub type SpellingError =
 
 pub type Underline =
     Atom["underline"].
-
-pub opaque type Value.
-
-/// Selects a keyword for text-decoration-line. CSS-wide choices Inherit, Initial, Unset, Revert, and
-/// RevertLayer apply to the entire declaration.
-
-pub value(css: Css): Value.

@@ -18,10 +18,7 @@
  */
 module std.css.properties.FontVariantEmoji.
 
-import std.core.Atom.
-import std.css.Values.{serialize}.
-
-import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, SerializedValue, Unset}.
+import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 /**
  * Renders the emoji as if it were using the unicode emoji variation selector (`U+FE0F`).
@@ -46,26 +43,6 @@ pub type TextKeyword = Atom["text"].
  */
 pub type Unicode.
 
-pub type Css =
-      Normal
-    | TextKeyword
-    | Emoji
-    | Unicode
-    | Inherit
-    | Initial
-    | Unset
-    | Revert
-    | RevertLayer.
-
-pub opaque type Value = SerializedValue.
-
 pub struct Property {
-    font_variant_emoji: Value,
+    font_variant_emoji: Normal | TextKeyword | Emoji | Unicode | Inherit | Initial | Unset | Revert | RevertLayer,
 }.
-
-/**
- * Selects a keyword for font-variant-emoji. CSS-wide choices Inherit, Initial, Unset, Revert, and
- * RevertLayer apply to the entire declaration.
- */
-pub value(css: Css): Value ->
-    Value(serialize("font-variant-emoji", Atom.to_string(css))).
