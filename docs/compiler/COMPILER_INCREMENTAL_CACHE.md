@@ -71,6 +71,28 @@ The executable gate persists compiler-incremental-cache-report.json with:
 The report is release evidence that incremental compilation remains equivalent
 to a clean build for the same inputs while still allowing cache reuse.
 
+## Checked application image reuse
+
+Incremental native application builds may reuse an image after the frontend has
+checked the complete source and dependency closure. This avoids repeating root
+pruning and native lowering for an unchanged checked application. Both borrowed
+and owned CoreIR paths use the same admission rules.
+
+The reuse key covers each supplied Core module, its public interface and lowered
+interface function signatures, executable roots, exact debug source identities
+and callable spans, compiler revisions, build policy, target, adapter ABI, and
+linker identity. Interface signatures must be hashed explicitly because CoreIR
+serialization omits its HIR interface. Dependency-free source reuse also binds
+the compiler revisions and native admission policy before skipping the frontend.
+
+A bounded, replaceable index identifies an existing native cache entry. It is
+not sufficient evidence by itself: reuse requires the existing object and image
+manifest hashes, sealed-image validation, target, and application identity checks.
+Missing, stale, malformed, or corrupted cache evidence falls back to compilation.
+Missing published output is restored from verified cache bytes. Explicit native
+lowering trace requests bypass this shortcut. Non-incremental builds continue
+through the ordinary lowering and code-generation path.
+
 ## Compilation latency experiments
 
 `scripts/benchmarks/compilation` provides a Terlan-owned benchmark for generated,

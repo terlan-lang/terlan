@@ -13,10 +13,11 @@ use super::super::{write_build_file, BuildOneError};
 use super::native_cache::{is_sha256, load_verified_entry, sha256_hex};
 use super::native_image::{
     native_linker_cache_identity, CompiledNativeApplicationImage, DIRECT_AOT_BACKEND,
+    DIRECT_AOT_BUILD_POLICY, DIRECT_AOT_CACHE_SCHEMA, DIRECT_AOT_CODEGEN_REVISION,
 };
 use super::output_cleanup;
 
-const REUSE_SCHEMA: &str = "terlan-native-reuse-v3";
+const REUSE_SCHEMA: &str = "terlan-native-reuse-v4";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct NativeReuseStamp {
@@ -35,7 +36,7 @@ pub(super) fn reuse_dependency_free_native_image(
     state: &CliState,
     policy: NativeCodegenPolicy,
 ) -> Result<bool, BuildOneError> {
-    if !state.incremental || state.no_emit {
+    if !state.incremental || state.no_emit || !super::core_reuse::diagnostic_reuse_allowed() {
         return Ok(false);
     }
     match fs::symlink_metadata(Path::new(path).with_extension("terli")) {
@@ -79,7 +80,14 @@ pub(super) fn reuse_dependency_free_native_image(
         .cache_identity(&target.triple, &target.calling_convention)
         .map_err(|error| BuildOneError::Message(error.into()))?;
     let linker_policy = native_linker_cache_identity()?;
-    if stamp.source_sha256 != source_identity(Path::new(path), &source_text, policy)
+    if stamp.source_sha256
+        != source_identity(
+            Path::new(path),
+            &source_text,
+            policy,
+            state.native_policy.as_str(),
+            &compiler_identity(),
+        )
         || stamp.image_name != format!("{module_stem}.tvm")
         || stamp.policy != policy.cache_identity()
         || stamp.target != target.triple
@@ -154,7 +162,13 @@ pub(super) fn write_native_reuse_stamp(
         .map_err(|error| BuildOneError::Message(error.into()))?;
     let linker_policy = native_linker_cache_identity()?.to_string();
     let stamp = render_stamp(&NativeReuseStamp {
-        source_sha256: source_identity(Path::new(source_path), source_text, policy),
+        source_sha256: source_identity(
+            Path::new(source_path),
+            source_text,
+            policy,
+            state.native_policy.as_str(),
+            &compiler_identity(),
+        ),
         image_name: image.image_name.clone(),
         input_sha256: image.cache_input_sha256.clone(),
         policy: policy.cache_identity().to_string(),
@@ -296,13 +310,24 @@ fn is_identity_text(value: &str) -> bool {
     !value.is_empty() && !value.contains(['\0', '\n', '\r'])
 }
 
-fn source_identity(path: &Path, source_text: &str, policy: NativeCodegenPolicy) -> String {
+/// Binds source-only admission to every compiler stage skipped by this fast path.
+fn compiler_identity() -> String {
+    sha256_hex(format!("{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{DIRECT_AOT_BUILD_POLICY}", env!("TERLAN_CHECKED_FRONTEND_REVISION_SHA256")).as_bytes())
+}
+
+fn source_identity(
+    path: &Path,
+    source_text: &str,
+    policy: NativeCodegenPolicy,
+    native_policy: &str,
+    compiler_identity: &str,
+) -> String {
     let interface = fs::read(path.with_extension("terli"))
         .map(|bytes| sha256_hex(&bytes))
         .unwrap_or_else(|_| "no-interface".to_string());
     sha256_hex(
         format!(
-            "{REUSE_SCHEMA}\0{}\0{}\0{}\0{}\0{interface}",
+            "{REUSE_SCHEMA}\0{}\0{}\0{}\0{}\0{interface}\0{native_policy}\0{compiler_identity}",
             env!("CARGO_PKG_VERSION"),
             policy.cache_identity(),
             path.display(),

@@ -45,22 +45,29 @@ fn interface_first_native_reuse_identity_tracks_contract_presence_and_content() 
     let path = directory.path().join("api.terl");
     let policy = crate::compiler::native_ir::NativeCodegenPolicy::Development;
     let source = "module api. pub value(): Int -> 1.";
-    let absent = super::source_identity(&path, source, policy);
+    let absent = super::source_identity(&path, source, policy, "pure", &super::compiler_identity());
     std::fs::write(
         path.with_extension("terli"),
         "module api. pub value(): Int.",
     )
     .unwrap();
-    let present = super::source_identity(&path, source, policy);
+    let present =
+        super::source_identity(&path, source, policy, "pure", &super::compiler_identity());
     assert_ne!(absent, present);
     std::fs::write(
         path.with_extension("terli"),
         "module api. pub value(): String.",
     )
     .unwrap();
-    assert_ne!(present, super::source_identity(&path, source, policy));
+    assert_ne!(
+        present,
+        super::source_identity(&path, source, policy, "pure", &super::compiler_identity())
+    );
     std::fs::remove_file(path.with_extension("terli")).unwrap();
-    assert_eq!(absent, super::source_identity(&path, source, policy));
+    assert_eq!(
+        absent,
+        super::source_identity(&path, source, policy, "pure", &super::compiler_identity())
+    );
 }
 
 /// Builds one canonical stamp accepted by the production parser.
@@ -133,4 +140,80 @@ fn native_reuse_stamp_rejects_noncanonical_and_incomplete_records() {
     let mut delimiter = stamp();
     delimiter.target = "x86_64\npoisoned".to_string();
     assert!(render_stamp(&delimiter).is_err());
+}
+
+#[test]
+fn native_reuse_identity_tracks_compiler_revision_and_native_admission_policy() {
+    let directory =
+        crate::support::test_fs::TestDirectory::new("interfaces", "native_reuse_revision");
+    let path = directory.path().join("api.terl");
+    let policy = crate::compiler::native_ir::NativeCodegenPolicy::Development;
+    let source = "module api. pub main(): Int -> 1.";
+    let identity =
+        |native, revision| super::source_identity(&path, source, policy, native, revision);
+    assert_ne!(
+        identity("pure", "compiler-a"),
+        identity("pure", "compiler-b")
+    );
+    assert_ne!(
+        identity("pure", "compiler-a"),
+        identity("native_boundary_optional", "compiler-a")
+    );
+    assert_ne!(
+        identity("native_boundary_optional", "compiler-a"),
+        identity("native_boundary_required", "compiler-a")
+    );
+}
+
+#[test]
+#[cfg(feature = "native-codegen")]
+fn native_reuse_rechecks_compiler_and_policy_before_admitting_a_valid_image() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("api.terl");
+    let source = "module api. pub main(): Int -> 7.";
+    std::fs::write(&path, source).unwrap();
+    let mut state = crate::CliState {
+        incremental: true,
+        cache_dir: Some(directory.path().join("cache")),
+        out_dir: directory.path().join("out"),
+        ..crate::CliState::default()
+    };
+    let policy = crate::compiler::native_ir::NativeCodegenPolicy::Development;
+    super::super::orchestration::build_one_vm_artifact(path.to_str().unwrap(), &state, policy)
+        .expect("build a valid source-to-image entry");
+    assert!(
+        super::reuse_dependency_free_native_image(path.to_str().unwrap(), &state, policy).unwrap()
+    );
+    let stamp_path = super::reuse_stamp_path(
+        &super::native_cache_root(&state),
+        &std::fs::canonicalize(&path).unwrap(),
+    );
+    let original = std::fs::read_to_string(&stamp_path).unwrap();
+    let mut old_compiler = parse_stamp(&original).unwrap();
+    old_compiler.source_sha256 = super::source_identity(
+        &path,
+        source,
+        policy,
+        state.native_policy.as_str(),
+        "previous-compiler",
+    );
+    std::fs::write(&stamp_path, render_stamp(&old_compiler).unwrap()).unwrap();
+    assert!(
+        !super::reuse_dependency_free_native_image(path.to_str().unwrap(), &state, policy).unwrap()
+    );
+    std::fs::write(&stamp_path, &original).unwrap();
+    let previous_policy = state.native_policy;
+    state.native_policy = if previous_policy == crate::validation::native_policy::NativePolicy::Pure
+    {
+        crate::validation::native_policy::NativePolicy::NativeBoundaryOptional
+    } else {
+        crate::validation::native_policy::NativePolicy::Pure
+    };
+    assert!(
+        !super::reuse_dependency_free_native_image(path.to_str().unwrap(), &state, policy).unwrap()
+    );
+    state.native_policy = previous_policy;
+    assert!(
+        super::reuse_dependency_free_native_image(path.to_str().unwrap(), &state, policy).unwrap()
+    );
 }

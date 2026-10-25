@@ -478,6 +478,13 @@ pub(super) fn compile_rooted_native_application_image(
     cores: &[&CoreModule],
     input: RootedNativeApplicationInput<'_>,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let reuse =
+        super::core_reuse::CoreReuse::for_input(native_cache_root, image_stem, cores, &input);
+    if let Some(reuse) = &reuse {
+        if let Some(image) = reuse.load(vm_dir)? {
+            return Ok(Some(image));
+        }
+    }
     let trace_timings = std::env::var_os("TERLAN_NATIVE_AOT_TIMINGS").is_some();
     let started = Instant::now();
     let mut previous = started;
@@ -517,7 +524,7 @@ pub(super) fn compile_rooted_native_application_image(
                     .to_string(),
             )
         })?;
-    compile_native_application_image_with_identity(NativeApplicationCompileRequest {
+    let image = compile_native_application_image_with_identity(NativeApplicationCompileRequest {
         vm_dir,
         native_cache_root,
         image_stem,
@@ -526,7 +533,11 @@ pub(super) fn compile_rooted_native_application_image(
         policy,
         incremental,
         application_identity: Some(application_identity),
-    })
+    })?;
+    if let (Some(reuse), Some(image)) = (&reuse, &image) {
+        reuse.publish(image);
+    }
+    Ok(image)
 }
 
 /// Compiles an owned CoreIR closure after pruning it in place to executable roots.
@@ -540,6 +551,17 @@ pub(super) fn compile_owned_rooted_native_application_image(
     mut cores: Vec<CoreModule>,
     input: RootedNativeApplicationInput<'_>,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let reuse = super::core_reuse::CoreReuse::for_input(
+        native_cache_root,
+        image_stem,
+        &cores.iter().collect::<Vec<_>>(),
+        &input,
+    );
+    if let Some(reuse) = &reuse {
+        if let Some(image) = reuse.load(vm_dir)? {
+            return Ok(Some(image));
+        }
+    }
     let RootedNativeApplicationInput {
         roots,
         debug_inputs,
@@ -561,7 +583,7 @@ pub(super) fn compile_owned_rooted_native_application_image(
                     .to_string(),
             )
         })?;
-    compile_native_application_image_with_identity(NativeApplicationCompileRequest {
+    let image = compile_native_application_image_with_identity(NativeApplicationCompileRequest {
         vm_dir,
         native_cache_root,
         image_stem,
@@ -570,7 +592,11 @@ pub(super) fn compile_owned_rooted_native_application_image(
         policy,
         incremental,
         application_identity: Some(application_identity),
-    })
+    })?;
+    if let (Some(reuse), Some(image)) = (&reuse, &image) {
+        reuse.publish(image);
+    }
+    Ok(image)
 }
 
 /// Compiles one REPL generation into the shared content-addressed AOT cache.

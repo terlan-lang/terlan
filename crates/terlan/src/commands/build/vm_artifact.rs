@@ -11,6 +11,7 @@ mod checked_cache;
 #[cfg(test)]
 mod checked_cache_test;
 mod compile;
+mod core_reuse;
 mod linker_identity;
 mod low_memory;
 mod native_cache;

@@ -81,6 +81,20 @@ impl NativeDebugInput {
     pub(crate) fn source_text(&self) -> &str {
         &self.source_text
     }
+
+    /// Binds reuse to every input consumed by native debug record construction.
+    pub(super) fn cache_identity(&self) -> Result<String, super::super::BuildOneError> {
+        // JSON object keys cannot represent (name, arity); ordered entries can.
+        let spans = self.function_spans.iter().collect::<Vec<_>>();
+        super::core_reuse::hash_serialized(&(
+            &self.source_path,
+            &self.source_text,
+            &self.module,
+            &self.core_schema,
+            &self.proof_readiness,
+            spans,
+        ))
+    }
 }
 
 #[cfg(test)]
