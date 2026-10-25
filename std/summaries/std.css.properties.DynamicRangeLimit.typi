@@ -27,5 +27,5 @@
 module std.css.properties.DynamicRangeLimit.
 
 pub struct Property {
-    dynamic_range_limit: Standard | NoLimit | Constrained | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    dynamic_range_limit: std.css.keywords.Standard | std.css.keywords.NoLimit | std.css.keywords.Constrained | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

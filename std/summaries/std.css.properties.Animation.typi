@@ -81,7 +81,7 @@ module std.css.properties.Animation.
 pub opaque type Checked.
 
 pub struct Property {
-    animation: Auto | Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Infinite | Normal | Reverse | Alternate | AlternateReverse | None | Forwards | Backwards | Both | Running | Paused | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    animation: std.css.keywords.Auto | std.css.keywords.Linear | std.css.keywords.Ease | std.css.keywords.EaseIn | std.css.keywords.EaseOut | std.css.keywords.EaseInOut | std.css.keywords.StepStart | std.css.keywords.StepEnd | std.css.keywords.Infinite | std.css.keywords.Normal | std.css.keywords.Reverse | std.css.keywords.Alternate | std.css.keywords.AlternateReverse | std.css.keywords.None | std.css.keywords.Forwards | std.css.keywords.Backwards | std.css.keywords.Both | std.css.keywords.Running | std.css.keywords.Paused | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the animation number range. Returns Some when amount >= 0; otherwise returns None.

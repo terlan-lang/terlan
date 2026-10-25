@@ -8,8 +8,9 @@
 //!
 //! Keyword effects:
 //! - alpha: Indicates that the alpha (transparency) values of the `<mask>` should be used.
-//! - luminance: Indicates that the [luminance (brightness) values](#understanding_luminance) of the
-//! `<mask>` should be used.
+//! - luminance: Indicates that the [luminance (brightness)
+//! values](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-type#understanding_luminance)
+//! of the `<mask>` should be used.
 //!
 //! Grammar: luminance | alpha
 //!
@@ -24,5 +25,5 @@
 module std.css.properties.MaskType.
 
 pub struct Property {
-    mask_type: Luminance | Alpha | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    mask_type: std.css.keywords.Luminance | std.css.keywords.Alpha | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

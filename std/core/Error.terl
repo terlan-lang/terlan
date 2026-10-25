@@ -18,9 +18,13 @@ module std.core.Error.
  * failures can map into at module boundaries.
  */
 pub struct Error {
-    /** Stable machine-readable error code. */
+    /**
+     * Stable machine-readable error code.
+     */
     code: Atom,
-    /** Human-readable explanation of the failure. */
+    /**
+     * Human-readable explanation of the failure.
+     */
     message: String,
 }.
 

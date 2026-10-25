@@ -36,7 +36,7 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Component = None | Start | End | Center.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = {Atom["css_parts"], List[Atom["none"] | Atom["start"] | Atom["end"] | Atom["center"]]}.
 
 pub struct Property {
     scroll_snap_align: None | Start | End | Center | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

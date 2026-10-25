@@ -1,4 +1,9 @@
 module typed_css.ComponentAsValue.
 
-import std.css.properties.Padding.{CheckedComponent, Property}.
-pub invalid(component: CheckedComponent): Property -> Property {padding: component}.
+import type std.css.properties.Padding.{CheckedComponent, Property as BaseProperty}.
+
+pub struct Style includes BaseProperty {
+}.
+
+pub invalid(component: CheckedComponent): Style ->
+    Style {padding: component}.

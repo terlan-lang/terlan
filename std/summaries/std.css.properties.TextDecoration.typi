@@ -56,7 +56,7 @@ pub opaque type Checked.
 pub opaque type CheckedTextDecorationThickness.
 
 pub struct Property {
-    text_decoration: None | Underline | Overline | LineThrough | Blink | SpellingError | GrammarError | Auto | FromFont | Solid | Double | Dotted | Dashed | Wavy | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    text_decoration: std.css.keywords.None | std.css.keywords.Underline | std.css.keywords.Overline | std.css.keywords.LineThrough | std.css.keywords.Blink | std.css.keywords.SpellingError | std.css.keywords.GrammarError | std.css.keywords.Auto | std.css.keywords.FromFont | std.css.keywords.Solid | std.css.keywords.Double | std.css.keywords.Dotted | std.css.keywords.Dashed | std.css.keywords.Wavy | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 pub type TextDecorationColorPart =
@@ -65,24 +65,24 @@ pub type TextDecorationColorPart =
   | std.css.Values.CurrentColor.
 
 pub type TextDecorationLinePart =
-    None
-  | Underline
-  | Overline
-  | LineThrough
-  | Blink
-  | SpellingError
-  | GrammarError.
+    std.css.keywords.None
+  | std.css.keywords.Underline
+  | std.css.keywords.Overline
+  | std.css.keywords.LineThrough
+  | std.css.keywords.Blink
+  | std.css.keywords.SpellingError
+  | std.css.keywords.GrammarError.
 
 pub type TextDecorationStylePart =
-    Solid
-  | Double
-  | Dotted
-  | Dashed
-  | Wavy.
+    std.css.keywords.Solid
+  | std.css.keywords.Double
+  | std.css.keywords.Dotted
+  | std.css.keywords.Dashed
+  | std.css.keywords.Wavy.
 
 pub type TextDecorationThicknessPart =
-    Auto
-  | FromFont
+    std.css.keywords.Auto
+  | std.css.keywords.FromFont
   | std.css.Values.Length
   | std.css.Values.Percentage
   | CheckedTextDecorationThickness.

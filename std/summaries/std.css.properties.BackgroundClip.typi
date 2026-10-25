@@ -29,5 +29,5 @@
 module std.css.properties.BackgroundClip.
 
 pub struct Property {
-    background_clip: ContentBox | PaddingBox | BorderBox | BorderArea | TextKeyword | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    background_clip: std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.BorderArea | std.css.keywords.TextKeyword | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

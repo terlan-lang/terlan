@@ -25,5 +25,5 @@
 module std.css.properties.FontVariantPosition.
 
 pub struct Property {
-    font_variant_position: Normal | Sub | Super | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_variant_position: std.css.keywords.Normal | std.css.keywords.Sub | std.css.keywords.Super | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

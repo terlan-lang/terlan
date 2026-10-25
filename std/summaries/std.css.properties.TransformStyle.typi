@@ -23,5 +23,5 @@
 module std.css.properties.TransformStyle.
 
 pub struct Property {
-    transform_style: Flat | Preserve3d | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    transform_style: std.css.keywords.Flat | std.css.keywords.Preserve3d | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -29,5 +29,5 @@
 module std.css.properties.FillRule.
 
 pub struct Property {
-    fill_rule: Nonzero | Evenodd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    fill_rule: std.css.keywords.Nonzero | std.css.keywords.Evenodd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

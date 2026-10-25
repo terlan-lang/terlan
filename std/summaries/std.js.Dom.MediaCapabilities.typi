@@ -33,3 +33,5 @@ pub (receiver: MediaCapabilities) decoding_info(configuration: std.js.Dom.MediaD
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/encodingInfo)
  */
 pub (receiver: MediaCapabilities) encoding_info(configuration: std.js.Dom.MediaEncodingConfiguration): std.js.Promise[std.js.Dom.MediaCapabilitiesEncodingInfo].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, decoding_info: (std.js.Dom.MediaDecodingConfiguration) -> std.js.Promise[std.js.Dom.MediaCapabilitiesDecodingInfo], encoding_info: (std.js.Dom.MediaEncodingConfiguration) -> std.js.Promise[std.js.Dom.MediaCapabilitiesEncodingInfo]): BindingTarget.

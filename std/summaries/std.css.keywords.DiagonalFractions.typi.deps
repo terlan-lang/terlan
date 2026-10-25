@@ -1,7 +1,7 @@
 module=std.css.keywords.DiagonalFractions
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=4843793671035122389
 interface_hash=17975204953913379529
 interface_doc_hash=289673218084676094

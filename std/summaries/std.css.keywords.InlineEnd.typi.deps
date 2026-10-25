@@ -1,7 +1,7 @@
 module=std.css.keywords.InlineEnd
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=13291868899897549178
 interface_hash=3737773971555188821
 interface_doc_hash=13666907261908686722

@@ -51,5 +51,5 @@
 module std.css.properties.VerticalAlign.
 
 pub struct Property {
-    vertical_align: First | Last | Baseline | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | Sub | Super | Top | Center | Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    vertical_align: std.css.keywords.First | std.css.keywords.Last | std.css.keywords.Baseline | std.css.keywords.TextBottom | std.css.keywords.Alphabetic | std.css.keywords.Ideographic | std.css.keywords.Middle | std.css.keywords.Central | std.css.keywords.Mathematical | std.css.keywords.Hanging | std.css.keywords.TextTop | std.css.keywords.Sub | std.css.keywords.Super | std.css.keywords.Top | std.css.keywords.Center | std.css.keywords.Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

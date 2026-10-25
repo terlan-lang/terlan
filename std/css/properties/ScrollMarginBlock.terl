@@ -23,7 +23,7 @@ import type std.css.Values.{Inherit, Initial, Length, Revert, RevertLayer, Unset
 
 pub type Component = Length.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = {Atom["css_parts"], List[std.css.Values.Length]}.
 
 pub struct Property {
     scroll_margin_block: Length | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

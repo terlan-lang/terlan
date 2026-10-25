@@ -23,5 +23,5 @@
 module std.css.properties.CaretAnimation.
 
 pub struct Property {
-    caret_animation: Auto | Manual | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    caret_animation: std.css.keywords.Auto | std.css.keywords.Manual | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

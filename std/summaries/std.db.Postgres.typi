@@ -55,7 +55,7 @@ pub opaque type Row.
 /// otherwise `Err(Error)`.
 /// Transformation: delegates typed row decoding to the Postgres adapter.
 
-pub (row: Row) bool(name: String): Result[Bool, Error].
+pub (row: Row) bool(name: String): Result[Bool, std.core.Error].
 
 /// Registers a Postgres pool; its first operation opens a connection.
 ///
@@ -65,7 +65,7 @@ pub (row: Row) bool(name: String): Result[Bool, Error].
 /// adapter without exposing driver state to source code. URL validation happens
 /// immediately; network and authentication failures can occur on the first query.
 
-pub connect(config: Config): Result[Pool, Error].
+pub connect(config: Config): Result[Pool, std.core.Error].
 
 /// Runs a SQL command and returns the affected row count.
 ///
@@ -75,7 +75,7 @@ pub connect(config: Config): Result[Pool, Error].
 /// Transformation: delegates command execution to the adapter and exposes only
 /// the portable affected-row count.
 
-pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[Int, Error].
+pub execute(target: Pool | Connection, sql: String, params: List[std.data.Json]): Result[Int, std.core.Error].
 
 /// Reads an integer column by name.
 ///
@@ -84,7 +84,7 @@ pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[
 /// otherwise `Err(Error)`.
 /// Transformation: delegates typed row decoding to the Postgres adapter.
 
-pub (row: Row) int(name: String): Result[Int, Error].
+pub (row: Row) int(name: String): Result[Int, std.core.Error].
 
 /// Reads a JSON column by name.
 ///
@@ -94,7 +94,7 @@ pub (row: Row) int(name: String): Result[Int, Error].
 /// Transformation: delegates typed row decoding to the Postgres adapter and
 /// returns the portable JSON handle.
 
-pub (row: Row) json(name: String): Result[Json, Error].
+pub (row: Row) json(name: String): Result[std.data.Json, std.core.Error].
 
 /// Runs a SQL query and returns all rows.
 ///
@@ -104,7 +104,7 @@ pub (row: Row) json(name: String): Result[Json, Error].
 /// Transformation: delegates SQL execution and row decoding to the Postgres
 /// adapter while preserving a portable row handle surface.
 
-pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[List[Row], Error].
+pub query(target: Pool | Connection, sql: String, params: List[std.data.Json]): Result[List[Row], std.core.Error].
 
 /// Runs a SQL query and returns at most one row.
 ///
@@ -114,7 +114,7 @@ pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[Li
 /// Transformation: delegates SQL execution to the adapter and normalizes the
 /// single-row result shape into `Option`.
 
-pub query_one(target: Pool | Connection, sql: String, params: List[Json]): Result[Option[Row], Error].
+pub query_one(target: Pool | Connection, sql: String, params: List[std.data.Json]): Result[Option[Row], std.core.Error].
 
 /// Reads a string column by name.
 ///
@@ -123,7 +123,7 @@ pub query_one(target: Pool | Connection, sql: String, params: List[Json]): Resul
 /// otherwise `Err(Error)`.
 /// Transformation: delegates typed row decoding to the Postgres adapter.
 
-pub (row: Row) string(name: String): Result[String, Error].
+pub (row: Row) string(name: String): Result[String, std.core.Error].
 
 /// Runs a transaction body.
 ///
@@ -137,4 +137,4 @@ pub (row: Row) string(name: String): Result[String, Error].
 /// closes the worker and its database connections. The connection handle expires
 /// after either terminal attempt.
 
-pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error]): Result[T, Error].
+pub transaction[T](pool: Pool, body: (Connection) -> Result[T, std.core.Error]): Result[T, std.core.Error].

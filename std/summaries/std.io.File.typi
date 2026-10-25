@@ -148,7 +148,7 @@ pub new(code: Atom, message: String, path: String): FileError.
 
 /// Reads one file without UTF-8 decoding into VM-owned immutable bytes.
 
-pub read_bytes(path: String): Result[Bytes, FileError].
+pub read_bytes(path: String): Result[std.vm.Bytes, FileError].
 
 /// Reads a UTF-8 text file.
 ///

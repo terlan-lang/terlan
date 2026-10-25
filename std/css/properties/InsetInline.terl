@@ -36,7 +36,7 @@ import type std.css.Values.{Inherit, Initial, Length, Percentage, Revert, Revert
 
 pub type Component = Auto | Length | Percentage.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = {Atom["css_parts"], List[Atom["auto"] | std.css.Values.Length | std.css.Values.Percentage]}.
 
 pub struct Property {
     inset_inline: Auto | Length | Percentage | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

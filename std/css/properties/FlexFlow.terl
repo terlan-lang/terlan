@@ -43,7 +43,11 @@ pub type FlexDirectionPart = Row | RowReverse | Column | ColumnReverse.
 
 pub type FlexWrapPart = Nowrap | Wrap | WrapReverse | Balance.
 
-pub opaque type Checked = {Atom["css_parts"], {FlexDirectionPart, FlexWrapPart}}.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["row"] | Atom["row-reverse"] | Atom["column"] | Atom["column-reverse"], Atom["nowrap"] | Atom["wrap"] | Atom["wrap-reverse"] | Atom["balance"]}
+      }.
 
 pub struct Property {
     flex_flow: Row | RowReverse | Column | ColumnReverse | Nowrap | Wrap | WrapReverse | Balance | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

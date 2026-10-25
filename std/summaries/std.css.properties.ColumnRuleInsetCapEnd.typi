@@ -1,5 +1,6 @@
 //! The `column-rule-inset-cap-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
-//! can be used to offset the bottom of column rule segment [cap endpoints](#understanding_cap_end)
+//! can be used to offset the bottom of column rule segment [cap
+//! endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-cap-end#understanding_cap_end)
 //! at the container's end edge, and cap endpoints where no rule segments intersect.
 //!
 //! Keyword effects:
@@ -19,5 +20,5 @@
 module std.css.properties.ColumnRuleInsetCapEnd.
 
 pub struct Property {
-    column_rule_inset_cap_end: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    column_rule_inset_cap_end: std.css.keywords.OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

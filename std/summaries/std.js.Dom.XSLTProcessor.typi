@@ -61,3 +61,5 @@ pub (receiver: XSLTProcessor) transform_to_document(source: std.js.Dom.Node): st
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToFragment)
  */
 pub (receiver: XSLTProcessor) transform_to_fragment(source: std.js.Dom.Node, output: std.js.Dom.Document): std.js.Dom.DocumentFragment.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, clear_parameters: () -> std.core.Unit, import_stylesheet: (std.js.Dom.Node) -> std.core.Unit, remove_parameter: (std.core.Option[std.js.String.JsString], std.js.String.JsString) -> std.core.Unit, reset: () -> std.core.Unit, transform_to_document: (std.js.Dom.Node) -> std.js.Dom.Document, transform_to_fragment: (std.js.Dom.Node, std.js.Dom.Document) -> std.js.Dom.DocumentFragment): BindingTarget.

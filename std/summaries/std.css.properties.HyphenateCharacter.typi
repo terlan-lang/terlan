@@ -23,5 +23,5 @@
 module std.css.properties.HyphenateCharacter.
 
 pub struct Property {
-    hyphenate_character: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    hyphenate_character: std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

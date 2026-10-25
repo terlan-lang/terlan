@@ -32,5 +32,5 @@
 module std.css.properties.Content.
 
 pub struct Property {
-    content: Normal | None | OpenQuote | CloseQuote | NoOpenQuote | NoCloseQuote | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    content: std.css.keywords.Normal | std.css.keywords.None | std.css.keywords.OpenQuote | std.css.keywords.CloseQuote | std.css.keywords.NoOpenQuote | std.css.keywords.NoCloseQuote | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

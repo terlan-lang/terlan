@@ -13,6 +13,8 @@
 module std.js.Dom.NavigationPreloadManager.
 
 import type std.core.{Unit}.
+import type std.js.Dom.{NavigationPreloadState}.
+import type std.js.String.{JsString}.
 import type std.js.{Promise}.
 
 /**
@@ -42,11 +44,19 @@ pub (receiver: NavigationPreloadManager) enable(): Promise[Unit].
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/getState)
  */
-pub (receiver: NavigationPreloadManager) get_state(): Promise[std.js.Dom.NavigationPreloadState].
+pub (receiver: NavigationPreloadManager) get_state(): Promise[NavigationPreloadState].
 
 /**
  * The **`setHeaderValue()`** method of the NavigationPreloadManager interface sets the value of the Service-Worker-Navigation-Preload header that will be sent with requests resulting from a Window/fetch operation made during service worker navigation preloading.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/setHeaderValue)
  */
-pub (receiver: NavigationPreloadManager) set_header_value(value: std.js.String.JsString): Promise[Unit].
+pub (receiver: NavigationPreloadManager) set_header_value(value: JsString): Promise[Unit].
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    disable: () -> Promise[Unit],
+    enable: () -> Promise[Unit],
+    get_state: () -> Promise[NavigationPreloadState],
+    set_header_value: (JsString) -> Promise[Unit],
+): BindingTarget.

@@ -381,6 +381,33 @@ pub(super) fn run_async_serve_test<T>(future: impl Future<Output = T>) -> T {
     }
 }
 
+/// Runs capability-using fixtures in a child with production worker dispatch.
+/// Other tests must retain control over their explicitly parked continuations.
+pub(super) fn run_with_capability_dispatch(test: &str) -> bool {
+    if std::env::var_os("TERLAN_TEST_AOT_CAPABILITY_PUMP").is_some() {
+        return false;
+    }
+    let name = test.strip_prefix("terlan::").expect("library test path");
+    let output = crate::commands::process_runner::run_command_with_timeout(
+        std::process::Command::new(std::env::current_exe().expect("test executable"))
+            .args(["--exact", name, "--nocapture"])
+            .env("TERLAN_TEST_AOT_CAPABILITY_PUMP", "1")
+            .env_remove("TERLAN_SERVE_TRUSTED_HOST_CAPABILITIES"),
+        "HTTP source capability fixture",
+        std::time::Duration::from_secs(60),
+    )
+    .expect("HTTP source capability fixture must finish within its deadline");
+    assert!(
+        output.status.success(),
+        "{name}: {}\n{}\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed; 0 failed"));
+    true
+}
+
 /// Builds one typed HTTP request for direct serve-handler tests.
 ///
 /// Inputs:

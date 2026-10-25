@@ -23,5 +23,5 @@
 module std.css.properties.ViewTransitionClass.
 
 pub struct Property {
-    view_transition_class: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    view_transition_class: std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

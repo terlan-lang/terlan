@@ -12,6 +12,8 @@
  */
 module std.js.Dom.ReadableStreamBYOBReader.
 
+import type std.core.{Unit}.
+
 /**
  * The `ReadableStreamBYOBReader` interface of the Streams API defines a reader for a ReadableStream that supports zero-copy reading from an underlying byte source.
  *
@@ -24,4 +26,9 @@ pub opaque type ReadableStreamBYOBReader.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/releaseLock)
  */
-pub (receiver: ReadableStreamBYOBReader) release_lock(): std.core.Unit.
+pub (receiver: ReadableStreamBYOBReader) release_lock(): Unit.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    release_lock: () -> Unit,
+): BindingTarget.

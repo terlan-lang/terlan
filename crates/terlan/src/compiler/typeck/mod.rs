@@ -59,8 +59,8 @@ mod named_args;
 use named_args::*;
 
 mod declarations;
-use declarations::*;
 pub(crate) use declarations::check_public_atom_aliases;
+use declarations::*;
 
 mod signature_loading;
 use signature_loading::*;
@@ -243,20 +243,19 @@ enum Variance {
     Contravariant,
 }
 
-/// Fully qualified imported type name.
+/// Resolved type identity in local scope or an imported provider.
 ///
 /// Inputs:
 /// - Resolver import metadata for visible types.
 ///
 /// Output:
-/// - Provider module and source type name.
+/// - Optional provider module and source type name.
 ///
 /// Transformation:
-/// - Gives diagnostics and constructor lookup a stable qualified identity for
-///   imported type references.
+/// - Preserves local nominal identity while qualifying imported references.
 #[derive(Debug, Clone)]
 struct QualifiedTypeName {
-    module: String,
+    module: Option<String>,
     name: String,
 }
 

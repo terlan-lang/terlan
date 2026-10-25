@@ -30,5 +30,5 @@
 module std.css.properties.Float.
 
 pub struct Property {
-    float: InlineStart | InlineEnd | Left | Right | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    float: std.css.keywords.InlineStart | std.css.keywords.InlineEnd | std.css.keywords.Left | std.css.keywords.Right | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

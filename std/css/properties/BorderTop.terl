@@ -93,7 +93,7 @@ pub type ColorPart = Color | Transparent | CurrentColor.
 
 pub opaque type Checked =
       SerializedValue
-    | {Atom["css_parts"], {LineWidthPart, LineStylePart, ColorPart}}.
+    | {Atom["css_parts"], {Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue, Atom["none"] | Atom["hidden"] | Atom["dotted"] | Atom["dashed"] | Atom["solid"] | Atom["double"] | Atom["groove"] | Atom["ridge"] | Atom["inset"] | Atom["outset"], std.css.Values.Color | Atom["transparent"] | Atom["currentColor"]}}.
 
 pub struct Property {
     border_top: Thin | Medium | Thick | None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
@@ -117,9 +117,14 @@ pub line_width_length(value: Length): Option[CheckedLineWidth] ->
         false -> Absent
     }.
 
+line_width_value(
+    value: LineWidthPart,
+): Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue ->
+    value.
+
 /**
  * Combines line-width, line-style, color for border-top. Each parameter accepts its own keyword or
  * typed unit choices directly.
  */
 pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart): Checked ->
-    Checked({Atom["css_parts"], {line_width, line_style, color}}).
+    Checked({Atom["css_parts"], {line_width_value(line_width), line_style, color}}).

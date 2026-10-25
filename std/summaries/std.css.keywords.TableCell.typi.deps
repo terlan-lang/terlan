@@ -1,7 +1,7 @@
 module=std.css.keywords.TableCell
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=2695026589890526603
 interface_hash=5729796728985007210
 interface_doc_hash=10639861281250362198

@@ -1,7 +1,7 @@
 module=std.css.keywords.VerticalText
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=10013540875957044948
 interface_hash=16195792332932244455
 interface_doc_hash=2614083606560111783

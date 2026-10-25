@@ -22,5 +22,5 @@
 module std.css.properties.BorderImageSource.
 
 pub struct Property {
-    border_image_source: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    border_image_source: std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

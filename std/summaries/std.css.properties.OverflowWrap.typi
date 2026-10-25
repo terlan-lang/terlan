@@ -29,5 +29,5 @@
 module std.css.properties.OverflowWrap.
 
 pub struct Property {
-    overflow_wrap: Normal | BreakWord | Anywhere | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    overflow_wrap: std.css.keywords.Normal | std.css.keywords.BreakWord | std.css.keywords.Anywhere | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

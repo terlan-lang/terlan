@@ -19,5 +19,5 @@
 module std.css.properties.ViewTimelineAxis.
 
 pub struct Property {
-    view_timeline_axis: Block | Inline | X | Y | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    view_timeline_axis: std.css.keywords.Block | std.css.keywords.Inline | std.css.keywords.X | std.css.keywords.Y | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -54,8 +54,8 @@ mod ts_dom_module_mapping;
 mod ts_generated_artifact;
 mod ts_input_manifest;
 mod ts_parser_adapter;
-mod ts_type_mapping;
 mod ts_record_helpers;
+mod ts_type_mapping;
 mod typescript;
 
 use polars_probe::{GeneratedFile, POLARS_FILES};

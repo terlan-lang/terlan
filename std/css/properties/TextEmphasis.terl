@@ -52,7 +52,11 @@ pub type TextEmphasisStylePart =
 
 pub type TextEmphasisColorPart = Color | Transparent | CurrentColor.
 
-pub opaque type Checked = {Atom["css_parts"], {TextEmphasisStylePart, TextEmphasisColorPart}}.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["none"] | Atom["filled"] | Atom["open"] | Atom["dot"] | Atom["circle"] | Atom["double-circle"] | Atom["triangle"] | Atom["sesame"], std.css.Values.Color | Atom["transparent"] | Atom["currentColor"]}
+      }.
 
 pub struct Property {
     text_emphasis: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

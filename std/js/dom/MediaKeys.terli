@@ -12,6 +12,9 @@
  */
 module std.js.Dom.MediaKeys.
 
+import type std.js.Dom.{BufferSource}.
+import type std.js.{Promise}.
+
 /**
  * The **`MediaKeys`** interface of Encrypted Media Extensions API represents a set of keys that an associated HTMLMediaElement can use for decryption of media data during playback.
  * Available only in secure contexts.
@@ -25,4 +28,9 @@ pub opaque type MediaKeys.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaKeys/setServerCertificate)
  */
-pub (receiver: MediaKeys) set_server_certificate(server_certificate: std.js.Dom.BufferSource): std.js.Promise[Bool].
+pub (receiver: MediaKeys) set_server_certificate(server_certificate: BufferSource): Promise[Bool].
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    set_server_certificate: (BufferSource) -> Promise[Bool],
+): BindingTarget.

@@ -34,5 +34,5 @@
 module std.css.properties.ObjectFit.
 
 pub struct Property {
-    object_fit: Fill | None | Contain | Cover | ScaleDown | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    object_fit: std.css.keywords.Fill | std.css.keywords.None | std.css.keywords.Contain | std.css.keywords.Cover | std.css.keywords.ScaleDown | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

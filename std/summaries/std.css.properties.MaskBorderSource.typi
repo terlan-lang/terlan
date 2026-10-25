@@ -22,5 +22,5 @@
 module std.css.properties.MaskBorderSource.
 
 pub struct Property {
-    mask_border_source: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    mask_border_source: std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

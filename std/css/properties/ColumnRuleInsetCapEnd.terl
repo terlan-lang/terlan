@@ -1,6 +1,7 @@
 /**
  * The `column-rule-inset-cap-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property
- * can be used to offset the bottom of column rule segment [cap endpoints](#understanding_cap_end)
+ * can be used to offset the bottom of column rule segment [cap
+ * endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-cap-end#understanding_cap_end)
  * at the container's end edge, and cap endpoints where no rule segments intersect.
  *
  * Keyword effects:

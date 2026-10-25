@@ -29,11 +29,11 @@ pub opaque type Checked.
 pub opaque type CheckedComponent.
 
 pub type Component =
-    Auto
+    std.css.keywords.Auto
   | CheckedComponent.
 
 pub struct Property {
-    scroll_padding: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    scroll_padding: std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the scroll-padding length range. Returns Some when amount >= 0; otherwise returns None.

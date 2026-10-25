@@ -741,9 +741,7 @@ pub(super) fn write_browser_package_serializes_discovered_router_handlers() {
         handler["method"] == "GET" && handler["route"] == "/" && handler["function"] == "home"
     }));
     assert!(handlers.iter().any(|handler| {
-        handler["method"] == "HEAD"
-            && handler["route"] == "*"
-            && handler["function"] == "not_found"
+        handler["method"] == "HEAD" && handler["route"] == "*" && handler["function"] == "not_found"
     }));
     assert_eq!(handlers.len(), 8);
     let home = handlers

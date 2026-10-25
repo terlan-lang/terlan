@@ -5,10 +5,10 @@ use terlan_runtime_abi::{native_binding, BoundaryError, ErrorDomain, NativeBindi
 use crate::{CookieOptions, CookieSameSite, HttpError};
 
 /// Decodes one source-selected Cookie header without selecting duplicate values.
-pub const DECODE_COOKIE: NativeBinding = native_binding!(
-    "std.http.cookies.decode",
-    |header: &str| { Ok::<_, BoundaryError>(crate::parse_request_cookie_header(header)) }
-);
+pub const DECODE_COOKIE: NativeBinding =
+    native_binding!("std.http.cookies.decode", |header: &str| {
+        Ok::<_, BoundaryError>(crate::parse_request_cookie_header(header))
+    });
 
 /// Serializes the complete optional cookie attribute contract.
 pub const ENCODE_COOKIE: NativeBinding = native_binding!(

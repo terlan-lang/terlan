@@ -27,7 +27,7 @@ module std.css.properties.Gap.
 pub opaque type Checked.
 
 pub struct Property {
-    gap: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    gap: std.css.keywords.Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the gap length range. Returns Some when amount >= 0; otherwise returns None.

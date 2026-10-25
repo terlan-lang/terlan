@@ -24,7 +24,7 @@ module std.css.properties.AspectRatio.
 pub opaque type Checked.
 
 pub struct Property {
-    aspect_ratio: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    aspect_ratio: std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the aspect-ratio number range. Returns Some when amount >= 0; otherwise returns None.

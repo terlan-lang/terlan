@@ -132,7 +132,12 @@ fn continuation_ordinal_round_trips_in_abi_1_5() {
 
 #[test]
 fn structured_try_region_round_trips_in_abi_1_6() {
-    fn region(label: &str, parameter: Option<(&str, &str)>, result: &str, type_name: &str) -> IrRegion {
+    fn region(
+        label: &str,
+        parameter: Option<(&str, &str)>,
+        result: &str,
+        type_name: &str,
+    ) -> IrRegion {
         IrRegion {
             label: label.to_owned(),
             parameters: parameter

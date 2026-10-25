@@ -31,5 +31,5 @@
 module std.css.properties.TextAlign.
 
 pub struct Property {
-    text_align: Start | End | Left | Right | Center | Justify | MatchParent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_align: std.css.keywords.Start | std.css.keywords.End | std.css.keywords.Left | std.css.keywords.Right | std.css.keywords.Center | std.css.keywords.Justify | std.css.keywords.MatchParent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -23,5 +23,5 @@
 module std.css.properties.FieldSizing.
 
 pub struct Property {
-    field_sizing: Fixed | Content | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    field_sizing: std.css.keywords.Fixed | std.css.keywords.Content | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

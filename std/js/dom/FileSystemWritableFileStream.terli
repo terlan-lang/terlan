@@ -13,6 +13,7 @@
 module std.js.Dom.FileSystemWritableFileStream.
 
 import type std.core.{Unit}.
+import type std.js.Dom.{FileSystemWriteChunkType}.
 import type std.js.Number.{JsNumber}.
 import type std.js.{Promise}.
 
@@ -43,4 +44,11 @@ pub (receiver: FileSystemWritableFileStream) truncate(size: JsNumber): Promise[U
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/write)
  */
-pub (receiver: FileSystemWritableFileStream) write(data: std.js.Dom.FileSystemWriteChunkType): Promise[Unit].
+pub (receiver: FileSystemWritableFileStream) write(data: FileSystemWriteChunkType): Promise[Unit].
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    seek: (JsNumber) -> Promise[Unit],
+    truncate: (JsNumber) -> Promise[Unit],
+    write: (FileSystemWriteChunkType) -> Promise[Unit],
+): BindingTarget.

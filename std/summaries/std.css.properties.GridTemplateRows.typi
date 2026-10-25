@@ -35,7 +35,7 @@ module std.css.properties.GridTemplateRows.
 pub opaque type Checked.
 
 pub struct Property {
-    grid_template_rows: None | MinContent | MaxContent | Auto | Subgrid | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    grid_template_rows: std.css.keywords.None | std.css.keywords.MinContent | std.css.keywords.MaxContent | std.css.keywords.Auto | std.css.keywords.Subgrid | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the grid-template-rows length range. Returns Some when amount >= 0; otherwise returns

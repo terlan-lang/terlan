@@ -1,6 +1,6 @@
-use super::*;
 use super::super::self_host_adapter::LocalStructField;
 use super::super::self_host_pattern_ir::PatternNode;
+use super::*;
 
 fn binding(name: &str) -> PatternNode {
     PatternNode {

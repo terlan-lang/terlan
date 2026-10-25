@@ -32,7 +32,9 @@ pub opaque type CheckedComponent = SerializedValue.
 
 pub type Component = Auto | CheckedComponent.
 
-pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
+pub opaque type Checked =
+      SerializedValue
+    | {Atom["css_parts"], List[Atom["auto"] | SerializedValue]}.
 
 pub struct Property {
     hyphenate_limit_chars: Auto | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
@@ -58,20 +60,28 @@ pub component_integer(value: Int): Option[CheckedComponent] ->
         false -> Absent
     }.
 
+component_value(value: Component): Atom["auto"] | SerializedValue ->
+    value.
+
 /**
  * Supplies 1 components in grammar order.
  */
 pub single(first: Component): Checked ->
-    Checked({Atom["css_parts"], [first]}).
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
  * Supplies 2 components in grammar order.
  */
 pub pair(first: Component, second: Component): Checked ->
-    Checked({Atom["css_parts"], [first, second]}).
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).
 
 /**
  * Supplies 3 components in grammar order.
  */
 pub triple(first: Component, second: Component, third: Component): Checked ->
-    Checked({Atom["css_parts"], [first, second, third]}).
+    Checked(
+        {
+            Atom["css_parts"],
+            [component_value(first), component_value(second), component_value(third)],
+        },
+    ).

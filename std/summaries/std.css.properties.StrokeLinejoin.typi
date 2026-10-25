@@ -33,5 +33,5 @@
 module std.css.properties.StrokeLinejoin.
 
 pub struct Property {
-    stroke_linejoin: Arcs | Miter | Bevel | Round | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    stroke_linejoin: std.css.keywords.Arcs | std.css.keywords.Miter | std.css.keywords.Bevel | std.css.keywords.Round | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

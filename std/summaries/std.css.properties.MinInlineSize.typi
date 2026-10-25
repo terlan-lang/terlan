@@ -22,7 +22,7 @@ module std.css.properties.MinInlineSize.
 pub opaque type Checked.
 
 pub struct Property {
-    min_inline_size: Auto | Stretch | MinContent | MaxContent | FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    min_inline_size: std.css.keywords.Auto | std.css.keywords.Stretch | std.css.keywords.MinContent | std.css.keywords.MaxContent | std.css.keywords.FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the min-inline-size length range. Returns Some when amount >= 0; otherwise returns None.

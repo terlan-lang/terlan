@@ -96,6 +96,17 @@ fn lower_boundary_collection_value_with_recursive_element(
     let Some(expected) = expected else {
         return Ok(None);
     };
+    if super::union_values::is_boxed(expected) {
+        return try_lower_typed_value(
+            body,
+            expected,
+            params,
+            param_types,
+            functions,
+            function_types,
+            constructors,
+        );
+    }
     if let Some(adapted) =
         adapt_empty_list(body, expected, param_types, function_types, constructors)
     {

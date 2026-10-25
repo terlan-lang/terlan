@@ -23,5 +23,5 @@
 module std.css.properties.ZIndex.
 
 pub struct Property {
-    z_index: Auto | Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    z_index: std.css.keywords.Auto | Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

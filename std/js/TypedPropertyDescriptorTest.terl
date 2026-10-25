@@ -12,7 +12,7 @@
  */
 module std.js.TypedPropertyDescriptorTest.
 
-import type std.core.Option.{Option}.
+import type std.core.{Option}.
 import type std.js.TypedPropertyDescriptor.
 
 pub enumerable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->

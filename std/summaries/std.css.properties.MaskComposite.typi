@@ -28,5 +28,5 @@
 module std.css.properties.MaskComposite.
 
 pub struct Property {
-    mask_composite: Add | Subtract | Intersect | Exclude | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    mask_composite: std.css.keywords.Add | std.css.keywords.Subtract | std.css.keywords.Intersect | std.css.keywords.Exclude | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

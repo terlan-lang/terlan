@@ -30,5 +30,5 @@
 module std.css.properties.VectorEffect.
 
 pub struct Property {
-    vector_effect: None | NonScalingStroke | NonScalingSize | NonRotation | FixedPosition | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    vector_effect: std.css.keywords.None | std.css.keywords.NonScalingStroke | std.css.keywords.NonScalingSize | std.css.keywords.NonRotation | std.css.keywords.FixedPosition | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

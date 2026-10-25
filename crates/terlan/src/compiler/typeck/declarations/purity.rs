@@ -60,7 +60,9 @@ pub(super) fn collect_effectful_local_calls(
             }
             let function_values =
                 function_value_param_names(params, function_signatures.get(&identity), aliases);
-            let scheme = function_signatures.get(&identity).and_then(|values| values.first());
+            let scheme = function_signatures
+                .get(&identity)
+                .and_then(|values| values.first());
             clauses
                 .iter()
                 .any(|clause| {
@@ -96,7 +98,9 @@ pub(super) fn collect_effectful_local_calls(
             }
             let function_values =
                 function_value_param_names(params, function_signatures.get(&identity), aliases);
-            let scheme = function_signatures.get(&identity).and_then(|values| values.first());
+            let scheme = function_signatures
+                .get(&identity)
+                .and_then(|values| values.first());
             if clauses.iter().any(|clause| {
                 clause_has_effects(
                     clause,
@@ -161,13 +165,9 @@ fn clause_has_effects(
         );
         facts.proven_pure_receiver_calls = Some(&proven_pure_receiver_calls);
     }
-    clause
-        .guard
-        .as_ref()
-        .is_some_and(|guard| {
-            expression_has_effects_with_call_facts(guard, expr_ctx.templates, &facts)
-        })
-        || expression_has_effects_with_call_facts(&clause.body, expr_ctx.templates, &facts)
+    clause.guard.as_ref().is_some_and(|guard| {
+        expression_has_effects_with_call_facts(guard, expr_ctx.templates, &facts)
+    }) || expression_has_effects_with_call_facts(&clause.body, expr_ctx.templates, &facts)
 }
 
 /// Collects parameters whose declared type is an invokable function value.

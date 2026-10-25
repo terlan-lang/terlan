@@ -38,14 +38,14 @@ module std.css.properties.Overflow.
 pub opaque type Checked.
 
 pub type Component =
-    Visible
-  | Hidden
-  | Clip
-  | Scroll
-  | Auto.
+    std.css.keywords.Visible
+  | std.css.keywords.Hidden
+  | std.css.keywords.Clip
+  | std.css.keywords.Scroll
+  | std.css.keywords.Auto.
 
 pub struct Property {
-    overflow: Visible | Hidden | Clip | Scroll | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    overflow: std.css.keywords.Visible | std.css.keywords.Hidden | std.css.keywords.Clip | std.css.keywords.Scroll | std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Supplies 2 components in grammar order.

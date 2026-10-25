@@ -12,6 +12,10 @@
  */
 module std.js.Dom.WEBGL_draw_buffers.
 
+import type std.core.{Unit}.
+import type std.js.Dom.{GLenum}.
+import type std.js.{Array}.
+
 /**
  * The **`WEBGL_draw_buffers`** extension is part of the WebGL API and enables a fragment shader to write to several textures, which is useful for deferred shading, for example.
  *
@@ -24,4 +28,9 @@ pub opaque type WEBGL_draw_buffers.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_draw_buffers/drawBuffersWEBGL)
  */
-pub (receiver: WEBGL_draw_buffers) draw_buffers_webgl(buffers: std.js.Array[std.js.Dom.GLenum]): std.core.Unit.
+pub (receiver: WEBGL_draw_buffers) draw_buffers_webgl(buffers: Array[GLenum]): Unit.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    draw_buffers_webgl: (Array[GLenum]) -> Unit,
+): BindingTarget.

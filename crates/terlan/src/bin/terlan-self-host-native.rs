@@ -7,9 +7,7 @@ use std::path::PathBuf;
 use terlan::self_host_ir::BackendEnvelope;
 
 fn usage(program: &str) -> String {
-    format!(
-        "usage: {program} <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>"
-    )
+    format!("usage: {program} <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>")
 }
 
 fn run() -> Result<(), String> {

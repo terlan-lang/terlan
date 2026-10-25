@@ -19,3 +19,6 @@ pub opaque type Boolean.
  */
 pub (receiver: Boolean) value_of(): Bool ->
     native.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, value_of: () -> Bool): BindingTarget ->
+    native.

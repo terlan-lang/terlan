@@ -34,5 +34,5 @@
 module std.css.properties.FontVariantEastAsian.
 
 pub struct Property {
-    font_variant_east_asian: Normal | Jis78 | Jis83 | Jis90 | Jis04 | Simplified | Traditional | FullWidth | ProportionalWidth | Ruby | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_variant_east_asian: std.css.keywords.Normal | std.css.keywords.Jis78 | std.css.keywords.Jis83 | std.css.keywords.Jis90 | std.css.keywords.Jis04 | std.css.keywords.Simplified | std.css.keywords.Traditional | std.css.keywords.FullWidth | std.css.keywords.ProportionalWidth | std.css.keywords.Ruby | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

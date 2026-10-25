@@ -34,5 +34,5 @@
 module std.css.properties.HangingPunctuation.
 
 pub struct Property {
-    hanging_punctuation: None | First | ForceEnd | AllowEnd | Last | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    hanging_punctuation: std.css.keywords.None | std.css.keywords.First | std.css.keywords.ForceEnd | std.css.keywords.AllowEnd | std.css.keywords.Last | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

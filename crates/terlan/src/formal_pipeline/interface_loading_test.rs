@@ -116,3 +116,25 @@ fn scoped_loading_admits_shared_entropy_and_encoding_interfaces() {
     assert!(interfaces.contains_key("std.crypto.Entropy"));
     assert!(interfaces.contains_key("std.encoding.Base64"));
 }
+
+/// Primary type references must load their provider without an explicit import.
+#[test]
+fn scoped_loading_admits_primary_types_without_imports() {
+    let module = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"module scoped_primary_types.
+        pub echo(value: std.vm.Bytes): std.vm.Bytes -> value.
+        pub literal(): String -> "std.db.Postgres"."#,
+    )
+    .expect("parse primary type fixture");
+    let interfaces = load_external_interfaces_for_module("fixture.terl", None, &module);
+    assert!(interfaces.contains_key("std.vm.Bytes"));
+    assert!(!interfaces.contains_key("std.db.Postgres"));
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&module, &interfaces)
+            .module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&module, &resolved);
+    assert!(
+        diagnostics.is_empty(),
+        "primary type dependency: {diagnostics:?}"
+    );
+}

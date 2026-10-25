@@ -526,32 +526,32 @@ pub trait Show[T] {
     to_string(value: T): String.
 }.
 
-pub impl Parse[Bool] for Bool {
-}.
-
-pub impl Parse[Float] for Float {
-}.
-
-pub impl Parse[Int] for Int {
-}.
-
 pub impl Parse[String] for String {
 }.
 
-pub impl Parse[Unit] for Unit {
+pub impl Parse[std.core.Bool] for std.core.Bool {
 }.
 
-pub impl Show[Bool] for Bool {
+pub impl Parse[std.core.Float] for std.core.Float {
 }.
 
-pub impl Show[Float] for Float {
+pub impl Parse[std.core.Int] for std.core.Int {
 }.
 
-pub impl Show[Int] for Int {
+pub impl Parse[std.core.Unit] for std.core.Unit {
 }.
 
 pub impl Show[String] for String {
 }.
 
-pub impl Show[Unit] for Unit {
+pub impl Show[std.core.Bool] for std.core.Bool {
+}.
+
+pub impl Show[std.core.Float] for std.core.Float {
+}.
+
+pub impl Show[std.core.Int] for std.core.Int {
+}.
+
+pub impl Show[std.core.Unit] for std.core.Unit {
 }.

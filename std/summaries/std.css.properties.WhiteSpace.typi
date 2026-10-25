@@ -56,5 +56,5 @@
 module std.css.properties.WhiteSpace.
 
 pub struct Property {
-    white_space: Normal | Pre | PreWrap | PreLine | Collapse | Preserve | PreserveBreaks | PreserveSpaces | BreakSpaces | Wrap | Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    white_space: std.css.keywords.Normal | std.css.keywords.Pre | std.css.keywords.PreWrap | std.css.keywords.PreLine | std.css.keywords.Collapse | std.css.keywords.Preserve | std.css.keywords.PreserveBreaks | std.css.keywords.PreserveSpaces | std.css.keywords.BreakSpaces | std.css.keywords.Wrap | std.css.keywords.Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

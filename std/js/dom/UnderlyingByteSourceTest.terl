@@ -12,8 +12,7 @@
  */
 module std.js.Dom.UnderlyingByteSourceTest.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.Dom.UnderlyingByteSource.
 
 pub auto_allocate_chunk_size_typechecks(

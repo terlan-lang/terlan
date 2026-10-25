@@ -28,5 +28,5 @@
 module std.css.properties.ColorScheme.
 
 pub struct Property {
-    color_scheme: Normal | Light | Dark | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    color_scheme: std.css.keywords.Normal | std.css.keywords.Light | std.css.keywords.Dark | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

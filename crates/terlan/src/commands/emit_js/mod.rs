@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process::ExitCode;
 
 mod cast_semantics;
-mod core_lowering;
 mod constructors;
+mod core_lowering;
 mod declarations;
 mod direct_ast;
 mod direct_helpers;

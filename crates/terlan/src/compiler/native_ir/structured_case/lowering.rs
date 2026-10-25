@@ -342,12 +342,8 @@ fn lower_case(
                     scrutinee.contract_text()
                 )
             })?;
-    let scrutinee_core = core_expr_type_with_constructors(
-        scrutinee,
-        core_types,
-        function_core_types,
-        constructors,
-    );
+    let scrutinee_core =
+        core_expr_type_with_constructors(scrutinee, core_types, function_core_types, constructors);
     let scrutinee = if contains_case(scrutinee) {
         lower_containing_case(scrutinee, params, param_types, core_types, environment)?
     } else {

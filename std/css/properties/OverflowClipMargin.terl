@@ -29,7 +29,11 @@ pub type VisualBoxPart = ContentBox | PaddingBox | BorderBox.
 
 pub type LengthPart = Length.
 
-pub opaque type Checked = {Atom["css_parts"], {VisualBoxPart, LengthPart}}.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["content-box"] | Atom["padding-box"] | Atom["border-box"], std.css.Values.Length}
+      }.
 
 pub struct Property {
     overflow_clip_margin: ContentBox | PaddingBox | BorderBox | Length | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

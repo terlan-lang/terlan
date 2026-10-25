@@ -3,10 +3,18 @@ module std.css.PropertiesTest.
 import std.core.Option.{None, Some}.
 import std.css.Values.
 import std.css.Values.{Inherit}.
-import std.css.keywords.Auto.{Auto as MarginAuto}.
-import std.css.keywords.Auto.{Auto as WidthAuto}.
+import std.css.keywords.Auto.{Auto as MarginAuto, Auto as WidthAuto}.
 import std.css.properties.{Border, Gap, Height, Margin, MarginLeft, Padding, Width}.
 import std.test.Test.{assert_equal}.
+
+import type std.css.properties.MarginLeft.{Property as MarginProperty}.
+import type std.css.properties.Width.{Property as WidthProperty}.
+
+pub struct MarginStyle includes MarginProperty {
+}.
+
+pub struct WidthStyle includes WidthProperty {
+}.
 
 @test
 pub negative_sizes_and_gaps_are_rejected(): Bool ->
@@ -23,7 +31,7 @@ pub zero_sizes_and_positive_percentages_are_accepted(): Bool ->
 
 @test
 pub negative_margins_remain_valid_css_values(): Bool ->
-    let style = MarginLeft.Property {margin_left: Values.px(-10.0)};
+    let style = MarginStyle {margin_left: Values.px(-10.0)};
     assert_equal(style.margin_left, Values.px(-10.0)).
 
 @test
@@ -45,6 +53,6 @@ pub border_width_parts_reject_negative_lengths(): Bool ->
 
 @test
 pub keyword_enums_accept_property_and_css_wide_choices(): Bool ->
-    let automatic = Width.Property {width: WidthAuto};
-    let inherited = Width.Property {width: Inherit};
+    let automatic = WidthStyle {width: WidthAuto};
+    let inherited = WidthStyle {width: Inherit};
     automatic != inherited.

@@ -45,5 +45,5 @@
 module std.css.properties.FontFamily.
 
 pub struct Property {
-    font_family: Serif | SansSerif | SystemUi | Cursive | Fantasy | Math | Monospace | UiSerif | UiSansSerif | UiMonospace | UiRounded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_family: std.css.keywords.Serif | std.css.keywords.SansSerif | std.css.keywords.SystemUi | std.css.keywords.Cursive | std.css.keywords.Fantasy | std.css.keywords.Math | std.css.keywords.Monospace | std.css.keywords.UiSerif | std.css.keywords.UiSansSerif | std.css.keywords.UiMonospace | std.css.keywords.UiRounded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

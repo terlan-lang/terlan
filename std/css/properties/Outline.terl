@@ -77,7 +77,7 @@ pub type OutlineColorPart = Auto | Color | Transparent | CurrentColor.
 
 pub opaque type Checked =
       SerializedValue
-    | {Atom["css_parts"], {OutlineWidthPart, OutlineStylePart, OutlineColorPart}}.
+    | {Atom["css_parts"], {Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue, Atom["auto"] | Atom["none"] | Atom["dotted"] | Atom["dashed"] | Atom["solid"] | Atom["double"] | Atom["groove"] | Atom["ridge"] | Atom["inset"] | Atom["outset"], Atom["auto"] | std.css.Values.Color | Atom["transparent"] | Atom["currentColor"]}}.
 
 pub struct Property {
     outline: Thin | Medium | Thick | Auto | None | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
@@ -101,6 +101,11 @@ pub outline_width_length(value: Length): Option[CheckedOutlineWidth] ->
         false -> Absent
     }.
 
+outline_width_value(
+    value: OutlineWidthPart,
+): Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue ->
+    value.
+
 /**
  * Combines outline-width, outline-style, outline-color for outline. Each parameter accepts its own
  * keyword or typed unit choices directly.
@@ -110,4 +115,4 @@ pub compose(
     outline_style: OutlineStylePart,
     outline_color: OutlineColorPart,
 ): Checked ->
-    Checked({Atom["css_parts"], {outline_width, outline_style, outline_color}}).
+    Checked({Atom["css_parts"], {outline_width_value(outline_width), outline_style, outline_color}}).

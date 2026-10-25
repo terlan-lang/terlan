@@ -34,3 +34,11 @@ pub (receiver: CanvasRect) fill_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: J
  */
 pub (receiver: CanvasRect) stroke_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    clear_rect: (JsNumber, JsNumber, JsNumber, JsNumber) -> Unit,
+    fill_rect: (JsNumber, JsNumber, JsNumber, JsNumber) -> Unit,
+    stroke_rect: (JsNumber, JsNumber, JsNumber, JsNumber) -> Unit,
+): BindingTarget ->
+    native.

@@ -1,7 +1,7 @@
 module=std.css.keywords.CloseQuote
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=13631314569318023346
 interface_hash=9115386410160893100
 interface_doc_hash=2687276446352177542

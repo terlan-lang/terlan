@@ -48,7 +48,7 @@ pub done[T](value: T): Task[T].
 /// Transformation: wraps a typed recoverable error in the selected target's
 /// failed task representation without throwing a target exception.
 
-pub failed[T](error: Error): Task[T].
+pub failed[T](error: std.core.Error): Task[T].
 
 /// Maps a successful task value.
 ///
@@ -67,7 +67,7 @@ pub (task: Task[T]) map[U](mapper: (T) -> U): Task[U].
 /// Transformation: maps the error channel into the success channel without
 /// exposing target-specific exceptions.
 
-pub (task: Task[T]) recover(handler: (Error) -> T): Task[T].
+pub (task: Task[T]) recover(handler: (std.core.Error) -> T): Task[T].
 
 /// Joins a task into a typed result.
 ///
@@ -77,7 +77,7 @@ pub (task: Task[T]) recover(handler: (Error) -> T): Task[T].
 /// returns a typed success-or-error value. Unsupported targets reject this
 /// operation before backend emission.
 
-pub (task: Task[T]) result(): Result[T, Error].
+pub (task: Task[T]) result(): Result[T, std.core.Error].
 
 /// Starts runtime work immediately.
 ///

@@ -640,7 +640,7 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
             if module.is_none() {
                 if let Some(imported) = ctx.imported_type_names.get(name) {
                     return Type::Named {
-                        module: Some(imported.module.clone()),
+                        module: imported.module.clone(),
                         name: imported.name.clone(),
                         args,
                     };
@@ -663,7 +663,7 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
             let inner = qualify_imported_named_heads(inner, ctx);
             if let Some(imported) = ctx.imported_type_names.get("List") {
                 Type::Named {
-                    module: Some(imported.module.clone()),
+                    module: imported.module.clone(),
                     name: imported.name.clone(),
                     args: vec![inner],
                 }

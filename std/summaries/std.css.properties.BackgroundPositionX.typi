@@ -23,5 +23,5 @@
 module std.css.properties.BackgroundPositionX.
 
 pub struct Property {
-    background_position_x: Center | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    background_position_x: std.css.keywords.Center | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -22,5 +22,5 @@
 module std.css.properties.FontLanguageOverride.
 
 pub struct Property {
-    font_language_override: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_language_override: std.css.keywords.Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

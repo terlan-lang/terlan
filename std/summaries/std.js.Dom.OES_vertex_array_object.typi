@@ -47,3 +47,5 @@ pub (receiver: OES_vertex_array_object) delete_vertex_array_oes(array_object: st
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_vertex_array_object/isVertexArrayOES)
  */
 pub (receiver: OES_vertex_array_object) is_vertex_array_oes(array_object: std.core.Option[std.js.Dom.WebGLVertexArrayObjectOES]): std.js.Dom.GLboolean.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, bind_vertex_array_oes: (std.core.Option[std.js.Dom.WebGLVertexArrayObjectOES]) -> std.core.Unit, create_vertex_array_oes: () -> std.js.Dom.WebGLVertexArrayObjectOES, delete_vertex_array_oes: (std.core.Option[std.js.Dom.WebGLVertexArrayObjectOES]) -> std.core.Unit, is_vertex_array_oes: (std.core.Option[std.js.Dom.WebGLVertexArrayObjectOES]) -> std.js.Dom.GLboolean): BindingTarget.

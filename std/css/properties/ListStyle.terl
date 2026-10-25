@@ -38,7 +38,7 @@ pub type ListStyleImagePart = None.
 
 pub type ListStyleTypePart = None.
 
-pub opaque type Checked = {Atom["css_parts"], {ListStylePositionPart, ListStyleImagePart, ListStyleTypePart}}.
+pub opaque type Checked = {Atom["css_parts"], {Atom["inside"] | Atom["outside"], Atom["none"], Atom["none"]}}.
 
 pub struct Property {
     list_style: Inside | Outside | None | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

@@ -25,5 +25,5 @@
 module std.css.properties.AnimationTrigger.
 
 pub struct Property {
-    animation_trigger: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    animation_trigger: std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

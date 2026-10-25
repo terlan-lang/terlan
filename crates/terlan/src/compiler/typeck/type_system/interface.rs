@@ -637,20 +637,23 @@ fn parse_interface_type_aliases(interface: &ModuleInterface) -> HashMap<String, 
 pub(crate) fn interface_qualified_type_names(
     interface: &ModuleInterface,
 ) -> HashMap<String, QualifiedTypeName> {
-    interface
+    let mut names = HashMap::new();
+    for name in interface
         .public_types
         .iter()
         .chain(interface.opaque_types.iter())
-        .map(|name| {
-            (
-                name.clone(),
-                QualifiedTypeName {
-                    module: interface.module.clone(),
-                    name: name.clone(),
-                },
-            )
-        })
-        .collect()
+    {
+        let qualified = QualifiedTypeName {
+            module: Some(interface.module.clone()),
+            name: name.clone(),
+        };
+        names.insert(name.clone(), qualified.clone());
+        names.insert(
+            crate::terlan_hir::public_type_path(&interface.module, name),
+            qualified,
+        );
+    }
+    names
 }
 
 /// Qualifies local named types using an interface-owned type map.
@@ -681,7 +684,7 @@ pub(crate) fn qualify_type_names(
                 .collect();
             if let Some(qualified) = qualified_names.get(name) {
                 Type::Named {
-                    module: Some(qualified.module.clone()),
+                    module: qualified.module.clone(),
                     name: qualified.name.clone(),
                     args,
                 }
@@ -705,7 +708,7 @@ pub(crate) fn qualify_type_names(
             let visible_name = format!("{module}.{name}");
             if let Some(qualified) = qualified_names.get(&visible_name) {
                 Type::Named {
-                    module: Some(qualified.module.clone()),
+                    module: qualified.module.clone(),
                     name: qualified.name.clone(),
                     args,
                 }

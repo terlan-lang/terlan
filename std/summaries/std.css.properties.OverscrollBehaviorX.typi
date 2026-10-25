@@ -28,5 +28,5 @@
 module std.css.properties.OverscrollBehaviorX.
 
 pub struct Property {
-    overscroll_behavior_x: Contain | None | Auto | Chain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    overscroll_behavior_x: std.css.keywords.Contain | std.css.keywords.None | std.css.keywords.Auto | std.css.keywords.Chain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

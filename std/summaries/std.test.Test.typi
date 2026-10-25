@@ -167,7 +167,7 @@ pub each[T](rows: List[T], assertion: (T) -> Assertion): Assertion.
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub each_iterator[T](iterator: Iterator[T], assertion: (T) -> Assertion): Assertion.
+pub each_iterator[T](iterator: std.collections.Iterator[T], assertion: (T) -> Assertion): Assertion.
 
 /// Runs one expected-value callback for every named row.
 ///
@@ -188,7 +188,7 @@ pub each_result[T, E](rows: List[Row[T, E]], actual: (T) -> E): Assertion.
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub each_result_iterator[T, E](iterator: Iterator[Row[T, E]], actual: (T) -> E): Assertion.
+pub each_result_iterator[T, E](iterator: std.collections.Iterator[Row[T, E]], actual: (T) -> E): Assertion.
 
 /// Runs expected-value callbacks and returns typed row diagnostics.
 ///
@@ -209,7 +209,7 @@ pub each_result_report[T, E](rows: List[Row[T, E]], actual: (T) -> E): TableResu
 /// Transformation: public implementation helper for VM std execution paths
 /// that currently load public std functions only.
 
-pub each_result_report_iterator[T, E](iterator: Iterator[Row[T, E]], index: Int, actual: (T) -> E): TableResultReport[E].
+pub each_result_report_iterator[T, E](iterator: std.collections.Iterator[Row[T, E]], index: Int, actual: (T) -> E): TableResultReport[E].
 
 /// Returns a failing assertion result.
 ///

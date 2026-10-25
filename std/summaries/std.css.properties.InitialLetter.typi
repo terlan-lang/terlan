@@ -24,7 +24,7 @@ module std.css.properties.InitialLetter.
 pub opaque type Checked.
 
 pub struct Property {
-    initial_letter: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    initial_letter: std.css.keywords.Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the initial-letter number range. Returns Some when amount >= 1; otherwise returns None.

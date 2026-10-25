@@ -21,5 +21,5 @@
 module std.css.properties.ScrollTimelineAxis.
 
 pub struct Property {
-    scroll_timeline_axis: Block | Inline | X | Y | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    scroll_timeline_axis: std.css.keywords.Block | std.css.keywords.Inline | std.css.keywords.X | std.css.keywords.Y | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

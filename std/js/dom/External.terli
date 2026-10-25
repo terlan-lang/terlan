@@ -28,3 +28,9 @@ pub (receiver: External) add_search_provider(): Unit.
  * @deprecated
  */
 pub (receiver: External) is_search_provider_installed(): Unit.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    add_search_provider: () -> Unit,
+    is_search_provider_installed: () -> Unit,
+): BindingTarget.

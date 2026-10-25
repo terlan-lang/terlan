@@ -40,5 +40,5 @@
 module std.css.properties.TextTransform.
 
 pub struct Property {
-    text_transform: None | Capitalize | Uppercase | Lowercase | FullWidth | FullSizeKana | MathAuto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_transform: std.css.keywords.None | std.css.keywords.Capitalize | std.css.keywords.Uppercase | std.css.keywords.Lowercase | std.css.keywords.FullWidth | std.css.keywords.FullSizeKana | std.css.keywords.MathAuto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

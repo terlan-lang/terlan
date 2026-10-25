@@ -35,12 +35,8 @@ fn emit(
     actor_ir_path: &Path,
     output_path: &Path,
 ) -> Result<(), String> {
-    let core_ir = fs::read_to_string(core_ir_path).map_err(|error| {
-        format!(
-            "cannot read Core IR `{}`: {error}",
-            core_ir_path.display()
-        )
-    })?;
+    let core_ir = fs::read_to_string(core_ir_path)
+        .map_err(|error| format!("cannot read Core IR `{}`: {error}", core_ir_path.display()))?;
     let envelope = crate::self_host_ir::decode_and_validate(&core_ir).map_err(|error| {
         format!(
             "Core IR `{}` failed ABI validation: {error}",

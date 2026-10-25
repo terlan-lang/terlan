@@ -23,5 +23,5 @@
 module std.css.properties.RowRuleBreak.
 
 pub struct Property {
-    row_rule_break: None | Normal | Intersection | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    row_rule_break: std.css.keywords.None | std.css.keywords.Normal | std.css.keywords.Intersection | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

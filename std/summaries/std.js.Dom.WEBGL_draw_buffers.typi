@@ -26,3 +26,5 @@ pub opaque type WEBGL_draw_buffers.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_draw_buffers/drawBuffersWEBGL)
  */
 pub (receiver: WEBGL_draw_buffers) draw_buffers_webgl(buffers: std.js.Array[std.js.Dom.GLenum]): std.core.Unit.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, draw_buffers_webgl: (std.js.Array[std.js.Dom.GLenum]) -> std.core.Unit): BindingTarget.

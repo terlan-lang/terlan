@@ -11,7 +11,7 @@ fn imported_heads_preserve_literals_fields_and_generic_shadowing() {
         return_type: Box::new(CoreType::Named("Endpoint".into())),
     };
     let mut qualified = source.clone();
-    qualify_type(&mut qualified, &names, &[]);
+    qualify_type(&mut qualified, &names, &HashMap::new(), &[]);
     assert_eq!(
         qualified,
         CoreType::Arrow {
@@ -24,7 +24,7 @@ fn imported_heads_preserve_literals_fields_and_generic_shadowing() {
     );
     for parameter in ["Endpoint", "+Endpoint", "-Endpoint"] {
         let mut shadowed = source.clone();
-        qualify_type(&mut shadowed, &names, &[parameter.into()]);
+        qualify_type(&mut shadowed, &names, &HashMap::new(), &[parameter.into()]);
         assert_eq!(shadowed, source);
     }
 }

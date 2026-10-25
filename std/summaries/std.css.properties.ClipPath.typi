@@ -23,5 +23,5 @@
 module std.css.properties.ClipPath.
 
 pub struct Property {
-    clip_path: ContentBox | PaddingBox | BorderBox | MarginBox | FillBox | StrokeBox | ViewBox | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    clip_path: std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.MarginBox | std.css.keywords.FillBox | std.css.keywords.StrokeBox | std.css.keywords.ViewBox | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

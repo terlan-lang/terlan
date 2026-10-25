@@ -33,5 +33,5 @@
 module std.css.properties.TextJustify.
 
 pub struct Property {
-    text_justify: Auto | None | InterWord | InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_justify: std.css.keywords.Auto | std.css.keywords.None | std.css.keywords.InterWord | std.css.keywords.InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

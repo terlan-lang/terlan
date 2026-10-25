@@ -34,5 +34,5 @@
 module std.css.properties.TextAnchor.
 
 pub struct Property {
-    text_anchor: Start | Middle | End | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_anchor: std.css.keywords.Start | std.css.keywords.Middle | std.css.keywords.End | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

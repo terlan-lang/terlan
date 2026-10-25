@@ -117,19 +117,34 @@ pub(super) fn collect_syntax_import_maps(
 /// - Repackages resolver import metadata into the typechecker's compact
 ///   qualified-name representation.
 pub(super) fn imported_type_names(resolved: &ResolvedModule) -> HashMap<String, QualifiedTypeName> {
-    resolved
+    let mut names = resolved
         .imported_types
         .iter()
         .map(|(local_name, imported)| {
             (
                 local_name.clone(),
                 QualifiedTypeName {
-                    module: imported.source_module.clone(),
+                    module: Some(imported.source_module.clone()),
                     name: imported.source_name.clone(),
                 },
             )
         })
-        .collect()
+        .collect::<HashMap<_, _>>();
+    for interface in resolved.interface_map.values() {
+        let Some(name) = interface.module.rsplit('.').next() else {
+            continue;
+        };
+        if interface.public_types.contains(name) || interface.opaque_types.contains(name) {
+            names.insert(
+                interface.module.clone(),
+                QualifiedTypeName {
+                    module: Some(interface.module.clone()),
+                    name: name.to_string(),
+                },
+            );
+        }
+    }
+    names
 }
 
 /// Collects imported type identities, including names qualified through a
@@ -144,14 +159,17 @@ pub(super) fn imported_type_names_for_module(
     resolved: &ResolvedModule,
 ) -> HashMap<String, QualifiedTypeName> {
     let mut names = imported_type_names(resolved);
+    // Local annotations and constructor results must retain the same identity.
     for name in resolved.local_type_names.keys() {
-        names.insert(
-            name.clone(),
-            QualifiedTypeName {
-                module: resolved.name.clone(),
-                name: name.clone(),
-            },
-        );
+        let qualified = QualifiedTypeName {
+            module: None,
+            name: name.clone(),
+        };
+        names.insert(name.clone(), qualified.clone());
+        names.insert(format!("{}.{name}", resolved.name), qualified.clone());
+        if resolved.name.rsplit('.').next() == Some(name.as_str()) {
+            names.insert(resolved.name.clone(), qualified);
+        }
     }
     for (alias, provider) in collect_syntax_module_aliases(module, &resolved.interface_map) {
         let Some(interface) = resolved.interface_map.get(&provider) else {
@@ -165,7 +183,7 @@ pub(super) fn imported_type_names_for_module(
             names.insert(
                 format!("{alias}.{name}"),
                 QualifiedTypeName {
-                    module: provider.clone(),
+                    module: Some(provider.clone()),
                     name: name.clone(),
                 },
             );

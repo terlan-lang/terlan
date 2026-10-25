@@ -40,7 +40,7 @@ fn generic_unit_callbacks_accept_the_expanded_singleton_type() {
         r#"
 module generic_unit_callbacks.
 import std.core.Unit.
-pub type Finished = Atom["unit"].
+pub type Finished = std.core.Unit.
 invoke[T](value: T, callback: (T) -> Finished): Finished -> callback(value).
 same[T](left: T, right: T): Bool -> left == right.
 finish(value: Int): Finished -> Unit.
@@ -83,7 +83,7 @@ fn contextual_return_only_parameters_keep_distinct_union_layouts() {
         r#"
 module contextual_generic_results.
 import std.collections.List.
-pub type None = Atom["none"].
+pub type None = std.core.Option.None.
 pub type Some[T] = {Atom["some"], value: T}.
 pub type Option[T] = None | Some[T].
 missing[Payload](): Option[Payload] -> None.
@@ -189,7 +189,7 @@ fn inferred_list_of_call_results_retains_its_collection_schema() {
         r#"
 module inferred_generic_results.
 import std.collections.List.
-pub type None = Atom["none"].
+pub type None = std.core.Option.None.
 pub type Some[T] = {Atom["some"], value: T}.
 pub type Option[T] = None | Some[T].
 present(value: Int): Option[Int] -> Some(value).

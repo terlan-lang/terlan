@@ -1,7 +1,7 @@
 module=std.css.keywords.AnchorCenter
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=11512617486055322408
 interface_hash=9081787527837485787
 interface_doc_hash=108271521584429476

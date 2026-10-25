@@ -399,10 +399,12 @@ pub(super) fn check_interface_annotations(
     let own = syntax_module_output_to_interface(module);
     for interface in resolved.interface_map.values().chain(std::iter::once(&own)) {
         for name in &interface.public_types {
-            arities.insert(
+            for path in [
                 format!("{}.{}", interface.module, name),
-                interface.type_params.get(name).map_or(0, Vec::len),
-            );
+                crate::terlan_hir::public_type_path(&interface.module, name),
+            ] {
+                arities.insert(path, interface.type_params.get(name).map_or(0, Vec::len));
+            }
         }
     }
     for (name, imported) in &resolved.imported_types {

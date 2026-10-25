@@ -9,10 +9,12 @@
 //! - bold: Bold font weight. Same as `700`.
 //! - bolder: One relative font weight heavier than the parent element. Note that only four font
 //! weights are considered for relative weight calculation; see the [Meaning of relative
-//! weights](#meaning_of_relative_weights) section below.
+//! weights](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-weight#meaning_of_relative_weights)
+//! section below.
 //! - lighter: One relative font weight lighter than the parent element. Note that only four font
 //! weights are considered for relative weight calculation; see the [Meaning of relative
-//! weights](#meaning_of_relative_weights) section below.
+//! weights](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-weight#meaning_of_relative_weights)
+//! section below.
 //! - normal: Normal font weight. Same as `400`.
 //!
 //! Grammar: <font-weight-absolute> | bolder | lighter
@@ -32,7 +34,7 @@ module std.css.properties.FontWeight.
 pub opaque type Checked.
 
 pub struct Property {
-    font_weight: Normal | Bold | Bolder | Lighter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    font_weight: std.css.keywords.Normal | std.css.keywords.Bold | std.css.keywords.Bolder | std.css.keywords.Lighter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the font-weight number range. Returns Some when amount >= 1 and amount <= 1000; otherwise

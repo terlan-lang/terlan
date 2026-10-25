@@ -12,6 +12,8 @@
  */
 module std.js.Dom.InputDeviceInfo.
 
+import type std.js.Dom.{MediaTrackCapabilities}.
+
 /**
  * The **`InputDeviceInfo`** interface of the Media Capture and Streams API gives access to the capabilities of the input device that it represents.
  * Available only in secure contexts.
@@ -25,4 +27,9 @@ pub opaque type InputDeviceInfo.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputDeviceInfo/getCapabilities)
  */
-pub (receiver: InputDeviceInfo) get_capabilities(): std.js.Dom.MediaTrackCapabilities.
+pub (receiver: InputDeviceInfo) get_capabilities(): MediaTrackCapabilities.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    get_capabilities: () -> MediaTrackCapabilities,
+): BindingTarget.

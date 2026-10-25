@@ -48,3 +48,5 @@ pub (receiver: NavigationPreloadManager) get_state(): std.js.Promise[std.js.Dom.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/NavigationPreloadManager/setHeaderValue)
  */
 pub (receiver: NavigationPreloadManager) set_header_value(value: std.js.String.JsString): std.js.Promise[std.core.Unit].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, disable: () -> std.js.Promise[std.core.Unit], enable: () -> std.js.Promise[std.core.Unit], get_state: () -> std.js.Promise[std.js.Dom.NavigationPreloadState], set_header_value: (std.js.String.JsString) -> std.js.Promise[std.core.Unit]): BindingTarget.

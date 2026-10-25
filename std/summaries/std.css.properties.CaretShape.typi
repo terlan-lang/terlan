@@ -28,5 +28,5 @@
 module std.css.properties.CaretShape.
 
 pub struct Property {
-    caret_shape: Auto | Bar | Block | Underscore | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    caret_shape: std.css.keywords.Auto | std.css.keywords.Bar | std.css.keywords.Block | std.css.keywords.Underscore | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -25,5 +25,5 @@
 module std.css.properties.MathShift.
 
 pub struct Property {
-    math_shift: Normal | Compact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    math_shift: std.css.keywords.Normal | std.css.keywords.Compact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -53,31 +53,31 @@ pub opaque type Checked.
 pub opaque type CheckedOutlineWidth.
 
 pub type OutlineColorPart =
-    Auto
+    std.css.keywords.Auto
   | std.css.Values.Color
   | std.css.Values.Transparent
   | std.css.Values.CurrentColor.
 
 pub type OutlineStylePart =
-    Auto
-  | None
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset.
+    std.css.keywords.Auto
+  | std.css.keywords.None
+  | std.css.keywords.Dotted
+  | std.css.keywords.Dashed
+  | std.css.keywords.Solid
+  | std.css.keywords.Double
+  | std.css.keywords.Groove
+  | std.css.keywords.Ridge
+  | std.css.keywords.Inset
+  | std.css.keywords.Outset.
 
 pub type OutlineWidthPart =
-    Thin
-  | Medium
-  | Thick
+    std.css.keywords.Thin
+  | std.css.keywords.Medium
+  | std.css.keywords.Thick
   | CheckedOutlineWidth.
 
 pub struct Property {
-    outline: Thin | Medium | Thick | Auto | None | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    outline: std.css.keywords.Thin | std.css.keywords.Medium | std.css.keywords.Thick | std.css.keywords.Auto | std.css.keywords.None | std.css.keywords.Dotted | std.css.keywords.Dashed | std.css.keywords.Solid | std.css.keywords.Double | std.css.keywords.Groove | std.css.keywords.Ridge | std.css.keywords.Inset | std.css.keywords.Outset | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Combines outline-width, outline-style, outline-color for outline. Each parameter accepts its own

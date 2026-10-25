@@ -29,7 +29,7 @@ pub struct Session {
 /// Transformation: selects a cookie identity, reuses a live lookup, and requests
 /// fresh allocation only on absence. Storage errors propagate without replacement.
 
-pub current(request: Request): Session.
+pub current(request: std.http.Request): Session.
 
 /// Deletes one session value.
 ///
@@ -81,4 +81,4 @@ pub (mut session: Session) set(key: String, value: String): Unit.
 /// Transformation: makes response cookie threading explicit so handler code does
 /// not depend on implicit global response state.
 
-pub with_response(response: Response, session: Session): Response.
+pub with_response(response: std.http.Response, session: Session): std.http.Response.

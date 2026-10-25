@@ -73,14 +73,7 @@ fn later_alias_passes_do_not_unroll_recursive_storage_again() {
         &mut HashSet::new(),
         true,
     );
-    let second = resolve(
-        &first,
-        "app",
-        &[],
-        &aliases,
-        &mut HashSet::new(),
-        false,
-    );
+    let second = resolve(&first, "app", &[], &aliases, &mut HashSet::new(), false);
     assert_eq!(second, first);
 }
 

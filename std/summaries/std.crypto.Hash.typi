@@ -44,7 +44,7 @@ pub struct LabeledFilePattern {
 /// hashed and scanned once, and no per-file record crosses the actor boundary.
 /// Empty matches, duplicate paths, symbolic links, and root escapes are errors.
 
-pub audit_labeled_file_patterns(root: String, patterns: List[LabeledFilePattern], forbidden_fragments: List[String]): Result[LabeledFileAudit, FileError].
+pub audit_labeled_file_patterns(root: String, patterns: List[LabeledFilePattern], forbidden_fragments: List[String]): Result[LabeledFileAudit, std.io.File.FileError].
 
 /// Streams each labeled file once while computing its deterministic digest and
 /// scanning for forbidden UTF-8 fragments.
@@ -53,7 +53,7 @@ pub audit_labeled_file_patterns(root: String, patterns: List[LabeledFilePattern]
 /// file contents remain outside actor heaps and are never reread by a separate
 /// content-policy pass.
 
-pub audit_labeled_files(files: List[LabeledFile], forbidden_fragments: List[String]): Result[LabeledFileAudit, FileError].
+pub audit_labeled_files(files: List[LabeledFile], forbidden_fragments: List[String]): Result[LabeledFileAudit, std.io.File.FileError].
 
 /// Constructs one typed labeled-file digest input.
 
@@ -88,7 +88,7 @@ pub sha256_domain_framed(domain: String, fields: List[String]): String.
 
 /// Streams one regular file through SHA-256 without materializing it in an actor heap.
 
-pub sha256_file(path: String): Result[String, FileError].
+pub sha256_file(path: String): Result[String, std.io.File.FileError].
 
 /// Hashes ordered UTF-8 fields with unsigned 64-bit length framing.
 
@@ -103,7 +103,7 @@ pub sha256_framed(fields: List[String]): String.
 /// Rust quality-report provenance without materializing source files in an
 /// actor heap.
 
-pub sha256_labeled_file_contents(files: List[LabeledFile]): Result[String, FileError].
+pub sha256_labeled_file_contents(files: List[LabeledFile]): Result[String, std.io.File.FileError].
 
 /// Streams a deterministic digest over caller-ordered labeled files.
 ///
@@ -111,7 +111,7 @@ pub sha256_labeled_file_contents(files: List[LabeledFile]): Result[String, FileE
 /// SHA-256 text of the file contents, and one newline. Labels must be safe
 /// relative paths. Files are streamed and never materialized in the actor heap.
 
-pub sha256_labeled_file_digests(files: List[LabeledFile]): Result[String, FileError].
+pub sha256_labeled_file_digests(files: List[LabeledFile]): Result[String, std.io.File.FileError].
 
 /// Hashes text fields joined by one NUL octet without materializing that control
 /// character in Terlan source. This preserves established release-candidate
@@ -125,7 +125,7 @@ pub sha256_nul_separated(fields: List[String]): String.
 /// Each file contributes its normalized relative path, one NUL byte, its raw
 /// contents, and one newline byte. Relative paths must remain below `root`.
 
-pub sha256_selected_files(root: String, relative_paths: List[String]): Result[String, FileError].
+pub sha256_selected_files(root: String, relative_paths: List[String]): Result[String, std.io.File.FileError].
 
 /// Computes a deterministic digest of every regular file below one directory.
 ///
@@ -133,7 +133,7 @@ pub sha256_selected_files(root: String, relative_paths: List[String]): Result[St
 /// digest is fed into the same unsigned 64-bit framing used by `sha256_framed`.
 /// Symbolic links are ignored, matching recursive directory inventory APIs.
 
-pub sha256_tree(root: String): Result[String, FileError].
+pub sha256_tree(root: String): Result[String, std.io.File.FileError].
 
 /// Streams and verifies a canonical SHA256SUMS manifest below one root.
 ///
@@ -142,4 +142,4 @@ pub sha256_tree(root: String): Result[String, FileError].
 /// escapes, malformed rows, and digest mismatches produce `Ok(false)`; host
 /// file errors retain the ordinary typed `FileError` channel.
 
-pub verify_sha256_manifest(root: String, manifest: String): Result[Bool, FileError].
+pub verify_sha256_manifest(root: String, manifest: String): Result[Bool, std.io.File.FileError].

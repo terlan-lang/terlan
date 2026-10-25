@@ -57,10 +57,8 @@ pub(crate) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
                             || import.module == format!("{provider}.{declaration}")
                         {
                             let module_name = provider.rsplit('.').next().expect("module name");
-                            let mut names = vec![
-                                declaration.clone(),
-                                format!("{module_name}.{declaration}"),
-                            ];
+                            let mut names =
+                                vec![declaration.clone(), format!("{module_name}.{declaration}")];
                             if module_name == declaration {
                                 names.push(provider.clone());
                             }

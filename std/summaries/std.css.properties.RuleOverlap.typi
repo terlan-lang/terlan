@@ -19,5 +19,5 @@
 module std.css.properties.RuleOverlap.
 
 pub struct Property {
-    rule_overlap: RowOverColumn | ColumnOverRow | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    rule_overlap: std.css.keywords.RowOverColumn | std.css.keywords.ColumnOverRow | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

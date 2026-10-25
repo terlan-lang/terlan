@@ -83,3 +83,15 @@ pub (receiver: OES_draw_buffers_indexed) disablei_oes(target_: GLenum, index: GL
  */
 pub (receiver: OES_draw_buffers_indexed) enablei_oes(target_: GLenum, index: GLuint): Unit ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    blend_equation_separatei_oes: (GLuint, GLenum, GLenum) -> Unit,
+    blend_equationi_oes: (GLuint, GLenum) -> Unit,
+    blend_func_separatei_oes: (GLuint, GLenum, GLenum, GLenum, GLenum) -> Unit,
+    blend_funci_oes: (GLuint, GLenum, GLenum) -> Unit,
+    color_maski_oes: (GLuint, GLboolean, GLboolean, GLboolean, GLboolean) -> Unit,
+    disablei_oes: (GLenum, GLuint) -> Unit,
+    enablei_oes: (GLenum, GLuint) -> Unit,
+): BindingTarget ->
+    native.

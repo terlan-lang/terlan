@@ -396,7 +396,7 @@ pub none_value(): std.core.Option[T].
 /// Transformation: establishes bounded object generation on top of the
 /// map-backed `std.core.Object` surface.
 
-pub object_of(keys: Gen[String], values: Gen[V]): Gen[Object[V]].
+pub object_of(keys: Gen[String], values: Gen[V]): Gen[std.core.Object[V]].
 
 /// Wraps one value as a typed successful result value.
 ///

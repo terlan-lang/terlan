@@ -12,8 +12,7 @@
  */
 module std.js.Dom.UnderlyingByteSource.
 
-import type std.core.Option.{Option}.
-import type std.core.Unit.{Unit}.
+import type std.core.{Option, Unit}.
 
 pub opaque type UnderlyingByteSource.
 

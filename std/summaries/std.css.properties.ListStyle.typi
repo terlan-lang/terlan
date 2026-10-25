@@ -30,17 +30,17 @@ module std.css.properties.ListStyle.
 pub opaque type Checked.
 
 pub type ListStyleImagePart =
-    None.
+    std.css.keywords.None.
 
 pub type ListStylePositionPart =
-    Inside
-  | Outside.
+    std.css.keywords.Inside
+  | std.css.keywords.Outside.
 
 pub type ListStyleTypePart =
-    None.
+    std.css.keywords.None.
 
 pub struct Property {
-    list_style: Inside | Outside | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    list_style: std.css.keywords.Inside | std.css.keywords.Outside | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Combines list-style-position, list-style-image, list-style-type for list-style. Each parameter

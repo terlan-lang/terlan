@@ -58,7 +58,7 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         Some(CoreType::Named(name))
             if matches!(
                 name.as_str(),
-                "Bytes" | "std.binary.Bytes" | "std.vm.Bytes.Bytes"
+                "Bytes" | "std.binary.Bytes" | "std.vm.Bytes" | "std.vm.Bytes.Bytes"
             ) =>
         {
             Some(NativeType::BytesRef)
@@ -119,7 +119,11 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         None if text == "Bool" => Some(NativeType::Bool),
         None if text == "Atom" => Some(NativeType::Atom),
         None if text == "String" => Some(NativeType::StringRef),
-        None if matches!(text, "Bytes" | "std.binary.Bytes" | "std.vm.Bytes.Bytes") => {
+        None if matches!(
+            text,
+            "Bytes" | "std.binary.Bytes" | "std.vm.Bytes" | "std.vm.Bytes.Bytes"
+        ) =>
+        {
             Some(NativeType::BytesRef)
         }
         None if matches!(text, "Binary" | "BitString" | "std.binary.Binary") => {
@@ -160,8 +164,12 @@ fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
 pub(in crate::compiler::native_ir) fn core_string_runtime_value(
     value: &str,
 ) -> Result<String, String> {
-    super::super::self_host_adapter::decoded_string_literal(value)
-        .map_err(|error| format!("error[native_ir.string_literal]: {error}"))
+    if value.starts_with('"') {
+        serde_json::from_str(value)
+            .map_err(|error| format!("error[native_ir.string_literal]: {error}"))
+    } else {
+        Ok(value.to_owned())
+    }
 }
 
 fn managed_reference_type(core: &CoreType) -> Option<NativeType> {

@@ -33,5 +33,5 @@
 module std.css.properties.OverflowBlock.
 
 pub struct Property {
-    overflow_block: Visible | Hidden | Clip | Scroll | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    overflow_block: std.css.keywords.Visible | std.css.keywords.Hidden | std.css.keywords.Clip | std.css.keywords.Scroll | std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

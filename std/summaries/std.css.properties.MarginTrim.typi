@@ -24,5 +24,5 @@
 module std.css.properties.MarginTrim.
 
 pub struct Property {
-    margin_trim: None | Block | BlockStart | BlockEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    margin_trim: std.css.keywords.None | std.css.keywords.Block | std.css.keywords.BlockStart | std.css.keywords.BlockEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -21,3 +21,5 @@ module std.js.Dom.CSSStyleValue.
 pub opaque type CSSStyleValue.
 
 pub (receiver: CSSStyleValue) to_string(): std.js.String.JsString.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, to_string: () -> std.js.String.JsString): BindingTarget.

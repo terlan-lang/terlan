@@ -35,7 +35,7 @@ module std.css.properties.BorderImage.
 pub opaque type Checked.
 
 pub struct Property {
-    border_image: None | Stretch | Repeat | Round | Space | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    border_image: std.css.keywords.None | std.css.keywords.Stretch | std.css.keywords.Repeat | std.css.keywords.Round | std.css.keywords.Space | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the border-image number range. Returns Some when amount >= 0; otherwise returns None.

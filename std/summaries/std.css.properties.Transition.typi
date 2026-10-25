@@ -66,5 +66,5 @@
 module std.css.properties.Transition.
 
 pub struct Property {
-    transition: None | All | Linear | Ease | EaseIn | EaseOut | EaseInOut | StepStart | StepEnd | Normal | AllowDiscrete | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    transition: std.css.keywords.None | std.css.keywords.All | std.css.keywords.Linear | std.css.keywords.Ease | std.css.keywords.EaseIn | std.css.keywords.EaseOut | std.css.keywords.EaseInOut | std.css.keywords.StepStart | std.css.keywords.StepEnd | std.css.keywords.Normal | std.css.keywords.AllowDiscrete | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

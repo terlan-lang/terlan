@@ -38,7 +38,7 @@ module std.css.properties.TextEmphasis.
 pub opaque type Checked.
 
 pub struct Property {
-    text_emphasis: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    text_emphasis: std.css.keywords.None | std.css.keywords.Filled | std.css.keywords.Open | std.css.keywords.Dot | std.css.keywords.Circle | std.css.keywords.DoubleCircle | std.css.keywords.Triangle | std.css.keywords.Sesame | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 pub type TextEmphasisColorPart =
@@ -47,14 +47,14 @@ pub type TextEmphasisColorPart =
   | std.css.Values.CurrentColor.
 
 pub type TextEmphasisStylePart =
-    None
-  | Filled
-  | Open
-  | Dot
-  | Circle
-  | DoubleCircle
-  | Triangle
-  | Sesame.
+    std.css.keywords.None
+  | std.css.keywords.Filled
+  | std.css.keywords.Open
+  | std.css.keywords.Dot
+  | std.css.keywords.Circle
+  | std.css.keywords.DoubleCircle
+  | std.css.keywords.Triangle
+  | std.css.keywords.Sesame.
 
 /// Combines text-emphasis-style, text-emphasis-color for text-emphasis. Each parameter accepts its
 /// own keyword or typed unit choices directly.

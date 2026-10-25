@@ -24,5 +24,5 @@
 module std.css.properties.ColumnWrap.
 
 pub struct Property {
-    column_wrap: Auto | Nowrap | Wrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    column_wrap: std.css.keywords.Auto | std.css.keywords.Nowrap | std.css.keywords.Wrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

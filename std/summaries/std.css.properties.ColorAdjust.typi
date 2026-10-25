@@ -30,5 +30,5 @@
 module std.css.properties.ColorAdjust.
 
 pub struct Property {
-    color_adjust: Economy | Exact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    color_adjust: std.css.keywords.Economy | std.css.keywords.Exact | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

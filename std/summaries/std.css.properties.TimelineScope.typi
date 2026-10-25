@@ -23,5 +23,5 @@
 module std.css.properties.TimelineScope.
 
 pub struct Property {
-    timeline_scope: None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    timeline_scope: std.css.keywords.None | std.css.keywords.All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

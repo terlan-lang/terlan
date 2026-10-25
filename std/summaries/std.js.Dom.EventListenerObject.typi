@@ -16,3 +16,5 @@ module std.js.Dom.EventListenerObject.
 pub opaque type EventListenerObject.
 
 pub (receiver: EventListenerObject) handle_event(object: std.js.Dom.Event): std.core.Unit.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, handle_event: (std.js.Dom.Event) -> std.core.Unit): BindingTarget.

@@ -32,5 +32,5 @@
 module std.css.properties.AnimationDirection.
 
 pub struct Property {
-    animation_direction: Normal | Reverse | Alternate | AlternateReverse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    animation_direction: std.css.keywords.Normal | std.css.keywords.Reverse | std.css.keywords.Alternate | std.css.keywords.AlternateReverse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -23,7 +23,7 @@ module std.css.properties.AnimationIterationCount.
 pub opaque type Checked.
 
 pub struct Property {
-    animation_iteration_count: Infinite | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    animation_iteration_count: std.css.keywords.Infinite | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the animation-iteration-count number range. Returns Some when amount >= 0; otherwise

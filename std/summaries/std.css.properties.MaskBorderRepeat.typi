@@ -31,13 +31,13 @@ module std.css.properties.MaskBorderRepeat.
 pub opaque type Checked.
 
 pub type Component =
-    Stretch
-  | Repeat
-  | Round
-  | Space.
+    std.css.keywords.Stretch
+  | std.css.keywords.Repeat
+  | std.css.keywords.Round
+  | std.css.keywords.Space.
 
 pub struct Property {
-    mask_border_repeat: Stretch | Repeat | Round | Space | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    mask_border_repeat: std.css.keywords.Stretch | std.css.keywords.Repeat | std.css.keywords.Round | std.css.keywords.Space | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Supplies 2 components in grammar order.

@@ -32,5 +32,5 @@
 module std.css.properties.TextDecorationLine.
 
 pub struct Property {
-    text_decoration_line: None | Underline | Overline | LineThrough | Blink | SpellingError | GrammarError | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_decoration_line: std.css.keywords.None | std.css.keywords.Underline | std.css.keywords.Overline | std.css.keywords.LineThrough | std.css.keywords.Blink | std.css.keywords.SpellingError | std.css.keywords.GrammarError | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

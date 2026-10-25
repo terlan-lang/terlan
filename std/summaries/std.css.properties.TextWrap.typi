@@ -41,18 +41,18 @@ module std.css.properties.TextWrap.
 pub opaque type Checked.
 
 pub struct Property {
-    text_wrap: Wrap | Nowrap | Auto | Balance | Stable | Pretty | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    text_wrap: std.css.keywords.Wrap | std.css.keywords.Nowrap | std.css.keywords.Auto | std.css.keywords.Balance | std.css.keywords.Stable | std.css.keywords.Pretty | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 pub type TextWrapModePart =
-    Wrap
-  | Nowrap.
+    std.css.keywords.Wrap
+  | std.css.keywords.Nowrap.
 
 pub type TextWrapStylePart =
-    Auto
-  | Balance
-  | Stable
-  | Pretty.
+    std.css.keywords.Auto
+  | std.css.keywords.Balance
+  | std.css.keywords.Stable
+  | std.css.keywords.Pretty.
 
 /// Combines text-wrap-mode, text-wrap-style for text-wrap. Each parameter accepts its own keyword or
 /// typed unit choices directly.

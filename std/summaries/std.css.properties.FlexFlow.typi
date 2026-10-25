@@ -37,19 +37,19 @@ module std.css.properties.FlexFlow.
 pub opaque type Checked.
 
 pub type FlexDirectionPart =
-    Row
-  | RowReverse
-  | Column
-  | ColumnReverse.
+    std.css.keywords.Row
+  | std.css.keywords.RowReverse
+  | std.css.keywords.Column
+  | std.css.keywords.ColumnReverse.
 
 pub type FlexWrapPart =
-    Nowrap
-  | Wrap
-  | WrapReverse
-  | Balance.
+    std.css.keywords.Nowrap
+  | std.css.keywords.Wrap
+  | std.css.keywords.WrapReverse
+  | std.css.keywords.Balance.
 
 pub struct Property {
-    flex_flow: Row | RowReverse | Column | ColumnReverse | Nowrap | Wrap | WrapReverse | Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    flex_flow: std.css.keywords.Row | std.css.keywords.RowReverse | std.css.keywords.Column | std.css.keywords.ColumnReverse | std.css.keywords.Nowrap | std.css.keywords.Wrap | std.css.keywords.WrapReverse | std.css.keywords.Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Combines flex-direction, flex-wrap for flex-flow. Each parameter accepts its own keyword or typed

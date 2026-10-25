@@ -33,5 +33,5 @@
 module std.css.properties.AnimationFillMode.
 
 pub struct Property {
-    animation_fill_mode: None | Forwards | Backwards | Both | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    animation_fill_mode: std.css.keywords.None | std.css.keywords.Forwards | std.css.keywords.Backwards | std.css.keywords.Both | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

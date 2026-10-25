@@ -29,5 +29,5 @@
 module std.css.properties.AnimationComposition.
 
 pub struct Property {
-    animation_composition: Replace | Add | Accumulate | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    animation_composition: std.css.keywords.Replace | std.css.keywords.Add | std.css.keywords.Accumulate | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

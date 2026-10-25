@@ -19,7 +19,7 @@ for source in WrongProperty RawString RawSerializedValue InvalidEnum InvalidComp
     echo "typed CSS accepted invalid input: ${source}" >&2
     exit 1
   fi
-  rg -q 'type_mismatch' "${output}/${source}.log"
+  rg -q 'type_mismatch|= field .* expected .* found ' "${output}/${source}.log"
 done
 
 if "${terlc}" check "${fixture}/ForgedValue.terl" > "${output}/ForgedValue.log" 2>&1; then

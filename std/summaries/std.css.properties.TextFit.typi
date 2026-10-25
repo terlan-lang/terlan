@@ -26,5 +26,5 @@
 module std.css.properties.TextFit.
 
 pub struct Property {
-    text_fit: None | Grow | Shrink | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_fit: std.css.keywords.None | std.css.keywords.Grow | std.css.keywords.Shrink | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

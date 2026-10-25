@@ -18,5 +18,5 @@
 module std.css.properties.ViewTransitionGroup.
 
 pub struct Property {
-    view_transition_group: Normal | Contain | Nearest | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    view_transition_group: std.css.keywords.Normal | std.css.keywords.Contain | std.css.keywords.Nearest | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

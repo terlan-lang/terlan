@@ -29,5 +29,5 @@
 module std.css.properties.TextOrientation.
 
 pub struct Property {
-    text_orientation: Mixed | Upright | Sideways | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_orientation: std.css.keywords.Mixed | std.css.keywords.Upright | std.css.keywords.Sideways | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

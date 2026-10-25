@@ -23,9 +23,18 @@ try {
       const directory = path.join(temporary, String(index));
       const destination = path.join(directory, 'std/css/properties');
       await mkdir(destination, {recursive: true});
-      await Promise.all(batches[index].map(name => copyFile(path.join(source, 'properties', name), path.join(destination, name))));
+      // Check the new shared definitions in every batch, without relying on
+      // whichever CSS interfaces happen to be embedded in the installed CLI.
+      for (const name of ['Values.terl', 'Stylesheet.terl']) {
+        await copyFile(path.join(source, name), path.join(directory, 'std/css', name));
+      }
+      const dependencies = index === 0
+        ? ['Border.terl', 'Gap.terl', 'Height.terl', 'Margin.terl', 'MarginLeft.terl', 'Padding.terl', 'Width.terl']
+        : [];
+      await Promise.all([...new Set([...batches[index], ...dependencies])]
+        .map(name => copyFile(path.join(source, 'properties', name), path.join(destination, name))));
       if (index === 0) {
-        for (const name of ['Values.terl', 'Stylesheet.terl', 'ValuesTest.terl', 'PropertiesTest.terl']) {
+        for (const name of ['ValuesTest.terl', 'PropertiesTest.terl']) {
           await copyFile(path.join(source, name), path.join(directory, 'std/css', name));
         }
       }

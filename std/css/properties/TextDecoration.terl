@@ -84,7 +84,7 @@ pub type TextDecorationColorPart = Color | Transparent | CurrentColor.
 
 pub opaque type Checked =
       SerializedValue
-    | {Atom["css_parts"], {TextDecorationLinePart, TextDecorationThicknessPart, TextDecorationStylePart, TextDecorationColorPart}}.
+    | {Atom["css_parts"], {Atom["none"] | Atom["underline"] | Atom["overline"] | Atom["line-through"] | Atom["blink"] | Atom["spelling-error"] | Atom["grammar-error"], Atom["auto"] | Atom["from-font"] | Length | Percentage | SerializedValue, Atom["solid"] | Atom["double"] | Atom["dotted"] | Atom["dashed"] | Atom["wavy"], std.css.Values.Color | Atom["transparent"] | Atom["currentColor"]}}.
 
 pub struct Property {
     text_decoration: None | Underline | Overline | LineThrough | Blink | SpellingError | GrammarError | Auto | FromFont | Solid | Double | Dotted | Dashed | Wavy | Length | Percentage | Color | Transparent | CurrentColor | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
@@ -109,6 +109,11 @@ pub text_decoration_thickness_length(value: Length): Option[CheckedTextDecoratio
         false -> Absent
     }.
 
+text_decoration_thickness_value(
+    value: TextDecorationThicknessPart,
+): Atom["auto"] | Atom["from-font"] | Length | Percentage | SerializedValue ->
+    value.
+
 /**
  * Combines text-decoration-line, text-decoration-thickness, text-decoration-style,
  * text-decoration-color for text-decoration. Each parameter accepts its own keyword or typed unit
@@ -125,7 +130,7 @@ pub compose(
             Atom["css_parts"],
             {
                 text_decoration_line,
-                text_decoration_thickness,
+                text_decoration_thickness_value(text_decoration_thickness),
                 text_decoration_style,
                 text_decoration_color,
             },

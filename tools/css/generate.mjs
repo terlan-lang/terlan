@@ -129,7 +129,7 @@ const callable = name => {
   return reserved.has(value) ? `${value}_value` : value;
 };
 
-const keywordReservedTypes = new Set(['Value', 'Css', 'CssWide', 'Property', 'Component', 'ComponentCss', 'SerializedValue', 'Absent', 'Some', 'Option', 'Length', 'Percentage', 'Color', 'Angle', 'Time', 'Int', 'Float', 'String', 'Text', 'Bool', 'Atom', 'List', 'Map', 'Set', 'Unit']);
+const keywordReservedTypes = new Set(['Value', 'Css', 'CssWide', 'Property', 'Component', 'ComponentCss', 'SerializedValue', 'Absent', 'Some', 'Option', 'Length', 'Percentage', 'Color', 'Angle', 'Time', 'Int', 'Float', 'String', 'Text', 'Binary', 'Number', 'Term', 'Dynamic', 'Never', 'Bool', 'Atom', 'List', 'Map', 'Set', 'Unit']);
 const keywordName = keyword => keywordReservedTypes.has(typeName(keyword)) ? typeName(keyword) + 'Keyword' : typeName(keyword);
 const sharedAtomAliases = new Map([
   ['auto', 'std.core.Atom.Auto'],
@@ -201,7 +201,7 @@ async function main() {
     compatibility: { source: '@mdn/browser-compat-data', version: '8.1.7', sha256: createHash('sha256').update(compatibilitySnapshot).digest('hex') },
     syntax: { source: 'mdn-data', version: '2.37.2', sha256: createHash('sha256').update(syntaxSnapshot).update(typesSnapshot).digest('hex') },
     excluded,
-  }, scope: 'CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated', properties: coverage }, null, 2) + '\n');
+  }, documentation: { mdn: documentation.mdn, microsoft: documentation.microsoft, sha256: createHash('sha256').update(await readFile(new URL('documentation-data.json', import.meta.url))).digest('hex') }, scope: 'CSS-wide keywords, complete atomic alternatives, bounded space-separated repetitions of up to four components, and all-term composition of named &&/|| groups; other compound values and CSS functions are not yet generated', properties: coverage }, null, 2) + '\n');
   // Generated sources obey the same canonical formatting gate as handwritten
   // library modules. Format in a temporary directory so --check stays read-only.
   const temporary = await mkdtemp(path.join(tmpdir(), 'terlan-css-format-'));

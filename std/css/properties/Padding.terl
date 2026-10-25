@@ -31,7 +31,7 @@ pub opaque type CheckedComponent = SerializedValue.
 
 pub type Component = CheckedComponent.
 
-pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[SerializedValue]}.
 
 pub struct Property {
     padding: Inherit | Initial | Unset | Revert | RevertLayer | Checked,
@@ -73,26 +73,44 @@ pub component_percentage(value: Percentage): Option[CheckedComponent] ->
         false -> Absent
     }.
 
+component_value(value: Component): SerializedValue ->
+    value.
+
 /**
  * Applies to all four sides.
  */
 pub single(first: Component): Checked ->
-    Checked({Atom["css_parts"], [first]}).
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
  * First sets top/bottom; second sets left/right.
  */
 pub pair(first: Component, second: Component): Checked ->
-    Checked({Atom["css_parts"], [first, second]}).
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).
 
 /**
  * First sets top; second sets left/right; third sets bottom.
  */
 pub triple(first: Component, second: Component, third: Component): Checked ->
-    Checked({Atom["css_parts"], [first, second, third]}).
+    Checked(
+        {
+            Atom["css_parts"],
+            [component_value(first), component_value(second), component_value(third)],
+        },
+    ).
 
 /**
  * Sets top, right, bottom, and left in that order.
  */
 pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
-    Checked({Atom["css_parts"], [first, second, third, fourth]}).
+    Checked(
+        {
+            Atom["css_parts"],
+            [
+                component_value(first),
+                component_value(second),
+                component_value(third),
+                component_value(fourth),
+            ],
+        },
+    ).

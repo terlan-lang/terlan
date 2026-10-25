@@ -20,5 +20,5 @@
 module std.css.properties.ColumnRuleInsetCapStart.
 
 pub struct Property {
-    column_rule_inset_cap_start: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    column_rule_inset_cap_start: std.css.keywords.OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

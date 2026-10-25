@@ -56,3 +56,12 @@ pub (receiver: Clipboard) write(data: ClipboardItems): Promise[Unit] ->
  */
 pub (receiver: Clipboard) write_text(data: JsString): Promise[Unit] ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    read: () -> Promise[ClipboardItems],
+    read_text: () -> Promise[JsString],
+    write: (ClipboardItems) -> Promise[Unit],
+    write_text: (JsString) -> Promise[Unit],
+): BindingTarget ->
+    native.

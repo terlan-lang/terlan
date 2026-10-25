@@ -73,32 +73,27 @@ pub protocol_name_uses_structural_evidence_across_metadata_types(): Bool ->
 @test
 pub uint_descriptor_records_width(): Bool ->
     let descriptor = make_uint(16);
-    assert_equal(UIntSegment, descriptor.kind)
-        and assert_equal(16, descriptor.width).
+    assert_equal(UIntSegment, descriptor.kind) and assert_equal(16, descriptor.width).
 
 @test
 pub int_bits_descriptor_records_width(): Bool ->
     let descriptor = make_int_bits(32);
-    assert_equal(IntSegment, descriptor.kind)
-        and assert_equal(32, descriptor.width).
+    assert_equal(IntSegment, descriptor.kind) and assert_equal(32, descriptor.width).
 
 @test
 pub bytes_descriptor_records_width(): Bool ->
     let descriptor = make_byte_span(4);
-    assert_equal(BytesSegment, descriptor.kind)
-        and assert_equal(4, descriptor.width).
+    assert_equal(BytesSegment, descriptor.kind) and assert_equal(4, descriptor.width).
 
 @test
 pub bits_descriptor_records_width(): Bool ->
     let descriptor = make_bit_span(3);
-    assert_equal(BitsSegment, descriptor.kind)
-        and assert_equal(3, descriptor.width).
+    assert_equal(BitsSegment, descriptor.kind) and assert_equal(3, descriptor.width).
 
 @test
 pub rest_descriptor_is_terminal(): Bool ->
     let descriptor = make_rest();
-    assert_equal(RestSegment, descriptor.kind)
-        and assert_equal(true, descriptor.terminal).
+    assert_equal(RestSegment, descriptor.kind) and assert_equal(true, descriptor.terminal).
 
 @test
 pub rest_descriptor_width_is_zero(): Bool ->
@@ -223,8 +218,8 @@ pub tcp_header_first_field_is_source_port_uint16(): Bool ->
     case fields.first() {
         Some(field) ->
             assert_equal("source_port", accepts_protocol_field(field).name)
-                and assert_equal(UIntSegment, (field.descriptor).kind)
-                and assert_equal(16, (field.descriptor).width);
+                and assert_equal(UIntSegment, field.descriptor.kind)
+                and assert_equal(16, field.descriptor.width);
         None -> false
     }.
 
@@ -282,8 +277,7 @@ pub protocol_shape_set_resolves_direct_and_alias_names(): Bool ->
     } else {
         _ -> false
     };
-    assert_equal("tcp_header", header.name)
-        and assert_equal("compact_frame", frame.name).
+    assert_equal("tcp_header", header.name) and assert_equal("compact_frame", frame.name).
 
 @test
 pub protocol_shape_set_resolves_prefix_collisions_exactly(): Bool ->

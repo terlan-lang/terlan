@@ -41,3 +41,5 @@ pub (receiver: FileSystemWritableFileStream) truncate(size: std.js.Number.JsNumb
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemWritableFileStream/write)
  */
 pub (receiver: FileSystemWritableFileStream) write(data: std.js.Dom.FileSystemWriteChunkType): std.js.Promise[std.core.Unit].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, seek: (std.js.Number.JsNumber) -> std.js.Promise[std.core.Unit], truncate: (std.js.Number.JsNumber) -> std.js.Promise[std.core.Unit], write: (std.js.Dom.FileSystemWriteChunkType) -> std.js.Promise[std.core.Unit]): BindingTarget.

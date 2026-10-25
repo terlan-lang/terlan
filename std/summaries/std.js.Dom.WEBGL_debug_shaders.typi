@@ -26,3 +26,5 @@ pub opaque type WEBGL_debug_shaders.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WEBGL_debug_shaders/getTranslatedShaderSource)
  */
 pub (receiver: WEBGL_debug_shaders) get_translated_shader_source(shader: std.js.Dom.WebGLShader): std.js.String.JsString.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, get_translated_shader_source: (std.js.Dom.WebGLShader) -> std.js.String.JsString): BindingTarget.

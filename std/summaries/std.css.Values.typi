@@ -11,7 +11,9 @@ pub struct Angle {
 
 /// A validated CSS color. Arbitrary strings cannot construct this value.
 
-pub opaque type Color.
+pub struct Color {
+    #css: String
+}.
 
 pub type ColorCss =
     Transparent

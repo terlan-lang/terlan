@@ -169,7 +169,7 @@ pub priority(): SchedulingClass.
 /// Transformation: receives only from the current actor mailbox, parks when no
 /// matching message exists, and resumes with a receiver-owned payload.
 
-pub receive[T](): Message[T].
+pub receive[T](): std.vm.Message[T].
 
 /// Receives the oldest typed Atom available to the current native process.
 ///
@@ -224,7 +224,7 @@ pub receive_string(): String.
 /// Transformation: scans only the current actor mailbox, preserves skipped
 /// messages in order, and parks when no matching payload is available.
 
-pub receive_where[T](predicate: (T) -> Bool): Message[T].
+pub receive_where[T](predicate: (T) -> Bool): std.vm.Message[T].
 
 /// Builds a typed application resource kind.
 ///
@@ -250,7 +250,7 @@ pub schedule(class: SchedulingClass): Unit.
 /// Transformation: transfers the typed payload into the recipient mailbox and
 /// never exposes its actor-local representation to the sender.
 
-pub send[T]<ActorMessage[T]>(process: Process[T], message: Message[T]): Unit.
+pub send[T]<ActorMessage[T]>(process: Process[T], message: std.vm.Message[T]): Unit.
 
 /// Sends one finite image-owned Atom through the typed direct-AOT mailbox boundary.
 ///

@@ -12,8 +12,8 @@
  */
 module std.js.Dom.XSLTProcessor.
 
-import type std.core.{Unit}.
-import type std.js.Dom.{Document, Node}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{Document, DocumentFragment, Node}.
 import type std.js.String.{JsString}.
 
 /**
@@ -42,7 +42,7 @@ pub (receiver: XSLTProcessor) import_stylesheet(style: Node): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/removeParameter)
  */
-pub (receiver: XSLTProcessor) remove_parameter(namespace_uri: std.core.Option[JsString], local_name: JsString): Unit.
+pub (receiver: XSLTProcessor) remove_parameter(namespace_uri: Option[JsString], local_name: JsString): Unit.
 
 /**
  * The `reset()` method of the XSLTProcessor interface removes all parameters (`<xsl:param>`) and the XSLT stylesheet from the processor.
@@ -63,4 +63,14 @@ pub (receiver: XSLTProcessor) transform_to_document(source: Node): Document.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/XSLTProcessor/transformToFragment)
  */
-pub (receiver: XSLTProcessor) transform_to_fragment(source: Node, output: Document): std.js.Dom.DocumentFragment.
+pub (receiver: XSLTProcessor) transform_to_fragment(source: Node, output: Document): DocumentFragment.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    clear_parameters: () -> Unit,
+    import_stylesheet: (Node) -> Unit,
+    remove_parameter: (Option[JsString], JsString) -> Unit,
+    reset: () -> Unit,
+    transform_to_document: (Node) -> Document,
+    transform_to_fragment: (Node, Document) -> DocumentFragment,
+): BindingTarget.

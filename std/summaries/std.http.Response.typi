@@ -216,7 +216,7 @@ pub jpeg_file(path: String, status: Int = 200): Response.
 /// Transformation: serializes through the JSON package and composes the text
 /// response builder without inspecting the JSON resource representation.
 
-pub json(value: Json, status: Int = 200): Response.
+pub json(value: std.data.Json, status: Int = 200): Response.
 
 /// Streams a JSON file with its standard content type and an optional status.
 
@@ -371,7 +371,7 @@ pub (mut response: Response) with_cookie_options(name: String, value: String, pa
 /// Transformation: lets handlers mutate a `Request.cookies()` jar and then
 /// explicitly thread those validated mutations into the returned response.
 
-pub (mut response: Response) with_cookies(jar: Jar): Response.
+pub (mut response: Response) with_cookies(jar: std.http.Cookies.Jar): Response.
 
 /// Returns a response after adding a validated cookie deletion header.
 ///

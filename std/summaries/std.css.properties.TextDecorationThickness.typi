@@ -27,7 +27,7 @@ module std.css.properties.TextDecorationThickness.
 pub opaque type Checked.
 
 pub struct Property {
-    text_decoration_thickness: Auto | FromFont | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    text_decoration_thickness: std.css.keywords.Auto | std.css.keywords.FromFont | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the text-decoration-thickness length range. Returns Some when amount >= 0; otherwise

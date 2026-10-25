@@ -1,9 +1,11 @@
 //! The `mask` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
 //! [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
 //! property hides an element (partially or fully) by masking or clipping a specified area of the
-//! image. It is a shorthand for all the [`mask-*`](#constituent_properties) properties. The property
-//! accepts one or more comma-separated values, where each value corresponds to a
-//! [`<mask-layer>`](#mask-layer).
+//! image. It is a shorthand for all the
+//! [`mask-*`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask#constituent_properties)
+//! properties. The property accepts one or more comma-separated values, where each value corresponds
+//! to a
+//! [`<mask-layer>`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask#mask-layer).
 //!
 //! Initial: mask-image: none; mask-mode: match-source; mask-repeat: repeat; mask-position: 0% 0%;
 //! mask-clip: border-box; mask-origin: border-box; mask-size: auto; mask-composite: add. Inherited:
@@ -29,8 +31,9 @@
 //! - intersect: The parts of the associated mask image that overlap all composited mask layers below
 //! it replace those previously composited layers. See
 //! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-composite
-//! - luminance: Indicates that the [luminance (brightness)](#understanding_luminance) values of the
-//! mask image should be used. See
+//! - luminance: Indicates that the [luminance
+//! (brightness)](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask#understanding_luminance)
+//! values of the mask image should be used. See
 //! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-mode
 //! - match-source: Indicates that the type of mask is determined by the source. This is the default
 //! property value. - If the `mask-image` references an SVG `mask`, its `mask-type` property value is
@@ -65,8 +68,10 @@
 //! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
 //! - round: The mask image is repeated as many times as possible in its original dimensions. If the
 //! size of the mask origin box is not an exact multiple of the mask image's size, all mask images
-//! will be rescaled, [shrinking or stretching](#rounded_repetitions) to ensure no repetitions are
-//! clipped. See https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
+//! will be rescaled, [shrinking or
+//! stretching](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask#rounded_repetitions)
+//! to ensure no repetitions are clipped. See
+//! https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat
 //! - space: The mask image is repeated as many times as possible without clipping. If the element's
 //! origin size is at least twice the size as the mask image's size in the associated dimension, the
 //! `mask-position` property is ignored and the first and last images are positioned at the edges of
@@ -100,5 +105,5 @@
 module std.css.properties.Mask.
 
 pub struct Property {
-    mask: None | Left | Center | Right | Top | Bottom | XStart | XEnd | YStart | YEnd | RepeatX | RepeatY | Repeat | Space | Round | NoRepeat | ContentBox | PaddingBox | BorderBox | MarginBox | FillBox | StrokeBox | ViewBox | NoClip | Add | Subtract | Intersect | Exclude | Alpha | Luminance | MatchSource | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    mask: std.css.keywords.None | std.css.keywords.Left | std.css.keywords.Center | std.css.keywords.Right | std.css.keywords.Top | std.css.keywords.Bottom | std.css.keywords.XStart | std.css.keywords.XEnd | std.css.keywords.YStart | std.css.keywords.YEnd | std.css.keywords.RepeatX | std.css.keywords.RepeatY | std.css.keywords.Repeat | std.css.keywords.Space | std.css.keywords.Round | std.css.keywords.NoRepeat | std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.MarginBox | std.css.keywords.FillBox | std.css.keywords.StrokeBox | std.css.keywords.ViewBox | std.css.keywords.NoClip | std.css.keywords.Add | std.css.keywords.Subtract | std.css.keywords.Intersect | std.css.keywords.Exclude | std.css.keywords.Alpha | std.css.keywords.Luminance | std.css.keywords.MatchSource | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

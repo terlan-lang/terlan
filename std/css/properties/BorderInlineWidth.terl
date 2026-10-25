@@ -42,7 +42,9 @@ pub opaque type CheckedComponent = SerializedValue.
 
 pub type Component = Thin | Medium | Thick | CheckedComponent.
 
-pub opaque type Checked = SerializedValue | {Atom["css_parts"], List[Component]}.
+pub opaque type Checked =
+      SerializedValue
+    | {Atom["css_parts"], List[Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue]}.
 
 pub struct Property {
     border_inline_width: Thin | Medium | Thick | Inherit | Initial | Unset | Revert | RevertLayer | Checked,
@@ -68,14 +70,19 @@ pub component_length(value: Length): Option[CheckedComponent] ->
         false -> Absent
     }.
 
+component_value(
+    value: Component,
+): Atom["thin"] | Atom["medium"] | Atom["thick"] | SerializedValue ->
+    value.
+
 /**
  * Supplies 1 components in grammar order.
  */
 pub single(first: Component): Checked ->
-    Checked({Atom["css_parts"], [first]}).
+    Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
  * Supplies 2 components in grammar order.
  */
 pub pair(first: Component, second: Component): Checked ->
-    Checked({Atom["css_parts"], [first, second]}).
+    Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).

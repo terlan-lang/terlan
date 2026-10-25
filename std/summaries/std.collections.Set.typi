@@ -75,7 +75,7 @@ pub (set: Set[T]) is_empty(): Bool.
 /// preserving the portable value-yielding contract.
 
 @pure
-pub (set: Set[T]) iterator(): Iterator[T].
+pub (set: Set[T]) iterator(): std.collections.Iterator[T].
 
 /// Creates an empty set.
 ///

@@ -1,5 +1,6 @@
 //! The `row-rule-inset-cap-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can
-//! be used to offset the end of row rule segment [cap endpoints](#understanding_cap_end).
+//! be used to offset the end of row rule segment [cap
+//! endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-inset-cap-end#understanding_cap_end).
 //!
 //! Keyword effects:
 //! - overlap-join: Resolves to `0`.
@@ -18,5 +19,5 @@
 module std.css.properties.RowRuleInsetCapEnd.
 
 pub struct Property {
-    row_rule_inset_cap_end: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    row_rule_inset_cap_end: std.css.keywords.OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

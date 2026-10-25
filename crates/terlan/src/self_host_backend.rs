@@ -178,10 +178,7 @@ impl From<AbiError> for BackendAdapterError {
     }
 }
 
-fn block_index(
-    labels: &HashMap<&str, usize>,
-    label: &str,
-) -> Result<usize, BackendAdapterError> {
+fn block_index(labels: &HashMap<&str, usize>, label: &str) -> Result<usize, BackendAdapterError> {
     labels.get(label).copied().ok_or_else(|| {
         BackendAdapterError::InvalidValidatedProgram(format!(
             "validated ABI-1 program references missing block {label:?}"

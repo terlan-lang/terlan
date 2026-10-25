@@ -164,12 +164,9 @@ fn uniquely_imported_nominal_inside_list_gets_application_identity() {
 
 #[test]
 fn collapsed_module_default_nominals_get_one_application_identity() {
-    let provider = checked_core(
-        "module package.Item.\n\npub struct Item { value: Int }.\n",
-    );
+    let provider = checked_core("module package.Item.\n\npub struct Item { value: Int }.\n");
     let mut local = provider.clone();
-    local.functions = checked_core("module package.Item.\n\npub value(): Int -> 1.\n")
-        .functions;
+    local.functions = checked_core("module package.Item.\n\npub value(): Int -> 1.\n").functions;
     local.functions[0].core_return_type = Some(CoreType::Named("package.Item".to_string()));
 
     qualify_application_nominal_types(std::slice::from_mut(&mut local));

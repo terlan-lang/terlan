@@ -47,5 +47,5 @@
 module std.css.properties.Position.
 
 pub struct Property {
-    position: Static | Relative | Absolute | Sticky | Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    position: std.css.keywords.Static | std.css.keywords.Relative | std.css.keywords.Absolute | std.css.keywords.Sticky | std.css.keywords.Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

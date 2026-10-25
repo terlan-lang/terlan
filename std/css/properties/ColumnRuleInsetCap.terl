@@ -2,8 +2,10 @@
  * The `column-rule-inset-cap`
  * [shorthand](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Shorthand_properties)
  * [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can be used to offset the column
- * rule segment [cap endpoints](#understanding_cap_endpoints) at the container's start and end
- * edges, and endpoints where the segments don't intersect other row or column segments.
+ * rule segment [cap
+ * endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-cap#understanding_cap_endpoints)
+ * at the container's start and end edges, and endpoints where the segments don't intersect other
+ * row or column segments.
  *
  * Keyword effects:
  * - overlap-join: Resolves to `0`.

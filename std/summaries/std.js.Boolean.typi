@@ -19,3 +19,5 @@ pub opaque type Boolean.
  * Returns the primitive value of the specified object.
  */
 pub (receiver: Boolean) value_of(): Bool.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, value_of: () -> Bool): BindingTarget.

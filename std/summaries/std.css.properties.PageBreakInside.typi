@@ -22,5 +22,5 @@
 module std.css.properties.PageBreakInside.
 
 pub struct Property {
-    page_break_inside: Avoid | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    page_break_inside: std.css.keywords.Avoid | std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

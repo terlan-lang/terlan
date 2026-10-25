@@ -37,5 +37,5 @@
 module std.css.properties.WritingMode.
 
 pub struct Property {
-    writing_mode: HorizontalTb | VerticalRl | VerticalLr | SidewaysRl | SidewaysLr | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    writing_mode: std.css.keywords.HorizontalTb | std.css.keywords.VerticalRl | std.css.keywords.VerticalLr | std.css.keywords.SidewaysRl | std.css.keywords.SidewaysLr | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

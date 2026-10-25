@@ -12,6 +12,8 @@
  */
 module std.js.Dom.CSSStyleValue.
 
+import type std.js.String.{JsString}.
+
 /**
  * The **`CSSStyleValue`** interface of the CSS Typed Object Model API is the base class of all CSS values accessible through the Typed OM API.
  *
@@ -19,5 +21,11 @@ module std.js.Dom.CSSStyleValue.
  */
 pub opaque type CSSStyleValue.
 
-pub (receiver: CSSStyleValue) to_string(): std.js.String.JsString ->
+pub (receiver: CSSStyleValue) to_string(): JsString ->
+    native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    to_string: () -> JsString,
+): BindingTarget ->
     native.

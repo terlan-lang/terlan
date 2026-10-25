@@ -60,5 +60,5 @@
 module std.css.properties.PlaceItems.
 
 pub struct Property {
-    place_items: Normal | Stretch | Baseline | Center | Start | End | SelfStart | SelfEnd | FlexStart | FlexEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    place_items: std.css.keywords.Normal | std.css.keywords.Stretch | std.css.keywords.Baseline | std.css.keywords.Center | std.css.keywords.Start | std.css.keywords.End | std.css.keywords.SelfStart | std.css.keywords.SelfEnd | std.css.keywords.FlexStart | std.css.keywords.FlexEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

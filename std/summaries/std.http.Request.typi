@@ -43,7 +43,7 @@ pub (request: Request) body_file_path(): String.
 /// to the native JSON capability, and normalizes body/parse failures into a
 /// portable core error.
 
-pub (request: Request) body_json(): Result[Json, Error].
+pub (request: Request) body_json(): Result[std.data.Json, std.core.Error].
 
 /// Returns the request body as text.
 ///
@@ -76,7 +76,7 @@ pub (request: Request) cookie(name: String): Option[String].
 /// unselected headers are never decoded. Duplicate precedence is source-owned.
 /// Separate calls never share outgoing mutations.
 
-pub (request: Request) cookies(): Jar.
+pub (request: Request) cookies(): std.http.Cookies.Jar.
 
 /// Returns a request header value.
 ///

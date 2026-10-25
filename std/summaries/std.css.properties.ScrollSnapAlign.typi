@@ -32,13 +32,13 @@ module std.css.properties.ScrollSnapAlign.
 pub opaque type Checked.
 
 pub type Component =
-    None
-  | Start
-  | End
-  | Center.
+    std.css.keywords.None
+  | std.css.keywords.Start
+  | std.css.keywords.End
+  | std.css.keywords.Center.
 
 pub struct Property {
-    scroll_snap_align: None | Start | End | Center | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    scroll_snap_align: std.css.keywords.None | std.css.keywords.Start | std.css.keywords.End | std.css.keywords.Center | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Supplies 2 components in grammar order.

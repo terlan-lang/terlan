@@ -46,5 +46,5 @@
 module std.css.properties.AlignmentBaseline.
 
 pub struct Property {
-    alignment_baseline: Baseline | TextBottom | Alphabetic | Ideographic | Middle | Central | Mathematical | Hanging | TextTop | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    alignment_baseline: std.css.keywords.Baseline | std.css.keywords.TextBottom | std.css.keywords.Alphabetic | std.css.keywords.Ideographic | std.css.keywords.Middle | std.css.keywords.Central | std.css.keywords.Mathematical | std.css.keywords.Hanging | std.css.keywords.TextTop | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

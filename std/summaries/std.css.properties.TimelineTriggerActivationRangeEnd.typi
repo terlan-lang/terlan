@@ -30,5 +30,5 @@
 module std.css.properties.TimelineTriggerActivationRangeEnd.
 
 pub struct Property {
-    timeline_trigger_activation_range_end: Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    timeline_trigger_activation_range_end: std.css.keywords.Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -97,12 +97,7 @@ fn resolves_phi_predecessor_labels() {
         },
         IrBlock {
             label: "join".to_owned(),
-            instructions: vec![instruction(
-                "phi",
-                "%result",
-                &["entry", "%value"],
-                "Int",
-            )],
+            instructions: vec![instruction("phi", "%result", &["entry", "%value"], "Int")],
             terminator: IrTerminator {
                 opcode: "return".to_owned(),
                 operands: vec!["%result".to_owned()],

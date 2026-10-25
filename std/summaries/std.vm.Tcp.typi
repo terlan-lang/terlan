@@ -32,7 +32,7 @@ pub opaque type TcpSocket.
 /// Transformation: parks or resumes through the VM scheduler while preserving
 /// listener ownership inside the VM runtime.
 
-pub (listener: TcpListener) accept(timeout: Timeout): Result < TcpSocket, Error >.
+pub (listener: TcpListener) accept(timeout: std.vm.Timeout): Result < TcpSocket, std.core.Error >.
 
 /// Closes a connected socket.
 ///
@@ -58,7 +58,7 @@ pub (mut listener: TcpListener) close_listener(): Unit.
 /// Transformation: delegates DNS, socket creation, and connection failure
 /// normalization to the selected VM runtime.
 
-pub connect(host: String, port: Int, timeout: Timeout): Result[TcpSocket, Error].
+pub connect(host: String, port: Int, timeout: std.vm.Timeout): Result[TcpSocket, std.core.Error].
 
 /// Starts listening on a TCP address.
 ///
@@ -68,7 +68,7 @@ pub connect(host: String, port: Int, timeout: Timeout): Result[TcpSocket, Error]
 /// Transformation: delegates address binding, listener ownership, and resource
 /// diagnostics to the selected VM runtime.
 
-pub listen(address: String): Result < TcpListener, Error >.
+pub listen(address: String): Result < TcpListener, std.core.Error >.
 
 /// Starts listening on a TCP address with an explicit accept backlog.
 ///
@@ -78,7 +78,7 @@ pub listen(address: String): Result < TcpListener, Error >.
 /// Transformation: delegates bounded accept queue setup to the VM runtime so
 /// overloaded listeners expose backpressure instead of hidden host queues.
 
-pub listen_with_backlog(address: String, backlog: Int): Result < TcpListener, Error >.
+pub listen_with_backlog(address: String, backlog: Int): Result < TcpListener, std.core.Error >.
 
 /// Receives bytes from a connected socket.
 ///
@@ -87,7 +87,7 @@ pub listen_with_backlog(address: String, backlog: Int): Result < TcpListener, Er
 /// Transformation: delegates receive buffering and timeout behavior to the
 /// selected VM runtime while keeping the protocol frame typed as `Bytes`.
 
-pub (socket: TcpSocket) receive(max_bytes: Int, timeout: Timeout): Result[Bytes, Error].
+pub (socket: TcpSocket) receive(max_bytes: Int, timeout: std.vm.Timeout): Result[std.vm.Bytes, std.core.Error].
 
 /// Sends bytes on a connected socket.
 ///
@@ -96,4 +96,4 @@ pub (socket: TcpSocket) receive(max_bytes: Int, timeout: Timeout): Result[Bytes,
 /// Transformation: asks the selected VM runtime to send the binary frame and
 /// report target socket failures through the standard error channel.
 
-pub (socket: TcpSocket) send(bytes: Bytes): Result[Unit, Error].
+pub (socket: TcpSocket) send(bytes: std.vm.Bytes): Result[Unit, std.core.Error].

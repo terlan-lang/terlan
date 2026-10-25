@@ -4,8 +4,14 @@ use crate::compiler::native_ir::NativeModule;
 
 #[test]
 fn prefix_fusion_decodes_literals_and_does_not_allocate_a_literal_operand() {
-    for literal in ["prefix", "\"prefix:\\u03bb\\n\"", ""] {
-        let expected = core_string_runtime_value(literal).unwrap();
+    for (literal, expected) in [
+        ("prefix", "prefix"),
+        ("\"prefix:\\u03bb\\n\"", "prefix:λ\n"),
+        ("\"/caf\\u00e9/menu\"", "/café/menu"),
+        ("\"\\ud83d\\ude00\"", "😀"),
+        ("", ""),
+    ] {
+        assert_eq!(core_string_runtime_value(literal).unwrap(), expected);
         let right = CoreExpr::Var("value".into());
         let lowered = lower(&CoreExpr::Binary(literal.into()), &right, |expression| {
             assert_eq!(expression, &right);
@@ -15,7 +21,7 @@ fn prefix_fusion_decodes_literals_and_does_not_allocate_a_literal_operand() {
         assert_eq!(
             lowered,
             NativeExpr::ManagedOperation {
-                encoded: encode_string_prepend_literal_operation(&expected)
+                encoded: encode_string_prepend_literal_operation(expected)
                     .unwrap()
                     .into(),
                 args: vec![NativeExpr::Param(0)],

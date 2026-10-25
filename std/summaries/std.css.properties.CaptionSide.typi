@@ -22,5 +22,5 @@
 module std.css.properties.CaptionSide.
 
 pub struct Property {
-    caption_side: Top | Bottom | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    caption_side: std.css.keywords.Top | std.css.keywords.Bottom | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

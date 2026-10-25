@@ -28,5 +28,5 @@
 module std.css.properties.TextDecorationStyle.
 
 pub struct Property {
-    text_decoration_style: Solid | Double | Dotted | Dashed | Wavy | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_decoration_style: std.css.keywords.Solid | std.css.keywords.Double | std.css.keywords.Dotted | std.css.keywords.Dashed | std.css.keywords.Wavy | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

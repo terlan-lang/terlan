@@ -24,5 +24,5 @@
 module std.css.properties.FontVariationSettings.
 
 pub struct Property {
-    font_variation_settings: Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_variation_settings: std.css.keywords.Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

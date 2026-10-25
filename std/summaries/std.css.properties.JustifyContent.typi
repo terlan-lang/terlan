@@ -65,5 +65,5 @@
 module std.css.properties.JustifyContent.
 
 pub struct Property {
-    justify_content: Normal | SpaceBetween | SpaceAround | SpaceEvenly | Stretch | Center | Start | End | FlexStart | FlexEnd | Left | Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    justify_content: std.css.keywords.Normal | std.css.keywords.SpaceBetween | std.css.keywords.SpaceAround | std.css.keywords.SpaceEvenly | std.css.keywords.Stretch | std.css.keywords.Center | std.css.keywords.Start | std.css.keywords.End | std.css.keywords.FlexStart | std.css.keywords.FlexEnd | std.css.keywords.Left | std.css.keywords.Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

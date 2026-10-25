@@ -23,5 +23,5 @@
 module std.css.properties.TextBoxTrim.
 
 pub struct Property {
-    text_box_trim: None | TrimStart | TrimEnd | TrimBoth | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_box_trim: std.css.keywords.None | std.css.keywords.TrimStart | std.css.keywords.TrimEnd | std.css.keywords.TrimBoth | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

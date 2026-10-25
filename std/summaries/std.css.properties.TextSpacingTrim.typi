@@ -19,5 +19,5 @@
 module std.css.properties.TextSpacingTrim.
 
 pub struct Property {
-    text_spacing_trim: SpaceAll | Normal | SpaceFirst | TrimStart | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_spacing_trim: std.css.keywords.SpaceAll | std.css.keywords.Normal | std.css.keywords.SpaceFirst | std.css.keywords.TrimStart | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

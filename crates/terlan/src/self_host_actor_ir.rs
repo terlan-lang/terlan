@@ -84,19 +84,19 @@ fn identity_domain(kind: &str) -> Option<(&'static [u8], bool)> {
     match kind {
         "continuation" => Some((b"terlan-tvm-continuation-v1\0", true)),
         "composed-completion" => Some((b"terlan-tvm-composed-completion-v1\0", true)),
-        "reduction-continuation" => {
-            Some((b"terlan-tvm-reduction-continuation-v1\0", false))
-        }
-        "reduction-completion" => {
-            Some((b"terlan-tvm-reduction-completion-v1\0", false))
-        }
+        "reduction-continuation" => Some((b"terlan-tvm-reduction-continuation-v1\0", false)),
+        "reduction-completion" => Some((b"terlan-tvm-reduction-completion-v1\0", false)),
         _ => None,
     }
 }
 
 fn expected_identity(value: &ActorContinuation) -> Result<String, String> {
-    let (domain, needs_ordinal) = identity_domain(&value.identity_kind)
-        .ok_or_else(|| format!("unknown continuation identity kind `{}`", value.identity_kind))?;
+    let (domain, needs_ordinal) = identity_domain(&value.identity_kind).ok_or_else(|| {
+        format!(
+            "unknown continuation identity kind `{}`",
+            value.identity_kind
+        )
+    })?;
     if value.has_ordinal != needs_ordinal || (!value.has_ordinal && value.ordinal != 0) {
         return Err(format!(
             "continuation `{}` has identity provenance inconsistent with `{}`",
@@ -126,8 +126,14 @@ pub fn dispatch_id(identity: &str) -> Result<u64, String> {
     let hex = identity
         .strip_prefix("sha256:")
         .ok_or_else(|| "continuation identity is missing `sha256:` prefix".to_owned())?;
-    if hex.len() != 64 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
-        return Err("continuation identity must contain 64 lowercase hexadecimal digits".to_owned());
+    if hex.len() != 64
+        || !hex
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(
+            "continuation identity must contain 64 lowercase hexadecimal digits".to_owned(),
+        );
     }
     let mut prefix = [0u8; 8];
     for (index, byte) in prefix.iter_mut().enumerate() {
@@ -177,7 +183,10 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
             if entry.has_export_identity && dispatch_id(&entry.export_identity).is_err() {
                 diagnostics.push(format!(
                     "actor suspension profile `{}.{}/{}` has invalid export identity `{}`",
-                    profile.module_name, profile.callable_name, profile.arity, entry.export_identity
+                    profile.module_name,
+                    profile.callable_name,
+                    profile.arity,
+                    entry.export_identity
                 ));
             }
             if dispatch_id(&entry.continuation_identity).is_err() {
@@ -206,7 +215,10 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
     let mut dispatch_ids = BTreeSet::new();
     for continuation in &document.continuations {
         if !ids.insert(continuation.id.clone()) {
-            diagnostics.push(format!("duplicate continuation identity `{}`", continuation.id));
+            diagnostics.push(format!(
+                "duplicate continuation identity `{}`",
+                continuation.id
+            ));
         }
         match expected_identity(continuation) {
             Ok(expected) if expected != continuation.id => diagnostics.push(format!(
@@ -257,7 +269,10 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
             || continuation.entry_block.is_empty()
             || continuation.return_type.is_empty()
         {
-            diagnostics.push(format!("continuation `{}` has incomplete ownership or type metadata", continuation.id));
+            diagnostics.push(format!(
+                "continuation `{}` has incomplete ownership or type metadata",
+                continuation.id
+            ));
         }
     }
     for profile in &document.profiles {
@@ -366,7 +381,11 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
                 ));
             }
         }
-        if site.resumes.iter().all(|resume| !resume.has_callee_export_id) {
+        if site
+            .resumes
+            .iter()
+            .all(|resume| !resume.has_callee_export_id)
+        {
             if let Some(profile) = document.profiles.iter().find(|profile| {
                 profile.module_name == site.callee_module
                     && profile.callable_name == site.callee_function
@@ -470,9 +489,7 @@ pub struct RuntimeActorPlan {
     pub suspension_sites: Vec<RuntimeActorSuspensionSite>,
 }
 
-fn materialize_continuation(
-    value: ActorContinuation,
-) -> Result<RuntimeActorContinuation, String> {
+fn materialize_continuation(value: ActorContinuation) -> Result<RuntimeActorContinuation, String> {
     Ok(RuntimeActorContinuation {
         id: dispatch_id(&value.id)?,
         source_module: value.source_module,
@@ -502,9 +519,7 @@ fn materialize_resume(value: ActorResumeEdge) -> Result<RuntimeActorResumeEdge, 
     })
 }
 
-fn materialize_site(
-    value: ActorSuspensionSite,
-) -> Result<RuntimeActorSuspensionSite, String> {
+fn materialize_site(value: ActorSuspensionSite) -> Result<RuntimeActorSuspensionSite, String> {
     let resumes = value
         .resumes
         .into_iter()

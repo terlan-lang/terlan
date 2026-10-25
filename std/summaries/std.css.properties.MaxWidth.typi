@@ -40,7 +40,7 @@ module std.css.properties.MaxWidth.
 pub opaque type Checked.
 
 pub struct Property {
-    max_width: None | Stretch | MinContent | MaxContent | FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    max_width: std.css.keywords.None | std.css.keywords.Stretch | std.css.keywords.MinContent | std.css.keywords.MaxContent | std.css.keywords.FitContent | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the max-width length range. Returns Some when amount >= 0; otherwise returns None.

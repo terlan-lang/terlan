@@ -77,13 +77,14 @@ export function renderProperty(property, definitions, adoptedAtoms, context) {
     const hasCheck=checked(repeated.atoms,'CheckedComponent','component_');
     const component=choices(repeated.atoms,hasCheck?'CheckedComponent':null).join(' | ');
     declarations.push(`pub type Component = ${component}.`);
+    if (hasCheck) functions.push(`component_value(value: Component): ${physical(component)} ->\n    value.`);
     payloads.push(`{Atom["css_parts"], List[${physical(component)}]}`);
     const parameters=['first','second','third','fourth'],arities=['single','pair','triple','quad'];
     for(let count=repeated.min;count<=repeated.max;count++){
       const selected=parameters.slice(0,count);
       const fourSides=['margin','padding','inset','border-color','border-width','border-style','scroll-margin','scroll-padding'].includes(property.name);
       const meaning=fourSides?['Applies to all four sides.','First sets top/bottom; second sets left/right.','First sets top; second sets left/right; third sets bottom.','Sets top, right, bottom, and left in that order.'][count-1]:`Supplies ${count} components in grammar order.`;
-      functions.push(`${comment(meaning)}\npub ${arities[count-1]}(${selected.map(p=>`${p}: Component`).join(', ')}): Checked ->\n    Checked({Atom["css_parts"], [${selected.join(', ')}]}).`);
+      functions.push(`${comment(meaning)}\npub ${arities[count-1]}(${selected.map(p=>`${p}: Component`).join(', ')}): Checked ->\n    Checked({Atom["css_parts"], [${selected.map(name=>hasCheck?'component_value('+name+')':name).join(', ')}]}).`);
     }
   }
   if(grouped){
@@ -93,7 +94,9 @@ export function renderProperty(property, definitions, adoptedAtoms, context) {
       const hasCheck=checked(group.atoms,check,identifier(group.name)+'_');
       const allowed=choices(group.atoms,hasCheck?check:null).join(' | ');
       declarations.push(`pub type ${part} = ${allowed}.`);
-      parameters.push(`${parameter}: ${part}`);tupleTypes.push(physical(allowed));tupleValues.push(parameter);
+      parameters.push(`${parameter}: ${part}`);tupleTypes.push(physical(allowed));
+      if (hasCheck) functions.push(`${parameter}_value(value: ${part}): ${physical(allowed)} ->\n    value.`);
+      tupleValues.push(hasCheck?`${parameter}_value(${parameter})`:parameter);
     }
     payloads.push(`{Atom["css_parts"], {${tupleTypes.join(', ')}}}`);
     functions.push(`${comment(`Combines ${grouped.groups.map(g=>g.name).join(', ')} for ${property.name}. Each parameter accepts its own keyword or typed unit choices directly.`)}\npub compose(${parameters.join(', ')}): Checked ->\n    Checked({Atom["css_parts"], {${tupleValues.join(', ')}}}).`);
@@ -105,6 +108,8 @@ export function renderProperty(property, definitions, adoptedAtoms, context) {
   if(helpers.size)imports.add(`import std.css.Values.{${[...helpers].sort().join(', ')}}.`);
   const meanings=keywordModule?keywords.filter(k=>docs?.values[k]).map(k=>`- ${k}: ${docs.values[k]}${docs.valueSources?.[k]?' See '+docs.valueSources[k]:''}`).join('\n'):'';
   const overview=[docs?.description,propertyFacts(property.name),meanings&&'Keyword effects:\n'+meanings,`Grammar: ${property.syntax}`,`Specification: ${property.href}`,...(docs?[`Author guide: ${docs.source}`,...(docs.license?['Purpose and value descriptions adapted from MDN contributors (CC-BY-SA-2.5).']:[]),...(docs.microsoftValues?['Additional value descriptions: Microsoft (MIT).']:[])]:[]),'Generated from @webref/css 8.7.8. Do not edit.'].filter(Boolean).join('\n\n');
-  const source=`${comment(overview)}\nmodule std.css.properties.${name}.\n\n${[...imports].sort().join('\n')}\n\n${declarations.length?declarations.join('\n\n')+'\n\n':''}pub struct Property {\n    ${identifier(property.name)}: ${fieldChoices.join(' | ')},\n}.\n${functions.length?'\n'+functions.join('\n\n')+'\n':''}`;
+  // Copied article fragments must keep pointing to the original author guide.
+  const linkedOverview=docs?.source?overview.replace(/\]\((#[^)]+)\)/g,(_,fragment)=>`](${new URL(fragment,docs.source).href})`):overview;
+  const source=`${comment(linkedOverview)}\nmodule std.css.properties.${name}.\n\n${[...imports].sort().join('\n')}\n\n${declarations.length?declarations.join('\n\n')+'\n\n':''}pub struct Property {\n    ${identifier(property.name)}: ${fieldChoices.join(' | ')},\n}.\n${functions.length?'\n'+functions.join('\n\n')+'\n':''}`;
   return {source,atoms,repeated,grouped,keywords};
 }

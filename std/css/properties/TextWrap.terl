@@ -47,7 +47,11 @@ pub type TextWrapModePart = Wrap | Nowrap.
 
 pub type TextWrapStylePart = Auto | Balance | Stable | Pretty.
 
-pub opaque type Checked = {Atom["css_parts"], {TextWrapModePart, TextWrapStylePart}}.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          {Atom["wrap"] | Atom["nowrap"], Atom["auto"] | Atom["balance"] | Atom["stable"] | Atom["pretty"]}
+      }.
 
 pub struct Property {
     text_wrap: Wrap | Nowrap | Auto | Balance | Stable | Pretty | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

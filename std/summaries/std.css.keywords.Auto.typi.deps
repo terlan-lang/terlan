@@ -1,7 +1,7 @@
 module=std.css.keywords.Auto
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=18069888372619202826
 interface_hash=5111240432937122722
 interface_doc_hash=18018400810489561102

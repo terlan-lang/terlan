@@ -74,7 +74,11 @@ pub type Component =
     | Inset
     | Outset.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          List[Atom["none"] | Atom["hidden"] | Atom["dotted"] | Atom["dashed"] | Atom["solid"] | Atom["double"] | Atom["groove"] | Atom["ridge"] | Atom["inset"] | Atom["outset"]]
+      }.
 
 pub struct Property {
     border_style: None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

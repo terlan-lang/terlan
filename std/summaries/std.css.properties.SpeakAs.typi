@@ -31,5 +31,5 @@
 module std.css.properties.SpeakAs.
 
 pub struct Property {
-    speak_as: Normal | SpellOut | Digits | LiteralPunctuation | NoPunctuation | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    speak_as: std.css.keywords.Normal | std.css.keywords.SpellOut | std.css.keywords.Digits | std.css.keywords.LiteralPunctuation | std.css.keywords.NoPunctuation | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

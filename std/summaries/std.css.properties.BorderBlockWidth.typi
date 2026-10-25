@@ -34,13 +34,13 @@ pub opaque type Checked.
 pub opaque type CheckedComponent.
 
 pub type Component =
-    Thin
-  | Medium
-  | Thick
+    std.css.keywords.Thin
+  | std.css.keywords.Medium
+  | std.css.keywords.Thick
   | CheckedComponent.
 
 pub struct Property {
-    border_block_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    border_block_width: std.css.keywords.Thin | std.css.keywords.Medium | std.css.keywords.Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the border-block-width length range. Returns Some when amount >= 0; otherwise returns

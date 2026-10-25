@@ -44,5 +44,5 @@
 module std.css.properties.ContainerType.
 
 pub struct Property {
-    container_type: Normal | Size | InlineSize | ScrollState | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    container_type: std.css.keywords.Normal | std.css.keywords.Size | std.css.keywords.InlineSize | std.css.keywords.ScrollState | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

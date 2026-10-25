@@ -24,7 +24,7 @@ pub struct Instant {
 /// Output: `Instant` advanced by the supplied duration.
 /// Transformation: adds both millisecond payloads.
 
-pub add_duration(instant: Instant, duration: Duration): Instant.
+pub add_duration(instant: Instant, duration: std.time.Duration): Instant.
 
 /// Returns the duration from an earlier instant to a later instant.
 ///
@@ -33,7 +33,7 @@ pub add_duration(instant: Instant, duration: Duration): Instant.
 /// Transformation: subtracts timestamp payloads and stores the millisecond
 /// difference as a portable duration.
 
-pub duration_since(later: Instant, earlier: Instant): Duration.
+pub duration_since(later: Instant, earlier: Instant): std.time.Duration.
 
 /// Creates an instant from milliseconds.
 ///
@@ -50,7 +50,7 @@ pub from_milliseconds(milliseconds: Float): Instant.
 /// Output: `Instant` moved backward by the supplied duration.
 /// Transformation: subtracts the duration millisecond payload.
 
-pub subtract_duration(instant: Instant, duration: Duration): Instant.
+pub subtract_duration(instant: Instant, duration: std.time.Duration): Instant.
 
 /// Constructs an instant from milliseconds.
 ///

@@ -8,8 +8,9 @@
  *
  * Keyword effects:
  * - auto: Selected elements are in their default state in terms of inertness. This usually means
- * that they are interactive, but this is [not always the case](#default_inertness). This is the
- * default value.
+ * that they are interactive, but this is [not always the
+ * case](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/interactivity#default_inertness).
+ * This is the default value.
  * - inert: Selected elements and their descendants are inert.
  *
  * Grammar: auto | inert

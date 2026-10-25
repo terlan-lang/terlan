@@ -24,5 +24,5 @@
 module std.css.properties.PositionTryOrder.
 
 pub struct Property {
-    position_try_order: Normal | MostWidth | MostHeight | MostBlockSize | MostInlineSize | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    position_try_order: std.css.keywords.Normal | std.css.keywords.MostWidth | std.css.keywords.MostHeight | std.css.keywords.MostBlockSize | std.css.keywords.MostInlineSize | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

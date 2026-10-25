@@ -19,5 +19,5 @@
 module std.css.properties.ScrollAxisLock.
 
 pub struct Property {
-    scroll_axis_lock: Auto | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    scroll_axis_lock: std.css.keywords.Auto | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

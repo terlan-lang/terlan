@@ -39,7 +39,7 @@ module std.css.properties.FontWidth.
 pub opaque type Checked.
 
 pub struct Property {
-    font_width: Normal | UltraCondensed | ExtraCondensed | Condensed | SemiCondensed | SemiExpanded | Expanded | ExtraExpanded | UltraExpanded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    font_width: std.css.keywords.Normal | std.css.keywords.UltraCondensed | std.css.keywords.ExtraCondensed | std.css.keywords.Condensed | std.css.keywords.SemiCondensed | std.css.keywords.SemiExpanded | std.css.keywords.Expanded | std.css.keywords.ExtraExpanded | std.css.keywords.UltraExpanded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the font-width percentage range. Returns Some when amount >= 0; otherwise returns None.

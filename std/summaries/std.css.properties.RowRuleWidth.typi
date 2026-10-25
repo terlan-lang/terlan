@@ -23,5 +23,5 @@
 module std.css.properties.RowRuleWidth.
 
 pub struct Property {
-    row_rule_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    row_rule_width: std.css.keywords.Thin | std.css.keywords.Medium | std.css.keywords.Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

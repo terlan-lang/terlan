@@ -632,7 +632,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
 fn format_raw_macro(name: &str, rendered_type_args: &str, raw: &str, indent: usize) -> String {
     let trimmed = raw.trim();
     if !trimmed.contains('\n') {
-        return format!("{name}{rendered_type_args}{{{trimmed}}}");
+        return format!("{name}{rendered_type_args} {{{trimmed}}}");
     }
 
     let lines = trimmed.lines().collect::<Vec<_>>();
@@ -661,7 +661,7 @@ fn format_raw_macro(name: &str, rendered_type_args: &str, raw: &str, indent: usi
         })
         .collect::<Vec<_>>()
         .join("\n");
-    format!("{name}{rendered_type_args}{{\n{body}\n{closing_indent}}}")
+    format!("{name}{rendered_type_args} {{\n{body}\n{closing_indent}}}")
 }
 
 /// Formats a long boolean chain with one operator-led continuation per line.

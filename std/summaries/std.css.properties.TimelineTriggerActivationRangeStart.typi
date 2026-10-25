@@ -29,5 +29,5 @@
 module std.css.properties.TimelineTriggerActivationRangeStart.
 
 pub struct Property {
-    timeline_trigger_activation_range_start: Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    timeline_trigger_activation_range_start: std.css.keywords.Normal | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

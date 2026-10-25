@@ -98,7 +98,7 @@ pub (endpoint: Endpoint) producer(next: () -> Option[Event]): Endpoint.
 /// live stream mutation remains VM-owned runtime work. CRLF is collapsed before
 /// CR normalization, preserving one logical newline before maintained framing.
 
-pub response(events: List[Event], status: Int = 200): Response.
+pub response(events: List[Event], status: Int = 200): std.http.Response.
 
 /// Returns an event after setting its id.
 ///

@@ -157,9 +157,7 @@ pub(crate) use manifest::validate_web_package;
 use response::{build_http_response_for_stream, inject_reload_script};
 #[cfg(test)]
 use terlan_http_native::content_type_for_path;
-use tls::{
-    acme_http01_response, runtime_tls_config_for_serve, RuntimeTlsConfig,
-};
+use tls::{acme_http01_response, runtime_tls_config_for_serve, RuntimeTlsConfig};
 #[cfg(test)]
 use watch::ReloadHub;
 use watch::{spawn_reload_watcher, ReloadWatchBackend};

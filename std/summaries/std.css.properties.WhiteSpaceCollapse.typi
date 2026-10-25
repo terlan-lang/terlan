@@ -32,5 +32,5 @@
 module std.css.properties.WhiteSpaceCollapse.
 
 pub struct Property {
-    white_space_collapse: Collapse | Preserve | PreserveBreaks | PreserveSpaces | BreakSpaces | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    white_space_collapse: std.css.keywords.Collapse | std.css.keywords.Preserve | std.css.keywords.PreserveBreaks | std.css.keywords.PreserveSpaces | std.css.keywords.BreakSpaces | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

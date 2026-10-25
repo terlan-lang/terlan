@@ -37,5 +37,5 @@
 module std.css.properties.FontVariantLigatures.
 
 pub struct Property {
-    font_variant_ligatures: Normal | None | CommonLigatures | NoCommonLigatures | DiscretionaryLigatures | NoDiscretionaryLigatures | HistoricalLigatures | NoHistoricalLigatures | Contextual | NoContextual | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_variant_ligatures: std.css.keywords.Normal | std.css.keywords.None | std.css.keywords.CommonLigatures | std.css.keywords.NoCommonLigatures | std.css.keywords.DiscretionaryLigatures | std.css.keywords.NoDiscretionaryLigatures | std.css.keywords.HistoricalLigatures | std.css.keywords.NoHistoricalLigatures | std.css.keywords.Contextual | std.css.keywords.NoContextual | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

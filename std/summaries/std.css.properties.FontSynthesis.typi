@@ -28,5 +28,5 @@
 module std.css.properties.FontSynthesis.
 
 pub struct Property {
-    font_synthesis: None | Weight | Style | SmallCaps | Position | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_synthesis: std.css.keywords.None | std.css.keywords.Weight | std.css.keywords.Style | std.css.keywords.SmallCaps | std.css.keywords.Position | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

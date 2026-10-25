@@ -26,5 +26,5 @@
 module std.css.properties.TextCombineUpright.
 
 pub struct Property {
-    text_combine_upright: None | All | Digits | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_combine_upright: std.css.keywords.None | std.css.keywords.All | std.css.keywords.Digits | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

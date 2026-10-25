@@ -10,4 +10,4 @@ module std.crypto.Entropy.
 /// Transformation: requests OS randomness once without encoding, retrying, or
 /// exposing partially filled output when the provider fails.
 
-pub bytes(count: Int): Bytes.
+pub bytes(count: Int): std.vm.Bytes.

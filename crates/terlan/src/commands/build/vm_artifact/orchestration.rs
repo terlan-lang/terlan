@@ -198,8 +198,12 @@ fn compile_application_from_root(
             "error[serve.aot.image_required]: application route module `{expected_module}` did not produce a native image"
         )
     })?;
-    let interfaces = modules.iter().map(|module| module.compiled.core.interface.clone()).collect();
-    Ok(CompiledServeApplication { core, image, interfaces })
+    let interfaces = cores.iter().map(|core| core.interface.clone()).collect();
+    Ok(CompiledServeApplication {
+        core,
+        image,
+        interfaces,
+    })
 }
 
 /// Removes the build output root from source identities embedded in packaged

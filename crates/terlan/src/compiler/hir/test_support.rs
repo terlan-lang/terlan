@@ -66,7 +66,7 @@ fn collapsed_std_module_candidates(module: &SyntaxModuleOutput) -> Vec<String> {
                 module_name,
                 items,
                 ..
-            } if module_name.starts_with("std.") && items.len() > 1 => Some((module_name, items)),
+            } if module_name.starts_with("std.") && !items.is_empty() => Some((module_name, items)),
             _ => None,
         })
         .flat_map(|(module_name, items)| {

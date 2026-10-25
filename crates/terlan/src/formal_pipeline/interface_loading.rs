@@ -293,6 +293,11 @@ fn collect_type_modules(text: &str, modules: &mut BTreeSet<String>) {
             if let Some((module, name)) = token.rsplit_once('.') {
                 if name.starts_with(|ch: char| ch.is_ascii_uppercase()) {
                     modules.insert(module.to_string());
+                    // A qualified head may itself name the module's primary type.
+                    // Only providers present in the interface catalog are admitted.
+                    if module.rsplit('.').next() != Some(name) {
+                        modules.insert(token.clone());
+                    }
                 }
             }
             token.clear();

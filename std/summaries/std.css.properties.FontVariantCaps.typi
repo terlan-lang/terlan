@@ -36,5 +36,5 @@
 module std.css.properties.FontVariantCaps.
 
 pub struct Property {
-    font_variant_caps: Normal | SmallCaps | AllSmallCaps | PetiteCaps | AllPetiteCaps | Unicase | TitlingCaps | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_variant_caps: std.css.keywords.Normal | std.css.keywords.SmallCaps | std.css.keywords.AllSmallCaps | std.css.keywords.PetiteCaps | std.css.keywords.AllPetiteCaps | std.css.keywords.Unicase | std.css.keywords.TitlingCaps | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -1,7 +1,7 @@
 module=std.io.Directory
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=10839180958397426001
 interface_hash=11676352955136796299
 interface_doc_hash=926080196743633682
@@ -9,4 +9,4 @@ deps=4
 std.core.Error=11862556521397520043
 std.core.Result=11040488711914238385
 std.core.Unit=13611133214341763160
-std.io.File=10099077961533866580
+std.io.File=3721656919885021023

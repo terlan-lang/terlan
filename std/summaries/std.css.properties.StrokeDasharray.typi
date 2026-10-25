@@ -24,5 +24,5 @@
 module std.css.properties.StrokeDasharray.
 
 pub struct Property {
-    stroke_dasharray: None | std.css.Values.Length | std.css.Values.Percentage | Float | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    stroke_dasharray: std.css.keywords.None | std.css.Values.Length | std.css.Values.Percentage | Float | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

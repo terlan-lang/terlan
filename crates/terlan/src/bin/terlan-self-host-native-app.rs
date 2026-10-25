@@ -28,15 +28,19 @@ fn run() -> Result<(), String> {
     for input in inputs.chunks_exact(3) {
         let core_source = fs::read_to_string(&input[0])
             .map_err(|error| format!("failed to read `{}`: {error}", input[0].display()))?;
-        envelopes.push(serde_json::from_str::<BackendEnvelope>(&core_source).map_err(|error| {
-            format!("invalid ABI-1 JSON in `{}`: {error}", input[0].display())
-        })?);
-        variant_irs.push(fs::read_to_string(&input[1]).map_err(|error| {
-            format!("failed to read `{}`: {error}", input[1].display())
-        })?);
-        actor_irs.push(fs::read_to_string(&input[2]).map_err(|error| {
-            format!("failed to read `{}`: {error}", input[2].display())
-        })?);
+        envelopes.push(
+            serde_json::from_str::<BackendEnvelope>(&core_source).map_err(|error| {
+                format!("invalid ABI-1 JSON in `{}`: {error}", input[0].display())
+            })?,
+        );
+        variant_irs.push(
+            fs::read_to_string(&input[1])
+                .map_err(|error| format!("failed to read `{}`: {error}", input[1].display()))?,
+        );
+        actor_irs.push(
+            fs::read_to_string(&input[2])
+                .map_err(|error| format!("failed to read `{}`: {error}", input[2].display()))?,
+        );
     }
     let object = terlan::self_host_native_backend::emit_typed_actor_application(
         &envelopes,

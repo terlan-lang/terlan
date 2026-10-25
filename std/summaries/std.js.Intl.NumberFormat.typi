@@ -18,3 +18,5 @@ pub opaque type NumberFormat.
 pub (receiver: NumberFormat) format(value: std.js.Number.JsNumber): std.js.String.JsString.
 
 pub (receiver: NumberFormat) resolved_options(): std.js.Intl.ResolvedNumberFormatOptions.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, format: (std.js.Number.JsNumber) -> std.js.String.JsString, resolved_options: () -> std.js.Intl.ResolvedNumberFormatOptions): BindingTarget.

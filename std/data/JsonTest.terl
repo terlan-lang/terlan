@@ -268,12 +268,7 @@ pub required_fields_project_owned_values_in_one_call(): Bool ->
     let {
         Ok(value) <- Json.parse("{\"name\":\"Ada\",\"count\":3,\"items\":[1,2]}");
         Ok(projection) <- value.required_fields(["name"], ["count"], ["items"]);
-        {["Ada"], [3], [2]} <-
-            {
-                projection.strings,
-                projection.ints,
-                projection.array_lengths,
-            }
+        {["Ada"], [3], [2]} <- {projection.strings, projection.ints, projection.array_lengths}
     } else {
         _ -> false
     };
@@ -295,15 +290,7 @@ pub required_field_rows_project_owned_scalars_in_source_order(): Bool ->
             );
         Ok(rows) <- value.required_field_rows(["name"], ["count"], ["enabled"]);
         [first, second] <- rows;
-        {["Ada"], [3], [true], ["Lin"], [4], [false]} <-
-            {
-                first.strings,
-                first.ints,
-                first.bools,
-                second.strings,
-                second.ints,
-                second.bools,
-            }
+        {["Ada"], [3], [true], ["Lin"], [4], [false]} <- {first.strings, first.ints, first.bools, second.strings, second.ints, second.bools}
     } else {
         _ -> false
     };

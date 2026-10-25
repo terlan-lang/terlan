@@ -37,5 +37,5 @@
 module std.css.properties.MaskOrigin.
 
 pub struct Property {
-    mask_origin: ContentBox | PaddingBox | BorderBox | FillBox | StrokeBox | ViewBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    mask_origin: std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.FillBox | std.css.keywords.StrokeBox | std.css.keywords.ViewBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

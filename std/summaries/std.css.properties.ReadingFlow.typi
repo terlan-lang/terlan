@@ -40,5 +40,5 @@
 module std.css.properties.ReadingFlow.
 
 pub struct Property {
-    reading_flow: Normal | SourceOrder | FlexVisual | FlexFlow | GridRows | GridColumns | GridOrder | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    reading_flow: std.css.keywords.Normal | std.css.keywords.SourceOrder | std.css.keywords.FlexVisual | std.css.keywords.FlexFlow | std.css.keywords.GridRows | std.css.keywords.GridColumns | std.css.keywords.GridOrder | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

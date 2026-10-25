@@ -27,3 +27,5 @@ pub opaque type InputDeviceInfo.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/InputDeviceInfo/getCapabilities)
  */
 pub (receiver: InputDeviceInfo) get_capabilities(): std.js.Dom.MediaTrackCapabilities.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, get_capabilities: () -> std.js.Dom.MediaTrackCapabilities): BindingTarget.

@@ -29,5 +29,5 @@
 module std.css.properties.TableLayout.
 
 pub struct Property {
-    table_layout: Auto | Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    table_layout: std.css.keywords.Auto | std.css.keywords.Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

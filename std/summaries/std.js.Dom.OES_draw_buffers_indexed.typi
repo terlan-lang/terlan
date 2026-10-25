@@ -68,3 +68,5 @@ pub (receiver: OES_draw_buffers_indexed) disablei_oes(target_: std.js.Dom.GLenum
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/OES_draw_buffers_indexed/enableiOES)
  */
 pub (receiver: OES_draw_buffers_indexed) enablei_oes(target_: std.js.Dom.GLenum, index: std.js.Dom.GLuint): std.core.Unit.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, blend_equation_separatei_oes: (std.js.Dom.GLuint, std.js.Dom.GLenum, std.js.Dom.GLenum) -> std.core.Unit, blend_equationi_oes: (std.js.Dom.GLuint, std.js.Dom.GLenum) -> std.core.Unit, blend_func_separatei_oes: (std.js.Dom.GLuint, std.js.Dom.GLenum, std.js.Dom.GLenum, std.js.Dom.GLenum, std.js.Dom.GLenum) -> std.core.Unit, blend_funci_oes: (std.js.Dom.GLuint, std.js.Dom.GLenum, std.js.Dom.GLenum) -> std.core.Unit, color_maski_oes: (std.js.Dom.GLuint, std.js.Dom.GLboolean, std.js.Dom.GLboolean, std.js.Dom.GLboolean, std.js.Dom.GLboolean) -> std.core.Unit, disablei_oes: (std.js.Dom.GLenum, std.js.Dom.GLuint) -> std.core.Unit, enablei_oes: (std.js.Dom.GLenum, std.js.Dom.GLuint) -> std.core.Unit): BindingTarget.

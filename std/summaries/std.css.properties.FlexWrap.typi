@@ -27,5 +27,5 @@
 module std.css.properties.FlexWrap.
 
 pub struct Property {
-    flex_wrap: Nowrap | Wrap | WrapReverse | Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    flex_wrap: std.css.keywords.Nowrap | std.css.keywords.Wrap | std.css.keywords.WrapReverse | std.css.keywords.Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

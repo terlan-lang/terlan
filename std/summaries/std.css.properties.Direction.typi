@@ -23,5 +23,5 @@
 module std.css.properties.Direction.
 
 pub struct Property {
-    direction: Ltr | Rtl | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    direction: std.css.keywords.Ltr | std.css.keywords.Rtl | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

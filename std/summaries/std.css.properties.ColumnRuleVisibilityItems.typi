@@ -25,5 +25,5 @@
 module std.css.properties.ColumnRuleVisibilityItems.
 
 pub struct Property {
-    column_rule_visibility_items: All | Around | Between | Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    column_rule_visibility_items: std.css.keywords.All | std.css.keywords.Around | std.css.keywords.Between | std.css.keywords.Normal | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -20,5 +20,5 @@
 module std.css.properties.TransformOrigin.
 
 pub struct Property {
-    transform_origin: Left | Center | Right | Top | Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    transform_origin: std.css.keywords.Left | std.css.keywords.Center | std.css.keywords.Right | std.css.keywords.Top | std.css.keywords.Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -79,14 +79,12 @@ pub(crate) fn lower_suspending_case(
                     function_core_types,
                     constructors,
                 )
-                .and_then(
-                    |core_type| {
-                        crate::compiler::native_ir::native_type(
-                            Some(&core_type),
-                            &core_type.contract_text(),
-                        )
-                    },
-                )
+                .and_then(|core_type| {
+                    crate::compiler::native_ir::native_type(
+                        Some(&core_type),
+                        &core_type.contract_text(),
+                    )
+                })
             })
             .ok_or_else(|| {
                 format!(

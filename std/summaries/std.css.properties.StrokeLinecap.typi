@@ -31,5 +31,5 @@
 module std.css.properties.StrokeLinecap.
 
 pub struct Property {
-    stroke_linecap: Butt | Round | Square | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    stroke_linecap: std.css.keywords.Butt | std.css.keywords.Round | std.css.keywords.Square | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

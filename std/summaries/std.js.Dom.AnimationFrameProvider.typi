@@ -24,3 +24,5 @@ pub (receiver: AnimationFrameProvider) cancel_animation_frame(handle: std.js.Num
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame)
  */
 pub (receiver: AnimationFrameProvider) request_animation_frame(callback: std.js.Dom.FrameRequestCallback): std.js.Number.JsNumber.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, cancel_animation_frame: (std.js.Number.JsNumber) -> std.core.Unit, request_animation_frame: (std.js.Dom.FrameRequestCallback) -> std.js.Number.JsNumber): BindingTarget.

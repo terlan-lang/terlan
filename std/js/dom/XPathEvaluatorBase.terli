@@ -22,3 +22,8 @@ pub opaque type XPathEvaluatorBase.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Document/createNSResolver)
  */
 pub (receiver: XPathEvaluatorBase) create_ns_resolver(node_resolver: Node): Node.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    create_ns_resolver: (Node) -> Node,
+): BindingTarget.

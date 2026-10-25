@@ -9,10 +9,9 @@ use super::*;
 pub(super) fn qualify(mapping: &mut DomModuleMapping) {
     let mut types = BTreeMap::<String, Vec<String>>::new();
     for module in &mapping.modules {
-        types
-            .entry(module.type_name.clone())
-            .or_default()
-            .push(crate::terlan_hir::public_type_path(&module.module_path, &module.type_name));
+        types.entry(module.type_name.clone()).or_default().push(
+            crate::terlan_hir::public_type_path(&module.module_path, &module.type_name),
+        );
     }
     for (name, provider) in [
         ("JsString", "std.js.String.JsString"),

@@ -36,3 +36,10 @@ pub (receiver: WEBGL_lose_context) lose_context(): Unit ->
  */
 pub (receiver: WEBGL_lose_context) restore_context(): Unit ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    lose_context: () -> Unit,
+    restore_context: () -> Unit,
+): BindingTarget ->
+    native.

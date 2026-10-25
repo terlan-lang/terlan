@@ -1,7 +1,7 @@
 module=std.css.keywords.Plaintext
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=16920246751450673629
 interface_hash=5361513472493735661
 interface_doc_hash=9633517225209707788

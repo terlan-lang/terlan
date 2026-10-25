@@ -25,10 +25,10 @@ pub(super) use manifest_validation::{
     validate_error_handler, validate_file_response, validate_handler, validate_sse,
     validate_static_response, validate_websocket,
 };
-mod websocket;
-mod websocket_invocation;
 #[cfg(test)]
 mod protocol_test_support;
+mod websocket;
+mod websocket_invocation;
 
 /// Admitted long-lived channel retained until production socket handoff.
 pub(super) type VmHttpChannelTransport = terlan_http_native::request_pipeline::Channel<

@@ -28,5 +28,5 @@
 module std.css.properties.ImageOrientation.
 
 pub struct Property {
-    image_orientation: FromImage | None | Flip | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    image_orientation: std.css.keywords.FromImage | std.css.keywords.None | std.css.keywords.Flip | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

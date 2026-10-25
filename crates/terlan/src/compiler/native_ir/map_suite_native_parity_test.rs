@@ -105,7 +105,7 @@ fn string_map_lookups_use_the_admitted_option_identity() {
         r#"
 module string_map_options.
 import std.collections.Map.
-pub type None = Atom["none"].
+pub type None = std.core.Option.None.
 pub type Some[T] = {Atom["some"], value: T}.
 pub type Option[T] = None | Some[T].
 pub get(): Bool ->

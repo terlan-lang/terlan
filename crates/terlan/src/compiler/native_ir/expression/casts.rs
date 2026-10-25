@@ -95,6 +95,17 @@ pub(super) fn lower_cast(
             .map_err(Into::into);
         }
     }
+    if let Some(value) = super::super::union_values::lower(
+        expr,
+        target_type,
+        params,
+        param_types,
+        functions,
+        function_types,
+        constructors,
+    )? {
+        return Ok(value);
+    }
     let erased = NativeType::ManagedRef(
         managed_erased_value_semantic_id().map_err(|error| error.to_string())?,
     );

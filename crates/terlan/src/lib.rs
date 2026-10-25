@@ -42,12 +42,12 @@ pub mod package_registry;
 #[cfg(feature = "quality-tools")]
 pub mod quality;
 pub mod runtime;
-pub mod self_host_backend;
 pub mod self_host_actor_ir;
-pub mod self_host_native_backend;
+pub mod self_host_backend;
 pub mod self_host_ir;
-pub mod self_host_variant_ir;
+pub mod self_host_native_backend;
 pub mod self_host_variant_adapter;
+pub mod self_host_variant_ir;
 pub(crate) mod service_foundation;
 pub(crate) use terlan_std_native as std_native_packages;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]

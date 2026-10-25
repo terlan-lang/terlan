@@ -1,7 +1,7 @@
 module=std.css.keywords.NonScalingStroke
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=4397714855956929611
 interface_hash=915717863916160313
 interface_doc_hash=5159719704604305360

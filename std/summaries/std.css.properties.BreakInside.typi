@@ -26,5 +26,5 @@
 module std.css.properties.BreakInside.
 
 pub struct Property {
-    break_inside: Auto | Avoid | AvoidPage | AvoidColumn | AvoidRegion | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    break_inside: std.css.keywords.Auto | std.css.keywords.Avoid | std.css.keywords.AvoidPage | std.css.keywords.AvoidColumn | std.css.keywords.AvoidRegion | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

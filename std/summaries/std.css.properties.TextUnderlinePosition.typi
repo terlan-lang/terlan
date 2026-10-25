@@ -35,5 +35,5 @@
 module std.css.properties.TextUnderlinePosition.
 
 pub struct Property {
-    text_underline_position: Auto | FromFont | Under | Left | Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_underline_position: std.css.keywords.Auto | std.css.keywords.FromFont | std.css.keywords.Under | std.css.keywords.Left | std.css.keywords.Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

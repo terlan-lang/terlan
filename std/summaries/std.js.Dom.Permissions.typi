@@ -26,3 +26,5 @@ pub opaque type Permissions.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Permissions/query)
  */
 pub (receiver: Permissions) query(permission_desc: std.js.Dom.PermissionDescriptor): std.js.Promise[std.js.Dom.PermissionStatus].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, query: (std.js.Dom.PermissionDescriptor) -> std.js.Promise[std.js.Dom.PermissionStatus]): BindingTarget.

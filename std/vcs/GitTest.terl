@@ -29,6 +29,5 @@ pub repository_identity_is_full_and_deterministic(): Bool ->
 pub missing_repository_returns_typed_error(): Bool ->
     case source_tree_identity("/__terlan_missing_git_repository_40f27f5d__") {
         Ok(_identity) -> false;
-        Err(reason) ->
-            reason.code == SourceTreeIdentityFailed and reason.message != ""
+        Err(reason) -> reason.code == SourceTreeIdentityFailed and reason.message != ""
     }.

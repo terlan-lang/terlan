@@ -31,12 +31,12 @@ module std.css.properties.Inset.
 pub opaque type Checked.
 
 pub type Component =
-    Auto
+    std.css.keywords.Auto
   | std.css.Values.Length
   | std.css.Values.Percentage.
 
 pub struct Property {
-    inset: Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    inset: std.css.keywords.Auto | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// First sets top/bottom; second sets left/right.

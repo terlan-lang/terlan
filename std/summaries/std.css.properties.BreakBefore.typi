@@ -50,5 +50,5 @@
 module std.css.properties.BreakBefore.
 
 pub struct Property {
-    break_before: Auto | Avoid | Always | All | AvoidPage | Page | Left | Right | Recto | Verso | AvoidColumn | Column | AvoidRegion | Region | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    break_before: std.css.keywords.Auto | std.css.keywords.Avoid | std.css.keywords.Always | std.css.keywords.All | std.css.keywords.AvoidPage | std.css.keywords.Page | std.css.keywords.Left | std.css.keywords.Right | std.css.keywords.Recto | std.css.keywords.Verso | std.css.keywords.AvoidColumn | std.css.keywords.Column | std.css.keywords.AvoidRegion | std.css.keywords.Region | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -30,3 +30,10 @@ pub (receiver: External) add_search_provider(): Unit ->
  */
 pub (receiver: External) is_search_provider_installed(): Unit ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    add_search_provider: () -> Unit,
+    is_search_provider_installed: () -> Unit,
+): BindingTarget ->
+    native.

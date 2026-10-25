@@ -28,5 +28,5 @@
 module std.css.properties.ViewTransitionScope.
 
 pub struct Property {
-    view_transition_scope: None | All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    view_transition_scope: std.css.keywords.None | std.css.keywords.All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

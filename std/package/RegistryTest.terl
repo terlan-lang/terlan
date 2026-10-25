@@ -16,9 +16,6 @@ pub accepts_protocol_error(value: RegistryProtocolError): RegistryProtocolError 
 pub malformed_publication_metadata_is_rejected(): Bool ->
     case Registry.parse_publish_request("{\"schema\":\"unknown\"}") {
         Err(error) ->
-            assert_equal(
-                Atom["registry.publish_json"],
-                accepts_protocol_error(error).code,
-            );
+            assert_equal(Atom["registry.publish_json"], accepts_protocol_error(error).code);
         _ -> false
     }.

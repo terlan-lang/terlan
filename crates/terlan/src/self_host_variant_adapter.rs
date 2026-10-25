@@ -71,9 +71,7 @@ pub fn resolve_construction(
         .map(|resolved| descriptor(result_type, resolved))
 }
 
-fn concrete_payload_types(
-    descriptor: &ManagedVariantDescriptor,
-) -> Result<Vec<String>, String> {
+fn concrete_payload_types(descriptor: &ManagedVariantDescriptor) -> Result<Vec<String>, String> {
     descriptor
         .payload_types
         .iter()

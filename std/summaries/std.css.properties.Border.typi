@@ -76,25 +76,25 @@ pub type ColorPart =
   | std.css.Values.CurrentColor.
 
 pub type LineStylePart =
-    None
-  | Hidden
-  | Dotted
-  | Dashed
-  | Solid
-  | Double
-  | Groove
-  | Ridge
-  | Inset
-  | Outset.
+    std.css.keywords.None
+  | std.css.keywords.Hidden
+  | std.css.keywords.Dotted
+  | std.css.keywords.Dashed
+  | std.css.keywords.Solid
+  | std.css.keywords.Double
+  | std.css.keywords.Groove
+  | std.css.keywords.Ridge
+  | std.css.keywords.Inset
+  | std.css.keywords.Outset.
 
 pub type LineWidthPart =
-    Thin
-  | Medium
-  | Thick
+    std.css.keywords.Thin
+  | std.css.keywords.Medium
+  | std.css.keywords.Thick
   | CheckedLineWidth.
 
 pub struct Property {
-    border: Thin | Medium | Thick | None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    border: std.css.keywords.Thin | std.css.keywords.Medium | std.css.keywords.Thick | std.css.keywords.None | std.css.keywords.Hidden | std.css.keywords.Dotted | std.css.keywords.Dashed | std.css.keywords.Solid | std.css.keywords.Double | std.css.keywords.Groove | std.css.keywords.Ridge | std.css.keywords.Inset | std.css.keywords.Outset | std.css.Values.Color | std.css.Values.Transparent | std.css.Values.CurrentColor | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Combines line-width, line-style, color for border. Each parameter accepts its own keyword or

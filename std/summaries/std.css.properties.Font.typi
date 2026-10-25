@@ -32,5 +32,5 @@
 module std.css.properties.Font.
 
 pub struct Property {
-    font: Caption | Icon | Menu | MessageBox | SmallCaption | StatusBar | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font: std.css.keywords.Caption | std.css.keywords.Icon | std.css.keywords.Menu | std.css.keywords.MessageBox | std.css.keywords.SmallCaption | std.css.keywords.StatusBar | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

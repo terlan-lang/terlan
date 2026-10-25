@@ -28,5 +28,5 @@
 module std.css.properties.WordBreak.
 
 pub struct Property {
-    word_break: Normal | BreakAll | KeepAll | AutoPhrase | BreakWord | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    word_break: std.css.keywords.Normal | std.css.keywords.BreakAll | std.css.keywords.KeepAll | std.css.keywords.AutoPhrase | std.css.keywords.BreakWord | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

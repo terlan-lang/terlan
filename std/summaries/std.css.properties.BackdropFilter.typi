@@ -23,5 +23,5 @@
 module std.css.properties.BackdropFilter.
 
 pub struct Property {
-    backdrop_filter: None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    backdrop_filter: std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

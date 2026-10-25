@@ -326,7 +326,11 @@ fn infer_syntax_call_with_arg_types(
         }
 
         if let Some(imported) = ctx.constructor_aliases.get(function_name) {
-            if let Some(interface) = ctx.interface_map.get(&imported.module) {
+            if let Some((module, interface)) = imported.module.as_deref().and_then(|module| {
+                ctx.interface_map
+                    .get(module)
+                    .map(|interface| (module, interface))
+            }) {
                 if let Some(schemes) = parse_interface_constructor_schemes(
                     interface
                         .constructors
@@ -348,12 +352,10 @@ fn infer_syntax_call_with_arg_types(
                         return expand_type_aliases(&constructed, &interface_aliases);
                     }
                 }
-                if imported.module != ctx.current_module
-                    && interface.opaque_types.contains(&imported.name)
-                {
+                if module != ctx.current_module && interface.opaque_types.contains(&imported.name) {
                     errors.push(format!(
                         "cannot construct opaque type {}.{} outside defining module",
-                        imported.module, imported.name
+                        module, imported.name
                     ));
                     return Type::Dynamic;
                 }

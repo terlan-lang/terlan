@@ -36,7 +36,7 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Component = Clip | Ellipsis.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = {Atom["css_parts"], List[Atom["clip"] | Atom["ellipsis"]]}.
 
 pub struct Property {
     text_overflow: Clip | Ellipsis | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

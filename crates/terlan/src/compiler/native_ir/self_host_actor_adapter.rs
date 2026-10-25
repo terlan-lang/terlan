@@ -1,8 +1,7 @@
 //! Materializes admitted self-hosted actor metadata into backend-neutral NativeIR.
 
 use crate::self_host_actor_ir::{
-    RuntimeActorContinuation, RuntimeActorPlan, RuntimeActorResumeEdge,
-    RuntimeActorSuspensionSite,
+    RuntimeActorContinuation, RuntimeActorPlan, RuntimeActorResumeEdge, RuntimeActorSuspensionSite,
 };
 
 use super::{
@@ -117,7 +116,9 @@ fn materialize_resume(
     Ok(())
 }
 
-fn materialize_site(value: RuntimeActorSuspensionSite) -> Result<NativeActorSuspensionSite, String> {
+fn materialize_site(
+    value: RuntimeActorSuspensionSite,
+) -> Result<NativeActorSuspensionSite, String> {
     let mut direct_resumes = Vec::new();
     let mut dynamic_resumes = Vec::new();
     for resume in value.resumes {

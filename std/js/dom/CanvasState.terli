@@ -35,3 +35,11 @@ pub (receiver: CanvasState) restore(): Unit.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/save)
  */
 pub (receiver: CanvasState) save(): Unit.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    is_context_lost: () -> Bool,
+    reset: () -> Unit,
+    restore: () -> Unit,
+    save: () -> Unit,
+): BindingTarget.

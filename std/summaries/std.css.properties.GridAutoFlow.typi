@@ -27,5 +27,5 @@
 module std.css.properties.GridAutoFlow.
 
 pub struct Property {
-    grid_auto_flow: Row | Column | Dense | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    grid_auto_flow: std.css.keywords.Row | std.css.keywords.Column | std.css.keywords.Dense | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

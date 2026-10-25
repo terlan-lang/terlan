@@ -28,7 +28,7 @@ module std.css.properties.FontSizeAdjust.
 pub opaque type Checked.
 
 pub struct Property {
-    font_size_adjust: None | FromFont | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    font_size_adjust: std.css.keywords.None | std.css.keywords.FromFont | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the font-size-adjust number range. Returns Some when amount >= 0; otherwise returns None.

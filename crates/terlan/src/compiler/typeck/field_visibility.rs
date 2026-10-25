@@ -66,10 +66,15 @@ pub(crate) fn struct_field_visibility_error(
 
     if requested_private {
         if let Some(imported) = imported_type_names.get(struct_name) {
-            if imported.module != current_module {
+            if let Some(module) = imported
+                .module
+                .as_deref()
+                .filter(|module| *module != current_module)
+            {
                 return Some(format!(
-                    "private field {} on imported struct {}.{} cannot be accessed outside defining module",
-                    field_name, imported.module, imported.name
+                    "private field {} on imported struct {} cannot be accessed outside defining module",
+                    field_name,
+                    crate::terlan_hir::public_type_path(module, &imported.name)
                 ));
             }
         }

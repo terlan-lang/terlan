@@ -65,8 +65,9 @@ test('keyword enums replace zero-argument wrappers in values, components, and gr
     assert.doesNotMatch(source, /pub\s+[a-z][a-z_]*\(\):/);
     assert.doesNotMatch(source, /struct (Token|SerializedValue)/);
   }
-  const { source } = generateProperty({ name: 'example', syntax: 'length | value | some | <length>', href: 'spec' }, new Map());
-  for (const name of ['LengthKeyword', 'ValueKeyword', 'SomeKeyword']) assert.ok(source.includes(name));
+  const names = ['length', 'value', 'some', 'text', 'binary', 'number', 'term', 'dynamic', 'never', 'atom', 'bool', 'unit'];
+  const { source } = generateProperty({ name: 'example', syntax: names.join(' | ') + ' | <length>', href: 'spec' }, new Map());
+  for (const name of names) assert.ok(source.includes(`${name[0].toUpperCase() + name.slice(1)}Keyword`));
 });
 
 test('bounded space-separated repetitions generate exactly the permitted arities', () => {
@@ -121,7 +122,7 @@ test('named unordered groups produce distinct part types and a complete composit
     assert.match(source, /import std\.css\.keywords\.Solid\.\{Solid\}/);
     assert.doesNotMatch(source, /pub line_style_solid\(/);
     assert.match(source, /pub compose\(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart\): Checked/);
-    assert.match(source, /\{Atom\["css_parts"\], \{line_width, line_style, color\}\}/);
+    assert.match(source, /\{Atom\["css_parts"\], \{line_width_value\(line_width\), line_style, color\}\}/);
     assert.doesNotMatch(source, /pub (line_width|line_style)_(inherit|initial|unset|revert)/);
   }
 });

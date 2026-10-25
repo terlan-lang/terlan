@@ -26,7 +26,7 @@ module std.css.properties.ColumnHeight.
 pub opaque type Checked.
 
 pub struct Property {
-    column_height: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    column_height: std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the column-height length range. Returns Some when amount >= 0; otherwise returns None.

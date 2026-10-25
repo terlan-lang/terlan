@@ -12,7 +12,8 @@
  */
 module std.js.Dom.OVR_multiview2.
 
-import type std.js.Dom.{GLenum, GLint}.
+import type std.core.{Option, Unit}.
+import type std.js.Dom.{GLenum, GLint, GLsizei, WebGLTexture}.
 
 /**
  * The `OVR_multiview2` extension is part of the WebGL API and adds support for rendering into multiple views simultaneously.
@@ -29,9 +30,15 @@ pub opaque type OVR_multiview2.
 pub (receiver: OVR_multiview2) framebuffer_texture_multiview_ovr(
     target_: GLenum,
     attachment: GLenum,
-    texture: std.core.Option[std.js.Dom.WebGLTexture],
+    texture: Option[WebGLTexture],
     level: GLint,
     base_view_index: GLint,
-    num_views: std.js.Dom.GLsizei,
-): std.core.Unit ->
+    num_views: GLsizei,
+): Unit ->
+    native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    framebuffer_texture_multiview_ovr: (GLenum, GLenum, Option[WebGLTexture], GLint, GLint, GLsizei) -> Unit,
+): BindingTarget ->
     native.

@@ -163,13 +163,24 @@ fn http_fixture_is_unavailable_to_application_helpers() {
         panic!("source-owned request record");
     };
     assert_eq!(name, "Request");
-    assert_eq!(fields.len(), 9);
-    assert_eq!(fields[7].0, "cookies");
     assert_eq!(
-        fields[7].1,
-        ReplValue::List(vec![ReplValue::Tuple(vec![
-            ReplValue::String("session".into()),
-            ReplValue::String("abc123".into())
-        ])])
+        fields
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "method",
+            "path",
+            "params",
+            "body",
+            "query_string",
+            "headers",
+            "cookies",
+            "body_file_path"
+        ]
+    );
+    assert_eq!(
+        fields[6].1,
+        ReplValue::List(vec![ReplValue::String("session=abc123".into())])
     );
 }

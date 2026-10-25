@@ -23,7 +23,7 @@ pub (bits: BitString) concat(suffix: BitString): BitString.
 
 /// Builds a bitstring from the leading `bit_length` bits of packed bytes.
 
-pub from_bytes(bytes: Bytes, bit_length: Int): BitString.
+pub from_bytes(bytes: std.vm.Bytes, bit_length: Int): BitString.
 
 /// Encodes one signed two's-complement integer in big-endian wire order.
 
@@ -53,7 +53,7 @@ pub (bits: BitString) slice(start: Int, bit_length: Int): BitString.
 /// Converts an aligned bitstring to Bytes and rejects partial final bytes.
 
 @pure
-pub (bits: BitString) to_bytes(): Bytes.
+pub (bits: BitString) to_bytes(): std.vm.Bytes.
 
 /// Decodes the exact bitstring as a signed big-endian integer.
 

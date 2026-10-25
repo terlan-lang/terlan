@@ -29,7 +29,7 @@ module std.css.properties.GridAutoColumns.
 pub opaque type Checked.
 
 pub struct Property {
-    grid_auto_columns: MinContent | MaxContent | Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    grid_auto_columns: std.css.keywords.MinContent | std.css.keywords.MaxContent | std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the grid-auto-columns length range. Returns Some when amount >= 0; otherwise returns None.

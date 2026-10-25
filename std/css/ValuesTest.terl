@@ -1,7 +1,7 @@
 module std.css.ValuesTest.
 
-import std.core.Option.{None, Some}.
 import std.core.Atom.
+import std.core.Option.{None, Some}.
 import std.css.Values.
 import std.css.Values.{CurrentColor, Transparent}.
 import std.test.Test.{assert_equal}.

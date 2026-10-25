@@ -44,3 +44,10 @@ pub (receiver: CookieStoreManager) subscribe(subscriptions: Array[CookieStoreGet
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CookieStoreManager/unsubscribe)
  */
 pub (receiver: CookieStoreManager) unsubscribe(subscriptions: Array[CookieStoreGetOptions]): Promise[Unit].
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    get_subscriptions: () -> Promise[Array[CookieStoreGetOptions]],
+    subscribe: (Array[CookieStoreGetOptions]) -> Promise[Unit],
+    unsubscribe: (Array[CookieStoreGetOptions]) -> Promise[Unit],
+): BindingTarget.

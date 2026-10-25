@@ -56,5 +56,5 @@
 module std.css.properties.PlaceContent.
 
 pub struct Property {
-    place_content: Normal | Baseline | SpaceBetween | SpaceAround | SpaceEvenly | Stretch | Center | Start | End | FlexStart | FlexEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    place_content: std.css.keywords.Normal | std.css.keywords.Baseline | std.css.keywords.SpaceBetween | std.css.keywords.SpaceAround | std.css.keywords.SpaceEvenly | std.css.keywords.Stretch | std.css.keywords.Center | std.css.keywords.Start | std.css.keywords.End | std.css.keywords.FlexStart | std.css.keywords.FlexEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

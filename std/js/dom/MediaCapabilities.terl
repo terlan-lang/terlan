@@ -12,6 +12,7 @@
  */
 module std.js.Dom.MediaCapabilities.
 
+import type std.js.Dom.{MediaCapabilitiesDecodingInfo, MediaCapabilitiesEncodingInfo, MediaDecodingConfiguration, MediaEncodingConfiguration}.
 import type std.js.{Promise}.
 
 /**
@@ -26,9 +27,7 @@ pub opaque type MediaCapabilities.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/decodingInfo)
  */
-pub (receiver: MediaCapabilities) decoding_info(
-    configuration: std.js.Dom.MediaDecodingConfiguration,
-): Promise[std.js.Dom.MediaCapabilitiesDecodingInfo] ->
+pub (receiver: MediaCapabilities) decoding_info(configuration: MediaDecodingConfiguration): Promise[MediaCapabilitiesDecodingInfo] ->
     native.
 
 /**
@@ -36,7 +35,12 @@ pub (receiver: MediaCapabilities) decoding_info(
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaCapabilities/encodingInfo)
  */
-pub (receiver: MediaCapabilities) encoding_info(
-    configuration: std.js.Dom.MediaEncodingConfiguration,
-): Promise[std.js.Dom.MediaCapabilitiesEncodingInfo] ->
+pub (receiver: MediaCapabilities) encoding_info(configuration: MediaEncodingConfiguration): Promise[MediaCapabilitiesEncodingInfo] ->
+    native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    decoding_info: (MediaDecodingConfiguration) -> Promise[MediaCapabilitiesDecodingInfo],
+    encoding_info: (MediaEncodingConfiguration) -> Promise[MediaCapabilitiesEncodingInfo],
+): BindingTarget ->
     native.

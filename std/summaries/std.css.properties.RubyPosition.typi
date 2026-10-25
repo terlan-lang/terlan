@@ -32,5 +32,5 @@
 module std.css.properties.RubyPosition.
 
 pub struct Property {
-    ruby_position: Alternate | Over | Under | InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    ruby_position: std.css.keywords.Alternate | std.css.keywords.Over | std.css.keywords.Under | std.css.keywords.InterCharacter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

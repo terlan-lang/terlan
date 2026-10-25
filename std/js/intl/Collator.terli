@@ -12,10 +12,18 @@
  */
 module std.js.Intl.Collator.
 
+import type std.js.Intl.{ResolvedCollatorOptions}.
+import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 
 pub opaque type Collator.
 
-pub (receiver: Collator) compare(x: JsString, y: JsString): std.js.Number.JsNumber.
+pub (receiver: Collator) compare(x: JsString, y: JsString): JsNumber.
 
-pub (receiver: Collator) resolved_options(): std.js.Intl.ResolvedCollatorOptions.
+pub (receiver: Collator) resolved_options(): ResolvedCollatorOptions.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    compare: (JsString, JsString) -> JsNumber,
+    resolved_options: () -> ResolvedCollatorOptions,
+): BindingTarget.

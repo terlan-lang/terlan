@@ -24,8 +24,9 @@
  * the mask origin box is not an exact multiple of the mask image's height.
  * - round: The mask image is repeated as many times as possible in its original dimensions. If the
  * size of the mask origin box is not an exact multiple of the mask image's size, all mask images
- * will be rescaled, [shrinking or stretching](#rounded_repetitions) to ensure no repetitions are
- * clipped.
+ * will be rescaled, [shrinking or
+ * stretching](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-repeat#rounded_repetitions)
+ * to ensure no repetitions are clipped.
  * - space: The mask image is repeated as many times as possible without clipping. If the element's
  * origin size is at least twice the size as the mask image's size in the associated dimension, the
  * `mask-position` property is ignored and the first and last images are positioned at the edges of

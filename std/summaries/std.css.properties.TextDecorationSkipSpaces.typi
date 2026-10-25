@@ -18,5 +18,5 @@
 module std.css.properties.TextDecorationSkipSpaces.
 
 pub struct Property {
-    text_decoration_skip_spaces: None | All | Start | End | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_decoration_skip_spaces: std.css.keywords.None | std.css.keywords.All | std.css.keywords.Start | std.css.keywords.End | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

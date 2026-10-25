@@ -61,5 +61,5 @@
 module std.css.properties.Rule.
 
 pub struct Property {
-    rule: Thin | Medium | Thick | None | Hidden | Dotted | Dashed | Solid | Double | Groove | Ridge | Inset | Outset | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    rule: std.css.keywords.Thin | std.css.keywords.Medium | std.css.keywords.Thick | std.css.keywords.None | std.css.keywords.Hidden | std.css.keywords.Dotted | std.css.keywords.Dashed | std.css.keywords.Solid | std.css.keywords.Double | std.css.keywords.Groove | std.css.keywords.Ridge | std.css.keywords.Inset | std.css.keywords.Outset | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

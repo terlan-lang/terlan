@@ -301,7 +301,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
         fs::read_to_string(out_dir.join("std/js/dom/WebkitURL.terl")).expect("read source");
     assert!(webkit_url_source.contains("@source-interface webkitURL"));
     assert!(webkit_url_source.contains("module std.js.Dom.WebkitURL."));
-    assert!(webkit_url_source.contains("pub type WebkitURL = std.js.Dom.URL.URL."));
+    assert!(webkit_url_source.contains("pub type WebkitURL = std.js.Dom.URL."));
 
     let document_test = fs::read_to_string(out_dir.join("std/js/dom/DocumentTest.terl"))
         .expect("read generated DOM test");
@@ -316,7 +316,13 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(document_test.contains("@source-input std/js/fixtures/lib.es5.d.ts"));
     assert!(document_test.contains("@source-interface Document"));
     assert!(document_test.contains("module std.js.Dom.DocumentTest."));
-    assert!(document_test.contains("import type std.js.Dom.Document."));
+    let document_syntax = crate::terlan_syntax::parse_module_as_syntax_output(&document_test)
+        .expect("parse generated DOM test");
+    assert!(document_syntax.declarations.iter().any(|declaration| matches!(
+        &declaration.payload,
+        crate::terlan_syntax::SyntaxDeclarationPayload::Import { module_name, items, is_type: true, .. }
+            if module_name == "std.js.Dom" && items.iter().any(|item| item.name == "Document")
+    )));
     assert!(!document_test.contains("generated_binding_surface_contract"));
     assert!(document_test.contains("_typechecks("));
     assert!(document_test.contains(
@@ -331,9 +337,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(
         map_source.contains("@returns true if an element in the Map existed and has been removed")
     );
-    assert!(
-        map_source.contains("pub (receiver: Map[K, V]) get(key: K): std.core.Option[V] ->")
-    );
+    assert!(map_source.contains("pub (receiver: Map[K, V]) get(key: K): std.core.Option[V] ->"));
     assert!(map_source.contains("Returns a specified element from the Map object."));
     assert!(map_source.contains("pub (receiver: Map[K, V]) size(): std.js.Number.JsNumber ->"));
     assert!(map_source.contains("@returns the number of elements in the Map."));
@@ -572,7 +576,7 @@ declare global {
         mixin["js_names"],
         serde_json::json!(["$onInit", "$onDestroy"])
     );
-    assert_eq!(mixin["parameters"][0]["type"], "() -> std.core.Unit.Unit");
+    assert_eq!(mixin["parameters"][0]["type"], "() -> std.core.Unit");
     assert!(manifest.contains("\"module\": \"terlan.angular.Ng\""));
     assert!(manifest.contains("\"source\": \"terlan/angular/Ng.terl\""));
     assert!(manifest.contains("\"summary\": \"std/summaries/terlan.angular.Ng.typi\""));

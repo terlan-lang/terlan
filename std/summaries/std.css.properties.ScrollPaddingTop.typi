@@ -27,7 +27,7 @@ module std.css.properties.ScrollPaddingTop.
 pub opaque type Checked.
 
 pub struct Property {
-    scroll_padding_top: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    scroll_padding_top: std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the scroll-padding-top length range. Returns Some when amount >= 0; otherwise returns

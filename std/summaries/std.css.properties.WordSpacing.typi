@@ -20,5 +20,5 @@
 module std.css.properties.WordSpacing.
 
 pub struct Property {
-    word_spacing: Normal | std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    word_spacing: std.css.keywords.Normal | std.css.Values.Length | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

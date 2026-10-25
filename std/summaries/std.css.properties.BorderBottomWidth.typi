@@ -28,7 +28,7 @@ module std.css.properties.BorderBottomWidth.
 pub opaque type Checked.
 
 pub struct Property {
-    border_bottom_width: Thin | Medium | Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    border_bottom_width: std.css.keywords.Thin | std.css.keywords.Medium | std.css.keywords.Thick | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the border-bottom-width length range. Returns Some when amount >= 0; otherwise returns

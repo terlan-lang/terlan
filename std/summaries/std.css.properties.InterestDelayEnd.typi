@@ -23,5 +23,5 @@
 module std.css.properties.InterestDelayEnd.
 
 pub struct Property {
-    interest_delay_end: Normal | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    interest_delay_end: std.css.keywords.Normal | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

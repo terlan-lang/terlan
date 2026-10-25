@@ -31,3 +31,10 @@ pub (receiver: CanvasRect) fill_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: J
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CanvasRenderingContext2D/strokeRect)
  */
 pub (receiver: CanvasRect) stroke_rect(x: JsNumber, y: JsNumber, w: JsNumber, h: JsNumber): Unit.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    clear_rect: (JsNumber, JsNumber, JsNumber, JsNumber) -> Unit,
+    fill_rect: (JsNumber, JsNumber, JsNumber, JsNumber) -> Unit,
+    stroke_rect: (JsNumber, JsNumber, JsNumber, JsNumber) -> Unit,
+): BindingTarget.

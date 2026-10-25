@@ -235,10 +235,7 @@ pub(super) fn core_expr_type_with_constructors(
     if let Some(ty) = core_expr_type(expr, types, functions) {
         return Some(ty);
     }
-    let (CoreExpr::FieldAccess { base, field }
-    | CoreExpr::RecordAccess {
-        base, field, ..
-    }) = expr
+    let (CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. }) = expr
     else {
         return None;
     };

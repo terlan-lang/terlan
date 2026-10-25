@@ -2,11 +2,11 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
+use terlan::self_host_backend::lower_backend_program;
 use terlan::self_host_ir::{
     backend_digest, compare_bootstrap_artifacts, decode_and_validate, stable_digest,
     BootstrapArtifact,
 };
-use terlan::self_host_backend::lower_backend_program;
 
 fn main() -> ExitCode {
     match run(env::args().skip(1).collect()) {

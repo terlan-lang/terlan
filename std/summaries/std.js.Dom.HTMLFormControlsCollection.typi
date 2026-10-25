@@ -26,3 +26,5 @@ pub opaque type HTMLFormControlsCollection.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLFormControlsCollection/namedItem)
  */
 pub (receiver: HTMLFormControlsCollection) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.Element | std.js.Dom.RadioNodeList].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, named_item: (std.js.String.JsString) -> std.core.Option[std.js.Dom.Element | std.js.Dom.RadioNodeList]): BindingTarget.

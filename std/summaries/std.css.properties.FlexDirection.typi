@@ -28,5 +28,5 @@
 module std.css.properties.FlexDirection.
 
 pub struct Property {
-    flex_direction: Row | RowReverse | Column | ColumnReverse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    flex_direction: std.css.keywords.Row | std.css.keywords.RowReverse | std.css.keywords.Column | std.css.keywords.ColumnReverse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

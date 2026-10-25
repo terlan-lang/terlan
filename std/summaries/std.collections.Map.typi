@@ -77,7 +77,7 @@ pub (map: Map[K, V]) is_empty(): Bool.
 /// preserving the portable pair-yielding contract.
 
 @pure
-pub (map: Map[K, V]) iterator(): Iterator[{K, V}].
+pub (map: Map[K, V]) iterator(): std.collections.Iterator[{K, V}].
 
 /// Creates an empty map.
 ///

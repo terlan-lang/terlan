@@ -319,8 +319,7 @@ pub read_text_tree_prunes_exact_directory_names(): Bool ->
     let removed = remove_all(directory);
     case {root, ignored_dir, kept, ignored, read, removed} {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []]), Ok(Unit)} ->
-            file.path == "target/terlan-file-tree-test/kept/a.txt"
-                and file.contents == "kept";
+            file.path == "target/terlan-file-tree-test/kept/a.txt" and file.contents == "kept";
         _ -> false
     }.
 
@@ -344,8 +343,7 @@ pub read_text_tree_matching_filters_before_utf8_reads(): Bool ->
     let removed = remove_all(directory);
     case {root, text, ignored, excluded, read, removed} {
         {Ok(Unit), Ok(Unit), Ok(Unit), Ok(Unit), Ok([file | []]), Ok(Unit)} ->
-            file.path == "target/terlan-file-matching-test/a.terl"
-                and file.contents == "module a.";
+            file.path == "target/terlan-file-matching-test/a.terl" and file.contents == "module a.";
         _ -> false
     }.
 

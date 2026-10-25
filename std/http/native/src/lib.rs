@@ -66,9 +66,9 @@ pub mod sse_callbacks;
 pub mod sse_session;
 pub mod static_file;
 pub mod tls;
+pub mod tls_config;
 #[cfg(test)]
 mod tls_test_support;
-pub mod tls_config;
 pub use service_error::ServiceError;
 pub mod tls_material;
 pub mod tls_paths;

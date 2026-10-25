@@ -24,5 +24,5 @@
 module std.css.properties.FontKerning.
 
 pub struct Property {
-    font_kerning: Auto | Normal | None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_kerning: std.css.keywords.Auto | std.css.keywords.Normal | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

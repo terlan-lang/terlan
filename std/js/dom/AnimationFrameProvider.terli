@@ -12,6 +12,8 @@
  */
 module std.js.Dom.AnimationFrameProvider.
 
+import type std.core.{Unit}.
+import type std.js.Dom.{FrameRequestCallback}.
 import type std.js.Number.{JsNumber}.
 
 pub opaque type AnimationFrameProvider.
@@ -19,9 +21,15 @@ pub opaque type AnimationFrameProvider.
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/cancelAnimationFrame)
  */
-pub (receiver: AnimationFrameProvider) cancel_animation_frame(handle: JsNumber): std.core.Unit.
+pub (receiver: AnimationFrameProvider) cancel_animation_frame(handle: JsNumber): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame)
  */
-pub (receiver: AnimationFrameProvider) request_animation_frame(callback: std.js.Dom.FrameRequestCallback): JsNumber.
+pub (receiver: AnimationFrameProvider) request_animation_frame(callback: FrameRequestCallback): JsNumber.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    cancel_animation_frame: (JsNumber) -> Unit,
+    request_animation_frame: (FrameRequestCallback) -> JsNumber,
+): BindingTarget.

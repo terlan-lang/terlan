@@ -36,7 +36,7 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Component = Stretch | Repeat | Round | Space.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = {Atom["css_parts"], List[Atom["stretch"] | Atom["repeat"] | Atom["round"] | Atom["space"]]}.
 
 pub struct Property {
     border_image_repeat: Stretch | Repeat | Round | Space | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

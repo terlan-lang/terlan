@@ -39,3 +39,12 @@ pub (receiver: CanvasState) restore(): Unit ->
  */
 pub (receiver: CanvasState) save(): Unit ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    is_context_lost: () -> Bool,
+    reset: () -> Unit,
+    restore: () -> Unit,
+    save: () -> Unit,
+): BindingTarget ->
+    native.

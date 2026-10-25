@@ -33,5 +33,5 @@
 module std.css.properties.ScrollMarkerGroup.
 
 pub struct Property {
-    scroll_marker_group: None | Before | After | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    scroll_marker_group: std.css.keywords.None | std.css.keywords.Before | std.css.keywords.After | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

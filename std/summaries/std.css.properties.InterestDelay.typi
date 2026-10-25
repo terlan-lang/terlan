@@ -26,11 +26,11 @@ module std.css.properties.InterestDelay.
 pub opaque type Checked.
 
 pub type Component =
-    Normal
+    std.css.keywords.Normal
   | std.css.Values.Time.
 
 pub struct Property {
-    interest_delay: Normal | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    interest_delay: std.css.keywords.Normal | std.css.Values.Time | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Supplies 2 components in grammar order.

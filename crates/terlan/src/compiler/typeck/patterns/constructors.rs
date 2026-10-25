@@ -178,8 +178,7 @@ pub(super) fn check_syntax_constructor_pattern(
             &expanded_expected,
             &instantiated.ret,
             &mut trial_subst,
-        )
-        {
+        ) {
             last_error = Some(message);
             continue;
         }
@@ -293,7 +292,7 @@ fn constructor_pattern_schemes(
     }
 
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(&imported.module)?;
+    let interface = ctx.interface_map.get(imported.module.as_deref()?)?;
     parse_interface_constructor_schemes(
         interface
             .constructors
@@ -321,11 +320,15 @@ fn imported_opaque_constructor_pattern_error(
     ctx: &ExprInferContext<'_>,
 ) -> Option<String> {
     let imported = ctx.constructor_aliases.get(name)?;
-    let interface = ctx.interface_map.get(&imported.module)?;
+    let interface = ctx.interface_map.get(imported.module.as_deref()?)?;
+    let module = imported
+        .module
+        .as_deref()
+        .filter(|module| *module != ctx.current_module)?;
     interface.opaque_types.contains(&imported.name).then(|| {
         format!(
             "cannot match opaque type {}.{} as constructor pattern outside defining module",
-            imported.module, imported.name
+            module, imported.name
         )
     })
 }

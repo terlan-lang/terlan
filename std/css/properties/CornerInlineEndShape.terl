@@ -25,7 +25,11 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Component = Round | Scoop | Bevel | Notch | Square | Squircle.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked =
+      {
+          Atom["css_parts"],
+          List[Atom["round"] | Atom["scoop"] | Atom["bevel"] | Atom["notch"] | Atom["square"] | Atom["squircle"]]
+      }.
 
 pub struct Property {
     corner_inline_end_shape: Round | Scoop | Bevel | Notch | Square | Squircle | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

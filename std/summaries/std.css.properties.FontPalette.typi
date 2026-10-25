@@ -30,5 +30,5 @@
 module std.css.properties.FontPalette.
 
 pub struct Property {
-    font_palette: Normal | Light | Dark | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_palette: std.css.keywords.Normal | std.css.keywords.Light | std.css.keywords.Dark | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

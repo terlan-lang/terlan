@@ -1,7 +1,7 @@
 module=std.css.keywords.Squircle
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=14296994074366421961
 interface_hash=12689933921837141932
 interface_doc_hash=924394177614321532

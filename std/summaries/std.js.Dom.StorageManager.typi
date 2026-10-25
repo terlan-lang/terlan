@@ -48,3 +48,5 @@ pub (receiver: StorageManager) persist(): std.js.Promise[Bool].
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/persisted)
  */
 pub (receiver: StorageManager) persisted(): std.js.Promise[Bool].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, estimate: () -> std.js.Promise[std.js.Dom.StorageEstimate], get_directory: () -> std.js.Promise[std.js.Dom.FileSystemDirectoryHandle], persist: () -> std.js.Promise[Bool], persisted: () -> std.js.Promise[Bool]): BindingTarget.

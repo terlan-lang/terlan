@@ -32,11 +32,11 @@ module std.css.properties.TextOverflow.
 pub opaque type Checked.
 
 pub type Component =
-    Clip
-  | Ellipsis.
+    std.css.keywords.Clip
+  | std.css.keywords.Ellipsis.
 
 pub struct Property {
-    text_overflow: Clip | Ellipsis | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    text_overflow: std.css.keywords.Clip | std.css.keywords.Ellipsis | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Supplies 2 components in grammar order.

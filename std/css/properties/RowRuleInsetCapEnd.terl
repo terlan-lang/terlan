@@ -1,6 +1,7 @@
 /**
  * The `row-rule-inset-cap-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) property can
- * be used to offset the end of row rule segment [cap endpoints](#understanding_cap_end).
+ * be used to offset the end of row rule segment [cap
+ * endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/row-rule-inset-cap-end#understanding_cap_end).
  *
  * Keyword effects:
  * - overlap-join: Resolves to `0`.

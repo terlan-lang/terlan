@@ -23,7 +23,7 @@ pub opaque type Promise[T].
 /// Transformation: asks the JavaScript target backend to expose the portable
 /// task as a promise at the target boundary.
 
-pub from_task(task: Task[T]): Promise[T].
+pub from_task(task: std.core.Task[T]): Promise[T].
 
 /// Converts a JavaScript-native promise into a portable task.
 ///
@@ -32,4 +32,4 @@ pub from_task(task: Task[T]): Promise[T].
 /// Transformation: asks the JavaScript target backend to observe the promise
 /// through Terlan's portable task contract.
 
-pub (promise: Promise[T]) to_task(): Task[T].
+pub (promise: Promise[T]) to_task(): std.core.Task[T].

@@ -26,5 +26,5 @@
 module std.css.properties.ShapeOutside.
 
 pub struct Property {
-    shape_outside: None | ContentBox | PaddingBox | BorderBox | MarginBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    shape_outside: std.css.keywords.None | std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.MarginBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

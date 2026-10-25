@@ -40,3 +40,5 @@ pub (receiver: ANGLE_instanced_arrays) draw_elements_instanced_angle(mode: std.j
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ANGLE_instanced_arrays/vertexAttribDivisorANGLE)
  */
 pub (receiver: ANGLE_instanced_arrays) vertex_attrib_divisor_angle(index: std.js.Dom.GLuint, divisor: std.js.Dom.GLuint): std.core.Unit.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, draw_arrays_instanced_angle: (std.js.Dom.GLenum, std.js.Dom.GLint, std.js.Dom.GLsizei, std.js.Dom.GLsizei) -> std.core.Unit, draw_elements_instanced_angle: (std.js.Dom.GLenum, std.js.Dom.GLsizei, std.js.Dom.GLenum, std.js.Dom.GLintptr, std.js.Dom.GLsizei) -> std.core.Unit, vertex_attrib_divisor_angle: (std.js.Dom.GLuint, std.js.Dom.GLuint) -> std.core.Unit): BindingTarget.

@@ -35,5 +35,5 @@
 module std.css.properties.ImageRendering.
 
 pub struct Property {
-    image_rendering: Auto | Smooth | Pixelated | CrispEdges | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    image_rendering: std.css.keywords.Auto | std.css.keywords.Smooth | std.css.keywords.Pixelated | std.css.keywords.CrispEdges | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

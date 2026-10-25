@@ -49,5 +49,5 @@
 module std.css.properties.MixBlendMode.
 
 pub struct Property {
-    mix_blend_mode: Normal | Darken | Multiply | ColorBurn | Lighten | Screen | ColorDodge | Overlay | SoftLight | HardLight | Difference | Exclusion | Hue | Saturation | ColorKeyword | Luminosity | PlusLighter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    mix_blend_mode: std.css.keywords.Normal | std.css.keywords.Darken | std.css.keywords.Multiply | std.css.keywords.ColorBurn | std.css.keywords.Lighten | std.css.keywords.Screen | std.css.keywords.ColorDodge | std.css.keywords.Overlay | std.css.keywords.SoftLight | std.css.keywords.HardLight | std.css.keywords.Difference | std.css.keywords.Exclusion | std.css.keywords.Hue | std.css.keywords.Saturation | std.css.keywords.ColorKeyword | std.css.keywords.Luminosity | std.css.keywords.PlusLighter | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

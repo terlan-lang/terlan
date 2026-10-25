@@ -22,5 +22,5 @@
 module std.css.properties.BorderCollapse.
 
 pub struct Property {
-    border_collapse: Separate | Collapse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    border_collapse: std.css.keywords.Separate | std.css.keywords.Collapse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

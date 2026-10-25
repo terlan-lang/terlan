@@ -12,6 +12,8 @@
  */
 module std.js.Dom.NavigatorContentUtils.
 
+import type std.core.{Unit}.
+import type std.js.Dom.{URL}.
 import type std.js.String.{JsString}.
 
 pub opaque type NavigatorContentUtils.
@@ -21,5 +23,11 @@ pub opaque type NavigatorContentUtils.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Navigator/registerProtocolHandler)
  */
-pub (receiver: NavigatorContentUtils) register_protocol_handler(scheme: JsString, url: std.js.Dom.URL | JsString): std.core.Unit ->
+pub (receiver: NavigatorContentUtils) register_protocol_handler(scheme: JsString, url: URL | JsString): Unit ->
+    native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    register_protocol_handler: (JsString, URL | JsString) -> Unit,
+): BindingTarget ->
     native.

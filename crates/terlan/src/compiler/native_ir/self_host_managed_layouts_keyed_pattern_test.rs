@@ -1,5 +1,5 @@
-use super::*;
 use super::super::self_host_pattern_ir::PatternNode;
+use super::*;
 
 fn binding(name: &str) -> PatternNode {
     PatternNode {
@@ -32,8 +32,14 @@ fn string_keyed_map_pattern_lowers_predicate_and_binding_projection() {
 
     validate_pattern_shape(&pattern, &source, "Map[String, Int]", None)
         .expect("keyed pattern shape");
-    pattern_predicate(&pattern, NativeExpr::Int(0), &source, "Map[String, Int]", None)
-        .expect("keyed pattern predicate");
+    pattern_predicate(
+        &pattern,
+        NativeExpr::Int(0),
+        &source,
+        "Map[String, Int]",
+        None,
+    )
+    .expect("keyed pattern predicate");
     project_pattern_binding_path(
         &pattern,
         &source,
@@ -65,5 +71,8 @@ fn keyed_map_pattern_rejects_malformed_field_shape() {
     let error = validate_pattern_shape(&pattern, &source, "Map[String, Int]", None)
         .expect_err("malformed keyed field");
 
-    assert!(error.contains("requires one named value pattern"), "{error}");
+    assert!(
+        error.contains("requires one named value pattern"),
+        "{error}"
+    );
 }

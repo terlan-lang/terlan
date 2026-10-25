@@ -87,7 +87,10 @@ pub(super) fn decode_prepare_pattern(
 }
 
 pub(super) fn prepare_pattern_deferred(instruction: &IrInstruction) -> bool {
-    instruction.operands.get(1).is_some_and(|value| value == "pattern-v2")
+    instruction
+        .operands
+        .get(1)
+        .is_some_and(|value| value == "pattern-v2")
 }
 
 /// Decodes a v2 binding selector, source type, and recursive pattern tree.
@@ -137,25 +140,19 @@ struct PatternCursor<'a> {
 impl PatternCursor<'_> {
     fn node(&mut self, depth: usize) -> Result<PatternNode, String> {
         if depth >= MAX_PATTERN_DEPTH {
-            return Err(
-                "error[self_host.native.pattern_depth]: pattern exceeds 64 levels".into(),
-            );
+            return Err("error[self_host.native.pattern_depth]: pattern exceeds 64 levels".into());
         }
         self.nodes = self.nodes.checked_add(1).ok_or_else(|| {
             "error[self_host.native.pattern_size]: pattern node count overflow".to_string()
         })?;
         if self.nodes > MAX_PATTERN_NODES {
-            return Err(
-                "error[self_host.native.pattern_size]: pattern exceeds 4096 nodes".into(),
-            );
+            return Err("error[self_host.native.pattern_size]: pattern exceeds 4096 nodes".into());
         }
         let kind = self.next("kind")?.to_owned();
         let text = self.next("text")?.to_owned();
         let count_text = self.next("child count")?;
         let child_count = count_text.parse::<usize>().map_err(|_| {
-            format!(
-                "error[self_host.native.pattern_encoding]: invalid child count {count_text:?}"
-            )
+            format!("error[self_host.native.pattern_encoding]: invalid child count {count_text:?}")
         })?;
         if child_count > MAX_PATTERN_NODES.saturating_sub(self.nodes) {
             return Err(
@@ -183,132 +180,5 @@ impl PatternCursor<'_> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn instruction(operands: &[&str]) -> IrInstruction {
-        IrInstruction {
-            opcode: "prepare-pattern".into(),
-            result: Some("environment".into()),
-            operands: operands.iter().map(|value| (*value).into()).collect(),
-            operand_types: (0..operands.len()).map(|_| None).collect(),
-            type_name: "PatternMatch".into(),
-            continuation_ordinal: None,
-            try_region: None,
-        }
-    }
-
-    #[test]
-    fn recursive_pattern_metadata_decodes_with_binding_paths() {
-        let instruction = instruction(&[
-            "subject",
-            "list-cons-pattern",
-            "|",
-            "2",
-            "binding-pattern",
-            "head",
-            "0",
-            "wildcard-pattern",
-            "_",
-            "0",
-        ]);
-
-        let (subject, pattern) = decode_prepare_pattern(&instruction).expect("pattern metadata");
-
-        assert_eq!(subject, "subject");
-        assert_eq!(
-            pattern.bindings(),
-            vec![PatternBinding {
-                name: "head".into(),
-                path: vec![0],
-            }]
-        );
-    }
-
-    #[test]
-    fn truncated_pattern_metadata_is_rejected() {
-        let error = decode_prepare_pattern(&instruction(&[
-            "subject",
-            "tuple-pattern",
-            "{}",
-            "1",
-        ]))
-        .expect_err("truncated pattern");
-
-        assert!(error.contains("missing pattern kind"), "{error}");
-    }
-
-    #[test]
-    fn trailing_pattern_metadata_is_rejected() {
-        let error = decode_prepare_pattern(&instruction(&[
-            "subject",
-            "wildcard-pattern",
-            "_",
-            "0",
-            "trailing",
-        ]))
-        .expect_err("trailing pattern");
-
-        assert!(error.contains("trailing operand"), "{error}");
-    }
-
-    #[test]
-    fn v2_prepare_pattern_marker_preserves_recursive_metadata() {
-        let instruction = instruction(&[
-            "subject",
-            "pattern-v2",
-            "list-cons-pattern",
-            "|",
-            "2",
-            "binding-pattern",
-            "head",
-            "0",
-            "wildcard-pattern",
-            "_",
-            "0",
-        ]);
-
-        let (_, pattern) = decode_prepare_pattern(&instruction).expect("v2 pattern metadata");
-
-        assert!(prepare_pattern_deferred(&instruction));
-        assert_eq!(pattern.kind, "list-cons-pattern");
-        assert_eq!(pattern.bindings()[0].name, "head");
-    }
-
-    #[test]
-    fn v2_binding_metadata_decodes_selector_source_and_path() {
-        let instruction = IrInstruction {
-            opcode: "get-pattern-binding".into(),
-            result: Some("head".into()),
-            operands: [
-                "environment",
-                "0",
-                "List[Widget]",
-                "list-cons-pattern",
-                "|",
-                "2",
-                "binding-pattern",
-                "head",
-                "0",
-                "wildcard-pattern",
-                "_",
-                "0",
-            ]
-            .into_iter()
-            .map(str::to_owned)
-            .collect(),
-            operand_types: Vec::new(),
-            type_name: "Widget".into(),
-            continuation_ordinal: None,
-            try_region: None,
-        };
-
-        let (selector, source, pattern) =
-            decode_binding_pattern(&instruction).expect("v2 binding metadata");
-
-        assert_eq!(selector, 0);
-        assert_eq!(source, "List[Widget]");
-        assert_eq!(pattern.bindings()[0].path, vec![0]);
-    }
-
-}
+#[path = "self_host_pattern_ir_inline_test.rs"]
+mod tests;

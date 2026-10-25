@@ -21,3 +21,5 @@ pub opaque type HTMLCollection.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLCollection/namedItem)
  */
 pub (receiver: HTMLCollection) named_item(name: std.js.String.JsString): std.core.Option[std.js.Dom.Element].
+
+pub with_members[BindingTarget](binding_target: BindingTarget, named_item: (std.js.String.JsString) -> std.core.Option[std.js.Dom.Element]): BindingTarget.

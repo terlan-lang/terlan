@@ -31,7 +31,7 @@ pub error(message: String): Unit.
 /// the same bounded scalar set again before accepting the event. The local
 /// console fallback writes the message and never renders secret handles.
 
-pub event(message: String, fields: List[Field]): Unit.
+pub event(message: String, fields: List[std.log.Field]): Unit.
 
 /// Writes an info-level log message.
 ///

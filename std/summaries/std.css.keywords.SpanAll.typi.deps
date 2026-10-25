@@ -1,7 +1,7 @@
 module=std.css.keywords.SpanAll
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=16480160960896016184
 interface_hash=16492494402098113352
 interface_doc_hash=9492746620056641145

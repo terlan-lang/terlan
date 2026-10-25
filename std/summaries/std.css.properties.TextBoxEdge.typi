@@ -24,5 +24,5 @@
 module std.css.properties.TextBoxEdge.
 
 pub struct Property {
-    text_box_edge: Auto | TextKeyword | Ideographic | IdeographicInk | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_box_edge: std.css.keywords.Auto | std.css.keywords.TextKeyword | std.css.keywords.Ideographic | std.css.keywords.IdeographicInk | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

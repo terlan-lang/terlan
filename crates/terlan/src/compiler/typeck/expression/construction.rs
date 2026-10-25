@@ -91,14 +91,18 @@ pub(super) fn infer_syntax_record_construct(
     }
 
     if let Some(imported) = ctx.imported_type_names.get(&name) {
-        if imported.module != ctx.current_module {
+        if let Some(module) = imported
+            .module
+            .as_deref()
+            .filter(|module| *module != ctx.current_module)
+        {
             errors.push(format!(
-                "cannot raw-construct imported struct {}.{} outside defining module; use an exported constructor",
-                imported.module, imported.name
+                "cannot raw-construct imported struct {} outside defining module; use an exported constructor",
+                crate::terlan_hir::public_type_path(module, &imported.name)
             ));
         }
         return Type::Named {
-            module: Some(imported.module.clone()),
+            module: imported.module.clone(),
             name: imported.name.clone(),
             args: Vec::new(),
         };

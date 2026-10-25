@@ -23,5 +23,5 @@
 module std.css.properties.ColumnRuleInsetJunction.
 
 pub struct Property {
-    column_rule_inset_junction: OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    column_rule_inset_junction: std.css.keywords.OverlapJoin | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

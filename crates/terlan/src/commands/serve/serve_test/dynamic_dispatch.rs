@@ -100,6 +100,12 @@ pub(super) fn hyper_request_handler_prefers_dynamic_handler_over_static_response
 
 #[test]
 pub(super) fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
+    if run_with_capability_dispatch(concat!(
+        module_path!(),
+        "::hyper_request_handler_executes_dynamic_handler_with_vm_runtime"
+    )) {
+        return;
+    }
     run_async_serve_test(async {
         clear_vm_handler_module_cache_for_test();
         let dir = temp_dir("hyper_vm_dynamic_handler_success");
@@ -226,6 +232,12 @@ pub(super) fn hyper_request_handler_executes_dynamic_handler_with_vm_runtime() {
 
 #[test]
 pub(super) fn vm_stream_request_executes_dynamic_handler_without_hyper() {
+    if run_with_capability_dispatch(concat!(
+        module_path!(),
+        "::vm_stream_request_executes_dynamic_handler_without_hyper"
+    )) {
+        return;
+    }
     clear_vm_handler_module_cache_for_test();
     let dir = temp_dir("vm_stream_dynamic_handler_success");
     let project_root = &dir;

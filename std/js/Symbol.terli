@@ -12,9 +12,16 @@
  */
 module std.js.Symbol.
 
+import type std.js.String.{JsString}.
+
 pub opaque type Symbol.
 
 /**
  * Returns a string representation of an object.
  */
-pub (receiver: Symbol) to_string(): std.js.String.JsString.
+pub (receiver: Symbol) to_string(): JsString.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    to_string: () -> JsString,
+): BindingTarget.

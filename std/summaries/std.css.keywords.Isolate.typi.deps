@@ -1,7 +1,7 @@
 module=std.css.keywords.Isolate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=17392289100188942383
 interface_hash=10891308195373098111
 interface_doc_hash=3851280569038337255

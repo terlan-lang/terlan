@@ -32,7 +32,7 @@ module std.css.properties.MaskSize.
 pub opaque type Checked.
 
 pub struct Property {
-    mask_size: Auto | Cover | Contain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    mask_size: std.css.keywords.Auto | std.css.keywords.Cover | std.css.keywords.Contain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the mask-size length range. Returns Some when amount >= 0; otherwise returns None.

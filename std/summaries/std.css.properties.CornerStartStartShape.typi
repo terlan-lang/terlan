@@ -19,5 +19,5 @@
 module std.css.properties.CornerStartStartShape.
 
 pub struct Property {
-    corner_start_start_shape: Round | Scoop | Bevel | Notch | Square | Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    corner_start_start_shape: std.css.keywords.Round | std.css.keywords.Scoop | std.css.keywords.Bevel | std.css.keywords.Notch | std.css.keywords.Square | std.css.keywords.Squircle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

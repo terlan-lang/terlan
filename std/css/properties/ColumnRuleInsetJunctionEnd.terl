@@ -1,8 +1,8 @@
 /**
  * The `column-rule-inset-junction-end` [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
  * property can be used to offset the bottom endpoints of column rule segments that are [junction
- * endpoints](#understanding_junction_endpoints); that is, endpoints at gap junctions where rule
- * segments intersect.
+ * endpoints](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/column-rule-inset-junction-end#understanding_junction_endpoints);
+ * that is, endpoints at gap junctions where rule segments intersect.
  *
  * Keyword effects:
  * - overlap-join: Specifies that the junction segment should extend across the row-rule, resolving

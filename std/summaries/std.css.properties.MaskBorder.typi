@@ -38,7 +38,7 @@ module std.css.properties.MaskBorder.
 pub opaque type Checked.
 
 pub struct Property {
-    mask_border: None | Stretch | Repeat | Round | Space | Luminance | Alpha | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    mask_border: std.css.keywords.None | std.css.keywords.Stretch | std.css.keywords.Repeat | std.css.keywords.Round | std.css.keywords.Space | std.css.keywords.Luminance | std.css.keywords.Alpha | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the mask-border number range. Returns Some when amount >= 0; otherwise returns None.

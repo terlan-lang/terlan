@@ -28,10 +28,10 @@ pub(crate) mod doctor;
 pub(crate) mod emit_js;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod emit_native_metadata;
-#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) mod emit_self_hosted_actor_object;
 #[cfg(test)]
 pub(crate) mod emit_rust;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod emit_self_hosted_actor_object;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod fmt;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]

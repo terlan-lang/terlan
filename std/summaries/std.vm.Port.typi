@@ -72,7 +72,7 @@ pub env(key: String, value: String): EnvVar.
 /// Transformation: asks the selected VM runtime to spawn a linked external port and
 /// normalize startup failures into the standard error channel.
 
-pub open(command: Command): Result[Port, Error].
+pub open(command: Command): Result[Port, std.core.Error].
 
 /// Reads bytes from the process standard output.
 ///
@@ -81,7 +81,7 @@ pub open(command: Command): Result[Port, Error].
 /// Transformation: receives target port output and normalizes timeout or exit
 /// failures into the standard error channel.
 
-pub (port: Port) read(max_bytes: Int, timeout: Timeout): Result[Bytes, Error].
+pub (port: Port) read(max_bytes: Int, timeout: std.vm.Timeout): Result[std.vm.Bytes, std.core.Error].
 
 /// Writes bytes to the process standard input.
 ///
@@ -90,4 +90,4 @@ pub (port: Port) read(max_bytes: Int, timeout: Timeout): Result[Bytes, Error].
 /// Transformation: sends a binary frame to the runtime port without exposing
 /// backend stream messages.
 
-pub (port: Port) write(bytes: Bytes): Result[Unit, Error].
+pub (port: Port) write(bytes: std.vm.Bytes): Result[Unit, std.core.Error].

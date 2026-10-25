@@ -25,5 +25,5 @@
 module std.css.properties.MathDepth.
 
 pub struct Property {
-    math_depth: AutoAdd | Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    math_depth: std.css.keywords.AutoAdd | Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

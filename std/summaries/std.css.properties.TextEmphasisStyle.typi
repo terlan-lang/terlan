@@ -36,5 +36,5 @@
 module std.css.properties.TextEmphasisStyle.
 
 pub struct Property {
-    text_emphasis_style: None | Filled | Open | Dot | Circle | DoubleCircle | Triangle | Sesame | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    text_emphasis_style: std.css.keywords.None | std.css.keywords.Filled | std.css.keywords.Open | std.css.keywords.Dot | std.css.keywords.Circle | std.css.keywords.DoubleCircle | std.css.keywords.Triangle | std.css.keywords.Sesame | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

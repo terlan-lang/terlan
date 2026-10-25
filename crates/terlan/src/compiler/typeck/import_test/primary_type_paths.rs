@@ -159,3 +159,28 @@ pub impl Keep[sample.Box] for sample.Box {
     );
     assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
 }
+
+/// Primary constructor metadata must still reject a mismatched higher kind.
+#[test]
+fn primary_type_paths_reject_wrong_higher_kinded_constructor_arity() {
+    let diagnostics = check_syntax_output_with_interface(
+        r#"
+module primary_hkt_mismatch.
+import type sample.Box.
+pub trait Keep[F[_, _]] { keep[T, U](value: F[T, U]): F[T, U]. }.
+pub impl Keep[sample.Box] for sample.Box {
+    keep[T](value: sample.Box[T]): sample.Box[T] -> value.
+}.
+"#,
+        "module sample.Box. pub opaque type Box[T].",
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("kind mismatch")
+                && diagnostic
+                    .message
+                    .contains("found sample.Box of kind Type -> Type")),
+        "diagnostics: {diagnostics:?}"
+    );
+}

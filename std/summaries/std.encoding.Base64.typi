@@ -40,7 +40,7 @@ pub decode(text: String): Result[String, Base64Error].
 /// Transformation: decodes directly into VM-owned bytes without a UTF-8
 /// validation step.
 
-pub decode_bytes(text: String): Result[Bytes, Base64Error].
+pub decode_bytes(text: String): Result[std.vm.Bytes, Base64Error].
 
 /// Decodes URL-safe Base64 text into UTF-8 text.
 ///
@@ -59,7 +59,7 @@ pub decode_url(text: String): Result[String, Base64Error].
 /// Transformation: decodes directly into VM-owned bytes without a UTF-8
 /// validation step.
 
-pub decode_url_bytes(text: String): Result[Bytes, Base64Error].
+pub decode_url_bytes(text: String): Result[std.vm.Bytes, Base64Error].
 
 /// Encodes UTF-8 text with the standard Base64 alphabet.
 ///
@@ -76,7 +76,7 @@ pub encode(text: String): String.
 /// Transformation: passes the exact octets through the selected native
 /// capability without interpreting them as UTF-8.
 
-pub encode_bytes(bytes: Bytes): String.
+pub encode_bytes(bytes: std.vm.Bytes): String.
 
 /// Encodes UTF-8 text with the URL-safe Base64 alphabet.
 ///
@@ -95,7 +95,7 @@ pub encode_url(text: String): String.
 /// Transformation: passes the exact octets through the selected URL-safe
 /// native capability without interpreting them as UTF-8.
 
-pub encode_url_bytes(bytes: Bytes): String.
+pub encode_url_bytes(bytes: std.vm.Bytes): String.
 
 /// Encodes arbitrary bytes using URL-safe Base64 without padding.
 ///
@@ -104,6 +104,6 @@ pub encode_url_bytes(bytes: Bytes): String.
 /// Transformation: delegates the unpadded encoding mode to the maintained
 /// codec, preserving every octet without a UTF-8 conversion.
 
-pub encode_url_unpadded_bytes(bytes: Bytes): String.
+pub encode_url_unpadded_bytes(bytes: std.vm.Bytes): String.
 
 export type DecodeFailure, Utf8Failure.

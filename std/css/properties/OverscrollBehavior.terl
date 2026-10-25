@@ -35,7 +35,7 @@ import type std.css.Values.{Inherit, Initial, Revert, RevertLayer, Unset}.
 
 pub type Component = Contain | None | Auto | Chain.
 
-pub opaque type Checked = {Atom["css_parts"], List[Component]}.
+pub opaque type Checked = {Atom["css_parts"], List[Atom["contain"] | Atom["none"] | Atom["auto"] | Atom["chain"]]}.
 
 pub struct Property {
     overscroll_behavior: Contain | None | Auto | Chain | Inherit | Initial | Unset | Revert | RevertLayer | Checked,

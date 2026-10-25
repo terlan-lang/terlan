@@ -23,6 +23,7 @@ mod application_admission_test;
 mod application_calls;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod callable_descriptors;
+mod union_values;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use callable_descriptors::native_callable_descriptors;
 mod atom_alias_values;
@@ -288,8 +289,8 @@ mod model_test;
 #[cfg(test)]
 mod native_object_test_support;
 mod scalar_replacement;
-mod self_host_adapter;
 mod self_host_actor_adapter;
+mod self_host_adapter;
 mod self_host_managed_layouts;
 mod self_host_pattern_ir;
 pub(crate) use self_host_adapter::{
@@ -453,11 +454,8 @@ pub(crate) fn emit_self_hosted_typed_actor_envelope_object(
     plan: crate::self_host_actor_ir::RuntimeActorPlan,
     variants: crate::self_host_variant_ir::VariantCatalog,
 ) -> Result<Vec<u8>, String> {
-    let module = self_host_adapter::lower_self_hosted_typed_actor_envelope(
-        envelope,
-        plan,
-        variants,
-    )?;
+    let module =
+        self_host_adapter::lower_self_hosted_typed_actor_envelope(envelope, plan, variants)?;
     let application = module.name.clone();
     emit_native_application_object_with_policy(
         &application,

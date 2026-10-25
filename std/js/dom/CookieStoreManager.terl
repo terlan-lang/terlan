@@ -47,3 +47,11 @@ pub (receiver: CookieStoreManager) subscribe(subscriptions: Array[CookieStoreGet
  */
 pub (receiver: CookieStoreManager) unsubscribe(subscriptions: Array[CookieStoreGetOptions]): Promise[Unit] ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    get_subscriptions: () -> Promise[Array[CookieStoreGetOptions]],
+    subscribe: (Array[CookieStoreGetOptions]) -> Promise[Unit],
+    unsubscribe: (Array[CookieStoreGetOptions]) -> Promise[Unit],
+): BindingTarget ->
+    native.

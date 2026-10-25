@@ -12,6 +12,7 @@
  */
 module std.js.Dom.StorageManager.
 
+import type std.js.Dom.{FileSystemDirectoryHandle, StorageEstimate}.
 import type std.js.{Promise}.
 
 /**
@@ -27,14 +28,14 @@ pub opaque type StorageManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/estimate)
  */
-pub (receiver: StorageManager) estimate(): Promise[std.js.Dom.StorageEstimate].
+pub (receiver: StorageManager) estimate(): Promise[StorageEstimate].
 
 /**
  * The **`getDirectory()`** method of the StorageManager interface is used to obtain a reference to a FileSystemDirectoryHandle object allowing access to a directory and its contents, stored in the origin private file system (OPFS).
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/getDirectory)
  */
-pub (receiver: StorageManager) get_directory(): Promise[std.js.Dom.FileSystemDirectoryHandle].
+pub (receiver: StorageManager) get_directory(): Promise[FileSystemDirectoryHandle].
 
 /**
  * The **`persist()`** method of the StorageManager interface requests permission to use persistent storage, and returns a Promise that resolves to `true` if permission is granted and bucket mode is persistent, and `false` otherwise.
@@ -49,3 +50,11 @@ pub (receiver: StorageManager) persist(): Promise[Bool].
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/StorageManager/persisted)
  */
 pub (receiver: StorageManager) persisted(): Promise[Bool].
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    estimate: () -> Promise[StorageEstimate],
+    get_directory: () -> Promise[FileSystemDirectoryHandle],
+    persist: () -> Promise[Bool],
+    persisted: () -> Promise[Bool],
+): BindingTarget.

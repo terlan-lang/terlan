@@ -2,11 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use crate::terlan_purity::{local_syntax_call_identity, syntax_expression_defers_body};
 
+use super::calls::infer_receiver_method_candidate;
 use super::{
     apply_subst, infer_syntax_expr, primitive_receiver_method_scheme, ExprInferContext,
     SyntaxExprKind, SyntaxExprOutput, TemplateScheme, Type, TypeVarId,
 };
-use super::calls::infer_receiver_method_candidate;
 
 #[derive(Clone, Copy, Default)]
 pub(crate) struct EffectfulCallFacts<'a> {
@@ -46,13 +46,7 @@ pub(crate) fn check_clause_guard_purity(
     errors: &mut Vec<String>,
 ) {
     let mut proven_pure_receiver_calls = Vec::new();
-    collect_proven_pure_receiver_calls(
-        guard,
-        locals,
-        ctx,
-        subst,
-        &mut proven_pure_receiver_calls,
-    );
+    collect_proven_pure_receiver_calls(guard, locals, ctx, subst, &mut proven_pure_receiver_calls);
     let facts = EffectfulCallFacts {
         proven_pure_receiver_calls: Some(&proven_pure_receiver_calls),
         ..ctx.effectful_calls
@@ -131,9 +125,9 @@ pub(in crate::compiler::typeck) fn collect_proven_pure_receiver_calls(
         }
     }
 
-    expr.children.iter().for_each(|child| {
-        collect_proven_pure_receiver_calls(child, locals, ctx, subst, calls)
-    });
+    expr.children
+        .iter()
+        .for_each(|child| collect_proven_pure_receiver_calls(child, locals, ctx, subst, calls));
     expr.fields.iter().for_each(|field| {
         collect_proven_pure_receiver_calls(&field.value, locals, ctx, subst, calls)
     });

@@ -8,8 +8,9 @@
  *
  * Keyword effects:
  * - alpha: Indicates that the alpha (transparency) values of the mask image should be used.
- * - luminance: Indicates that the [luminance (brightness)](#understanding_luminance) values of the
- * mask image should be used.
+ * - luminance: Indicates that the [luminance
+ * (brightness)](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/mask-mode#understanding_luminance)
+ * values of the mask image should be used.
  * - match-source: Indicates that the type of mask is determined by the source. This is the default
  * property value. - If the `mask-image` references an SVG `mask`, its `mask-type` property value is
  * used, or its `mask-type` attribute, if present. If neither is explicitly set, this value defaults

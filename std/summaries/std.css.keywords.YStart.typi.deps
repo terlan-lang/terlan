@@ -1,7 +1,7 @@
 module=std.css.keywords.YStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=17256769351735234153
 interface_hash=4017064167107612425
 interface_doc_hash=17856202670029770605

@@ -27,3 +27,5 @@ pub (receiver: External) add_search_provider(): std.core.Unit.
  * @deprecated
  */
 pub (receiver: External) is_search_provider_installed(): std.core.Unit.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, add_search_provider: () -> std.core.Unit, is_search_provider_installed: () -> std.core.Unit): BindingTarget.

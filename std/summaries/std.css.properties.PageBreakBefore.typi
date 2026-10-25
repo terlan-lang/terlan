@@ -29,5 +29,5 @@
 module std.css.properties.PageBreakBefore.
 
 pub struct Property {
-    page_break_before: Auto | Always | Avoid | Left | Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    page_break_before: std.css.keywords.Auto | std.css.keywords.Always | std.css.keywords.Avoid | std.css.keywords.Left | std.css.keywords.Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

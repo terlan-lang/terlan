@@ -40,3 +40,5 @@ pub (receiver: ReportingObserver) observe(): std.core.Unit.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/takeRecords)
  */
 pub (receiver: ReportingObserver) take_records(): std.js.Dom.ReportList.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, disconnect: () -> std.core.Unit, observe: () -> std.core.Unit, take_records: () -> std.js.Dom.ReportList): BindingTarget.

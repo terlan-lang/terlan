@@ -23,3 +23,9 @@ pub opaque type XPathEvaluatorBase.
  */
 pub (receiver: XPathEvaluatorBase) create_ns_resolver(node_resolver: Node): Node ->
     native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    create_ns_resolver: (Node) -> Node,
+): BindingTarget ->
+    native.

@@ -12,8 +12,9 @@
  */
 module std.js.Dom.Headers.
 
-import type std.core.{Unit}.
+import type std.core.{Option, Unit}.
 import type std.js.String.{JsString}.
+import type std.js.{Array}.
 
 /**
  * The **`Headers`** interface of the Fetch API allows you to perform various actions on HTTP request and response headers.
@@ -43,7 +44,7 @@ pub (receiver: Headers) delete(name: JsString): Unit ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)
  */
-pub (receiver: Headers) get(name: JsString): std.core.Option[JsString] ->
+pub (receiver: Headers) get(name: JsString): Option[JsString] ->
     native.
 
 /**
@@ -51,7 +52,7 @@ pub (receiver: Headers) get(name: JsString): std.core.Option[JsString] ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie)
  */
-pub (receiver: Headers) get_set_cookie(): std.js.Array[JsString] ->
+pub (receiver: Headers) get_set_cookie(): Array[JsString] ->
     native.
 
 /**
@@ -68,4 +69,15 @@ pub (receiver: Headers) has(name: JsString): Bool ->
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set)
  */
 pub (receiver: Headers) set(name: JsString, value: JsString): Unit ->
+    native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    append: (JsString, JsString) -> Unit,
+    delete: (JsString) -> Unit,
+    get: (JsString) -> Option[JsString],
+    get_set_cookie: () -> Array[JsString],
+    has: (JsString) -> Bool,
+    set: (JsString, JsString) -> Unit,
+): BindingTarget ->
     native.

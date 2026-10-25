@@ -27,5 +27,5 @@
 module std.css.properties.FontVariantEmoji.
 
 pub struct Property {
-    font_variant_emoji: Normal | TextKeyword | Emoji | Unicode | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    font_variant_emoji: std.css.keywords.Normal | std.css.keywords.TextKeyword | std.css.keywords.Emoji | std.css.keywords.Unicode | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

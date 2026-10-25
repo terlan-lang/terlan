@@ -43,5 +43,5 @@
 module std.css.properties.Contain.
 
 pub struct Property {
-    contain: None | Strict | Content | Size | InlineSize | Layout | Style | Paint | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    contain: std.css.keywords.None | std.css.keywords.Strict | std.css.keywords.Content | std.css.keywords.Size | std.css.keywords.InlineSize | std.css.keywords.Layout | std.css.keywords.Style | std.css.keywords.Paint | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

@@ -23,5 +23,5 @@
 module std.css.properties.TransitionBehavior.
 
 pub struct Property {
-    transition_behavior: Normal | AllowDiscrete | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    transition_behavior: std.css.keywords.Normal | std.css.keywords.AllowDiscrete | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

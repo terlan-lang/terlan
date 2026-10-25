@@ -61,3 +61,5 @@ pub (receiver: Headers) has(name: std.js.String.JsString): Bool.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set)
  */
 pub (receiver: Headers) set(name: std.js.String.JsString, value: std.js.String.JsString): std.core.Unit.
+
+pub with_members[BindingTarget](binding_target: BindingTarget, append: (std.js.String.JsString, std.js.String.JsString) -> std.core.Unit, delete: (std.js.String.JsString) -> std.core.Unit, get: (std.js.String.JsString) -> std.core.Option[std.js.String.JsString], get_set_cookie: () -> std.js.Array[std.js.String.JsString], has: (std.js.String.JsString) -> Bool, set: (std.js.String.JsString, std.js.String.JsString) -> std.core.Unit): BindingTarget.

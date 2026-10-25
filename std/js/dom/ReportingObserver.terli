@@ -13,6 +13,7 @@
 module std.js.Dom.ReportingObserver.
 
 import type std.core.{Unit}.
+import type std.js.Dom.{ReportList}.
 
 /**
  * The `ReportingObserver` interface of the Reporting API allows you to collect and access reports.
@@ -40,4 +41,11 @@ pub (receiver: ReportingObserver) observe(): Unit.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReportingObserver/takeRecords)
  */
-pub (receiver: ReportingObserver) take_records(): std.js.Dom.ReportList.
+pub (receiver: ReportingObserver) take_records(): ReportList.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    disconnect: () -> Unit,
+    observe: () -> Unit,
+    take_records: () -> ReportList,
+): BindingTarget.

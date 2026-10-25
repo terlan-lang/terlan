@@ -43,5 +43,5 @@
 module std.css.properties.BackgroundRepeat.
 
 pub struct Property {
-    background_repeat: RepeatX | RepeatY | Repeat | Space | Round | NoRepeat | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
+    background_repeat: std.css.keywords.RepeatX | std.css.keywords.RepeatY | std.css.keywords.Repeat | std.css.keywords.Space | std.css.keywords.Round | std.css.keywords.NoRepeat | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
 }.

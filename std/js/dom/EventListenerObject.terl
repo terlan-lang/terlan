@@ -12,7 +12,16 @@
  */
 module std.js.Dom.EventListenerObject.
 
+import type std.core.{Unit}.
+import type std.js.Dom.{Event}.
+
 pub opaque type EventListenerObject.
 
-pub (receiver: EventListenerObject) handle_event(object: std.js.Dom.Event): std.core.Unit ->
+pub (receiver: EventListenerObject) handle_event(object: Event): Unit ->
+    native.
+
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    handle_event: (Event) -> Unit,
+): BindingTarget ->
     native.

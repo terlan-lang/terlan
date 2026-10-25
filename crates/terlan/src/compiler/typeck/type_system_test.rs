@@ -45,10 +45,7 @@ fn collapsed_opaque_default_type_path_normalizes_to_canonical_identity() {
         constructor_param_names: vec![],
         is_opaque: true,
     };
-    let aliases = HashMap::from([(
-        "std.collections.Iterator.Iterator".to_string(),
-        iterator,
-    )]);
+    let aliases = HashMap::from([("std.collections.Iterator.Iterator".to_string(), iterator)]);
     let collapsed = Type::Named {
         module: Some("std.collections".to_string()),
         name: "Iterator".to_string(),

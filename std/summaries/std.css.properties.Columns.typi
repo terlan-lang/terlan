@@ -26,7 +26,7 @@ module std.css.properties.Columns.
 pub opaque type Checked.
 
 pub struct Property {
-    columns: Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
+    columns: std.css.keywords.Auto | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer | Checked
 }.
 
 /// Checks the columns integer range. Returns Some when amount >= 1; otherwise returns None.

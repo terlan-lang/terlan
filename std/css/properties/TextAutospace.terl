@@ -10,7 +10,9 @@
  * browsers and platforms.
  * - normal: Creates the default behavior to automatically apply spacing between CJK and non-CJK
  * characters and around punctuation. This value has the same effect as applying both
- * [`ideograph-alpha`](#ideograph-alpha) and [`ideograph-numeric`](#ideograph-numeric).
+ * [`ideograph-alpha`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-autospace#ideograph-alpha)
+ * and
+ * [`ideograph-numeric`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/text-autospace#ideograph-numeric).
  *
  * Grammar: normal | <autospace> | auto
  *
