@@ -18,7 +18,7 @@ fn descriptors() -> Vec<ManagedAggregateDescriptor> {
             vec![ManagedFieldType::Int, ManagedFieldType::Bool],
         )
         .expect("tuple"),
-        ManagedAggregateDescriptor::fixed_array("Array[Float,2]", ManagedFieldType::Float, 2)
+        ManagedAggregateDescriptor::array("Array[Float,2]", ManagedFieldType::Float, 2)
             .expect("array"),
         ManagedAggregateDescriptor::record(
             "app.User",
@@ -160,8 +160,8 @@ fn aggregate_abi_rejects_truncation_corruption_and_ambiguity() {
 
 #[test]
 fn aggregate_abi_rejects_shape_specific_field_and_variant_corruption() {
-    let array = ManagedAggregateDescriptor::fixed_array("Array[Int,2]", ManagedFieldType::Int, 2)
-        .expect("array");
+    let array =
+        ManagedAggregateDescriptor::array("Array[Int,2]", ManagedFieldType::Int, 2).expect("array");
     let mut inconsistent = encode_aggregate_layout(&array).expect("array encoding");
     *inconsistent.last_mut().expect("last field tag") = 1;
     assert_eq!(

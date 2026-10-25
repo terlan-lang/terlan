@@ -506,7 +506,7 @@ fn resolve_constructor_identities_in_core_expr(
         | CoreExpr::RemoteFunRef { .. } => {}
         CoreExpr::Tuple(items)
         | CoreExpr::List(items)
-        | CoreExpr::FixedArray(items)
+        | CoreExpr::Array(items)
         | CoreExpr::SqlQuery {
             parameters: items, ..
         }

@@ -17,7 +17,7 @@ pub(in super::super) fn rename_free_variables(
             .unwrap_or_else(|| expr.clone()),
         CoreExpr::Tuple(items) => CoreExpr::Tuple(rename_many(items, renames, bound)),
         CoreExpr::List(items) => CoreExpr::List(rename_many(items, renames, bound)),
-        CoreExpr::FixedArray(items) => CoreExpr::FixedArray(rename_many(items, renames, bound)),
+        CoreExpr::Array(items) => CoreExpr::Array(rename_many(items, renames, bound)),
         CoreExpr::ListCons { head, tail } => CoreExpr::ListCons {
             head: Box::new(rename_free_variables(head, renames, bound)),
             tail: Box::new(rename_free_variables(tail, renames, bound)),

@@ -475,7 +475,7 @@ pub(super) fn contains_process_yield(expr: &CoreExpr) -> bool {
         CoreExpr::FunctionCall { callee, args } => {
             contains_process_yield(callee) || args.iter().any(contains_process_yield)
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().any(contains_process_yield)
         }
         CoreExpr::ListCons { head, tail }

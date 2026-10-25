@@ -448,7 +448,7 @@ fn resolve_expr(
                 | CoreIntrinsicId::VmEffectFail => {}
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items
                 .iter_mut()
                 .for_each(|item| resolve_expr(item, module, imports, aliases));

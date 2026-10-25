@@ -385,8 +385,8 @@ fn first_unresolved_negative_target(
         Type::List(inner) => {
             first_unresolved_negative_target(inner, visible_type_names, resolved, vars)
         }
-        Type::FixedArray { size, elem } => {
-            if let crate::terlan_typeck::types::FixedArraySize::Param(id) = size {
+        Type::Array { size, elem } => {
+            if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
                 return vars
                     .iter()
                     .find_map(|(name, candidate)| (*candidate == *id).then(|| name.clone()))

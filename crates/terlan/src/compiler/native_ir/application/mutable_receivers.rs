@@ -298,7 +298,7 @@ fn resolve_expr(
                 resolve_expr(argument, module, variables, functions, targets)?;
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 resolve_expr(item, module, variables, functions, targets)?;
             }

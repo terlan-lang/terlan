@@ -48,7 +48,7 @@ fn core_expr_substitution_freshness_evidence(expr: &CoreExpr) -> CoreSubstitutio
         | CoreExpr::RemoteFunRef { .. } => none,
         CoreExpr::Tuple(items)
         | CoreExpr::List(items)
-        | CoreExpr::FixedArray(items)
+        | CoreExpr::Array(items)
         | CoreExpr::SqlQuery {
             parameters: items, ..
         } => combine_expr_freshness(items.iter().map(core_expr_substitution_freshness_evidence)),
@@ -279,7 +279,7 @@ fn core_expr_has_checked_preservation_evidence(expr: &CoreExpr) -> bool {
             core_expr_has_checked_preservation_evidence(head)
                 && core_expr_has_checked_preservation_evidence(tail)
         }
-        CoreExpr::FixedArray(items) => items
+        CoreExpr::Array(items) => items
             .iter()
             .all(core_expr_has_checked_preservation_evidence),
         CoreExpr::Index { base, index } => {

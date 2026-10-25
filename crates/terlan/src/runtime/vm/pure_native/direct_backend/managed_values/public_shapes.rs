@@ -85,7 +85,7 @@ fn public_fields<'a>(
 ) -> Option<PublicFields<'a>> {
     match (descriptor.kind(), value) {
         (ManagedAggregateKind::Tuple, ReplValue::Tuple(values))
-        | (ManagedAggregateKind::FixedArray, ReplValue::List(values))
+        | (ManagedAggregateKind::Array, ReplValue::List(values))
             if values.len() == descriptor.fields().len() =>
         {
             Some(PublicFields::Positional(values))
@@ -135,7 +135,7 @@ pub(super) fn public_aggregate(
 ) -> ReplValue {
     match descriptor.kind() {
         ManagedAggregateKind::Tuple => ReplValue::Tuple(values),
-        ManagedAggregateKind::FixedArray => ReplValue::List(values),
+        ManagedAggregateKind::Array => ReplValue::List(values),
         ManagedAggregateKind::Record | ManagedAggregateKind::Constructor => {
             let name = descriptor
                 .variant_name()

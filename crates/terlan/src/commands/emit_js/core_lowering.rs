@@ -122,7 +122,7 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         }
         CoreExpr::Binary(value) | CoreExpr::Atom(value) => Some(js_string_literal(value)),
         CoreExpr::Var(name) if is_js_identifier(name) => Some(name.clone()),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             let items = items
                 .iter()
                 .map(core_expr_to_js)

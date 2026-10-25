@@ -313,7 +313,7 @@ fn rewrite(
                 )?;
             }
         }
-        CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::List(items) | CoreExpr::Array(items) => {
             let element =
                 expected.and_then(super::collection_intrinsic_specialization::list_element);
             for item in items {

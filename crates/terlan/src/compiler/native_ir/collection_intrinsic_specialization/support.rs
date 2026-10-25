@@ -289,9 +289,7 @@ pub(super) fn visit_children(
         specialize_expr(expr, variables, functions, module);
     };
     match expr {
-        CoreExpr::Tuple(items) | CoreExpr::FixedArray(items) => {
-            items.iter_mut().for_each(&mut visit)
-        }
+        CoreExpr::Tuple(items) | CoreExpr::Array(items) => items.iter_mut().for_each(&mut visit),
         CoreExpr::Index { base, index } => {
             visit(base);
             visit(index);

@@ -30,7 +30,7 @@ pub(super) fn reject_deep_immediate_callable_chain(expr: &CoreExpr) -> Result<()
 
 fn push_children<'a>(expr: &'a CoreExpr, pending: &mut Vec<&'a CoreExpr>) {
     match expr {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             pending.extend(items);
         }
         CoreExpr::ListCons { head, tail }

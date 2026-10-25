@@ -720,7 +720,7 @@ pub first[const N: Int](values: Array[N, Int]): Int -> values[0].
 
 The size is part of the type. A literal with a different element count cannot
 satisfy an array annotation, and constant indices outside the known bounds are
-rejected during typechecking. `Array` replaces the former `FixedArray` type name.
+rejected during typechecking.
 
 Use `List[T]` and `[1, 2, 3]` for portable growable collections. Explicitly
 imported array types, such as JavaScript's `std.js.Array.Array[T]`, retain their

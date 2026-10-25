@@ -410,7 +410,7 @@ impl ScalarCaseLowerer {
     /// Rewrites all child expressions while preserving the parent node.
     fn rewrite_children(&mut self, expr: &mut CoreExpr, case_depth: usize) -> Result<(), String> {
         match expr {
-            CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+            CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
                 self.rewrite_many(items, case_depth)?;
             }
             CoreExpr::ListCons { head, tail } => {

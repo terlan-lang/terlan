@@ -45,7 +45,7 @@ fn inferred_core_expr_type(expr: &CoreExpr) -> Option<CoreType> {
         CoreExpr::Atom(value) if value == "true" || value == "false" => Some(CoreType::Bool),
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::List(items) => inferred_homogeneous_list_type(items),
-        CoreExpr::FixedArray(items) => inferred_homogeneous_list_type(items),
+        CoreExpr::Array(items) => inferred_homogeneous_list_type(items),
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
         CoreExpr::Lam {
@@ -71,7 +71,7 @@ fn inferred_core_expr_type(expr: &CoreExpr) -> Option<CoreType> {
 /// Infers a list type when every element has the same obvious CoreIR type.
 ///
 /// Inputs:
-/// - `items`: literal list or fixed-array elements.
+/// - `items`: literal list or array elements.
 ///
 /// Output:
 /// - `Some(CoreType::List(_))` when all elements infer to one type, or an

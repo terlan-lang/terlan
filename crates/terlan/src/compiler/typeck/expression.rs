@@ -386,7 +386,7 @@ pub(super) fn infer_syntax_expr(
             }
             Type::List(Box::new(apply_subst(&head_type, subst)))
         }
-        SyntaxExprKind::FixedArray => {
+        SyntaxExprKind::Array => {
             let elem_type = normalize_union(
                 expr.children
                     .iter()
@@ -399,8 +399,8 @@ pub(super) fn infer_syntax_expr(
                     )
                     .collect(),
             );
-            Type::FixedArray {
-                size: types::FixedArraySize::Known(expr.children.len()),
+            Type::Array {
+                size: types::ArraySize::Known(expr.children.len()),
                 elem: Box::new(elem_type),
             }
         }

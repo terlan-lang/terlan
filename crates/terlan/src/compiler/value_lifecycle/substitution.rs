@@ -380,8 +380,8 @@ pub(super) fn value_to_expr(value: &ConstValue, span: EbnfSourceSpan) -> SyntaxE
                 .collect(),
             Vec::new(),
         ),
-        ConstValue::FixedArray(values) => (
-            SyntaxExprKind::FixedArray,
+        ConstValue::Array(values) => (
+            SyntaxExprKind::Array,
             None,
             values
                 .iter()
@@ -474,12 +474,12 @@ pub(super) fn literal_expr_value(expr: &SyntaxExprOutput) -> Option<ConstValue> 
             .map(literal_expr_value)
             .collect::<Option<Vec<_>>>()
             .map(ConstValue::List),
-        SyntaxExprKind::FixedArray => expr
+        SyntaxExprKind::Array => expr
             .children
             .iter()
             .map(literal_expr_value)
             .collect::<Option<Vec<_>>>()
-            .map(ConstValue::FixedArray),
+            .map(ConstValue::Array),
         SyntaxExprKind::Map => expr
             .fields
             .iter()
@@ -592,7 +592,7 @@ pub(super) fn value_to_pattern(value: &ConstValue) -> Option<SyntaxPatternOutput
                 fields: Vec::new(),
             });
         }
-        ConstValue::FixedArray(_) => return None,
+        ConstValue::Array(_) => return None,
     };
     Some(SyntaxPatternOutput {
         kind,
@@ -667,7 +667,7 @@ pub(super) fn ensure_type(
     let expected = expected.trim();
     let matches = expected == value.type_name()
         || (expected.starts_with("List[") && matches!(value, ConstValue::List(_)))
-        || (expected.starts_with("Array[") && matches!(value, ConstValue::FixedArray(_)))
+        || (expected.starts_with("Array[") && matches!(value, ConstValue::Array(_)))
         || (expected.starts_with('{') && matches!(value, ConstValue::Tuple(_)))
         || (expected.starts_with("Map[") && matches!(value, ConstValue::Map(_)))
         || matches!(value, ConstValue::Record { name, .. } if name == expected);

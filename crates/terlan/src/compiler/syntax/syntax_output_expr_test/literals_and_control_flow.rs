@@ -470,7 +470,7 @@ pub(super) fn syntax_output_includes_sequence_primary_expr_trees() {
         panic!("expected fixed array function declaration");
     };
     let fixed = &fixed_clauses[0].body;
-    assert_eq!(fixed.kind, SyntaxExprKind::FixedArray);
+    assert_eq!(fixed.kind, SyntaxExprKind::Array);
     assert_eq!(fixed.children.len(), 3);
     assert_eq!(fixed.children[0].text.as_deref(), Some("1"));
     assert_eq!(fixed.children[2].text.as_deref(), Some("3"));

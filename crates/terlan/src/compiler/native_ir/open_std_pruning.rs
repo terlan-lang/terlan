@@ -505,7 +505,7 @@ fn collect_calls(
                 calls.insert(target);
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             collect_many(items, caller, providers, calls)
         }
         CoreExpr::ListCons { head, tail }

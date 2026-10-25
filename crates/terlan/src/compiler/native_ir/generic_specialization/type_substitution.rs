@@ -88,7 +88,7 @@ fn substitute_expr_types(
             substitute_expr_types(receiver, parameters, values);
             substitute_many(args, parameters, values);
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             substitute_many(items, parameters, values);
         }
         CoreExpr::ListCons { head, tail }

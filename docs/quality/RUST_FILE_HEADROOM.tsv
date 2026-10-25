@@ -18,7 +18,7 @@ crates/terlan/src/compiler/native_ir/cranelift/function.rs	implementation	952	90
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/mod.rs	implementation	903	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/trait_conformance/syntax.rs	implementation	972	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/value_lifecycle.rs	implementation	926	900	1000	compiler-structure	0.0.9
+crates/terlan/src/compiler/value_lifecycle.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/lsp/backend/navigation.rs	implementation	931	900	1000	lsp-structure	0.0.9
 crates/terlan/src/lsp/hover.rs	implementation	942	900	1000	lsp-structure	0.0.9
 crates/terlan/src/quality/executable_docs_vm.rs	implementation	907	900	1000	quality-structure	0.0.9

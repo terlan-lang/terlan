@@ -32,7 +32,7 @@ pub(crate) fn visit_core_expr_children_mut(
                 visit(arg);
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 visit(item);
             }

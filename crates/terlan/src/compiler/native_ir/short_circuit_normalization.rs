@@ -28,7 +28,7 @@ pub(super) fn normalize(expr: &mut CoreExpr) {
         CoreExpr::Call { args, .. }
         | CoreExpr::RemoteCall { args, .. }
         | CoreExpr::ConstructorCall { args, .. } => args.iter_mut().for_each(normalize),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter_mut().for_each(normalize);
         }
         CoreExpr::ListCons { head, tail }

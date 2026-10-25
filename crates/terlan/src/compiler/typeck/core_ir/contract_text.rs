@@ -63,8 +63,8 @@ impl CoreExpr {
                     tail.contract_text()
                 )
             }
-            CoreExpr::FixedArray(elements) => format!(
-                "FixedArray({})",
+            CoreExpr::Array(elements) => format!(
+                "Array({})",
                 elements
                     .iter()
                     .map(CoreExpr::contract_text)

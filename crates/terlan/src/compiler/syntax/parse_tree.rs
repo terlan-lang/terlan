@@ -420,7 +420,7 @@ pub enum Expr {
     Tuple(Vec<Expr>),
     List(Vec<Expr>),
     ListCons(Box<Expr>, Box<Expr>),
-    FixedArray(Vec<Expr>),
+    Array(Vec<Expr>),
     Index(Box<Expr>, Box<Expr>),
     IndexAssign {
         collection: Box<Expr>,

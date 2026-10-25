@@ -94,7 +94,7 @@ pub(in super::super) fn reveal_opaque_aliases(
                 .collect(),
             ret: Box::new(reveal_opaque_aliases(ret, aliases)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(reveal_opaque_aliases(elem, aliases)),
         },

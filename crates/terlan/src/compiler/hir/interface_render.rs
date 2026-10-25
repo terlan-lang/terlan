@@ -542,7 +542,7 @@ pub(super) fn render_constant_expr(expr: &SyntaxExprOutput) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        SyntaxExprKind::FixedArray => format!(
+        SyntaxExprKind::Array => format!(
             "#[{}]",
             expr.children
                 .iter()

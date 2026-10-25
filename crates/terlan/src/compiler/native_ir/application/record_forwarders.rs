@@ -221,7 +221,7 @@ fn rewrite(
             rewrite_many(args, module, forwarders)
         }
         CoreExpr::Intrinsic(call) => rewrite_many(&mut call.args, module, forwarders),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             rewrite_many(items, module, forwarders)
         }
         CoreExpr::ListCons { head, tail }

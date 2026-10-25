@@ -110,7 +110,7 @@ fn normalize_remote_expr(
                 normalize_remote_expr(arg, phase, local_functions, application_functions);
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 normalize_remote_expr(item, phase, local_functions, application_functions);
             }

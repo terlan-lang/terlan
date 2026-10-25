@@ -298,7 +298,7 @@ PrimaryExpr
    | KeyedContainerExpr
    | ListExpr
    | ConsListExpr
-   | FixedArrayExpr
+   | ArrayExpr
    | NominalKeyedExpr
    | MacroExpr
    | CaseExpr
@@ -318,7 +318,7 @@ AtomLiteralExpr ::= "Atom" "[" StringLiteral "]" .
 TupleExpr ::= "{" Expr "," Expr { "," Expr } [ "," ] "}" .
 ListExpr ::= "[" [ Expr { "," Expr } [ "," ] ] "]" .
 ConsListExpr ::= "[" Expr "|" Expr "]" .
-FixedArrayExpr ::= "#[" [ Expr { "," Expr } [ "," ] ] "]" .
+ArrayExpr ::= "#[" [ Expr { "," Expr } [ "," ] ] "]" .
 ListGeneratorExpr ::= "[" Expr "|" Generator { "," ComprehensionQualifier } "]" .
 ComprehensionQualifier ::= Generator | ComprehensionFilter .
 Generator ::= Pattern "<-" Expr .

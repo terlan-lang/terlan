@@ -1115,7 +1115,7 @@ parse_primary_fixed(
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     if {
-        first.text == "#" -> parse_fixed_array_lookahead(first, rest);
+        first.text == "#" -> parse_array_lookahead(first, rest);
         true -> ProjectedExpressionResult(true, Some(leaf(first)), rest, "")
     }.
 
@@ -1228,29 +1228,29 @@ invalid_group(slice: GroupSlice): ProjectedExpressionResult ->
     ProjectedExpressionResult(false, None, slice.rest, "expression group is invalid").
 
 @pure
-parse_fixed_array_lookahead(
+parse_array_lookahead(
     marker: ProjectedCanonicalToken,
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     case rest {
-        [opening | tail] -> parse_fixed_array_opening(marker, rest, opening, tail);
+        [opening | tail] -> parse_array_opening(marker, rest, opening, tail);
         [] -> ProjectedExpressionResult(true, Some(leaf(marker)), rest, "")
     }.
 
 @pure
-parse_fixed_array_opening(
+parse_array_opening(
     marker: ProjectedCanonicalToken,
     original_rest: List[ProjectedCanonicalToken],
     opening: ProjectedCanonicalToken,
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     if {
-        opening.text == "[" -> parse_fixed_array(marker, opening, rest);
+        opening.text == "[" -> parse_array(marker, opening, rest);
         true -> ProjectedExpressionResult(true, Some(leaf(marker)), original_rest, "")
     }.
 
 @pure
-parse_fixed_array(
+parse_array(
     marker: ProjectedCanonicalToken,
     opening: ProjectedCanonicalToken,
     rest: List[ProjectedCanonicalToken],
@@ -1258,12 +1258,12 @@ parse_fixed_array(
     let slice = group(opening, rest);
     let inner = parse_elements(slice.inner);
     case slice.close {
-        Some(close) -> validate_fixed_array(marker, slice, inner, close);
-        None -> invalid_fixed_array(slice)
+        Some(close) -> validate_array(marker, slice, inner, close);
+        None -> invalid_array(slice)
     }.
 
 @pure
-validate_fixed_array(
+validate_array(
     marker: ProjectedCanonicalToken,
     slice: GroupSlice,
     inner: ProjectedExpressionResult,
@@ -1271,18 +1271,18 @@ validate_fixed_array(
 ): ProjectedExpressionResult ->
     if {
         slice.valid -> ProjectedExpressionResult(inner.valid and inner.rest == [], Some(node(
-            "fixed-array",
+            "array",
             "#[",
             marker.start_byte,
             close.end_byte,
             optional_children(inner.node),
         )), slice.rest, inner.message);
-        true -> invalid_fixed_array(slice)
+        true -> invalid_array(slice)
     }.
 
 @pure
-invalid_fixed_array(slice: GroupSlice): ProjectedExpressionResult ->
-    ProjectedExpressionResult(false, None, slice.rest, "fixed array is missing its closing bracket").
+invalid_array(slice: GroupSlice): ProjectedExpressionResult ->
+    ProjectedExpressionResult(false, None, slice.rest, "array is missing its closing bracket").
 
 @pure
 parse_postfix_at(result: ProjectedExpressionResult): ProjectedExpressionResult ->

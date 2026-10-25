@@ -198,7 +198,7 @@ fn next_type_var(args: &[Type], subst: &HashMap<TypeVarId, Type>) -> TypeVarId {
 ///
 /// Transformation:
 /// - Recursively descends through collection, named, union, tuple, function,
-///   and fixed-array types.
+///   and array types.
 pub(super) fn max_type_var(ty: &Type) -> Option<TypeVarId> {
     match ty {
         Type::Var(id) => Some(*id),
@@ -208,10 +208,10 @@ pub(super) fn max_type_var(ty: &Type) -> Option<TypeVarId> {
             .chain(std::iter::once(Some(*constructor)).flatten())
             .max(),
         Type::List(inner) => max_type_var(inner),
-        Type::FixedArray { size, elem } => {
+        Type::Array { size, elem } => {
             let size_var = match size {
-                crate::terlan_typeck::types::FixedArraySize::Known(_) => None,
-                crate::terlan_typeck::types::FixedArraySize::Param(id) => Some(*id),
+                crate::terlan_typeck::types::ArraySize::Known(_) => None,
+                crate::terlan_typeck::types::ArraySize::Param(id) => Some(*id),
             };
             size_var.into_iter().chain(max_type_var(elem)).max()
         }
@@ -281,11 +281,11 @@ where
                 .collect(),
             ret: Box::new(remap_type(ret, remap)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: match size {
-                crate::terlan_typeck::types::FixedArraySize::Known(_) => *size,
-                crate::terlan_typeck::types::FixedArraySize::Param(id) => {
-                    crate::terlan_typeck::types::FixedArraySize::Param(remap(id))
+                crate::terlan_typeck::types::ArraySize::Known(_) => *size,
+                crate::terlan_typeck::types::ArraySize::Param(id) => {
+                    crate::terlan_typeck::types::ArraySize::Param(remap(id))
                 }
             },
             elem: Box::new(remap_type(elem, remap)),

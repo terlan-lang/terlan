@@ -5306,11 +5306,11 @@
       "status": "single-owner"
     },
     {
-      "concept": "fixedarraysize",
+      "concept": "arraysize",
       "declarations": [
         {
           "line": 19,
-          "name": "FixedArraySize",
+          "name": "ArraySize",
           "path": "crates/terlan/src/compiler/typeck/types.rs"
         }
       ],
@@ -63507,7 +63507,7 @@
         {
           "kind": "enum",
           "line": 19,
-          "name": "FixedArraySize",
+          "name": "ArraySize",
           "shape": "3f3f2f439fe0a0d6"
         },
         {

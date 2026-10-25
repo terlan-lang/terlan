@@ -67,17 +67,57 @@ pub(crate) fn parse_interface_signature(
     interface: &ModuleInterface,
     global_aliases: &HashMap<String, TypeAlias>,
 ) -> Option<FunctionScheme> {
+    InterfaceSignatureContext::new(interface, global_aliases).parse(signature)
+}
+
+/// Immutable alias tables shared by signatures from the same interface.
+pub(crate) struct InterfaceSignatureContext<'a> {
+    global_aliases: &'a HashMap<String, TypeAlias>,
+    local_type_names: HashSet<String>,
+    alias_names: HashSet<String>,
+    qualified_names: HashMap<String, QualifiedTypeName>,
+    interface_aliases: HashMap<String, TypeAlias>,
+}
+
+impl<'a> InterfaceSignatureContext<'a> {
+    /// Resolves provider names once while keeping dependency aliases borrowed.
+    pub(crate) fn new(
+        interface: &ModuleInterface,
+        global_aliases: &'a HashMap<String, TypeAlias>,
+    ) -> Self {
+        let local_type_names = interface_type_names(interface);
+        let mut alias_names = local_type_names.clone();
+        alias_names.extend(unique_global_alias_short_names(global_aliases));
+        Self {
+            global_aliases,
+            local_type_names,
+            alias_names,
+            qualified_names: interface_qualified_type_names(interface),
+            interface_aliases: interface_type_aliases(interface),
+        }
+    }
+
+    /// Parses each signature with fresh generic variables and shared name tables.
+    pub(crate) fn parse(&self, signature: &FunctionSignature) -> Option<FunctionScheme> {
+        parse_interface_signature_in_context(signature, self)
+    }
+}
+
+fn parse_interface_signature_in_context(
+    signature: &FunctionSignature,
+    context: &InterfaceSignatureContext<'_>,
+) -> Option<FunctionScheme> {
     let mut vars = HashMap::new();
     let mut next_var: TypeVarId = 0;
     for param in &signature.generic_params {
         vars.insert(normalize_type_param_name(param), next_var);
         next_var += 1;
     }
-    let local_type_names = interface_type_names(interface);
-    let mut alias_names = local_type_names.clone();
-    alias_names.extend(unique_global_alias_short_names(global_aliases));
-    let qualified_names = interface_qualified_type_names(interface);
-    let interface_aliases = interface_type_aliases(interface);
+    let global_aliases = context.global_aliases;
+    let local_type_names = &context.local_type_names;
+    let alias_names = &context.alias_names;
+    let qualified_names = &context.qualified_names;
+    let interface_aliases = &context.interface_aliases;
 
     let params = signature
         .params
@@ -85,9 +125,9 @@ pub(crate) fn parse_interface_signature(
         .enumerate()
         .filter_map(|(index, param)| {
             let visible_type_names = if signature.receiver_method && index == 0 {
-                &local_type_names
+                local_type_names
             } else {
-                &alias_names
+                alias_names
             };
             parse_type_expr(
                 &param.annotation,
@@ -96,25 +136,25 @@ pub(crate) fn parse_interface_signature(
                 &mut next_var,
             )
         })
-        .map(|param| expand_type_aliases(&param, &interface_aliases))
+        .map(|param| expand_type_aliases(&param, interface_aliases))
         .map(|param| expand_interface_global_aliases(&param, global_aliases))
-        .map(|param| qualify_type_names(&param, &qualified_names))
+        .map(|param| qualify_type_names(&param, qualified_names))
         .collect::<Vec<_>>();
 
     let ret = parse_type_expr(
         &signature.return_type,
-        &alias_names,
+        alias_names,
         &mut vars,
         &mut next_var,
     )?;
-    let ret = expand_type_aliases(&ret, &interface_aliases);
+    let ret = expand_type_aliases(&ret, interface_aliases);
     let ret = expand_interface_global_aliases(&ret, global_aliases);
-    let ret = qualify_type_names(&ret, &qualified_names);
-    let mut parsed_bounds = parse_generic_bounds(&signature.generic_bounds, &vars, &alias_names);
+    let ret = qualify_type_names(&ret, qualified_names);
+    let mut parsed_bounds = parse_generic_bounds(&signature.generic_bounds, &vars, alias_names);
     parsed_bounds.extend(parse_structural_implication_bounds(
         &signature.generic_params,
         &vars,
-        &alias_names,
+        alias_names,
     ));
     let bounds = parsed_bounds
         .into_iter()
@@ -123,9 +163,9 @@ pub(crate) fn parse_interface_signature(
             trait_args: bound
                 .trait_args
                 .into_iter()
-                .map(|arg| expand_type_aliases(&arg, &interface_aliases))
+                .map(|arg| expand_type_aliases(&arg, interface_aliases))
                 .map(|arg| expand_interface_global_aliases(&arg, global_aliases))
-                .map(|arg| qualify_type_names(&arg, &qualified_names))
+                .map(|arg| qualify_type_names(&arg, qualified_names))
                 .collect(),
         })
         .collect();
@@ -311,7 +351,7 @@ fn expand_interface_global_aliases_inner(
                 active_aliases,
             )),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(expand_interface_global_aliases_inner(
                 elem,
@@ -690,7 +730,7 @@ pub(crate) fn qualify_type_names(
                 .collect(),
             ret: Box::new(qualify_type_names(ret, qualified_names)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(qualify_type_names(elem, qualified_names)),
         },

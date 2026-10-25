@@ -194,7 +194,7 @@ fn rewrite_children(
     types: &[crate::terlan_typeck::CoreTypeDecl],
 ) -> Result<(), String> {
     match expr {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             rewrite_many(items, templates, types)?
         }
         CoreExpr::ListCons { head, tail }

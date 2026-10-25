@@ -46,7 +46,7 @@ fn qualify_expr_calls(expr: &mut CoreExpr, module: &str, local: &HashSet<(String
                 qualify_expr_calls(arg, module, local);
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 qualify_expr_calls(item, module, local);
             }

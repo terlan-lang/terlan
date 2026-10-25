@@ -36,7 +36,7 @@ pub type MapExpression.
 pub type ListExpression.
 pub type ListConsExpression.
 pub type ListComprehensionExpression.
-pub type FixedArrayExpression.
+pub type ArrayExpression.
 pub type NominalKeyedExpression.
 pub type BinaryLayoutExpression.
 pub type InvalidExpression.
@@ -74,7 +74,7 @@ pub type ExpressionClass =
     | ListExpression
     | ListConsExpression
     | ListComprehensionExpression
-    | FixedArrayExpression
+    | ArrayExpression
     | NominalKeyedExpression
     | BinaryLayoutExpression
     | InvalidExpression.

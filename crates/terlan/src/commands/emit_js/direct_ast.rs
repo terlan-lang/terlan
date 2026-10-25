@@ -271,7 +271,7 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
         }
         crate::terlan_typeck::CoreExpr::Tuple(items)
         | crate::terlan_typeck::CoreExpr::List(items)
-        | crate::terlan_typeck::CoreExpr::FixedArray(items) => {
+        | crate::terlan_typeck::CoreExpr::Array(items) => {
             let mut elements = ast.vec();
             for item in items {
                 elements.push(ArrayExpressionElement::from(core_expr_to_oxc_expression(

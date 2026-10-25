@@ -175,7 +175,7 @@ fn expand_type_aliases_inner(
                 .collect(),
             ret: Box::new(expand_type_aliases_inner(ret, aliases, active_aliases)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(expand_type_aliases_inner(elem, aliases, active_aliases)),
         },
@@ -246,7 +246,7 @@ pub(crate) fn substitute_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, Type>
                 .collect(),
             ret: Box::new(substitute_type_vars(ret, mapping)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: size.substitute(mapping),
             elem: Box::new(substitute_type_vars(elem, mapping)),
         },
@@ -403,7 +403,7 @@ fn rename_type_vars(ty: &Type, mapping: &HashMap<TypeVarId, TypeVarId>) -> Type 
                 .collect(),
             ret: Box::new(rename_type_vars(ret, mapping)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: size.rename(mapping),
             elem: Box::new(rename_type_vars(elem, mapping)),
         },

@@ -192,7 +192,7 @@ fn qualify_intrinsic_id(id: &mut CoreIntrinsicId, scope: &NominalScope<'_>) {
 
 fn qualify_expr(expr: &mut CoreExpr, scope: &NominalScope<'_>) {
     match expr {
-        CoreExpr::Tuple(values) | CoreExpr::List(values) | CoreExpr::FixedArray(values) => values
+        CoreExpr::Tuple(values) | CoreExpr::List(values) | CoreExpr::Array(values) => values
             .iter_mut()
             .for_each(|value| qualify_expr(value, scope)),
         CoreExpr::ListCons { head, tail } => {

@@ -617,7 +617,7 @@ pub apply(callback: (Int) -> Int): Int ->
 }
 
 #[test]
-fn parses_fixed_array_expression_syntax() {
+fn parses_array_expression_syntax() {
     let source = r#"
 module arrays.
 
@@ -632,7 +632,7 @@ pub rgb(): Array[3, Int] ->
     };
 
     match &function.clauses[0].body {
-        Expr::FixedArray(elements) => {
+        Expr::Array(elements) => {
             assert_eq!(elements.len(), 3);
         }
         _ => panic!("expected fixed array expression"),

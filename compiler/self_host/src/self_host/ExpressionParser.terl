@@ -1,7 +1,7 @@
 /** Precedence-aligned, lossless parser for complete Terlan expressions. */
 module self_host.ExpressionParser.
 
-import self_host.ExpressionSyntax.{AddExpression, AndExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FixedArrayExpression, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
+import self_host.ExpressionSyntax.{AddExpression, AndExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, ArrayExpression, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
 
 import std.collections.List.
 import std.core.{Int, String}.
@@ -205,12 +205,12 @@ classify_layout(source: String, sequence: List[String]): ExpressionClass ->
     if { is_binary_layout(source) -> BinaryLayoutExpression; true -> classify_nominal(source, sequence) }.
 
 @pure
-classify_fixed_array(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "#[") -> FixedArrayExpression; true -> classify_layout(source, sequence) }.
+classify_array(source: String, sequence: List[String]): ExpressionClass ->
+    if { String.starts_with(source, "#[") -> ArrayExpression; true -> classify_layout(source, sequence) }.
 
 @pure
 classify_binary(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "<<") -> BinaryExpression; true -> classify_fixed_array(source, sequence) }.
+    if { String.starts_with(source, "<<") -> BinaryExpression; true -> classify_array(source, sequence) }.
 
 @pure
 classify_string(source: String, sequence: List[String]): ExpressionClass ->

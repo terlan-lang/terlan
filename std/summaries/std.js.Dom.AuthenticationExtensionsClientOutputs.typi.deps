@@ -1,7 +1,7 @@
 module=std.js.Dom.AuthenticationExtensionsClientOutputs
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=16624664409288461620
 interface_hash=7397677344949397544
 interface_doc_hash=7397677344949397544

@@ -387,7 +387,7 @@ fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<()
         }
         CoreExpr::Tuple(items)
         | CoreExpr::List(items)
-        | CoreExpr::FixedArray(items)
+        | CoreExpr::Array(items)
         | CoreExpr::RemoteCall { args: items, .. }
         | CoreExpr::ConstructorCall { args: items, .. }
         | CoreExpr::Call { args: items, .. } => inventory_exprs(items, layouts),

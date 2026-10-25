@@ -69,7 +69,7 @@ fn collect_core_expr_local_calls<'a>(
     pending: &mut Vec<String>,
 ) {
     match expr {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 collect_core_expr_local_calls(item, functions_by_name, pending);
             }

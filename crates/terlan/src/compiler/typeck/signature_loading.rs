@@ -434,7 +434,7 @@ pub(super) fn expand_imported_aliases_except_named(
                 local_aliases,
             )),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(expand_imported_aliases_except_named(
                 elem,

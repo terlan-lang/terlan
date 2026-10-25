@@ -57,8 +57,8 @@ pub enum LalrpopSyntaxNodeKind {
     Tuple,
     /// List expression.
     List,
-    /// Fixed-array expression.
-    FixedArray,
+    /// Array expression.
+    Array,
     /// Keyed-container expression.
     Map,
     /// One keyed-container field.

@@ -434,10 +434,10 @@ pub update(values: List[Int]): Dynamic ->\n\
 }
 
 #[test]
-fn syntax_output_lowering_to_core_fixed_array_expr() {
+fn syntax_output_lowering_to_core_array_expr() {
     let module = parse_module_as_syntax_output(
         "\
-module core_fixed_array_expr_boundary.\n\
+module core_array_expr_boundary.\n\
 \n\
 pub rgb(): Array[3, Int] ->\n\
     #[1, 2, 3].\n",
@@ -454,7 +454,7 @@ pub rgb(): Array[3, Int] ->\n\
     assert_eq!(function.clauses.len(), 1);
     assert_eq!(
         function.clauses[0].body.core_expr,
-        Some(CoreExpr::FixedArray(vec![
+        Some(CoreExpr::Array(vec![
             CoreExpr::Int(1),
             CoreExpr::Int(2),
             CoreExpr::Int(3),
@@ -465,8 +465,7 @@ pub rgb(): Array[3, Int] ->\n\
         CoreProofCoverage::ProofModelRequired
     );
     assert!(
-        core.contract_text()
-            .contains("FixedArray(Int(1),Int(2),Int(3))"),
+        core.contract_text().contains("Array(Int(1),Int(2),Int(3))"),
         "contract text: {}",
         core.contract_text()
     );

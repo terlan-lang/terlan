@@ -675,7 +675,7 @@ fn check_named_type(
                 check_named_type(arg, names, arities, errors);
             }
         }
-        Type::List(ty) | Type::Existential { body: ty, .. } | Type::FixedArray { elem: ty, .. } => {
+        Type::List(ty) | Type::Existential { body: ty, .. } | Type::Array { elem: ty, .. } => {
             check_named_type(ty, names, arities, errors)
         }
         Type::Tuple(types) | Type::Union(types) | Type::Apply { args: types, .. } => {

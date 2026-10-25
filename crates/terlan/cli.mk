@@ -1023,7 +1023,7 @@ formal-cli-a0-56-primary-expression-contract-gate:
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::syntax::syntax_output::syntax_output_expr_test::literals_and_control_flow::syntax_output_includes_quoted_atom_literals -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::syntax::syntax_output::syntax_output_expr_test::literals_and_control_flow::syntax_output_includes_sequence_primary_expr_trees -- --exact
 	$(TERLC_EXACT_TEST) tests::check_language_feature_rejection_test::run_check_single_file_rejects_raw_macro_primary_before_phase_manifest -- --exact
-	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_fixed_array_for_core_v0_target_profile -- --exact
+	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_array_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_map_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::core_shape_rejections::run_check_single_file_rejects_record_construct_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::core_shape_rejections::run_check_single_file_rejects_record_access_for_core_v0_target_profile -- --exact
@@ -1081,7 +1081,7 @@ formal-cli-a0-59-data-form-contract-gate:
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_binary_literal -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_map_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_list_cons_expr -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_fixed_array_expr -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_array_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_list_comprehension_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_record_construct_expr -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::core_expr_test::syntax_output_lowering_to_core_record_access_expr -- --exact
@@ -1092,7 +1092,7 @@ formal-cli-a0-59-data-form-contract-gate:
 	$(TERLC_EXACT_TEST) tests::check_target_profile_progression_test::early_profiles::run_check_single_file_keeps_binary_out_of_a0_7_vm_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_progression_test::early_profiles::run_check_single_file_accepts_list_cons_for_a0_9_vm_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_progression_test::early_profiles::run_check_single_file_keeps_list_cons_out_of_a0_8_vm_target_profile -- --exact
-	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_fixed_array_for_core_v0_target_profile -- --exact
+	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_array_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_map_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_target_profile_gate_test::profile_inference_and_collections::run_check_single_file_rejects_list_comprehension_for_core_v0_target_profile -- --exact
 	$(TERLC_EXACT_TEST) tests::check_language_feature_rejection_test::run_check_single_file_accepts_multi_generator_list_comprehension_phase_manifest -- --exact

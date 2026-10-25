@@ -280,7 +280,7 @@ fn semantic(canonical: &str) -> SemanticTypeId {
 
 /// Builds admitted tuple, array, record, and constructor layouts with nested references.
 fn aggregate_layouts() -> Vec<TvmManagedLayoutDescriptor> {
-    let scores = ManagedAggregateDescriptor::fixed_array("app.Scores", ManagedFieldType::Int, 3)
+    let scores = ManagedAggregateDescriptor::array("app.Scores", ManagedFieldType::Int, 3)
         .expect("scores layout");
     let user = ManagedAggregateDescriptor::record(
         "app.User",

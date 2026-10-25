@@ -24,8 +24,8 @@ fn tuple_array_and_record_layouts_preserve_source_order_and_alignment() {
         ],
     )
     .expect("tuple");
-    let array = ManagedAggregateDescriptor::fixed_array("Array[Int,3]", ManagedFieldType::Int, 3)
-        .expect("array");
+    let array =
+        ManagedAggregateDescriptor::array("Array[Int,3]", ManagedFieldType::Int, 3).expect("array");
     let record = ManagedAggregateDescriptor::record(
         "app.User",
         vec![
@@ -242,7 +242,7 @@ fn aggregate_construction_rejects_malformed_shapes_and_values_atomically() {
         Err(ManagedMemoryError::InvalidAggregateShape)
     );
     assert_eq!(
-        ManagedAggregateDescriptor::fixed_array("Array[Int,0]", ManagedFieldType::Int, 0),
+        ManagedAggregateDescriptor::array("Array[Int,0]", ManagedFieldType::Int, 0),
         Err(ManagedMemoryError::InvalidAggregateShape)
     );
     assert_eq!(

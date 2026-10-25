@@ -91,9 +91,7 @@ impl StaticCallableNormalizer<'_> {
         match expr {
             CoreExpr::Tuple(items) => Ok(CoreExpr::Tuple(self.rewrite_many(items, callables)?)),
             CoreExpr::List(items) => Ok(CoreExpr::List(self.rewrite_many(items, callables)?)),
-            CoreExpr::FixedArray(items) => {
-                Ok(CoreExpr::FixedArray(self.rewrite_many(items, callables)?))
-            }
+            CoreExpr::Array(items) => Ok(CoreExpr::Array(self.rewrite_many(items, callables)?)),
             CoreExpr::ListCons { head, tail } => Ok(CoreExpr::ListCons {
                 head: Box::new(self.rewrite(head, callables)?),
                 tail: Box::new(self.rewrite(tail, callables)?),

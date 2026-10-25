@@ -314,7 +314,7 @@ fn const_generic_arguments_reject_wrong_kinds_and_inline_arithmetic() {
 }
 
 #[test]
-fn const_generic_callable_arguments_and_fixed_array_identity_typecheck() {
+fn const_generic_callable_arguments_and_array_identity_typecheck() {
     let source = r#"
 module lifecycle.const_callable.
 const COUNT: Int = 2.

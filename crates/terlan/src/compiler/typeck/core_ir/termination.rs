@@ -542,7 +542,7 @@ fn collect_expr(
                 facts.actor_operations = true;
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 collect_expr(item, caller, known, environment, facts, false);
             }

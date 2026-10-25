@@ -41,12 +41,12 @@ expression_atom_literal(kind: String): String ->
     if { kind == "atom-literal" -> "atom_literal"; true -> expression_record_access(kind) }.
 
 @pure
-expression_fixed_array(kind: String): String ->
-    if { kind == "fixed-array" -> "fixed_array"; true -> expression_atom_literal(kind) }.
+expression_array(kind: String): String ->
+    if { kind == "array" -> "array"; true -> expression_atom_literal(kind) }.
 
 @pure
 expression_dynamic_call(kind: String): String ->
-    if { kind == "dynamic-call" -> "call"; true -> expression_fixed_array(kind) }.
+    if { kind == "dynamic-call" -> "call"; true -> expression_array(kind) }.
 
 @pure
 expression_field(kind: String): String ->

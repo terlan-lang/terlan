@@ -54,7 +54,7 @@ pub(super) fn suspending_call_count(
                     .map(|arg| suspending_call_count(arg, suspending))
                     .sum::<usize>()
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .map(|item| suspending_call_count(item, suspending))
             .sum(),
@@ -359,7 +359,7 @@ fn suspending_calls_are_composable(
                     .iter()
                     .all(|arg| suspending_calls_are_composable(arg, suspending, composable))
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .all(|item| suspending_calls_are_composable(item, suspending, composable)),
         CoreExpr::ListCons { head, tail }

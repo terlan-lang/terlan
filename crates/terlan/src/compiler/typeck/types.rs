@@ -16,12 +16,12 @@ pub type TypeVarId = usize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Variants representing fixed array size.
-pub enum FixedArraySize {
+pub enum ArraySize {
     Known(usize),
     Param(TypeVarId),
 }
 
-impl FixedArraySize {
+impl ArraySize {
     pub(crate) fn substitute(self, mapping: &HashMap<TypeVarId, Type>) -> Self {
         let Self::Param(id) = self else {
             return self;
@@ -86,8 +86,8 @@ pub enum Type {
     Tuple(Vec<Type>),
     Union(Vec<Type>),
     Map(Vec<MapFieldType>),
-    FixedArray {
-        size: FixedArraySize,
+    Array {
+        size: ArraySize,
         elem: Box<Type>,
     },
 
@@ -217,10 +217,10 @@ pub fn pretty_type(ty: &Type) -> String {
             pretty_type(body)
         ),
         Type::List(inner) => format!("List[{}]", pretty_type(inner)),
-        Type::FixedArray { size, elem } => {
+        Type::Array { size, elem } => {
             let size = match size {
-                FixedArraySize::Known(value) => value.to_string(),
-                FixedArraySize::Param(id) => format!("T{id}"),
+                ArraySize::Known(value) => value.to_string(),
+                ArraySize::Param(id) => format!("T{id}"),
             };
             format!("Array[{}, {}]", size, pretty_type(elem))
         }

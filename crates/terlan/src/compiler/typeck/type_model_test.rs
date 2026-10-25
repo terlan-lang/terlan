@@ -17,8 +17,8 @@ fn type_parser_recognizes_builtin_array() {
     .expect("parse built-in array");
     assert!(matches!(
         &ty,
-        Type::FixedArray {
-            size: types::FixedArraySize::Known(3),
+        Type::Array {
+            size: types::ArraySize::Known(3),
             ..
         }
     ));
@@ -65,7 +65,7 @@ fn type_parser_preserves_explicit_array_names() {
 
 /// Renaming the type keeps constant bounds checks and size identity intact.
 #[test]
-fn builtin_array_checks_bounds_and_replaces_fixed_array_name() {
+fn builtin_array_checks_bounds_and_rejects_unknown_types() {
     let valid =
         check_syntax_output("module arrays. pub last(): Int -> let values = #[10, 20]; values[1].");
     assert!(valid.is_empty(), "{valid:?}");
@@ -80,11 +80,11 @@ fn builtin_array_checks_bounds_and_replaces_fixed_array_name() {
         "{invalid:?}"
     );
 
-    let legacy =
-        check_syntax_output("module arrays. pub legacy(): FixedArray[2, Int] -> #[10, 20].");
+    let unknown =
+        check_syntax_output("module arrays. pub unknown(): UnknownArray[2, Int] -> #[10, 20].");
     assert!(
-        !legacy.is_empty(),
-        "the old type name is no longer built-in"
+        !unknown.is_empty(),
+        "unknown array type names must be rejected"
     );
 }
 

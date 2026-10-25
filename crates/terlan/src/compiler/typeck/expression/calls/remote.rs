@@ -699,7 +699,7 @@ pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
                 .collect(),
             ret: Box::new(qualify_imported_named_heads(ret, ctx)),
         },
-        Type::FixedArray { size, elem } => Type::FixedArray {
+        Type::Array { size, elem } => Type::Array {
             size: *size,
             elem: Box::new(qualify_imported_named_heads(elem, ctx)),
         },

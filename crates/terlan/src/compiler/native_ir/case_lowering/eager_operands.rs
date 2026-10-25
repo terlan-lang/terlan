@@ -92,7 +92,7 @@ impl ScalarCaseLowerer {
 /// Visits immediate eager operands in source order without allocating a list.
 fn visit_eager_operands(expression: &mut CoreExpr, visit: &mut impl FnMut(&mut CoreExpr)) {
     match expression {
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter_mut().for_each(visit);
         }
         CoreExpr::ListCons { head, tail } => {

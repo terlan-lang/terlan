@@ -374,8 +374,8 @@ fn collect_type_vars_in_order(ty: &Type, vars: &mut Vec<TypeVarId>) {
                 collect_type_vars_in_order(&field.value, vars);
             }
         }
-        Type::FixedArray { size, elem } => {
-            if let crate::terlan_typeck::types::FixedArraySize::Param(id) = size {
+        Type::Array { size, elem } => {
+            if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
                 if !vars.contains(id) {
                     vars.push(*id);
                 }
@@ -457,8 +457,8 @@ fn collect_type_vars_in_order_excluding(
                 collect_type_vars_in_order_excluding(&field.value, vars, excluded);
             }
         }
-        Type::FixedArray { size, elem } => {
-            if let crate::terlan_typeck::types::FixedArraySize::Param(id) = size {
+        Type::Array { size, elem } => {
+            if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
                 if !excluded.contains(id) && !vars.contains(id) {
                     vars.push(*id);
                 }

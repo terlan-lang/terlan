@@ -282,7 +282,7 @@ fn rewrite_expr(
                     .collect(),
             ))
         }
-        CoreExpr::FixedArray(items) => {
+        CoreExpr::Array(items) => {
             let item_types =
                 rewrite_items(items, current_module, environment, groups, returns, aliases)?;
             Some(CoreType::Apply {

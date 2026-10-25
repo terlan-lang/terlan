@@ -230,7 +230,7 @@ fn validate_core_expr(
                 violations,
             );
         }
-        CoreExpr::FixedArray(values) => {
+        CoreExpr::Array(values) => {
             values.iter().for_each(|value| {
                 validate_core_expr(
                     profile,

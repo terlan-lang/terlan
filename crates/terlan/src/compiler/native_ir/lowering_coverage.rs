@@ -73,7 +73,7 @@ pub(super) fn expression_coverage(expr: &CoreExpr) -> LoweringCoverage {
         CoreExpr::Tuple(_) => LoweringCoverage::rewritten("Tuple"),
         CoreExpr::List(_) => LoweringCoverage::native("List"),
         CoreExpr::ListCons { .. } => LoweringCoverage::native("ListCons"),
-        CoreExpr::FixedArray(_) => LoweringCoverage::rewritten("FixedArray"),
+        CoreExpr::Array(_) => LoweringCoverage::rewritten("Array"),
         CoreExpr::Index { .. } => LoweringCoverage::rewritten("Index"),
         CoreExpr::ListComprehension { .. } => LoweringCoverage::rewritten("ListComprehension"),
         CoreExpr::Let { .. } => LoweringCoverage::native("Let"),

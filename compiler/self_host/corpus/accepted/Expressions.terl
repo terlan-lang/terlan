@@ -13,7 +13,7 @@ pub list_value() -> [1, 2, 3].
 
 pub cons_value(tail) -> [1 | tail].
 
-pub fixed_array_value() -> #[1, 2, 3].
+pub array_value() -> #[1, 2, 3].
 
 pub keyed_value() -> {name: "Ada", age: 42}.
 

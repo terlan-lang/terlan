@@ -1,7 +1,7 @@
 module=std.js.Dom.HTMLMetaElement
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=13477208359416560044
 interface_hash=8914019647733487631
 interface_doc_hash=8914019647733487631

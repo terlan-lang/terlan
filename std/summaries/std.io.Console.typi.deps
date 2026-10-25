@@ -1,7 +1,7 @@
 module=std.io.Console
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=16569978737134412490
 interface_hash=11907432162919705627
 interface_doc_hash=4586111510645967883

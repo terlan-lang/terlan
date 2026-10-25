@@ -118,7 +118,7 @@ fn nested_calls_and_references_share_exhaustive_admission() {
         },
         CoreExpr::Tuple(vec![missing.clone()]),
         CoreExpr::List(vec![missing.clone()]),
-        CoreExpr::FixedArray(vec![missing.clone()]),
+        CoreExpr::Array(vec![missing.clone()]),
         CoreExpr::ListCons {
             head: Box::new(missing.clone()),
             tail: Box::new(CoreExpr::List(vec![])),
@@ -904,11 +904,11 @@ fn imported_opaque_package_type_uses_qualified_capture_identity() {
 #[test]
 fn unsupported_reachable_function_is_rejected_before_linking() {
     let mut module = core("module app.Unsupported.\n\npub value(): Int -> 1.\n");
-    *body_mut(&mut module, "value") = CoreExpr::FixedArray(vec![CoreExpr::Int(1)]);
+    *body_mut(&mut module, "value") = CoreExpr::Array(vec![CoreExpr::Int(1)]);
 
     assert_eq!(
         NativeModule::lower_application(&[&module]).unwrap_err(),
-        "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image (native-operation=true, parameters=true, result=true, clause=true, body=false, body-gap=FixedArray(Int(1)), missing-core=none); runtime CoreIR interpretation has been removed"
+        "error[native_ir.unsupported_application_function]: `app.Unsupported.value/0` cannot be lowered into the native application image (native-operation=true, parameters=true, result=true, clause=true, body=false, body-gap=Array(Int(1)), missing-core=none); runtime CoreIR interpretation has been removed"
     );
 }
 

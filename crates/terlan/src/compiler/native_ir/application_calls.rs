@@ -69,7 +69,7 @@ pub(super) fn expr_calls_are_local(expr: &CoreExpr, identities: &[(&str, usize)]
             expr_calls_are_local(callee, identities)
                 && args.iter().all(|arg| expr_calls_are_local(arg, identities))
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .all(|item| expr_calls_are_local(item, identities)),
         CoreExpr::ListCons { head, tail }
@@ -186,7 +186,7 @@ pub(super) fn expr_calls_suspending(
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => args
             .iter()
             .any(|arg| expr_calls_suspending(arg, suspending)),
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => items
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => items
             .iter()
             .any(|item| expr_calls_suspending(item, suspending)),
         CoreExpr::ListCons { head, tail }

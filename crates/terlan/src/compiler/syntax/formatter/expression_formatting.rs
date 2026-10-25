@@ -300,7 +300,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Var(name) => name.clone(),
         Expr::Tuple(items) => format_tuple(items, indent),
         Expr::List(items) => format_expr_delimited("[", "]", items, indent),
-        Expr::FixedArray(items) => format_expr_delimited("#[", "]", items, indent),
+        Expr::Array(items) => format_expr_delimited("#[", "]", items, indent),
         Expr::ListCons(head, tail) => {
             format!(
                 "[{} | {}]",

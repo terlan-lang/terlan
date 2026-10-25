@@ -19,7 +19,7 @@ pub struct ManagedAggregate;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ManagedProductKind {
     Tuple,
-    FixedArray,
+    Array,
     Record,
 }
 
@@ -29,7 +29,7 @@ pub enum ManagedAggregateKind {
     /// Ordered heterogeneous positional product.
     Tuple,
     /// Ordered homogeneous fixed-length product.
-    FixedArray,
+    Array,
     /// Ordered product whose fields retain source identities.
     Record,
     /// One active variant in a finite algebraic union.
@@ -131,8 +131,8 @@ impl ManagedAggregateDescriptor {
         Self::product(canonical_type, ManagedProductKind::Tuple, fields)
     }
 
-    /// Builds a homogeneous fixed-array descriptor.
-    pub fn fixed_array(
+    /// Builds a homogeneous array descriptor.
+    pub fn array(
         canonical_type: &str,
         element: ManagedFieldType,
         length: usize,
@@ -142,7 +142,7 @@ impl ManagedAggregateDescriptor {
         }
         Self::product(
             canonical_type,
-            ManagedProductKind::FixedArray,
+            ManagedProductKind::Array,
             vec![element; length],
         )
     }
@@ -237,7 +237,7 @@ impl ManagedAggregateDescriptor {
         }
         let tag = match kind {
             ManagedProductKind::Tuple => 1,
-            ManagedProductKind::FixedArray => 2,
+            ManagedProductKind::Array => 2,
             ManagedProductKind::Record => 3,
         };
         Self::build(canonical_type, tag, vec![None; fields.len()], fields, None)
@@ -303,7 +303,7 @@ impl ManagedAggregateDescriptor {
         )?;
         let kind = match kind_tag {
             1 => ManagedAggregateKind::Tuple,
-            2 => ManagedAggregateKind::FixedArray,
+            2 => ManagedAggregateKind::Array,
             3 => ManagedAggregateKind::Record,
             4 => ManagedAggregateKind::Constructor,
             _ => return Err(ManagedMemoryError::InvalidAggregateShape),

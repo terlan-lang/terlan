@@ -10,7 +10,7 @@ use super::*;
 /// - Element type for fixed arrays or trait-selected `IndexGet` return type.
 ///
 /// Transformation:
-/// - Checks fixed-array bounds when possible, otherwise delegates to
+/// - Checks array bounds when possible, otherwise delegates to
 ///   `IndexGet.get_at` trait dispatch.
 pub(super) fn infer_syntax_index(
     expr: &SyntaxExprOutput,
@@ -31,14 +31,14 @@ pub(super) fn infer_syntax_index(
         .unwrap_or(Type::Dynamic);
 
     match target_type {
-        Type::FixedArray { size, elem } => match index_type {
+        Type::Array { size, elem } => match index_type {
             Type::LiteralInt(index) => {
-                if let types::FixedArraySize::Known(size_value) = size {
+                if let types::ArraySize::Known(size_value) = size {
                     if index < 0 || index as usize >= size_value {
                         errors.push(format!(
                             "index {} is out of bounds for {}\nvalid indices: 0..{}",
                             index,
-                            pretty_type(&Type::FixedArray {
+                            pretty_type(&Type::Array {
                                 size,
                                 elem: elem.clone(),
                             }),
@@ -127,7 +127,7 @@ pub(super) fn infer_syntax_index_assign(
     }
 }
 
-/// Infers non-fixed-array bracket reads through `IndexGet`.
+/// Infers non-array bracket reads through `IndexGet`.
 ///
 /// Inputs:
 /// - `target_type`: inferred type of the expression before `[index]`.

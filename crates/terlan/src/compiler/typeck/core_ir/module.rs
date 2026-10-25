@@ -437,7 +437,7 @@ fn core_expr_summary_uses_sql_runtime(summary: &CoreExprSummary) -> bool {
 fn core_expr_uses_sql_runtime(expr: &CoreExpr) -> bool {
     match expr {
         CoreExpr::SqlQuery { .. } => true,
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             items.iter().any(core_expr_uses_sql_runtime)
         }
         CoreExpr::Map(fields) => fields

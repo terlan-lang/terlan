@@ -119,10 +119,10 @@ pub record(): ReleaseReport -> ReleaseReport {schema: "terlan.release.report.v1"
 }
 
 #[test]
-fn formatter_wraps_long_fixed_arrays_with_trailing_commas() {
+fn formatter_wraps_long_arrays_with_trailing_commas() {
     let output = format_source_module(
         r#"
-module rust_style_fixed_array.
+module rust_style_array.
 
 pub values(): Array[3, String] -> #["the-first-deliberately-long-value", "the-second-deliberately-long-value", "the-third-deliberately-long-value"].
 "#,

@@ -96,3 +96,29 @@ nested_case_list_argument(): Bool ->
 @test
 pub self_test(): Bool ->
     list_cons_argument() and nested_if_list_argument() and nested_case_list_argument().
+
+@test
+pub array_literals_use_array_kind(): Bool ->
+    let parsed = ProjectedExpressionParser.parse([
+        token("#", "#", 0, 1),
+        token("[", "[", 1, 2),
+        token("int", "1", 2, 3),
+        token(",", ",", 3, 4),
+        token("int", "2", 5, 6),
+        token("]", "]", 6, 7),
+    ]);
+    let unclosed = ProjectedExpressionParser.parse([
+        token("#", "#", 0, 1),
+        token("[", "[", 1, 2),
+        token("int", "1", 2, 3),
+    ]);
+    case parsed.node {
+        Some(value) -> parsed.valid
+            and parsed.rest == []
+            and value.kind == "array"
+            and value.text == "#["
+            and value.start_byte == 0
+            and value.end_byte == 7
+            and not unclosed.valid;
+        None -> false
+    }.

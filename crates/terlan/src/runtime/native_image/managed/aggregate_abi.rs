@@ -181,13 +181,13 @@ fn build_descriptor(
                 fields.into_iter().map(|(_, field)| field).collect(),
             )
         }
-        ManagedAggregateKind::FixedArray
+        ManagedAggregateKind::Array
             if !fields.is_empty()
                 && fields
                     .iter()
                     .all(|(name, field)| name.is_none() && *field == fields[0].1) =>
         {
-            ManagedAggregateDescriptor::fixed_array(canonical, fields[0].1, fields.len())
+            ManagedAggregateDescriptor::array(canonical, fields[0].1, fields.len())
         }
         ManagedAggregateKind::Record if fields.iter().all(|(name, _)| name.is_some()) => {
             let mut named_fields = Vec::with_capacity(fields.len());
@@ -220,7 +220,7 @@ fn build_descriptor(
 fn kind_tag(kind: ManagedAggregateKind) -> u8 {
     match kind {
         ManagedAggregateKind::Tuple => 1,
-        ManagedAggregateKind::FixedArray => 2,
+        ManagedAggregateKind::Array => 2,
         ManagedAggregateKind::Record => 3,
         ManagedAggregateKind::Constructor => 4,
     }
@@ -270,7 +270,7 @@ impl<'a> AggregateAbiInput<'a> {
         }
         let kind = match self.u8()? {
             1 => ManagedAggregateKind::Tuple,
-            2 => ManagedAggregateKind::FixedArray,
+            2 => ManagedAggregateKind::Array,
             3 => ManagedAggregateKind::Record,
             4 => ManagedAggregateKind::Constructor,
             _ => return Err(ManagedMemoryError::InvalidAggregateAbi),

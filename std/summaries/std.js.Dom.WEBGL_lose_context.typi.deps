@@ -1,7 +1,7 @@
 module=std.js.Dom.WEBGL_lose_context
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:c53208b17dfb657b
+syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
 source_hash=4598996263677108218
 interface_hash=18316266370357032481
 interface_doc_hash=18316266370357032481

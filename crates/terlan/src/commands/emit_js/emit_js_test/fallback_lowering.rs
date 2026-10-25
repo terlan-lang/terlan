@@ -404,7 +404,7 @@ pub prepend(head: Int, tail: List[Int]): List[Int] ->
 /// Verifies that source index expressions currently fall back in Oxc JS.
 ///
 /// Inputs:
-/// - A checked Terlan module with one public fixed-array indexing
+/// - A checked Terlan module with one public array indexing
 ///   function.
 ///
 /// Output:

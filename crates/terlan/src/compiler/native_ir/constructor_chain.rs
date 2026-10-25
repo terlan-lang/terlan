@@ -58,7 +58,7 @@ fn rewrite_children(expr: &mut CoreExpr, ordinal: &mut usize) {
             rewrite(receiver, ordinal);
             args.iter_mut().for_each(|arg| rewrite(arg, ordinal));
         }
-        CoreExpr::List(items) | CoreExpr::Tuple(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::List(items) | CoreExpr::Tuple(items) | CoreExpr::Array(items) => {
             items.iter_mut().for_each(|item| rewrite(item, ordinal));
         }
         CoreExpr::ListCons { head, tail }

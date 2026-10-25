@@ -390,7 +390,7 @@ fn rewrite_expr(
                 rewrite_expr(arg, variables, templates, cache, generated, module, budget)?;
             }
         }
-        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::FixedArray(items) => {
+        CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
                 rewrite_expr(item, variables, templates, cache, generated, module, budget)?;
             }

@@ -953,7 +953,7 @@ fn first_private_local_type_name(
             .iter()
             .chain(std::iter::once(ret.as_ref()))
             .find_map(|item| first_private_local_type_name(item, local_type_names)),
-        Type::FixedArray { elem, .. } => first_private_local_type_name(elem, local_type_names),
+        Type::Array { elem, .. } => first_private_local_type_name(elem, local_type_names),
         Type::Int
         | Type::Float
         | Type::Number

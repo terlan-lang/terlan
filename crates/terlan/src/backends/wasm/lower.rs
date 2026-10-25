@@ -458,7 +458,7 @@ fn core_expr_kind(expr: &CoreExpr) -> &'static str {
         CoreExpr::Tuple(_) => "Tuple",
         CoreExpr::List(_) => "List",
         CoreExpr::ListCons { .. } => "ListCons",
-        CoreExpr::FixedArray(_) => "FixedArray",
+        CoreExpr::Array(_) => "Array",
         CoreExpr::Index { .. } => "Index",
         CoreExpr::ListComprehension { .. } => "ListComprehension",
         CoreExpr::Let { .. } => "Let",

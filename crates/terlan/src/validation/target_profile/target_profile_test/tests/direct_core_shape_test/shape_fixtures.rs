@@ -670,25 +670,25 @@ module profile_test_index_expr_core_v0.\n\npub f(values: List[Int]): Dynamic ->\
 }
 
 #[test]
-pub(super) fn target_profile_allows_fixed_array_expr_for_vm_profile() {
+pub(super) fn target_profile_allows_array_expr_for_vm_profile() {
     let module = lower(
         "\
-module profile_test_fixed_array_expr.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 3].\n",
-        "src/profile_test_fixed_array_expr.terl",
+module profile_test_array_expr.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 3].\n",
+        "src/profile_test_array_expr.terl",
     );
 
     let vm = target_profile_checks(&module, TargetProfile::Vm);
 
     assert!(
         vm.is_empty(),
-        "VM profile should allow typed fixed-array core terms"
+        "VM profile should allow typed array core terms"
     );
 }
 
-/// Verifies CoreV0 rejects fixed-array literals.
+/// Verifies CoreV0 rejects array literals.
 ///
 /// Inputs:
-/// - Source containing a typed fixed-array literal expression.
+/// - Source containing a typed array literal expression.
 ///
 /// Output:
 /// - Test passes when target-profile validation reports the expression as
@@ -698,11 +698,11 @@ module profile_test_fixed_array_expr.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 
 /// - Lowers source through the formal syntax-output/CoreIR path and checks
 ///   target-subset validation without mutating compiler artifacts.
 #[test]
-pub(super) fn target_profile_rejects_fixed_array_expr_for_core_v0_profile() {
+pub(super) fn target_profile_rejects_array_expr_for_core_v0_profile() {
     let module = lower(
         "\
-module profile_test_fixed_array_expr_core_v0.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 3].\n",
-        "src/profile_test_fixed_array_expr_core_v0.terl",
+module profile_test_array_expr_core_v0.\n\npub f(): Array[3, Int] ->\n    #[1, 2, 3].\n",
+        "src/profile_test_array_expr_core_v0.terl",
     );
 
     let core_v0 = target_profile_checks(&module, TargetProfile::CoreV0);
@@ -711,8 +711,8 @@ module profile_test_fixed_array_expr_core_v0.\n\npub f(): Array[3, Int] ->\n    
         core_v0
             .iter()
             .any(|violation| violation.code == "target_profile_unsupported"
-                && violation.message.contains("FixedArray")),
-        "CoreV0 profile should reject fixed-array core terms: {:?}",
+                && violation.message.contains("Array")),
+        "CoreV0 profile should reject array core terms: {:?}",
         core_v0
     );
 }

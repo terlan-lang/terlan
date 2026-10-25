@@ -947,7 +947,7 @@ field projections into one local per source field. It evaluates every field
 exactly once in source order, including unprojected fields. Aggregate uses,
 unknown projections, and refutable patterns retain the canonical managed
 allocation. Statically irrefutable tuple and exact-constructor patterns,
-compile-time in-bounds tuple and fixed-array indexes, and private single-clause
+compile-time in-bounds tuple and array indexes, and private single-clause
 projection-only helpers participate in the same scalar replacement contract.
 The helper specialization preserves argument evaluation once, rewrites every
 direct use transactionally, and removes the managed function ABI only after an
