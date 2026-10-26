@@ -10,7 +10,7 @@ fn usage(program: &str) -> String {
     format!("usage: {program} <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>")
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut arguments = env::args();
     let program = arguments
         .next()
@@ -20,7 +20,7 @@ fn run() -> Result<(), String> {
     let actor_input = arguments.next().ok_or_else(|| usage(&program))?;
     let output = arguments.next().ok_or_else(|| usage(&program))?;
     if arguments.next().is_some() {
-        return Err(usage(&program));
+        return Err(usage(&program).into());
     }
     let core_input = PathBuf::from(core_input);
     let variant_input = PathBuf::from(variant_input);

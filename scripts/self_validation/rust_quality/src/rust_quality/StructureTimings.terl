@@ -641,8 +641,7 @@ complete_process(
     completed: Result[std.system.Process.Output, std.system.Process.ProcessError],
 ): Measurement ->
     case completed {
-        Err(reason) ->
-            measurement_failure(String.concat([scenario.name, ": ", reason.message]));
+        Err(reason) -> measurement_failure(String.concat([scenario.name, ": ", reason.message]));
         Ok(output) ->
             if {
                 output.status != 0 -> measurement_failure(

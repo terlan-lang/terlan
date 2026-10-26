@@ -246,3 +246,30 @@ fn module_qualified_nominals_resolve_only_through_unambiguous_imports() {
         assert_eq!(cores[2].functions[0].core_return_type, once);
     }
 }
+
+#[test]
+fn fully_qualified_default_nominal_needs_no_import() {
+    let provider = checked_core("module package.Item. pub opaque type Item.");
+    let mut caller = consumer(&[]);
+    caller.functions[0].core_return_type = Some(CoreType::Named("package.Item".into()));
+    let mut cores = vec![provider, caller];
+    qualify_application_nominal_types(&mut cores);
+    assert_eq!(
+        cores[1].functions[0].core_return_type,
+        Some(CoreType::Named("package.Item.Item".into()))
+    );
+}
+
+#[test]
+fn default_nominal_does_not_replace_an_exact_parent_declaration() {
+    let parent = checked_core("module package. pub opaque type Item.");
+    let child = checked_core("module package.Item. pub opaque type Item.");
+    let mut caller = consumer(&[]);
+    caller.functions[0].core_return_type = Some(CoreType::Named("package.Item".into()));
+    let mut cores = vec![parent, child, caller];
+    qualify_application_nominal_types(&mut cores);
+    assert_eq!(
+        cores[2].functions[0].core_return_type,
+        Some(CoreType::Named("package.Item".into()))
+    );
+}

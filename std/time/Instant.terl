@@ -19,7 +19,9 @@ import type std.time.Duration.
  * JavaScript number timestamp.
  */
 pub struct Instant {
-    /** Milliseconds from the producer's monotonic or epoch origin. */
+    /**
+     * Milliseconds from the producer's monotonic or epoch origin.
+     */
     milliseconds: Float,
 }.
 

@@ -368,7 +368,7 @@ pub(crate) use crate::runtime::native_image::{
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use aggregate_projection::install_native_aggregate_projection_exports;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use aggregate_projection::native_aggregate_projections;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use application::{resolve_selected_imports, resolve_typed_mutable_receiver_calls};
@@ -548,6 +548,18 @@ impl From<String> for NativeIrError {
 impl From<&str> for NativeIrError {
     fn from(error: &str) -> Self {
         error.to_string().into()
+    }
+}
+
+impl From<crate::self_host_variant_ir::VariantResolutionError> for NativeIrError {
+    fn from(error: crate::self_host_variant_ir::VariantResolutionError) -> Self {
+        Self(terlan_runtime_abi::BoundaryError::sourced(
+            terlan_runtime_abi::ErrorDomain::NativeIrEmission,
+            "self_host.native.variant_resolution",
+            "resolve self-hosted variant metadata",
+            error.to_string(),
+            error,
+        ))
     }
 }
 

@@ -225,8 +225,8 @@ pub(super) fn seed_recursive_profiles(
                 candidate,
                 recursive_components[candidate_index].as_deref(),
                 candidates,
-                &composable_candidates,
-                &candidate_to_native,
+                composable_candidates,
+                candidate_to_native,
                 constructor_layouts,
             )?;
             Some((native_index, profile))

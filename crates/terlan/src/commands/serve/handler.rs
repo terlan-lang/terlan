@@ -176,6 +176,7 @@ fn execute_vm_router_with_package_root(
         },
     )
     .map(Some)
+    .map_err(String::from)
 }
 
 #[derive(Clone, Copy)]
@@ -219,6 +220,7 @@ pub(super) fn execute_router_recovery(
         },
         crate::runtime::vm::native_value::from_native,
     )
+    .map_err(String::from)
 }
 
 fn finish_router_response(
@@ -234,6 +236,7 @@ fn finish_router_response(
         &response_middleware,
         &mut RouterHost { runtime, output },
     )
+    .map_err(String::from)
 }
 
 /// Converts a validated manifest method into the VM router method domain.

@@ -3,12 +3,14 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { inventory, output, root } from './inventory.mjs';
+import { consumerSource } from './consumer.mjs';
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 async function compile(compiler, entry) {
   const sourcePath = path.join(root, entry.test);
-  const source = await readFile(sourcePath, 'utf8');
+  const originalSource = await readFile(sourcePath, 'utf8');
+  const source = consumerSource(originalSource, entry);
   const tests = [...source.matchAll(/@test\s+pub\s+(\w+)\s*\(\s*\)/g)].map(match => match[1]);
   const module = source.match(/^module\s+([\w.]+)\./m)?.[1];
   if (!module) throw new Error(`Missing Terlan module declaration: ${sourcePath}`);
@@ -45,7 +47,7 @@ async function compile(compiler, entry) {
     artifact = path.isAbsolute(emitted.artifact_path) ? emitted.artifact_path : path.resolve(root, emitted.artifact_path);
     artifactHash = sha256(await readFile(artifact));
   }
-  return { ...entry, ...result, tests, moduleName: module, artifact: path.relative(output, artifact), sourceSha256: sha256(source), artifactSha256: artifactHash, command: [compiler, ...args] };
+  return { ...entry, ...result, tests, moduleName: module, artifact: path.relative(output, artifact), sourceSha256: sha256(originalSource), consumerSha256: sha256(source), artifactSha256: artifactHash, command: [compiler, ...args] };
 }
 
 export default async function prepare() {

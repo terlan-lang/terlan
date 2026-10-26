@@ -15,8 +15,9 @@ use super::{native_image, native_reuse, std_source};
 #[path = "orchestration_test.rs"]
 mod tests;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct CompiledServeApplication {
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     pub(crate) core: CoreModule,
     pub(crate) interfaces: Vec<crate::terlan_hir::ModuleInterface>,
     pub(crate) image: native_image::CompiledServeNativeImage,
@@ -99,7 +100,7 @@ pub(crate) fn compile_serve_application(
 }
 
 /// Compiles a source module for tooling without imposing serving output layout.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn compile_source_application(
     workspace: &std::path::Path,
     source_path: &std::path::Path,
@@ -109,7 +110,7 @@ pub(crate) fn compile_source_application(
     compile_application_from_root(workspace, &source_root, expected_module)
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn compile_application_from_root(
     web_root: &std::path::Path,
     source_root: &std::path::Path,
@@ -200,6 +201,7 @@ fn compile_application_from_root(
     })?;
     let interfaces = cores.iter().map(|core| core.interface.clone()).collect();
     Ok(CompiledServeApplication {
+        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
         core,
         image,
         interfaces,
@@ -209,7 +211,7 @@ fn compile_application_from_root(
 /// Removes the build output root from source identities embedded in packaged
 /// serve images. Release bundles may be assembled in arbitrary directories;
 /// those directories are not compiler inputs and must not change image bytes.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn stable_serve_debug_source_path(source_root: &std::path::Path, source_path: &str) -> String {
     std::path::Path::new(source_path)
         .strip_prefix(source_root)
@@ -228,7 +230,7 @@ fn stable_serve_debug_source_path(source_root: &std::path::Path, source_path: &s
         .unwrap_or_else(|| source_path.to_string())
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn application_source_root(
     source_path: &std::path::Path,
     expected_module: &str,

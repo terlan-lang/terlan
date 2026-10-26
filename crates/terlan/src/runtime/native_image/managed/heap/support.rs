@@ -78,10 +78,13 @@ impl ActorHeap {
         length: &[u8],
         value: Bytes,
     ) -> Result<TvmRef<T>, ManagedMemoryError> {
+        let destination_end = align_up(self.space.len(), descriptor.alignment())?
+            .checked_add(descriptor.size())
+            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
         let retained =
             self.external_strings
                 .values()
-                .try_fold(self.space.len(), |bytes, value| {
+                .try_fold(destination_end, |bytes, value| {
                     bytes
                         .checked_add(value.len())
                         .ok_or(ManagedMemoryError::AllocationLimitExceeded)

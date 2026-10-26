@@ -12,7 +12,7 @@ fn usage(program: &str) -> String {
     )
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut arguments = env::args();
     let program = arguments
         .next()
@@ -20,7 +20,7 @@ fn run() -> Result<(), String> {
     let output = PathBuf::from(arguments.next().ok_or_else(|| usage(&program))?);
     let inputs = arguments.map(PathBuf::from).collect::<Vec<_>>();
     if inputs.is_empty() || inputs.len() % 3 != 0 {
-        return Err(usage(&program));
+        return Err(usage(&program).into());
     }
     let mut envelopes = Vec::new();
     let mut variant_irs = Vec::new();
@@ -53,6 +53,7 @@ fn run() -> Result<(), String> {
     }
     fs::write(&output, object)
         .map_err(|error| format!("failed to write `{}`: {error}", output.display()))
+        .map_err(Into::into)
 }
 
 fn main() {

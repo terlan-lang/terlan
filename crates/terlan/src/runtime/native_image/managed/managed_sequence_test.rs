@@ -10,6 +10,49 @@ fn heap() -> ActorHeap {
 }
 
 #[test]
+fn external_string_limit_includes_its_header_and_existing_storage() {
+    let mut heap =
+        ActorHeap::new(ActorId::new(72).unwrap(), HeapLimits::new(8, 16).unwrap()).unwrap();
+    assert_eq!(
+        heap.allocate_shared_string(Bytes::from_static(b"123456789")),
+        Err(ManagedMemoryError::AllocationLimitExceeded)
+    );
+    assert_eq!((heap.allocated_bytes(), heap.object_count()), (0, 0));
+    let value = heap
+        .allocate_shared_string(Bytes::from_static(b"12345678"))
+        .unwrap();
+    assert_eq!(heap.read_string(value), Ok("12345678"));
+    let before = (heap.allocated_bytes(), heap.object_count());
+    assert_eq!(
+        heap.allocate_shared_string(Bytes::new()),
+        Err(ManagedMemoryError::AllocationLimitExceeded)
+    );
+    assert_eq!((heap.allocated_bytes(), heap.object_count()), before);
+}
+
+#[test]
+fn external_string_limit_includes_destination_alignment() {
+    let mut heap =
+        ActorHeap::new(ActorId::new(73).unwrap(), HeapLimits::new(8, 16).unwrap()).unwrap();
+    let descriptor = std::sync::Arc::new(
+        ManagedTypeDescriptor::new(
+            SemanticTypeId::from_canonical("quota.Padding").unwrap(),
+            1,
+            1,
+            Vec::new(),
+            AllocationClass::Young,
+        )
+        .unwrap(),
+    );
+    heap.allocate::<()>(descriptor, &[1], &[]).unwrap();
+    assert_eq!(
+        heap.allocate_shared_string(Bytes::from_static(b"x")),
+        Err(ManagedMemoryError::AllocationLimitExceeded)
+    );
+    assert_eq!((heap.allocated_bytes(), heap.object_count()), (1, 1));
+}
+
+#[test]
 fn strings_and_bytes_preserve_empty_unicode_and_nul_payloads() {
     let mut heap = heap();
     let empty = heap.allocate_string("").expect("empty string");

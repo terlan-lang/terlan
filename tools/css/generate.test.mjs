@@ -184,3 +184,17 @@ test('obsolete generated keyword modules and their summaries are pruned together
     await assert.rejects(access(path.join(summaries, 'std.css.keywords.Obsolete.typi.deps')));
   } finally { await rm(root, {recursive: true, force: true}); }
 });
+
+
+test('disjoint primitive ranges share one constructor and retain their gap', () => {
+  const {source} = generateProperty({name: 'grid-row-start', syntax: '<integer [-∞,-1]> | <integer [1,∞]> | auto', href: 'spec'}, new Map());
+  assert.equal((source.match(/pub integer\(/g) ?? []).length, 1);
+  assert.match(source, /case \(value <= -1\) or \(value >= 1\)/);
+  assert.doesNotMatch(source, /value >= -1 and value <= 1/);
+});
+
+test('repeated primitive alternatives combine bounded intervals without widening', () => {
+  const {source} = generateProperty({name: 'example', syntax: '[<length [1,3]> | <length [6,8]>]{1,4}', href: 'spec'}, new Map());
+  assert.equal((source.match(/pub component_length\(/g) ?? []).length, 1);
+  assert.match(source, /\(std.css.Values.length_amount\(value\) >= 1 and std.css.Values.length_amount\(value\) <= 3\) or \(std.css.Values.length_amount\(value\) >= 6 and std.css.Values.length_amount\(value\) <= 8\)/);
+});

@@ -25,7 +25,6 @@
 module std.css.properties.GridRowEnd.
 
 import std.core.Int.
-import std.core.Int.{to_string}.
 import std.core.Option.{None as Absent, Some}.
 import std.css.Values.{serialize}.
 import std.css.keywords.Auto.
@@ -40,19 +39,11 @@ pub struct Property {
 }.
 
 /**
- * Checks the grid-row-end integer range. Returns Some when amount <= -1; otherwise returns None.
+ * Checks the grid-row-end integer range. Returns Some when (amount <= -1) or (amount >= 1);
+ * otherwise returns None.
  */
 pub integer(value: Int): Option[Checked] ->
-    case value <= -1 {
-        true -> Some(Checked(serialize("grid-row-end", to_string(value))));
-        false -> Absent
-    }.
-
-/**
- * Checks the grid-row-end integer range. Returns Some when amount >= 1; otherwise returns None.
- */
-pub integer(value: Int): Option[Checked] ->
-    case value >= 1 {
-        true -> Some(Checked(serialize("grid-row-end", to_string(value))));
+    case value <= -1 or value >= 1 {
+        true -> Some(Checked(serialize("grid-row-end", std.core.Int.to_string(value))));
         false -> Absent
     }.

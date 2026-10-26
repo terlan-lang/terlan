@@ -621,6 +621,7 @@ pub(crate) fn compile_syntax_module_with_interfaces(
         match templates::core_template_render_plans(checked_template_inputs, &core) {
             Ok(templates) => core.templates = templates,
             Err(message) => {
+                let message = message.to_string();
                 crate::support::emit_diagnostic(
                     "type_error",
                     &message,

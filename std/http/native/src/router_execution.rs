@@ -1,5 +1,6 @@
 //! Source-router execution policy over opaque host values and callable authority.
 
+use crate::route_pattern::WebRouteError;
 use terlan_runtime_abi::{DescriptorValue, NativeValue};
 
 use crate::routing::{
@@ -39,7 +40,7 @@ pub fn handler_arguments<V>(
     dispatch: &RouteDispatch<V>,
     arity: Option<usize>,
     scalar: impl Fn(NativeValue) -> V,
-) -> Result<Vec<V>, String> {
+) -> Result<Vec<V>, WebRouteError> {
     let arity = callable_arity(arity)?;
     let mut args = vec![request];
     if arity > 1 {
@@ -51,17 +52,18 @@ pub fn handler_arguments<V>(
         }
     }
     if args.len() != arity {
-        return Err(format!(
+        return Err((format!(
             "error[serve_router]: route {} {} handler expects {arity} argument(s), found {}",
             dispatch.method.as_str(),
             dispatch.path,
             args.len()
-        ));
+        ))
+        .into());
     }
     Ok(args)
 }
 
-fn callable_arity(arity: Option<usize>) -> Result<usize, String> {
+fn callable_arity(arity: Option<usize>) -> Result<usize, WebRouteError> {
     arity.ok_or_else(|| "error[serve_router]: matched route target is not callable".into())
 }
 
@@ -76,7 +78,7 @@ pub fn execute<H: Host>(
     initial_params: &[(String, String)],
     prepared: Option<PreparedResponse<H::Value>>,
     host: &mut H,
-) -> Result<H::Response, String> {
+) -> Result<H::Response, WebRouteError> {
     let request = host.request(initial_params);
     let outcome = match router.dispatch_with_typed_middleware(method, path, |callback, _| {
         host.invoke(callback, vec![request.clone()])
@@ -102,28 +104,29 @@ pub fn execute<H: Host>(
             if prepared.is_none()
                 && (dispatch.method != method || dispatch.route_pattern != declared_route)
             {
-                return Err(format!(
+                return Err((format!(
                     "error[serve_router]: manifest route `{}` `{declared_route}` does not match materialized route `{}` `{}`",
                     method.as_str(), dispatch.method.as_str(), dispatch.route_pattern
-                ));
+                )).into());
             }
             let RouteTarget::Handler(handler) = &dispatch.target else {
-                return Err(format!(
+                return Err((format!(
                     "error[serve_router]: route {} {} did not resolve to a source handler",
                     method.as_str(),
                     dispatch.path
-                ));
+                ))
+                .into());
             };
             let arity = callable_arity(host.arity(handler))?;
             let response = if let Some(prepared) = prepared {
                 if dispatch.method != prepared.method
                     || dispatch.route_pattern != prepared.route_pattern
                 {
-                    return Err(format!(
+                    return Err((format!(
                         "error[serve_router]: folded static route `{}` `{}` does not match materialized route `{}` `{}`",
                         prepared.method.as_str(), prepared.route_pattern,
                         dispatch.method.as_str(), dispatch.route_pattern
-                    ));
+                    )).into());
                 }
                 prepared.value
             } else {
@@ -150,10 +153,11 @@ pub fn execute<H: Host>(
             )
         }
         RouterOutcome::NotFound => {
-            return Err(format!(
+            return Err((format!(
                 "error[serve_router]: materialized router did not match {} {path}",
                 method.as_str()
             ))
+            .into())
         }
     };
     match finish(response, &params, &middleware, host) {
@@ -161,7 +165,7 @@ pub fn execute<H: Host>(
         Err(error) => {
             let recovered = recover(
                 router,
-                error,
+                error.into(),
                 |callable, args| host.invoke(callable, args),
                 H::scalar,
             )?;
@@ -176,14 +180,14 @@ pub fn recover<V: DescriptorValue + Clone>(
     error: String,
     mut invoke: impl FnMut(&V, Vec<V>) -> Result<V, String>,
     scalar: impl Fn(NativeValue) -> V,
-) -> Result<V, String> {
+) -> Result<V, WebRouteError> {
     let Some(handler) = router.error_handler() else {
-        return Err(error);
+        return Err((error).into());
     };
     invoke(handler, vec![scalar(NativeValue::String(error.clone()))])
         .map_err(|recovery| format!(
             "error[serve_router_recovery]: router failed with `{error}`; error handler failed with `{recovery}`"
-        ))
+        )).map_err(WebRouteError::from)
 }
 
 /// Unwinds source response stages, then admits the result through host resource access.
@@ -193,13 +197,13 @@ pub fn finish<H: Host>(
     params: &[(String, String)],
     middleware: &[H::Value],
     host: &mut H,
-) -> Result<H::Response, String> {
+) -> Result<H::Response, WebRouteError> {
     let request = host.request(params);
     for callback in middleware.iter().rev() {
         response = host.invoke(callback, vec![request.clone(), response])?;
         validate_response_middleware_result(&response).map_err(String::from)?;
     }
-    host.admit(response)
+    host.admit(response).map_err(WebRouteError::from)
 }
 
 #[cfg(test)]

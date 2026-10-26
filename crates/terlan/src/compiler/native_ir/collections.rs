@@ -120,6 +120,12 @@ fn inventory_expr(expr: &CoreExpr, layouts: &mut BTreeSet<Vec<u8>>) -> Result<()
             inventory_type(&call.return_type, layouts)?;
             if matches!(
                 call.id,
+                CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringConcat)
+            ) {
+                inventory_type(&CoreType::List(Box::new(CoreType::String)), layouts)?;
+            }
+            if matches!(
+                call.id,
                 CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::MapFromEntries)
             ) {
                 inventory_map_entry_list(&call.return_type, layouts)?;

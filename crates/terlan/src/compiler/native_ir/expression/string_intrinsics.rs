@@ -20,7 +20,8 @@ use crate::terlan_typeck::{
 };
 
 use super::{
-    lower_expr_with_constructors, native_type, NativeConstructorLayouts, NativeExpr, NativeType,
+    lower_expected_field, lower_expr_with_constructors, native_type, ExpectedFieldContext,
+    NativeConstructorLayouts, NativeExpr, NativeType,
 };
 
 pub(super) fn infer_string_intrinsic_type(call: &CoreIntrinsicCall) -> Option<NativeType> {
@@ -101,6 +102,21 @@ pub(super) fn lower_string_intrinsic(
         .args
         .iter()
         .map(|argument| {
+            if *intrinsic == CorePrimitiveIntrinsic::StringConcat {
+                return lower_expected_field(
+                    argument,
+                    &CoreType::List(Box::new(CoreType::String)),
+                    "native_ir.string_concat_argument",
+                    &ExpectedFieldContext {
+                        params,
+                        param_types,
+                        functions,
+                        function_types,
+                        constructors,
+                    },
+                )
+                .map(|(lowered, _)| lowered);
+            }
             lower_expr_with_constructors(
                 argument,
                 params,

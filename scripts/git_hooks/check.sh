@@ -2,6 +2,7 @@
 # Execute the Terlan-owned plan inside the staged-source validation clone.
 set -euo pipefail
 changes=$1
+base=$2
 echo 'pre-commit: Rust dependency security audit'
 make --no-print-directory rust-security-audit-check
 echo 'pre-commit: editor release contracts'
@@ -45,33 +46,7 @@ echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh
 bash scripts/git_commit_message_test.sh
-tested_terlan=(scripts/git_hooks/src/git_hooks/PlanTest.terl)
-run_terlan_test() {
-  local previous
-  for previous in "${tested_terlan[@]}"; do
-    if [[ "$previous" == "$1" ]]; then return 0; fi
-  done
-  "$terlc" test "$1"
-  tested_terlan+=("$1")
-}
-checked_projects=("")
-check_terlan_source() {
-  local project previous
-  project=$(dirname "$1")
-  while [[ ! -f "$project/terlan.toml" && "$project" != . ]]; do project=$(dirname "$project"); done
-  if [[ -f "$project/terlan.toml" ]]; then
-    for previous in "${checked_projects[@]}"; do
-      if [[ "$previous" == "$project" ]]; then return 0; fi
-    done
-    # Build the package so configured source roots and sibling imports resolve.
-    "$terlc" build "$project" --target terlan-vm --out-dir "target/git-hooks-terlan/$project"
-    checked_projects+=("$project")
-  elif [[ "$1" == *terlan.toml ]]; then
-    "$terlc" check "$(dirname "$1")"
-  elif [[ -f "$1" && "$1" != *Test.terl ]]; then
-    "$terlc" check "$1"
-  fi
-}
+TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh
 plan="${changes%.txt}.plan"
 "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$plan"
 while IFS= read -r lane; do
@@ -118,21 +93,7 @@ while IFS= read -r lane; do
       (cd tree-sitter-terlan && npm ci && npm run check && npm run check:cli)
       ;;
     terlan)
-      while IFS= read -r path; do
-        if [[ "$path" == tests/fixtures/* || "$path" == docs/grammar/fixtures/* ]]; then continue; fi
-        # The typed CSS gate checks every generated property in bounded batches
-        # and executes the handwritten CSS tests and browser fixture.
-        if [[ "$typed_css_checked" == true && "$path" == std/css/* ]]; then continue; fi
-        # JavaScript sources execute through the browser matrix below.
-        if [[ "$path" == std/js/* || "$path" == tests/js/* ]]; then continue; fi
-        if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then
-          check_terlan_source "$path"
-          # Package builds do not include script entry files outside source roots.
-          if [[ "$path" == *.terls && -f "$path" ]]; then "$terlc" check "$path"; fi
-          if [[ "$path" == *Test.terl && -f "$path" ]]; then run_terlan_test "$path";
-          elif [[ -f "${path%.terl}Test.terl" ]]; then run_terlan_test "${path%.terl}Test.terl"; fi
-        fi
-      done < "$changes"
+      bash scripts/git_hooks/terlan.sh "$changes" "$base" "$terlc" "$typed_css_checked"
       ;;
     workflow)
       go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml

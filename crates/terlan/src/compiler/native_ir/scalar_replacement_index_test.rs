@@ -10,6 +10,9 @@ use crate::terlan_typeck::{
 use super::scalar_replacement::scalar_replace_fixed_aggregates;
 use super::{NativeExpr, NativeModule};
 
+#[path = "scalar_replacement_computed_index_test.rs"]
+mod computed;
+
 /// Returns the empty constructor table used by structural index tests.
 fn layouts() -> super::constructors::NativeConstructorLayouts {
     HashMap::new()

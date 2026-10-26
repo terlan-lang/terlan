@@ -586,30 +586,26 @@ pub(super) fn join_string_list(
         .collection(semantic)
         .and_then(|collection| collection.list_descriptor())
         .ok_or(ManagedMemoryError::ManagedTypeMismatch)?;
-    let expected = super::super::ManagedFieldType::Reference(SemanticTypeId::from_canonical(
-        "std.core.String",
-    )?);
+    let expected = ManagedFieldType::Reference(managed_string_semantic_id());
     if descriptor.element_type() != expected {
         return Err(ManagedMemoryError::ManagedTypeMismatch);
     }
-    let elements = heap.list_elements(descriptor, list)?;
-    let mut fragments = Vec::with_capacity(elements.len());
-    let mut capacity = 0usize;
-    for element in elements {
+    let mut fragments = Vec::with_capacity(heap.list_length(descriptor, list)?);
+    heap.visit_list(descriptor, list, |element| {
         let ManagedFieldValue::Reference(reference) = element else {
             return Err(ManagedMemoryError::InvalidAggregateField);
         };
-        let fragment = heap.read_string(reference.cast::<ManagedString>())?;
-        capacity = capacity
-            .checked_add(fragment.len())
-            .ok_or(ManagedMemoryError::AllocationLimitExceeded)?;
-        fragments.push(fragment.to_string());
+        fragments.push(reference.cast::<ManagedString>());
+        Ok(())
+    })?;
+    match fragments.as_slice() {
+        [] => heap.allocate_string(""),
+        [single] => {
+            heap.read_string(*single)?;
+            Ok(*single)
+        }
+        _ => heap.concatenate_strings_many(&fragments),
     }
-    let mut joined = String::with_capacity(capacity);
-    for fragment in fragments {
-        joined.push_str(&fragment);
-    }
-    heap.allocate_string(&joined)
 }
 
 /// Applies one maintained string transform after validating the managed input.
@@ -625,3 +621,6 @@ pub(super) fn transform_string(
 #[cfg(test)]
 #[path = "string_atom_test.rs"]
 mod atom_test;
+#[cfg(test)]
+#[path = "string_join_test.rs"]
+mod join_test;

@@ -1,7 +1,8 @@
 use super::manifest_and_arguments::{
-    HttpCheck, HttpResponse, IntegrationArgs, ServerGuard, DEFAULT_DB_HOST, DEFAULT_DB_NAME,
-    DEFAULT_DB_PASSWORD, DEFAULT_DB_PORT, DEFAULT_DB_USER,
+    HttpCheck, HttpResponse, IntegrationArgs, ServerGuard, DEFAULT_DB_NAME, DEFAULT_DB_PORT,
+    DEFAULT_DB_USER,
 };
+use super::migrations::run_migrations_if_present;
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -65,6 +66,9 @@ pub(super) fn run_database_phase(
     let compose_file = project_dir.join("docker-compose.yml");
     if !compose_file.exists() {
         println!("integration: no docker-compose.yml found; skipping database startup");
+        if args.traits.migrations {
+            run_migrations_if_present(project_dir, args, app_env)?;
+        }
         return Ok(());
     }
 
@@ -122,26 +126,8 @@ pub(super) fn configure_database_url(app_env: &mut BTreeMap<String, String>) -> 
         return Ok(());
     }
 
-    let host = env_value(app_env, "POSTGRES_HOST", DEFAULT_DB_HOST);
-    let user = env_value(app_env, "POSTGRES_USER", DEFAULT_DB_USER);
-    let password = env_value(app_env, "POSTGRES_PASSWORD", DEFAULT_DB_PASSWORD);
-    let database = env_value(app_env, "POSTGRES_DB", DEFAULT_DB_NAME);
-    let port = env_value(app_env, "POSTGRES_PORT", DEFAULT_DB_PORT)
-        .parse::<u16>()
-        .map_err(|error| format!("invalid POSTGRES_PORT for database URL: {error}"))?;
-
-    let mut url = url::Url::parse("postgresql://localhost")
-        .map_err(|error| format!("cannot initialize database URL: {error}"))?;
-    url.set_username(user)
-        .map_err(|()| "invalid POSTGRES_USER for database URL".to_string())?;
-    url.set_password(Some(password))
-        .map_err(|()| "invalid POSTGRES_PASSWORD for database URL".to_string())?;
-    url.set_host(Some(host))
-        .map_err(|error| format!("invalid POSTGRES_HOST for database URL: {error}"))?;
-    url.set_port(Some(port))
-        .map_err(|()| "invalid POSTGRES_PORT for database URL".to_string())?;
-    url.set_path(database);
-    app_env.insert("TERLAN_DATABASE_URL".to_string(), url.into());
+    let url = super::migrations::database_url(app_env).map_err(String::from)?;
+    app_env.insert("TERLAN_DATABASE_URL".to_string(), url);
     Ok(())
 }
 
@@ -254,67 +240,6 @@ pub(super) fn run_database_query(
         "database service `{}` did not accept SELECT 1 within {} seconds",
         args.compose_service, args.wait_secs
     ))
-}
-
-pub(super) fn run_migrations_if_present(
-    project_dir: &Path,
-    args: &IntegrationArgs,
-    app_env: &BTreeMap<String, String>,
-) -> Result<(), String> {
-    let migrations_dir = args
-        .migrations_dir
-        .clone()
-        .unwrap_or_else(|| PathBuf::from("sql"));
-    let migrations_dir = project_dir.join(migrations_dir);
-    if !migrations_dir.exists() {
-        return Ok(());
-    }
-    if !command_exists("goose") {
-        println!(
-            "integration: {} exists but goose is not installed; skipping migrations",
-            migrations_dir.display()
-        );
-        return Ok(());
-    }
-
-    let dsn = postgres_dsn(app_env);
-    let dir = migrations_dir.to_string_lossy().to_string();
-    run_command_with_env(
-        project_dir,
-        app_env,
-        "goose",
-        &[
-            "-v",
-            "-allow-missing",
-            "-dir",
-            dir.as_str(),
-            "postgres",
-            dsn.as_str(),
-            "up",
-        ],
-    )?;
-    println!("integration: migrations applied");
-    Ok(())
-}
-
-pub(super) fn command_exists(program: &str) -> bool {
-    Command::new(program)
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok()
-}
-
-pub(super) fn postgres_dsn(app_env: &BTreeMap<String, String>) -> String {
-    format!(
-        "host={} user={} password={} dbname={} port={} sslmode=disable",
-        env_value(app_env, "POSTGRES_HOST", DEFAULT_DB_HOST),
-        env_value(app_env, "POSTGRES_USER", DEFAULT_DB_USER),
-        env_value(app_env, "POSTGRES_PASSWORD", DEFAULT_DB_PASSWORD),
-        env_value(app_env, "POSTGRES_DB", DEFAULT_DB_NAME),
-        env_value(app_env, "POSTGRES_PORT", DEFAULT_DB_PORT)
-    )
 }
 
 pub(super) fn env_value<'a>(
@@ -564,6 +489,10 @@ pub(super) fn command_label(program: &str, args: &[&str]) -> String {
 
 #[cfg(test)]
 mod integration_test_test {
+    use super::super::manifest_and_arguments::{
+        parse_http_check, parse_integration_args, parse_manifest_integration_flow,
+        parse_websocket_check, DEFAULT_HOST, DEFAULT_PORT,
+    };
     use super::*;
 
     #[test]
@@ -789,8 +718,3 @@ traits = ["websocket-checks"]
         assert!(response.raw.contains("Created"));
     }
 }
-#[cfg(test)]
-use super::manifest_and_arguments::{
-    parse_http_check, parse_integration_args, parse_manifest_integration_flow,
-    parse_websocket_check, DEFAULT_HOST, DEFAULT_PORT,
-};

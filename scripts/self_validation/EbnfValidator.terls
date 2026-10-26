@@ -252,10 +252,7 @@ validation_output(
     case Process.run(command(repository, compiler_path, path, strict)) {
         Ok(output) -> Some(output);
         Err(reason) ->
-            let _printed =
-                eprintln(
-                    String.append("EBNF validator failed to start: ", reason.message),
-                );
+            let _printed = eprintln(String.append("EBNF validator failed to start: ", reason.message));
             None
     }.
 

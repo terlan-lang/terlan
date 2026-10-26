@@ -181,7 +181,9 @@ pub rgb(red: Int, green: Int, blue: Int): Option[Color] ->
     case red >= 0 and red <= 255 and green >= 0 and green <= 255 and blue >= 0 and blue <= 255 {
         true ->
             Some(
-                Color {#css: "rgb(" + int_text(red) + ", " + int_text(green) + ", " + int_text(blue) + ")"},
+                Color {
+                    #css: "rgb(" + int_text(red) + ", " + int_text(green) + ", " + int_text(blue) + ")",
+                },
             );
         false -> None
     }.

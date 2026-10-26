@@ -6,7 +6,7 @@ pub(super) fn binding_type_at_pattern(
     source_name: &str,
     path: &[usize],
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<AbiType, String> {
+) -> Result<AbiType, NativeIrError> {
     binding_type_at_pattern_with_catalogs(
         pattern,
         source,
@@ -25,7 +25,7 @@ pub(super) fn binding_type_at_pattern_with_catalogs(
     source_name: &str,
     path: &[usize],
     catalogs: PatternCatalogs<'_>,
-) -> Result<AbiType, String> {
+) -> Result<AbiType, NativeIrError> {
     let Some((index, rest)) = path.split_first() else {
         return Ok(source.clone());
     };
@@ -35,10 +35,8 @@ pub(super) fn binding_type_at_pattern_with_catalogs(
     })?;
     if pattern.kind == "string-capture-pattern" {
         if child.kind != "string-capture-segment" {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: string binding path selects a literal segment"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: string binding path selects a literal segment"
+                    .to_string()).into());
         }
         let (_, kind) = string_capture_kind(&child.text)?;
         let type_name = match kind {
@@ -91,10 +89,8 @@ pub(super) fn binding_type_at_pattern_with_catalogs(
         } else if *index == 1 {
             source
         } else {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: list-cons binding path exceeds arity"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: list-cons binding path exceeds arity"
+                    .to_string()).into());
         };
         return binding_type_at_pattern_with_catalogs(
             child,
@@ -112,10 +108,8 @@ pub(super) fn binding_type_at_pattern_with_catalogs(
     }
     if pattern.kind == "keyed-pattern-field" {
         if *index != 0 {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: keyed field binding path is invalid"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: keyed field binding path is invalid"
+                    .to_string()).into());
         }
         if is_map_type(source) {
             let value_type = &source.arguments[1];
@@ -169,8 +163,9 @@ pub(super) fn binding_type_at_pattern_with_catalogs(
         );
     }
     Err(
-        "error[self_host.native.pattern_binding_shape]: binding path crosses a terminal pattern"
-            .to_string(),
+        ("error[self_host.native.pattern_binding_shape]: binding path crosses a terminal pattern"
+            .to_string())
+        .into(),
     )
 }
 
@@ -178,14 +173,12 @@ pub(super) fn project_binding_path(
     mut value: NativeExpr,
     source: &AbiType,
     path: &[usize],
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let mut current = source;
     for index in path {
         if current.constructor != "$Tuple" {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: binding path crosses a non-tuple value"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: binding path crosses a non-tuple value"
+                    .to_string()).into());
         }
         let child = current.arguments.get(*index).ok_or_else(|| {
             "error[self_host.native.pattern_binding_shape]: binding path exceeds tuple arity"
@@ -216,7 +209,7 @@ pub(super) fn project_variant_field(
     source: &AbiType,
     index: usize,
     child: &AbiType,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let semantic = SemanticTypeId::from_canonical(&type_contract(source, "")?)
         .map_err(|error| format!("error[self_host.native.variant_projection]: {error}"))?;
     let child_type = native_type_of(child)?.ok_or_else(|| {
@@ -238,7 +231,7 @@ pub(super) fn list_pattern_operation(
     source: &AbiType,
     value: NativeExpr,
     first: bool,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let element = source.arguments.first().ok_or_else(|| {
         "error[self_host.native.pattern_binding_shape]: List source has no element type".to_string()
     })?;
@@ -258,7 +251,7 @@ pub(super) fn list_pattern_operation(
     })
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(super) fn project_pattern_binding_path(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
     source: &AbiType,
@@ -266,7 +259,7 @@ pub(super) fn project_pattern_binding_path(
     value: NativeExpr,
     path: &[usize],
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     project_pattern_binding_path_with_catalogs(
         pattern,
         source,
@@ -287,7 +280,7 @@ pub(super) fn project_pattern_binding_path_with_catalogs(
     value: NativeExpr,
     path: &[usize],
     catalogs: PatternCatalogs<'_>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let Some((index, rest)) = path.split_first() else {
         return Ok(value);
     };
@@ -297,10 +290,8 @@ pub(super) fn project_pattern_binding_path_with_catalogs(
     })?;
     if pattern.kind == "string-capture-pattern" {
         if child.kind != "string-capture-segment" {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: string binding path selects a literal segment"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: string binding path selects a literal segment"
+                    .to_string()).into());
         }
         let selected = pattern.children[..*index]
             .iter()
@@ -374,10 +365,8 @@ pub(super) fn project_pattern_binding_path_with_catalogs(
         } else if *index == 1 {
             (source, list_pattern_operation(source, value, false)?)
         } else {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: list-cons binding path exceeds arity"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: list-cons binding path exceeds arity"
+                    .to_string()).into());
         };
         return project_pattern_binding_path_with_catalogs(
             child,
@@ -403,10 +392,8 @@ pub(super) fn project_pattern_binding_path_with_catalogs(
     }
     if pattern.kind == "keyed-pattern-field" {
         if *index != 0 {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: keyed field binding path is invalid"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding_shape]: keyed field binding path is invalid"
+                    .to_string()).into());
         }
         if is_map_type(source) {
             let value_type = &source.arguments[1];
@@ -506,8 +493,9 @@ pub(super) fn project_pattern_binding_path_with_catalogs(
         );
     }
     Err(
-        "error[self_host.native.pattern_binding_shape]: binding path crosses a terminal pattern"
-            .to_string(),
+        ("error[self_host.native.pattern_binding_shape]: binding path crosses a terminal pattern"
+            .to_string())
+        .into(),
     )
 }
 
@@ -539,7 +527,7 @@ pub(super) fn guarded_binding(
     projected: NativeExpr,
     binding_type: NativeType,
     binding_abi: &AbiType,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let fallback = match binding_type {
         NativeType::Unit => NativeExpr::Unit,
         NativeType::Int => NativeExpr::Int(0),
@@ -565,10 +553,8 @@ pub(super) fn guarded_binding(
             }
         }
         _ => {
-            return Err(
-                "error[self_host.native.pattern_binding_shape]: managed binding has no typed deferred default"
-                    .to_string(),
-            )
+            return Err(("error[self_host.native.pattern_binding_shape]: managed binding has no typed deferred default"
+                    .to_string()).into())
         }
     };
     Ok(NativeExpr::If {
@@ -576,23 +562,26 @@ pub(super) fn guarded_binding(
     })
 }
 
-pub(super) fn pattern_literal(text: &str, source_type: NativeType) -> Result<NativeExpr, String> {
+pub(super) fn pattern_literal(
+    text: &str,
+    source_type: NativeType,
+) -> Result<NativeExpr, NativeIrError> {
     match source_type {
         NativeType::Int => text
             .parse::<i64>()
             .map(NativeExpr::Int)
-            .map_err(|_| format!("error[self_host.native.pattern_literal]: invalid Int {text:?}")),
+            .map_err(|_| NativeIrError::from(format!("error[self_host.native.pattern_literal]: invalid Int {text:?}"))),
         NativeType::Float => text
             .parse::<f64>()
             .map(|value| NativeExpr::Float(value.to_bits()))
             .map_err(|_| {
-                format!("error[self_host.native.pattern_literal]: invalid Float {text:?}")
+                NativeIrError::from(format!("error[self_host.native.pattern_literal]: invalid Float {text:?}"))
             }),
         NativeType::Bool if text == "true" => Ok(NativeExpr::Bool(true)),
         NativeType::Bool if text == "false" => Ok(NativeExpr::Bool(false)),
         NativeType::Unit if matches!(text, "Unit" | "unit" | "()") => Ok(NativeExpr::Unit),
-        _ => Err(format!(
+        _ => Err((format!(
             "error[self_host.native.pattern_literal]: literal {text:?} is unsupported for {source_type:?}"
-        )),
+        )).into()),
     }
 }

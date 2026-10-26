@@ -49,7 +49,9 @@ pub type FileErrorCode = NotFound | PermissionDenied | InvalidPath | Unknown.
  * instead of exposing backend-specific error atoms directly.
  */
 pub struct FileError includes Error {
-    /** Path associated with a file error. */
+    /**
+     * Path associated with a file error.
+     */
     path: String,
 }.
 
@@ -62,9 +64,13 @@ pub struct FileError includes Error {
  * validators can scan discovered file sets without positional bookkeeping.
  */
 pub struct TextFile {
-    /** Requested path stored in a batch-read value. */
+    /**
+     * Requested path stored in a batch-read value.
+     */
     path: String,
-    /** Decoded UTF-8 contents stored in a batch-read value. */
+    /**
+     * Decoded UTF-8 contents stored in a batch-read value.
+     */
     contents: String,
 }.
 

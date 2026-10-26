@@ -18,6 +18,10 @@ use super::{
     NativeBinaryOperator, NativeExpr, NativeModule,
 };
 
+#[cfg(all(unix, feature = "native-codegen"))]
+#[path = "scalar_replacement_differential_test.rs"]
+mod differential;
+
 /// Builds one two-field fixed constructor layout for projection tests.
 fn layouts() -> NativeConstructorLayouts {
     let result = CoreType::Apply {

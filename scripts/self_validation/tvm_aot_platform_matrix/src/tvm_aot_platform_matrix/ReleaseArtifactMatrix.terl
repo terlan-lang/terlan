@@ -113,8 +113,7 @@ host_evidence(root: String, platform: ReleasePlatform): Option[HostEvidence] ->
     extract_evidence(temporary, artifact, relative, actual).
 
 same_platform(left: ReleasePlatform, right: ReleasePlatform): Bool ->
-    left.operating_system == right.operating_system
-        and left.architecture == right.architecture.
+    left.operating_system == right.operating_system and left.architecture == right.architecture.
 
 host_validation_json(
     platform: ReleasePlatform,

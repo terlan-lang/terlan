@@ -1,13 +1,13 @@
 use super::*;
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(super) fn pattern_predicate(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
     value: NativeExpr,
     source: &AbiType,
     source_name: &str,
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     pattern_predicate_with_catalogs(
         pattern,
         value,
@@ -26,7 +26,7 @@ pub(super) fn pattern_predicate_with_catalogs(
     source: &AbiType,
     source_name: &str,
     catalogs: PatternCatalogs<'_>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     if pattern.kind == "string-capture-pattern" {
         let decoded = decoded_string_pattern_segments(pattern)?;
         let segments = borrowed_string_pattern_segments(&decoded);
@@ -46,10 +46,8 @@ pub(super) fn pattern_predicate_with_catalogs(
         })?;
         if source_type == NativeType::StringRef {
             if !pattern.text.starts_with('"') || !pattern.text.ends_with('"') {
-                return Err(
-                    "error[self_host.native.pattern_literal]: String pattern metadata must be quoted"
-                        .to_string(),
-                );
+                return Err(("error[self_host.native.pattern_literal]: String pattern metadata must be quoted"
+                        .to_string()).into());
             }
             let decoded = super::super::self_host_adapter::decoded_string_literal(&pattern.text)?;
             let encoded = encode_string_literal(&decoded)
@@ -125,10 +123,11 @@ pub(super) fn pattern_predicate_with_catalogs(
         return Ok(predicate);
     }
     if pattern.kind != "tuple-pattern" || source.constructor != "$Tuple" {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.pattern_kind]: unsupported recursive pattern {:?}",
             pattern.kind
-        ));
+        ))
+        .into());
     }
     let mut predicate = NativeExpr::Bool(true);
     for (index, (child, child_type)) in pattern
@@ -157,7 +156,7 @@ pub(super) fn keyed_pattern_predicate(
     value: NativeExpr,
     source: &AbiType,
     catalogs: PatternCatalogs<'_>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let value_type = source.arguments.get(1).ok_or_else(|| {
         "error[self_host.native.pattern_shape]: Map source has no value type".to_string()
     })?;
@@ -201,7 +200,7 @@ pub(super) fn struct_pattern_predicate(
     value: NativeExpr,
     source: &AbiType,
     catalogs: PatternCatalogs<'_>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let layout = struct_pattern_fields(pattern, source, catalogs)?;
     let semantic = SemanticTypeId::from_canonical(&type_contract(source, "")?)
         .map_err(|error| format!("error[self_host.native.pattern_struct_abi]: {error}"))?;
@@ -247,11 +246,12 @@ pub(super) fn list_pattern_predicate(
     source: &AbiType,
     _source_name: &str,
     catalogs: PatternCatalogs<'_>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     if !is_list_type(source) {
         return Err(
-            "error[self_host.native.pattern_shape]: list pattern requires a List source"
-                .to_string(),
+            ("error[self_host.native.pattern_shape]: list pattern requires a List source"
+                .to_string())
+            .into(),
         );
     }
     let element = source.arguments.first().ok_or_else(|| {

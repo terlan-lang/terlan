@@ -433,17 +433,14 @@ fn projection_layout(
 
 /// Resolves one in-bounds compile-time index into a fixed aggregate slot.
 fn direct_fixed_index(base: &CoreExpr, index: &CoreExpr) -> Option<usize> {
-    let CoreExpr::Int(index) = index else {
-        return None;
-    };
-    let index = usize::try_from(*index).ok()?;
     let length = match base {
         CoreExpr::Tuple(items) | CoreExpr::Array(items) => items.len(),
         _ => return None,
     };
-    (index < length).then_some(index)
+    index::FixedIndex::prove(index, length).map(|proof| proof.position())
 }
 
+mod index;
 mod substitution;
 
 use substitution::substitute_tail;

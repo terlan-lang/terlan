@@ -19,7 +19,9 @@ import type std.data.Json.
 import type std.system.Process.{EnvironmentEntry, FramedExchange}.
 
 pub struct LspSummary {
-    /** Hover result categories covered by the language server smoke check. */
+    /**
+     * Hover result categories covered by the language server smoke check.
+     */
     hover_categories: List[String],
     response_count: Int,
 }.
@@ -359,8 +361,7 @@ pub run_smoke(
     };
     (let command = Support.process_command(lsp, ["--stdio"], workspace, environment, 30000, 8388608);
 case Process.run_length_framed(Process.length_framed(command, exchanges, "Content-Length")) {
-    Err(reason) ->
-        lsp_failure(String.append("framed process failed: ", reason.message));
+    Err(reason) -> lsp_failure(String.append("framed process failed: ", reason.message));
     Ok(output) ->
         if {
             output.status != 0 -> lsp_failure(String.append("nonzero process status: ", output.stderr));

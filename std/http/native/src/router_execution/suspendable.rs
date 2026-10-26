@@ -29,7 +29,7 @@ pub async fn execute_suspendable<H: AsyncHost>(
     declared_route: &str,
     path: &str,
     host: &H,
-) -> Result<H::Response, String> {
+) -> Result<H::Response, WebRouteError> {
     let RouterOutcome::Matched(dispatch) = router.dispatch(method, path)? else {
         return Err("error[serve_router]: source router did not match request".into());
     };
@@ -53,7 +53,7 @@ pub async fn execute_suspendable<H: AsyncHost>(
             ));
         };
         let args = handler_arguments(request.clone(), &dispatch, host.arity(handler), H::scalar)
-            .map_err(|error| failure("serve_router", error))?;
+            .map_err(|error| failure("serve_router", error.into()))?;
         Ok((handler.clone(), args))
     };
     let mut invoke = |callback, args| async move {
@@ -74,7 +74,7 @@ pub async fn execute_suspendable<H: AsyncHost>(
                 .await
                 .map_err(diagnostic)?;
             // Invalid recovery output is terminal, never recursively recovered.
-            host.admit(recovered)
+            host.admit(recovered).map_err(WebRouteError::from)
         }
     }
 }
@@ -94,7 +94,7 @@ pub async fn finish_suspendable<H: AsyncHost>(
     params: &[(String, String)],
     middleware: &[H::Value],
     host: &H,
-) -> Result<H::Response, String> {
+) -> Result<H::Response, WebRouteError> {
     let request = host.request(params);
     for callback in middleware.iter().rev() {
         response = host
@@ -102,7 +102,7 @@ pub async fn finish_suspendable<H: AsyncHost>(
             .await?;
         validate_response_middleware_result(&response).map_err(String::from)?;
     }
-    host.admit(response)
+    host.admit(response).map_err(WebRouteError::from)
 }
 
 #[cfg(test)]

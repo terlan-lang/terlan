@@ -403,9 +403,7 @@ run_command(
                 Some(output);
                 true -> output_failure(
                     "process",
-                    String.concat(
-                        [program, " failed:\n", output.stdout, output.stderr],
-                    ),
+                    String.concat([program, " failed:\n", output.stdout, output.stderr]),
                 )
             }
     }.

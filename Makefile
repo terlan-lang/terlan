@@ -2372,6 +2372,19 @@ tvm-managed-list-profile-benchmark-check:
 	test -s target/quality/tvm-managed-list-profile.json
 
 .PHONY: tvm-aot-runtime-workload-benchmark-check
+.PHONY: tvm-native-optimizations-check tvm-native-optimizations-benchmark
+tvm-native-optimizations-check:
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib scalar_replacement -- --nocapture
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::atoms -- --nocapture
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::lists -- --nocapture
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::managed::operation_abi::string::join_test -- --nocapture
+
+tvm-native-optimizations-benchmark: tvm-aot-runtime-workload-benchmark-check
+	TERLAN_ATOM_TABLE_PROFILE_OUTPUT=$(CURDIR)/target/quality/tvm-atom-table-profiles.json $(EXACT_CARGO_TEST) --locked --release -p terlan --lib paired_atom_table_profiles_report_storage_and_lifecycle -- --nocapture
+	TERLAN_STRING_JOIN_PROFILE_OUTPUT=$(CURDIR)/target/quality/tvm-string-join-profiles.json $(EXACT_CARGO_TEST) --locked --release -p terlan --lib paired_string_join_profiles_report_memory_and_tail_latency -- --nocapture
+	test -s target/quality/tvm-atom-table-profiles.json
+	test -s target/quality/tvm-string-join-profiles.json
+
 tvm-aot-runtime-workload-benchmark-check: | terlan-benchmark-release-bootstrap
 	TERLAN_BENCH_AOT_RUNTIME_OUTPUT=$(CURDIR)/target/quality/vm-aot-runtime-workloads.json target/release/terlan-benchmark vm-aot-runtime-workloads
 	test -s target/quality/vm-aot-runtime-workloads.json

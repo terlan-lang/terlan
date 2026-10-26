@@ -300,10 +300,7 @@ backend_calls_absent(files: List[TextFile], pattern: Regex): Bool ->
         [file | rest] ->
             if {
                 String.ends_with(file.path, "Test.terl") -> backend_calls_absent(rest, pattern);
-                Regex.is_match(
-                    pattern,
-                    non_comment_source(String.split(file.contents, "\n"), ""),
-                ) -> failure(
+                Regex.is_match(pattern, non_comment_source(String.split(file.contents, "\n"), "")) -> failure(
                     "core.backend",
                     String.append("backend primitive call remains in ", file.path),
                 );

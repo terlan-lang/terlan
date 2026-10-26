@@ -31,8 +31,7 @@ pub valued_union_checked_parse_executes(): Bool ->
 pub valued_union_checked_parse_rejects_unlisted_values(): Bool ->
     try Status.parse(500) {
         value -> false
-catch
-        reason -> true
+        catch reason -> true
     }.
 
 @test

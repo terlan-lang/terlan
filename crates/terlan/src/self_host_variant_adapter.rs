@@ -1,6 +1,6 @@
 //! Typed finite-sum metadata bridge for self-hosted native lowering.
 
-use crate::self_host_variant_ir::{ResolvedVariantLayout, VariantCatalog};
+use crate::self_host_variant_ir::{ResolvedVariantLayout, VariantCatalog, VariantResolutionError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ManagedVariantDescriptor {
@@ -52,7 +52,7 @@ pub fn resolve_pattern(
     catalog: &VariantCatalog,
     constructor: &str,
     subject_type: &str,
-) -> Result<ManagedVariantDescriptor, String> {
+) -> Result<ManagedVariantDescriptor, VariantResolutionError> {
     let owner = type_base(subject_type);
     catalog
         .resolve(owner, constructor, subject_type)
@@ -64,24 +64,26 @@ pub fn resolve_construction(
     catalog: &VariantCatalog,
     constructor: &str,
     result_type: &str,
-) -> Result<ManagedVariantDescriptor, String> {
+) -> Result<ManagedVariantDescriptor, VariantResolutionError> {
     let owner = type_base(result_type);
     catalog
         .resolve(owner, constructor, result_type)
         .map(|resolved| descriptor(result_type, resolved))
 }
 
-fn concrete_payload_types(descriptor: &ManagedVariantDescriptor) -> Result<Vec<String>, String> {
+fn concrete_payload_types(
+    descriptor: &ManagedVariantDescriptor,
+) -> Result<Vec<String>, VariantResolutionError> {
     descriptor
         .payload_types
         .iter()
         .enumerate()
         .map(|(index, type_name)| {
             type_name.clone().ok_or_else(|| {
-                format!(
+                VariantResolutionError::from(format!(
                     "variant `{}.{}` payload {index} has no authoritative type",
                     descriptor.owner, descriptor.constructor
-                )
+                ))
             })
         })
         .collect()
@@ -93,16 +95,17 @@ pub fn plan_pattern(
     constructor: &str,
     subject_type: &str,
     payload_arity: usize,
-) -> Result<VariantPatternPlan, String> {
+) -> Result<VariantPatternPlan, VariantResolutionError> {
     let descriptor = resolve_pattern(catalog, constructor, subject_type)?;
     let payload_types = concrete_payload_types(&descriptor)?;
     if payload_types.len() != payload_arity {
-        return Err(format!(
+        return Err((format!(
             "variant pattern `{}.{}` binds {payload_arity} payloads but its layout requires {}",
             descriptor.owner,
             descriptor.constructor,
             payload_types.len()
-        ));
+        ))
+        .into());
     }
     let projections = payload_types
         .into_iter()
@@ -124,34 +127,36 @@ pub fn plan_construction(
     constructor: &str,
     result_type: &str,
     operand_types: &[Option<String>],
-) -> Result<VariantConstructionPlan, String> {
+) -> Result<VariantConstructionPlan, VariantResolutionError> {
     let descriptor = resolve_construction(catalog, constructor, result_type)?;
     let expected = concrete_payload_types(&descriptor)?;
     if expected.len() != operand_types.len() {
-        return Err(format!(
+        return Err((format!(
             "variant construction `{}.{}` supplies {} payloads but its layout requires {}",
             descriptor.owner,
             descriptor.constructor,
             operand_types.len(),
             expected.len()
-        ));
+        ))
+        .into());
     }
     for (index, (expected_type, actual_type)) in
         expected.iter().zip(operand_types.iter()).enumerate()
     {
         let Some(actual_type) = actual_type else {
-            return Err(format!(
+            return Err((format!(
                 "variant construction `{}.{}` payload {index} has no typed operand evidence",
                 descriptor.owner, descriptor.constructor
-            ));
+            ))
+            .into());
         };
         if actual_type.trim() != expected_type {
-            return Err(format!(
+            return Err((format!(
                 "variant construction `{}.{}` payload {index} has type `{}`; expected `{expected_type}`",
                 descriptor.owner,
                 descriptor.constructor,
                 actual_type.trim()
-            ));
+            )).into());
         }
     }
     Ok(VariantConstructionPlan {

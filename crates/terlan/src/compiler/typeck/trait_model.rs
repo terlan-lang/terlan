@@ -516,6 +516,28 @@ fn qualify_default_module_type_text(
     text: &str,
     interfaces: &HashMap<String, ModuleInterface>,
 ) -> String {
+    // Imported primitive conformance facts use their owning module's spelling.
+    // Resolve that evidence here without changing source type formatting.
+    if let Some(qualified) = text.strip_prefix("std.core.") {
+        let (owner, name) = qualified.split_once('.').unwrap_or((qualified, qualified));
+        if owner == name
+            && matches!(
+                owner,
+                "Int"
+                    | "Float"
+                    | "Number"
+                    | "Binary"
+                    | "String"
+                    | "Atom"
+                    | "Bool"
+                    | "Term"
+                    | "Dynamic"
+                    | "Never"
+            )
+        {
+            return owner.to_string();
+        }
+    }
     let Some(mut parsed) = parse_trait_instance_from_text(text) else {
         return text.to_string();
     };

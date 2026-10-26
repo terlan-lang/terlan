@@ -23,29 +23,19 @@ pub(super) fn retained_managed_bindings(bindings: &[CoreLetBinding], body: &Core
     retained
 }
 
-/// Reports whether evaluating an expression only computes immutable native values.
+/// Reports whether evaluating an expression is both effect-free and total.
+/// Checked arithmetic and conditional fallthrough can fail even without IO.
 fn is_allocation_only_value(expr: &CoreExpr) -> bool {
     match expr {
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Atom(_) | CoreExpr::Var(_) => true,
         CoreExpr::ConstructorCall { args, .. } | CoreExpr::Tuple(args) => {
             args.iter().all(is_allocation_only_value)
         }
-        CoreExpr::UnaryOp { operand, .. } => is_allocation_only_value(operand),
-        CoreExpr::BinaryOp { left, right, .. } => {
-            is_allocation_only_value(left) && is_allocation_only_value(right)
-        }
         CoreExpr::Let { bindings, body } => {
             bindings.iter().all(|binding| {
                 matches!(binding.pattern, CorePattern::Var(_))
                     && is_allocation_only_value(&binding.value)
             }) && is_allocation_only_value(body)
-        }
-        CoreExpr::If { clauses } => {
-            !clauses.is_empty()
-                && clauses.iter().all(|clause| {
-                    is_allocation_only_value(&clause.condition)
-                        && is_allocation_only_value(&clause.body)
-                })
         }
         _ => false,
     }

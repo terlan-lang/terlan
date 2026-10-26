@@ -84,12 +84,7 @@ run_command(
         Ok(output) ->
             if {
                 output.status == 0 -> Some(output);
-                true -> let _failed =
-                    failure(
-                        String.concat(
-                            [program, " failed:\n", output.stdout, output.stderr],
-                        ),
-                    );
+                true -> let _failed = failure(String.concat([program, " failed:\n", output.stdout, output.stderr]));
                 None
             }
     }.

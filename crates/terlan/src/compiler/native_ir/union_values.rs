@@ -18,6 +18,15 @@ pub(super) fn is_boxed(ty: &CoreType) -> bool {
     {
         return false;
     }
+    // Algebraic constructor applications without a concrete native member
+    // layout retain their established tagged-sum path. Nominal list elements
+    // also require the transparent collection path to retain recursive context.
+    if variants.iter().any(|member| {
+        super::native_type(Some(member), &member.contract_text()).is_none()
+            || matches!(member, CoreType::List(element) if matches!(element.as_ref(), CoreType::Named(_)))
+    }) {
+        return false;
+    }
     !variants.iter().all(|v| match v {
         CoreType::AtomLiteral(_) => true,
         CoreType::Tuple(items) => matches!(

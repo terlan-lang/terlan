@@ -90,18 +90,28 @@ fn identity_domain(kind: &str) -> Option<(&'static [u8], bool)> {
     }
 }
 
-fn expected_identity(value: &ActorContinuation) -> Result<String, String> {
+fn actor_metadata_error(message: impl Into<String>) -> terlan_runtime_abi::BoundaryError {
+    terlan_runtime_abi::BoundaryError::message(
+        terlan_runtime_abi::ErrorDomain::CompilerPhase,
+        "admit actor continuation metadata",
+        message,
+    )
+}
+
+fn expected_identity(
+    value: &ActorContinuation,
+) -> Result<String, terlan_runtime_abi::BoundaryError> {
     let (domain, needs_ordinal) = identity_domain(&value.identity_kind).ok_or_else(|| {
-        format!(
+        actor_metadata_error(format!(
             "unknown continuation identity kind `{}`",
             value.identity_kind
-        )
+        ))
     })?;
     if value.has_ordinal != needs_ordinal || (!value.has_ordinal && value.ordinal != 0) {
-        return Err(format!(
+        return Err(actor_metadata_error(format!(
             "continuation `{}` has identity provenance inconsistent with `{}`",
             value.id, value.identity_kind
-        ));
+        )));
     }
     let mut digest = Sha256::new();
     digest.update(domain);
@@ -122,23 +132,30 @@ fn expected_identity(value: &ActorContinuation) -> Result<String, String> {
 }
 
 /// Converts one verified full digest identity to the native nonzero dispatch ID.
-pub fn dispatch_id(identity: &str) -> Result<u64, String> {
+pub fn dispatch_id(identity: &str) -> Result<u64, terlan_runtime_abi::BoundaryError> {
+    let failure = |message: &str| {
+        terlan_runtime_abi::BoundaryError::message(
+            terlan_runtime_abi::ErrorDomain::CompilerPhase,
+            "decode actor continuation identity",
+            message,
+        )
+    };
     let hex = identity
         .strip_prefix("sha256:")
-        .ok_or_else(|| "continuation identity is missing `sha256:` prefix".to_owned())?;
+        .ok_or_else(|| failure("continuation identity is missing `sha256:` prefix"))?;
     if hex.len() != 64
         || !hex
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
-        return Err(
-            "continuation identity must contain 64 lowercase hexadecimal digits".to_owned(),
-        );
+        return Err(failure(
+            "continuation identity must contain 64 lowercase hexadecimal digits",
+        ));
     }
     let mut prefix = [0u8; 8];
     for (index, byte) in prefix.iter_mut().enumerate() {
         *byte = u8::from_str_radix(&hex[index * 2..index * 2 + 2], 16)
-            .map_err(|_| "continuation identity contains invalid hexadecimal".to_owned())?;
+            .map_err(|_| failure("continuation identity contains invalid hexadecimal"))?;
     }
     Ok(u64::from_le_bytes(prefix).max(1))
 }
@@ -174,7 +191,7 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
         }
         let mut entries = BTreeSet::new();
         for entry in &profile.entries {
-            if entry.has_export_identity != !entry.export_identity.is_empty() {
+            if entry.has_export_identity == entry.export_identity.is_empty() {
                 diagnostics.push(format!(
                     "actor suspension profile `{}.{}/{}` has inconsistent export identity presence",
                     profile.module_name, profile.callable_name, profile.arity
@@ -228,7 +245,7 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
                 continuation.source_arity,
                 continuation.id
             )),
-            Err(error) => diagnostics.push(error),
+            Err(error) => diagnostics.push(error.to_string()),
             _ => {}
         }
         if let Ok(id) = dispatch_id(&continuation.id) {
@@ -366,7 +383,7 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
                     resume.callee_continuation_id
                 ));
             }
-            if resume.has_callee_export_id != !resume.callee_export_id.is_empty()
+            if resume.has_callee_export_id == resume.callee_export_id.is_empty()
                 || (resume.has_callee_export_id && dispatch_id(&resume.callee_export_id).is_err())
             {
                 diagnostics.push(format!(
@@ -489,13 +506,16 @@ pub struct RuntimeActorPlan {
     pub suspension_sites: Vec<RuntimeActorSuspensionSite>,
 }
 
-fn materialize_continuation(value: ActorContinuation) -> Result<RuntimeActorContinuation, String> {
+fn materialize_continuation(
+    value: ActorContinuation,
+) -> Result<RuntimeActorContinuation, terlan_runtime_abi::BoundaryError> {
     Ok(RuntimeActorContinuation {
         id: dispatch_id(&value.id)?,
         source_module: value.source_module,
         source_function: value.source_function,
-        source_arity: usize::try_from(value.source_arity)
-            .map_err(|_| "continuation source arity exceeds the native target".to_owned())?,
+        source_arity: usize::try_from(value.source_arity).map_err(|_| {
+            actor_metadata_error("continuation source arity exceeds the native target")
+        })?,
         capture_names: value.capture_names,
         capture_types: value.capture_types,
         parameter_names: value.parameter_names,
@@ -505,7 +525,9 @@ fn materialize_continuation(value: ActorContinuation) -> Result<RuntimeActorCont
     })
 }
 
-fn materialize_resume(value: ActorResumeEdge) -> Result<RuntimeActorResumeEdge, String> {
+fn materialize_resume(
+    value: ActorResumeEdge,
+) -> Result<RuntimeActorResumeEdge, terlan_runtime_abi::BoundaryError> {
     Ok(RuntimeActorResumeEdge {
         callee_export_id: if value.has_callee_export_id {
             Some(dispatch_id(&value.callee_export_id)?)
@@ -519,7 +541,9 @@ fn materialize_resume(value: ActorResumeEdge) -> Result<RuntimeActorResumeEdge, 
     })
 }
 
-fn materialize_site(value: ActorSuspensionSite) -> Result<RuntimeActorSuspensionSite, String> {
+fn materialize_site(
+    value: ActorSuspensionSite,
+) -> Result<RuntimeActorSuspensionSite, terlan_runtime_abi::BoundaryError> {
     let resumes = value
         .resumes
         .into_iter()
@@ -551,13 +575,13 @@ pub fn materialize(document: ActorIrDocument) -> Result<RuntimeActorPlan, Vec<St
         .into_iter()
         .map(materialize_continuation)
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| vec![error])?;
+        .map_err(|error| vec![error.to_string()])?;
     let suspension_sites = document
         .suspension_sites
         .into_iter()
         .map(materialize_site)
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| vec![error])?;
+        .map_err(|error| vec![error.to_string()])?;
     Ok(RuntimeActorPlan {
         continuations,
         suspension_sites,

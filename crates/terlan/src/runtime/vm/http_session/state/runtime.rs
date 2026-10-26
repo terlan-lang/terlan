@@ -1,41 +1,12 @@
+#[path = "sessions.rs"]
+mod sessions;
+
 use super::resources::Resources;
 use super::*;
 #[cfg(test)]
 use crate::runtime::vm::actor::VmActorReceive;
 
 impl VmHttpSessionRuntime {
-    pub(crate) fn try_create_session(&mut self, identity: &str, ttl: u64) -> Result<bool, String> {
-        self.sessions
-            .try_create(
-                identity,
-                ttl,
-                &mut Resources {
-                    actors: &mut self.actors,
-                    tables: &mut self.tables,
-                },
-            )
-            .map_err(|error| error.to_string())
-    }
-
-    pub(crate) fn try_rotate_session(
-        &mut self,
-        identity: &str,
-        replacement: &str,
-        ttl: u64,
-    ) -> Result<bool, String> {
-        self.sessions
-            .try_rotate(
-                identity,
-                replacement,
-                ttl,
-                &mut Resources {
-                    actors: &mut self.actors,
-                    tables: &mut self.tables,
-                },
-            )
-            .map_err(|error| error.to_string())
-    }
-
     /// Creates a local HTTP session runtime.
     pub(crate) fn new(node_id: impl Into<String>, ttl_ticks: u64) -> Result<Self, String> {
         Self::new_with_recovery_policy(

@@ -41,6 +41,10 @@ pub(crate) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
         .iter()
         .map(|core| (core.module.clone(), nominal_declarations(core, true)))
         .collect::<Vec<_>>();
+    let declared = providers
+        .iter()
+        .flat_map(|(module, names)| names.iter().map(move |name| format!("{module}.{name}")))
+        .collect::<HashSet<_>>();
     let imported = cores
         .iter()
         .map(|core| {
@@ -70,6 +74,18 @@ pub(crate) fn qualify_application_nominal_types(cores: &mut [CoreModule]) {
                             }
                         }
                     }
+                }
+            }
+            // Fully qualified references may use a module's default nominal
+            // without an import. Preserve an exact declaration if a parent
+            // module owns that same qualified name.
+            for (provider, declarations) in &providers {
+                let primary = provider.rsplit('.').next().expect("module name");
+                if declarations.contains(primary) && !declared.contains(provider) {
+                    candidates
+                        .entry(provider.clone())
+                        .or_default()
+                        .insert(format!("{provider}.{primary}"));
                 }
             }
             candidates

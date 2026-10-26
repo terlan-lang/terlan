@@ -47,13 +47,19 @@ export function renderProperty(property, definitions, adoptedAtoms, context) {
     types.add('SerializedValue');helpers.add('serialize');
     declarations.push(`pub opaque type ${type} = SerializedValue.`);
     imports.add('import std.core.Option.{None as Absent, Some}.');imports.add('import type std.core.Option.');
-    for(const atom of constrained){
-      const parameter=sharedType(atom), conditions=[];
+    const byPrimitive=Map.groupBy(constrained,atom=>atom.name);
+    for(const alternatives of byPrimitive.values()){
+      const atom=alternatives[0],parameter=sharedType(atom);
       const amount=primitives.has(atom.name)?`std.css.Values.${atom.name}_amount(value)`:'value';
       if(primitives.has(atom.name))imports.add('import std.css.Values.');
-      if(typeof atom.range?.min==='number')conditions.push(`${amount} >= ${atom.range.min}`);
-      if(typeof atom.range?.max==='number')conditions.push(`${amount} <= ${atom.range.max}`);
-      functions.push(`${comment(`Checks the ${property.name} ${atom.name} range. Returns Some when ${conditions.map(c=>c.replaceAll(amount,'amount')).join(' and ')}; otherwise returns None.`)}\npub ${prefix+atom.name}(value: ${parameter}): Option[${type}] ->\n    case ${conditions.join(' and ')} {\n        true -> Some(${type}(serialize(${JSON.stringify(property.name)}, ${serialize(atom)})));\n        false -> Absent\n    }.`);
+      const conditions=alternatives.map(alternative=>{
+        const bounds=[];
+        if(typeof alternative.range?.min==='number')bounds.push(`${amount} >= ${alternative.range.min}`);
+        if(typeof alternative.range?.max==='number')bounds.push(`${amount} <= ${alternative.range.max}`);
+        return bounds.join(' and ');
+      });
+      const condition=conditions.length===1?conditions[0]:conditions.map(value=>`(${value})`).join(' or ');
+      functions.push(`${comment(`Checks the ${property.name} ${atom.name} range. Returns Some when ${condition.replaceAll(amount,'amount')}; otherwise returns None.`)}\npub ${prefix+atom.name}(value: ${parameter}): Option[${type}] ->\n    case ${condition} {\n        true -> Some(${type}(serialize(${JSON.stringify(property.name)}, ${serialize(atom)})));\n        false -> Absent\n    }.`);
     }
     return true;
   };

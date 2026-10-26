@@ -1,11 +1,15 @@
 module std.http.RequestTest.
 
-import std.core.Option.{Some}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.test.Test.{assert_equal}.
 
 import type std.core.{Error, Option, Result}.
 import type std.data.Json.
 import type std.http.Cookies.Jar.
 import type std.http.Request.
+
+type InvalidBody = Atom["http.body_json"].
 
 pub accepts_request(value: Request): Request ->
     value.
@@ -54,3 +58,34 @@ pub request_accessors_report_expected_values(request: Request): Bool ->
         and sample_header(request) == Some("application/json")
         and sample_cookie(request) == Some("test-session")
         and sample_body_text(request) == "{\"item\":42}".
+
+@compiler.native {std.test.fixture.http_request}
+request_fixture(cookie_header: String): Request.
+
+@test
+pub request_metadata_accessors_read_fixture_values(): Bool ->
+    let request = accepts_request(request_fixture("session=abc123"));
+    assert_equal("GET", sample_method(request))
+        and assert_equal("/", sample_path(request))
+        and assert_equal(None, sample_param(request))
+        and assert_equal(None, sample_query(request))
+        and assert_equal("", sample_query_string(request)).
+
+@test
+pub request_headers_and_cookies_read_fixture_values(): Bool ->
+    let request = request_fixture("session=abc123");
+    assert_equal(Some("session=abc123"), request.header("COOKIE"))
+        and assert_equal(None, sample_header(request))
+        and assert_equal(Some("abc123"), sample_cookie(request))
+        and assert_equal(Some("abc123"), sample_cookies(request).get("session"))
+        and assert_equal(None, sample_cookies(request).get("missing")).
+
+@test
+pub empty_request_body_has_no_file_and_rejects_json(): Bool ->
+    let request = request_fixture("");
+    assert_equal("", sample_body_text(request))
+        and assert_equal("", sample_body_file_path(request))
+        and case sample_body_json(request) {
+    Err(reason) -> reason.code == InvalidBody and reason.message != "";
+    Ok(_) -> false
+}.

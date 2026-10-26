@@ -473,11 +473,7 @@ runtime_passed(row: SmokeRow, output: Output): Bool ->
         row.runtime_kind == "terlan-check-reject" -> output.status != 0
             and String.contains(combined, "target inference error")
             and String.contains(combined, "typed target evidence for `vm`");
-        row.runtime_kind == "rust-test" -> rust_oracle_output_holds(
-            output.status,
-            output.stdout,
-            rust_coverage_requested(),
-        );
+        row.runtime_kind == "rust-test" -> rust_oracle_output_holds(output.status, output.stdout, rust_coverage_requested());
         true -> output.status == 0 and String.contains(output.stdout, "test result: ok.")
     }.
 

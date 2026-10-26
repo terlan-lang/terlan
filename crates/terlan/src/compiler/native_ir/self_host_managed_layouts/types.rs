@@ -4,7 +4,7 @@ pub(super) fn inventory_tuple_layouts(
     ty: &AbiType,
     module_name: &str,
     layouts: &mut BTreeMap<String, Arc<[u8]>>,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     for argument in &ty.arguments {
         inventory_tuple_layouts(argument, module_name, layouts)?;
     }
@@ -26,9 +26,9 @@ pub(super) fn inventory_tuple_layouts(
     );
     if let Some(previous) = layouts.insert(canonical.clone(), encoded.clone()) {
         if previous.as_ref() != encoded.as_ref() {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.conflicting_tuple_layout]: semantic type {canonical:?} has multiple physical layouts"
-            ));
+            )).into());
         }
     }
     Ok(())
@@ -37,7 +37,7 @@ pub(super) fn inventory_tuple_layouts(
 /// Inventories every concrete collection schema reachable from ABI type positions.
 pub(in crate::compiler::native_ir) fn encoded_collection_layouts(
     envelopes: &[BackendEnvelope],
-) -> Result<Vec<Arc<[u8]>>, String> {
+) -> Result<Vec<Arc<[u8]>>, NativeIrError> {
     let mut layouts = BTreeMap::<String, Arc<[u8]>>::new();
     for envelope in envelopes {
         let module_name = envelope.module.name.as_str();
@@ -82,12 +82,12 @@ pub(in crate::compiler::native_ir) fn encoded_collection_layouts(
 /// be assigned safely.
 pub(in crate::compiler::native_ir) fn native_type(
     type_name: &str,
-) -> Result<Option<NativeType>, String> {
+) -> Result<Option<NativeType>, NativeIrError> {
     let ty = parse_type(type_name)?;
     native_type_of(&ty)
 }
 
-pub(super) fn native_type_of(ty: &AbiType) -> Result<Option<NativeType>, String> {
+pub(super) fn native_type_of(ty: &AbiType) -> Result<Option<NativeType>, NativeIrError> {
     if ty.constructor == "$Tuple" {
         return Ok(Some(NativeType::ManagedRef(
             SemanticTypeId::from_canonical(&type_contract(ty, "")?)
@@ -120,7 +120,7 @@ pub(super) fn native_type_of(ty: &AbiType) -> Result<Option<NativeType>, String>
         ("Message", [payload]) => native_type_of(payload),
         _ if !context_free_closed(ty) => Ok(None),
         _ => Ok(Some(NativeType::ManagedRef(
-            SemanticTypeId::from_canonical(&type_contract(&ty, "")?)
+            SemanticTypeId::from_canonical(&type_contract(ty, "")?)
                 .map_err(|error| error.to_string())?,
         ))),
     }
@@ -162,12 +162,12 @@ pub(super) fn lower_field(
     field: &IrStructField,
     module_name: &str,
     layout_name: &str,
-) -> Result<(String, ManagedFieldType), String> {
+) -> Result<(String, ManagedFieldType), NativeIrError> {
     let IrStructField::Typed { name, type_name } = field else {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.legacy_struct_layout]: layout {layout_name:?} field {:?} has no ABI-1.2 type",
             field.name()
-        ));
+        )).into());
     };
     Ok((
         name.clone(),
@@ -182,11 +182,11 @@ pub(super) fn lower_field(
 pub(super) fn managed_field_type(
     type_name: &str,
     module_name: &str,
-) -> Result<ManagedFieldType, String> {
+) -> Result<ManagedFieldType, NativeIrError> {
     managed_field_type_of(&parse_type(type_name)?, module_name)
 }
 
-pub(super) fn parse_type(source: &str) -> Result<AbiType, String> {
+pub(super) fn parse_type(source: &str) -> Result<AbiType, NativeIrError> {
     if source.len() > 4_096 {
         return Err("type contract exceeds the 4096-byte ABI bound".into());
     }
@@ -220,7 +220,7 @@ pub(super) fn abi_type_source(value: &AbiType) -> String {
     )
 }
 
-pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, String> {
+pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, NativeIrError> {
     if depth >= 64 {
         return Err("type contract exceeds the 64-level nesting bound".into());
     }
@@ -249,10 +249,10 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Strin
                 arguments: Vec::new(),
             });
         }
-        return Err(format!("unsupported type contract {source:?}"));
+        return Err((format!("unsupported type contract {source:?}")).into());
     };
     if !source.ends_with(']') || !is_nominal_identity(source[..open].trim()) {
-        return Err(format!("malformed type application {source:?}"));
+        return Err((format!("malformed type application {source:?}")).into());
     }
     let constructor = source[..open].trim();
     let arguments = split_type_arguments(&source[open + 1..source.len() - 1])?
@@ -274,7 +274,7 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Strin
         })
         .collect::<Result<Vec<_>, _>>()?;
     if arguments.is_empty() || arguments.len() > 256 {
-        return Err(format!("invalid type application arity in {source:?}"));
+        return Err((format!("invalid type application arity in {source:?}")).into());
     }
     Ok(AbiType {
         constructor: constructor.into(),
@@ -282,7 +282,7 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Strin
     })
 }
 
-pub(super) fn split_type_arguments(source: &str) -> Result<Vec<&str>, String> {
+pub(super) fn split_type_arguments(source: &str) -> Result<Vec<&str>, NativeIrError> {
     let mut brackets = 0_usize;
     let mut parentheses = 0_usize;
     let mut braces = 0_usize;
@@ -328,7 +328,7 @@ pub(super) fn split_type_arguments(source: &str) -> Result<Vec<&str>, String> {
 pub(super) fn managed_field_type_of(
     ty: &AbiType,
     module_name: &str,
-) -> Result<ManagedFieldType, String> {
+) -> Result<ManagedFieldType, NativeIrError> {
     let short = ty.constructor.rsplit('.').next().unwrap_or(&ty.constructor);
     if ty.arguments.is_empty() {
         return Ok(match short {
@@ -341,10 +341,11 @@ pub(super) fn managed_field_type_of(
             "Bytes" => reference("std.binary.Bytes")?,
             "Binary" | "BitString" => reference("std.binary.Binary")?,
             "Dynamic" | "Term" => {
-                return Err(format!(
+                return Err((format!(
                     "open type {:?} has no closed managed layout",
                     ty.constructor
-                ));
+                ))
+                .into());
             }
             _ => reference(&type_contract(ty, module_name)?)?,
         });
@@ -358,7 +359,7 @@ pub(super) fn managed_field_type_of(
     }
 }
 
-pub(super) fn type_contract(ty: &AbiType, module_name: &str) -> Result<String, String> {
+pub(super) fn type_contract(ty: &AbiType, module_name: &str) -> Result<String, NativeIrError> {
     if ty.constructor == "$Tuple" {
         return Ok(format!(
             "Tuple({})",
@@ -407,7 +408,7 @@ pub(super) fn inventory_collections(
     ty: &AbiType,
     module_name: &str,
     layouts: &mut BTreeMap<String, Arc<[u8]>>,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     for argument in &ty.arguments {
         inventory_collections(argument, module_name, layouts)?;
     }
@@ -427,10 +428,11 @@ pub(super) fn inventory_collections(
             managed_field_type_of(element, module_name)?,
         )),
         ("List" | "Map" | "Set", _) => {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.collection_arity]: invalid collection type {:?}",
                 ty.constructor
-            ));
+            ))
+            .into());
         }
         _ => None,
     };
@@ -446,24 +448,24 @@ pub(super) fn inventory_collections(
     );
     if let Some(previous) = layouts.insert(canonical.clone(), encoded.clone()) {
         if previous.as_ref() != encoded.as_ref() {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.conflicting_collection_layout]: semantic type {canonical:?} has multiple physical layouts"
-            ));
+            )).into());
         }
     }
     Ok(())
 }
 
-pub(super) fn reference(canonical: &str) -> Result<ManagedFieldType, String> {
+pub(super) fn reference(canonical: &str) -> Result<ManagedFieldType, NativeIrError> {
     SemanticTypeId::from_canonical(canonical)
         .map(ManagedFieldType::Reference)
-        .map_err(|error| error.to_string())
+        .map_err(|error| NativeIrError::from(error.to_string()))
 }
 
-pub(super) fn nominal_contract(identity: &str, module_name: &str) -> Result<String, String> {
+pub(super) fn nominal_contract(identity: &str, module_name: &str) -> Result<String, NativeIrError> {
     let identity = identity.trim();
     if !is_nominal_identity(identity) {
-        return Err(format!("invalid nominal type identity {identity:?}"));
+        return Err((format!("invalid nominal type identity {identity:?}")).into());
     }
     let qualified = if identity.contains('.') || module_name.is_empty() {
         identity.to_owned()

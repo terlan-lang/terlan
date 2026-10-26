@@ -14,39 +14,73 @@ import type std.core.{Error, Result}.
  * Registry-owned fields needed to begin one durable publication attempt.
  */
 pub struct PublishRequestProjection {
-    /** Identifier of the publisher key authorizing the publication. */
+    /**
+     * Identifier of the publisher key authorizing the publication.
+     */
     publisher_key_id: String,
-    /** Client-supplied identifier used to make publication retries idempotent. */
+    /**
+     * Client-supplied identifier used to make publication retries idempotent.
+     */
     request_id: String,
-    /** Fully qualified package name. */
+    /**
+     * Fully qualified package name.
+     */
     package_name: String,
-    /** Package version. */
+    /**
+     * Package version.
+     */
     version: String,
-    /** URL of the package source repository. */
+    /**
+     * URL of the package source repository.
+     */
     repository_url: String,
-    /** Human-readable package description. */
+    /**
+     * Human-readable package description.
+     */
     description: String,
-    /** SPDX license expression for the package. */
+    /**
+     * SPDX license expression for the package.
+     */
     license_expression: String,
-    /** SHA-256 digest of the package archive. */
+    /**
+     * SHA-256 digest of the package archive.
+     */
     archive_sha256: String,
-    /** Size of the package archive in bytes. */
+    /**
+     * Size of the package archive in bytes.
+     */
     archive_bytes: Int,
-    /** SHA-256 digest of the documentation object. */
+    /**
+     * SHA-256 digest of the documentation object.
+     */
     documentation_sha256: String,
-    /** Size of the documentation object in bytes. */
+    /**
+     * Size of the documentation object in bytes.
+     */
     documentation_bytes: Int,
-    /** Terlan compiler version used to build the package. */
+    /**
+     * Terlan compiler version used to build the package.
+     */
     built_with: String,
-    /** Terlan compiler version requirement declared by the package. */
+    /**
+     * Terlan compiler version requirement declared by the package.
+     */
     requires_terlan: String,
-    /** Kind of immutable source identity recorded for the package. */
+    /**
+     * Kind of immutable source identity recorded for the package.
+     */
     source_identity_kind: String,
-    /** Immutable source revision or content identity. */
+    /**
+     * Immutable source revision or content identity.
+     */
     source_identity: String,
-    /** Verification status of the recorded source identity. */
+    /**
+     * Verification status of the recorded source identity.
+     */
     source_identity_verification: String,
-    /** SHA-256 digest of the package provenance object. */
+    /**
+     * SHA-256 digest of the package provenance object.
+     */
     provenance_sha256: String,
 }.
 
@@ -54,7 +88,9 @@ pub struct PublishRequestProjection {
  * Stable failure returned for malformed or inadmissible signed metadata.
  */
 pub struct RegistryProtocolError includes Error {
-    /** JSON column for syntax failures, or zero for policy failures. */
+    /**
+     * JSON column for syntax failures, or zero for policy failures.
+     */
     offset: Int,
 }.
 

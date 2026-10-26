@@ -7,7 +7,7 @@ pub(super) fn region_has_continuation(region: &IrRegion) -> bool {
                 || instruction
                     .try_region
                     .as_ref()
-                    .is_some_and(|nested| try_region_has_continuation(nested))
+                    .is_some_and(try_region_has_continuation)
         })
     })
 }
@@ -81,16 +81,26 @@ pub(super) fn region_values(
     Ok(values)
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct RegionLoweringContext<'a> {
+    module_name: &'a str,
+    outer: &'a ValueCatalog,
+    functions: &'a FunctionCatalog,
+}
+
 pub(super) fn lower_region(
     region: &IrRegion,
     slots: &[usize],
     expected_type: NativeType,
-    module_name: &str,
-    outer: &ValueCatalog,
-    functions: &FunctionCatalog,
+    context: &RegionLoweringContext<'_>,
     atoms: &mut Vec<String>,
     expansions: &mut usize,
 ) -> Result<NativeExpr, String> {
+    let RegionLoweringContext {
+        module_name,
+        outer,
+        functions,
+    } = *context;
     let declared_type = native_type(&region.type_name)?;
     if declared_type != expected_type {
         return Err(adapter_error(
@@ -106,12 +116,14 @@ pub(super) fn lower_region(
     lower_block_path(
         "entry",
         None,
-        &region.blocks,
-        module_name,
         region_values(region, outer, slots)?,
-        functions,
-        actor_sites,
-        expected_type,
+        &BlockLoweringContext {
+            blocks: &region.blocks,
+            module_name,
+            functions,
+            actor_sites,
+            return_type: expected_type,
+        },
         atoms,
         &HashSet::new(),
         expansions,
@@ -194,9 +206,11 @@ pub(super) fn try_region_expression(
         &regions.protected,
         &[],
         protected_type,
-        module_name,
-        values,
-        functions,
+        &RegionLoweringContext {
+            module_name,
+            outer: values,
+            functions,
+        },
         atoms,
         &mut expansions,
     )?;
@@ -204,9 +218,11 @@ pub(super) fn try_region_expression(
         &regions.success,
         &[value_slot],
         result_type,
-        module_name,
-        values,
-        functions,
+        &RegionLoweringContext {
+            module_name,
+            outer: values,
+            functions,
+        },
         atoms,
         &mut expansions,
     )?;
@@ -214,9 +230,11 @@ pub(super) fn try_region_expression(
         &regions.failure,
         &[value_slot],
         result_type,
-        module_name,
-        values,
-        functions,
+        &RegionLoweringContext {
+            module_name,
+            outer: values,
+            functions,
+        },
         atoms,
         &mut expansions,
     )?;
@@ -228,9 +246,11 @@ pub(super) fn try_region_expression(
                 region,
                 &[],
                 NativeType::Unit,
-                module_name,
-                values,
-                functions,
+                &RegionLoweringContext {
+                    module_name,
+                    outer: values,
+                    functions,
+                },
                 atoms,
                 &mut expansions,
             )

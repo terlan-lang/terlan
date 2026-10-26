@@ -59,13 +59,8 @@ fn substitute_expr(
                 outcome.direct_use = true;
                 return expr.clone();
             };
-            let CoreExpr::Int(index) = index.as_ref() else {
-                outcome.direct_use = true;
-                return expr.clone();
-            };
-            let Some(alias) = usize::try_from(*index)
-                .ok()
-                .and_then(|index| aliases.get(index))
+            let Some(alias) = index::FixedIndex::prove(index, aliases.len())
+                .and_then(|proof| proof.select(aliases))
             else {
                 outcome.direct_use = true;
                 return expr.clone();
@@ -81,13 +76,12 @@ fn substitute_expr(
                 outcome.direct_use = true;
                 return expr.clone();
             };
-            let [_, CoreExpr::Int(index)] = args.as_slice() else {
+            let [_, index] = args.as_slice() else {
                 outcome.direct_use = true;
                 return expr.clone();
             };
-            let Some(alias) = usize::try_from(*index)
-                .ok()
-                .and_then(|index| aliases.get(index))
+            let Some(alias) = index::FixedIndex::prove(index, aliases.len())
+                .and_then(|proof| proof.select(aliases))
             else {
                 outcome.direct_use = true;
                 return expr.clone();

@@ -6,16 +6,19 @@ pub(in crate::compiler::native_ir) fn map_field_expr(
     source: NativeExpr,
     source_type: NativeType,
     result_type: NativeType,
-) -> Result<(NativeExpr, NativeType), String> {
+) -> Result<(NativeExpr, NativeType), NativeIrError> {
     let [source_name, field_name] = instruction.operands.as_slice() else {
         return Err(
-            "error[self_host.native.map_field]: get-map-elements requires source and field"
-                .to_string(),
+            ("error[self_host.native.map_field]: get-map-elements requires source and field"
+                .to_string())
+            .into(),
         );
     };
     if source_name.is_empty() || field_name.is_empty() {
         return Err(
-            "error[self_host.native.map_field]: map source and field must not be empty".to_string(),
+            ("error[self_host.native.map_field]: map source and field must not be empty"
+                .to_string())
+            .into(),
         );
     }
     let declared_source = instruction
@@ -27,30 +30,30 @@ pub(in crate::compiler::native_ir) fn map_field_expr(
         })?;
     let map = parse_type(declared_source)?;
     if !is_map_type(&map) {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.map_field]: structural field source `{declared_source}` is not Map[String, T]"
-        ));
+        )).into());
     }
     let key = &map.arguments[0];
     if !(key.constructor == "String" || key.constructor.ends_with(".String")) {
         return Err(
-            "error[self_host.native.map_field]: field projection requires a String-keyed Map"
-                .to_string(),
+            ("error[self_host.native.map_field]: field projection requires a String-keyed Map"
+                .to_string())
+            .into(),
         );
     }
     if native_type(declared_source)? != Some(source_type) {
-        return Err(
-            "error[self_host.native.map_field]: map type evidence disagrees with its SSA producer"
-                .to_string(),
-        );
+        return Err(("error[self_host.native.map_field]: map type evidence disagrees with its SSA producer"
+                .to_string()).into());
     }
     let value_type = native_type_of(&map.arguments[1])?.ok_or_else(|| {
         "error[self_host.native.map_field]: map value type is not native".to_string()
     })?;
     if value_type != result_type {
         return Err(
-            "error[self_host.native.map_field]: map field result disagrees with its value type"
-                .to_string(),
+            ("error[self_host.native.map_field]: map field result disagrees with its value type"
+                .to_string())
+            .into(),
         );
     }
     let semantic = SemanticTypeId::from_canonical(&type_contract(&map, "")?)
@@ -81,7 +84,7 @@ pub(in crate::compiler::native_ir) fn aggregate_field_expr(
     source_type: NativeType,
     result_type: NativeType,
     field: usize,
-) -> Result<(NativeExpr, NativeType), String> {
+) -> Result<(NativeExpr, NativeType), NativeIrError> {
     let declared_source = instruction
         .operand_types
         .first()
@@ -92,10 +95,8 @@ pub(in crate::compiler::native_ir) fn aggregate_field_expr(
         })?;
     let aggregate = parse_type(declared_source)?;
     if native_type(declared_source)? != Some(source_type) {
-        return Err(
-            "error[self_host.native.struct_field]: struct type evidence disagrees with its SSA producer"
-                .to_string(),
-        );
+        return Err(("error[self_host.native.struct_field]: struct type evidence disagrees with its SSA producer"
+                .to_string()).into());
     }
     let semantic = SemanticTypeId::from_canonical(&type_contract(&aggregate, "")?)
         .map_err(|error| format!("error[self_host.native.struct_field_abi]: {error}"))?;
@@ -117,14 +118,14 @@ pub(in crate::compiler::native_ir) fn aggregate_field_expr(
 /// Lowers one immutable named-struct field replacement after catalog resolution.
 pub(in crate::compiler::native_ir) fn aggregate_replace_field_expr(
     instruction: &IrInstruction,
-    source: NativeExpr,
-    source_type: NativeType,
-    replacement: NativeExpr,
-    replacement_type: NativeType,
+    source: (NativeExpr, NativeType),
+    replacement: (NativeExpr, NativeType),
     result_type: NativeType,
     field: usize,
     expected_field_type: &str,
-) -> Result<(NativeExpr, NativeType), String> {
+) -> Result<(NativeExpr, NativeType), NativeIrError> {
+    let (source, source_type) = source;
+    let (replacement, replacement_type) = replacement;
     let declared_source = instruction
         .operand_types
         .first()
@@ -135,10 +136,8 @@ pub(in crate::compiler::native_ir) fn aggregate_replace_field_expr(
         })?;
     let aggregate = parse_type(declared_source)?;
     if native_type(declared_source)? != Some(source_type) || result_type != source_type {
-        return Err(
-            "error[self_host.native.struct_update]: struct source, result, and ABI type evidence disagree"
-                .to_string(),
-        );
+        return Err(("error[self_host.native.struct_update]: struct source, result, and ABI type evidence disagree"
+                .to_string()).into());
     }
     let declared_replacement = instruction
         .operand_types
@@ -151,10 +150,8 @@ pub(in crate::compiler::native_ir) fn aggregate_replace_field_expr(
     if native_type(declared_replacement)? != Some(replacement_type)
         || native_type(expected_field_type)? != Some(replacement_type)
     {
-        return Err(
-            "error[self_host.native.struct_update]: replacement type disagrees with the struct field"
-                .to_string(),
-        );
+        return Err(("error[self_host.native.struct_update]: replacement type disagrees with the struct field"
+                .to_string()).into());
     }
     let semantic = SemanticTypeId::from_canonical(&type_contract(&aggregate, "")?)
         .map_err(|error| format!("error[self_host.native.struct_update_abi]: {error}"))?;
@@ -183,22 +180,22 @@ pub(in crate::compiler::native_ir) fn collection_expr(
     opcode: &str,
     type_name: &str,
     args: Vec<NativeExpr>,
-) -> Result<Option<NativeExpr>, String> {
+) -> Result<Option<NativeExpr>, NativeIrError> {
     if !matches!(opcode, "put-list" | "put-list-cons") {
         return Ok(None);
     }
     let ty = parse_type(type_name)?;
     let short = ty.constructor.rsplit('.').next().unwrap_or(&ty.constructor);
     if short != "List" || ty.arguments.len() != 1 {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.list_type]: {opcode} result must be a concrete List[T], found {type_name:?}"
-        ));
+        )).into());
     }
     if opcode == "put-list-cons" && args.len() != 2 {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.list_cons_arity]: put-list-cons expects head and tail, found {} operand(s)",
             args.len()
-        ));
+        )).into());
     }
     let semantic = SemanticTypeId::from_canonical(&type_contract(&ty, "")?)
         .map_err(|error| format!("error[self_host.native.list_semantic]: {error}"))?;
@@ -218,21 +215,21 @@ pub(in crate::compiler::native_ir) fn aggregate_expr(
     opcode: &str,
     type_name: &str,
     fields: Vec<NativeExpr>,
-) -> Result<Option<NativeExpr>, String> {
+) -> Result<Option<NativeExpr>, NativeIrError> {
     if !matches!(opcode, "put-tuple" | "put-array") {
         return Ok(None);
     }
     let ty = parse_type(type_name)?;
     if opcode == "put-array" {
         let [length, element] = ty.arguments.as_slice() else {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.array_type]: fixed array result requires size and element type, found {type_name:?}"
-            ));
+            )).into());
         };
         if ty.constructor != "Array" {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.array_type]: put-array result must be Array[N, T], found {type_name:?}"
-            ));
+            )).into());
         }
         let length = length.constructor.parse::<usize>().map_err(|_| {
             format!(
@@ -240,10 +237,10 @@ pub(in crate::compiler::native_ir) fn aggregate_expr(
             )
         })?;
         if length != fields.len() {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.array_arity]: fixed array type has {length} field(s), instruction has {} operand(s)",
                 fields.len()
-            ));
+            )).into());
         }
         let canonical = type_contract(&ty, "")?;
         let descriptor = Arc::new(
@@ -265,16 +262,16 @@ pub(in crate::compiler::native_ir) fn aggregate_expr(
         }));
     }
     if ty.constructor != "$Tuple" {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.tuple_type]: put-tuple result must be a tuple, found {type_name:?}"
-        ));
+        )).into());
     }
     if ty.arguments.len() != fields.len() {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.tuple_arity]: tuple type has {} field(s), instruction has {} operand(s)",
             ty.arguments.len(),
             fields.len()
-        ));
+        )).into());
     }
     let canonical = type_contract(&ty, "")?;
     let descriptor = Arc::new(
@@ -302,7 +299,7 @@ pub(in crate::compiler::native_ir) fn aggregate_expr(
 pub(in crate::compiler::native_ir) fn aggregate_record_expr(
     type_name: &str,
     fields: Vec<(String, String, NativeExpr)>,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let ty = parse_type(type_name)?;
     let canonical = type_contract(&ty, "")?;
     let descriptor = Arc::new(
@@ -316,7 +313,7 @@ pub(in crate::compiler::native_ir) fn aggregate_record_expr(
                         managed_field_type_of(&parse_type(field_type)?, "")?,
                     ))
                 })
-                .collect::<Result<Vec<_>, String>>()?,
+                .collect::<Result<Vec<_>, NativeIrError>>()?,
         )
         .map_err(|error| format!("error[self_host.native.struct_construct_layout]: {error}"))?,
     );
@@ -336,7 +333,7 @@ pub(in crate::compiler::native_ir) fn variant_expr(
     instruction: &IrInstruction,
     fields: Vec<NativeExpr>,
     catalog: &crate::self_host_variant_ir::VariantCatalog,
-) -> Result<NativeExpr, String> {
+) -> Result<NativeExpr, NativeIrError> {
     let constructor = instruction.operands.first().ok_or_else(|| {
         "error[self_host.native.variant_constructor]: put-variant has no constructor identity"
             .to_string()
@@ -353,12 +350,12 @@ pub(in crate::compiler::native_ir) fn variant_expr(
     )
     .map_err(|error| format!("error[self_host.native.variant_layout]: {error}"))?;
     if fields.len() != plan.operand_types.len() {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.variant_arity]: constructor `{}` received {} values for {} payload slots",
             plan.descriptor.constructor,
             fields.len(),
             plan.operand_types.len()
-        ));
+        )).into());
     }
     let descriptor = Arc::new(
         ManagedAggregateDescriptor::constructor(
@@ -389,11 +386,11 @@ pub(in crate::compiler::native_ir) fn variant_expr(
 }
 
 /// Lowers one managed ABI instruction from resolved SSA values and type evidence.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(in crate::compiler::native_ir) fn managed_instruction_expr(
     instruction: &IrInstruction,
     args: Vec<NativeExpr>,
-) -> Result<Option<NativeExpr>, String> {
+) -> Result<Option<NativeExpr>, NativeIrError> {
     managed_instruction_expr_with_variants(instruction, args, None)
 }
 
@@ -402,7 +399,7 @@ pub(in crate::compiler::native_ir) fn managed_instruction_expr_with_variants(
     instruction: &IrInstruction,
     args: Vec<NativeExpr>,
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<Option<NativeExpr>, String> {
+) -> Result<Option<NativeExpr>, NativeIrError> {
     validate_managed_instruction_types(instruction)?;
     if instruction.opcode == "put-variant" {
         let variants = variants.ok_or_else(|| {
@@ -425,10 +422,10 @@ pub(in crate::compiler::native_ir) fn managed_instruction_expr_with_variants(
         return Ok(None);
     }
     if args.len() != 2 || instruction.operands.len() != 2 {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.tuple_projection_arity]: get-tuple-element expects tuple and index, found {} operand(s)",
             instruction.operands.len()
-        ));
+        )).into());
     }
     let source_type = instruction
         .operand_types
@@ -440,9 +437,9 @@ pub(in crate::compiler::native_ir) fn managed_instruction_expr_with_variants(
         })?;
     let source = parse_type(source_type)?;
     if source.constructor != "$Tuple" {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.tuple_projection_source_type]: expected tuple operand, found {source_type:?}"
-        ));
+        )).into());
     }
     let index = instruction.operands[1].parse::<usize>().map_err(|_| {
         format!(
@@ -451,10 +448,11 @@ pub(in crate::compiler::native_ir) fn managed_instruction_expr_with_variants(
         )
     })?;
     if index >= source.arguments.len() {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.tuple_projection_index]: tuple index {index} exceeds arity {}",
             source.arguments.len()
-        ));
+        ))
+        .into());
     }
     let semantic = SemanticTypeId::from_canonical(&type_contract(&source, "")?)
         .map_err(|error| format!("error[self_host.native.tuple_projection_semantic]: {error}"))?;
@@ -479,7 +477,7 @@ pub(in crate::compiler::native_ir) fn managed_instruction_expr_with_variants(
 pub(super) fn declared_operand_type(
     instruction: &IrInstruction,
     index: usize,
-) -> Result<NativeType, String> {
+) -> Result<NativeType, NativeIrError> {
     let type_name = instruction
         .operand_types
         .get(index)
@@ -495,26 +493,26 @@ pub(super) fn declared_operand_type(
             "error[self_host.native.managed_operand_type]: opcode {:?} operand {index} has unsupported type {type_name:?}",
             instruction.opcode
         )
-    })
+    }).map_err(NativeIrError::from)
 }
 
 pub(super) fn require_operand_type(
     instruction: &IrInstruction,
     index: usize,
     expected: NativeType,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     let actual = declared_operand_type(instruction, index)?;
     (actual == expected).then_some(()).ok_or_else(|| {
         format!(
             "error[self_host.native.managed_operand_type]: opcode {:?} operand {index} does not match its aggregate contract",
             instruction.opcode
         )
-    })
+    }).map_err(NativeIrError::from)
 }
 
 pub(super) fn validate_managed_instruction_types(
     instruction: &IrInstruction,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     match instruction.opcode.as_str() {
         "put-list" | "put-list-cons" => {
             let list = parse_type(&instruction.type_name)?;
@@ -561,10 +559,8 @@ pub(super) fn validate_managed_instruction_types(
         "put-array" => {
             let array = parse_type(&instruction.type_name)?;
             let [length, element] = array.arguments.as_slice() else {
-                return Err(
-                    "error[self_host.native.array_type]: fixed array requires size and element type"
-                        .into(),
-                );
+                return Err("error[self_host.native.array_type]: fixed array requires size and element type"
+                        .into());
             };
             if array.constructor != "Array" {
                 return Err(
@@ -624,10 +620,8 @@ pub(super) fn validate_managed_instruction_types(
                     .to_string()
             })?;
             if expected != actual {
-                return Err(
-                    "error[self_host.native.tuple_projection_result_type]: result does not match selected tuple field"
-                        .into(),
-                );
+                return Err("error[self_host.native.tuple_projection_result_type]: result does not match selected tuple field"
+                        .into());
             }
         }
         _ => {}

@@ -10,7 +10,7 @@ fn usage(program: &str) -> String {
     format!("usage: {program} <output.tvm> <core.json> [<core.json> ...]")
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut arguments = env::args();
     let program = arguments
         .next()
@@ -18,7 +18,7 @@ fn run() -> Result<(), String> {
     let output = PathBuf::from(arguments.next().ok_or_else(|| usage(&program))?);
     let inputs = arguments.map(PathBuf::from).collect::<Vec<_>>();
     if inputs.is_empty() {
-        return Err(usage(&program));
+        return Err(usage(&program).into());
     }
     let envelopes = inputs
         .iter()
@@ -34,6 +34,7 @@ fn run() -> Result<(), String> {
             .map_err(|error| format!("failed to create `{}`: {error}", parent.display()))?;
     }
     terlan::self_host_native_backend::publish_application_image(&envelopes, &output)
+        .map_err(Into::into)
 }
 
 fn main() {

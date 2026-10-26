@@ -197,7 +197,7 @@ fn callback_and_response_failures_are_terminal_without_replay() {
     let router = router(endpoint());
     assert!(
         matches!(run(sse_suspendable(&router, "/items/{id:Int}", "/items/42", &host)),
-        Err(error) if error == "invalid response resource")
+        Err(error) if error.to_string() == "invalid response resource")
     );
 }
 

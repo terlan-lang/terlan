@@ -136,7 +136,7 @@ pub(super) fn value_operand(
         .ok_or_else(|| adapter_error("operand", format!("value `{name}` has no producer")))
 }
 
-pub(super) fn one_operand<'a>(instruction: &'a IrInstruction) -> Result<&'a str, String> {
+pub(super) fn one_operand(instruction: &IrInstruction) -> Result<&str, String> {
     match instruction.operands.as_slice() {
         [operand] => Ok(operand),
         _ => Err(adapter_error(
@@ -149,9 +149,7 @@ pub(super) fn one_operand<'a>(instruction: &'a IrInstruction) -> Result<&'a str,
     }
 }
 
-pub(super) fn two_operands<'a>(
-    instruction: &'a IrInstruction,
-) -> Result<(&'a str, &'a str), String> {
+pub(super) fn two_operands(instruction: &IrInstruction) -> Result<(&str, &str), String> {
     match instruction.operands.as_slice() {
         [left, right] => Ok((left, right)),
         _ => Err(adapter_error(

@@ -62,7 +62,7 @@ impl AsyncHost for AsyncScript {
     }
 }
 
-fn run(router: &Router<V>, host: &AsyncScript) -> Result<AdmittedResponse, String> {
+fn run(router: &Router<V>, host: &AsyncScript) -> Result<AdmittedResponse, WebRouteError> {
     // Every invocation suspends once; bounded manual polling detects replay loops.
     let future = execute_suspendable(router, RouteMethod::Get, "/item/{id:Int}", "/item/42", host);
     let mut future = std::pin::pin!(future);

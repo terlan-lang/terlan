@@ -62,7 +62,12 @@ pub(super) fn lower_equality_operand(
     }
     if matches!(
         expr,
-        CoreExpr::Tuple(_) | CoreExpr::List(_) | CoreExpr::Map(_)
+        CoreExpr::Tuple(_)
+            | CoreExpr::List(_)
+            | CoreExpr::Map(_)
+            | CoreExpr::Case { .. }
+            | CoreExpr::If { .. }
+            | CoreExpr::Try { .. }
     ) {
         if let Some(expected_core) = result_core_type_for_native(expected, constructors) {
             return super::super::collection_values::lower_typed_value(

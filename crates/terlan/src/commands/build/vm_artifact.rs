@@ -1,4 +1,4 @@
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod application_closure;
 mod artifact_cache_retention;
 #[cfg(test)]
@@ -39,13 +39,13 @@ mod parallel_compile;
 #[path = "vm_artifact/parallel_compile_test.rs"]
 #[cfg(test)]
 mod parallel_compile_test;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod source_exports;
 mod std_source;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin")))]
 pub(crate) use orchestration::compile_serve_application;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use orchestration::compile_source_application;
 pub(super) use orchestration::{
     build_one_vm_artifact, build_vm_application_artifacts,

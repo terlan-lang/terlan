@@ -4,27 +4,25 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.css.Stylesheet.{rule}.
 import std.css.Values.{percent, px, rgb, root_em}.
+import std.css.keywords.Alternate.
+import std.css.keywords.Auto.{Auto as MarginAuto}.
+import std.css.keywords.None.{None as DisplayNone, None as ListNone}.
 import std.css.keywords.Solid.{Solid as BorderSolid}.
 import std.css.properties.Height.{length as height_length}.
-import std.css.keywords.Auto.{Auto as MarginAuto}.
 import std.css.properties.Width.{length as width_length}.
 import std.css.properties.{Border, BorderRadius, Margin, Padding}.
 
-import type std.core.Result.
+import type std.core.{Option, Result}.
 import type std.css.Stylesheet.{Rule}.
+import type std.css.keywords.Running.
+import type std.css.properties.AnimationDirection.{Property as DirectionProperty}.
 import type std.css.properties.Border.{Property as BorderProperty}.
 import type std.css.properties.BorderRadius.{Property as RadiusProperty}.
 import type std.css.properties.Height.{Property as HeightProperty}.
+import type std.css.properties.ListStyleType.{Property as ListProperty}.
 import type std.css.properties.Margin.{Property as MarginProperty}.
 import type std.css.properties.Padding.{Property as PaddingProperty}.
 import type std.css.properties.Width.{Property as WidthProperty}.
-import type std.css.properties.AnimationDirection.{Property as DirectionProperty}.
-import type std.css.properties.ListStyleType.{Property as ListProperty}.
-import type std.css.properties.AnimationPlayState.{Running}.
-import type std.core.Option.
-import std.css.keywords.None.{None as ListNone}.
-import std.css.keywords.Alternate.{Alternate}.
-import std.css.keywords.None.{None as DisplayNone}.
 
 pub struct Dimensions includes WidthProperty, HeightProperty {
 }.
@@ -58,12 +56,7 @@ pub stylesheet(): Result[List[Rule[Tile]], String] ->
                             list_style_type: ListNone,
                             width: width,
                             height: height,
-                            margin: Margin.quad(
-                                px(-1.0),
-                                percent(25.0),
-                                MarginAuto,
-                                root_em(2.0),
-                            ),
+                            margin: Margin.quad(px(-1.0), percent(25.0), MarginAuto, root_em(2.0)),
                             padding: Padding.pair(vertical, horizontal),
                             border_radius: BorderRadius.triple(first, second, third),
                             border: Border.compose(border_width, BorderSolid, color),

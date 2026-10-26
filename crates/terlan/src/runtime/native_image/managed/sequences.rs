@@ -125,29 +125,39 @@ impl ActorHeap {
         if values.len() < 2 {
             return Err(ManagedMemoryError::InvalidAggregateArity);
         }
-        let mut value_length = 0usize;
-        for value in values {
-            let string_length = self.read_string(*value)?.len();
-            value_length = value_length
-                .checked_add(string_length)
-                .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-        }
-        if value_length >= EXTERNAL_STRING_MIN_BYTES {
-            let mut output = Vec::with_capacity(value_length);
+        let fragments = values
+            .iter()
+            .map(|value| self.read_string(*value))
+            .collect::<Result<Vec<_>, _>>()?;
+        let value_length = fragments.iter().try_fold(0usize, |length, fragment| {
+            length
+                .checked_add(fragment.len())
+                .ok_or(ManagedMemoryError::InvalidSequenceLength)
+        })?;
+        let mut has_external_storage = false;
+        if value_length < EXTERNAL_STRING_MIN_BYTES {
             for value in values {
-                output.extend_from_slice(self.read_string(*value)?.as_bytes());
+                if self.external_string_bytes(*value)?.is_some() {
+                    has_external_storage = true;
+                    break;
+                }
+            }
+        }
+        if value_length >= EXTERNAL_STRING_MIN_BYTES || has_external_storage {
+            let mut output = Vec::with_capacity(value_length);
+            for fragment in fragments {
+                output.extend_from_slice(fragment.as_bytes());
             }
             return self.allocate_shared_string(Bytes::from(output));
         }
         let mut ranges = Vec::with_capacity(values.len());
-        for value in values {
-            let string_length = self.read_string(*value)?.len();
+        for (value, fragment) in values.iter().zip(fragments) {
             let mut range = self.payload_range(*value)?;
             range.start = range
                 .start
                 .checked_add(MANAGED_SEQUENCE_HEADER_BYTES)
                 .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-            if range.len() != string_length {
+            if range.len() != fragment.len() {
                 return Err(ManagedMemoryError::InvalidSequenceLength);
             }
             ranges.push(range);
@@ -167,7 +177,8 @@ impl ActorHeap {
             .len()
             .checked_add(right_length)
             .ok_or(ManagedMemoryError::InvalidSequenceLength)?;
-        if value_length >= EXTERNAL_STRING_MIN_BYTES {
+        if value_length >= EXTERNAL_STRING_MIN_BYTES || self.external_string_bytes(right)?.is_some()
+        {
             let mut output = Vec::with_capacity(value_length);
             output.extend_from_slice(literal.as_bytes());
             output.extend_from_slice(self.read_string(right)?.as_bytes());

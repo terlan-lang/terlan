@@ -1,23 +1,13 @@
 use super::*;
 
 /// Lowers one recursively validated pattern into a managed match environment.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(in crate::compiler::native_ir) fn prepare_pattern_expr(
     instruction: &IrInstruction,
     subject: NativeExpr,
     subject_type: NativeType,
-) -> Result<(NativeExpr, NativeType), String> {
+) -> Result<(NativeExpr, NativeType), NativeIrError> {
     prepare_pattern_expr_with_catalogs(instruction, subject, subject_type, None, None)
-}
-
-#[allow(dead_code)]
-pub(in crate::compiler::native_ir) fn prepare_pattern_expr_with_variants(
-    instruction: &IrInstruction,
-    subject: NativeExpr,
-    subject_type: NativeType,
-    variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<(NativeExpr, NativeType), String> {
-    prepare_pattern_expr_with_catalogs(instruction, subject, subject_type, variants, None)
 }
 
 pub(in crate::compiler::native_ir) fn prepare_pattern_expr_with_catalogs(
@@ -26,7 +16,7 @@ pub(in crate::compiler::native_ir) fn prepare_pattern_expr_with_catalogs(
     subject_type: NativeType,
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
     structs: Option<&StructPatternCatalog>,
-) -> Result<(NativeExpr, NativeType), String> {
+) -> Result<(NativeExpr, NativeType), NativeIrError> {
     let catalogs = PatternCatalogs { variants, structs };
     let (_subject_name, pattern) =
         super::super::self_host_pattern_ir::decode_prepare_pattern(instruction)?;
@@ -41,10 +31,8 @@ pub(in crate::compiler::native_ir) fn prepare_pattern_expr_with_catalogs(
     let source = parse_type(declared_source)?;
     validate_pattern_shape_with_catalogs(&pattern, &source, declared_source, catalogs)?;
     if native_type(declared_source)? != Some(subject_type) {
-        return Err(
-            "error[self_host.native.pattern_source_type]: pattern type evidence disagrees with its SSA producer"
-                .into(),
-        );
+        return Err("error[self_host.native.pattern_source_type]: pattern type evidence disagrees with its SSA producer"
+                .into());
     }
     let matched = pattern_predicate_with_catalogs(
         &pattern,
@@ -104,29 +92,13 @@ pub(in crate::compiler::native_ir) fn prepare_pattern_expr_with_catalogs(
 }
 
 /// Projects match status or the root binding from a managed pattern environment.
-#[allow(dead_code)]
+#[cfg(test)]
 pub(in crate::compiler::native_ir) fn pattern_environment_expr(
     instruction: &IrInstruction,
     environment: NativeExpr,
     environment_type: NativeType,
-) -> Result<Option<(NativeExpr, NativeType)>, String> {
+) -> Result<Option<(NativeExpr, NativeType)>, NativeIrError> {
     pattern_environment_expr_with_catalogs(instruction, environment, environment_type, None, None)
-}
-
-#[allow(dead_code)]
-pub(in crate::compiler::native_ir) fn pattern_environment_expr_with_variants(
-    instruction: &IrInstruction,
-    environment: NativeExpr,
-    environment_type: NativeType,
-    variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<Option<(NativeExpr, NativeType)>, String> {
-    pattern_environment_expr_with_catalogs(
-        instruction,
-        environment,
-        environment_type,
-        variants,
-        None,
-    )
 }
 
 pub(in crate::compiler::native_ir) fn pattern_environment_expr_with_catalogs(
@@ -135,7 +107,7 @@ pub(in crate::compiler::native_ir) fn pattern_environment_expr_with_catalogs(
     environment_type: NativeType,
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
     structs: Option<&StructPatternCatalog>,
-) -> Result<Option<(NativeExpr, NativeType)>, String> {
+) -> Result<Option<(NativeExpr, NativeType)>, NativeIrError> {
     let catalogs = PatternCatalogs { variants, structs };
     if !matches!(
         instruction.opcode.as_str(),
@@ -174,10 +146,8 @@ pub(in crate::compiler::native_ir) fn pattern_environment_expr_with_catalogs(
                 .to_string()
         })?;
         if native_type(&instruction.type_name)? != Some(result_type) {
-            return Err(
-                "error[self_host.native.pattern_binding]: binding result type disagrees with pattern metadata"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_binding]: binding result type disagrees with pattern metadata"
+                    .to_string()).into());
         }
         let encoded = if source_type.is_managed_reference() {
             encode_aggregate_field_operation(semantic, 1)

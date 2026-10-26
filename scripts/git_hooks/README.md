@@ -104,6 +104,17 @@ summary generation batches the independent CSS property modules separately.
 | GitHub workflows/actions | Pinned actionlint, as in CI; requires Go |
 | Shell scripts/hooks | Bash syntax checks |
 
+For Terlan files, Git plumbing compares the staged bytes with the staged
+compiler's formatting of the same file at the commit's original base. Exact
+matches still receive formatting and type checks, but do not launch changed-file
+tests or external integration gates for layout-only edits. New files, invalid
+originals, and any other source changes retain their selected tests. This does
+not affect the unconditional complete Playwright matrix or other planned lanes.
+Script entries outside a package's source roots use package-aware builds so
+their imports resolve with the same configuration as normal compilation.
+Run `TERLC=target/debug/terlc bash scripts/git_hooks_formatting_test.sh` to check
+this comparison with the real formatter; the hook runs it with its staged compiler.
+
 The larger Rust fallback can take as long as the local workspace suite. The
 focused suites do not prove all dependency impacts, all editor packages, every
 Terlan consumer, cross-platform behavior, sanitizers, or release

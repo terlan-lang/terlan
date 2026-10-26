@@ -155,11 +155,7 @@ run_command(root_path: String, working: String, values: List[String]): KernelRes
 
 command_result(program: String, output: Output): KernelResult ->
     if {
-        output.status != 0 -> reject(
-            String.concat(
-                ["command failed: ", program, "\n", output.stdout, output.stderr],
-            ),
-        );
+        output.status != 0 -> reject(String.concat(["command failed: ", program, "\n", output.stdout, output.stderr]));
         program == "cargo" and not exact_rust_test_output_holds(output.stdout) -> reject("Rust oracle did not execute exactly one passing, non-ignored test");
         true -> pass(Json.null())
     }.

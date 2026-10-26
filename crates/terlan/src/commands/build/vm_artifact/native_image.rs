@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use crate::runtime::native_boundary::dispatch::capture_tool_command;
 use crate::runtime::native_boundary::dispatch::capture_tool_command_with_launch;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::compiler::native_ir::native_aggregate_projections;
 use crate::compiler::native_ir::{
     emit_native_application_dispatch_object_with_policy,
@@ -24,7 +24,7 @@ use crate::compiler::native_ir::{
     NativeCodegenPolicy, NativeModule, DISPATCH_SYMBOL, IMAGE_ENTRY_SYMBOL,
 };
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::runtime::native_image::aggregate_projection::NativeAggregateProjection;
 use crate::runtime::native_image::{
     descriptor_object_for_native_with_debug, host_tvm_target, inspect_tvm_image, seal_tvm_image,
@@ -50,15 +50,16 @@ pub(super) struct CompiledNativeApplicationImage {
     pub(super) image_name: String,
     pub(super) cache_input_sha256: String,
     pub(super) cached_image_path: PathBuf,
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(super) aggregate_projections: Vec<NativeAggregateProjection>,
 }
 
 /// Live-serve image plus compiler proof metadata that is deliberately not part
 /// of the frozen TVM image descriptor format.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct CompiledServeNativeImage {
     pub(crate) path: PathBuf,
+    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
     pub(crate) aggregate_projections: Vec<NativeAggregateProjection>,
 }
 
@@ -239,7 +240,7 @@ fn publish_self_hosted_native_modules(
             &object_path,
             &descriptor_path,
             &linked_path,
-            &linker_policy,
+            linker_policy,
             NativeCodegenPolicy::Development,
             &input_sha256,
         )
@@ -309,7 +310,7 @@ fn compile_native_application_image_with_identity(
     // order, including synthetic closure and continuation modules. Reordering
     // modules here would invalidate every application-wide direct-call index.
     validate_export_id_uniqueness(&natives)?;
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     let aggregate_projections = if policy == NativeCodegenPolicy::Serve {
         install_native_aggregate_projection_exports(&mut natives)
     } else {
@@ -461,7 +462,7 @@ fn compile_native_application_image_with_identity(
         image_name,
         cache_input_sha256: input_sha256,
         cached_image_path,
-        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         aggregate_projections,
     }))
 }
@@ -638,7 +639,7 @@ pub(crate) use serve_fixture::compile_serve_native_image;
 
 /// Compiles a live-serve image from the complete application closure while
 /// retaining generic aggregate observations for package ingress admission.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn compile_serve_native_application_image_with_metadata(
     web_root: &Path,
     module_stem: &str,
@@ -666,6 +667,7 @@ pub(super) fn compile_serve_native_application_image_with_metadata(
     .map(|image| {
         image.map(|image| CompiledServeNativeImage {
             path: image.cached_image_path,
+            #[cfg(any(test, not(feature = "serve-runtime-bin")))]
             aggregate_projections: image.aggregate_projections,
         })
     })

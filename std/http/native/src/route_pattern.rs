@@ -19,6 +19,13 @@ impl std::fmt::Display for WebRouteError {
 
 impl std::error::Error for WebRouteError {}
 
+impl std::ops::Deref for WebRouteError {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl From<String> for WebRouteError {
     fn from(message: String) -> Self {
         Self(message)

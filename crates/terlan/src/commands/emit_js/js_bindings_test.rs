@@ -189,3 +189,42 @@ fn property_setters_preserve_proxy_receivers_and_optional_null_semantics() {
         execute("", &format!("for (const value of [null, {{id: 7}}]) {{ let writes = 0; let received; let receiver; const a0 = new Proxy({{view: 'previous'}}, {{set(target, key, value, proxy) {{writes++; received = value; receiver = proxy; return Reflect.set(target, key, value, proxy);}}}}); let a1 = ['some', value]; if ({expression} !== 'unit' || writes !== 1 || receiver !== a0 || received !== value || a0.view !== value) throw new Error('setter lost identity or repeated a write'); a1 = 'none'; if ({expression} !== 'unit' || writes !== 2 || a0.view !== {missing}) throw new Error('missing field changed semantics'); }}"));
     }
 }
+
+#[test]
+fn qualified_host_types_preserve_unit_and_option_values() {
+    for return_type in ["Unit", "std.core.Unit", "std.core.Unit.Unit"] {
+        let member = serde_json::from_value(serde_json::json!({
+            "name": "complete", "js_name": "complete", "kind": "method", "arity": 1,
+            "return_type": return_type,
+        }))
+        .unwrap();
+        let expression = member_expression(&member).unwrap();
+        execute("", &format!("let calls = 0; const a0 = {{complete() {{ calls++; return undefined; }}}}; if ({expression} !== 'unit' || calls !== 1) throw new Error('qualified Unit was lost');"));
+    }
+    for return_type in [
+        "Option[Value]",
+        "std.core.Option[Value]",
+        "std.core.Option.Option[Value]",
+    ] {
+        let member = serde_json::from_value(serde_json::json!({
+            "name": "view", "js_name": "view", "kind": "property", "arity": 1,
+            "return_type": return_type,
+        }))
+        .unwrap();
+        let expression = member_expression(&member).unwrap();
+        execute("", &format!("let reads = 0; let value = {{id: 7}}; const a0 = {{get view() {{ reads++; return value; }}}}; let result = {expression}; if (result[0] !== 'some' || result[1] !== value || reads !== 1) throw new Error('qualified Option was lost'); value = null; result = {expression}; if (result !== 'none' || reads !== 2) throw new Error('qualified None was lost');"));
+        let parameter =
+            serde_json::from_value(serde_json::json!({"optional": false, "type": return_type}))
+                .unwrap();
+        let argument = parameter_argument(&parameter, "a1");
+        execute("", &format!("let a1 = 'none'; if ({argument} !== null) throw new Error('qualified absent argument was lost'); const value = {{id: 9}}; a1 = ['some', value]; if ({argument} !== value) throw new Error('qualified argument identity was lost');"));
+    }
+}
+
+#[test]
+fn browser_dom_fixture_compiles_and_preserves_nullable_host_values() {
+    let javascript = compiled(include_str!(
+        "../../../../../tests/js/fixtures/Interop.terl"
+    ));
+    execute(&javascript, "let reads = 0; let target = null; const event = {get target() {reads++; return target;}}; if (event_target(event) !== 'none' || event_has_target(event) !== false || reads !== 2) throw new Error('absent target changed'); target = {id: 7}; const result = event_target(event); if (result[0] !== 'some' || result[1] !== target || event_has_target(event) !== true || reads !== 4) throw new Error('present target changed');");
+}

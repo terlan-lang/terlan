@@ -160,11 +160,7 @@ tampered_evidence_is_rejected(root: String): Bool ->
     OwnerStorage.child(
         root,
         String.concat(
-            [
-                "target/quality/preparation/",
-                identity.revision,
-                "/managed-list-profile.native.jsonl",
-            ],
+            ["target/quality/preparation/", identity.revision, "/managed-list-profile.native.jsonl"],
         ),
     );
 (let {

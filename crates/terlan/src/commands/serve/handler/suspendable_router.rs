@@ -23,6 +23,7 @@ pub(in crate::commands::serve) async fn execute_suspendable_router(
         },
     )
     .await
+    .map_err(String::from)
 }
 
 impl native_http::router_execution::AsyncHost for RouterResponseRuntime<'_> {

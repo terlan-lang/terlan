@@ -13,11 +13,17 @@ import type std.core.Option.
  * One proleptic-Gregorian calendar date.
  */
 pub struct Date {
-    /** Calendar year. */
+    /**
+     * Calendar year.
+     */
     year: Int,
-    /** One-based calendar month. */
+    /**
+     * One-based calendar month.
+     */
     month: Int,
-    /** One-based day of month. */
+    /**
+     * One-based day of month.
+     */
     day: Int,
 }.
 

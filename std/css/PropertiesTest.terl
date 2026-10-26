@@ -4,7 +4,7 @@ import std.core.Option.{None, Some}.
 import std.css.Values.
 import std.css.Values.{Inherit}.
 import std.css.keywords.Auto.{Auto as MarginAuto, Auto as WidthAuto}.
-import std.css.properties.{Border, Gap, Height, Margin, MarginLeft, Padding, Width}.
+import std.css.properties.{Border, Gap, GridRowStart, Height, Margin, MarginLeft, Padding, Width}.
 import std.test.Test.{assert_equal}.
 
 import type std.css.properties.MarginLeft.{Property as MarginProperty}.
@@ -56,3 +56,16 @@ pub keyword_enums_accept_property_and_css_wide_choices(): Bool ->
     let automatic = WidthStyle {width: WidthAuto};
     let inherited = WidthStyle {width: Inherit};
     automatic != inherited.
+
+@test
+pub grid_lines_accept_both_directions_and_reject_zero(): Bool ->
+    assert_equal(None, GridRowStart.integer(0))
+        and case {
+    GridRowStart.integer(-1),
+    GridRowStart.integer(1),
+    GridRowStart.integer(-10),
+    GridRowStart.integer(10),
+} {
+    {Some(_), Some(_), Some(_), Some(_)} -> true;
+    _ -> false
+}.

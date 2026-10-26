@@ -1,5 +1,37 @@
 //! ABI decoder and validator for self-hosted finite-sum runtime layouts.
 
+/// Failure to resolve constructor metadata for one concrete finite-sum type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VariantResolutionError(String);
+
+impl std::fmt::Display for VariantResolutionError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+impl std::error::Error for VariantResolutionError {}
+impl std::ops::Deref for VariantResolutionError {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+impl From<String> for VariantResolutionError {
+    fn from(message: String) -> Self {
+        Self(message)
+    }
+}
+impl From<&str> for VariantResolutionError {
+    fn from(message: &str) -> Self {
+        Self(message.to_owned())
+    }
+}
+impl From<VariantResolutionError> for String {
+    fn from(error: VariantResolutionError) -> Self {
+        error.0
+    }
+}
+
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -247,28 +279,28 @@ impl VariantCatalog {
         owner: &str,
         constructor: &str,
         subject_type: &str,
-    ) -> Result<ResolvedVariantLayout, String> {
+    ) -> Result<ResolvedVariantLayout, VariantResolutionError> {
         let layout = self
             .layouts
             .get(&(owner.to_owned(), constructor.to_owned()))
             .ok_or_else(|| format!("unknown variant constructor `{owner}.{constructor}`"))?;
         let subject_type = subject_type.trim();
-        let (subject_base, subject_arguments) = generic_application(subject_type)
-            .map(|(base, arguments)| (base, arguments))
-            .unwrap_or((subject_type, Vec::new()));
+        let (subject_base, subject_arguments) =
+            generic_application(subject_type).unwrap_or((subject_type, Vec::new()));
         if unqualified(subject_base) != unqualified(owner) {
-            return Err(format!(
+            return Err((format!(
                 "variant `{owner}.{constructor}` cannot match subject type `{subject_type}`"
-            ));
+            ))
+            .into());
         }
         if !layout.type_parameters.is_empty()
             && layout.type_parameters.len() != subject_arguments.len()
         {
-            return Err(format!(
+            return Err((format!(
                 "variant `{owner}.{constructor}` expects {} type arguments but subject `{subject_type}` supplies {}",
                 layout.type_parameters.len(),
                 subject_arguments.len()
-            ));
+            )).into());
         }
 
         let bindings = layout
@@ -296,7 +328,7 @@ impl VariantCatalog {
         )
         .map_err(|_| format!("variant owner `{owner}` exceeds the runtime variant-count limit"))?;
         if variant_count == 0 {
-            return Err(format!("variant owner `{owner}` has no constructors"));
+            return Err((format!("variant owner `{owner}` has no constructors")).into());
         }
 
         Ok(ResolvedVariantLayout {

@@ -94,9 +94,7 @@ command_output(root: String, program: String, arguments: List[String]): Option[S
             if {
                 output.status == 0 -> Some(String.trim(output.stdout));
                 true -> none_string_with_failure(
-                    String.concat(
-                        [program, " failed:\n", output.stdout, output.stderr],
-                    ),
+                    String.concat([program, " failed:\n", output.stdout, output.stderr]),
                 )
             }
     }.

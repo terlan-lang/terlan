@@ -15,7 +15,7 @@ pub(super) fn phi_operand<'a>(
     instruction: &'a IrInstruction,
     predecessor: &str,
 ) -> Result<&'a str, String> {
-    if instruction.operands.len() % 2 != 0 {
+    if !instruction.operands.len().is_multiple_of(2) {
         return Err(adapter_error(
             "phi",
             "phi operands must alternate predecessor labels and values",
@@ -34,7 +34,7 @@ pub(super) fn phi_operand<'a>(
         })
 }
 
-pub(super) fn result_name<'a>(instruction: &'a IrInstruction) -> Result<&'a str, String> {
+pub(super) fn result_name(instruction: &IrInstruction) -> Result<&str, String> {
     instruction.result.as_deref().ok_or_else(|| {
         adapter_error(
             "instruction",
@@ -147,19 +147,32 @@ pub(super) fn returned_value(
     }
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct BlockLoweringContext<'a> {
+    pub(super) blocks: &'a [IrBlock],
+    pub(super) module_name: &'a str,
+    pub(super) functions: &'a FunctionCatalog,
+    pub(super) actor_sites:
+        &'a [super::super::self_host_actor_adapter::NativeActorSuspensionSite],
+    pub(super) return_type: NativeType,
+}
+
 pub(super) fn lower_block_path(
     label: &str,
     predecessor: Option<&str>,
-    blocks: &[IrBlock],
-    module_name: &str,
     mut values: ValueCatalog,
-    functions: &FunctionCatalog,
-    actor_sites: &[super::super::self_host_actor_adapter::NativeActorSuspensionSite],
-    return_type: NativeType,
+    context: &BlockLoweringContext<'_>,
     atoms: &mut Vec<String>,
     path: &HashSet<String>,
     expansions: &mut usize,
 ) -> Result<Option<NativeExpr>, String> {
+    let BlockLoweringContext {
+        blocks,
+        module_name,
+        functions,
+        actor_sites,
+        return_type,
+    } = *context;
     *expansions = expansions
         .checked_add(1)
         .ok_or_else(|| adapter_error("resource", "CFG expansion count overflow"))?;
@@ -210,12 +223,14 @@ pub(super) fn lower_block_path(
             [target] => lower_block_path(
                 target,
                 Some(&block.label),
-                blocks,
-                module_name,
                 values,
-                functions,
-                actor_sites,
-                return_type,
+                &BlockLoweringContext {
+                    blocks,
+                    module_name,
+                    functions,
+                    actor_sites,
+                    return_type,
+                },
                 atoms,
                 &next_path,
                 expansions,
@@ -265,12 +280,14 @@ pub(super) fn lower_block_path(
             let true_body = lower_block_path(
                 true_target,
                 Some(&block.label),
-                blocks,
-                module_name,
                 values.clone(),
-                functions,
-                actor_sites,
-                return_type,
+                &BlockLoweringContext {
+                    blocks,
+                    module_name,
+                    functions,
+                    actor_sites,
+                    return_type,
+                },
                 atoms,
                 &next_path,
                 expansions,
@@ -278,12 +295,14 @@ pub(super) fn lower_block_path(
             let false_body = lower_block_path(
                 false_target,
                 Some(&block.label),
-                blocks,
-                module_name,
                 values,
-                functions,
-                actor_sites,
-                return_type,
+                &BlockLoweringContext {
+                    blocks,
+                    module_name,
+                    functions,
+                    actor_sites,
+                    return_type,
+                },
                 atoms,
                 &next_path,
                 expansions,
@@ -366,12 +385,14 @@ pub(super) fn lower_cfg_function(
     let body = lower_block_path(
         "entry",
         None,
-        &function.blocks,
-        module_name,
         values,
-        functions,
-        actor_sites,
-        return_type,
+        &BlockLoweringContext {
+            blocks: &function.blocks,
+            module_name,
+            functions,
+            actor_sites,
+            return_type,
+        },
         atoms,
         &HashSet::new(),
         &mut expansions,

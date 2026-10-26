@@ -118,10 +118,8 @@ first_python_command(files: List[TextFile]): Option[String] ->
         [] -> None;
         [file | rest] ->
             if {
-                documentation_surface(file.path)
-                    and python_documentation_command(file.contents) -> Some(file.path);
-                command_surface(file.path)
-                    and python_command(file.contents) -> Some(file.path);
+                documentation_surface(file.path) and python_documentation_command(file.contents) -> Some(file.path);
+                command_surface(file.path) and python_command(file.contents) -> Some(file.path);
                 true -> first_python_command(rest)
             }
     }.

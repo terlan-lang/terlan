@@ -187,13 +187,7 @@ selected_root(): String ->
 parse_binding(root: String, relative: String, source: String): Bool ->
     case Json.parse(source) {
         Err(reason) ->
-            report(
-                add_diagnostic(
-                    [],
-                    relative,
-                    String.append("invalid JSON: ", reason.message),
-                ),
-            );
+            report(add_diagnostic([], relative, String.append("invalid JSON: ", reason.message)));
         Ok(binding) -> read_binding_metadata(root, binding)
     }.
 

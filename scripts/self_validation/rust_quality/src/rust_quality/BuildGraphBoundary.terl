@@ -237,8 +237,7 @@ ast_source_diagnostics(root: String): AstResult ->
             );
         Ok(source) ->
             case Json.parse(source) {
-                Err(reason) ->
-                    AstResult(valid = false, diagnostics = [], message = reason.message);
+                Err(reason) -> AstResult(valid = false, diagnostics = [], message = reason.message);
                 Ok(report) ->
                     let schema =
                         (let {

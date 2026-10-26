@@ -129,5 +129,9 @@ Important invariants:
   Optional hardware counters use `TERLAN_BENCH_HTTP_PERF_SECONDS`; unavailable
   kernel permissions are recorded explicitly rather than fabricating zeros.
 - Add focused tests when new benchmark report states are introduced.
+- `make tvm-native-optimizations-benchmark` pairs the existing actor runtime workloads
+  with three-size owned-name versus packed atom-table and owned-fragment versus
+  managed-reference string-join reports.
+  See `docs/compiler/NATIVE_OPTIMIZATIONS.md` for measurement scope and memory limits.
 - Keep large performance sweeps outside normal unit tests; release gates should
   validate shape and correctness, not depend on machine-specific timing.

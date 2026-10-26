@@ -145,15 +145,7 @@ run_success(root: String, program: String, arguments: List[String]): Option[Outp
                 output.status == 0 -> Some(output);
                 true -> output_failure(
                     "command",
-                    String.concat(
-                        [
-                            "command failed: ",
-                            program,
-                            "\n",
-                            output.stdout,
-                            output.stderr,
-                        ],
-                    ),
+                    String.concat(["command failed: ", program, "\n", output.stdout, output.stderr]),
                 )
             }
     }.
@@ -541,13 +533,7 @@ expect_rejection(root: String, vm: String, package: String, diagnostic: String):
                 true -> failure(
                     "rejection",
                     String.concat(
-                        [
-                            "expected `",
-                            diagnostic,
-                            "`, received:\n",
-                            output.stdout,
-                            output.stderr,
-                        ],
+                        ["expected `", diagnostic, "`, received:\n", output.stdout, output.stderr],
                     ),
                 )
             }

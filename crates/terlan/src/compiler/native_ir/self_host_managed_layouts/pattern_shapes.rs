@@ -1,6 +1,6 @@
 use super::*;
 
-pub(super) fn pattern_canonical(instruction: &IrInstruction) -> Result<String, String> {
+pub(super) fn pattern_canonical(instruction: &IrInstruction) -> Result<String, NativeIrError> {
     let source_type = instruction
         .operand_types
         .first()
@@ -20,7 +20,7 @@ pub(super) fn pattern_canonical(instruction: &IrInstruction) -> Result<String, S
 
 pub(super) fn pattern_layout(
     instruction: &IrInstruction,
-) -> Result<(Arc<ManagedAggregateDescriptor>, Arc<[u8]>), String> {
+) -> Result<(Arc<ManagedAggregateDescriptor>, Arc<[u8]>), NativeIrError> {
     let (_subject, pattern) =
         super::super::self_host_pattern_ir::decode_prepare_pattern(instruction)?;
     let source_type = instruction
@@ -57,7 +57,7 @@ pub(super) fn pattern_layout(
                         managed_field_type_of(&field_type, "")?,
                     ))
                 })
-                .collect::<Result<Vec<_>, String>>()?,
+                .collect::<Result<Vec<_>, NativeIrError>>()?,
         );
     }
     let descriptor = Arc::new(
@@ -76,7 +76,7 @@ pub(super) fn validate_pattern_shape(
     source: &AbiType,
     source_name: &str,
     variants: Option<&crate::self_host_variant_ir::VariantCatalog>,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     validate_pattern_shape_with_catalogs(
         pattern,
         source,
@@ -93,7 +93,7 @@ pub(super) fn validate_pattern_shape_with_catalogs(
     source: &AbiType,
     source_name: &str,
     catalogs: PatternCatalogs<'_>,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     if pattern.kind == "string-capture-pattern" {
         return validate_string_capture_pattern(pattern, source);
     }
@@ -106,14 +106,16 @@ pub(super) fn validate_pattern_shape_with_catalogs(
     if matches!(pattern.kind.as_str(), "list-pattern" | "list-cons-pattern") {
         if !is_list_type(source) {
             return Err(
-                "error[self_host.native.pattern_shape]: list pattern requires a List source"
-                    .to_string(),
+                ("error[self_host.native.pattern_shape]: list pattern requires a List source"
+                    .to_string())
+                .into(),
             );
         }
         if pattern.kind == "list-cons-pattern" && pattern.children.len() != 2 {
             return Err(
-                "error[self_host.native.pattern_shape]: list-cons pattern requires head and tail"
-                    .to_string(),
+                ("error[self_host.native.pattern_shape]: list-cons pattern requires head and tail"
+                    .to_string())
+                .into(),
             );
         }
         let element = source.arguments.first().ok_or_else(|| {
@@ -136,12 +138,14 @@ pub(super) fn validate_pattern_shape_with_catalogs(
     }
     if pattern.irrefutable() {
         return pattern.children.is_empty().then_some(()).ok_or_else(|| {
-            "error[self_host.native.pattern_shape]: leaf pattern has children".to_string()
+            NativeIrError::from("error[self_host.native.pattern_shape]: leaf pattern has children")
         });
     }
     if pattern.kind == "literal-pattern" {
         return pattern.children.is_empty().then_some(()).ok_or_else(|| {
-            "error[self_host.native.pattern_shape]: literal pattern has children".to_string()
+            NativeIrError::from(
+                "error[self_host.native.pattern_shape]: literal pattern has children",
+            )
         });
     }
     if pattern.kind == "constructor-pattern" {
@@ -168,17 +172,18 @@ pub(super) fn validate_pattern_shape_with_catalogs(
         return Ok(());
     }
     if pattern.kind != "tuple-pattern" || source.constructor != "$Tuple" {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.pattern_kind]: pattern kind {:?} has no direct native lowering for this subject",
             pattern.kind
-        ));
+        )).into());
     }
     if pattern.children.len() != source.arguments.len() {
-        return Err(format!(
+        return Err((format!(
             "error[self_host.native.pattern_shape]: tuple pattern has {} child(ren), expected {}",
             pattern.children.len(),
             source.arguments.len()
-        ));
+        ))
+        .into());
     }
     for (child, child_type) in pattern.children.iter().zip(&source.arguments) {
         validate_pattern_shape_with_catalogs(
@@ -188,10 +193,8 @@ pub(super) fn validate_pattern_shape_with_catalogs(
             catalogs,
         )?;
         if !structurally_supported(child) {
-            return Err(
-                "error[self_host.native.pattern_kind]: nested refutable tuple patterns are not yet lowered"
-                    .into(),
-            );
+            return Err("error[self_host.native.pattern_kind]: nested refutable tuple patterns are not yet lowered"
+                    .into());
         }
     }
     Ok(())
@@ -230,7 +233,7 @@ pub(super) fn is_map_type(source: &AbiType) -> bool {
         && (source.constructor == "Map" || source.constructor.ends_with(".Map"))
 }
 
-pub(super) fn string_capture_kind(text: &str) -> Result<(&str, StringCaptureKind), String> {
+pub(super) fn string_capture_kind(text: &str) -> Result<(&str, StringCaptureKind), NativeIrError> {
     let (name, annotation) = text
         .split_once(':')
         .map_or((text.trim(), "String"), |(name, annotation)| {
@@ -243,8 +246,9 @@ pub(super) fn string_capture_kind(text: &str) -> Result<(&str, StringCaptureKind
         && characters.all(|character| character == '_' || character.is_ascii_alphanumeric());
     if !valid_name {
         return Err(
-            "error[self_host.native.string_pattern]: capture name must be a lower-case binding"
-                .to_string(),
+            ("error[self_host.native.string_pattern]: capture name must be a lower-case binding"
+                .to_string())
+            .into(),
         );
     }
     let kind = match annotation {
@@ -253,9 +257,9 @@ pub(super) fn string_capture_kind(text: &str) -> Result<(&str, StringCaptureKind
         "Float" => StringCaptureKind::Float,
         "Bool" => StringCaptureKind::Bool,
         _ => {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.string_pattern]: no native capture converter for {annotation:?}"
-            ))
+            )).into())
         }
     };
     Ok((name, kind))
@@ -264,18 +268,20 @@ pub(super) fn string_capture_kind(text: &str) -> Result<(&str, StringCaptureKind
 pub(super) fn validate_string_capture_pattern(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
     source: &AbiType,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     if !(source.constructor == "String" || source.constructor.ends_with(".String"))
         || !source.arguments.is_empty()
     {
         return Err(
-            "error[self_host.native.string_pattern]: string capture requires a String source"
-                .to_string(),
+            ("error[self_host.native.string_pattern]: string capture requires a String source"
+                .to_string())
+            .into(),
         );
     }
     if pattern.children.is_empty() {
         return Err(
-            "error[self_host.native.string_pattern]: string capture has no segments".to_string(),
+            ("error[self_host.native.string_pattern]: string capture has no segments".to_string())
+                .into(),
         );
     }
     let mut previous_capture = false;
@@ -284,44 +290,47 @@ pub(super) fn validate_string_capture_pattern(
     for segment in &pattern.children {
         if !segment.children.is_empty() {
             return Err(
-                "error[self_host.native.string_pattern]: string segments must be leaves"
-                    .to_string(),
+                ("error[self_host.native.string_pattern]: string segments must be leaves"
+                    .to_string())
+                .into(),
             );
         }
         if segment.kind == "string-literal-segment" {
             if segment.text.is_empty() {
                 return Err(
-                    "error[self_host.native.string_pattern]: literal segment must not be empty"
-                        .to_string(),
+                    ("error[self_host.native.string_pattern]: literal segment must not be empty"
+                        .to_string())
+                    .into(),
                 );
             }
             previous_capture = false;
             continue;
         }
         if segment.kind != "string-capture-segment" {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.string_pattern]: unsupported segment {:?}",
                 segment.kind
-            ));
+            ))
+            .into());
         }
         if previous_capture {
-            return Err(
-                "error[self_host.native.string_pattern]: adjacent captures require a literal separator"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.string_pattern]: adjacent captures require a literal separator"
+                    .to_string()).into());
         }
         let (name, _) = string_capture_kind(&segment.text)?;
         if name != "_" && !names.insert(name) {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.string_pattern]: duplicate capture {name:?}"
-            ));
+            ))
+            .into());
         }
         capture_count += 1;
         previous_capture = true;
     }
     if capture_count == 0 {
         return Err(
-            "error[self_host.native.string_pattern]: pattern has no capture segment".to_string(),
+            ("error[self_host.native.string_pattern]: pattern has no capture segment".to_string())
+                .into(),
         );
     }
     Ok(())
@@ -329,7 +338,7 @@ pub(super) fn validate_string_capture_pattern(
 
 pub(super) fn decoded_string_pattern_segments(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
-) -> Result<Vec<DecodedStringPatternSegment>, String> {
+) -> Result<Vec<DecodedStringPatternSegment>, NativeIrError> {
     pattern
         .children
         .iter()
@@ -337,7 +346,8 @@ pub(super) fn decoded_string_pattern_segments(
             if segment.kind == "string-literal-segment" {
                 let quoted = format!("\"{}\"", segment.text);
                 return super::super::self_host_adapter::decoded_string_literal(&quoted)
-                    .map(DecodedStringPatternSegment::Literal);
+                    .map(DecodedStringPatternSegment::Literal)
+                    .map_err(NativeIrError::from);
             }
             string_capture_kind(&segment.text)
                 .map(|(_, kind)| DecodedStringPatternSegment::Capture(kind))
@@ -359,17 +369,19 @@ pub(super) fn borrowed_string_pattern_segments(
 
 pub(super) fn keyed_pattern_fields(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
-) -> Result<&[super::super::self_host_pattern_ir::PatternNode], String> {
+) -> Result<&[super::super::self_host_pattern_ir::PatternNode], NativeIrError> {
     let [fields] = pattern.children.as_slice() else {
         return Err(
-            "error[self_host.native.pattern_shape]: keyed container requires one field wrapper"
-                .to_string(),
+            ("error[self_host.native.pattern_shape]: keyed container requires one field wrapper"
+                .to_string())
+            .into(),
         );
     };
     if fields.kind != "keyed-pattern-fields" || !fields.text.is_empty() {
         return Err(
-            "error[self_host.native.pattern_shape]: keyed container field wrapper is invalid"
-                .to_string(),
+            ("error[self_host.native.pattern_shape]: keyed container field wrapper is invalid"
+                .to_string())
+            .into(),
         );
     }
     Ok(&fields.children)
@@ -379,18 +391,20 @@ pub(super) fn validate_keyed_pattern_shape(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
     source: &AbiType,
     catalogs: PatternCatalogs<'_>,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     if !is_map_type(source) {
         return Err(
-            "error[self_host.native.pattern_shape]: keyed container requires a Map source"
-                .to_string(),
+            ("error[self_host.native.pattern_shape]: keyed container requires a Map source"
+                .to_string())
+            .into(),
         );
     }
     let key = &source.arguments[0];
     if !(key.constructor == "String" || key.constructor.ends_with(".String")) {
         return Err(
-            "error[self_host.native.pattern_shape]: keyed container requires a String-keyed Map"
-                .to_string(),
+            ("error[self_host.native.pattern_shape]: keyed container requires a String-keyed Map"
+                .to_string())
+            .into(),
         );
     }
     let value = &source.arguments[1];
@@ -398,16 +412,15 @@ pub(super) fn validate_keyed_pattern_shape(
     for field in keyed_pattern_fields(pattern)? {
         if field.kind != "keyed-pattern-field" || field.text.is_empty() || field.children.len() != 1
         {
-            return Err(
-                "error[self_host.native.pattern_shape]: keyed pattern field requires one named value pattern"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_shape]: keyed pattern field requires one named value pattern"
+                    .to_string()).into());
         }
         if !names.insert(field.text.as_str()) {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.pattern_shape]: duplicate keyed pattern field {:?}",
                 field.text
-            ));
+            ))
+            .into());
         }
         validate_pattern_shape_with_catalogs(
             &field.children[0],
@@ -461,22 +474,21 @@ pub(super) fn validate_struct_pattern_shape(
     pattern: &super::super::self_host_pattern_ir::PatternNode,
     source: &AbiType,
     catalogs: PatternCatalogs<'_>,
-) -> Result<(), String> {
+) -> Result<(), NativeIrError> {
     let layout = struct_pattern_fields(pattern, source, catalogs)?;
     let mut names = std::collections::HashSet::new();
     for field in keyed_pattern_fields(pattern)? {
         if field.kind != "keyed-pattern-field" || field.text.is_empty() || field.children.len() != 1
         {
-            return Err(
-                "error[self_host.native.pattern_shape]: struct pattern field requires one named value pattern"
-                    .to_string(),
-            );
+            return Err(("error[self_host.native.pattern_shape]: struct pattern field requires one named value pattern"
+                    .to_string()).into());
         }
         if !names.insert(field.text.as_str()) {
-            return Err(format!(
+            return Err((format!(
                 "error[self_host.native.pattern_shape]: duplicate struct pattern field {:?}",
                 field.text
-            ));
+            ))
+            .into());
         }
         let declared = layout.get(&field.text).ok_or_else(|| {
             format!(

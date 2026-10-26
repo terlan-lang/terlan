@@ -1,6 +1,7 @@
 //! Checked external-template ownership at the CoreIR handoff.
 
 use std::collections::BTreeSet;
+use terlan_runtime_abi::{BoundaryError, ErrorDomain};
 
 use crate::terlan_typeck::{
     CoreExpr, CoreModule, CoreTemplateExpression, CoreTemplateProp, CoreTemplateRenderPlan,
@@ -23,7 +24,7 @@ use crate::terlan_typeck::{
 pub(super) fn core_template_render_plans(
     inputs: Vec<crate::template_inputs::SyntaxTemplateFrontendInput>,
     core: &CoreModule,
-) -> Result<Vec<CoreTemplateRenderPlan>, String> {
+) -> Result<Vec<CoreTemplateRenderPlan>, BoundaryError> {
     let mut plans = inputs
         .into_iter()
         .map(|input| {
@@ -37,7 +38,7 @@ pub(super) fn core_template_render_plans(
                 template: input.parsed,
             })
         })
-        .collect::<Result<Vec<_>, String>>()?;
+        .collect::<Result<Vec<_>, BoundaryError>>()?;
     plans.sort_by(|left, right| left.name.cmp(&right.name));
     Ok(plans)
 }
@@ -45,17 +46,17 @@ pub(super) fn core_template_render_plans(
 /// Lowers declaration-order template props into checked CoreIR contracts.
 fn lower_props(
     input: &crate::template_inputs::SyntaxTemplateFrontendInput,
-) -> Result<Vec<CoreTemplateProp>, String> {
+) -> Result<Vec<CoreTemplateProp>, BoundaryError> {
     input
         .props
         .iter()
         .map(|prop| {
             let ty = crate::terlan_typeck::core_type_from_text(&prop.annotation.text).ok_or_else(
                 || {
-                    format!(
+                    template_failure(format!(
                         "template `{}` prop `{}` has no CoreIR type for `{}`",
                         input.name, prop.name, prop.annotation.text
-                    )
+                    ))
                 },
             )?;
             let default = prop
@@ -64,10 +65,10 @@ fn lower_props(
                 .map(|default| {
                     crate::terlan_typeck::core_expr_lowering::core_expr_from_syntax(default)
                         .ok_or_else(|| {
-                            format!(
+                            template_failure(format!(
                                 "template `{}` prop `{}` default cannot lower to CoreIR",
                                 input.name, prop.name
-                            )
+                            ))
                         })
                 })
                 .transpose()?;
@@ -85,7 +86,7 @@ fn lower_expressions(
     input: &crate::template_inputs::SyntaxTemplateFrontendInput,
     props: &[CoreTemplateProp],
     core: &CoreModule,
-) -> Result<Vec<CoreTemplateExpression>, String> {
+) -> Result<Vec<CoreTemplateExpression>, BoundaryError> {
     let mut sources = BTreeSet::new();
     collect_expression_sources(&input.parsed.nodes, &mut sources);
     sources
@@ -93,23 +94,23 @@ fn lower_expressions(
         .map(|source| {
             let syntax =
                 crate::terlan_syntax::parse_expr_as_syntax_output(&source).map_err(|error| {
-                    format!(
+                    template_failure(format!(
                         "template `{}` expression `{source}` cannot parse for CoreIR: {error:?}",
                         input.name
-                    )
+                    ))
                 })?;
             let expr = crate::terlan_typeck::core_expr_lowering::core_expr_from_syntax(&syntax)
                 .ok_or_else(|| {
-                    format!(
+                    template_failure(format!(
                         "template `{}` expression `{source}` has no CoreIR lowering",
                         input.name
-                    )
+                    ))
                 })?;
             let ty = infer_expression_type(&expr, props, core).ok_or_else(|| {
-                format!(
+                template_failure(format!(
                     "template `{}` expression `{source}` has no scalar CoreIR result type",
                     input.name
-                )
+                ))
             })?;
             Ok(CoreTemplateExpression { source, expr, ty })
         })
@@ -225,4 +226,12 @@ fn field_type(base: &CoreType, field: &str, core: &CoreModule) -> Option<CoreTyp
         _ => None,
     }?;
     field_type(body, field, core)
+}
+
+fn template_failure(message: impl Into<String>) -> BoundaryError {
+    BoundaryError::message(
+        ErrorDomain::CompilerPhase,
+        "lower checked template",
+        message,
+    )
 }

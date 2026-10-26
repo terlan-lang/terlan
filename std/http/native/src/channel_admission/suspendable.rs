@@ -17,7 +17,7 @@ pub async fn sse_suspendable<H: AsyncHost>(
     declared_route: &str,
     path: &str,
     host: &H,
-) -> Result<SourceAdmission<SseEndpointPlan<H::Value>, H::Response>, String> {
+) -> Result<SourceAdmission<SseEndpointPlan<H::Value>, H::Response>, WebRouteError> {
     admit_suspendable(
         router,
         declared_route,
@@ -40,7 +40,7 @@ pub async fn websocket_suspendable<H: AsyncHost>(
     declared_route: &str,
     path: &str,
     host: &H,
-) -> Result<SourceAdmission<WebSocketEndpointPlan<H::Value>, H::Response>, String> {
+) -> Result<SourceAdmission<WebSocketEndpointPlan<H::Value>, H::Response>, WebRouteError> {
     admit_suspendable(
         router,
         declared_route,
@@ -64,11 +64,12 @@ async fn admit_suspendable<H: AsyncHost, P>(
     label: &str,
     description: &str,
     extract: impl FnOnce(RouteTarget<H::Value>) -> Option<P>,
-) -> Result<SourceAdmission<P, H::Response>, String> {
+) -> Result<SourceAdmission<P, H::Response>, WebRouteError> {
     let RouterOutcome::Matched(dispatch) = router.dispatch(RouteMethod::Get, path)? else {
-        return Err(format!(
+        return Err((format!(
             "error[serve_router]: materialized router did not match {label} GET {path}"
-        ));
+        ))
+        .into());
     };
     let request = host.request(&dispatch.route_params);
     for callback in &dispatch.middleware {
@@ -86,7 +87,6 @@ async fn admit_suspendable<H: AsyncHost, P>(
     }
     validate_endpoint(*dispatch, declared_route, label, description, extract)
         .map(SourceAdmission::Open)
-        .map_err(String::from)
 }
 
 #[cfg(test)]

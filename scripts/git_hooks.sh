@@ -80,7 +80,7 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   fi
   unset TERLAN_UPDATE_PHASE_GOLDEN
   cd "$snapshot"
-  bash scripts/git_hooks/check.sh "$changes"
+  bash scripts/git_hooks/check.sh "$changes" "$base"
   # Validation must never silently repair the source it is approving.
   git diff --exit-code
   test "$(git write-tree)" = "$tree"

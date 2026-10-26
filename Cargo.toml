@@ -72,7 +72,7 @@ tempfile = "3"
 terlan-process-owner = { path = "crates/terlan-process-owner" }
 terlan-test-orchestrator = { path = "crates/terlan-test-orchestrator" }
 terlan-service-foundation = { path = "crates/terlan-service-foundation" }
-zstd = "0.14.0"
+zstd = "0.14.3"
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
@@ -91,6 +91,11 @@ debug = "line-tables-only"
 # executables within their size budget, including the embedded service runtime.
 [profile.release]
 strip = "symbols"
+lto = "thin"
+
+# SQL parsing is compiler-only; keep its parser routines compact.
+[profile.release.package.sqlparser]
+opt-level = "s"
 
 # Validation hashes complete toolchains and artifacts. Keep SHA-2's compression
 # backend optimized in developer/test tools without optimizing the whole compiler

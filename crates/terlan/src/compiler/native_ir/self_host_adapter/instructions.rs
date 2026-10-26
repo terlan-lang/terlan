@@ -20,7 +20,8 @@ pub(super) fn instruction_expression(
             subject_type,
             functions.variants.as_ref(),
             Some(&functions.structs),
-        );
+        )
+        .map_err(String::from);
     }
     if matches!(
         instruction.opcode.as_str(),
@@ -89,14 +90,16 @@ pub(super) fn instruction_expression(
                 source_type,
                 result_type,
                 field.index,
-            );
+            )
+            .map_err(String::from);
         }
         return super::super::self_host_managed_layouts::map_field_expr(
             instruction,
             source,
             source_type,
             result_type,
-        );
+        )
+        .map_err(String::from);
     }
     if instruction.opcode == "update-struct-field" {
         let [source_name, field_name, replacement_name] = instruction.operands.as_slice() else {
@@ -130,14 +133,13 @@ pub(super) fn instruction_expression(
         })?;
         return super::super::self_host_managed_layouts::aggregate_replace_field_expr(
             instruction,
-            source,
-            source_type,
-            replacement,
-            replacement_type,
+            (source, source_type),
+            (replacement, replacement_type),
             result_type,
             field.index,
             &field.type_name,
-        );
+        )
+        .map_err(String::from);
     }
     if instruction.opcode == "put-map" {
         return map_construct_expr(instruction, values);

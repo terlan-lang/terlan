@@ -47,12 +47,12 @@ use crate::runtime::native_image::managed::{
 };
 use crate::self_host_ir::{BackendEnvelope, IrInstruction, IrStructField};
 
-use super::{NativeBinaryOperator, NativeExpr, NativeType};
+use super::{NativeBinaryOperator, NativeExpr, NativeIrError, NativeType};
 
 /// Lowers application-wide ABI struct declarations into NativeIR image metadata.
 pub(super) fn encoded_struct_layouts(
     envelopes: &[BackendEnvelope],
-) -> Result<Vec<Arc<[u8]>>, String> {
+) -> Result<Vec<Arc<[u8]>>, NativeIrError> {
     let mut layouts = BTreeMap::<String, Arc<[u8]>>::new();
     for envelope in envelopes {
         for layout in &envelope.module.structs {
@@ -78,9 +78,9 @@ pub(super) fn encoded_struct_layouts(
             let encoded = Arc::<[u8]>::from(encoded);
             if let Some(previous) = layouts.insert(canonical.clone(), encoded.clone()) {
                 if previous.as_ref() != encoded.as_ref() {
-                    return Err(format!(
+                    return Err((format!(
                         "error[self_host.native.conflicting_struct_layout]: semantic type {canonical:?} has multiple physical layouts"
-                    ));
+                    )).into());
                 }
             }
             for field in &layout.fields {
@@ -117,9 +117,9 @@ pub(super) fn encoded_struct_layouts(
                     let canonical = pattern_canonical(instruction)?;
                     if let Some(previous) = layouts.insert(canonical.clone(), encoded.clone()) {
                         if previous.as_ref() != encoded.as_ref() {
-                            return Err(format!(
+                            return Err((format!(
                                 "error[self_host.native.conflicting_pattern_layout]: semantic type {canonical:?} has multiple physical layouts"
-                            ));
+                            )).into());
                         }
                     }
                 }

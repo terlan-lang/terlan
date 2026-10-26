@@ -9,6 +9,10 @@ protocol, or embed database-driver behavior in the CLI router. Live validation
 uses Docker-backed Postgres gates so local and CI tests exercise the same
 maintained adapter path.
 
+Integration tests call this same migration engine, including when the database
+is already running without Compose. They share the application's database URL
+selection and reject migration failures or explicitly configured missing directories.
+
 ## Responsibilities
 
 - Parse `terlc db` command-local arguments.

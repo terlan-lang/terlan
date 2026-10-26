@@ -25,6 +25,7 @@ cat > scripts/git_hooks/check.sh <<'CHECK'
 set -eu
 test "$(cat tracked.txt)" = good
 test -z "${GIT_INDEX_FILE:-}"
+test "$2" = "$(git -C "$(git remote get-url origin)" rev-parse HEAD)"
 if test -n "${EXPECTED_HOOK_CARGO_HOME:-}"; then
   test "$CARGO_HOME" = "$EXPECTED_HOOK_CARGO_HOME"
 fi

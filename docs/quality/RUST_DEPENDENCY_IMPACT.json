@@ -4,12 +4,12 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "aff8b5c69717eebf2ade346698a4a22a624c00c1328e605317bf131b977ddb1b",
+  "compilation_input_sha256": "b96ba2b7d2041ae19a6e3536f987de9d0d4bfc66e4da893c1e32d2beedf4f644",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
     "milestone": "0.0.9",
-    "non_optional_normal_dependencies": 56,
+    "non_optional_normal_dependencies": 57,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -34,21 +34,23 @@
     },
     {
       "domain": "commands",
-      "reference_sites": 1,
+      "reference_sites": 3,
       "source_domains": [
-        "root:cli_usage"
+        "root:cli_usage",
+        "root:self_host_native_backend"
       ]
     },
     {
       "domain": "compiler",
-      "reference_sites": 22,
+      "reference_sites": 31,
       "source_domains": [
-        "commands"
+        "commands",
+        "root:self_host_native_backend"
       ]
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 65,
+      "reference_sites": 69,
       "source_domains": [
         "commands",
         "lsp",
@@ -72,8 +74,10 @@
     },
     {
       "domain": "native_worker",
-      "reference_sites": 0,
-      "source_domains": []
+      "reference_sites": 2,
+      "source_domains": [
+        "vm"
+      ]
     },
     {
       "domain": "package_registry",
@@ -129,7 +133,32 @@
       "source_domains": []
     },
     {
+      "domain": "root:self_host_actor_ir",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:self_host_backend",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
       "domain": "root:self_host_ir",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:self_host_native_backend",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:self_host_variant_adapter",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "root:self_host_variant_ir",
       "reference_sites": 0,
       "source_domains": []
     },
@@ -149,16 +178,22 @@
       "source_domains": []
     },
     {
-      "domain": "root:web_route",
-      "reference_sites": 0,
-      "source_domains": []
-    },
-    {
       "domain": "runtime",
-      "reference_sites": 61,
+      "reference_sites": 75,
       "source_domains": [
         "commands",
-        "compiler"
+        "compiler",
+        "native_worker",
+        "vm"
+      ]
+    },
+    {
+      "domain": "self_host_ir",
+      "reference_sites": 9,
+      "source_domains": [
+        "commands",
+        "compiler",
+        "root:self_host_native_backend"
       ]
     },
     {
@@ -168,7 +203,7 @@
     },
     {
       "domain": "support",
-      "reference_sites": 80,
+      "reference_sites": 92,
       "source_domains": [
         "commands",
         "formal_pipeline",
@@ -191,10 +226,11 @@
   ],
   "domain_change_blast_radius": [
     {
-      "dependent_count": 2,
+      "dependent_count": 3,
       "dependent_domains": [
         "commands",
-        "root:cli_usage"
+        "root:cli_usage",
+        "root:self_host_native_backend"
       ],
       "domain": "backends"
     },
@@ -209,28 +245,33 @@
       "domain": "bin"
     },
     {
-      "dependent_count": 1,
+      "dependent_count": 2,
       "dependent_domains": [
-        "root:cli_usage"
+        "root:cli_usage",
+        "root:self_host_native_backend"
       ],
       "domain": "commands"
     },
     {
-      "dependent_count": 2,
+      "dependent_count": 3,
       "dependent_domains": [
         "commands",
-        "root:cli_usage"
+        "root:cli_usage",
+        "root:self_host_native_backend"
       ],
       "domain": "compiler"
     },
     {
-      "dependent_count": 5,
+      "dependent_count": 8,
       "dependent_domains": [
         "commands",
         "compiler",
         "lsp",
+        "native_worker",
         "root:cli_usage",
-        "runtime"
+        "root:self_host_native_backend",
+        "runtime",
+        "vm"
       ],
       "domain": "formal_pipeline"
     },
@@ -250,17 +291,22 @@
       "domain": "lsp"
     },
     {
-      "dependent_count": 0,
-      "dependent_domains": [],
+      "dependent_count": 1,
+      "dependent_domains": [
+        "vm"
+      ],
       "domain": "native_worker"
     },
     {
-      "dependent_count": 4,
+      "dependent_count": 7,
       "dependent_domains": [
         "commands",
         "compiler",
+        "native_worker",
         "root:cli_usage",
-        "runtime"
+        "root:self_host_native_backend",
+        "runtime",
+        "vm"
       ],
       "domain": "package_registry"
     },
@@ -312,7 +358,32 @@
     {
       "dependent_count": 0,
       "dependent_domains": [],
+      "domain": "root:self_host_actor_ir"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:self_host_backend"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
       "domain": "root:self_host_ir"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:self_host_native_backend"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:self_host_variant_adapter"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "root:self_host_variant_ir"
     },
     {
       "dependent_count": 0,
@@ -330,18 +401,26 @@
       "domain": "root:template_inputs"
     },
     {
-      "dependent_count": 0,
-      "dependent_domains": [],
-      "domain": "root:web_route"
-    },
-    {
-      "dependent_count": 3,
+      "dependent_count": 6,
       "dependent_domains": [
         "commands",
         "compiler",
-        "root:cli_usage"
+        "native_worker",
+        "root:cli_usage",
+        "root:self_host_native_backend",
+        "vm"
       ],
       "domain": "runtime"
+    },
+    {
+      "dependent_count": 4,
+      "dependent_domains": [
+        "commands",
+        "compiler",
+        "root:cli_usage",
+        "root:self_host_native_backend"
+      ],
+      "domain": "self_host_ir"
     },
     {
       "dependent_count": 0,
@@ -349,23 +428,27 @@
       "domain": "serve_runtime"
     },
     {
-      "dependent_count": 7,
+      "dependent_count": 10,
       "dependent_domains": [
         "commands",
         "compiler",
         "formal_pipeline",
         "lsp",
+        "native_worker",
         "root:cli_usage",
         "root:formal_pipeline",
-        "runtime"
+        "root:self_host_native_backend",
+        "runtime",
+        "vm"
       ],
       "domain": "support"
     },
     {
-      "dependent_count": 2,
+      "dependent_count": 3,
       "dependent_domains": [
         "commands",
-        "root:cli_usage"
+        "root:cli_usage",
+        "root:self_host_native_backend"
       ],
       "domain": "validation"
     },
@@ -716,12 +799,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 22,
+      "reference_sites": 26,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 63,
+      "reference_sites": 67,
       "to": "formal_pipeline"
     },
     {
@@ -731,12 +814,17 @@
     },
     {
       "from": "commands",
-      "reference_sites": 43,
+      "reference_sites": 50,
       "to": "runtime"
     },
     {
       "from": "commands",
-      "reference_sites": 65,
+      "reference_sites": 3,
+      "to": "self_host_ir"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 76,
       "to": "support"
     },
     {
@@ -746,18 +834,28 @@
     },
     {
       "from": "compiler",
-      "reference_sites": 18,
+      "reference_sites": 20,
       "to": "runtime"
     },
     {
+      "from": "compiler",
+      "reference_sites": 5,
+      "to": "self_host_ir"
+    },
+    {
       "from": "formal_pipeline",
-      "reference_sites": 1,
+      "reference_sites": 2,
       "to": "support"
     },
     {
       "from": "lsp",
       "reference_sites": 1,
       "to": "formal_pipeline"
+    },
+    {
+      "from": "native_worker",
+      "reference_sites": 4,
+      "to": "runtime"
     },
     {
       "from": "root:cli_usage",
@@ -770,6 +868,21 @@
       "to": "support"
     },
     {
+      "from": "root:self_host_native_backend",
+      "reference_sites": 2,
+      "to": "commands"
+    },
+    {
+      "from": "root:self_host_native_backend",
+      "reference_sites": 5,
+      "to": "compiler"
+    },
+    {
+      "from": "root:self_host_native_backend",
+      "reference_sites": 1,
+      "to": "self_host_ir"
+    },
+    {
       "from": "runtime",
       "reference_sites": 1,
       "to": "formal_pipeline"
@@ -783,6 +896,16 @@
       "from": "runtime",
       "reference_sites": 3,
       "to": "support"
+    },
+    {
+      "from": "vm",
+      "reference_sites": 2,
+      "to": "native_worker"
+    },
+    {
+      "from": "vm",
+      "reference_sites": 1,
+      "to": "runtime"
     }
   ],
   "production_domains": [
@@ -798,22 +921,22 @@
     },
     {
       "name": "bin",
-      "physical_lines": 942,
-      "rust_files": 7
+      "physical_lines": 1201,
+      "rust_files": 12
     },
     {
       "name": "commands",
-      "physical_lines": 136667,
-      "rust_files": 395
+      "physical_lines": 138161,
+      "rust_files": 417
     },
     {
       "name": "compiler",
-      "physical_lines": 174710,
-      "rust_files": 483
+      "physical_lines": 183292,
+      "rust_files": 508
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 1484,
+      "physical_lines": 1549,
       "rust_files": 8
     },
     {
@@ -833,7 +956,7 @@
     },
     {
       "name": "native_worker",
-      "physical_lines": 2083,
+      "physical_lines": 2091,
       "rust_files": 9
     },
     {
@@ -843,13 +966,13 @@
     },
     {
       "name": "quality",
-      "physical_lines": 50696,
+      "physical_lines": 50714,
       "rust_files": 153
     },
     {
       "name": "root:",
-      "physical_lines": 34910,
-      "rust_files": 202
+      "physical_lines": 42368,
+      "rust_files": 235
     },
     {
       "name": "root:accelerator_contract",
@@ -858,12 +981,12 @@
     },
     {
       "name": "root:cli_dispatch",
-      "physical_lines": 113,
+      "physical_lines": 114,
       "rust_files": 1
     },
     {
       "name": "root:cli_usage",
-      "physical_lines": 196,
+      "physical_lines": 200,
       "rust_files": 1
     },
     {
@@ -873,12 +996,12 @@
     },
     {
       "name": "root:formal_pipeline",
-      "physical_lines": 817,
+      "physical_lines": 819,
       "rust_files": 1
     },
     {
       "name": "root:lib",
-      "physical_lines": 836,
+      "physical_lines": 841,
       "rust_files": 1
     },
     {
@@ -887,8 +1010,33 @@
       "rust_files": 1
     },
     {
+      "name": "root:self_host_actor_ir",
+      "physical_lines": 594,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_backend",
+      "physical_lines": 325,
+      "rust_files": 1
+    },
+    {
       "name": "root:self_host_ir",
-      "physical_lines": 560,
+      "physical_lines": 551,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_native_backend",
+      "physical_lines": 300,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_variant_adapter",
+      "physical_lines": 166,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_variant_ir",
+      "physical_lines": 351,
       "rust_files": 1
     },
     {
@@ -907,14 +1055,14 @@
       "rust_files": 1
     },
     {
-      "name": "root:web_route",
-      "physical_lines": 3,
-      "rust_files": 1
+      "name": "runtime",
+      "physical_lines": 141960,
+      "rust_files": 477
     },
     {
-      "name": "runtime",
-      "physical_lines": 141060,
-      "rust_files": 469
+      "name": "self_host_ir",
+      "physical_lines": 500,
+      "rust_files": 1
     },
     {
       "name": "serve_runtime",
@@ -923,18 +1071,18 @@
     },
     {
       "name": "support",
-      "physical_lines": 1213,
-      "rust_files": 5
+      "physical_lines": 1417,
+      "rust_files": 6
     },
     {
       "name": "validation",
-      "physical_lines": 8970,
-      "rust_files": 23
+      "physical_lines": 8996,
+      "rust_files": 24
     },
     {
       "name": "vm",
-      "physical_lines": 2647,
-      "rust_files": 12
+      "physical_lines": 2723,
+      "rust_files": 13
     }
   ],
   "resolved_dependency_duplicates": [
@@ -1198,12 +1346,12 @@
     },
     {
       "from": "commands",
-      "reference_sites": 5,
+      "reference_sites": 7,
       "to": "compiler"
     },
     {
       "from": "commands",
-      "reference_sites": 12,
+      "reference_sites": 16,
       "to": "formal_pipeline"
     },
     {
@@ -1213,28 +1361,33 @@
     },
     {
       "from": "commands",
-      "reference_sites": 49,
+      "reference_sites": 54,
       "to": "runtime"
-    },
-    {
-      "from": "commands",
-      "reference_sites": 13,
-      "to": "support"
     },
     {
       "from": "commands",
       "reference_sites": 15,
+      "to": "support"
+    },
+    {
+      "from": "commands",
+      "reference_sites": 24,
       "to": "validation"
     },
     {
       "from": "compiler",
-      "reference_sites": 1,
+      "reference_sites": 2,
       "to": "formal_pipeline"
     },
     {
       "from": "compiler",
-      "reference_sites": 10,
+      "reference_sites": 14,
       "to": "runtime"
+    },
+    {
+      "from": "compiler",
+      "reference_sites": 1,
+      "to": "self_host_ir"
     },
     {
       "from": "compiler",
@@ -1275,18 +1428,18 @@
     },
     {
       "name": "commands",
-      "physical_lines": 49593,
-      "rust_files": 217
+      "physical_lines": 53299,
+      "rust_files": 235
     },
     {
       "name": "compiler",
-      "physical_lines": 50348,
-      "rust_files": 227
+      "physical_lines": 52712,
+      "rust_files": 243
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 106,
-      "rust_files": 1
+      "physical_lines": 156,
+      "rust_files": 2
     },
     {
       "name": "html",
@@ -1310,7 +1463,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 29188,
+      "physical_lines": 29198,
       "rust_files": 129
     },
     {
@@ -1324,8 +1477,23 @@
       "rust_files": 1
     },
     {
+      "name": "root:self_host_backend_test",
+      "physical_lines": 117,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_ir_struct_layout_abi_test",
+      "physical_lines": 46,
+      "rust_files": 1
+    },
+    {
       "name": "root:self_host_ir_test",
-      "physical_lines": 108,
+      "physical_lines": 173,
+      "rust_files": 1
+    },
+    {
+      "name": "root:self_host_variant_ir_inline_test",
+      "physical_lines": 39,
       "rust_files": 1
     },
     {
@@ -1340,13 +1508,13 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 81718,
-      "rust_files": 363
+      "physical_lines": 82959,
+      "rust_files": 369
     },
     {
       "name": "support",
-      "physical_lines": 294,
-      "rust_files": 7
+      "physical_lines": 367,
+      "rust_files": 8
     },
     {
       "name": "tests",
@@ -1355,8 +1523,8 @@
     },
     {
       "name": "validation",
-      "physical_lines": 7165,
-      "rust_files": 19
+      "physical_lines": 7261,
+      "rust_files": 20
     },
     {
       "name": "vm",
@@ -1454,13 +1622,6 @@
           "features": [],
           "kind": "dev",
           "name": "tar",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "dev",
-          "name": "tempfile",
           "optional": false
         },
         {
@@ -1879,6 +2040,13 @@
           "default_features": true,
           "features": [],
           "kind": "normal",
+          "name": "tempfile",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
           "name": "terl-docs",
           "optional": false
         },
@@ -2119,6 +2287,13 @@
           "optional": false
         },
         {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "getrandom",
+          "optional": false
+        },
+        {
           "default_features": false,
           "features": [
             "ring",
@@ -2287,7 +2462,7 @@
         {
           "default_features": false,
           "features": [
-            "alloc"
+            "std"
           ],
           "kind": "normal",
           "name": "futures-util",

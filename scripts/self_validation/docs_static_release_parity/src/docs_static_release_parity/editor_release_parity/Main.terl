@@ -26,7 +26,9 @@ import type std.system.Process.{BatchCompletion, Command, EnvironmentEntry}.
 struct Smoke {
     root: String,
     script: String,
-    /** Name identifying the editor smoke-check scenario. */
+    /**
+     * Name identifying the editor smoke-check scenario.
+     */
     label: String,
 }.
 
@@ -135,8 +137,7 @@ smoke_completions_hold(completions: List[BatchCompletion]): Bool ->
         [] -> true;
         [completion | rest] ->
             case {completion.output, completion.error} {
-                {Some(output), None} ->
-                    output.status == 0 and smoke_completions_hold(rest);
+                {Some(output), None} -> output.status == 0 and smoke_completions_hold(rest);
                 _ -> false
             }
     }.

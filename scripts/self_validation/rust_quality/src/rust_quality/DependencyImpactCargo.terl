@@ -22,22 +22,36 @@ struct PackageVersions {
 }.
 
 pub struct DependencyFeature {
-    /** Dependency crate name. */
+    /**
+     * Dependency crate name.
+     */
     name: String,
-    /** Whether this dependency enables its default features. */
+    /**
+     * Whether this dependency enables its default features.
+     */
     default_features: Bool,
-    /** Explicit features enabled on the dependency. */
+    /**
+     * Explicit features enabled on the dependency.
+     */
     features: List[String],
-    /** Cargo dependency kind, such as normal, build, or dev. */
+    /**
+     * Cargo dependency kind, such as normal, build, or dev.
+     */
     kind: String,
-    /** Whether Cargo declares the dependency optional. */
+    /**
+     * Whether Cargo declares the dependency optional.
+     */
     optional: Bool,
 }.
 
 pub struct PackageFanout {
-    /** Package whose enabled dependencies are reported. */
+    /**
+     * Package whose enabled dependencies are reported.
+     */
     name: String,
-    /** Dependencies and feature selections contributing to this package. */
+    /**
+     * Dependencies and feature selections contributing to this package.
+     */
     dependencies: List[DependencyFeature],
 }.
 
@@ -50,19 +64,33 @@ struct State {
 }.
 
 pub struct CargoAnalysis {
-    /** Whether Cargo dependency analysis completed successfully. */
+    /**
+     * Whether Cargo dependency analysis completed successfully.
+     */
     valid: Bool,
-    /** Resolved packages and their dependency relationships. */
+    /**
+     * Resolved packages and their dependency relationships.
+     */
     nodes: List[GraphNode],
-    /** Integration test targets discovered in Cargo metadata. */
+    /**
+     * Integration test targets discovered in Cargo metadata.
+     */
     integration_targets: List[String],
-    /** Number of direct dependencies in the analyzed package. */
+    /**
+     * Number of direct dependencies in the analyzed package.
+     */
     direct_dependency_count: Int,
-    /** Crates resolved at multiple versions. */
+    /**
+     * Crates resolved at multiple versions.
+     */
     duplicates: List[Duplicate],
-    /** Dependency feature selections grouped by package. */
+    /**
+     * Dependency feature selections grouped by package.
+     */
     feature_fanout: List[PackageFanout],
-    /** Diagnostic explaining a Cargo dependency analysis failure. */
+    /**
+     * Diagnostic explaining a Cargo dependency analysis failure.
+     */
     message: String,
 }.
 

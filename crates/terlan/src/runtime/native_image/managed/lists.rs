@@ -11,10 +11,18 @@ use super::{
     ManagedTypeDescriptor, SemanticTypeId, TvmRef,
 };
 
+#[path = "lists/construction.rs"]
+mod construction;
+#[cfg(test)]
+#[path = "lists/construction_test.rs"]
+mod construction_test;
 #[path = "lists/persistent.rs"]
 mod persistent;
+use construction::{allocate_empty_root, allocate_internal, allocate_leaf, allocate_tree_root};
 #[path = "lists/transient.rs"]
 mod transient;
+#[path = "lists/traversal.rs"]
+mod traversal;
 
 pub use transient::ManagedListBuilder;
 
@@ -150,23 +158,9 @@ impl ActorHeap {
         elements: &[ManagedFieldValue],
     ) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
         validate_element_count(elements.len())?;
-        if elements.is_empty() {
-            return allocate_empty_root(self, descriptor);
-        }
-        if elements.len() <= INLINE_LIMIT {
-            return allocate_inline_root(self, descriptor, elements);
-        }
-        let mut level = elements
-            .chunks(BRANCH_FACTOR)
-            .map(|chunk| allocate_leaf(self, descriptor, chunk))
-            .collect::<Result<Vec<_>, _>>()?;
-        while level.len() > 1 {
-            level = level
-                .chunks(BRANCH_FACTOR)
-                .map(|children| allocate_internal(self, descriptor, children))
-                .collect::<Result<Vec<_>, _>>()?;
-        }
-        allocate_tree_root(self, descriptor, level[0], 0, elements.len())
+        self.with_allocation_transaction(|heap| {
+            construction::list_from_elements(heap, descriptor, elements)
+        })
     }
 
     /// Returns the logical list length in constant time.
@@ -175,7 +169,9 @@ impl ActorHeap {
         descriptor: &ManagedListDescriptor,
         list: TvmRef<ManagedList>,
     ) -> Result<usize, ManagedMemoryError> {
-        Ok(read_root(self, descriptor, list)?.0.length)
+        let length = read_root(self, descriptor, list)?.0.length;
+        validate_element_count(length)?;
+        Ok(length)
     }
 
     /// Reports whether a typed list contains no elements.
@@ -386,12 +382,25 @@ impl ActorHeap {
         start: usize,
     ) -> Result<Vec<ManagedFieldValue>, ManagedMemoryError> {
         let length = self.list_length(descriptor, list)?;
-        if start > length {
-            return Err(ManagedMemoryError::CollectionIndexOutOfBounds);
-        }
-        (start..length)
-            .map(|index| self.list_get(descriptor, list, index))
-            .collect()
+        let capacity = length
+            .checked_sub(start)
+            .ok_or(ManagedMemoryError::CollectionIndexOutOfBounds)?;
+        let mut elements = Vec::with_capacity(capacity);
+        traversal::visit(self, descriptor, list, start, &mut |value| {
+            elements.push(value);
+            Ok(())
+        })?;
+        Ok(elements)
+    }
+
+    /// Visits an immutable list leaf by leaf while this heap cannot move or mutate.
+    pub(super) fn visit_list(
+        &self,
+        descriptor: &ManagedListDescriptor,
+        list: TvmRef<ManagedList>,
+        mut visitor: impl FnMut(ManagedFieldValue) -> Result<(), ManagedMemoryError>,
+    ) -> Result<(), ManagedMemoryError> {
+        traversal::visit(self, descriptor, list, 0, &mut visitor)
     }
 }
 
@@ -403,17 +412,6 @@ struct NodeHeader {
     count: usize,
     total: usize,
     relaxed_descendant: bool,
-}
-
-/// Allocates the canonical empty-list root.
-fn allocate_empty_root(
-    heap: &mut ActorHeap,
-    descriptor: &ManagedListDescriptor,
-) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
-    let mut payload = vec![0; ROOT_HEADER_BYTES];
-    write_root_header(&mut payload, FORM_EMPTY, 0, 0)?;
-    let managed = root_descriptor(heap, descriptor, FORM_EMPTY, &[], &[])?;
-    heap.allocate(managed, &payload, &[])
 }
 
 /// Validates one list element against its exact scalar type or declared
@@ -435,22 +433,6 @@ fn validate_list_value(
     validate_typed_value(heap, descriptor.element_type, value)
 }
 
-/// Encodes one already typed list slot and records its precise reference.
-fn encode_list_slot(
-    heap: &ActorHeap,
-    descriptor: &ManagedListDescriptor,
-    payload: &mut [u8],
-    offset: usize,
-    value: ManagedFieldValue,
-    references: &mut impl Extend<(usize, TvmRef<()>)>,
-) -> Result<(), ManagedMemoryError> {
-    validate_list_value(heap, descriptor, value)?;
-    if let ManagedFieldValue::Reference(reference) = value {
-        references.extend(std::iter::once((offset, reference)));
-    }
-    encode_validated_typed_slot(payload, offset, descriptor.element_type, value)
-}
-
 /// Decodes one list slot while preserving transparent-union validation.
 fn decode_list_slot(
     heap: &ActorHeap,
@@ -465,187 +447,6 @@ fn decode_list_slot(
         return Ok(value);
     }
     decode_typed_slot(heap, object, payload, offset, descriptor.element_type)
-}
-
-/// Allocates a compact inline root with no child node.
-fn allocate_inline_root(
-    heap: &mut ActorHeap,
-    descriptor: &ManagedListDescriptor,
-    elements: &[ManagedFieldValue],
-) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
-    let (size, _) = packed_slot_layout(descriptor.element_type, ROOT_HEADER_BYTES, elements.len())?;
-    let mut payload = vec![0; size];
-    write_root_header(&mut payload, FORM_INLINE, elements.len(), 0)?;
-    let mut references = Vec::new();
-    for (index, value) in elements.iter().enumerate() {
-        let offset = packed_slot_offset(descriptor.element_type, ROOT_HEADER_BYTES, index)?;
-        encode_list_slot(
-            heap,
-            descriptor,
-            &mut payload,
-            offset,
-            *value,
-            &mut references,
-        )?;
-    }
-    let reference_offsets = references
-        .iter()
-        .map(|item| item.0)
-        .collect::<SmallVec<[usize; INLINE_LIMIT]>>();
-    let managed = root_descriptor(heap, descriptor, FORM_INLINE, elements, &reference_offsets)?;
-    heap.allocate(managed, &payload, &references)
-}
-
-/// Allocates one root that owns a tree and optional front cursor.
-fn allocate_tree_root(
-    heap: &mut ActorHeap,
-    descriptor: &ManagedListDescriptor,
-    tree: NodeSummary,
-    start: usize,
-    length: usize,
-) -> Result<TvmRef<ManagedList>, ManagedMemoryError> {
-    if start.checked_add(length).is_none_or(|end| end > tree.total) {
-        return Err(ManagedMemoryError::CorruptedCollection);
-    }
-    let mut payload = vec![0; TREE_ROOT_BYTES];
-    write_root_header(&mut payload, FORM_TREE, length, start)?;
-    let managed = root_descriptor(heap, descriptor, FORM_TREE, &[], &[TREE_REFERENCE_OFFSET])?;
-    heap.allocate(
-        managed,
-        &payload,
-        &[(TREE_REFERENCE_OFFSET, tree.reference.erase())],
-    )
-}
-
-/// Allocates one packed leaf of at most 32 typed elements.
-fn allocate_leaf(
-    heap: &mut ActorHeap,
-    descriptor: &ManagedListDescriptor,
-    elements: &[ManagedFieldValue],
-) -> Result<NodeSummary, ManagedMemoryError> {
-    if elements.is_empty() || elements.len() > BRANCH_FACTOR {
-        return Err(ManagedMemoryError::CorruptedCollection);
-    }
-    let (size, _) = packed_slot_layout(descriptor.element_type, NODE_HEADER_BYTES, elements.len())?;
-    let mut payload = vec![0; size];
-    write_node_header(
-        &mut payload,
-        NODE_LEAF,
-        0,
-        elements.len(),
-        elements.len(),
-        false,
-    )?;
-    let mut references = Vec::new();
-    for (index, value) in elements.iter().enumerate() {
-        let offset = packed_slot_offset(descriptor.element_type, NODE_HEADER_BYTES, index)?;
-        encode_list_slot(
-            heap,
-            descriptor,
-            &mut payload,
-            offset,
-            *value,
-            &mut references,
-        )?;
-    }
-    let reference_offsets = references
-        .iter()
-        .map(|item| item.0)
-        .collect::<SmallVec<[usize; BRANCH_FACTOR]>>();
-    let managed = node_descriptor(
-        heap,
-        ManagedListNodeShape {
-            semantic_id: descriptor.leaf_semantic_id,
-            kind: NODE_LEAF,
-            height: 0,
-            count: elements.len(),
-            size,
-            sizes: &[],
-            reference_offsets: &reference_offsets,
-        },
-    )?;
-    let reference = heap.allocate(managed, &payload, &references)?;
-    Ok(NodeSummary {
-        reference,
-        total: elements.len(),
-        height: 0,
-        relaxed: false,
-    })
-}
-
-/// Allocates one regular or relaxed 32-way internal node.
-fn allocate_internal(
-    heap: &mut ActorHeap,
-    descriptor: &ManagedListDescriptor,
-    children: &[NodeSummary],
-) -> Result<NodeSummary, ManagedMemoryError> {
-    if children.is_empty() || children.len() > BRANCH_FACTOR {
-        return Err(ManagedMemoryError::CorruptedCollection);
-    }
-    let child_height = children[0].height;
-    if children.iter().any(|child| child.height != child_height) {
-        return Err(ManagedMemoryError::CorruptedCollection);
-    }
-    let regular = children
-        .windows(2)
-        .all(|pair| pair[0].total == pair[1].total)
-        && children.iter().all(|child| !child.relaxed);
-    let kind = if regular { NODE_REGULAR } else { NODE_RELAXED };
-    let sizes_bytes = if regular { 0 } else { children.len() * 8 };
-    let size = NODE_HEADER_BYTES
-        .checked_add(children.len() * 8)
-        .and_then(|value| value.checked_add(sizes_bytes))
-        .ok_or(ManagedMemoryError::CollectionTooLarge)?;
-    let total = children.iter().try_fold(0_usize, |total, child| {
-        total
-            .checked_add(child.total)
-            .ok_or(ManagedMemoryError::CollectionTooLarge)
-    })?;
-    let mut payload = vec![0; size];
-    write_node_header(
-        &mut payload,
-        kind,
-        child_height + 1,
-        children.len(),
-        total,
-        children.iter().any(|child| child.relaxed),
-    )?;
-    let mut references = Vec::with_capacity(children.len());
-    let sizes_offset = NODE_HEADER_BYTES + children.len() * 8;
-    let mut cumulative = 0_usize;
-    for (index, child) in children.iter().enumerate() {
-        let offset = NODE_HEADER_BYTES + index * 8;
-        references.push((offset, child.reference.erase()));
-        if !regular {
-            cumulative = cumulative
-                .checked_add(child.total)
-                .ok_or(ManagedMemoryError::CollectionTooLarge)?;
-            write_u64(&mut payload, sizes_offset + index * 8, cumulative)?;
-        }
-    }
-    let reference_offsets = references
-        .iter()
-        .map(|item| item.0)
-        .collect::<SmallVec<[usize; BRANCH_FACTOR]>>();
-    let managed = node_descriptor(
-        heap,
-        ManagedListNodeShape {
-            semantic_id: descriptor.node_semantic_id,
-            kind,
-            height: child_height + 1,
-            count: children.len(),
-            size,
-            sizes: if regular { &[] } else { children },
-            reference_offsets: &reference_offsets,
-        },
-    )?;
-    let reference = heap.allocate(managed, &payload, &references)?;
-    Ok(NodeSummary {
-        reference,
-        total,
-        height: child_height + 1,
-        relaxed: !regular || children.iter().any(|child| child.relaxed),
-    })
 }
 
 /// Traverses one RRB node using regular arithmetic or relaxed cumulative sizes.

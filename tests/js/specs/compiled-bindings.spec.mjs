@@ -29,7 +29,7 @@ for (const module of modules) {
         if (reason !== failure) throw new Error('Promise rejection was lost');
       }
       const checked = [];
-      const optionalInner = type => type.match(/^(?:std\.core\.Option\.)?Option\[(.*)\]$/)?.[1];
+      const optionalInner = type => type.match(/^(?:(?:std\.core\.)?Option|std\.core\.Option\.Option)\[(.*)\]$/)?.[1];
       const nativeValue = (type, marker) => {
         const inner = optionalInner(type);
         if (inner) return nativeValue(inner, marker);
@@ -46,6 +46,24 @@ for (const module of modules) {
       for (const member of evidence.members ?? []) {
         const helper = bindings[`${member.name}_typechecks`];
         if (typeof helper !== 'function') throw new Error(`Missing compiled helper: ${member.name}`);
+        if (member.kind === 'mixin') {
+          const receiver = { marker: member.name };
+          const callbacks = (member.parameters ?? []).map((_, index) => function (...args) {
+            if (this !== receiver) throw new Error('Mixin callback lost its receiver');
+            return { index, args };
+          });
+          if (member.js_names?.length !== callbacks.length) throw new Error(`Incomplete mixin contract: ${member.name}`);
+          const actual = helper(receiver, ...callbacks);
+          if (actual !== receiver || actual.marker !== member.name) throw new Error('Mixin lost target identity or state');
+          (member.js_names ?? []).forEach((key, index) => {
+            if (actual[key] !== callbacks[index]) throw new Error(`Mixin installed the wrong member: ${key}`);
+            const argument = { marker: key };
+            const observed = actual[key](argument);
+            if (observed.index !== index || observed.args[0] !== argument) throw new Error(`Mixin changed callback arguments: ${key}`);
+          });
+          checked.push(member.name);
+          continue;
+        }
         const calls = [];
         let expected = nativeValue(member.return_type, `${evidence.module}.${member.js_name}`);
         const receiver = new Proxy({}, {
@@ -82,8 +100,13 @@ for (const module of modules) {
           });
         }
         if (option) {
-          expected = null;
-          if (helper(receiver, ...arguments_) !== 'none') throw new Error(`Null was not converted to None: ${member.name}`);
+          for (const missing of [null, undefined]) {
+            expected = missing;
+            const observed = helper(receiver, ...arguments_);
+            if (missing === null && member.undefined_only) {
+              if (!Array.isArray(observed) || observed[0] !== 'some' || observed[1] !== null) throw new Error(`Present null was lost: ${member.name}`);
+            } else if (observed !== 'none') throw new Error(`Absent result was not converted to None: ${member.name}`);
+          }
         }
         if (member.parameters?.some(parameter => parameter.optional)) {
           calls.length = 0;

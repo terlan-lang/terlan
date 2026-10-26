@@ -60,7 +60,7 @@ fn type_parser_preserves_explicit_array_names() {
         &mut 0,
     )
     .expect("parse qualified JavaScript array");
-    assert_eq!(pretty_type(&ty), "std.js.Array.Array[Int]");
+    assert_eq!(pretty_type(&ty), "std.js.Array[Int]");
 }
 
 /// Renaming the type keeps constant bounds checks and size identity intact.

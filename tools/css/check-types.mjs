@@ -29,7 +29,7 @@ try {
         await copyFile(path.join(source, name), path.join(directory, 'std/css', name));
       }
       const dependencies = index === 0
-        ? ['Border.terl', 'Gap.terl', 'Height.terl', 'Margin.terl', 'MarginLeft.terl', 'Padding.terl', 'Width.terl']
+        ? ['Border.terl', 'Gap.terl', 'GridRowStart.terl', 'Height.terl', 'Margin.terl', 'MarginLeft.terl', 'Padding.terl', 'Width.terl']
         : [];
       await Promise.all([...new Set([...batches[index], ...dependencies])]
         .map(name => copyFile(path.join(source, 'properties', name), path.join(destination, name))));

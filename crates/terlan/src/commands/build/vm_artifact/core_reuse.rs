@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 
 use crate::compiler::native_ir::NativeCodegenPolicy;
 use crate::runtime::native_boundary::adapter_abi::NativeAdapterAbiContract;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::runtime::native_image::aggregate_projection::NativeAggregateProjection;
 use crate::runtime::native_image::{host_tvm_target, inspect_tvm_image};
 use crate::terlan_typeck::CoreModule;
@@ -42,7 +42,7 @@ struct Payload {
     schema: String,
     core_identity: String,
     native_identity: String,
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     projections: Vec<NativeAggregateProjection>,
 }
 
@@ -72,7 +72,12 @@ pub(super) fn hash_serialized(value: &impl Serialize) -> Result<String, BuildOne
     serde_json::to_writer(&mut writer, value).map_err(|error| {
         BuildOneError::Message(format!("cannot hash native reuse input: {error}"))
     })?;
-    Ok(format!("{:x}", writer.0.finalize()))
+    Ok(writer
+        .0
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
 }
 
 impl CoreReuse {
@@ -238,7 +243,7 @@ impl CoreReuse {
             cached_image_path: directory.join(&image_name),
             image_name,
             cache_input_sha256: payload.native_identity,
-            #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             aggregate_projections: payload.projections,
         }))
     }
@@ -253,7 +258,7 @@ impl CoreReuse {
             schema: SCHEMA.to_string(),
             core_identity: self.identity.clone(),
             native_identity: image.cache_input_sha256.clone(),
-            #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             projections: image.aggregate_projections.clone(),
         };
         let binding = hash_serialized(&payload)?;

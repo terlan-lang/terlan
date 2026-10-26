@@ -3,7 +3,7 @@ use super::*;
 use crate::admitted_response::AdmittedResponse;
 use terlan_runtime_abi::{native_record, NativeValue as V};
 
-fn run(router: &Router<V>, host: &mut Script) -> Result<AdmittedResponse, String> {
+fn run(router: &Router<V>, host: &mut Script) -> Result<AdmittedResponse, WebRouteError> {
     execute(
         router,
         RouteMethod::Get,
@@ -175,7 +175,9 @@ fn conversion_recovery_is_bounded_and_never_replays_completed_stages() {
     assert_eq!(host.admitted, 2);
     let mut host = Script::new([("handler", Err("original".into()))]);
     assert_eq!(
-        run(&router(&[], &[], false), &mut host).unwrap_err(),
+        run(&router(&[], &[], false), &mut host)
+            .unwrap_err()
+            .to_string(),
         "original"
     );
 }
