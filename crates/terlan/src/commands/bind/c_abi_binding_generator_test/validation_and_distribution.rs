@@ -511,7 +511,16 @@ pub(super) fn external_c_distribution_can_compile_package_owned_adapter_sources(
         .expect("generate externally linked package with adapter source");
     assert!(out_dir.join("native/rust/c/external_adapter.c").is_file());
     let cargo = fs::read_to_string(out_dir.join("native/rust/Cargo.toml")).expect("Cargo.toml");
-    assert!(cargo.contains("cc = \"=1.8.0\""));
+    let generated: Value = toml::from_str(&cargo).expect("generated manifest");
+    let workspace: Value = toml::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../Cargo.toml"
+    )))
+    .expect("workspace manifest");
+    assert_eq!(
+        generated["build-dependencies"]["cc"],
+        workspace["workspace"]["dependencies"]["cc"]
+    );
     let build = fs::read_to_string(out_dir.join("native/rust/build.rs")).expect("build.rs");
     assert!(build.contains("c_build.file(\"c/external_adapter.c\")"));
     assert!(build.contains("c_build.include(root.join(\"include\"))"));

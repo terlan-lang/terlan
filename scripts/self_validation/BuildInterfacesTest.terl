@@ -308,7 +308,7 @@ completions_hold(completions: List[BatchCompletion]): Bool ->
                 {Some(output), None} ->
                     if {
                         output.status == 0 -> completions_hold(rest);
-                        true -> print_output_failure("NativeBoundary metadata command failed", output)
+                        true -> print_output_failure("interface command failed", output)
                     };
                 {None, Some(reason)} ->
                     print_process_error("NativeBoundary metadata command failed", reason);
@@ -415,15 +415,91 @@ emit_interfaces(
     jobs: Int,
     inventory: SourceInventory,
 ): Bool ->
-    let arguments = interface_arguments(inventory.sources, output);
-    let command = process_command(compiler, root, arguments);
+    let standard = standard_interface_sources(inventory.sources);
+    let command = process_command(compiler, root, interface_arguments(standard, output));
     case Process.run(command) {
         Ok(result) ->
             if {
-                result.status == 0 -> emit_native_interfaces(root, output, compiler, jobs, inventory);
+                result.status == 0 -> emit_css_interfaces(root, output, compiler, jobs, inventory);
                 true -> print_output_failure("interface generation failed", result)
             };
         Err(reason) -> print_process_error("interface generation failed", reason)
+    }.
+
+emit_css_interfaces(
+    root: String,
+    output: String,
+    compiler: String,
+    jobs: Int,
+    inventory: SourceInventory,
+): Bool ->
+    let properties = css_interface_sources(inventory.sources);
+    let commands = css_interface_commands(compiler, root, output, properties, [], 0);
+    case commands {
+        [] -> emit_native_interfaces(root, output, compiler, jobs, inventory);
+        _ ->
+            case Process.run_many(Process.batch(commands, jobs)) {
+                Ok(batch) ->
+                    if {
+                        completions_hold(batch.completions) -> emit_native_interfaces(root, output, compiler, jobs, inventory);
+                        true -> false
+                    };
+                Err(reason) -> print_process_error("CSS interface generation failed", reason)
+            }
+    }.
+
+@pure
+is_css_property_source(path: String): Bool ->
+    String.starts_with(path, "std/css/properties/") or String.contains(path, "/std/css/properties/").
+
+@pure
+standard_interface_sources(paths: List[String]): List[String] ->
+    case paths {
+        [] -> [];
+        [path | rest] ->
+            if {
+                is_css_property_source(path) -> standard_interface_sources(rest);
+                true -> [path | standard_interface_sources(rest)]
+            }
+    }.
+
+@pure
+css_interface_sources(paths: List[String]): List[String] ->
+    case paths {
+        [] -> [];
+        [path | rest] ->
+            if {
+                is_css_property_source(path) -> [path | css_interface_sources(rest)];
+                true -> css_interface_sources(rest)
+            }
+    }.
+
+css_interface_commands(
+    compiler: String,
+    root: String,
+    output: String,
+    sources: List[String],
+    batch: List[String],
+    count: Int,
+): List[Command] ->
+    if {
+        count == 64 -> [process_command(compiler, root, interface_arguments(reverse_strings(batch), output)) | css_interface_commands(compiler, root, output, sources, [], 0)];
+        true -> case sources {
+            [] ->
+                case batch {
+                    [] -> [];
+                    _ ->
+                        [
+                            process_command(
+                                compiler,
+                                root,
+                                interface_arguments(reverse_strings(batch), output),
+                            ),
+                        ]
+                };
+            [source | rest] ->
+                css_interface_commands(compiler, root, output, rest, [source | batch], count + 1)
+        }
     }.
 
 emit_native_interfaces(
@@ -465,6 +541,38 @@ finish_interfaces(output: String, source_count: Int): Bool ->
             ),
         );
     cleanup_output(output).
+
+@test
+pub css_source_partition_preserves_paths_and_order(): Bool ->
+    let sources =
+        [
+            "std/css/Values.terl",
+            "std/css/properties/Width.terl",
+            "std/css/properties_backup/Other.terl",
+            "/checkout/std/css/properties/Height.terl",
+        ];
+    standard_interface_sources(sources) == ["std/css/Values.terl", "std/css/properties_backup/Other.terl"]
+        and css_interface_sources(sources) == ["std/css/properties/Width.terl", "/checkout/std/css/properties/Height.terl"].
+
+css_batch_test_paths(index: Int, limit: Int): List[String] ->
+    if {
+        index == limit -> [];
+        true -> [String.concat(["std/css/properties/P", Int.to_string(index), ".terl"]) | css_batch_test_paths(index + 1, limit)]
+    }.
+
+@test
+pub css_interface_batches_bound_argv_without_losing_sources(): Bool ->
+    case css_interface_commands("compiler", "/checkout", "out", css_batch_test_paths(0, 65), [], 0) {
+        [first, second] ->
+            string_list_length(first.arguments) == 67
+                and first.arguments[0] == "interface"
+                and first.arguments[1] == "std/css/properties/P0.terl"
+                and first.arguments[64] == "std/css/properties/P63.terl"
+                and first.arguments[65] == "--out-dir"
+                and first.arguments[66] == "out"
+                and second.arguments == ["interface", "std/css/properties/P64.terl", "--out-dir", "out"];
+        _ -> false
+    }.
 
 @test
 pub source_classification_preserves_public_test_module(): Bool ->

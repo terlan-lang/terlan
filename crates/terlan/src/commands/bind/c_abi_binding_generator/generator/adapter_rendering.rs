@@ -117,10 +117,15 @@ pub(super) fn render_rust_adapter_cargo(manifest: &CAbiBindingManifest) -> Strin
     if !manifest.c_metadata.sources.is_empty() || uses_pkg_config {
         cargo.push_str("\n[build-dependencies]\n");
         if !manifest.c_metadata.sources.is_empty() {
-            cargo.push_str(&format!(
-                "{}\n",
-                dependency("cc", &format!("={CC_VERSION}"))
-            ));
+            let workspace: toml::Value = toml::from_str(include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../Cargo.toml"
+            )))
+            .expect("compiler workspace manifest must be valid TOML");
+            let cc = workspace["workspace"]["dependencies"]["cc"]
+                .as_str()
+                .expect("compiler workspace must pin the cc version");
+            cargo.push_str(&format!("{}\n", dependency("cc", cc)));
         }
         if uses_pkg_config {
             cargo.push_str(&format!("{}\n", dependency("pkg-config", "=0.3.33")));
