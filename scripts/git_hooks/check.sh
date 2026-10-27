@@ -104,6 +104,7 @@ while IFS= read -r lane; do
       make --no-print-directory repository-build-release-contract-check \
         TERLAN_VALIDATION_BOOTSTRAPPED=1 \
         "TERLAN_REPOSITORY_VALIDATION=\"$terlc\" run scripts/self_validation/RepositoryValidation.terls --"
+      "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
       ;;
     '') ;;
     *) echo "Unknown pre-commit lane: $lane" >&2; exit 1 ;;

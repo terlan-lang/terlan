@@ -179,3 +179,11 @@ pub publication_workflow_checks_release_contract(): Bool ->
 @test
 pub release_validator_changes_execute_the_contract(): Bool ->
     Plan.lanes(["scripts/self_validation/RepositoryValidation.terls"]) == ["shell", "release-contract", "terlan"].
+
+@test
+pub platform_installer_changes_execute_release_contract_tests(): Bool ->
+    Plan.lanes(
+    [
+        "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseInstallerSmoke.terl",
+    ],
+) == ["shell", "release-contract", "terlan"].

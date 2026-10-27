@@ -83,6 +83,7 @@ pub release_contract(paths: List[String]): Bool ->
         or affected(paths, "mk/", "")
         or affected(paths, "scripts/", ".sh")
         or affected(paths, "scripts/self_validation/RepositoryValidation.terls", "")
+        or affected(paths, "scripts/self_validation/tvm_aot_platform_matrix/", "")
         or affected(paths, "editors/editor.mk", "")
         or affected(paths, "rust-toolchain.toml", "").
 

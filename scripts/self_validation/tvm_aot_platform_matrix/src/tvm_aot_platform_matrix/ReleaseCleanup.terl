@@ -1,0 +1,81 @@
+/**
+ * Removes installer smoke directories, allowing bounded Windows lock delays.
+ */
+module tvm_aot_platform_matrix.ReleaseCleanup.
+
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.io.Console.{eprintln}.
+import std.io.Directory.
+import std.system.{Platform, Process}.
+
+import type std.core.Result.
+import type std.io.Directory.DirectoryError.
+
+/**
+ * Wait on the host clock: script VM timers can advance logical time directly.
+ * The Windows release runners already require PowerShell for the installer.
+ */
+wait(): Bool ->
+    let host = Platform.current();
+    let command =
+        if {
+            host.operating_system == "windows" -> Process.command("powershell")
+                .with_arguments(
+                    [
+                        "-NoLogo",
+                        "-NoProfile",
+                        "-NonInteractive",
+                        "-Command",
+                        "Start-Sleep -Milliseconds 500",
+                    ],
+                );
+            true -> Process.command("sleep").with_arguments(["0.5"])
+        };
+    case Process.run(command.with_timeout_ms(10000).with_output_limit_bytes(4096)) {
+        Ok(output) -> output.status == 0;
+        Err(_error) -> false
+    }.
+
+/**
+ * Retries failed removals after waiting; the final filesystem error survives.
+ */
+pub remove(path: String, retries: Int): Result[Unit, DirectoryError] ->
+    case Directory.remove_all(path) {
+        Ok(Unit) -> Ok(Unit);
+        Err(error) ->
+            if {
+                retries <= 0 -> Err(error);
+                not wait() -> Err(error);
+                true -> remove(path, retries - 1)
+            }
+    }.
+
+/**
+ * Windows may briefly retain executable handles after a child exits.
+ * Allow ten half-second waits, then fail with the path and OS diagnostic.
+ * Successful cleanup must never turn a failed validation into a pass.
+ */
+pub cleanup(path: String, valid: Bool): Bool ->
+    let host = Platform.current();
+    let retries =
+        if {
+            host.operating_system == "windows" -> 10;
+            true -> 0
+        };
+    case remove(path, retries) {
+        Ok(Unit) -> valid;
+        Err(error) ->
+            let _printed =
+                eprintln(
+                    String.concat(
+                        [
+                            "error[release_installer_smoke.cleanup]: cannot remove ",
+                            path,
+                            ": ",
+                            error.message,
+                        ],
+                    ),
+                );
+            false
+    }.

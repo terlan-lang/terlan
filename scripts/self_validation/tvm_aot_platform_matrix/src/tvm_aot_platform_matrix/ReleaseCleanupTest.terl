@@ -1,0 +1,54 @@
+module tvm_aot_platform_matrix.ReleaseCleanupTest.
+
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.io.{Directory, File}.
+import std.time.Clock.
+import tvm_aot_platform_matrix.ReleaseCleanup.
+
+cleanup_result(valid: Bool): Bool ->
+    case Directory.create_temporary("terlan-cleanup-test.") {
+        Err(_error) -> false;
+        Ok(path) ->
+            let nested = String.append(path, "/nested");
+            case Directory.create_all(nested) {
+                Err(_error) ->
+                    let _removed = Directory.remove_all(path);
+                    false;
+                Ok(Unit) ->
+                    let result = ReleaseCleanup.cleanup(path, valid);
+                    result == valid and not File.exists(path)
+            }
+    }.
+
+@test
+pub cleanup_preserves_success_and_removes_nested_directories(): Bool ->
+    cleanup_result(true).
+
+@test
+pub cleanup_preserves_validation_failure(): Bool ->
+    cleanup_result(false).
+
+failure_result(retries: Int): Bool ->
+    case Directory.create_temporary("terlan-cleanup-failure-test.") {
+        Err(_error) -> false;
+        Ok(path) ->
+            let missing = String.append(path, "/missing");
+            let started = Clock.monotonic_time_ns();
+            let result = ReleaseCleanup.remove(missing, retries);
+            let elapsed = Clock.monotonic_time_ns() - started;
+            let _removed = Directory.remove_all(path);
+            case result {
+                Ok(Unit) -> false;
+                Err(error) ->
+                    error.path == missing and error.message != "" and elapsed >= retries * 500000000
+            }
+    }.
+
+@test
+pub permanent_failure_returns_after_bounded_host_clock_retries(): Bool ->
+    failure_result(2).
+
+@test
+pub zero_retry_budget_preserves_filesystem_error(): Bool ->
+    failure_result(0).

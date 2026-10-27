@@ -11,7 +11,7 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.{Archive, Directory, File}.
 import std.system.{Environment, Process}.
-import tvm_aot_platform_matrix.{ReleasePayload, ReleasePlatform, ReleaseSmoke}.
+import tvm_aot_platform_matrix.{ReleaseCleanup, ReleasePayload, ReleasePlatform, ReleaseSmoke}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -154,10 +154,7 @@ if {
 }).
 
 cleanup(temporary: String, valid: Bool): Bool ->
-    case Directory.remove_all(temporary) {
-        Ok(Unit) -> valid;
-        Err(_reason) -> failure("cleanup", "cannot remove installer smoke directory")
-    }.
+    ReleaseCleanup.cleanup(temporary, valid).
 
 installer_environment(
     temporary: String,
