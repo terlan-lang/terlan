@@ -1,4 +1,5 @@
 module tvm_aot_platform_matrix.LinuxCompatibilityTest.
+
 import tvm_aot_platform_matrix.LinuxCompatibility.
 
 @test

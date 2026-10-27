@@ -401,7 +401,8 @@ pub package(root: String): Bool ->
         _ -> failure("inputs", "release package inputs are incomplete")
     };
     LinuxCompatibility.check(
-        [binaries.compiler, binaries.vm, binaries.native_worker, binaries.lsp],
-        platform.operating_system,
-        platform.architecture,
-    ) and finish_package(root, platform, binaries, native, payloads).
+    [binaries.compiler, binaries.vm, binaries.native_worker, binaries.lsp],
+    platform.operating_system,
+    platform.architecture,
+)
+        and finish_package(root, platform, binaries, native, payloads).

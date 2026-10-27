@@ -74,10 +74,15 @@ payload_hashes(values: List[Payload]): Option[Json] ->
 
 put_identity(metadata: Json, platform: ReleasePlatform, version: String, revision: String): Json ->
     let triple = ReleasePlatform.target_triple(platform);
-    let _compatibility = if {
-        platform.operating_system == "linux" -> metadata.put("minimum_glibc", Json.string(LinuxCompatibility.minimum(platform.architecture)));
-        _ -> metadata
-    };
+    let _compatibility =
+        if {
+            platform.operating_system == "linux" -> metadata
+                .put(
+                    "minimum_glibc",
+                    Json.string(LinuxCompatibility.minimum(platform.architecture)),
+                );
+            true -> metadata
+        };
     metadata
         .put("schema", Json.string("terlan.release-artifact.v1"))
         .put("package", Json.string("terlan"))

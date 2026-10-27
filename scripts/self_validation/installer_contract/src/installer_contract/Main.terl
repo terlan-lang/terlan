@@ -118,7 +118,11 @@ fixture_files(compiler_exit: Int): List[FixtureFile] ->
             contents = "fake native image\n",
             executable = false,
         ),
-        FixtureFile(relative = "terlan-release.json", contents = "{\"minimum_glibc\":\"2.0\"}\n", executable = false),
+        FixtureFile(
+            relative = "terlan-release.json",
+            contents = "{\"minimum_glibc\":\"2.0\"}\n",
+            executable = false,
+        ),
         FixtureFile(relative = "SHA256SUMS", contents = "\n", executable = false),
         FixtureFile(
             relative = "terlan-install-manifest.json",
