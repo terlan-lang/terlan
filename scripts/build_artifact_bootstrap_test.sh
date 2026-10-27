@@ -120,3 +120,43 @@ CARGO
   done
 )
 echo 'Optimized validation runtime preserves process ownership and prebuilt checks.'
+
+# The real Make consumer must admit the limits emitted by the typed producer.
+mkdir -p "$temporary/contract/target/quality"
+awk '/^repository-build-release-contract-check:/ { copying=1 }
+  copying && /^$/ { exit }
+  copying { print }' "$root/Makefile" > "$temporary/contract/Makefile"
+cat >> "$temporary/contract/Makefile" <<'MAKE'
+.PHONY: terlan-repository-validation-bootstrap
+terlan-repository-validation-bootstrap:
+TERLAN_REPOSITORY_VALIDATION := bash producer.sh
+MAKE
+cat > "$temporary/contract/producer.sh" <<'PRODUCER'
+set -eu
+test "$1" = build-release-contract
+cp input.json target/quality/validation-build-plan-report.json
+PRODUCER
+{
+  printf '{\n  "decision": "pass",\n  "duplicate_equivalent_build_count": 0,\n'
+  printf '  "terlc_test_invocation_count": 31,\n  "incremental_terlc_build_invocation_count": 18,\n  "lifecycle_partial_check_count": 2,\n'
+  awk '/\.put\("[a-z_]+", Json\.int\([0-9]+\)\)/ {
+    key=$0; sub(/^.*\.put\("/, "", key); sub(/".*$/, "", key)
+    value=$0; sub(/^.*Json\.int\(/, "", value); sub(/\).*$/, "", value)
+    if (key ~ /_maximum$/) printf "  \"%s\": %s,\n", key, value
+  }' "$root/scripts/self_validation/RepositoryValidation.terls"
+  printf '  "fixture": true\n}\n'
+} > "$temporary/contract/valid.json"
+(
+  cd "$temporary/contract"
+  unset MAKEFLAGS MAKEOVERRIDES MFLAGS
+  cp valid.json input.json
+  make --no-print-directory repository-build-release-contract-check
+  for key in terlc_build_invocation_maximum typed_validator_request_maximum; do
+    sed "s/\"$key\": [0-9]*/\"$key\": 0/" valid.json > input.json
+    if make --no-print-directory repository-build-release-contract-check > rejected.log 2>&1; then
+      echo "Build-plan consumer accepted an invalid $key" >&2
+      exit 1
+    fi
+  done
+)
+echo 'Build-plan Make consumer admits producer limits and rejects invalid limits.'
