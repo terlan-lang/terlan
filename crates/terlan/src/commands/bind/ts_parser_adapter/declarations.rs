@@ -94,10 +94,10 @@ pub(in crate::commands::bind) struct TsInterfaceDeclaration {
 /// - Alias namespace, source name, type parameters, and target type reference.
 ///
 /// Transformation:
-/// - Keeps namespace aliases, such as Angular's `ng.*` declarations, in the
-///   same generator-owned model as interface bindings.
+/// - Keeps namespace aliases in the same generator-owned model as interfaces.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::commands::bind) struct TsTypeAliasDeclaration {
+    pub(in crate::commands::bind) imported: bool,
     pub(in crate::commands::bind) namespace: String,
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) doc: Option<String>,
@@ -248,12 +248,44 @@ pub(in crate::commands::bind) fn parse_ts_declaration_file(
     }
 
     let mut declarations = Vec::new();
+    let mut imports = std::collections::BTreeSet::new();
     for statement in &parsed.program.body {
+        if let Statement::ImportDeclaration(import) = statement {
+            for specifier in import.specifiers.iter().flatten() {
+                use oxc_ast::ast::ImportDeclarationSpecifier;
+                let local = match specifier {
+                    ImportDeclarationSpecifier::ImportSpecifier(specifier) => &specifier.local,
+                    ImportDeclarationSpecifier::ImportDefaultSpecifier(specifier) => {
+                        &specifier.local
+                    }
+                    ImportDeclarationSpecifier::ImportNamespaceSpecifier(specifier) => {
+                        &specifier.local
+                    }
+                };
+                imports.insert(local.name.as_str());
+            }
+        }
         declarations.extend(parse_top_level_statement(
             source,
             &parsed.program.comments,
             statement,
         )?);
+    }
+
+    // Imported implementations are outside the input closure. Preserve their
+    // public aliases as opaque JS values without guessing from naming conventions.
+    for declaration in &mut declarations {
+        if let TsDeclaration::TypeAlias(alias) = declaration {
+            let imported = match &alias.ty {
+                TsTypeRef::Named(name) | TsTypeRef::Generic { name, .. } => {
+                    imports.contains(name.as_str()) && !alias.type_params.contains(name)
+                }
+                _ => false,
+            };
+            if imported {
+                alias.imported = true;
+            }
+        }
     }
 
     Ok(TsDeclarationFile { declarations })
@@ -713,6 +745,7 @@ fn parse_type_alias(
     alias: &oxc_ast::ast::TSTypeAliasDeclaration<'_>,
 ) -> Result<TsTypeAliasDeclaration, TsParseError> {
     Ok(TsTypeAliasDeclaration {
+        imported: false,
         namespace: namespace.to_string(),
         name: alias.id.name.to_string(),
         doc: leading_jsdoc(source, comments, alias.span),

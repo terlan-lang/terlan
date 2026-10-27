@@ -21,7 +21,7 @@ native bindings, and VM-owned HTTP/networking.
 
 ## Status
 
-Current version: `0.0.9`.
+Current version: `0.10.0`.
 
 Terlan is still early and experimental. The syntax, runtime, standard library,
 VM, editor integrations, and release tooling are changing quickly. The current
@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh 
 Pin a published release through the installer:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.9 sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.10.0 sh
 ```
 
 On Windows, use PowerShell:
@@ -323,7 +323,7 @@ inputs.
 From a clean `main` checkout, run:
 
 ```sh
-make publish VERSION=0.0.9
+make publish VERSION=0.10.0
 ```
 
 The command rejects uncommitted changes, runs local release validation, native

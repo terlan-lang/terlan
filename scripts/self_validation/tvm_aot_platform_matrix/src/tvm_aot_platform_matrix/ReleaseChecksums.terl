@@ -1,0 +1,34 @@
+module tvm_aot_platform_matrix.ReleaseChecksums.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+
+import type std.core.Option.
+import type std.crypto.Hash.LabeledFile.
+
+reverse(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse(rest, [value | reversed])
+    }.
+
+rows(files: List[LabeledFile], reversed: List[String]): Option[String] ->
+    case files {
+        [] -> Some(String.concat(reverse(reversed, [])));
+        [file | rest] ->
+            case Hash.sha256_file(file.path) {
+                Err(_reason) -> None;
+                Ok(digest) ->
+                    let row = String.concat([digest, "  ", file.label, "\n"]);
+                    rows(rest, [row | reversed])
+            }
+    }.
+
+/**
+ * Formats caller-ordered SHA256SUMS rows with one final concatenation.
+ * Each file is hashed once and checksum prefixes are never copied repeatedly.
+ */
+pub render(files: List[LabeledFile]): Option[String] ->
+    rows(files, []).

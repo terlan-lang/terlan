@@ -172,11 +172,13 @@ fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
                 .iter()
                 .map(map_ts_type_inner)
                 .collect::<Result<Vec<_>, _>>()?;
-            Ok(format!(
-                "({}) -> {}",
-                parameters.join(", "),
-                map_ts_type_inner(return_type)?
-            ))
+            let result = map_ts_type_inner(return_type)?;
+            let result = if matches!(return_type.as_ref(), TsTypeRef::Callback { .. }) {
+                format!("({result})")
+            } else {
+                result
+            };
+            Ok(format!("({}) -> {result}", parameters.join(", ")))
         }
         #[cfg(test)]
         TsTypeRef::OverloadSet(_) => Err(skip_type("ts_bindgen.overload_requires_resolution", ty)),

@@ -80,7 +80,7 @@ fn render_property_test(module: &DomModulePlan, property: &DomPropertyPlan) -> S
         "pub {}_typechecks(receiver: {}): {} ->\n    receiver.{}().\n",
         property.terlan_name,
         render_type_reference_name(module),
-        property.terlan_type,
+        return_annotation(&property.terlan_type),
         property.terlan_name
     )
 }
@@ -113,7 +113,7 @@ fn render_method_test(module: &DomModulePlan, method: &DomMethodPlan) -> String 
         "pub {}_typechecks({}): {} ->\n    receiver.{}({}).\n",
         method.terlan_name,
         params.join(", "),
-        method.return_type,
+        return_annotation(&method.return_type),
         method.terlan_name,
         argument_names.join(", ")
     )

@@ -12,16 +12,21 @@ This module owns `terlc bind`, the package-binding generator surface.
 
 ## Current Scope
 
-The current binding command owns six deterministic generator surfaces:
+The current binding command owns five deterministic generator surfaces:
 
 ```sh
 terlc bind native --crate polars --out packages/std/native/polars
-terlc bind angular-ts --out generated/angular-ts
 terlc bind typescript --input bindings/Host.d.ts --namespace app.host --out generated/host
+terlc bind typescript --manifest bindings/inputs.json --out generated/package
 terlc bind js-dom --manifest std/js/manifests/std_js_dom_inputs.json --out generated/std-js
 terlc bind cpp --manifest cpp-project/native-binding.json --out generated/cpp-project
 terlc bind c --manifest c-project/native-binding.json --out generated/c-project
 ```
+
+Framework packages own declaration manifests, version selection, convenience
+APIs, and compatibility policy. The compiler accepts any package through the
+generic TypeScript target; it does not add framework APIs to generated output.
+Manifest mode accepts multiple pinned inputs and preserves each input namespace.
 
 The direct TypeScript target pins a local declaration file and emits getters,
 setters for supported writable properties, and `construct` for complete data

@@ -3,13 +3,13 @@
 use super::*;
 use crate::commands::serve::ServeResult;
 use std::collections::BTreeMap;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader, Write};
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use std::time::Instant;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use sha2::{Digest, Sha256};
 
 const SERVE_RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
@@ -17,11 +17,11 @@ const COMPILER_DAEMON_ENV: &str = "TERLAN_SERVE_COMPILER_DAEMON";
 const COMPILER_DAEMON_PREFIX: &str = "TERLAN_GENERATION:";
 const PERSISTED_GENERATION_SCHEMA: &str = "terlan-serve-generation-v30";
 const ACTIVE_GENERATION_SCHEMA: &str = "terlan-serve-active-generation-v1";
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 const RELOAD_REPORT_SCHEMA: &str = "terlan-aot-developer-hot-reload-v1";
 const MAX_GENERATION_METADATA_BYTES: u64 = 1024 * 1024;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 #[path = "source_generation/developer_reload.rs"]
 pub(super) mod developer_reload;
 
@@ -116,18 +116,18 @@ pub(super) fn cached_source_entry(
             .insert(source_path.to_path_buf(), entry.clone());
         return Ok(entry);
     }
-    #[cfg(all(feature = "serve-runtime-bin", not(test)))]
+    #[cfg(all(feature = "serve-runtime-bin", not(feature = "native-codegen"), not(test)))]
     return Err(
         "error[serve.aot.runtime_mode]: compiler-free runtime requires persisted generation metadata"
             .into(),
     );
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     {
         compile_source_generation(web_root, source_path, expected_module, source, checksum)
     }
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn compile_source_generation(
     web_root: &Path,
     source_path: &Path,
@@ -145,7 +145,7 @@ fn compile_source_generation(
     Ok(entry)
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn compile_source_candidate(
     web_root: &Path,
     source_path: &Path,
@@ -235,7 +235,7 @@ fn compile_source_candidate(
     Ok(entry)
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn compatibility_for_core(
     core: &crate::terlan_typeck::CoreModule,
 ) -> ServeResult<ServeGenerationCompatibility> {
@@ -260,7 +260,7 @@ fn compatibility_for_core(
     })
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn hash_contract(bytes: &[u8]) -> String {
     let mut result = String::from("sha256:");
     for byte in Sha256::digest(bytes) {
@@ -397,7 +397,7 @@ fn load_persisted_generation(
             http_session_service_for(web_root)?,
         )?),
         compatibility: generation.compatibility.clone(),
-        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         persisted: generation,
     }))
 }
@@ -451,7 +451,7 @@ pub(super) fn active_generation_metadata_path(
             .join(relative),
     ))
 }
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn persist_generation_batch(
     web_root: &Path,
     generations: &[PersistedServeGeneration],
@@ -528,7 +528,10 @@ fn persist_generation_batch(
 
 /// Flushes the directory entry that publishes an active generation where the
 /// host exposes directory fsync through ordinary file handles.
-#[cfg(all(any(test, not(feature = "serve-runtime-bin")), not(windows)))]
+#[cfg(all(
+    any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"),
+    not(windows)
+))]
 fn sync_generation_directory(path: &Path) -> ServeResult<()> {
     fs::File::open(path)
         .and_then(|directory| directory.sync_all())
@@ -545,12 +548,15 @@ fn sync_generation_directory(path: &Path) -> ServeResult<()> {
 /// directory handle, and `FlushFileBuffers` does not provide the Unix fsync
 /// contract for that handle. The generation files are already individually
 /// synced before their atomic rename, so there is no unsupported second flush.
-#[cfg(all(any(test, not(feature = "serve-runtime-bin")), windows))]
+#[cfg(all(
+    any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"),
+    windows
+))]
 fn sync_generation_directory(_path: &Path) -> ServeResult<()> {
     Ok(())
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn read_active_generation(path: &Path) -> ServeResult<Option<ActiveServeGeneration>> {
     match fs::read(path) {
         Ok(bytes) => Ok(serde_json::from_slice::<ActiveServeGeneration>(&bytes)
@@ -570,7 +576,7 @@ fn read_active_generation(path: &Path) -> ServeResult<Option<ActiveServeGenerati
     }
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn write_synced_new_file(path: &Path, bytes: &[u8]) -> ServeResult<()> {
     let mut output = fs::OpenOptions::new()
         .create_new(true)
@@ -756,7 +762,7 @@ fn read_compiler_daemon_result(daemon: &mut CompilerDaemon) -> ServeResult<()> {
         );
     }
 }
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(in crate::commands::serve) fn run_compiler_daemon(web_root: &Path) -> std::process::ExitCode {
     if emit_compiler_daemon_result(&Ok(())).is_err() {
         return std::process::ExitCode::from(1);
@@ -784,7 +790,7 @@ pub(in crate::commands::serve) fn run_compiler_daemon(web_root: &Path) -> std::p
     }
     std::process::ExitCode::SUCCESS
 }
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn emit_compiler_daemon_result(result: &Result<(), String>) -> ServeResult<()> {
     let payload = serde_json::to_string(result)
         .map_err(|error| format!("error[serve.aot.compiler_helper]: encode result: {error}"))?;

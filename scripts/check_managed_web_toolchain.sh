@@ -48,16 +48,14 @@ NODE
 
 mkdir -p "${bindings_a}" "${bindings_b}"
 
-TERLAN_WEB_TOOLCHAIN_ROOT="${toolchain_root}" \
-  "${terlc}" bind angular-ts --out "${bindings_a}"
-TERLAN_WEB_TOOLCHAIN_ROOT="${toolchain_root}" \
-  "${terlc}" bind angular-ts --out "${bindings_b}"
+"${terlc}" bind typescript --input std/js/dom/fixtures/document.d.ts --namespace test.web --out "${bindings_a}"
+"${terlc}" bind typescript --input std/js/dom/fixtures/document.d.ts --namespace test.web --out "${bindings_b}"
 diff -qr "${bindings_a}" "${bindings_b}" >/dev/null
 
-facade="${bindings_a}/terlan/angular/Ng.terl"
-test -f "${facade}"
-rg -q -F '@source-package @angular-wave/angular.ts@0.32.0' "${facade}"
-rg -q -F 'pub ng_module' "${facade}"
+binding="${bindings_a}/test/web/Document.terl"
+test -f "${binding}"
+rg -q -F 'module test.web.Document.' "${binding}"
+rg -q -F 'pub opaque type Document.' "${binding}"
 
 if find "${fixture}" -type f \( \
   -name 'package.json' -o \
@@ -98,4 +96,4 @@ runtime_chunk="$(jq -r '.assets[] | select(.kind == "javascript-module") | .web_
 test -n "${runtime_chunk}"
 test "$(wc -c < "${build_a}/web/${runtime_chunk}")" -gt 100000
 
-echo "Terlan generated deterministic Angular.ts bindings and bundled the compiler-managed Rspack toolchain"
+echo "Terlan generated deterministic TypeScript bindings and bundled the compiler-managed Rspack toolchain"

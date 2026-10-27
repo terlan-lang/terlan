@@ -37,3 +37,33 @@ fn application_sources_resolve_across_manifest_source_roots() {
         Some(shared)
     );
 }
+
+#[test]
+fn application_source_linking_uses_declared_package_dependencies() {
+    let root = tempfile::tempdir().unwrap();
+    let app = root.path().join("app");
+    let dependency = root.path().join("helper");
+    std::fs::create_dir_all(app.join("src/example")).unwrap();
+    std::fs::create_dir_all(dependency.join("src/example/helper")).unwrap();
+    std::fs::write(app.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.1.0\"\n[build]\nsource_roots = [\"src\"]\n[dependencies]\nhelper = { path = \"../helper\" }\n",
+    ).unwrap();
+    std::fs::write(dependency.join("terlan.toml"),
+        "[package]\nname = \"helper\"\nversion = \"0.1.0\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+    ).unwrap();
+    let provider = dependency.join("src/example/helper/Lifecycle.terl");
+    std::fs::write(
+        &provider,
+        "module example.helper.Lifecycle. pub value(): Int -> 42.",
+    )
+    .unwrap();
+    let active = app.join("src/example/Main.terl");
+    assert_eq!(
+        imported_std_source_path("example.helper.Lifecycle", &active),
+        Some(provider.canonicalize().unwrap())
+    );
+    assert_eq!(
+        imported_std_source_path("undeclared.helper.Lifecycle", &active),
+        None
+    );
+}

@@ -23,10 +23,25 @@ pub(crate) fn imported_std_source_path(module: &str, active_path: &Path) -> Opti
                 if let Ok(manifest) =
                     crate::commands::build::project_manifest::read_project_manifest(&manifest_path)
                 {
-                    for source in manifest.source_roots {
+                    for source in &manifest.source_roots {
                         let candidate = root.join(source).join(&relative);
                         if candidate.is_file() {
                             return Some(candidate);
+                        }
+                    }
+                    let project_root = if root.as_os_str().is_empty() {
+                        Path::new(".")
+                    } else {
+                        root
+                    };
+                    if let Ok(sources) =
+                        crate::commands::build::project_check_source_roots(project_root, &manifest)
+                    {
+                        for source in sources {
+                            let candidate = source.join(&relative);
+                            if candidate.is_file() {
+                                return Some(candidate);
+                            }
                         }
                     }
                 }

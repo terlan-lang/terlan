@@ -32,10 +32,20 @@ fn sealing_is_deterministic_and_excludes_workspace_outputs() {
         request.package_version.built_with,
         format!("terlan-{}", env!("CARGO_PKG_VERSION"))
     );
-    assert_eq!(
-        request.package_version.requires_terlan,
-        format!(">={}, <0.1.0", env!("CARGO_PKG_VERSION"))
+    let compiler = semver::Version::parse(env!("CARGO_PKG_VERSION")).unwrap();
+    let requirement = &request.package_version.requires_terlan;
+    assert!(
+        crate::package_registry::requirement_matches(requirement, &compiler.to_string()).unwrap()
     );
+    let next_patch = format!(
+        "{}.{}.{}",
+        compiler.major,
+        compiler.minor,
+        compiler.patch + 1
+    );
+    assert!(crate::package_registry::requirement_matches(requirement, &next_patch).unwrap());
+    let next_minor = format!("{}.{}.0", compiler.major, compiler.minor + 1);
+    assert!(!crate::package_registry::requirement_matches(requirement, &next_minor).unwrap());
     assert_eq!(
         request.package_version.source_identity.kind,
         SourceIdentityKind::ArtifactSet

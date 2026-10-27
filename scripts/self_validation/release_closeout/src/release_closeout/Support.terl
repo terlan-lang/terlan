@@ -100,7 +100,10 @@ version_from_lines(lines: List[String]): String ->
             }
     }.
 
-workspace_version(root: String): String ->
+/**
+ * Returns the candidate version declared by the workspace manifest.
+ */
+pub workspace_version(root: String): String ->
     case File.read_text(child(root, "Cargo.toml")) {
         Ok(source) -> version_from_lines(String.split(source, "\n"));
         Err(_reason) -> ""

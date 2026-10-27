@@ -192,22 +192,23 @@ fn disambiguates_repeated_unsupported_member_sources() {
 /// Verifies namespace type aliases map to generated Terlan modules.
 ///
 /// Inputs:
-/// - Inline Angular-style `ng` namespace declarations.
+/// - Inline namespace declarations with an explicitly imported implementation.
 ///
 /// Output:
 /// - Test passes when aliases map to namespace-specific module paths and type
 ///   alias targets.
 ///
 /// Transformation:
-/// - Pins the generated facade surface needed for Angular.ts namespace parity.
+/// - Preserves namespace aliases without framework-specific naming rules.
 #[test]
 fn maps_namespace_type_aliases_to_modules() {
     let declarations = parse_ts_declaration_file(
         r#"
+        import type { Widget as ExternalWidget } from "./implementation";
         declare global {
-          export namespace ng {
-            type Angular = TAngular;
-            type HttpPromise<T> = Promise<T>;
+          export namespace sdk {
+            type Widget = ExternalWidget;
+            type Response<T> = Promise<T>;
           }
         }
         "#,
@@ -217,15 +218,40 @@ fn maps_namespace_type_aliases_to_modules() {
     let mapping = map_ts_declarations_to_dom_modules(&declarations);
 
     assert_eq!(mapping.modules.len(), 2);
-    assert_eq!(mapping.modules[0].module_path, "ng.Angular");
-    assert_eq!(mapping.modules[0].source_path, "ng/Angular.terl");
+    assert_eq!(mapping.modules[0].module_path, "sdk.Widget");
+    assert_eq!(mapping.modules[0].source_path, "sdk/Widget.terl");
     assert_eq!(mapping.modules[0].alias_target.as_deref(), Some("Dynamic"));
-    assert_eq!(mapping.modules[1].module_path, "ng.HttpPromise");
+    assert_eq!(mapping.modules[1].module_path, "sdk.Response");
     assert_eq!(mapping.modules[1].type_params, vec!["T"]);
     assert_eq!(
         mapping.modules[1].alias_target.as_deref(),
         Some("std.js.Promise[T]")
     );
+}
+
+#[test]
+fn imported_alias_detection_uses_declarations_instead_of_a_name_prefix() {
+    let declarations = parse_ts_declaration_file(
+        r#"
+        import type { Widget as External } from "./widget";
+        export interface TLocal { value: string; }
+        export type Local = TLocal;
+        export type Foreign = External;
+    "#,
+    )
+    .unwrap();
+    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+    let alias = |name: &str| {
+        mapping
+            .modules
+            .iter()
+            .find(|module| module.type_name == name)
+            .unwrap()
+            .alias_target
+            .as_deref()
+    };
+    assert_eq!(alias("Local"), Some("TLocal"));
+    assert_eq!(alias("Foreign"), Some("Dynamic"));
 }
 
 /// Verifies acronym boundaries normalize predictably.

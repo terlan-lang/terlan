@@ -59,7 +59,7 @@ pub(super) struct CompiledNativeApplicationImage {
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct CompiledServeNativeImage {
     pub(crate) path: PathBuf,
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) aggregate_projections: Vec<NativeAggregateProjection>,
 }
 
@@ -667,7 +667,7 @@ pub(super) fn compile_serve_native_application_image_with_metadata(
     .map(|image| {
         image.map(|image| CompiledServeNativeImage {
             path: image.cached_image_path,
-            #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+            #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
             aggregate_projections: image.aggregate_projections,
         })
     })

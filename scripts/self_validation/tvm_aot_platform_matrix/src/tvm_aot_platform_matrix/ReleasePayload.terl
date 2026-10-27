@@ -10,8 +10,8 @@ import std.core.{String, Unit}.
 import std.crypto.Hash.
 import std.data.Json.
 import std.io.{Directory, File}.
-import tvm_aot_platform_matrix.ReleasePlatform.
 import tvm_aot_platform_matrix.ReleasePlatform.{target_triple}.
+import tvm_aot_platform_matrix.{ReleaseChecksums, ReleasePlatform}.
 
 import type std.core.Option.
 import type std.crypto.Hash.LabeledFile.
@@ -269,17 +269,6 @@ pub copy_all(values: List[Payload], destination_root: String): Bool ->
         Err(_reason) -> false
     }.
 
-checksum_rows(values: List[Payload], result: String): Option[String] ->
-    case values {
-        [] -> Some(result);
-        [value | rest] ->
-            case Hash.sha256_file(value.source) {
-                Err(_reason) -> None;
-                Ok(digest) ->
-                    checksum_rows(rest, String.concat([result, digest, "  ", value.archive, "\n"]))
-            }
-    }.
-
 paths_json(values: List[Payload], result: Json): Json ->
     case values {
         [] -> result;
@@ -309,7 +298,7 @@ pub write_install_metadata(
             .put("target_triple", Json.string(target_triple(platform)))
             .put("files", all_paths);
     let {
-        Some(checksum_text) <- checksum_rows(entries, "");
+        Some(checksum_text) <- ReleaseChecksums.render(labeled_files(entries, "", []));
         Ok(rendered) <- Json.stringify_pretty(manifest);
         Ok(Unit) <- File.write_text(checksum_path, checksum_text);
         Ok(Unit) <- File.write_text(install_path, String.append(rendered, "\n"))

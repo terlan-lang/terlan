@@ -445,7 +445,14 @@ fn map_type_alias_to_module(
     alias: &TsTypeAliasDeclaration,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomModulePlan> {
-    let mapped = map_ts_type_to_terlan(&alias.ty);
+    let mapped = if alias.imported {
+        TsTypeMapping {
+            terlan_type: Some("Dynamic".into()),
+            skipped: Vec::new(),
+        }
+    } else {
+        map_ts_type_to_terlan(&alias.ty)
+    };
     if let Some(skip) = mapped.skipped.first() {
         skipped.push(DomSkippedDeclaration {
             source: qualified_alias_source(alias),
@@ -462,7 +469,6 @@ fn map_type_alias_to_module(
         });
         return None;
     };
-    let alias_target = normalize_namespace_alias_target(alias, alias_target);
 
     let namespace = binding_namespace(&alias.namespace);
     let type_name = terlan_type_name(&alias.name);
@@ -482,40 +488,6 @@ fn map_type_alias_to_module(
         test_path: format!("{source_dir}/{type_name}Test.terl"),
         members: Vec::new(),
     })
-}
-
-/// Normalizes namespace aliases that point at imported TypeScript implementation names.
-///
-/// Inputs:
-/// - `alias`: source alias declaration.
-/// - `alias_target`: mapped Terlan target text.
-///
-/// Output:
-/// - `Dynamic` for imported Angular.ts implementation aliases such as
-///   `TAngular`, otherwise the mapped target unchanged.
-///
-/// Transformation:
-/// - Keeps generated namespace facades from leaking unresolved TypeScript
-///   import aliases while preserving concrete mapped types like `Promise[T]`.
-fn normalize_namespace_alias_target(
-    alias: &TsTypeAliasDeclaration,
-    alias_target: String,
-) -> String {
-    if !alias.namespace.is_empty() && is_imported_typescript_alias(&alias_target) {
-        return "Dynamic".to_string();
-    }
-    alias_target
-}
-
-/// Returns true for imported TypeScript aliases such as `TAngular`.
-fn is_imported_typescript_alias(alias_target: &str) -> bool {
-    let constructor = alias_target
-        .split_once('[')
-        .map_or(alias_target, |(constructor, _)| constructor);
-    let mut chars = constructor.chars();
-    matches!(chars.next(), Some('T'))
-        && matches!(chars.next(), Some(next) if next.is_ascii_uppercase())
-        && chars.all(|next| next.is_ascii_alphanumeric() || next == '_')
 }
 
 /// Returns a source label for a namespace-qualified alias.

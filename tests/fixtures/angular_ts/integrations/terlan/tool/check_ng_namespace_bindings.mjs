@@ -42,43 +42,6 @@ const requiredCoveredTypes = [
   "RealtimeProtocolEventDetail",
   "RealtimeProtocolMessage"
 ];
-const requiredFacadeMarkers = [
-  "module terlan.angular.Ng.",
-  "import type std.js.String.{JsString}.",
-  "import type terlan.angular.ng.{",
-  "pub angular(): terlan.angular.ng.Angular.Angular",
-  "pub ng_module(name: JsString): NgModule",
-  "pub ng_module_with_dependencies(name: JsString, dependencies: List[JsString]): NgModule",
-  "pub register_component(",
-  "pub register_directive(target: NgModule",
-  "pub register_controller(target: NgModule",
-  "pub apply_scope(scope: terlan.angular.ng.Scope.Scope): Unit",
-  "pub template_put(",
-  "pub template_get(templates: TemplateCacheService",
-  "pub template_remove(templates: TemplateCacheService",
-  "pub http_get(",
-  "pub machine(",
-  "pub machine_send(",
-  "pub machine_snapshot(",
-  "pub workflow(",
-  "pub workflow_run(",
-  "pub workflow_snapshot(",
-  "pub sse_connect(service: SseService",
-  "pub sse_connect_with_config(",
-  "pub sse_reconnect(connection: SseConnection): Unit",
-  "pub sse_close(connection: SseConnection): Unit",
-  "pub websocket_connect(service: WebSocketService",
-  "pub websocket_connect_with_config(",
-  "pub websocket_send(connection: WebSocketConnection",
-  "pub websocket_close(connection: WebSocketConnection): Unit",
-  "pub worker_start(service: WorkerService",
-  "pub worker_start_with_config(",
-  "pub worker_on_message(worker: WorkerHandle[Dynamic, Dynamic]",
-  "pub worker_on_error(worker: WorkerHandle[Dynamic, Dynamic]",
-  "pub worker_terminate(worker: WorkerHandle[Dynamic, Dynamic]): Unit",
-  "pub directive_with_link("
-];
-
 if (!fs.existsSync(manifestPath)) {
   throw new Error(`missing generated namespace binding manifest: ${manifestPath}`);
 }
@@ -117,28 +80,6 @@ for (const typeName of requiredTypes) {
   if (unresolvedAliasPattern.test(source)) {
     throw new Error(`generated core facade leaks unresolved TypeScript alias: ${sourcePath}`);
   }
-}
-
-const facadeModule = "terlan.angular.Ng";
-const facadeSourcePath = path.join(outputRoot, "terlan", "angular", "Ng.terl");
-const facadeSummaryPath = path.join(outputRoot, "std", "summaries", "terlan.angular.Ng.typi");
-const facadeTestPath = path.join(outputRoot, "terlan", "angular", "NgTest.terl");
-if (!modules.has(facadeModule)) {
-  throw new Error(`missing generated AngularTS facade module: ${facadeModule}`);
-}
-for (const filePath of [facadeSourcePath, facadeSummaryPath, facadeTestPath]) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`missing generated AngularTS facade artifact: ${filePath}`);
-  }
-}
-const facadeSource = fs.readFileSync(facadeSourcePath, "utf8");
-for (const marker of requiredFacadeMarkers) {
-  if (!facadeSource.includes(marker)) {
-    throw new Error(`generated AngularTS facade missing executable marker: ${marker}`);
-  }
-}
-if (facadeSource.includes("pub opaque type Ng") || facadeSource.includes("pub type Ng")) {
-  throw new Error("generated AngularTS facade regressed to type-only output");
 }
 
 for (const typeName of requiredCoveredTypes) {

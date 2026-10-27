@@ -516,5 +516,5 @@
     "test:diagnostics": "node test/diagnostics_smoke_test.js",
     "test:textmate": "node test/textmate_bridge_test.js"
   },
-  "version": "0.0.9"
+  "version": "0.10.0"
 }

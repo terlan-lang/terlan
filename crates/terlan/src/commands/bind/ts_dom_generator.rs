@@ -9,7 +9,6 @@ use std::path::Path;
 use crate::commands::artifacts::{fingerprint, DependencyManifest};
 use crate::validation::phase_manifest::current_syntax_contract_identity;
 
-use super::ts_angular_facade::angular_namespace_facade_files;
 use super::ts_dom_manifest::{render_binding_manifest, render_skipped_manifest};
 use super::ts_dom_module_mapping::{
     map_ts_declarations_to_dom_modules, terlan_type_name, DomMemberPlan, DomMethodPlan,
@@ -66,8 +65,8 @@ pub(super) fn generate_js_dom_bindings(
 }
 
 /// Generates bindings from compiler-constructed, already pinned input
-/// metadata. Managed package targets use this path so applications do not own
-/// a declaration manifest.
+/// metadata. Both direct declaration and package-owned manifest inputs use
+/// this path after their input hashes have been verified.
 pub(super) fn generate_js_dom_bindings_from_manifest(
     repo_root: &Path,
     manifest_path: &Path,
@@ -167,8 +166,8 @@ fn declaration_with_namespace(declaration: TsDeclaration, namespace: &str) -> Ts
 ///   joined for nested TypeScript namespace declarations.
 ///
 /// Transformation:
-/// - Preserves Angular's real `ng` namespace under the generated Terlan package
-///   namespace instead of flattening or overwriting it.
+/// - Preserves nested TypeScript namespaces under the package namespace
+///   instead of flattening or overwriting them.
 fn qualified_input_namespace(manifest_namespace: &str, source_namespace: &str) -> String {
     match (manifest_namespace.is_empty(), source_namespace.is_empty()) {
         (true, true) => String::new(),
@@ -199,7 +198,6 @@ fn generated_files(
     mapping: &DomModuleMapping,
 ) -> Result<Vec<GeneratedBindingFile>, String> {
     let mut files = Vec::new();
-    let mut manifest_mapping = mapping.clone();
     for module in &mapping.modules {
         let source = canonicalize(
             &module.source_path,
@@ -235,62 +233,13 @@ fn generated_files(
             contents: test,
         });
     }
-    if let Some(facade) = angular_namespace_facade_files(mapping) {
-        let source = render_facade_artifact(
-            &facade.plan,
-            manifest,
-            manifest_path,
-            "source",
-            &facade.source,
-        );
-        let source = canonicalize(&facade.plan.source_path, source)?;
-        let interface = render_facade_artifact(
-            &facade.plan,
-            manifest,
-            manifest_path,
-            "interface",
-            &facade.summary,
-        );
-        let interface = canonicalize(&facade.plan.interface_path, interface)?;
-        let summary = render_facade_artifact(
-            &facade.plan,
-            manifest,
-            manifest_path,
-            "summary",
-            &facade.summary,
-        );
-        let test =
-            render_facade_artifact(&facade.plan, manifest, manifest_path, "test", &facade.test);
-        let test = canonicalize(&facade.plan.test_path, test)?;
-        files.push(GeneratedBindingFile {
-            path: facade.plan.source_path.clone(),
-            contents: source.clone(),
-        });
-        files.push(GeneratedBindingFile {
-            path: facade.plan.interface_path.clone(),
-            contents: interface,
-        });
-        files.push(GeneratedBindingFile {
-            path: facade.plan.summary_path.clone(),
-            contents: summary.clone(),
-        });
-        files.push(GeneratedBindingFile {
-            path: format!("{}.deps", facade.plan.summary_path),
-            contents: render_module_summary_deps(&facade.plan, &source, &summary)?,
-        });
-        files.push(GeneratedBindingFile {
-            path: facade.plan.test_path.clone(),
-            contents: test,
-        });
-        manifest_mapping.modules.push(facade.plan);
-    }
     let generated_file_hashes = generated_file_hashes(&files)?;
     files.push(GeneratedBindingFile {
         path: "std/js/manifests/std_js_bindings.json".to_string(),
         contents: render_binding_manifest(
             manifest,
             manifest_path,
-            &manifest_mapping,
+            mapping,
             &generated_file_hashes,
         )?,
     });
@@ -501,7 +450,7 @@ fn render_module_contract(
 ///
 /// Transformation:
 /// - Keeps namespace type aliases first-class so real declaration files such as
-///   Angular's `ng` namespace can be generated and checked.
+///   nested TypeScript namespaces can be generated and checked.
 fn render_type_declaration(module: &DomModulePlan) -> String {
     let type_name = render_type_declaration_name(module);
     match &module.alias_target {
@@ -563,21 +512,6 @@ fn render_module_header(
     output
 }
 
-/// Prepends the shared provenance header to a specialized generated facade.
-fn render_facade_artifact(
-    module: &DomModulePlan,
-    manifest: &TsInputManifest,
-    manifest_path: &Path,
-    kind: &str,
-    body: &str,
-) -> String {
-    format!(
-        "{}{}",
-        render_module_header(module, manifest, manifest_path, kind),
-        body
-    )
-}
-
 /// Renders one DOM module member declaration.
 ///
 /// Inputs:
@@ -621,7 +555,7 @@ fn render_property(
         "pub (receiver: {}) {}(): {}",
         render_type_reference_name(module),
         property.terlan_name,
-        property.terlan_type
+        return_annotation(&property.terlan_type)
     );
     output.push_str(&render_signature(signature, include_body));
     output
@@ -657,10 +591,18 @@ fn render_method(module: &DomModulePlan, method: &DomMethodPlan, include_body: b
         render_type_reference_name(module),
         method.terlan_name,
         render_params(&method.params),
-        method.return_type
+        return_annotation(&method.return_type)
     );
     output.push_str(&render_signature(signature, include_body));
     output
+}
+
+fn return_annotation(ty: &str) -> String {
+    if ty.starts_with('(') && ty.contains(" -> ") {
+        format!("({ty})")
+    } else {
+        ty.to_owned()
+    }
 }
 
 /// Renders TypeScript-sourced documentation as a Terlan doc block.

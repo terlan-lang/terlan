@@ -4114,7 +4114,7 @@ dependencies = [
 
 [[package]]
 name = "terl-docs"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4122,7 +4122,7 @@ dependencies = [
 
 [[package]]
 name = "terlan"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "ammonia",
  "axum",
@@ -4207,7 +4207,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-archive"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "flate2",
  "tar",
@@ -4217,7 +4217,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-build-cache"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "rustix 1.1.5",
  "serde",
@@ -4229,7 +4229,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-crypto-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "base64",
  "getrandom 0.4.3",
@@ -4240,7 +4240,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-data-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "serde_json",
  "terlan-runtime-abi",
@@ -4248,7 +4248,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-encoding-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "base64",
  "md-5",
@@ -4257,7 +4257,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-foundations-adapter"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "foundations",
  "serde",
@@ -4267,7 +4267,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-http-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "axum",
  "base64",
@@ -4299,7 +4299,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-libpq"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "base64",
  "cc",
@@ -4310,7 +4310,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-net-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "mio",
  "rcgen",
@@ -4322,7 +4322,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-process-owner"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "libproc",
  "rustix 1.1.5",
@@ -4332,14 +4332,14 @@ dependencies = [
 
 [[package]]
 name = "terlan-runtime-abi"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "mio",
 ]
 
 [[package]]
 name = "terlan-rust-boundary-audit"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4350,7 +4350,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-service-foundation"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4358,7 +4358,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-std-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "terlan-crypto-native",
  "terlan-data-native",
@@ -4371,7 +4371,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-storage"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "getrandom 0.4.3",
  "rusqlite",
@@ -4381,7 +4381,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-test-orchestrator"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "getrandom 0.4.3",
  "home",
@@ -4397,7 +4397,7 @@ dependencies = [
 
 [[package]]
 name = "terlan-time-native"
-version = "0.0.9"
+version = "0.10.0"
 dependencies = [
  "terlan-runtime-abi",
 ]

@@ -32,6 +32,7 @@ docs/package/TERLAN_PACKAGE_REGISTRY_PUBLISH.md
 docs/package/TERLAN_PACKAGE_WORKSPACE_GRAPH.md
 docs/release/COMPATIBILITY_0_0_7.json
 docs/release/COMPATIBILITY_0_0_8.json
+docs/release/COMPATIBILITY_0_10_0.json
 docs/release/DIAGNOSTIC_CATALOG_0_0_7.json
 docs/release/DIAGNOSTIC_CATALOG_0_0_8.json
 docs/release/PUBLISHABLE_DOCUMENTATION.tsv
@@ -39,6 +40,7 @@ docs/release/RELEASE_FAILURE_REPRODUCTION.md
 docs/release/RELEASE_FLAKE_DETECTION.md
 docs/release/RELEASE_NOTES_0_0_7.md
 docs/release/RELEASE_NOTES_0_0_8.md
+docs/release/RELEASE_NOTES_0_10_0.md
 docs/runtime/EDITOR_DEBUGGER_SURFACE.md
 docs/runtime/NATIVE_BINDING_GENERATOR_CONTRACT.md
 docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md

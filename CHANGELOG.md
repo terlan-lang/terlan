@@ -7,6 +7,39 @@ documentation; unchanged capabilities do not need a release recap.
 
 ## Unreleased
 
+## 0.10.0
+
+### Applications and JavaScript
+
+- Build native applications as a single executable with the application image
+  and VM embedded, removing the separate VM directory from application deployment.
+- Generate JavaScript bindings from local TypeScript declarations or a manifest
+  of pinned declaration inputs. Supported bindings include writable properties,
+  complete data-record constructors, and callback lifecycle helpers.
+- Generate typed CSS and bundle application stylesheets through the web build.
+- Use Angular.ts's Terlan integration package for Angular binding generation
+  and component lifecycle helpers.
+
+### Package publishing
+
+- Derive default package compiler requirements from the current minor release,
+  so freshly published packages remain resolvable by the compiler that built them.
+
+### Before upgrading
+
+Rebuild applications and native packages with the new compiler. Native methods
+now use a bodyless `@compiler.native` declaration; remove the annotation's
+redundant symbol argument and the `native.` body from handwritten declarations.
+Generated JavaScript bindings retain their generator-owned interop declarations.
+
+`FixedArray` is now `Array`, and public type paths use the owning module directly.
+Update imports and type annotations accordingly. Typed CSS accepts property
+values directly, replacing the previous optional-property wrappers and getters.
+
+The compiler's `terlc bind angular-ts` command has been removed. Use Angular.ts's
+`integrations/terlan` package, which calls `terlc bind typescript --manifest` and
+records the selected runtime version and declaration hashes.
+
 ## 0.0.9
 
 ### Compiler updates

@@ -82,7 +82,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         "help" => println!("terlc help [command]"),
         "init" => println!("terlc init [project-name] [--profile default|web|static]"),
         "bind" => println!(
-            "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind angular-ts --out <dir>\nterlc bind typescript --input <file.d.ts> --namespace <module.prefix> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
+            "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind typescript --input <file.d.ts> --namespace <module.prefix> --out <dir>\nterlc bind typescript --manifest <path> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
         ),
         "check" => println!("terlc check <file.terl|file.terli|dir> [--interfaces-only] [--emit-phase-manifest <path>]"),
         "build" => println!(

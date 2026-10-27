@@ -1216,7 +1216,7 @@ formal-cloud-release-bundle-check: cli-build
 	bash scripts/check_cloud_release_bundle_v1.sh
 
 formal-cloud-dashboard-toolchain-check: cli-build
-	$(RUST_TEST) -p terlan --lib parse_bind_angular_ts_args -- --nocapture
+	$(RUST_TEST) -p terlan --lib commands::bind::typescript::tests -- --nocapture
 	$(RUST_TEST) -p terlan --lib commands::build::web_toolchain::tests -- --nocapture
 	TERLC="$(if $(CARGO_TARGET_DIR),$(abspath $(CARGO_TARGET_DIR)),$(abspath target))/debug/terlc" bash scripts/check_managed_web_toolchain.sh
 
@@ -2658,6 +2658,7 @@ tvm-aot-c-abi-boundary-check:
 .PHONY: tvm-aot-platform-matrix-contract-check tvm-aot-platform-target-check tvm-aot-platform-aggregate-check tvm-aot-platform-matrix-check
 tvm-aot-platform-matrix-contract-check: | $(TERLAN_TVM_CONTRACT_BOOTSTRAP)
 	$(TERLAN_TVM_CONTRACT_CHECK) self-test
+	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseChecksumsTest.terl
 
 tvm-aot-platform-target-check: tvm-aot-platform-matrix-contract-check
 	$(TERLAN_TVM_PLATFORM_MATRIX) target

@@ -174,7 +174,7 @@ pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
         eprintln!("{message}");
         return ExitCode::from(1);
     }
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     if std::env::var_os("TERLAN_SERVE_COMPILER_DAEMON").is_some() {
         return handler_cache::run_compiler_daemon(&args.web_root);
     }
@@ -187,7 +187,7 @@ pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
         }
         return ExitCode::SUCCESS;
     }
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     match enter_lean_serve_runtime() {
         Ok(None) => {}
         Ok(Some(exit_code)) => return exit_code,
@@ -196,7 +196,11 @@ pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
             return ExitCode::from(1);
         }
     }
-    #[cfg(all(feature = "serve-runtime-bin", not(test)))]
+    #[cfg(all(
+        feature = "serve-runtime-bin",
+        not(feature = "native-codegen"),
+        not(test)
+    ))]
     return {
         observability.record(
             observability::VmEventDomain::Socket,
@@ -230,7 +234,7 @@ pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
         }
         outcome
     };
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     let dependency_session = match manifest::adjacent_project_root(&args.web_root) {
         Some(project_root) => match dev_dependencies::start_project_dependencies(&project_root) {
             Ok(session) => Some(session),
@@ -242,13 +246,13 @@ pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
         None => None,
     };
 
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     observability.record(
         observability::VmEventDomain::Socket,
         "socket.bind",
         observability::VmEventStatus::Started,
     );
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     let outcome = match serve_web_package(&args) {
         Ok(()) => {
             observability.record(
@@ -268,16 +272,16 @@ pub(super) fn run_parsed(mut args: ServeArgs) -> ExitCode {
             ExitCode::from(1)
         }
     };
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     observability.begin_shutdown("runtime-return");
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     observability.finish_shutdown(false);
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     if let Err(message) = observability.flush(&args.web_root) {
         eprintln!("{message}");
         return ExitCode::from(1);
     }
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     dev_dependencies::finish_dependency_session(dependency_session, outcome)
 }
 
@@ -291,7 +295,10 @@ pub(super) fn enter_lean_serve_runtime() -> Result<Option<ExitCode>, String> {
     Ok(None)
 }
 
-#[cfg(all(not(test), not(feature = "serve-runtime-bin")))]
+#[cfg(all(
+    not(test),
+    any(not(feature = "serve-runtime-bin"), feature = "native-codegen")
+))]
 pub(super) fn enter_lean_serve_runtime() -> Result<Option<ExitCode>, String> {
     const RUNTIME_ONLY_ENV: &str = "TERLAN_SERVE_RUNTIME_ONLY";
     if std::env::var_os(RUNTIME_ONLY_ENV).is_some() {

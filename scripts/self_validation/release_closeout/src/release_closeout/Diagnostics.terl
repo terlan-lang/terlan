@@ -261,12 +261,45 @@ rows_valid(root: String, changes: Json, index: Int, count: Int, surfaces: List[S
             and rows_valid(root, changes, index + 1, count, [surface | surfaces])
     }.
 
-compatibility_document(root: String): {Bool, Int, String} ->
+release_document(root: String, prefix: String, suffix: String): String ->
+    Support.child(
+        root,
+        String.concat(
+            [
+                "docs/release/",
+                prefix,
+                String.replace(Support.workspace_version(root), ".", "_"),
+                suffix,
+            ],
+        ),
+    ).
+
+/**
+ * Finds the release immediately preceding the candidate in the changelog.
+ */
+pub previous_release(lines: List[String], version: String, found: Bool): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            if {
+                line == "## " + version -> previous_release(rest, version, true);
+                found and line.starts_with("## ") -> String.trim(line.replace("## ", ""));
+                true -> previous_release(rest, version, found)
+            }
+    }.
+
+baseline_version(root: String): String ->
+    case File.read_text(Support.child(root, "CHANGELOG.md")) {
+        Ok(source) -> previous_release(source.split("\n"), Support.workspace_version(root), false);
+        Err(_) -> ""
+    }.
+
+compatibility_document(root: String): {Bool, Int, String, String} ->
     let {
-        Ok(source) <- File.read_text(Support.child(root, "docs/release/COMPATIBILITY_0_0_8.json"));
+        Ok(source) <- File.read_text(release_document(root, "COMPATIBILITY_", ".json"));
         Ok(document) <- Json.parse(source)
     } else {
-        _ -> {false, 0, ""}
+        _ -> {false, 0, "", ""}
     };
     (let {
     Ok(header) <- document.required_fields(["schema", "baseline", "candidate"], [], ["changes"]);
@@ -274,23 +307,26 @@ compatibility_document(root: String): {Bool, Int, String} ->
     [count] <- header.array_lengths;
     Ok(changes) <- document.get("changes")
 } else {
-    _ -> {false, 0, source}
+    _ -> {false, 0, "", source}
 };
 {
     schema == "terlan.release-compatibility-baseline.v1"
-        and baseline == "0.0.7"
-        and candidate == "0.0.8"
+        and baseline != ""
+        and baseline != candidate
+        and baseline == baseline_version(root)
+        and candidate == Support.workspace_version(root)
         and count > 0
         and rows_valid(root, changes, 0, count, []),
     count,
+    baseline,
     source,
 }).
 
 /**
- * Validates the classified 0.0.7-to-0.0.8 public-surface baseline.
+ * Validates the classified public-surface baseline for the current candidate.
  */
 pub compatibility_baseline(root: String): Bool ->
-    let {valid, count, source} = compatibility_document(root);
+    let {valid, count, baseline, source} = compatibility_document(root);
     let adversarial =
         not classification_allowed("unknown")
             and not unique_strings(["duplicate", "duplicate"], [])
@@ -317,8 +353,8 @@ pub compatibility_baseline(root: String): Bool ->
                     },
                 ),
             )
-            .put("baseline", Json.string("0.0.7"))
-            .put("candidate", Json.string("0.0.8"))
+            .put("baseline", Json.string(baseline))
+            .put("candidate", Json.string(Support.workspace_version(root)))
             .put("change_count", Json.int(count))
             .put("baseline_sha256", Json.string(Hash.sha256(source)))
             .put(
@@ -344,15 +380,18 @@ report_passes(path: String): Bool ->
         Err(_reason) -> false
     }.
 
-release_notes_valid(source: String, references_ready: Bool): Bool ->
+/**
+ * Validates versioned release notes only when their execution evidence is ready.
+ */
+pub release_notes_valid(source: String, version: String, references_ready: Bool): Bool ->
     let normalized = String.replace(String.replace(source, "\r\n", " "), "\n", " ");
     references_ready
-        and String.contains(source, "# Terlan 0.0.8 Release Notes")
+        and String.contains(source, "# Terlan " + version + " Release Notes")
         and String.contains(source, "direct-AOT")
-        and String.contains(source, "fixed-owner multicore execution shards")
+        and String.contains(normalized, "fixed-owner multicore execution shards")
         and String.contains(source, "Installed-candidate validation")
         and String.contains(normalized, "Executable `.terls` scripts")
-        and String.contains(source, "COMPATIBILITY_0_0_8.json")
+        and String.contains(source, "COMPATIBILITY_" + String.replace(version, ".", "_") + ".json")
         and not String.contains(source, "guaranteed faster")
         and not String.contains(source, "all platforms are supported").
 
@@ -360,7 +399,8 @@ release_notes_valid(source: String, references_ready: Bool): Bool ->
  * Validates factual release notes against current-candidate evidence.
  */
 pub release_notes(root: String): Bool ->
-    case File.read_text(Support.child(root, "docs/release/RELEASE_NOTES_0_0_8.md")) {
+    let version = Support.workspace_version(root);
+    case File.read_text(release_document(root, "RELEASE_NOTES_", ".md")) {
         Err(_reason) -> false;
         Ok(source) ->
             let artifact =
@@ -407,12 +447,24 @@ pub release_notes(root: String): Bool ->
                     and diagnostics
                     and compatibility
                     and docs_ready;
-            let valid = release_notes_valid(source, references_ready);
+            let valid = release_notes_valid(source, version, references_ready);
             let adversarial =
-                release_notes_valid(String.replace(source, "Executable\n", "Executable\r\n"), references_ready)
-                    and not release_notes_valid(String.replace(source, "direct-AOT", "unsupported claim"), references_ready)
-                    and not release_notes_valid(String.append(source, "\nall platforms are supported\n"), references_ready)
-                    and not release_notes_valid(source, false);
+                release_notes_valid(
+    String.replace(source, "Executable\n", "Executable\r\n"),
+    version,
+    references_ready,
+)
+                    and not release_notes_valid(
+    String.replace(source, "direct-AOT", "unsupported claim"),
+    version,
+    references_ready,
+)
+                    and not release_notes_valid(
+    String.append(source, "\nall platforms are supported\n"),
+    version,
+    references_ready,
+)
+                    and not release_notes_valid(source, version, false);
             let passed = valid and adversarial;
             let report =
                 Json.object()

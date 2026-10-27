@@ -7,9 +7,9 @@ use std::sync::{Arc, OnceLock, RwLock};
 
 use serde::Deserialize;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::commands::build::project_manifest;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::commands::dev_dependencies;
 use crate::commands::serve::tls_contract::ProjectServerTls;
 use terlan_http_native::tls_paths::validate_manual_tls_file_references;
@@ -254,7 +254,7 @@ fn validate_adjacent_project_manifest(web_root: &Path) -> Result<(), String> {
         if let (Some(project_root), Some(tls)) = (path.parent(), tls.as_ref()) {
             validate_manual_tls_file_references(project_root, tls)?;
         }
-        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         if let Some(project_root) = path.parent() {
             dev_dependencies::validate_project_compose(project_root)?;
         }
@@ -396,13 +396,17 @@ pub(super) fn web_package_tls_config(
     Ok(Some((project_root, tls)))
 }
 
-#[cfg(all(feature = "serve-runtime-bin", not(test)))]
+#[cfg(all(
+    feature = "serve-runtime-bin",
+    not(feature = "native-codegen"),
+    not(test)
+))]
 fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
     crate::commands::serve::tls_contract::read_runtime_server_tls(path)
         .map_err(|error| error.to_string())
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn read_project_tls(path: &Path) -> Result<Option<ProjectServerTls>, String> {
     project_manifest::read_project_manifest(path).map(|manifest| manifest.server_tls)
 }

@@ -13,7 +13,6 @@ fn js_dom_type_name_normalizes_lowercase_legacy_global() {
     );
 }
 use crate::support::test_fs;
-use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -51,14 +50,6 @@ fn temp_output_dir(name: &str) -> PathBuf {
 ///   root used by committed std fixtures.
 fn repo_root() -> PathBuf {
     test_fs::repo_root()
-}
-
-/// Computes lowercase SHA-256 for temporary manifest fixtures.
-fn test_sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
 }
 
 /// Verifies valid Rust binding arguments parse into the reserved shape.
@@ -153,26 +144,6 @@ fn parse_bind_js_dom_args_requires_out_dir() {
     .expect_err("missing out dir should fail");
 
     assert_eq!(err, "terlc bind js-dom requires --out <dir>");
-}
-
-/// Verifies the compiler-managed Angular.ts binding command accepts only its
-/// deterministic output location.
-#[test]
-fn parse_bind_angular_ts_args_accepts_required_output() {
-    let parsed =
-        parse_bind_angular_ts_args(&["--out".to_string(), "generated-angular-ts".to_string()])
-            .expect("bind angular-ts args should parse");
-
-    assert_eq!(parsed.out_dir, PathBuf::from("generated-angular-ts"));
-}
-
-/// Verifies the Angular.ts binding command cannot silently choose an output
-/// directory on behalf of a caller.
-#[test]
-fn parse_bind_angular_ts_args_requires_out_dir() {
-    let err = parse_bind_angular_ts_args(&[]).expect_err("missing out dir should fail");
-
-    assert_eq!(err, "terlc bind angular-ts requires --out <dir>");
 }
 
 /// Verifies valid native binding arguments parse into the manifest-backed shape.
@@ -415,175 +386,6 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     }
 
     fs::remove_dir_all(out_dir).expect("remove generated bindings");
-}
-
-/// Verifies Angular.ts namespace generation emits a callable Terlan facade.
-///
-/// Inputs:
-/// - Temporary Angular-style `@types/namespace.d.ts` manifest.
-///
-/// Output:
-/// - Test assertions over generated `terlan.angular.ng.*` aliases and the
-///   generated `terlan.angular.Ng` callable facade.
-///
-/// Transformation:
-/// - Pins the release requirement that Angular.ts namespace generation is not
-///   declaration-only; app authors need Terlan entry points for module,
-///   component, directive, scope, template-cache, and HTTP workflows.
-#[test]
-fn generate_js_dom_bindings_writes_angular_namespace_facade() {
-    let root = temp_output_dir("angular_namespace_root");
-    let out_dir = temp_output_dir("angular_namespace_out");
-    let namespace_path = root.join("@types/namespace.d.ts");
-    fs::create_dir_all(namespace_path.parent().expect("namespace parent"))
-        .expect("create namespace parent");
-    let namespace_source = r#"export interface LifecycleCallbacks {
-    $onInit(): void;
-    $onDestroy(): void;
-}
-declare global {
-  export namespace ng {
-    type Angular = TAngular;
-    type NgModule = TNgModule;
-    type Component = { template: string };
-    type Directive<TController = unknown> = TDirective<TController>;
-    type Scope = TScope;
-    type TemplateCacheService = Map<string, string>;
-    type HttpService = THttpService;
-    type HttpResponse<T> = THttpResponse<T>;
-    type Machine<T> = TMachine<T>;
-    type MachineConfig<T> = TMachineConfig<T>;
-    type MachineSendResult<T> = TMachineSendResult<T>;
-    type MachineService = TMachineService;
-    type MachineSnapshot<T> = TMachineSnapshot<T>;
-    type Workflow<T> = TWorkflow<T>;
-    type WorkflowConfig<T> = TWorkflowConfig<T>;
-    type WorkflowResult<T> = TWorkflowResult<T>;
-    type WorkflowService = TWorkflowService;
-    type WorkflowSnapshot<T> = TWorkflowSnapshot<T>;
-    type SseConfig = TSseConfig;
-    type SseConnection = TSseConnection;
-    type SseService = TSseService;
-    type WebSocketConfig = TWebSocketConfig;
-    type WebSocketConnection = TWebSocketConnection;
-    type WebSocketService = TWebSocketService;
-    type WorkerConfig<T> = TWorkerConfig<T>;
-    type WorkerHandle<TSend, TReceive> = TWorkerHandle<TSend, TReceive>;
-    type WorkerService = TWorkerService;
-  }
-}
-"#;
-    fs::write(&namespace_path, namespace_source).expect("write namespace fixture");
-    let namespace_hash = test_sha256_hex(namespace_source.as_bytes());
-    let generator_version = env!("CARGO_PKG_VERSION");
-    let manifest_path = root.join("manifest.json");
-    fs::write(
-        &manifest_path,
-        format!(
-            r#"{{
-  "schema": "terlan.std.js.input-manifest.v1",
-  "generator": {{
-    "name": "terlc",
-    "version": "{generator_version}",
-    "profile": "angular-ts-namespace",
-    "oxc_parser": true
-  }},
-  "target_profile": "js.browser",
-  "source_package": {{
-    "name": "typescript",
-    "version": "local",
-    "resolution": "@types/namespace.d.ts"
-  }},
-  "inputs": [
-    {{
-      "path": "@types/namespace.d.ts",
-      "sha256": "{namespace_hash}",
-      "kind": "typescript-declaration",
-      "namespace": "terlan.angular"
-    }}
-  ]
-}}
-"#
-        ),
-    )
-    .expect("write namespace manifest");
-
-    generate_js_dom_bindings(&root, &manifest_path, &out_dir)
-        .expect("Angular namespace generation should succeed");
-
-    let facade_source =
-        fs::read_to_string(out_dir.join("terlan/angular/Ng.terl")).expect("read facade source");
-    assert!(facade_source.contains("module terlan.angular.Ng."));
-    assert!(facade_source.contains("import type std.js.String.{JsString}."));
-    assert!(facade_source.contains("import type terlan.angular.ng.NgModule.{NgModule}."));
-    assert!(facade_source
-        .contains("import type terlan.angular.ng.TemplateCacheService.{TemplateCacheService}."));
-    assert!(facade_source.contains("NgModule"));
-    assert!(facade_source.contains("TemplateCacheService"));
-    assert!(facade_source.contains("pub angular(): terlan.angular.ng.Angular.Angular ->"));
-    assert!(facade_source.contains("pub ng_module(name: JsString): NgModule ->"));
-    assert!(facade_source.contains("pub register_component("));
-    assert!(
-        facade_source.contains("pub apply_scope(scope: terlan.angular.ng.Scope.Scope): Unit ->")
-    );
-    assert!(facade_source.contains("pub template_put("));
-    assert!(facade_source.contains("pub http_get("));
-    for marker in [
-        "pub machine(",
-        "pub workflow(",
-        "pub sse_connect(service:",
-        "pub websocket_connect(service:",
-        "pub worker_start(service:",
-        "pub worker_on_message(worker:",
-        "pub directive_with_link(",
-        "pub template_get(templates:",
-    ] {
-        assert!(
-            facade_source.contains(marker),
-            "missing facade marker {marker}"
-        );
-    }
-    assert!(!facade_source.contains("pub opaque type Ng"));
-    assert_eq!(
-        crate::terlan_syntax::format_source_module(&facade_source)
-            .expect("format generated Angular facade"),
-        facade_source
-    );
-
-    let manifest = fs::read_to_string(out_dir.join("std/js/manifests/std_js_bindings.json"))
-        .expect("read binding manifest");
-    let callbacks = fs::read_to_string(out_dir.join("terlan/angular/LifecycleCallbacks.terl"))
-        .expect("read lifecycle callbacks");
-    assert!(
-        callbacks.contains("pub with_members[BindingTarget]("),
-        "{callbacks}"
-    );
-    let bindings: serde_json::Value = serde_json::from_str(&manifest).unwrap();
-    let lifecycle = bindings["outputs"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|module| module["module"] == "terlan.angular.LifecycleCallbacks")
-        .unwrap();
-    let mixin = lifecycle["members"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|member| member["name"] == "with_members")
-        .unwrap();
-    assert_eq!(mixin["kind"], "mixin");
-    assert_eq!(
-        mixin["js_names"],
-        serde_json::json!(["$onInit", "$onDestroy"])
-    );
-    assert_eq!(mixin["parameters"][0]["type"], "() -> std.core.Unit");
-    assert!(manifest.contains("\"module\": \"terlan.angular.Ng\""));
-    assert!(manifest.contains("\"source\": \"terlan/angular/Ng.terl\""));
-    assert!(manifest.contains("\"summary\": \"std/summaries/terlan.angular.Ng.typi\""));
-    assert!(manifest.contains("\"test\": \"terlan/angular/NgTest.terl\""));
-
-    fs::remove_dir_all(root).expect("remove namespace root");
-    fs::remove_dir_all(out_dir).expect("remove generated namespace bindings");
 }
 
 /// Verifies JS DOM generation refuses existing non-empty directories.

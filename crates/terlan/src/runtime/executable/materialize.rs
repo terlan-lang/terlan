@@ -104,7 +104,10 @@ fn private_directory() -> Result<PathBuf, String> {
             "terlan-application-{}-{sequence}",
             std::process::id()
         ));
+        #[cfg(unix)]
         let mut builder = fs::DirBuilder::new();
+        #[cfg(not(unix))]
+        let builder = fs::DirBuilder::new();
         #[cfg(unix)]
         {
             use std::os::unix::fs::DirBuilderExt;

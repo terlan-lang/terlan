@@ -42,7 +42,7 @@ use hyper::{Request, Response};
 #[cfg(test)]
 use std::convert::Infallible;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use crate::commands::dev_dependencies;
 #[cfg(test)]
 use crate::runtime::vm::http::{handle_http1_in_memory_exchange, write_http1_response};

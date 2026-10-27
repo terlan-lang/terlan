@@ -1,4 +1,7 @@
-# Terlan 0.10.0 Roadmap
+# Terlan 0.11.0 Roadmap
+
+Runtime inspection was deferred from 0.10.0 on 2026-10-27. It is not a
+prerequisite for the 0.10.0 release.
 
 ## Runtime Inspection
 

@@ -1,0 +1,14 @@
+module release_closeout.DiagnosticsTest.
+
+import release_closeout.Diagnostics.{previous_release, release_notes_valid}.
+import std.core.String.
+
+@test
+pub release_notes_require_the_candidate_version_and_its_evidence(): Bool ->
+    let notes = "# Terlan 4.5.6 Release Notes\nInstalled-candidate validation covers direct-AOT and fixed-owner multicore execution shards.\nExecutable `.terls` scripts require COMPATIBILITY_4_5_6.json.\n";
+    release_notes_valid(notes, "4.5.6", true)
+        and not release_notes_valid(notes, "4.5.7", true)
+        and not release_notes_valid(notes, "4.5.6", false)
+        and not release_notes_valid(notes.replace("COMPATIBILITY_4_5_6", "COMPATIBILITY_4_5_5"), "4.5.6", true)
+        and previous_release(["## Unreleased", "## 4.5.6", "### Changes", "## 4.5.5"], "4.5.6", false) == "4.5.5"
+        and previous_release(["## 4.5.5"], "4.5.6", false) == "".

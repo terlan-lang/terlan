@@ -218,7 +218,7 @@ pub(super) fn seal_publish_dry_run(
                 .package
                 .compiler
                 .clone()
-                .unwrap_or_else(|| format!(">={}, <0.1.0", env!("CARGO_PKG_VERSION"))),
+                .unwrap_or_else(|| format!("~{}", env!("CARGO_PKG_VERSION"))),
             source_identity: SourceIdentity {
                 kind: SourceIdentityKind::ArtifactSet,
                 value: provenance.value.clone(),

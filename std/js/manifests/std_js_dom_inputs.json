@@ -3,7 +3,7 @@
     "name": "terlc",
     "oxc_parser": true,
     "profile": "typescript-standard-js-dom",
-    "version": "0.0.9"
+    "version": "0.10.0"
   },
   "inputs": [
     {

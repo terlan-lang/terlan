@@ -1,0 +1,55 @@
+{
+  "schema": "terlan.release-compatibility-baseline.v1",
+  "baseline": "0.0.9",
+  "candidate": "0.10.0",
+  "changes": [
+    {
+      "surface": "native.declarations",
+      "classification": "breaking",
+      "previous": "Native declarations carried a qualified annotation argument and a native placeholder body.",
+      "current": "Handwritten native declarations use a parameter-free @compiler.native annotation and no body.",
+      "guidance": "Remove the redundant symbol argument and native body, then rebuild native packages.",
+      "evidence": "std/regex/Regex.terl"
+    },
+    {
+      "surface": "collections.array-name",
+      "classification": "breaking",
+      "previous": "The fixed array collection was named FixedArray.",
+      "current": "The fixed array collection is named Array.",
+      "guidance": "Update FixedArray imports and type annotations to Array.",
+      "evidence": "std/collections/Array.terl"
+    },
+    {
+      "surface": "types.public-paths",
+      "classification": "breaking",
+      "previous": "Public primary types could repeat the module name in their qualified path.",
+      "current": "Public primary type paths use their owning module directly.",
+      "guidance": "Update qualified type annotations and imports to their owning module's public type path.",
+      "evidence": "crates/terlan/src/commands/bind/ts_dom_generator/type_resolution.rs"
+    },
+    {
+      "surface": "css.typed-property-values",
+      "classification": "breaking",
+      "previous": "Typed CSS exposed optional-property wrappers and getter APIs.",
+      "current": "Typed CSS accepts property values directly.",
+      "guidance": "Replace wrapper construction and getter calls with direct typed values and application-owned Option fields where needed.",
+      "evidence": "std/css/README.md"
+    },
+    {
+      "surface": "bindings.angular-ownership",
+      "classification": "breaking",
+      "previous": "terlc bind angular-ts selected compiler-owned declarations and added a synthetic framework facade.",
+      "current": "Angular.ts owns its Terlan package and selects declaration inputs through the generic TypeScript generator.",
+      "guidance": "Use Angular.ts integrations/terlan to generate bindings from the same directory as the selected runtime.",
+      "evidence": "crates/terlan/src/commands/bind/README.md"
+    },
+    {
+      "surface": "applications.deployment-layout",
+      "classification": "breaking",
+      "previous": "Native application deployment required a separate image and VM alongside the launcher.",
+      "current": "Native applications embed their image and VM in one executable.",
+      "guidance": "Deploy the rebuilt application executable and retain any separately configured external service dependencies.",
+      "evidence": "crates/terlan/tests/support/single_executable.rs"
+    }
+  ]
+}

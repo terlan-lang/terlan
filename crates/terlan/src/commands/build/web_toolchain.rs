@@ -55,7 +55,6 @@ pub(super) fn run_managed_bundler(command: &mut Command) -> Result<Output, Manag
 pub(crate) struct ManagedWebToolchain {
     pub(crate) root: PathBuf,
     pub(crate) rsbuild: PathBuf,
-    pub(crate) angular_types: PathBuf,
 }
 
 /// Resolves and verifies the compiler-owned browser toolchain.
@@ -116,16 +115,7 @@ fn validate_managed_web_toolchain(root: &Path) -> Result<ManagedWebToolchain, St
         .join("node_modules")
         .join(ANGULAR_TS_PACKAGE)
         .join("dist/angular-ts.esm.js");
-    let angular_types = root
-        .join("node_modules")
-        .join(ANGULAR_TS_PACKAGE)
-        .join("@types/namespace.d.ts");
-    for required in [
-        &rsbuild,
-        &angular_runtime,
-        &angular_types,
-        &root.join("css-bundle.mjs"),
-    ] {
+    for required in [&rsbuild, &angular_runtime, &root.join("css-bundle.mjs")] {
         if !required.is_file() {
             return Err(format!(
                 "managed web toolchain file is missing: {}",
@@ -139,12 +129,6 @@ fn validate_managed_web_toolchain(root: &Path) -> Result<ManagedWebToolchain, St
             format!(
                 "cannot resolve managed Rsbuild binary {}: {error}",
                 rsbuild.display()
-            )
-        })?,
-        angular_types: angular_types.canonicalize().map_err(|error| {
-            format!(
-                "cannot resolve managed Angular.ts declarations {}: {error}",
-                angular_types.display()
             )
         })?,
     })

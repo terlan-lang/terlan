@@ -149,8 +149,11 @@ self_test_source(): String ->
     String.concat(
         [
             "module release_validation.Main.\n\n",
+            "import std.collections.List.\n",
+            "import std.core.String.\n\n",
             "pub main(): Bool ->\n",
-            "    true.\n\n",
+            "    let values = [\"release\", \"native\", \"image\"];\n",
+            "    List.length(values) == 3 and String.concat(values) == \"releasenativeimage\".\n\n",
             "continuation_probe(): Unit ->\n",
             "    std.io.Console.println(\"release native continuation probe\").\n",
         ],
