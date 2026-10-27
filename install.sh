@@ -273,7 +273,17 @@ fi
 # This metadata is checksum-verified above. Reject incompatible libc before
 # replacing any installed payload; the executable preflight also catches other
 # missing dynamic libraries on the actual destination host.
-if [ "$TERLAN_OS" = linux ]; then
+# Releases through 0.0.9 predate minimum_glibc metadata. Their binaries must
+# still pass the same executable preflight before any installed files change.
+legacy_glibc_metadata=false
+case "$VERSION" in
+  v0.0.[1-9])
+    if ! grep -q '"minimum_glibc"' terlan-release.json; then
+      legacy_glibc_metadata=true
+    fi
+    ;;
+esac
+if [ "$TERLAN_OS" = linux ] && [ "$legacy_glibc_metadata" != true ]; then
   minimum_glibc="$(sed -n 's/.*"minimum_glibc"[[:space:]]*:[[:space:]]*"\([0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' terlan-release.json)"
   if ! printf '%s\n' "$minimum_glibc" | grep -Eq '^[0-9]+\.[0-9]+$' || [ "$(printf '%s\n' "$minimum_glibc" | wc -l | tr -d ' ')" != 1 ]; then
     echo "Linux release metadata must declare minimum_glibc (major.minor)." >&2
