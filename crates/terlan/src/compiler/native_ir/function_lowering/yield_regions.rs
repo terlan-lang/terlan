@@ -138,6 +138,29 @@ pub(in crate::compiler::native_ir) fn condition_yield_region_at_depth(
             };
             Some(YieldRegion { resume, ..region })
         }
+        CoreExpr::FieldAccess { base, field } => {
+            condition_yield_region_at_depth(base, depth.saturating_add(1)).map(|region| {
+                YieldRegion {
+                    resume: CoreExpr::FieldAccess {
+                        base: Box::new(region.resume),
+                        field: field.clone(),
+                    },
+                    ..region
+                }
+            })
+        }
+        CoreExpr::RecordAccess { base, name, field } => {
+            condition_yield_region_at_depth(base, depth.saturating_add(1)).map(|region| {
+                YieldRegion {
+                    resume: CoreExpr::RecordAccess {
+                        base: Box::new(region.resume),
+                        name: name.clone(),
+                        field: field.clone(),
+                    },
+                    ..region
+                }
+            })
+        }
         CoreExpr::UnaryOp { operator, operand } => {
             condition_yield_region_at_depth(operand, depth.saturating_add(1)).map(|region| {
                 YieldRegion {

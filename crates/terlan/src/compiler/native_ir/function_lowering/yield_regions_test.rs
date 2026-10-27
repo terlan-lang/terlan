@@ -290,3 +290,109 @@ fn process_yield_retains_downstream_completion_captures() {
         std::collections::HashSet::from(["options".to_string()])
     );
 }
+
+/// A projected capability result must resume before its field is read, while
+/// earlier and later eager arguments retain their original evaluation order.
+#[test]
+fn projected_capability_argument_preserves_eager_order_and_result_contract() {
+    use crate::terlan_typeck::{CoreRuntimeCapability, CoreStructTypeField};
+
+    let result_type = CoreType::Struct {
+        name: "std.system.Process.Limits".into(),
+        fields: [
+            "maximum_timeout_ms",
+            "maximum_output_bytes",
+            "maximum_stdin_bytes",
+            "maximum_batch_commands",
+            "maximum_batch_concurrency",
+            "maximum_framed_exchanges",
+            "maximum_framed_responses",
+        ]
+        .into_iter()
+        .map(|name| CoreStructTypeField {
+            name: name.into(),
+            ty: CoreType::Int,
+            is_private: false,
+        })
+        .collect(),
+    };
+    let call = |name: &str| CoreExpr::Call {
+        type_args: Vec::new(),
+        function: name.into(),
+        args: Vec::new(),
+    };
+    for named in [false, true] {
+        let capability = CoreExpr::Intrinsic(CoreIntrinsicCall {
+            id: CoreIntrinsicId::Runtime(CoreRuntimeCapability::SystemProcessLimits),
+            args: Vec::new(),
+            return_type: result_type.clone(),
+            effects: CoreEffectSet {
+                effects: vec!["io".into()],
+            },
+            span: Span::new(11, 29),
+        });
+        let projection = |base| {
+            if named {
+                CoreExpr::RecordAccess {
+                    base: Box::new(base),
+                    name: "std.system.Process.Limits".into(),
+                    field: "maximum_timeout_ms".into(),
+                }
+            } else {
+                CoreExpr::FieldAccess {
+                    base: Box::new(base),
+                    field: "maximum_timeout_ms".into(),
+                }
+            }
+        };
+        let expression = CoreExpr::Call {
+            type_args: Vec::new(),
+            function: "fixture.configure".into(),
+            args: vec![
+                call("fixture.before"),
+                CoreExpr::BinaryOp {
+                    operator: "+".into(),
+                    left: Box::new(projection(capability)),
+                    right: Box::new(CoreExpr::Int(1)),
+                },
+                call("fixture.after"),
+            ],
+        };
+        let region = condition_yield_region(&expression).expect("projected capability yield");
+        assert_eq!(region.operation, NativeTransitionOperation::Capability);
+        assert_eq!(region.arguments.first(), Some(&CoreExpr::Int(33)));
+        assert_eq!(region.source_span, Some(Span::new(11, 29)));
+        assert_eq!(region.result_core_type, Some(result_type.clone()));
+        assert_eq!(
+            region.prefix.len(),
+            1,
+            "only the earlier argument may run first"
+        );
+        let CorePattern::Var(prefix_name) = &region.prefix[0].pattern else {
+            panic!("eager argument must have a named capture")
+        };
+        assert_eq!(region.prefix[0].value, call("fixture.before"));
+        let result_name = region
+            .result
+            .as_ref()
+            .expect("typed capability result")
+            .0
+            .clone();
+        assert_eq!(
+            region.resume,
+            CoreExpr::Call {
+                type_args: Vec::new(),
+                function: "fixture.configure".into(),
+                args: vec![
+                    CoreExpr::Var(prefix_name.clone()),
+                    CoreExpr::BinaryOp {
+                        operator: "+".into(),
+                        left: Box::new(projection(CoreExpr::Var(result_name))),
+                        right: Box::new(CoreExpr::Int(1)),
+                    },
+                    call("fixture.after"),
+                ],
+            }
+        );
+    }
+}
