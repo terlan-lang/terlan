@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "2a72b8bb0d42c5c7e76d38c1b651d284ebd488a1d3420a1d10549a3495f87909",
+  "compilation_input_sha256": "37a7f1a2a3efd417d89ca9d97af4255ed0230a51fe225dde12b78e8f6187a4c7",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -926,7 +926,7 @@
     },
     {
       "name": "commands",
-      "physical_lines": 138018,
+      "physical_lines": 137987,
       "rust_files": 417
     },
     {
@@ -1011,7 +1011,7 @@
     },
     {
       "name": "root:self_host_actor_ir",
-      "physical_lines": 594,
+      "physical_lines": 607,
       "rust_files": 1
     },
     {
@@ -1021,22 +1021,22 @@
     },
     {
       "name": "root:self_host_ir",
-      "physical_lines": 551,
+      "physical_lines": 553,
       "rust_files": 1
     },
     {
       "name": "root:self_host_native_backend",
-      "physical_lines": 300,
+      "physical_lines": 307,
       "rust_files": 1
     },
     {
       "name": "root:self_host_variant_adapter",
-      "physical_lines": 166,
+      "physical_lines": 170,
       "rust_files": 1
     },
     {
       "name": "root:self_host_variant_ir",
-      "physical_lines": 351,
+      "physical_lines": 359,
       "rust_files": 1
     },
     {
@@ -1428,8 +1428,8 @@
     },
     {
       "name": "commands",
-      "physical_lines": 53352,
-      "rust_files": 235
+      "physical_lines": 53383,
+      "rust_files": 236
     },
     {
       "name": "compiler",

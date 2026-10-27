@@ -37,6 +37,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const VARIANT_LAYOUT_SCHEMA: &str = "terlan.self-host.variant-layout/v1";
 
+/// Serialized payload type evidence; an unknown type must have an empty name.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OptionalType {
@@ -44,6 +45,7 @@ pub struct OptionalType {
     pub name: String,
 }
 
+/// Serialized constructor tag, generic parameters, and ordered payload types.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VariantLayout {
@@ -54,6 +56,7 @@ pub struct VariantLayout {
     pub payload_types: Vec<OptionalType>,
 }
 
+/// Versioned finite-sum sidecar containing the layouts of its constructors.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VariantLayoutDocument {
@@ -173,6 +176,7 @@ pub fn decode(source: &str) -> Result<VariantLayoutDocument, Vec<String>> {
     }
 }
 
+/// Constructor layout after substituting a concrete subject's type arguments.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResolvedVariantLayout {
     pub owner: String,
@@ -182,6 +186,7 @@ pub struct ResolvedVariantLayout {
     pub payload_types: Vec<Option<String>>,
 }
 
+/// Validated constructor layouts indexed by their owner and constructor names.
 #[derive(Clone, Debug, Default)]
 pub struct VariantCatalog {
     layouts: BTreeMap<(String, String), VariantLayout>,
@@ -235,6 +240,7 @@ fn substitute_type(value: &str, bindings: &BTreeMap<String, String>) -> String {
 }
 
 impl VariantCatalog {
+    /// Validates a sidecar and indexes its layouts, returning any admission errors.
     pub fn from_document(document: VariantLayoutDocument) -> Result<Self, Vec<String>> {
         let diagnostics = validate(&document);
         if !diagnostics.is_empty() {
@@ -274,6 +280,8 @@ impl VariantCatalog {
         }
     }
 
+    /// Resolves a constructor against a subject type and substitutes generic payloads.
+    /// Rejects unknown constructors, owner mismatches, and invalid type-argument counts.
     pub fn resolve(
         &self,
         owner: &str,

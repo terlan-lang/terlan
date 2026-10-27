@@ -250,6 +250,7 @@ pub fn emit_object(_envelope: &BackendEnvelope) -> Result<Vec<u8>, NativeBackend
     Err(("error[self-host.native-adapter.feature]: native-codegen is disabled".to_string()).into())
 }
 
+/// Rejects actor object emission when native code generation is disabled.
 #[cfg(not(feature = "native-codegen"))]
 pub fn emit_actor_object(
     _envelope: &BackendEnvelope,
@@ -258,6 +259,7 @@ pub fn emit_actor_object(
     Err(("error[self-host.native-adapter.feature]: native-codegen is disabled".to_string()).into())
 }
 
+/// Rejects typed actor object emission when native code generation is disabled.
 #[cfg(not(feature = "native-codegen"))]
 pub fn emit_typed_actor_object(
     _envelope: &BackendEnvelope,
@@ -267,11 +269,13 @@ pub fn emit_typed_actor_object(
     Err(("error[self-host.native-adapter.feature]: native-codegen is disabled".to_string()).into())
 }
 
+/// Rejects application object emission when native code generation is disabled.
 #[cfg(not(feature = "native-codegen"))]
 pub fn emit_application(_envelopes: &[BackendEnvelope]) -> Result<Vec<u8>, NativeBackendError> {
     Err(("error[self-host.native-adapter.feature]: native-codegen is disabled".to_string()).into())
 }
 
+/// Rejects typed actor application emission when native code generation is disabled.
 #[cfg(not(feature = "native-codegen"))]
 pub fn emit_typed_actor_application(
     _envelopes: &[BackendEnvelope],
@@ -281,6 +285,7 @@ pub fn emit_typed_actor_application(
     Err(("error[self-host.native-adapter.feature]: native-codegen is disabled".to_string()).into())
 }
 
+/// Rejects image publication without native code generation; writes no output.
 #[cfg(not(feature = "native-codegen"))]
 pub fn publish_application_image(
     _envelopes: &[BackendEnvelope],
@@ -289,6 +294,8 @@ pub fn publish_application_image(
     Err(("error[self-host.native-adapter.feature]: native-codegen is disabled".to_string()).into())
 }
 
+/// Rejects typed actor image publication without native code generation.
+/// No output is written by this feature-disabled implementation.
 #[cfg(not(feature = "native-codegen"))]
 pub fn publish_typed_actor_application_image(
     _envelopes: &[BackendEnvelope],

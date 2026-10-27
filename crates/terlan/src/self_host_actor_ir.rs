@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 
 pub const ACTOR_IR_SCHEMA: &str = "terlan.self-host.actor-ir/v2";
 
+/// Serialized continuation identity, source ownership, captures, and entry signature.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActorContinuation {
@@ -25,6 +26,7 @@ pub struct ActorContinuation {
     pub entry_block: String,
 }
 
+/// Serialized mapping from a callee continuation to the caller's resume values.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActorResumeEdge {
@@ -36,6 +38,7 @@ pub struct ActorResumeEdge {
     pub caller_value_start: usize,
 }
 
+/// Native call site with its live values, resume edges, and completion identity.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActorSuspensionSite {
@@ -52,6 +55,7 @@ pub struct ActorSuspensionSite {
     pub completion_continuation_id: String,
 }
 
+/// One possible suspension entry and the number of captured values it carries.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActorProfileEntry {
@@ -61,6 +65,7 @@ pub struct ActorProfileEntry {
     pub capture_count: usize,
 }
 
+/// Suspension entries for one callable, including whether the runtime owns them.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActorSuspensionProfile {
@@ -71,6 +76,7 @@ pub struct ActorSuspensionProfile {
     pub entries: Vec<ActorProfileEntry>,
 }
 
+/// Versioned actor sidecar containing continuations, call sites, and profiles.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActorIrDocument {
@@ -160,6 +166,8 @@ pub fn dispatch_id(identity: &str) -> Result<u64, terlan_runtime_abi::BoundaryEr
     Ok(u64::from_le_bytes(prefix).max(1))
 }
 
+/// Checks the schema, identity provenance, capture signatures, and resume links.
+/// Returns an empty diagnostic list only when the decoded sidecar is consistent.
 pub fn validate(document: &ActorIrDocument) -> Vec<String> {
     let mut diagnostics = Vec::new();
     if document.schema != ACTOR_IR_SCHEMA {
@@ -451,6 +459,7 @@ pub fn validate(document: &ActorIrDocument) -> Vec<String> {
     diagnostics
 }
 
+/// Decodes actor JSON and rejects malformed or inconsistent continuation metadata.
 pub fn decode(source: &str) -> Result<ActorIrDocument, Vec<String>> {
     let document: ActorIrDocument = serde_json::from_str(source)
         .map_err(|error| vec![format!("invalid actor IR JSON: {error}")])?;
@@ -462,6 +471,7 @@ pub fn decode(source: &str) -> Result<ActorIrDocument, Vec<String>> {
     }
 }
 
+/// Admitted continuation with a native dispatch ID and ordered capture signature.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeActorContinuation {
     pub id: u64,
@@ -476,6 +486,7 @@ pub struct RuntimeActorContinuation {
     pub entry_block: String,
 }
 
+/// Resume mapping with native dispatch IDs and an optional callee export ID.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeActorResumeEdge {
     pub callee_export_id: Option<u64>,
@@ -485,6 +496,7 @@ pub struct RuntimeActorResumeEdge {
     pub caller_value_start: usize,
 }
 
+/// Admitted native call site with materialized resume and completion identities.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeActorSuspensionSite {
     pub source_function: String,
@@ -500,6 +512,7 @@ pub struct RuntimeActorSuspensionSite {
     pub completion_continuation_id: u64,
 }
 
+/// Continuations and suspension sites ready for native actor lowering.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeActorPlan {
     pub continuations: Vec<RuntimeActorContinuation>,

@@ -120,12 +120,14 @@ pub enum IrStructField {
 }
 
 impl IrStructField {
+    /// Returns the field name from either the legacy or typed ABI representation.
     pub fn name(&self) -> &str {
         match self {
             Self::Legacy(name) | Self::Typed { name, .. } => name,
         }
     }
 
+    /// Returns the declared type, or `None` for legacy fields without type evidence.
     pub fn type_name(&self) -> Option<&str> {
         match self {
             Self::Legacy(_) => None,

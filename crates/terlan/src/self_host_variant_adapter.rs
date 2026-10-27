@@ -2,6 +2,7 @@
 
 use crate::self_host_variant_ir::{ResolvedVariantLayout, VariantCatalog, VariantResolutionError};
 
+/// Constructor tag and payload type evidence for one concrete managed sum type.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ManagedVariantDescriptor {
     pub canonical_type: String,
@@ -12,18 +13,21 @@ pub struct ManagedVariantDescriptor {
     pub payload_types: Vec<Option<String>>,
 }
 
+/// Ordered payload slot and its resolved type for a constructor pattern.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VariantPayloadProjection {
     pub index: u32,
     pub type_name: String,
 }
 
+/// Constructor descriptor and typed projections required to match its payloads.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VariantPatternPlan {
     pub descriptor: ManagedVariantDescriptor,
     pub projections: Vec<VariantPayloadProjection>,
 }
 
+/// Constructor descriptor and checked operand types required to assemble a value.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct VariantConstructionPlan {
     pub descriptor: ManagedVariantDescriptor,

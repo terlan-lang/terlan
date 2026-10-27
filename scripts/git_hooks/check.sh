@@ -31,6 +31,8 @@ TERLAN_RELEASE_MANIFEST_ROOT="$PWD" TERLAN_RELEASE_MANIFEST_TERLC="$terlc" \
   "$terlc" test std/scripts/ReleaseManifestTest.terl
 echo 'pre-commit: proof release baseline'
 cargo build --locked -p terlan --bin terlan-quality --features quality-tools
+echo 'pre-commit: Rust documentation'
+"$CARGO_TARGET_DIR/debug/terlan-quality" rust-docs
 bash scripts/git_hooks/proof_baseline.sh
 echo 'pre-commit: Terlan formatting'
 make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
