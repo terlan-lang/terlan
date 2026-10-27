@@ -1,0 +1,72 @@
+module tvm_aot_platform_matrix.ReleaseChecksumsTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.
+import std.io.{Directory, File}.
+import std.test.Test.{assert_equal}.
+import tvm_aot_platform_matrix.ReleaseChecksums.
+
+import type std.crypto.Hash.LabeledFile.
+
+digest(): String -> "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".
+
+files(count: Int, path: String, result: List[LabeledFile]): List[LabeledFile] ->
+    if {
+        count == 0 -> result;
+        true -> let label = "share/terlan/std/generated/Item" + Int.to_string(count) + ".terl";
+        files(count - 1, path, [Hash.labeled_file(path, label) | result])
+    }.
+
+@test
+pub checksum_rows_preserve_order_and_reject_missing_inputs(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-checksum-order") else {
+        _ -> false
+    };
+    (let path = root + "/payload";
+let written = File.write_text(path, "abc");
+let result =
+    case written {
+        Err(_) -> false;
+        Ok(_) ->
+            let expected = digest() + "  first.txt\n" + digest() + "  λ/second.txt\n";
+            assert_equal(
+    Some(expected),
+    ReleaseChecksums.render(
+        [Hash.labeled_file(path, "first.txt"), Hash.labeled_file(path, "λ/second.txt")],
+    ),
+)
+                and assert_equal(Some(""), ReleaseChecksums.render([]))
+                and assert_equal(None, ReleaseChecksums.render([Hash.labeled_file(root + "/missing", "missing")]))
+    };
+let cleaned = Directory.remove_all(root);
+result
+    and case cleaned {
+    Ok(_) -> true;
+    Err(_) -> false
+}).
+
+@test
+pub release_sized_checksum_inventory_fits_the_normal_heap(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-checksum-inventory") else {
+        _ -> false
+    };
+    (let path = root + "/payload";
+let written = File.write_text(path, "abc");
+let result =
+    (let {
+    Ok(_) <- written;
+    Some(output) <- ReleaseChecksums.render(files(8000, path, []))
+} else {
+    _ -> false
+};
+output.starts_with(digest() + "  share/terlan/std/generated/Item1.terl\n")
+    and output.ends_with(digest() + "  share/terlan/std/generated/Item8000.terl\n")
+    and assert_equal(8001, std.collections.List.length(output.split("\n"))));
+let cleaned = Directory.remove_all(root);
+result
+    and case cleaned {
+    Ok(_) -> true;
+    Err(_) -> false
+}).

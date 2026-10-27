@@ -17,7 +17,7 @@ mod tests;
 
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) struct CompiledServeApplication {
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     pub(crate) core: CoreModule,
     pub(crate) interfaces: Vec<crate::terlan_hir::ModuleInterface>,
     pub(crate) image: native_image::CompiledServeNativeImage,
@@ -78,7 +78,7 @@ pub(in crate::commands::build) fn build_vm_application_artifacts(
 
 /// Compiles one route module together with its complete packaged application
 /// closure into a compiler-free serve image.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn compile_serve_application(
     web_root: &std::path::Path,
     source_path: &std::path::Path,
@@ -201,7 +201,7 @@ fn compile_application_from_root(
     })?;
     let interfaces = cores.iter().map(|core| core.interface.clone()).collect();
     Ok(CompiledServeApplication {
-        #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+        #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
         core,
         image,
         interfaces,

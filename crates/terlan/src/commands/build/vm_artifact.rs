@@ -43,7 +43,7 @@ mod parallel_compile_test;
 pub(crate) mod source_exports;
 mod std_source;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use orchestration::compile_serve_application;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use orchestration::compile_source_application;

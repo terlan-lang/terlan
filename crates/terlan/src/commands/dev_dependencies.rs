@@ -139,7 +139,7 @@ pub(crate) fn finish_dependency_session(
 /// - Uses `docker-compose-types` plus Serde YAML deserialization to parse the
 ///   Compose model, then applies only Terlan's strict web-profile Postgres
 ///   service contract.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn validate_project_compose(project_root: &Path) -> Result<(), String> {
     let Some(path) = project_compose_path(project_root) else {
         return Ok(());

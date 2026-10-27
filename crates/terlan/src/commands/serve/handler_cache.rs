@@ -60,7 +60,7 @@ use router_materialization::materialize_router;
 pub(super) use session_service::http_session_maintenance_for;
 use session_service::http_session_service_for;
 use source_generation::cached_source_entry;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) use source_generation::run_compiler_daemon;
 pub(super) use source_generation::stage_source_generation;
 const CACHE_ERROR: &str = "error[serve.aot.cache]: native handler cache lock poisoned";
@@ -672,7 +672,7 @@ struct HandlerCacheEntry {
     checksum: String,
     runtime: Arc<AotHandlerRuntime>,
     compatibility: source_generation::ServeGenerationCompatibility,
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     persisted: source_generation::PersistedServeGeneration,
 }
 
