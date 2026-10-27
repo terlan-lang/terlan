@@ -1,0 +1,103 @@
+/**
+ * Paired comparison using one compiler: alternate control and reuse first.
+ * Both modes keep native object caching and all correctness checks enabled.
+ */
+module compilation_benchmark.Comparison.
+
+import compilation_benchmark.{Evidence, Runner, Suite}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.{Int, String}.
+import std.crypto.Hash.{sha256_file}.
+import std.io.Directory.{create_all}.
+import std.io.File.{exists, write_text}.
+import std.system.Environment.
+
+sample(
+    compiler: String,
+    directory: String,
+    count: Int,
+    width: Int,
+    index: Int,
+    records: Bool,
+    retain: Bool,
+): Bool ->
+    Runner.run_with_reuse(
+        compiler,
+        String.concat(
+            [
+                directory,
+                if {
+                    retain -> "/reuse/";
+                    true -> "/control/"
+                },
+                if {
+                    records -> "records-";
+                    true -> "scalar-"
+                },
+                Int.to_string(index),
+            ],
+        ),
+        count,
+        width,
+        records,
+        retain,
+    ).
+
+pair(
+    compiler: String,
+    directory: String,
+    count: Int,
+    width: Int,
+    index: Int,
+    records: Bool,
+): Bool ->
+    let reuse_first = index rem 2 == 0;
+    sample(compiler, directory, count, width, index, records, reuse_first)
+        and sample(compiler, directory, count, width, index, records, not reuse_first).
+
+samples(
+    compiler: String,
+    directory: String,
+    count: Int,
+    width: Int,
+    index: Int,
+    repetitions: Int,
+): Bool ->
+    if {
+        index > repetitions -> true;
+        true -> pair(compiler, directory, count, width, index, false)
+            and pair(compiler, directory, count, width, index, true)
+            and samples(compiler, directory, count, width, index + 1, repetitions)
+    }.
+
+pub run(compiler: String, directory: String, count: Int, width: Int, repetitions: Int): Bool ->
+    let valid =
+        count > 0
+            and count <= 1024
+            and width > 0
+            and width <= 256
+            and repetitions > 0
+            and repetitions <= 31
+            and repetitions rem 2 == 1;
+    if {
+        not valid or exists(directory) -> false;
+        true -> let {
+            Ok(compiler_hash) <- sha256_file(compiler);
+            Some(stdlib_hash) <- Evidence.stdlib_digest(Environment.current_directory());
+            Ok(_) <- create_all(String.append(directory, "/control"));
+            Ok(_) <- create_all(String.append(directory, "/reuse"));
+            Ok(_) <-
+                write_text(
+                    String.append(directory, "/comparison.txt"),
+                    "Same compiler and build flags. Control removes only core-reuse lookup indices before each build, outside timed commands. Objects and sealed-image caches remain. Odd pairs run control first; even pairs run reuse first. Each mode runs all artifact and diagnostic parity checks. Compare the two summary.json files and retain raw reports.\n",
+                )
+        } else {
+            _ -> false
+        };
+        samples(compiler, directory, count, width, 1, repetitions)
+            and sha256_file(compiler) == Ok(compiler_hash)
+            and Evidence.stdlib_digest(Environment.current_directory()) == Some(stdlib_hash)
+            and Suite.summarize(String.append(directory, "/control"), repetitions)
+            and Suite.summarize(String.append(directory, "/reuse"), repetitions)
+    }.

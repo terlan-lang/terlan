@@ -3,7 +3,7 @@
  */
 module compilation_benchmark.SuiteTest.
 
-import compilation_benchmark.Suite.
+import compilation_benchmark.{Comparison, Suite}.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Ok}.
 import std.core.{String, Unit}.
@@ -26,7 +26,10 @@ pub invalid_repetition_count_never_starts_work(): Bool ->
 let rejected =
     not Suite.run("missing-compiler", path, 1, 1, 0)
         and not Suite.run("missing-compiler", path, 1, 1, 2)
-        and not Suite.run("missing-compiler", path, 1, 1, 33);
+        and not Suite.run("missing-compiler", path, 1, 1, 33)
+        and not Comparison.run("missing-compiler", path, 1, 1, 0)
+        and not Comparison.run("missing-compiler", path, 1, 1, 2)
+        and not Comparison.run("missing-compiler", directory, 1, 1, 1);
 let untouched = not exists(path);
 let removed = remove_all(directory) == Ok(Unit);
 rejected and untouched and removed).

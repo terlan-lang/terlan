@@ -1,0 +1,145 @@
+{
+  "artifact_class_maximum_bytes": {
+    "coverage": 12884901888,
+    "debug_build_scripts": 4294967296,
+    "debug_dependencies": 17179869184,
+    "debug_incremental": 8589934592,
+    "release": 8589934592
+  },
+  "artifact_classes": {
+    "coverage": 4959494144,
+    "debug_build_scripts": 644329472,
+    "debug_dependencies": 2662518784,
+    "debug_incremental": 2935558144,
+    "debug_profile": 7055716352,
+    "release": 1771200512,
+    "total_target": 13801472000
+  },
+  "canonical_commands": [
+    "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+    "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+    "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+    "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+    "cargo build --release --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+    "CARGO_TARGET_DIR=target/coverage RUSTFLAGS=--cfg coverage cargo test --locked -p terlan --lib --features quality-tools --no-run"
+  ],
+  "clean_finished_unix_ns": 1792879530848713792,
+  "clean_rebuild": true,
+  "compilation_input_sha256": "4f703c885797daa6fbb3e977562b4c6e75b96c7487f2af2fbd1044f2ebd3fa5c",
+  "enabled_features": {
+    "coverage": [
+      "quality-tools",
+      "cfg(coverage)"
+    ],
+    "debug": [],
+    "release": []
+  },
+  "executable_maximum_bytes": {
+    "debug": 2147483648,
+    "release": 134217728
+  },
+  "executable_sizes": {
+    "debug/terlan-native-worker": 174775504,
+    "debug/terlan-test-orchestrator": 17408904,
+    "debug/terlan-vm": 283368960,
+    "debug/terlc": 331580184,
+    "release/terlan-native-worker": 11323560,
+    "release/terlan-test-orchestrator": 2430360,
+    "release/terlan-vm": 50737208,
+    "release/terlc": 67294176
+  },
+  "generated_unix_ns": 1792880368817859494,
+  "lane_maximum_wall_time_ms": {
+    "clean_debug": 900000,
+    "coverage": 900000,
+    "implementation_edit": 180000,
+    "no_op_warm": 60000,
+    "public_interface_edit": 180000,
+    "release": 900000
+  },
+  "lanes": [
+    {
+      "command": "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+      "edited_file": null,
+      "finished_unix_ns": 1792879707451603597,
+      "invalidated_artifact_count": 432,
+      "name": "clean_debug",
+      "process_starts": 1,
+      "started_unix_ns": 1792879530848933726,
+      "wall_time_ms": 176602
+    },
+    {
+      "command": "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+      "edited_file": null,
+      "finished_unix_ns": 1792879708231109876,
+      "invalidated_artifact_count": 0,
+      "name": "no_op_warm",
+      "process_starts": 1,
+      "started_unix_ns": 1792879707789333407,
+      "wall_time_ms": 441
+    },
+    {
+      "command": "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+      "edited_file": "crates/terlan/src/compiler/native_ir/expression/inference.rs",
+      "finished_unix_ns": 1792879728511500721,
+      "invalidated_artifact_count": 4,
+      "name": "implementation_edit",
+      "process_starts": 1,
+      "started_unix_ns": 1792879708582158675,
+      "wall_time_ms": 19929
+    },
+    {
+      "command": "cargo build --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+      "edited_file": "crates/terlan/src/lib.rs",
+      "finished_unix_ns": 1792879751887909975,
+      "invalidated_artifact_count": 4,
+      "name": "public_interface_edit",
+      "process_starts": 1,
+      "started_unix_ns": 1792879728932395376,
+      "wall_time_ms": 22955
+    },
+    {
+      "command": "cargo build --release --locked -p terlan -p terlan-test-orchestrator --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator",
+      "edited_file": null,
+      "finished_unix_ns": 1792880030778023501,
+      "invalidated_artifact_count": 462,
+      "name": "release",
+      "process_starts": 1,
+      "started_unix_ns": 1792879752629690251,
+      "wall_time_ms": 278147
+    },
+    {
+      "command": "CARGO_TARGET_DIR=target/coverage RUSTFLAGS=--cfg coverage cargo test --locked -p terlan --lib --features quality-tools --no-run",
+      "edited_file": null,
+      "finished_unix_ns": 1792880361961293756,
+      "invalidated_artifact_count": 469,
+      "name": "coverage",
+      "process_starts": 1,
+      "started_unix_ns": 1792880031468350355,
+      "wall_time_ms": 330492
+    }
+  ],
+  "maximum_total_target_bytes": 36507222016,
+  "policy_sha256": "f235908fd0333b4a2db068320005c1d99e7dbd4bc51b38e0b2d6b341facae8c4",
+  "preclean_target_bytes": 7960158208,
+  "profile_fingerprints": {
+    "coverage": "2e9a2f54b2adad8c30e5d2998894c3b820302e92789d24cb9e50b3224b37c75b",
+    "debug": "faed69972bb3d2286714702d1554e58a379348cd5870c315a07e4efc2e3d2d73",
+    "release": "a598521939a31e9f3d26839800b91878673fd04957b87e615051dad21904fde4"
+  },
+  "ratchet_policy": "Lower checked ceilings after three comparable canonical measurements remain below 80 percent of the current limit; increases require a reviewed artifact-class rationale.",
+  "run_finished_unix_ns": 1792880368817683000,
+  "run_started_unix_ns": 1792879530009473209,
+  "schema": "terlan.build-artifact-budget.v1",
+  "target_roots": [
+    "target"
+  ],
+  "toolchain": {
+    "cargo": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "go": "go version go1.21.4 linux/amd64",
+    "host": "Linux anatoly 6.8.0-138-generic #138~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  7 13:43:15 UTC  x86_64 x86_64 x86_64 GNU/Linux",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2",
+    "target_triple": "x86_64-unknown-linux-gnu"
+  },
+  "unaccounted_target_children": []
+}

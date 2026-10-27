@@ -1,0 +1,36 @@
+/**
+ * Removes only checked-Core lookup indices from a benchmark-owned cache.
+ * Native objects, sealed images, manifests, and frontend entries stay intact.
+ */
+module compilation_benchmark.CacheControl.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Directory.{entries}.
+import std.io.File.{delete, exists}.
+
+import type std.core.Option.
+
+pub prepare(cache: String, retain: Bool): Option[Int] ->
+    let directory = String.append(cache, "/native-aot");
+    if {
+        retain or not exists(directory) -> Some(0);
+        true -> case entries(directory) {
+            Ok(paths) -> remove_indices(paths, String.append(directory, "/core-reuse-"), 0);
+            Err(_) -> None
+        }
+    }.
+
+remove_indices(paths: List[String], prefix: String, removed: Int): Option[Int] ->
+    case paths {
+        [] -> Some(removed);
+        [path | rest] ->
+            if {
+                path.starts_with(prefix) and path.ends_with(".json") -> case delete(path) {
+                    Ok(_) -> remove_indices(rest, prefix, removed + 1);
+                    Err(_) -> None
+                };
+                true -> remove_indices(rest, prefix, removed)
+            }
+    }.

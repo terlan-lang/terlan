@@ -3,7 +3,7 @@
  */
 module compilation_benchmark.Runner.
 
-import compilation_benchmark.{Corpus, Evidence}.
+import compilation_benchmark.{CacheControl, Corpus, Evidence}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -27,6 +27,7 @@ struct Session {
     directory: String,
     report: Json,
     rows: Json,
+    retain_checked_reuse: Bool,
 }.
 
 struct Completion {
@@ -152,11 +153,26 @@ successful(result: Option[Completion]): Bool ->
     }.
 
 build(session: Session, name: String, reference: Bool, expected: Int): Bool ->
-    successful(capture(session, name, session.compiler, build_arguments(session, reference)))
-        and case capture(session, String.append(name, "-runtime"), binary(session, reference), []) {
+    let Some(removed) <-
+        CacheControl.prepare(
+            String.append(
+                session.cache,
+                if {
+                    reference -> "-reference";
+                    true -> ""
+                },
+            ),
+            session.retain_checked_reuse,
+        ) else {
+        _ -> false
+    };
+    (let _removed = session.report.put(String.append(name, "_removed_reuse_indices"), Json.int(removed));
+(session.retain_checked_reuse or name != "build-warm" or removed > 0)
+    and successful(capture(session, name, session.compiler, build_arguments(session, reference)))
+    and case capture(session, String.append(name, "-runtime"), binary(session, reference), []) {
     Some(output) -> output.status == 0 and output.stdout.trim() == Int.to_string(expected);
     None -> false
-}.
+}).
 
 same_artifact(session: Session, phase: String): Bool ->
     let {
@@ -275,6 +291,16 @@ remove_paths(paths: List[String]): Bool ->
     }.
 
 pub run(compiler: String, directory: String, count: Int, width: Int, records: Bool): Bool ->
+    run_with_reuse(compiler, directory, count, width, records, true).
+
+pub run_with_reuse(
+    compiler: String,
+    directory: String,
+    count: Int,
+    width: Int,
+    records: Bool,
+    retain_checked_reuse: Bool,
+): Bool ->
     let valid_input = count > 0 and count <= 1024 and width > 0 and width <= 256;
     if {
         not valid_input or exists(directory) -> let _error = eprintln("Benchmark requires positive bounded dimensions and a new output directory.");
@@ -286,6 +312,7 @@ pub run(compiler: String, directory: String, count: Int, width: Int, records: Bo
 let rows = Json.array();
 let _schema = report.put("schema", Json.string("terlan.compilation-benchmark.v1"));
 let _jobs = report.put("build_jobs", Json.int(8));
+let _reuse = report.put("checked_reuse_indices_retained", Json.bool(retain_checked_reuse));
 let _count = report.put("leaf_modules", Json.int(count));
 let _width = report.put("functions_per_leaf", Json.int(width));
 let _shape =
@@ -325,6 +352,7 @@ let session =
         directory = directory,
         report = report,
         rows = rows,
+        retain_checked_reuse = retain_checked_reuse,
     );
 let passed = run_sample(session, count, width, records);
 let _host_after = report.put("host_after", Evidence.host_snapshot());

@@ -3,7 +3,8 @@
  */
 module compilation_benchmark.RunnerTest.
 
-import compilation_benchmark.{Evidence, Runner}.
+import compilation_benchmark.{CacheControl, Evidence, Runner}.
+import std.core.Option.{Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.io.Directory.{create_all, create_temporary, remove_all}.
@@ -69,3 +70,29 @@ pub stdlib_dependency_sidecars_are_part_of_the_input_identity(): Bool ->
         _ -> false
     };
     (let original = Evidence.stdlib_digest(directory); let changed = write_text(String.append(directory, "/std/Source.typi.deps"), "second") == Ok(Unit); let current = Evidence.stdlib_digest(directory); let removed = remove_all(directory) == Ok(Unit); changed and original != current and removed).
+
+@test
+pub comparison_control_preserves_objects_and_frontend_cache(): Bool ->
+    let {
+        Ok(directory) <- create_temporary("terlan-compilation-control-");
+        true <- CacheControl.prepare(directory, false) == Some(0);
+        Ok(_) <- create_all(String.append(directory, "/native-aot"));
+        Ok(_) <- write_text(String.append(directory, "/frontend.json"), "frontend");
+        Ok(_) <- write_text(String.append(directory, "/native-aot/object.o"), "object");
+        Ok(_) <- write_text(String.append(directory, "/native-aot/image.json"), "manifest");
+        Ok(_) <- write_text(String.append(directory, "/native-aot/core-reuse-slot.json"), "index")
+    } else {
+        _ -> false
+    };
+    (let retained =
+    CacheControl.prepare(directory, true) == Some(0)
+        and exists(String.append(directory, "/native-aot/core-reuse-slot.json"));
+let dropped =
+    CacheControl.prepare(directory, false) == Some(1)
+        and not exists(String.append(directory, "/native-aot/core-reuse-slot.json"));
+let preserved =
+    read_text(String.append(directory, "/frontend.json")) == Ok("frontend")
+        and read_text(String.append(directory, "/native-aot/object.o")) == Ok("object")
+        and read_text(String.append(directory, "/native-aot/image.json")) == Ok("manifest");
+let removed = remove_all(directory) == Ok(Unit);
+retained and dropped and preserved and removed).

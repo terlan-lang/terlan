@@ -1,0 +1,147 @@
+{
+  "schema": "terlan.compilation-profile.v1",
+  "date": "2026-10-27",
+  "scope": "One fresh build of the repaired 128x64 scalar fixture with timing instrumentation; excluded from comparative benchmark medians.",
+  "compiler_sha256": "cb7941f1b10ef87984ebe1c8f870d0b59fd2728e79301bc4ad4b63484aa39404",
+  "native_worker_sha256": "ff88253a975ed34229cea7f5163c8e28400dee0139a07173043d3a15e7d3b646",
+  "source_hashes": {
+    "crates/terlan/src/compiler/native_ir/application/analysis.rs": "5333104c40a55f45d9b6beeb79884fd867358fd069493f5f3998bcddd73d5540",
+    "crates/terlan/src/compiler/native_ir/application.rs": "568bb5467e5c333776a0098bee8b91c39e06a5273fb0a82ce555c06a501bce15"
+  },
+  "instrumentation": {
+    "TERLAN_NATIVE_AOT_TIMINGS": "1",
+    "TERLAN_BUILD_JOBS": "8",
+    "global_option": "--timings"
+  },
+  "frontend": [
+    {
+      "phase": "vm.application-compile",
+      "wall_ms": 1168,
+      "cumulative_ms": 1168
+    },
+    {
+      "phase": "vm.application-std-closure",
+      "wall_ms": 1732,
+      "cumulative_ms": 2900
+    },
+    {
+      "phase": "vm.application-aot-and-artifact",
+      "wall_ms": 8676,
+      "cumulative_ms": 11577
+    }
+  ],
+  "application": [
+    {
+      "phase": "selected-imports-and-admission",
+      "wall_ms": 118,
+      "cumulative_ms": 118
+    },
+    {
+      "phase": "source-constructors",
+      "wall_ms": 1,
+      "cumulative_ms": 120
+    },
+    {
+      "phase": "nominal-and-atom-identities",
+      "wall_ms": 0,
+      "cumulative_ms": 121
+    },
+    {
+      "phase": "early-calls-receivers-and-overloads",
+      "wall_ms": 62,
+      "cumulative_ms": 183
+    },
+    {
+      "phase": "native-package-canonicalization",
+      "wall_ms": 0,
+      "cumulative_ms": 184
+    },
+    {
+      "phase": "early-alias-and-collection-specialization",
+      "wall_ms": 8,
+      "cumulative_ms": 192
+    },
+    {
+      "phase": "list-and-template-lowering",
+      "wall_ms": 12,
+      "cumulative_ms": 205
+    },
+    {
+      "phase": "generated-alias-expansion",
+      "wall_ms": 1,
+      "cumulative_ms": 206
+    },
+    {
+      "phase": "pre-specialization",
+      "wall_ms": 8,
+      "cumulative_ms": 214
+    },
+    {
+      "phase": "generic-specialization",
+      "wall_ms": 31,
+      "cumulative_ms": 245
+    },
+    {
+      "phase": "effect-and-higher-order-specialization",
+      "wall_ms": 38,
+      "cumulative_ms": 283
+    },
+    {
+      "phase": "first-open-std-pruning",
+      "wall_ms": 144,
+      "cumulative_ms": 428
+    },
+    {
+      "phase": "first-scalar-case-lowering",
+      "wall_ms": 7,
+      "cumulative_ms": 436
+    },
+    {
+      "phase": "first-remote-call-normalization",
+      "wall_ms": 9,
+      "cumulative_ms": 445
+    },
+    {
+      "phase": "static-callable-normalization",
+      "wall_ms": 3,
+      "cumulative_ms": 448
+    },
+    {
+      "phase": "second-remote-call-normalization",
+      "wall_ms": 8,
+      "cumulative_ms": 456
+    },
+    {
+      "phase": "task-value-lowering",
+      "wall_ms": 7,
+      "cumulative_ms": 464
+    },
+    {
+      "phase": "late-normalization-and-struct-retention",
+      "wall_ms": 367,
+      "cumulative_ms": 832
+    },
+    {
+      "phase": "layout-and-admission",
+      "wall_ms": 111,
+      "cumulative_ms": 943
+    },
+    {
+      "phase": "candidate-inventory",
+      "wall_ms": 6,
+      "cumulative_ms": 949
+    },
+    {
+      "phase": "candidate-fixed-point",
+      "wall_ms": 4106,
+      "cumulative_ms": 5055
+    },
+    {
+      "phase": "selected-application-lowering",
+      "wall_ms": 2376,
+      "cumulative_ms": 7432
+    }
+  ],
+  "runtime_output": "8320",
+  "observation": "The 4.106 s candidate-analysis interval contains per-module resolver construction, suspension/composition fixed points, and per-function admission. Source inspection finds repeated resolver projections inside candidate loops; module-level reuse is a candidate optimization, not yet measured or implemented."
+}

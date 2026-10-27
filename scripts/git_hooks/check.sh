@@ -18,12 +18,12 @@ export TERLC="$terlc"
 echo 'pre-commit: canonical executable size budget'
 cargo build --release --locked -p terlan -p terlan-test-orchestrator \
   --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator
-cargo build --locked -p terlan-test-orchestrator
-TERLAN_REPOSITORY_ROOT="$PWD" "$terlc" run scripts/self_validation/BuildArtifactBudgetTest.terl \
-  -- --check-executables "$CARGO_TARGET_DIR"
 # Reuse the optimized compiler already required by the executable budget.
 terlc="$CARGO_TARGET_DIR/release/terlc"
 export TERLC="$terlc"
+cargo build --locked -p terlan-test-orchestrator
+TERLAN_REPOSITORY_ROOT="$PWD" "$terlc" run scripts/self_validation/BuildArtifactBudgetTest.terl \
+  -- --check-executables "$CARGO_TARGET_DIR"
 echo 'pre-commit: standard-library release manifest'
 "$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl --target js.browser \
   --out-dir target/git-hooks-js-constructor-types

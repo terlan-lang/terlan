@@ -169,39 +169,44 @@ pub run(compiler: String, directory: String, count: Int, width: Int, repetitions
         true -> let Ok(_) <- create_all(directory) else {
             _ -> false
         };
-        (let passed = samples(compiler, directory, count, width, 1, repetitions);
-let report = Json.object();
-let rows = Json.array();
-let phases =
-    [
-        "build-cold",
-        "build-warm",
-        "implementation-edit",
-        "public-interface-edit",
-        "check-cold",
-        "check-warm",
-    ];
-let summarized =
-    passed
-        and phase_rows(rows, directory, false, repetitions, phases)
-        and phase_rows(rows, directory, true, repetitions, phases);
-let _schema = report.put("schema", Json.string("terlan.compilation-benchmark-suite.v1"));
-let _passed = report.put("passed", Json.bool(passed and summarized));
-let _rows = report.put("medians", rows);
-let _count = report.put("repetitions_per_workload", Json.int(repetitions));
-let _limits =
-    report
-        .put(
-            "limitations",
-            Json.string(
-                "Medians describe this run only. Compare identical compiler options and host conditions; raw host and toolchain evidence is in each sample report.",
-            ),
-        );
-(let {
-    Ok(text) <- Json.stringify_pretty(report);
-    Ok(_) <- write_text(String.append(directory, "/summary.json"), String.append(text, "\n"))
-} else {
-    _ -> false
-};
-passed and summarized))
+        (let passed = samples(compiler, directory, count, width, 1, repetitions); summarize_result(directory, repetitions, passed))
     }.
+
+pub summarize(directory: String, repetitions: Int): Bool ->
+    summarize_result(directory, repetitions, true).
+
+summarize_result(directory: String, repetitions: Int, passed: Bool): Bool ->
+    let report = Json.object();
+    let rows = Json.array();
+    let phases =
+        [
+            "build-cold",
+            "build-warm",
+            "implementation-edit",
+            "public-interface-edit",
+            "check-cold",
+            "check-warm",
+        ];
+    let summarized =
+        passed
+            and phase_rows(rows, directory, false, repetitions, phases)
+            and phase_rows(rows, directory, true, repetitions, phases);
+    let _schema = report.put("schema", Json.string("terlan.compilation-benchmark-suite.v1"));
+    let _passed = report.put("passed", Json.bool(summarized));
+    let _rows = report.put("medians", rows);
+    let _count = report.put("repetitions_per_workload", Json.int(repetitions));
+    let _limits =
+        report
+            .put(
+                "limitations",
+                Json.string(
+                    "Medians describe this run only. Compare identical compiler options and host conditions; raw host and toolchain evidence is in each sample report.",
+                ),
+            );
+    let {
+        Ok(text) <- Json.stringify_pretty(report);
+        Ok(_) <- write_text(String.append(directory, "/summary.json"), String.append(text, "\n"))
+    } else {
+        _ -> false
+    };
+    summarized.

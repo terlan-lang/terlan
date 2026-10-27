@@ -137,6 +137,26 @@ affinity, governor, memory, and load, or explicitly record unavailable metrics.
 Compare repeated samples on a quiet host with the same compilation options.
 Timings from a busy development machine are exploratory, not release guarantees.
 
+To isolate the checked-application reuse shortcut using one compiler build:
+
+```sh
+target/release/terlc run scripts/benchmarks/compilation/scripts/Compare.terls -- \
+  "$PWD/target/release/terlc" \
+  "$PWD/target/quality/compilation-comparison-1" 128 64 3
+```
+
+This runs both workloads in paired control and reuse modes, reversing mode order
+on alternate repetitions. The control removes only `native-aot/core-reuse-*.json`
+lookup indices from its newly created, benchmark-owned cache before each build,
+outside the timed command. It keeps frontend entries, native objects, sealed
+images, and their validation manifests. An unchanged control build must remove
+at least one index, so a missing cache path cannot silently invalidate the
+experiment. Both modes retain all runtime, artifact, and diagnostic parity
+checks. Each raw report records its mode and the number of indices removed.
+The `control/summary.json` and `reuse/summary.json` files contain the medians.
+This estimates the shortcut's contribution with current compiler code; it is
+not a historical comparison between different compiler releases.
+
 These workloads model repetitive modular code, including one form of generic
 record usage. They do not establish performance for arbitrary LLM-generated
 applications. Large-project speed is a hypothesis to measure alongside richer
@@ -151,3 +171,81 @@ target/release/terlc test \
   scripts/benchmarks/compilation/src/compilation_benchmark/RunnerTest.terl \
   scripts/benchmarks/compilation/src/compilation_benchmark/SuiteTest.terl
 ```
+
+### Measured checked-image reuse: October 27, 2026
+
+The [retained comparison](../../scripts/benchmarks/compilation/results/checked-reuse-20261027.json)
+contains all twelve raw sample reports, tool hashes, host snapshots, and the
+calculated medians. Each workload has 128 generated leaf modules with 64
+functions each (8,192 leaf functions, plus application helpers). The optimized
+0.10.0 candidate compiler used eight native build jobs on an Intel i9-12950HX
+Linux workstation. Each mode/workload pair has three observations.
+
+Median wall times, in seconds:
+
+| Workload | Phase | Control | Checked-image reuse |
+| --- | --- | ---: | ---: |
+| Scalar | Fresh build | 13.199 | 13.265 |
+| Scalar | Unchanged rebuild | 11.116 | 3.359 |
+| Scalar | Implementation edit | 11.906 | 12.111 |
+| Scalar | Public-interface edit | 12.020 | 12.240 |
+| Scalar | Cold typecheck | 12.130 | 12.200 |
+| Scalar | Warm typecheck | 0.830 | 0.834 |
+| Records/generics | Fresh build | 13.913 | 13.904 |
+| Records/generics | Unchanged rebuild | 11.760 | 3.380 |
+| Records/generics | Implementation edit | 12.675 | 12.725 |
+| Records/generics | Public-interface edit | 12.793 | 12.956 |
+| Records/generics | Cold typecheck | 12.493 | 12.506 |
+| Records/generics | Warm typecheck | 0.842 | 0.842 |
+
+The unchanged rebuild takes about 70% less time for scalar code and 71% less for
+records/generics. Both modes already avoid native object compilation on an
+unchanged build; the additional saving comes from reusing the verified image
+before repeating application pruning and native lowering. Frontend checks and
+cache admission remain enforced. Edited inputs invalidate this shortcut; these
+measurements do not show an edit-build improvement.
+
+All twelve samples passed runtime output checks, byte-for-byte comparison with
+fresh builds after each edit, identical clean/incremental rejection diagnostics,
+and successful checking after repair. Compiler and native-worker hashes stayed
+unchanged. Compiler, standard-library, and native-toolchain identities agree
+across samples, and generated source identities agree within each workload.
+Every completed sample removed its build/cache outputs.
+
+These are synthetic workloads on one development workstation, with some other
+repository validation during the run. Alternating order reduces ordering bias
+but does not establish statistical confidence or performance for arbitrary
+LLM-generated programs. Interrupted earlier measurements are excluded.
+
+The optimized executable-size precommit validator separately completed in
+**1.50 seconds**, including its compilation and execution; the
+[validation observation](../../scripts/benchmarks/compilation/results/validation-overhead-20261027.json)
+records its command and input hashes. This is one validator observation, not
+the cost of the full precommit suite. The hook now selects the already-built
+optimized compiler before invoking this validator.
+
+### Rust bootstrap measurements
+
+Rust bootstrap and repository validation costs are separate from the Terlan
+application timings above. The retained canonical measurement in
+`scripts/benchmarks/compilation/results/rust-bootstrap-20261024.json` records
+these historical observations from October 24, 2026:
+
+| Rust bootstrap lane | Wall time |
+| --- | ---: |
+| Clean debug build | 176.602 s |
+| Unchanged debug build | 0.441 s |
+| Implementation edit | 19.929 s |
+| Public-interface edit | 22.955 s |
+| Optimized build | 278.147 s |
+| Coverage test compilation, without executing tests | 330.492 s |
+
+These are single observations of the source and profile fingerprints recorded
+in that report, not current-version medians or Terlan application timings. The
+debug lanes used normal Cargo incremental behavior. Validation runs explicitly
+configured with `CARGO_INCREMENTAL=0` are not comparable to those edit timings.
+The report includes exact commands, toolchain identity, artifact counts, cache
+sizes, and the source digest; it is retained as historical evidence, not reused
+as approval for a newer candidate. A fresh canonical measurement is available
+through `BuildArtifactBudgetTest.terl --measure`; it performs clean builds and
+requires its own disk and time budget.

@@ -1,0 +1,29 @@
+{
+  "schema": "terlan.validation-overhead-observation.v1",
+  "measured_date": "2026-10-27",
+  "command": [
+    "target/release/terlc",
+    "run",
+    "scripts/self_validation/BuildArtifactBudgetTest.terl",
+    "--",
+    "--check-executables",
+    "target"
+  ],
+  "environment": {
+    "TERLAN_REPOSITORY_ROOT": "repository root",
+    "TERLAN_COMPILER": "target/release/terlc",
+    "TERLAN_NATIVE_WORKER": "target/release/terlan-native-worker"
+  },
+  "compiler_sha256": "cb7941f1b10ef87984ebe1c8f870d0b59fd2728e79301bc4ad4b63484aa39404",
+  "validator_source_sha256": "10b2fb6d32c6927de11481444acd6eea30b060b3067a92a370eb0e942a190847",
+  "policy_sha256": "f235908fd0333b4a2db068320005c1d99e7dbd4bc51b38e0b2d6b341facae8c4",
+  "timing": {
+    "wall_seconds": 1.5,
+    "user_seconds": 1.58,
+    "system_seconds": 0.08,
+    "max_rss_kib": 100488,
+    "exit_status": 0
+  },
+  "result": "Canonical debug and release executable sizes passed.",
+  "scope": "One observation of the executable-size precommit validator, including its compilation and execution; not the entire precommit suite or a debug/release speedup comparison."
+}
