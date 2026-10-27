@@ -1,0 +1,94 @@
+module tvm_aot_platform_matrix.ReleasePackageTest.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Directory, File, Path}.
+import std.system.{Environment, Process}.
+import tvm_aot_platform_matrix.{ReleasePackage, ReleasePlatform}.
+
+import type std.core.Option.
+
+run(program: String, arguments: List[String]): Option[String] ->
+    case Process.run(Process.command(program).with_arguments(arguments).with_timeout_ms(120000)) {
+        Ok(output) ->
+            if {
+                output.status == 0 -> Some(output.stdout);
+                true -> let printed = eprintln(program + " failed:\n" + output.stdout + output.stderr);
+                None
+            };
+        Err(error) ->
+            let printed = eprintln(error.message);
+            None
+    }.
+
+check(root: String): Bool ->
+    let Some(platform) <- ReleasePlatform.detect() else {
+        _ -> false
+    };
+    (let compiler =
+    case Environment.get("TERLAN_RELEASE_TEST_COMPILER") {
+        Some(path) -> path;
+        None ->
+            case Environment.get("TERLC") {
+                Some(path) -> path;
+                None -> Environment.current_directory() + "/target/debug/" + platform.compiler
+            }
+    };
+(let {
+    Ok(compiler_path) <- Path.from_string(compiler);
+    Some(tools) <- compiler_path.parent();
+    Ok(vm_path) <- tools.join(platform.vm);
+    Ok(_) <- File.write_text(root + "/Main.terl", ReleasePackage.self_test_source());
+    Some(_) <-
+        run(
+            compiler,
+            ["build", root + "/Main.terl", "--target", "terlan-vm", "--out-dir", root + "/build"],
+        );
+    Some(text) <-
+        run(
+            vm_path.to_string(),
+            [
+                "package-image-metadata",
+                root + "/build/vm/release_validation_Main.tvm",
+                "--entry",
+                "release_validation.Main.main",
+                "--package-path",
+                "build/vm/release_validation_Main.tvm",
+            ],
+        );
+    Ok(metadata) <- Json.parse(text)
+} else {
+    _ -> false
+};
+if {
+    not ReleasePackage.native_metadata_valid(metadata, ReleasePlatform.target_triple(platform)) -> false;
+    true -> let manifest =
+        Json.object()
+            .put("schema", Json.string("terlan.release-artifact.v1"))
+            .put("target_triple", Json.string(ReleasePlatform.target_triple(platform)))
+            .put("native_self_test", metadata);
+    let {
+        Ok(rendered) <- Json.stringify_pretty(manifest);
+        Ok(_) <- File.write_text(root + "/terlan-release.json", rendered);
+        Some(_) <- run(vm_path.to_string(), ["validate-package", root])
+    } else {
+        _ -> false
+    };
+    true
+})).
+
+@test
+pub packaged_self_test_retains_continuations_and_executes(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-release-self-test") else {
+        _ -> false
+    };
+    (let passed = check(root);
+let cleaned = Directory.remove_all(root);
+passed
+    and case cleaned {
+    Ok(_) -> true;
+    Err(_) -> false
+}).

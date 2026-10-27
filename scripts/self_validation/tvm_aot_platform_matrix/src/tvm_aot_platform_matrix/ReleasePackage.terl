@@ -145,17 +145,22 @@ copy_release_binaries(root: String, platform: ReleasePlatform): Option[ReleaseBi
             }
     }.
 
-self_test_source(): String ->
+/**
+ * Exercises collection allocation and a reachable VM timer continuation.
+ */
+pub self_test_source(): String ->
     String.concat(
         [
             "module release_validation.Main.\n\n",
             "import std.collections.List.\n",
-            "import std.core.String.\n\n",
-            "pub main(): Bool ->\n",
+            "import std.core.String.\n",
+            "import std.vm.Process.\n\n",
+            "check_collections(): Bool ->\n",
             "    let values = [\"release\", \"native\", \"image\"];\n",
             "    List.length(values) == 3 and String.concat(values) == \"releasenativeimage\".\n\n",
-            "continuation_probe(): Unit ->\n",
-            "    std.io.Console.println(\"release native continuation probe\").\n",
+            "pub main(): Bool ->\n",
+            "    let slept = Process.sleep(Process.timer(1));\n",
+            "    check_collections().\n",
         ],
     ).
 
@@ -175,7 +180,10 @@ reverse_strings(values: List[String], reversed: List[String]): List[String] ->
         [value | rest] -> reverse_strings(rest, [value | reversed])
     }.
 
-native_metadata_valid(metadata: Json, expected_target: String): Bool ->
+/**
+ * Requires the packaged image to retain its target, debug and continuation evidence.
+ */
+pub native_metadata_valid(metadata: Json, expected_target: String): Bool ->
     case metadata.required_fields(["target_triple"], ["native_debug_record_count"], ["continuation_ids"]) {
         Err(_reason) -> failure("self_test", "native self-test metadata is incomplete");
         Ok(projection) ->
