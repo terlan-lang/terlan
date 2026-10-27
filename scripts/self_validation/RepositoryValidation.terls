@@ -890,7 +890,6 @@ build_release_contract(repository: String): Bool ->
         "$(CARGO) clippy --workspace --bins -- -D warnings",
         "$(CARGO) clippy --workspace --bins --all-features -- -D warnings",
         "release-candidate-check: build-artifact-budget-record",
-        "TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT=1",
         "TERLAN_BUILD_ARTIFACTS_PREBUILT=1",
         "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
         "error: missing prebuilt release Rust tool:",
@@ -1042,7 +1041,6 @@ build_release_process_contract(repository: String): Bool ->
                     "TERLAN_CHECK_RELEASE_EVIDENCE",
                     "TERLAN_VALIDATION_BOOTSTRAPPED=0",
                     "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
-                    "TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT=0",
                     "make",
                     "-n",
                     "release-candidate-check",
@@ -1127,7 +1125,7 @@ if {
         "build_release.release_control",
         "release plan must build the tag-publication controller exactly once",
     );
-    typed_validator_requests > 18 -> failure(
+    typed_validator_requests > 19 -> failure(
         "build_release.validator_budget",
         "release plan exceeds the typed-validator request budget",
     );
@@ -1139,7 +1137,7 @@ if {
         "build_release.terlc_test_budget",
         "release plan exceeds the Terlan test-process budget",
     );
-    terlc_build_invocations > 17 -> failure(
+    terlc_build_invocations > 18 -> failure(
         "build_release.terlc_build_budget",
         "release plan exceeds the Terlan AOT build-process budget",
     );
@@ -1192,7 +1190,7 @@ write_build_plan_report(
                 "typed_validator_request_count",
                 Json.int(count_occurrences(plan, "bash scripts/build_typed_validator.sh ")),
             )
-            .put("typed_validator_request_maximum", Json.int(18))
+            .put("typed_validator_request_maximum", Json.int(19))
             .put("typed_validator_parallelism", Json.int(validator_parallelism(plan)))
             .put("typed_validator_parallelism_maximum", Json.int(2))
             .put(
@@ -1206,7 +1204,7 @@ write_build_plan_report(
             )
             .put("terlc_toolchain_probe_invocation_count", Json.int(toolchain_probes))
             .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
-            .put("terlc_build_invocation_maximum", Json.int(17))
+            .put("terlc_build_invocation_maximum", Json.int(18))
             .put(
                 "incremental_terlc_build_invocation_count",
                 Json.int(count_occurrences(plan, "target/debug/terlc build --incremental ")),
@@ -1245,7 +1243,7 @@ if {
 })).
 
 duplicate_validator_output(plan: String): String ->
-    duplicate_validator_rows(String.split(plan, "\n"), List.new[String]()).
+    duplicate_validator_rows(String.split(plan, "\n"), List.new[String](), false).
 
 rust_orchestrator_count(plan: String): Int ->
     let Ok(pattern) <-
@@ -1268,22 +1266,36 @@ rust_orchestrator_rows(lines: List[String], pattern: Regex, count: Int): Int ->
             rust_orchestrator_rows(rest, pattern, next)
     }.
 
-duplicate_validator_rows(lines: List[String], seen: List[String]): String ->
+/**
+ * Measurement deletes its own validator; allow one producer on each side.
+ */
+duplicate_validator_rows(
+    lines: List[String],
+    seen: List[String],
+    after_measurement: Bool,
+): String ->
     case lines {
         [] -> "";
         [line | rest] ->
             if {
-                not String.starts_with(line, "bash scripts/build_typed_validator.sh ") -> duplicate_validator_rows(rest, seen);
+                String.ends_with(String.trim(line), " -- --measure-if-stale") -> duplicate_validator_rows(rest, seen, true);
+                not String.starts_with(line, "bash scripts/build_typed_validator.sh ") -> duplicate_validator_rows(rest, seen, after_measurement);
                 true -> let {
                     Some({_prefix, suffix}) <- String.split_once(line, "bash scripts/build_typed_validator.sh ");
                     Some({output, _arguments}) <- String.split_once(suffix, " ")
                 } else {
-                    _ -> duplicate_validator_rows(rest, seen)
+                    _ -> duplicate_validator_rows(rest, seen, after_measurement)
                 };
-                if {
-                    string_member(seen, output) -> output;
-                    true -> duplicate_validator_rows(rest, [output | seen])
-                }
+                (let key =
+    if {
+        after_measurement
+            and output == "target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm" -> String.append(output, "#after-measurement");
+        true -> output
+    };
+if {
+    string_member(seen, key) -> output;
+    true -> duplicate_validator_rows(rest, [key | seen], after_measurement)
+})
             }
     }.
 
@@ -1329,8 +1341,19 @@ cargo_plan_self_test(): Bool ->
     "build_command='cargo --locked build -p example'\nprintf '%s\\n' cargo --locked build -p example\n",
 ) == 1.
 
+budget_validator_plan_self_test(): Bool ->
+    let budget = "bash scripts/build_typed_validator.sh target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm inputs -- build\n";
+    let other = "bash scripts/build_typed_validator.sh target/other.tvm inputs -- build\n";
+    let measure = "target/debug/terlan-vm run budget.tvm -- --measure-if-stale\n";
+    duplicate_validator_output(String.concat([budget, measure, budget])) == ""
+        and duplicate_validator_output(String.concat([budget, budget])) != ""
+        and duplicate_validator_output(String.concat([budget, measure, budget, budget])) != ""
+        and duplicate_validator_output(String.concat([measure, budget, budget])) != ""
+        and duplicate_validator_output(String.concat([other, measure, other])) != "".
+
 self_test(): Bool ->
     bootstrap_plan_self_test()
+        and budget_validator_plan_self_test()
         and cargo_plan_self_test()
         and rust_orchestrator_count("/checkout/target/validation-tools/terlan-test-orchestrator\n") == 1
         and rust_orchestrator_count(

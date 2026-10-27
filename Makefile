@@ -672,13 +672,15 @@ endif
 terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-release-closeout-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap: terlan-typed-validator-fingerprint
 
 terlan-artifact-measurement-bootstrap: terlan-compiler-bootstrap
-ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT)),)
+# Measurement removes target with cargo clean, including this validator. Admit
+# it again before the gate graph; only an already-bootstrapped consumer skips it.
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SELF_VALIDATION_IMAGE) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std scripts/self_validation/BuildArtifactBudgetTest.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/BuildArtifactBudgetTest.terl --out-dir $(TERLAN_SELF_VALIDATION_DIR)
-	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
 endif
+	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
 
 terlan-make-recipe-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
@@ -1815,7 +1817,6 @@ release-candidate-check: build-artifact-budget-record
 	TERLAN_BUILD_ARTIFACTS_PREBUILT=0 \
 		$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	bash scripts/clean_build_outputs.sh --check-partials
-	TERLAN_ARTIFACT_MEASUREMENT_ALREADY_BUILT=1 \
 	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
 		$(MAKE) --no-print-directory check
 	bash scripts/clean_build_outputs.sh --check-partials
