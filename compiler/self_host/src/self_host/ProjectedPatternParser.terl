@@ -367,7 +367,7 @@ binding_pattern_kind(value: ProjectedCanonicalToken): String ->
 
 @pure
 capture_pattern_kind(value: ProjectedCanonicalToken): String ->
-    if { String.contains(value.text, "${") -> "string-capture-pattern"; true -> binding_pattern_kind(value) }.
+    if { String.contains(value.text, "\${") -> "string-capture-pattern"; true -> binding_pattern_kind(value) }.
 
 @pure
 wildcard_pattern_kind(value: ProjectedCanonicalToken): String ->

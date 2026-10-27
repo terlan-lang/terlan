@@ -131,10 +131,10 @@ canonical_roles(values: List[NormalPathEntry], roles: List[String]): Bool ->
 
 @pure
 forbidden_frontend(source: String): Bool ->
-    String.contains(source, "TERLC=${TERLC:-target/debug/terlc}")
-        or String.contains(source, "TERLC=${TERLC:-$ROOT/target/debug/terlc}")
-        or String.contains(source, "TERLC=${TERLC:-target/bootstrap/terlc0/terlc}")
-        or String.contains(source, "TERLC=${TERLC:-$ROOT/target/bootstrap/terlc0/terlc}")
+    String.contains(source, "TERLC=\${TERLC:-target/debug/terlc}")
+        or String.contains(source, "TERLC=\${TERLC:-$ROOT/target/debug/terlc}")
+        or String.contains(source, "TERLC=\${TERLC:-target/bootstrap/terlc0/terlc}")
+        or String.contains(source, "TERLC=\${TERLC:-$ROOT/target/bootstrap/terlc0/terlc}")
         or (String.contains(source, "cargo run") and String.contains(source, "--bin terlc")).
 
 @pure

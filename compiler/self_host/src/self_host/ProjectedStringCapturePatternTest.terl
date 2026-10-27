@@ -11,7 +11,7 @@ pub parser_preserves_ordered_literal_and_capture_segments(): Bool ->
     let parsed = ProjectedPatternParser.parse([
         ProjectedCanonicalToken(
             "string",
-            "\"users/${id: Int}/${name}.json\"",
+            "\"users/\${id: Int}/\${name}.json\"",
             0,
             31,
         ),
@@ -38,7 +38,7 @@ pub planner_emits_capture_bindings_with_declared_and_default_types(): Bool ->
     let parsed = ProjectedPatternParser.parse([
         ProjectedCanonicalToken(
             "string",
-            "\"users/${id: Int}/${name}.json\"",
+            "\"users/\${id: Int}/\${name}.json\"",
             0,
             31,
         ),
@@ -66,6 +66,6 @@ pub planner_emits_capture_bindings_with_declared_and_default_types(): Bool ->
 @test
 pub parser_rejects_adjacent_string_captures(): Bool ->
     let parsed = ProjectedPatternParser.parse([
-        ProjectedCanonicalToken("string", "\"${left}${right}\"", 0, 18),
+        ProjectedCanonicalToken("string", "\"\${left}\${right}\"", 0, 18),
     ]);
     not parsed.valid and parsed.node == None.

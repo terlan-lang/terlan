@@ -27,7 +27,7 @@ sources(recovery: Bool): List[NormalPathSource] ->
         Some(entries) -> case entries {
             [package, closure, bounded, native_object, native_application, hardening, production, seed, convergence, fixed, post_cleanup] -> [
                 NormalPathSource(package, if {
-                    recovery -> "TERLC=${TERLC:-target/debug/terlc}\ntarget/bootstrap/terlc1/terlc";
+                    recovery -> "TERLC=\${TERLC:-target/debug/terlc}\ntarget/bootstrap/terlc1/terlc";
                     true -> "target/bootstrap/terlc1/terlc"
                 }),
                 NormalPathSource(closure, "target/bootstrap/terlc1/terlc"),
