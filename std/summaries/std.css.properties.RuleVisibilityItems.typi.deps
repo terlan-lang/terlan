@@ -1,7 +1,7 @@
 module=std.css.properties.RuleVisibilityItems
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=14615003339094510889
 interface_hash=13052676613959537111
 interface_doc_hash=7761592860278408038

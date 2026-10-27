@@ -27,7 +27,9 @@ runs:
         sudo apt-get install --yes "${packages[@]}"
         # Hosted Ubuntu 24.04 requires this for the actual fail-closed sandbox,
         # both at the validation-tool bootstrap and capability-worker boundary.
-        sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
+        if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+          sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
+        fi
 
     - name: Install macOS native dependencies
       if: startsWith(inputs.target, 'macos-')

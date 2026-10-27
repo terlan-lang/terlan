@@ -394,7 +394,9 @@ pub match_path(path: String): Int ->
 "#,
     )
     .expect_err("unterminated string captures should be rejected");
-    assert_eq!(err.message, "unterminated string capture pattern");
+    // The shared string lexer now rejects an unclosed island before the
+    // parser can distinguish an expression from a capture pattern.
+    assert_eq!(err.message, "unterminated string literal");
 }
 
 /// Verifies empty string captures are rejected during parsing.

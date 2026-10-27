@@ -416,6 +416,10 @@ pub enum Expr {
     Atom(String),
     AtomLiteral(String),
     Binary(String),
+    InterpolatedString {
+        segments: Vec<String>,
+        expressions: Vec<Expr>,
+    },
     Var(String),
     Tuple(Vec<Expr>),
     List(Vec<Expr>),

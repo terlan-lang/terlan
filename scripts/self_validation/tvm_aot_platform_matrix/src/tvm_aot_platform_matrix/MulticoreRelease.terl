@@ -159,7 +159,7 @@ pub validate_workflow(workflow: String): Bool ->
         "target/quality/vm-multicore-memory-model-tsan.json",
         "release-validation-result:",
         "const targetUrl =",
-        "/actions/runs/${context.runId}",
+        "/actions/runs/\${context.runId}",
         "needs: validate",
         "if: always()",
     ],

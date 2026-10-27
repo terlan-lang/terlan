@@ -620,19 +620,8 @@ fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, 
 /// Transformation:
 /// - Scans through escaped characters without interpreting escape semantics.
 fn parse_string(chars: &[char], start: usize) -> Option<(String, usize)> {
-    let mut i = start + 1;
-    while i < chars.len() {
-        if chars[i] == '"' {
-            let end = i + 1;
-            return Some((chars[start..end].iter().collect(), end));
-        }
-        if chars[i] == '\\' && i + 1 < chars.len() {
-            i += 2;
-            continue;
-        }
-        i += 1;
-    }
-    None
+    let end = super::string_interpolation::string_end(chars, start, 0)?;
+    Some((chars[start..end].iter().collect(), end))
 }
 
 /// Preserves single-quoted text for opaque embedded languages such as SQL.

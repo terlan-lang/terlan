@@ -2108,6 +2108,11 @@
     }
   },
   {
+    "type": "string",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "struct_declaration",
     "named": true,
     "fields": {
@@ -2918,10 +2923,6 @@
   {
     "type": "sql",
     "named": false
-  },
-  {
-    "type": "string",
-    "named": true
   },
   {
     "type": "string_pattern",

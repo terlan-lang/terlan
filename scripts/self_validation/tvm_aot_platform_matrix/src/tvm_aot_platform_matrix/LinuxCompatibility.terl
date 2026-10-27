@@ -1,0 +1,111 @@
+/**
+ * Hard Linux ABI ceilings, checked against the packaged executables.
+ */
+module tvm_aot_platform_matrix.LinuxCompatibility.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String}.
+import std.io.Console.{eprintln}.
+import std.system.Process.
+
+/**
+ * Linux releases require glibc; other operating systems have no glibc contract.
+ */
+pub minimum(architecture: String): String ->
+    if {
+        architecture == "x86_64" -> "2.35";
+        true -> "2.39"
+    }.
+
+/**
+ * Numeric comparison handles glibc's historical patch-level symbol versions.
+ */
+pub version_supported(required: String, baseline: String): Bool ->
+    let {
+        {[major | [minor | tail]], [base_major, base_minor]} <- {required.split("."), baseline.split(".")};
+        {Some(a), Some(b), Some(x), Some(y)} <-
+            {
+                Int.from_string(major),
+                Int.from_string(minor),
+                Int.from_string(base_major),
+                Int.from_string(base_minor),
+            }
+    } else {
+        _ -> false
+    };
+    a >= 0
+        and b >= 0
+        and valid_patch(tail)
+        and (a < x or a == x and (b < y or b == y and zero_patch(tail))).
+
+valid_patch(parts: List[String]): Bool ->
+    case parts {
+        [] -> true;
+        [patch] ->
+            case Int.from_string(patch) {
+                Some(value) -> value >= 0;
+                _ -> false
+            };
+        _ -> false
+    }.
+
+zero_patch(parts: List[String]): Bool ->
+    case parts {
+        [] -> true;
+        ["0"] -> true;
+        _ -> false
+    }.
+
+inspect_lines(lines: List[String], baseline: String, found: Bool): Bool ->
+    case lines {
+        [] -> found;
+        [line | rest] ->
+            case line.split("Name: GLIBC_") {
+                [_, suffix] ->
+                    case suffix.split(" ") {
+                        [version | _] ->
+                            version_supported(version, baseline)
+                                and inspect_lines(rest, baseline, true);
+                        _ -> false
+                    };
+                [_] -> inspect_lines(rest, baseline, found);
+                _ -> false
+            }
+    }.
+
+/**
+ * Missing, malformed, private, or newer glibc symbol versions fail closed.
+ */
+pub symbols_supported(output: String, baseline: String): Bool ->
+    inspect_lines(output.split("\n"), baseline, false).
+
+pub check(paths: List[String], operating_system: String, architecture: String): Bool ->
+    if {
+        operating_system != "linux" -> true;
+        true -> check_files(paths, minimum(architecture))
+    }.
+
+check_files(paths: List[String], baseline: String): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let command =
+                Process.command("readelf")
+                    .with_arguments(["--version-info", "--wide", path])
+                    .with_timeout_ms(30000)
+                    .with_output_limit_bytes(8388608);
+            let valid =
+                case Process.run(command) {
+                    Ok(output) -> output.status == 0 and symbols_supported(output.stdout, baseline);
+                    Err(_) -> false
+                };
+            if {
+                valid -> check_files(rest, baseline);
+                true -> let _printed =
+                    eprintln(
+                        "error[release_artifact.glibc]: " + path + " must require at most glibc " + baseline + " (readelf required)",
+                    );
+                false
+            }
+    }.

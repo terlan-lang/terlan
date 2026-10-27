@@ -1,7 +1,7 @@
 module=std.css.properties.BorderInlineStartWidth
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=6674131396608730454
 interface_hash=10227248994322465916
 interface_doc_hash=5021124006130749012

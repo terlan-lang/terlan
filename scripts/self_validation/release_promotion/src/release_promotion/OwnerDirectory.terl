@@ -136,7 +136,7 @@ unlinked_paths(root: String, staged: String, destination: String): Bool ->
         "/bin/sh",
         [
             "-c",
-            "set -eu; for entry in \"$1\" \"$2\"; do current=$entry; while :; do test ! -L \"$current\"; case $current in */*) current=${current%/*};; *) break;; esac; done; done",
+            "set -eu; for entry in \"$1\" \"$2\"; do current=$entry; while :; do test ! -L \"$current\"; case $current in */*) current=\${current%/*};; *) break;; esac; done; done",
             "check-evidence-paths",
             staged,
             destination,

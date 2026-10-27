@@ -1,7 +1,7 @@
 module=std.css.properties.FlexShrink
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=11052274781463700276
 interface_hash=9991685409671671033
 interface_doc_hash=11249769265920792241

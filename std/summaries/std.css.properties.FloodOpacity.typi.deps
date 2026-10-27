@@ -1,7 +1,7 @@
 module=std.css.properties.FloodOpacity
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=13280831236725850931
 interface_hash=3565951435873417117
 interface_doc_hash=17085150439146001073

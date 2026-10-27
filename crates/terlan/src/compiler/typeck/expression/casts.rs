@@ -30,8 +30,7 @@ pub(super) fn infer_syntax_cast_expr(
     let target_text = expr.text.as_deref().unwrap_or("Dynamic");
     let mut vars = HashMap::new();
     let mut next_var = 0;
-    let alias_names = ctx.aliases.keys().cloned().collect::<HashSet<_>>();
-    let target_type = parse_type_expr(target_text, &alias_names, &mut vars, &mut next_var)
+    let target_type = parse_type_expr(target_text, ctx.alias_names, &mut vars, &mut next_var)
         .unwrap_or_else(|| {
             errors.push(format!("invalid cast target type `{}`", target_text));
             Type::Dynamic

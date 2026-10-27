@@ -1,7 +1,7 @@
 module=std.css.properties.TouchAction
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=10393313719395724781
 interface_hash=3247479250171832992
 interface_doc_hash=10165886225779634585

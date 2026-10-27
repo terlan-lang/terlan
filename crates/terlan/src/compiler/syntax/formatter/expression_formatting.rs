@@ -297,6 +297,12 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         Expr::Atom(value) => value.clone(),
         Expr::AtomLiteral(value) => format!("Atom[{}]", super::quoted_string_literal(value)),
         Expr::Binary(value) => value.clone(),
+        Expr::InterpolatedString {
+            segments,
+            expressions,
+        } => crate::terlan_syntax::string_interpolation::render(segments, expressions, |expr| {
+            format_expr(expr, indent)
+        }),
         Expr::Var(name) => name.clone(),
         Expr::Tuple(items) => format_tuple(items, indent),
         Expr::List(items) => format_expr_delimited("[", "]", items, indent),

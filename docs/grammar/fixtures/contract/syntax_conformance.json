@@ -1,6 +1,10 @@
 {
   "schema": 2,
   "cases": [
+    {"id":"string-interpolation","rule":"StringLiteral","ebnf":"accept","compiler":"accept","shape":"interpolation(2)","editor":"accept"},
+    {"id":"string-interpolation-nested","rule":"StringLiteral","ebnf":"accept","compiler":"accept","shape":"interpolation(1)","editor":"accept"},
+    {"id":"string-interpolation-escaped","rule":"StringLiteral","ebnf":"accept","compiler":"accept","shape":"interpolation(0)","editor":"accept"},
+    {"id":"string-interpolation-empty","rule":"StringLiteral","ebnf":"accept","compiler":"reject","editor":"accept","contextual":"String interpolation requires a nonempty Terlan expression.","diagnostic":"empty string interpolation expression","divergence":"The editor preserves string islands without validating expressions."},
     {"id":"cons", "rule":"ConsListExpr", "ebnf":"accept", "compiler":"accept", "shape":"cons(name(head),name(tail))", "editor":"accept"},
     {"id":"comprehension-filter", "rule":"ListGeneratorExpr", "ebnf":"accept", "compiler":"accept", "shape":"comprehension(1,1)", "editor":"accept"},
     {"id":"comprehension-generators", "rule":"ListGeneratorExpr", "ebnf":"accept", "compiler":"accept", "shape":"comprehension(2,0)", "editor":"accept"},

@@ -1,7 +1,7 @@
 module=std.css.properties.OverflowX
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=18173917401951560014
 interface_hash=6495094461156469640
 interface_doc_hash=10164520956858279648

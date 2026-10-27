@@ -200,3 +200,33 @@ fn source_linker_retains_cached_interfaces_for_transitive_project_imports() {
     .expect("link transitive project sources using the same interfaces");
     assert_js_check(&linked);
 }
+
+#[test]
+fn interpolation_uses_show_implementations_in_javascript() {
+    let source = r#"
+module interpolation_js.
+import std.core.String.{Show}.
+struct Label { value: Int }.
+impl Show[Label] for Label {
+    to_string(value: Label): String -> "label:${value.value}".
+}.
+render[T](value: T)[Show[T]]: String -> "<${value}>".
+pub check(): Bool ->
+    "${42} ${-7} ${true} ${1.5} ${"text"} ${Unit}" == "42 -7 true 1.5 text unit"
+    and render(Label { value: 7 }) == "<label:7>"
+    and render(42) == "<42>"
+    and "é \${value} {text} ${1 + 2} ${"inner ${4}"}" == "é \${value} {text} 3 inner 4".
+"#;
+    let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+        "interpolation_js.terl",
+        source,
+        crate::DiagnosticFormat::default(),
+        None,
+        crate::validation::native_policy::NativePolicy::default(),
+        crate::validation::target_profile::TargetProfile::JsShared,
+    )
+    .expect("compile interpolation");
+    let linked = link_libraries(&compiled.core, Path::new("interpolation_js.terl"))
+        .expect("resolve Show implementations");
+    assert_js_check(&linked);
+}

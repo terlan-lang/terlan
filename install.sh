@@ -270,6 +270,39 @@ if [ -n "$(LC_ALL=C sort "$internal_paths" | uniq -d)" ]; then
   exit 1
 fi
 
+# This metadata is checksum-verified above. Reject incompatible libc before
+# replacing any installed payload; the executable preflight also catches other
+# missing dynamic libraries on the actual destination host.
+if [ "$TERLAN_OS" = linux ]; then
+  minimum_glibc="$(sed -n 's/.*"minimum_glibc"[[:space:]]*:[[:space:]]*"\([0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' terlan-release.json)"
+  if ! printf '%s\n' "$minimum_glibc" | grep -Eq '^[0-9]+\.[0-9]+$' || [ "$(printf '%s\n' "$minimum_glibc" | wc -l | tr -d ' ')" != 1 ]; then
+    echo "Linux release metadata must declare minimum_glibc (major.minor)." >&2
+    exit 1
+  fi
+  host_libc="$(getconf GNU_LIBC_VERSION 2>/dev/null || true)"
+  case "$host_libc" in
+    glibc\ *) host_glibc=${host_libc#glibc } ;;
+    *) echo "This Linux artifact requires glibc $minimum_glibc or newer; glibc was not detected." >&2; exit 1 ;;
+  esac
+  if ! awk -v host="$host_glibc" -v required="$minimum_glibc" 'BEGIN {
+      if (host !~ /^[0-9]+\.[0-9]+$/) exit 1;
+      split(host, h, "."); split(required, r, ".");
+      exit !(h[1]+0 > r[1]+0 || (h[1]+0 == r[1]+0 && h[2]+0 >= r[2]+0));
+    }'; then
+    echo "Terlan $VERSION requires glibc $minimum_glibc or newer; this machine has $host_glibc. Existing installation unchanged." >&2
+    exit 1
+  fi
+fi
+for executable in terlc terlan-vm terlan-native-worker terlan-lsp; do
+  argument=--version
+  if [ "$executable" = terlan-lsp ]; then argument=--help; fi
+  if ! "./$executable" "$argument" > "$TMP_DIR/preflight.log" 2>&1; then
+    echo "Release executable $executable cannot run on this machine. Existing installation unchanged." >&2
+    cat "$TMP_DIR/preflight.log" >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$TMP_DIR/backup"
 if [ -f "$INSTALL_DIR/terlc" ]; then cp "$INSTALL_DIR/terlc" "$TMP_DIR/backup/terlc"; HAD_COMPILER=1; fi
 if [ -f "$INSTALL_DIR/terlan-vm" ]; then cp "$INSTALL_DIR/terlan-vm" "$TMP_DIR/backup/terlan-vm"; HAD_VM=1; fi

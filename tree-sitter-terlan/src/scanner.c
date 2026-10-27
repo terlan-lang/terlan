@@ -4,9 +4,62 @@
 #include <wctype.h>
 #include "sql_identifier_ranges.h"
 
-enum { SQL_RAW_BLOCK };
+enum { SQL_RAW_BLOCK, INTERPOLATED_STRING };
 
 static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
+
+// Strings are opaque editor tokens, as before, but expression islands may
+// themselves contain strings, comments and balanced braces.
+static bool string_island(TSLexer *lexer, unsigned nesting, bool *complex);
+static bool interpolation_string(TSLexer *lexer, unsigned nesting, bool *complex) {
+  if (nesting >= 128 || lexer->lookahead != '"') return false;
+  advance(lexer);
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    advance(lexer);
+    if (c == '"') return true;
+    if (c == '\\') {
+      if (lexer->eof(lexer)) return false;
+      advance(lexer);
+    } else if (c == '$' && lexer->lookahead == '{') {
+      advance(lexer);
+      if (!string_island(lexer, nesting + 1, complex)) return false;
+    }
+  }
+  return false;
+}
+static bool string_island(TSLexer *lexer, unsigned nesting, bool *complex) {
+  unsigned braces = 1;
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    if (c == '"') {
+      *complex = true;
+      if (!interpolation_string(lexer, nesting, complex)) return false;
+      continue;
+    }
+    advance(lexer);
+    if (c == '%' || (c == '/' && lexer->lookahead == '/')) {
+      while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
+        if (lexer->lookahead == '"') *complex = true;
+        advance(lexer);
+      }
+    } else if (c == '/' && lexer->lookahead == '*') {
+      advance(lexer);
+      bool closed = false;
+      while (!lexer->eof(lexer)) {
+        int32_t previous = lexer->lookahead;
+        if (previous == '"') *complex = true;
+        advance(lexer);
+        if (previous == '*' && lexer->lookahead == '/') {
+          advance(lexer); closed = true; break;
+        }
+      }
+      if (!closed) return false;
+    } else if (c == '{') braces++;
+    else if (c == '}' && --braces == 0) return true;
+  }
+  return false;
+}
 static bool ascii_letter(int32_t c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
@@ -122,8 +175,16 @@ void tree_sitter_terlan_external_scanner_deserialize(void *payload, const char *
 
 bool tree_sitter_terlan_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   (void)payload;
-  if (!valid_symbols[SQL_RAW_BLOCK]) return false;
   while (iswspace(lexer->lookahead)) lexer->advance(lexer, true);
+  if (valid_symbols[INTERPOLATED_STRING] && lexer->lookahead == '"') {
+    // Preserve ordinary string-pattern precedence unless nested quotes need us.
+    bool complex = false;
+    if (!interpolation_string(lexer, 0, &complex) || !complex) return false;
+    lexer->mark_end(lexer);
+    lexer->result_symbol = INTERPOLATED_STRING;
+    return true;
+  }
+  if (!valid_symbols[SQL_RAW_BLOCK]) return false;
   if (lexer->lookahead != '{') return false;
   advance(lexer);
   size_t depth = 1;

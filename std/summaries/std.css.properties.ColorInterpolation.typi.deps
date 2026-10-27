@@ -1,7 +1,7 @@
 module=std.css.properties.ColorInterpolation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=15987953901948298972
 interface_hash=14559132198540271355
 interface_doc_hash=1881446321111250509

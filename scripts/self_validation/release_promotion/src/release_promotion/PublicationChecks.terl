@@ -32,8 +32,8 @@ gh_stub(): String ->
             "'release view') case $PUBLICATION_MODE in lookup-failure|draft-lookup-failure) exit 1;; esac; cat \"$root/release.json\";;\n",
             "'api --paginate') if [ \"$PUBLICATION_MODE\" = lookup-failure ]; then exit 24; fi; jq '{tag_name: \"v0.0.8\", id: .databaseId, draft: .isDraft, body}' \"$root/release.json\";;\n",
             "'release edit') case \"$*\" in *--draft=false*) echo publish >> \"$root/calls\"; jq '.isDraft = false' \"$root/release.json\" > \"$root/release.pending\"; mv \"$root/release.pending\" \"$root/release.json\"; if [ \"$PUBLICATION_MODE\" = publish-unknown ]; then exit 28; fi;; *) test \"$5\" = 'Terlan 0.0.8'; cp \"$7\" \"$root/rendered-notes.md\";; esac;;\n",
-            "'release upload') echo upload >> \"$root/calls\"; name=${4##*/}; printf '%s\\n' \"$name\" >> \"$root/uploaded-names\"; jq --arg name \"$name\" --slurpfile complete \"$root/complete.json\" '.assets = ([.assets[] | select(.name != $name)] + [$complete[0].assets[] | select(.name == $name)])' \"$root/remote.json\" > \"$root/remote.pending\"; mv \"$root/remote.pending\" \"$root/remote.json\"; if [ \"$PUBLICATION_MODE\" = interrupted-upload ]; then exit 27; fi;;\n",
-            "'api repos/fixture/repository/releases/42') jq -r \"${@: -1}\" \"$root/remote.json\";;\n",
+            "'release upload') echo upload >> \"$root/calls\"; name=\${4##*/}; printf '%s\\n' \"$name\" >> \"$root/uploaded-names\"; jq --arg name \"$name\" --slurpfile complete \"$root/complete.json\" '.assets = ([.assets[] | select(.name != $name)] + [$complete[0].assets[] | select(.name == $name)])' \"$root/remote.json\" > \"$root/remote.pending\"; mv \"$root/remote.pending\" \"$root/remote.json\"; if [ \"$PUBLICATION_MODE\" = interrupted-upload ]; then exit 27; fi;;\n",
+            "'api repos/fixture/repository/releases/42') jq -r \"\${@: -1}\" \"$root/remote.json\";;\n",
             "*) echo \"unexpected GitHub operation: $*\" >&2; exit 93;;\nesac\n",
         ],
     ).

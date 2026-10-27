@@ -1,7 +1,7 @@
 module=std.css.keywords.ScrollState
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=16807862892106353331
 interface_hash=4859118578263549447
 interface_doc_hash=8165947679834309312

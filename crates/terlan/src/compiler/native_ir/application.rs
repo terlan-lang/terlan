@@ -40,6 +40,10 @@ pub(crate) use overloads::resolve_selected_imports;
 mod record_forwarders;
 mod remote_calls;
 mod source_constructors;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod typed_calls;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use typed_calls::resolve_typed_generic_calls;
 mod struct_instances;
 mod structural_patterns;
 mod transparent_aliases;
@@ -203,7 +207,7 @@ impl NativeModule {
         // Otherwise a method sharing a name with a free function loses its target.
         normalize_application_remote_calls(&mut normalized_cores, true);
         mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
-        overloads::resolve_typed_overloads(&mut normalized_cores)?;
+        let deferred_overloads = overloads::resolve_typed_overloads(&mut normalized_cores)?;
         timings.mark("early-calls-receivers-and-overloads");
         let native_aliases = native_package_aliases(&normalized_cores);
         for core in &mut normalized_cores {
@@ -240,6 +244,7 @@ impl NativeModule {
             &mut specialization_budget,
         )?;
         timings.mark("generic-specialization");
+        deferred_overloads.resolve(&mut normalized_cores)?;
         // Generic specialization substitutes concrete arguments into cloned
         // signatures and intrinsic payloads after the first alias pass. Run
         // the idempotent resolver again so every generated mailbox boundary

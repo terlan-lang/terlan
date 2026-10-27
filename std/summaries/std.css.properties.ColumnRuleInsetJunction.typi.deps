@@ -1,7 +1,7 @@
 module=std.css.properties.ColumnRuleInsetJunction
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=17103853010356797885
 interface_hash=14209900752165364080
 interface_doc_hash=9083928001832432258

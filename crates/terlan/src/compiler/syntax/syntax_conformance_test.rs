@@ -174,6 +174,9 @@ fn module_shape(module: &Module) -> String {
 
 fn expression_shape(expr: &Expr) -> String {
     match expr {
+        Expr::InterpolatedString { expressions, .. } => {
+            format!("interpolation({})", expressions.len())
+        }
         Expr::Var(name) | Expr::Atom(name) => format!("name({name})"),
         Expr::List(items) => format!("list({})", items.len()),
         Expr::RawMacro {

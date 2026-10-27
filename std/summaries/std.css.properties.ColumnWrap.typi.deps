@@ -1,7 +1,7 @@
 module=std.css.properties.ColumnWrap
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=3141565896661782158
 interface_hash=6351372054852276996
 interface_doc_hash=13874503595135434796

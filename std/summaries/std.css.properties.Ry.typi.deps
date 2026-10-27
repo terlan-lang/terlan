@@ -1,7 +1,7 @@
 module=std.css.properties.Ry
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=3286131145984220556
 interface_hash=4714400688775887961
 interface_doc_hash=11054486357443862015

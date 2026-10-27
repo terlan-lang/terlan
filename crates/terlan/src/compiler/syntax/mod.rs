@@ -1,3 +1,5 @@
+mod dependency_modules;
+pub(crate) use dependency_modules::{collect_remote_modules, collect_type_modules};
 pub mod ebnf;
 mod ebnf_lexer;
 #[cfg(test)]
@@ -19,6 +21,7 @@ mod parser_contract;
 mod raw_shape;
 pub mod span;
 pub(crate) mod sql_regions;
+mod string_interpolation;
 #[cfg(test)]
 mod syntax_conformance_test;
 pub mod syntax_contract;

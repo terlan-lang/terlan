@@ -1,7 +1,7 @@
 module=std.css.properties.MarginLeft
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=14438401315866291523
 interface_hash=1036436338946557410
 interface_doc_hash=11193620890857191577

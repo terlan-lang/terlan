@@ -12,7 +12,7 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.{Archive, Directory, File}.
 import std.system.Process.
-import tvm_aot_platform_matrix.{ReleaseMetadata, ReleasePayload, ReleasePlatform}.
+import tvm_aot_platform_matrix.{LinuxCompatibility, ReleaseMetadata, ReleasePayload, ReleasePlatform}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -400,4 +400,8 @@ pub package(root: String): Bool ->
     } else {
         _ -> failure("inputs", "release package inputs are incomplete")
     };
-    finish_package(root, platform, binaries, native, payloads).
+    LinuxCompatibility.check(
+        [binaries.compiler, binaries.vm, binaries.native_worker, binaries.lsp],
+        platform.operating_system,
+        platform.architecture,
+    ) and finish_package(root, platform, binaries, native, payloads).

@@ -300,6 +300,11 @@ pub (value: String) replace(pattern: String, replacement: String): String.
 @pure
 pub (value: String) reverse(): String.
 
+/// Renders a value through its Show implementation. String interpolation uses
+/// this ordinary generic function, including its compile-time trait obligation.
+
+pub show[T]<Show[T]>(value: T): String.
+
 /// Splits a `String` on every occurrence of a separator.
 ///
 /// Input: a source `String` and separator `String`.

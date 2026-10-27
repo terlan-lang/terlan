@@ -1,7 +1,7 @@
 module=std.css.properties.ViewTimelineAxis
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=14701180423746448167
 interface_hash=11481127581773335328
 interface_doc_hash=3468524370896673846

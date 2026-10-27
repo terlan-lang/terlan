@@ -64,8 +64,10 @@ the documented static syntactic constraint rejects them.
 The test-only reference recognizer lowers the EBNF contract into productions
 and uses an Earley chart to check complete `SyntaxSpec` membership. It shares
 the EBNF reader, but does not call Terlan's lexer, parser, or AST lowering.
-Identifier, binding, number, and string patterns come from the EBNF and match
-whole lexemes. Its independent lexical boundary policy handles global reserved
+Identifier, binding, and number patterns come from the EBNF and match whole
+lexemes. An independent scanner implements the quoted-string predicate,
+including nested strings and comments in interpolation islands.
+Its independent lexical boundary policy handles global reserved
 words, longest punctuation, whitespace, line comments, and block comments.
 Reserved words must be kept consistent with the language's lexical policy;
 contextual keywords remain available as identifiers.
@@ -93,7 +95,7 @@ and EBNF/compiler/editor outcome drift fail the gate.
 
 This corpus covers the initial high-risk rules rather than the whole language.
 The reference recognizer is a bounded test oracle, not the production parser.
-It supports the EOF, string-character, balanced raw-text, and SQL payload
+It supports the EOF, quoted-string, string-character, balanced raw-text, and SQL payload
 predicates used by these cases. Character classes and unknown predicates are
 not implemented. If an otherwise unsuccessful recognition encounters an
 unsupported predicate, it reports an error instead of treating the input as
@@ -101,6 +103,34 @@ rejected. State-budget and
 input-size exhaustion also fail the test. This corpus does not establish
 whole-language equivalence, embedded-language validation, or AST semantics for
 the EBNF. Extend the corpus and lexical/predicate coverage together.
+
+## String interpolation
+
+In expression position, double-quoted strings support `${expression}`:
+
+```terlan
+println("Count: ${count}; next: ${count + 1}").
+```
+
+Each expression must satisfy `std.core.String.Show[T]`. Interpolation calls its
+`to_string` implementation through the generic `std.core.String.show` helper.
+Interpolation loads the standard `Show` trait; interpolating primitive values
+does not require an explicit import.
+Built-in instances cover `Int`, `Float`, `Bool`, `String`, and `Unit`; custom
+types use ordinary `Show` implementations. Missing, denied, and ambiguous trait
+evidence is checked by the ordinary trait machinery. Generic functions need the
+same `Show[T]` bound as an explicit call to `show`.
+
+Expressions and their conversions execute once, from left to right. The result
+is a `String`. Expressions may contain nested strings, braces, and comments.
+Use `\${name}` for the literal text `${name}`; ordinary `{braces}` remain text.
+String patterns retain their existing `${binding: Type}` capture semantics.
+HTML escaping and SQL parameterization remain responsibilities of their typed
+HTML and SQL constructs, rather than string interpolation.
+
+The EBNF string predicate checks balanced lexical islands. Expression validity
+is a contextual constraint: empty or invalid expressions are compiler errors.
+The editor retains strings as opaque tokens and does not typecheck their islands.
 
 ## Keyed Containers
 

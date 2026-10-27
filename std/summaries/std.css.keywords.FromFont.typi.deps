@@ -1,7 +1,7 @@
 module=std.css.keywords.FromFont
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=12255705352445065441
 interface_hash=10910991113904516794
 interface_doc_hash=15679601277164245862

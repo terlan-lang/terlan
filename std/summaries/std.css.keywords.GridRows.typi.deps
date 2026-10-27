@@ -1,7 +1,7 @@
 module=std.css.keywords.GridRows
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=11949706054010816027
 interface_hash=15525303176865764791
 interface_doc_hash=17913762244434306567

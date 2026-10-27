@@ -1,7 +1,7 @@
 module=std.css.keywords.SelfYEnd
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=12228787264597067853
 interface_hash=18354825897566991742
 interface_doc_hash=9655366368901424447

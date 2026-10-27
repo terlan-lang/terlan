@@ -286,6 +286,7 @@ crates/terlan/src/compiler/native_ir/template_values/render.rs	16	internal-helpe
 crates/terlan/src/compiler/native_ir/try_lowering.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/union_values.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/syntax/ebnf_recognizer.rs	8	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/syntax/string_interpolation.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/binding_identity.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/constructors.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/core_ir/termination.rs	2	internal-helper	compiler-errors	0.0.9

@@ -525,7 +525,11 @@ fn core_intrinsic_call_expr_to_oxc_expression<'a>(
 ) -> Option<oxc_ast::ast::Expression<'a>> {
     match &call.id {
         crate::terlan_typeck::CoreIntrinsicId::Primitive(
-            crate::terlan_typeck::CorePrimitiveIntrinsic::IntToString,
+            crate::terlan_typeck::CorePrimitiveIntrinsic::FloatToString,
+        ) => super::float_format::emit(ast, &call.args),
+        crate::terlan_typeck::CoreIntrinsicId::Primitive(
+            crate::terlan_typeck::CorePrimitiveIntrinsic::IntToString
+            | crate::terlan_typeck::CorePrimitiveIntrinsic::BoolToString,
         ) => {
             let [value] = call.args.as_slice() else {
                 return None;

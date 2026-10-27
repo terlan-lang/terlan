@@ -138,14 +138,14 @@ text_fields(version: String): List[TextField] ->
             path = "install.sh",
             field = "default_tag",
             pattern = "VERSION=\"\\$\\{TERLAN_VERSION:-v[^}]+\\}\"",
-            replacement = String.append("VERSION=\"${TERLAN_VERSION:-v", String.append(version, "}\"")),
+            replacement = String.append("VERSION=\"\${TERLAN_VERSION:-v", String.append(version, "}\"")),
         ),
         TextField(
             path = "install.sh",
             field = "release_base_url",
             pattern = "RELEASE_BASE_URL=\"\\$\\{TERLAN_RELEASE_BASE_URL:-[^}]+\\}\"",
             replacement = String.append(
-                "RELEASE_BASE_URL=\"${TERLAN_RELEASE_BASE_URL:-",
+                "RELEASE_BASE_URL=\"\${TERLAN_RELEASE_BASE_URL:-",
                 String.append(release_base_url(), "}\""),
             ),
         ),
@@ -926,8 +926,8 @@ pub stale_installer_docs_and_release_notes_are_rejected(): Bool ->
     checked(
     "install.sh",
     "default_tag",
-    "VERSION=\"${TERLAN_VERSION:-v0.0.0}\"",
-    "VERSION=\"${TERLAN_VERSION:-v0.0.7}\"",
+    "VERSION=\"\${TERLAN_VERSION:-v0.0.0}\"",
+    "VERSION=\"\${TERLAN_VERSION:-v0.0.7}\"",
 ).status == "mismatch"
         and checked("README.md", "current_version", "Current version: `0.0.0`.", "Current version: `0.0.7`.").status == "mismatch"
         and checked("CHANGELOG.md", "release_heading", "<missing>", "## 0.0.7").status == "mismatch".

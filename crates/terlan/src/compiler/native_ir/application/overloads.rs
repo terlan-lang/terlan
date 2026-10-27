@@ -11,7 +11,7 @@ mod type_scoring;
 pub(crate) use selected_imports::resolve as resolve_selected_imports;
 use type_scoring::{argument_contract, type_match_score};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 /// One source overload and its deterministic NativeIR-facing identity.
 struct OverloadCandidate {
     module: String,
@@ -26,17 +26,8 @@ struct OverloadCandidate {
 
 type AliasBodies = HashMap<String, CoreType>;
 
-/// Assigns unique internal identities to typed overloads and rewrites calls.
-///
-/// Source interfaces remain keyed by their public Terlan name. The native
-/// application closure instead receives a distinct name for every parameter
-/// vector so its compact `(name, arity)` resolver cannot merge overloads.
-pub(super) fn resolve_typed_overloads(cores: &mut [CoreModule]) -> NativeIrResult<()> {
-    let mut groups = collect_overload_groups(cores)?;
-    rename_overload_declarations(cores, &groups)?;
-    trait_methods::collect(cores, &mut groups);
-    rewrite_application(cores, &groups)
-}
+mod deferred;
+pub(super) use deferred::resolve_typed_overloads;
 
 /// Resolves collected candidates using the same lexical type propagation.
 fn rewrite_application(
@@ -50,6 +41,11 @@ fn rewrite_application(
     let returns = collect_return_types(cores);
     for core in cores {
         for function in &mut core.functions {
+            // A bound such as Show[T] is evidence of an implementation, not a
+            // concrete overload choice. Resolve the instantiated body instead.
+            if !super::super::generic_specialization::generic_parameters(function).is_empty() {
+                continue;
+            }
             let mut environment = function
                 .params
                 .iter()

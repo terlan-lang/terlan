@@ -1,0 +1,21 @@
+module tvm_aot_platform_matrix.LinuxCompatibilityTest.
+import tvm_aot_platform_matrix.LinuxCompatibility.
+
+@test
+pub glibc_versions_are_compared_numerically(): Bool ->
+    LinuxCompatibility.version_supported("2.9", "2.35")
+        and LinuxCompatibility.version_supported("2.35", "2.35")
+        and LinuxCompatibility.version_supported("2.2.5", "2.35")
+        and not LinuxCompatibility.version_supported("2.35.1", "2.35")
+        and not LinuxCompatibility.version_supported("2.39", "2.35")
+        and not LinuxCompatibility.version_supported("3.0", "2.35")
+        and not LinuxCompatibility.version_supported("PRIVATE", "2.35")
+        and not LinuxCompatibility.version_supported("2.35.bad", "2.35").
+
+@test
+pub every_required_glibc_symbol_must_fit_the_release_baseline(): Bool ->
+    let old = "  Name: GLIBC_2.2.5  Flags: none\n  Name: GLIBC_2.34  Flags: none\n";
+    LinuxCompatibility.symbols_supported(old, "2.35")
+        and not LinuxCompatibility.symbols_supported(old + "Name: GLIBC_2.39  Flags: none", "2.35")
+        and not LinuxCompatibility.symbols_supported(old + "Name: GLIBC_PRIVATE  Flags: none", "2.35")
+        and not LinuxCompatibility.symbols_supported("No version information found", "2.35").

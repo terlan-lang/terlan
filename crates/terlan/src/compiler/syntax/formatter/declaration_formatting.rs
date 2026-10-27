@@ -4,7 +4,13 @@ use super::*;
 
 pub(super) fn rewrite_type_refs_in_expr(expr: &mut Expr, replacements: &BTreeMap<String, String>) {
     match expr {
-        Expr::Tuple(items) | Expr::List(items) | Expr::Array(items) | Expr::Sequence(items) => {
+        Expr::InterpolatedString {
+            expressions: items, ..
+        }
+        | Expr::Tuple(items)
+        | Expr::List(items)
+        | Expr::Array(items)
+        | Expr::Sequence(items) => {
             for item in items {
                 rewrite_type_refs_in_expr(item, replacements);
             }

@@ -7,7 +7,13 @@ pub(super) fn collect_value_call_refs_from_expr(
     counts: &mut BTreeMap<(String, String), usize>,
 ) {
     match expr {
-        Expr::Tuple(items) | Expr::List(items) | Expr::Array(items) | Expr::Sequence(items) => {
+        Expr::InterpolatedString {
+            expressions: items, ..
+        }
+        | Expr::Tuple(items)
+        | Expr::List(items)
+        | Expr::Array(items)
+        | Expr::Sequence(items) => {
             for item in items {
                 collect_value_call_refs_from_expr(item, counts);
             }
@@ -703,7 +709,13 @@ pub(super) fn rewrite_value_call_refs_in_expr(
     replacements: &BTreeMap<(String, String), String>,
 ) {
     match expr {
-        Expr::Tuple(items) | Expr::List(items) | Expr::Array(items) | Expr::Sequence(items) => {
+        Expr::InterpolatedString {
+            expressions: items, ..
+        }
+        | Expr::Tuple(items)
+        | Expr::List(items)
+        | Expr::Array(items)
+        | Expr::Sequence(items) => {
             for item in items {
                 rewrite_value_call_refs_in_expr(item, replacements);
             }

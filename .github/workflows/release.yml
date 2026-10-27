@@ -80,7 +80,7 @@ jobs:
       matrix:
         include:
           - target: linux-x86_64
-            runner: ubuntu-24.04
+            runner: ubuntu-22.04
             archive: terlc-linux-x86_64.tar.gz
           - target: linux-aarch64
             runner: ubuntu-24.04-arm

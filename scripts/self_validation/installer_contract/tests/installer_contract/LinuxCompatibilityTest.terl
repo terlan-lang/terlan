@@ -1,0 +1,51 @@
+module installer_contract.LinuxCompatibilityTest.
+
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.system.{Environment, Process}.
+
+@test
+pub installer_checks_glibc_and_executables_before_replacement(): Bool ->
+    let command = Process.command("sh")
+        .with_arguments(["-c", String.concat([
+            "set -eu\n",
+            "installer=$1\n",
+            "workspace=$(mktemp -d)\n",
+            "trap 'rm -r \"$workspace\"' EXIT\n",
+            "mkdir \"$workspace/bin\" \"$workspace/payload\"\n",
+            "printf '#!/bin/sh\\nprintf \"%%s\\\\n\" \"$TEST_LIBC\"\\n' > \"$workspace/bin/getconf\"\n",
+            "chmod +x \"$workspace/bin/getconf\"\n",
+            "printf 'set -eu\\n' > \"$workspace/check.sh\"\n",
+            "awk '/^# This metadata is checksum-verified above/{copy=1} /^mkdir -p \"\\$TMP_DIR\\/backup\"/{copy=0} copy{print}' \"$installer\" >> \"$workspace/check.sh\"\n",
+            "cd \"$workspace/payload\"\n",
+            "for executable in terlc terlan-vm terlan-native-worker terlan-lsp; do\n",
+            "  printf '#!/bin/sh\\necho ran >> \"$TMP_DIR/ran\"\\n' > \"$executable\"\n",
+            "  chmod +x \"$executable\"\n",
+            "done\n",
+            "export PATH=\"$workspace/bin:$PATH\" TMP_DIR=\"$workspace\" TERLAN_OS=linux VERSION=v0.10.0\n",
+            "check() {\n",
+            "  required=$1\n",
+            "  TEST_LIBC=$2\n",
+            "  export TEST_LIBC\n",
+            "  printf '{\"minimum_glibc\":\"%s\"}\\n' \"$required\" > terlan-release.json\n",
+            "  rm -f \"$workspace/ran\"\n",
+            "  if sh \"$workspace/check.sh\" > \"$workspace/output\" 2>&1; then result=0; else result=1; fi\n",
+            "  test \"$result\" = \"$3\"\n",
+            "  if test \"$3\" = 1; then test ! -e \"$workspace/ran\"; fi\n",
+            "}\n",
+            "check 2.35 'glibc 2.35' 0\n",
+            "check 2.35 'glibc 2.39' 0\n",
+            "check 2.35 'glibc 2.9' 1\n",
+            "grep -q 'requires glibc 2.35.*this machine has 2.9' \"$workspace/output\"\n",
+            "check 2.39 'glibc 2.35' 1\n",
+            "check 2.35 'musl 1.2.5' 1\n",
+            "check invalid 'glibc 2.35' 1\n",
+            "check '' 'glibc 2.35' 1\n",
+            "check 2.35 'glibc 3.0' 0\n",
+            "printf '#!/bin/sh\\necho missing-library >&2\\nexit 1\\n' > terlc\n",
+            "if sh \"$workspace/check.sh\" > \"$workspace/output\" 2>&1; then exit 1; fi\n",
+            "grep -q 'Existing installation unchanged' \"$workspace/output\"\n",
+            "grep -q 'missing-library' \"$workspace/output\"\n",
+        ]), "installer-test", Environment.current_directory() + "/install.sh"])
+        .with_timeout_ms(30000);
+    case Process.run(command) { Ok(output) -> output.status == 0; _ -> false }.

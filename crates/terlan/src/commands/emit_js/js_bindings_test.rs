@@ -228,3 +228,12 @@ fn browser_dom_fixture_compiles_and_preserves_nullable_host_values() {
     ));
     execute(&javascript, "let reads = 0; let target = null; const event = {get target() {reads++; return target;}}; if (event_target(event) !== 'none' || event_has_target(event) !== false || reads !== 2) throw new Error('absent target changed'); target = {id: 7}; const result = event_target(event); if (result[0] !== 'some' || result[1] !== target || event_has_target(event) !== true || reads !== 4) throw new Error('present target changed');");
 }
+
+#[test]
+fn interpolation_preserves_generic_exports_and_expression_order() {
+    let source = r#"module tests.js.InterpolationOrder.
+pub identity[T](value: T): T -> value.
+pub render(next: () -> Int): String -> "${next()}|${next()}".
+"#;
+    execute(&compiled(source), "let calls = 0; if (render(() => ++calls) !== '1|2' || calls !== 2 || identity(42) !== 42 || identity('text') !== 'text') throw Error('interpolation or generic export changed');");
+}

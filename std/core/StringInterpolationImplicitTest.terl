@@ -1,0 +1,5 @@
+module std.core.StringInterpolationImplicitTest.
+
+@test
+pub interpolation_needs_no_explicit_import(): Bool ->
+    "answer: ${42}" == "answer: 42".

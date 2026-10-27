@@ -736,6 +736,13 @@ pub(crate) fn collect_trait_bound_impl_type_args(
 /// - Remaps candidate type-variable IDs into a fresh range before ordinary
 ///   unification.
 fn types_unify_with_renaming(expected: &[Type], actual: &[Type]) -> Result<(), String> {
+    let mut required_variables = HashSet::new();
+    for argument in expected {
+        remap_type(argument, &mut |id| {
+            required_variables.insert(*id);
+            *id
+        });
+    }
     let mut next_var = max_type_var_id(expected);
     let mut remap = HashMap::new();
     let normalized_actual = actual
@@ -746,6 +753,17 @@ fn types_unify_with_renaming(expected: &[Type], actual: &[Type]) -> Result<(), S
     let mut local_subst = HashMap::new();
     for (expected_arg, actual_arg) in expected.iter().zip(normalized_actual.iter()) {
         unify(expected_arg, actual_arg, &mut local_subst)?;
+    }
+    // Implementation variables may specialize to the requested types. The
+    // caller's generic variables must stay universally quantified: a concrete
+    // Show[Int] instance cannot prove Show[T] for an arbitrary T. Distinct
+    // caller variables must also remain distinct after matching.
+    let mut remaining_variables = HashSet::new();
+    for variable in required_variables {
+        match apply_subst(&Type::Var(variable), &local_subst) {
+            Type::Var(id) if remaining_variables.insert(id) => {}
+            _ => return Err("trait implementation restricts a generic argument".into()),
+        }
     }
     Ok(())
 }

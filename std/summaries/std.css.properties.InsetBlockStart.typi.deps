@@ -1,7 +1,7 @@
 module=std.css.properties.InsetBlockStart
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=4674728594978452649
 interface_hash=7175512012797067763
 interface_doc_hash=12214746804405671110

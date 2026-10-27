@@ -1,7 +1,7 @@
 module=std.css.properties.BorderBlockEndWidth
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=16160469831771233697
 interface_hash=18052928393061697536
 interface_doc_hash=14947898745562768795

@@ -371,7 +371,9 @@ pub(crate) use aggregate_projection::install_native_aggregate_projection_exports
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use aggregate_projection::native_aggregate_projections;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) use application::{resolve_selected_imports, resolve_typed_mutable_receiver_calls};
+pub(crate) use application::{
+    resolve_selected_imports, resolve_typed_generic_calls, resolve_typed_mutable_receiver_calls,
+};
 use application_calls::expr_calls_suspending;
 #[cfg(test)]
 use call_composition::rebase_callee_locals;

@@ -910,7 +910,7 @@ let release_fragments =
         "name: release VM multicore ThreadSanitizer",
         "name: release-hosted-validation-evidence",
         "run: make release-hosted-validation-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution",
-        "name: release-distribution-${{ matrix.target }}",
+        "name: release-distribution-\${{ matrix.target }}",
         "actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6",
         "artifact-metadata: write",
         "attestations: write",

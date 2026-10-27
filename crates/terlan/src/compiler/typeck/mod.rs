@@ -869,6 +869,8 @@ mod sql_row_descriptor_test;
 #[cfg(test)]
 mod std_contract_test;
 #[cfg(test)]
+mod string_interpolation_test;
+#[cfg(test)]
 mod struct_test;
 #[cfg(test)]
 mod test_support;

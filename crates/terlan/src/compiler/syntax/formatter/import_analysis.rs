@@ -645,7 +645,13 @@ pub(super) fn collect_type_refs_from_param(param: &Param, counts: &mut BTreeMap<
 
 pub(super) fn collect_type_refs_from_expr(expr: &Expr, counts: &mut BTreeMap<String, usize>) {
     match expr {
-        Expr::Tuple(items) | Expr::List(items) | Expr::Array(items) | Expr::Sequence(items) => {
+        Expr::InterpolatedString {
+            expressions: items, ..
+        }
+        | Expr::Tuple(items)
+        | Expr::List(items)
+        | Expr::Array(items)
+        | Expr::Sequence(items) => {
             for item in items {
                 collect_type_refs_from_expr(item, counts);
             }

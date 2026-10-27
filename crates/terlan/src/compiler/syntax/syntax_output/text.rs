@@ -14,6 +14,14 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
         Expr::Float(value) => format_float_literal(*value),
         Expr::Atom(name) | Expr::AtomLiteral(name) | Expr::Var(name) => name.clone(),
         Expr::Binary(value) => value.clone(),
+        Expr::InterpolatedString {
+            segments,
+            expressions,
+        } => crate::terlan_syntax::string_interpolation::render(
+            segments,
+            expressions,
+            expr_to_output_text,
+        ),
         Expr::Tuple(items) => format!(
             "{{{}}}",
             items

@@ -1,0 +1,23 @@
+==================
+String interpolation with nested strings and braces
+==================
+module interpolation.Example.
+pub text(n: Int): String -> "é ${n + 1} ${"inner ${n}"} \${literal}".
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (string))))

@@ -1,7 +1,7 @@
 module=std.css.properties.TimelineScope
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=8665900551954659752
 interface_hash=10301974845773367195
 interface_doc_hash=18135002034864914743

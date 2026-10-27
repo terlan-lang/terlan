@@ -1,7 +1,7 @@
 module=std.css.properties.JustifySelf
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=587866529919004263
 interface_hash=7964172948192305023
 interface_doc_hash=11163409719776970656

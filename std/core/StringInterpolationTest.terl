@@ -1,0 +1,52 @@
+module std.core.StringInterpolationTest.
+
+import std.core.Result.{Ok}.
+import std.core.String.{Show}.
+import std.data.Json.
+import std.test.Test.{assert_equal}.
+
+struct Label {
+    value: Int,
+}.
+
+impl Show[Label] for Label {
+    to_string(value: Label): String ->
+        "label:${value.value}".
+}.
+
+render[T](value: T)[Show[T]]: String ->
+    "<${value}>".
+
+@test
+pub interpolation_renders_primitive_values(): Bool ->
+    assert_equal("42 -7 true 1.5 text unit", "${42} ${-7} ${true} ${1.5} ${"text"} ${Unit}").
+
+@test
+pub interpolation_uses_custom_and_generic_show(): Bool ->
+    assert_equal("<label:7>", render(Label {value: 7})) and assert_equal("<42>", render(42)).
+
+@test
+pub interpolation_preserves_literals_and_nested_expressions(): Bool ->
+    assert_equal("é \${value} {text} 3 inner 4", "é \${value} {text} ${1 + 2} ${"inner ${4}"}").
+
+struct Recorded {
+    events: Json,
+    value: Int,
+}.
+
+impl Show[Recorded] for Recorded {
+    to_string(value: Recorded): String ->
+        let _event = value.events.push(Json.string("show${value.value}"));
+        "${value.value}".
+}.
+
+record(events: Json, value: Int): Recorded ->
+    let _event = events.push(Json.string("expr${value}"));
+    Recorded {events: events, value: value}.
+
+@test
+pub interpolation_evaluates_expressions_and_show_once_in_source_order(): Bool ->
+    let events = Json.array();
+    let rendered = "${record(events, 1)} ${record(events, 2)}";
+    assert_equal("1 2", rendered)
+        and assert_equal(Ok("[\"expr1\",\"show1\",\"expr2\",\"show2\"]"), Json.stringify(events)).

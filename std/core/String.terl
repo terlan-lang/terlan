@@ -56,6 +56,13 @@ pub trait Show[T] {
 }.
 
 /**
+ * Renders a value through its Show implementation. String interpolation uses
+ * this ordinary generic function, including its compile-time trait obligation.
+ */
+pub show[T](value: T)[Show[T]]: String ->
+    Show.to_string(value).
+
+/**
  * Describes values that can be parsed from a `String`.
  *
  * Input: a UTF-8 `String`.

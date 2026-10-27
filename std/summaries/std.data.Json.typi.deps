@@ -1,7 +1,7 @@
 module=std.data.Json
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=415691406083515031
 interface_hash=5091682687923972624
 interface_doc_hash=2407217292253552063
@@ -9,4 +9,4 @@ deps=4
 std.core.Error=11862556521397520043
 std.core.Option=11539230284316612175
 std.core.Result=11040488711914238385
-std.core.String=11796450558679535748
+std.core.String=16297020256045562210

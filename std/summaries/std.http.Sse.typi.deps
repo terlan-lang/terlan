@@ -1,12 +1,12 @@
 module=std.http.Sse
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=17186809332494111980
 interface_hash=731558238915046536
 interface_doc_hash=3253961039922478019
 deps=4
 std.collections.List=14680201998966909778
 std.core.Option=11539230284316612175
-std.core.String=11796450558679535748
+std.core.String=16297020256045562210
 std.http.Response=13500139046239250797

@@ -1,7 +1,7 @@
 module=std.css.properties.CaretColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=9647560587360279594
 interface_hash=5280201602524584681
 interface_doc_hash=17430439058176916708

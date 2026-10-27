@@ -18,7 +18,7 @@ module.exports = grammar({
   extras: ($) => [/\s/, $.line_comment, $.block_comment],
 
   word: ($) => $._identifier_word,
-  externals: ($) => [$._sql_raw_block],
+  externals: ($) => [$._sql_raw_block, $._interpolated_string],
 
   conflicts: ($) => [
     [$._top_level_item, $.function_declaration],
@@ -751,7 +751,7 @@ module.exports = grammar({
 
     number: () => /[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/,
 
-    string: () => token(prec(-1, /"([^"\\]|\\.)*"/)),
+    string: ($) => choice($._interpolated_string, token(prec(-1, /"([^"\\]|\\.)*"/))),
 
     line_comment: () => token(seq("//", /.*/)),
 

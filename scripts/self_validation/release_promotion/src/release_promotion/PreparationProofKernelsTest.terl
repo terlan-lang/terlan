@@ -20,7 +20,7 @@ fixture(root: String): Bool ->
         and write(
     root,
     "target/tools/vm",
-    "#!/bin/sh\nset -eu\nif test \"$1\" = --version; then echo fixture-vm; exit 0; fi\ntest \"$1\" = run\ntest \"$5\" = check-cached\ntest -z \"${TERLAN_RUST_COVERAGE_CONTEXT+x}\"\ntest -z \"${TERLAN_RUST_COVERAGE_SCOPE+x}\"\ntest -s target/quality/proof-artifacts/lean-proof-repro-report.json\ntest -s \"$TERLAN_PROOF_TOOL_ADMISSION\"\ntest -n \"$TERLAN_PROOF_TOOL_ADMISSION_SHA256\"\ntest -x \"$TERLAN_PROOF_QUALITY_EXECUTABLE\"\necho semantic >> target/semantic-calls\nif test -f target/semantic-fail; then exit 7; fi\nprintf '{\"schema\":\"terlan.lean-semantic-kernels.v1\"}\\n' > \"$TERLAN_PROOF_SEMANTIC_OUTPUT\"\necho 'Lean semantic kernels passed: fixture'\n",
+    "#!/bin/sh\nset -eu\nif test \"$1\" = --version; then echo fixture-vm; exit 0; fi\ntest \"$1\" = run\ntest \"$5\" = check-cached\ntest -z \"\${TERLAN_RUST_COVERAGE_CONTEXT+x}\"\ntest -z \"\${TERLAN_RUST_COVERAGE_SCOPE+x}\"\ntest -s target/quality/proof-artifacts/lean-proof-repro-report.json\ntest -s \"$TERLAN_PROOF_TOOL_ADMISSION\"\ntest -n \"$TERLAN_PROOF_TOOL_ADMISSION_SHA256\"\ntest -x \"$TERLAN_PROOF_QUALITY_EXECUTABLE\"\necho semantic >> target/semantic-calls\nif test -f target/semantic-fail; then exit 7; fi\nprintf '{\"schema\":\"terlan.lean-semantic-kernels.v1\"}\\n' > \"$TERLAN_PROOF_SEMANTIC_OUTPUT\"\necho 'Lean semantic kernels passed: fixture'\n",
 )
         and OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/vm"]).
 

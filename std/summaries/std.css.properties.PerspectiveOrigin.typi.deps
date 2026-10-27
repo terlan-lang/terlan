@@ -1,7 +1,7 @@
 module=std.css.properties.PerspectiveOrigin
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=5836520800999365206
 interface_hash=13561070785944147781
 interface_doc_hash=2732198212148581623

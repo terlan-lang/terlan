@@ -1,7 +1,7 @@
 module=std.css.properties.GridTemplate
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=7132277600793480096
 interface_hash=16769823503908449839
 interface_doc_hash=4864412947021873092

@@ -278,6 +278,13 @@ fn expr_output_with_span(expr: &Expr, span: EbnfSourceSpan) -> SyntaxExprOutput 
         Expr::Binary(value) => {
             expr_leaf_with_span(SyntaxExprKind::Binary, Some(value.clone()), span)
         }
+        Expr::InterpolatedString {
+            segments,
+            expressions,
+        } => expr_output_with_span(
+            &super::string_interpolation::lower(segments, expressions),
+            span,
+        ),
         Expr::Var(name) => expr_leaf_with_span(SyntaxExprKind::Var, Some(name.clone()), span),
         Expr::Tuple(items) => expr_node!(
             SyntaxExprKind::Tuple,

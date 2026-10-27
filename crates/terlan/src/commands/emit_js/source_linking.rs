@@ -159,6 +159,7 @@ fn link_cores(mut cores: Vec<CoreModule>) -> Result<CoreModule, SourceLinkError>
         .collect::<Vec<_>>();
     resolve_selected_imports(&mut cores)?;
     resolve_typed_mutable_receiver_calls(&mut cores)?;
+    crate::compiler::native_ir::resolve_typed_generic_calls(&mut cores)?;
     prune_application_to_function_roots(&mut cores, &roots)?;
     let root_name = cores[0].module.clone();
     let symbols = cores.iter().flat_map(|core| {
@@ -166,7 +167,7 @@ fn link_cores(mut cores: Vec<CoreModule>) -> Result<CoreModule, SourceLinkError>
         core.functions.iter().map(move |function| {
             let qualified = format!("{}.{}", core.module, function.name);
             let name = if is_root {
-                function.name.clone()
+                function.name.replace('.', "$")
             } else {
                 format!(
                     "$library${}${}",
@@ -215,12 +216,11 @@ fn link_cores(mut cores: Vec<CoreModule>) -> Result<CoreModule, SourceLinkError>
                                 }
                             }
                             CoreExpr::Call { function, args, .. } => {
-                                let qualified = if function.contains('.') {
-                                    function.clone()
-                                } else {
-                                    format!("{}.{}", core.module, function)
-                                };
-                                if let Some(name) = names.get(&(qualified, args.len())) {
+                                let local = (format!("{}.{}", core.module, function), args.len());
+                                if let Some(name) = names
+                                    .get(&local)
+                                    .or_else(|| names.get(&(function.clone(), args.len())))
+                                {
                                     *function = name.clone();
                                 }
                             }
@@ -240,6 +240,7 @@ fn link_cores(mut cores: Vec<CoreModule>) -> Result<CoreModule, SourceLinkError>
     for provider in cores {
         linked.functions.extend(provider.functions);
     }
+    super::cast_semantics::erase_linked_identity_casts(&mut linked);
     Ok(linked)
 }
 

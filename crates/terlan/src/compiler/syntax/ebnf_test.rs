@@ -38,7 +38,7 @@ fn parses_canonical_terlan_ebnf() {
     assert!(grammar.rule("ShapeDecl").is_some());
     assert!(grammar.rule("StructuralParameterPattern").is_some());
     assert!(grammar.rule("Expr").is_some());
-    assert!(grammar.rule("StringChar").is_some());
+    assert!(grammar.rule("StringLiteral").is_some());
     assert!(matches!(
         grammar.rule("LowerIdent").unwrap().expr.kind,
         EbnfGrammarExprKind::Sequence { .. }

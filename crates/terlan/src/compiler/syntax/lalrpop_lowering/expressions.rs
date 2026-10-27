@@ -30,7 +30,8 @@ pub(super) fn lower_expression(
                 Err(context.error(node, "float literal must be finite"))
             }
         }
-        Kind::String => Ok(Expr::Binary(node_text(context, node).to_string())),
+        Kind::String => super::super::string_interpolation::parse(node_text(context, node))
+            .map_err(|message| context.error(node, message)),
         Kind::AtomLiteral => lower_atom_literal(context, node),
         Kind::BinaryLiteral => Err(context.error(
             node,

@@ -4,6 +4,27 @@ use crate::{
     terlan_typeck::lower_syntax_module_output_to_core,
 };
 
+/// Trait bounds are selected after generic arguments become concrete, in the
+/// caller's module so a local implementation remains usable without export.
+#[test]
+fn generic_trait_dispatch_uses_the_instantiated_argument() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module generic_trait.Caller.
+import generic_trait.Library.{Measure, measure}.
+struct Value { number: Int }.
+impl Measure[Value] for Value { measure(value: Value): Int -> value.number. }.
+pub check(): Bool -> measure(Value { number: 42 }) == 42 and measure(7) == 7.
+"#,
+        r#"
+module generic_trait.Library.
+pub trait Measure[T] { measure(value: T): Int. }.
+pub impl Measure[Int] for Int { measure(value: Int): Int -> value. }.
+pub measure[T](value: T)[Measure[T]]: Int -> Measure.measure(value).
+"#,
+    ]);
+}
+
 /// Imported free-function receiver syntax keeps its provider through generic lowering.
 #[test]
 fn imported_builder_receiver_calls_keep_their_provider() {

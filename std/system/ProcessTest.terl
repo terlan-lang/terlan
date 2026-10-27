@@ -161,7 +161,7 @@ pub bounded_batch_rejects_zero_concurrency(): Bool ->
 
 @test
 pub length_framed_session_sequences_handshake_phases(): Bool ->
-    let script = "IFS= read -r first; printf 'Content-Length: %s\\r\\n\\r\\n%s' \"${#first}\" \"$first\"; IFS= read -r second; printf 'Content-Length: %s\\r\\n\\r\\n%s' \"${#second}\" \"$second\"; exit 7";
+    let script = "IFS= read -r first; printf 'Content-Length: %s\\r\\n\\r\\n%s' \"\${#first}\" \"$first\"; IFS= read -r second; printf 'Content-Length: %s\\r\\n\\r\\n%s' \"\${#second}\" \"$second\"; exit 7";
     let command = Process.with_arguments(Process.command("/bin/sh"), ["-c", script]);
     let request =
         Process.length_framed(

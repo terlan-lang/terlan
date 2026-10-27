@@ -111,7 +111,7 @@ pub targets(): List[Target] ->
             object_format = "elf",
             operating_system = "linux",
             calling_convention = "system_v",
-            runner = "ubuntu-24.04",
+            runner = "ubuntu-22.04",
         ),
         Target(
             id = "linux-aarch64",
@@ -715,7 +715,7 @@ pub workflow_text_valid(workflow: String): Bool ->
             normalized_workflow,
             [
                 "make tvm-aot-platform-target-check",
-                "TERLAN_MATRIX_TARGET: ${{ matrix.target }}",
+                "TERLAN_MATRIX_TARGET: \${{ matrix.target }}",
                 "uses: ./.github/actions/setup-native-dependencies",
                 "retention-days: 90",
                 "uses: actions/checkout@",

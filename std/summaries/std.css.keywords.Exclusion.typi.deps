@@ -1,7 +1,7 @@
 module=std.css.keywords.Exclusion
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=16602740453842698411
 interface_hash=1297930455033479296
 interface_doc_hash=10309391272799571469

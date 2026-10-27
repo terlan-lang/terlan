@@ -1,7 +1,7 @@
 module=std.css.keywords.LiteralPunctuation
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=3328423279295797855
 interface_hash=7111936951061574088
 interface_doc_hash=5116388754020746224

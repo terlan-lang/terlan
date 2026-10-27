@@ -1,6 +1,30 @@
 {
-  "schema": "terlan.lean-proof-replay.v1",
+  "dependency_files": [
+    "proofs/lean/lake-manifest.json",
+    "proofs/lean/lakefile.lean",
+    "proofs/lean/lean-toolchain"
+  ],
+  "deterministic_timestamp_strategy": "none-content-addressed",
+  "execution_command": [
+    "lake",
+    "env",
+    "lean",
+    "parser_shape/ParserShape.lean"
+  ],
   "family": "parser-shape",
+  "manifest_fingerprints": {
+    "crates/terlan/src/compiler/syntax/syntax_output.rs": "sha256:31785fcfe62f31417f8060987f5400738d247e1bb7feb616010c95319b085be7",
+    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:8e41895d484feed0c15b77b8ef19ac722a651704a869694dbf8a5a96762613b1",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:ba123e2aec723fb9a021edd837b58d18d551a613781e2df031c931390147fd3d"
+  },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:83e75f6c1b363135ae5cd03fa80418974ba7bbcf48e1f89a543b2a319a9ba725",
   "theorem_names": [
     "Terlan.ParserShape.canonicalGrammarIdentityIsStable",
     "Terlan.ParserShape.canonicalModuleClassificationAccepted",
@@ -20,37 +44,13 @@
     "Terlan.ParserShape.checkedCapabilityDenyListHasNoDuplicates",
     "Terlan.ParserShape.acceptedBoundaryCanEnterCheckedLowering"
   ],
-  "manifest_fingerprints": {
-    "crates/terlan/src/compiler/syntax/syntax_output.rs": "sha256:11c9031030c0e20639df9e70c0b720972f6ebe72fd777c7e98f35827b73cb6cb",
-    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:8e41895d484feed0c15b77b8ef19ac722a651704a869694dbf8a5a96762613b1",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:778f52ac5543f772a39c63b3a320bd3da45aa262e9a96b8ce4e4540f4f72e499"
-  },
-  "dependency_files": [
-    "proofs/lean/lake-manifest.json",
-    "proofs/lean/lakefile.lean",
-    "proofs/lean/lean-toolchain"
-  ],
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "source_digest": "sha256:83e75f6c1b363135ae5cd03fa80418974ba7bbcf48e1f89a543b2a319a9ba725",
-  "execution_command": [
-    "lake",
-    "env",
-    "lean",
-    "parser_shape/ParserShape.lean"
-  ],
-  "working_directory": "proofs/lean",
-  "deterministic_timestamp_strategy": "none-content-addressed",
-  "output_signature": {
-    "stdout_class": "empty",
-    "stderr_class": "empty",
-    "exit_class": "success"
-  },
   "toolchain": {
-    "lean_version": "4.31.0",
     "elan_channel": "leanprover/lean4:v4.31.0",
     "lake_flags": [
       "env",
       "lean"
-    ]
-  }
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
 }

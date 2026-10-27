@@ -1,7 +1,7 @@
 module=std.css.properties.FlexLineCount
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=18264524287120658583
 interface_hash=10468945431413935690
 interface_doc_hash=5226196349309801378

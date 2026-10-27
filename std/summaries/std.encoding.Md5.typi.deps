@@ -1,7 +1,7 @@
 module=std.encoding.Md5
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=14737899088958815631
 interface_hash=14719907707610011837
 interface_doc_hash=10773882696112512940

@@ -210,6 +210,27 @@ pub fn resolve_syntax_module_output_with_interfaces(
 
     resolve_exports_against_defs(&exported_fns, &mut function_symbols, &mut diagnostics);
 
+    // Interpolation introduces qualified String calls. Supply their standard
+    // trait without adding a String dependency to unrelated scalar modules:
+    // doing so would disable dependency-free native reuse for every module.
+    let mut referenced_modules = std::collections::BTreeSet::new();
+    crate::terlan_syntax::collect_remote_modules(module, &mut referenced_modules);
+    if module.module_name != "std.core.String"
+        && referenced_modules.contains("std.core.String")
+        && !module.declarations.iter().any(|declaration| {
+            matches!(&declaration.payload, SyntaxDeclarationPayload::Trait { name, .. } if name == "Show")
+        })
+        && interfaces.get("std.core.String").is_some_and(|interface| interface.traits.contains_key("Show"))
+    {
+        imported_traits.entry("Show".into()).or_insert_with(|| ImportedItem {
+            local_name: "Show".into(),
+            source_module: "std.core.String".into(),
+            source_name: "Show".into(),
+            visibility: TypeVisibility::Public,
+            span: module.span.into(),
+        });
+    }
+
     ResolveResult {
         module: ResolvedModule {
             name: module.module_name.clone(),

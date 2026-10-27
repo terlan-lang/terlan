@@ -11,7 +11,7 @@ import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.File.
-import tvm_aot_platform_matrix.{ReleasePayload, ReleasePlatform}.
+import tvm_aot_platform_matrix.{LinuxCompatibility, ReleasePayload, ReleasePlatform}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -74,6 +74,10 @@ payload_hashes(values: List[Payload]): Option[Json] ->
 
 put_identity(metadata: Json, platform: ReleasePlatform, version: String, revision: String): Json ->
     let triple = ReleasePlatform.target_triple(platform);
+    let _compatibility = if {
+        platform.operating_system == "linux" -> metadata.put("minimum_glibc", Json.string(LinuxCompatibility.minimum(platform.architecture)));
+        _ -> metadata
+    };
     metadata
         .put("schema", Json.string("terlan.release-artifact.v1"))
         .put("package", Json.string("terlan"))

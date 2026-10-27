@@ -122,3 +122,66 @@ fn core_type_is_js_identity_assignable(source_type: &CoreType, target_type: &Cor
 #[cfg(test)]
 #[path = "cast_semantics_test.rs"]
 mod tests;
+
+/// Specialization can annotate call results and lists with identity casts.
+/// Erase only casts proved assignable by the linked, unique function signatures.
+pub(super) fn erase_linked_identity_casts(core: &mut crate::terlan_typeck::CoreModule) {
+    let returns = core
+        .functions
+        .iter()
+        .filter_map(|function| {
+            function
+                .core_return_type
+                .clone()
+                .map(|ty| ((function.name.clone(), function.arity), ty))
+        })
+        .collect::<std::collections::HashMap<_, _>>();
+    for function in &mut core.functions {
+        for clause in &mut function.clauses {
+            for summary in clause
+                .guard
+                .iter_mut()
+                .chain(std::iter::once(&mut clause.body))
+            {
+                if let Some(expr) = &mut summary.core_expr {
+                    crate::terlan_typeck::visit_core_expr_mut(expr, &mut |expr| {
+                        let CoreExpr::Cast {
+                            expr: value,
+                            target_type,
+                        } = expr
+                        else {
+                            return;
+                        };
+                        if linked_expr_type(value, &returns)
+                            .as_ref()
+                            .is_some_and(|source| {
+                                core_type_is_js_identity_assignable(source, target_type)
+                            })
+                        {
+                            *expr = *std::mem::replace(value, Box::new(CoreExpr::Int(0)));
+                        }
+                    });
+                }
+            }
+        }
+    }
+}
+
+fn linked_expr_type(
+    expr: &CoreExpr,
+    returns: &std::collections::HashMap<(String, usize), CoreType>,
+) -> Option<CoreType> {
+    match expr {
+        CoreExpr::Call { function, args, .. } => {
+            returns.get(&(function.clone(), args.len())).cloned()
+        }
+        CoreExpr::List(items) | CoreExpr::Array(items) if !items.is_empty() => {
+            let first = linked_expr_type(&items[0], returns)?;
+            items[1..]
+                .iter()
+                .all(|item| linked_expr_type(item, returns).as_ref() == Some(&first))
+                .then(|| CoreType::List(Box::new(first)))
+        }
+        _ => inferred_core_expr_type(expr),
+    }
+}

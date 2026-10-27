@@ -1,7 +1,7 @@
 module=std.collections.Iterable
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=16173514355712186418
 interface_hash=1973320599022437743
 interface_doc_hash=16891204044583547535

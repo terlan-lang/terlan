@@ -1,7 +1,7 @@
 module=std.css.properties.Bottom
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=1269591159619272260
 interface_hash=451105376083577607
 interface_doc_hash=18346689847098676026

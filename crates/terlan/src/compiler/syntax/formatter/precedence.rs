@@ -52,6 +52,7 @@ fn expression_precedence(expr: &Expr) -> u8 {
         | Expr::Atom(_)
         | Expr::AtomLiteral(_)
         | Expr::Binary(_)
+        | Expr::InterpolatedString { .. }
         | Expr::Var(_)
         | Expr::Tuple(_)
         | Expr::List(_)

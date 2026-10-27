@@ -1,7 +1,7 @@
 module=std.http.Request
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=13223776639731436218
 interface_hash=15678012344850180242
 interface_doc_hash=14467511959558754674
@@ -11,7 +11,7 @@ std.collections.List=14680201998966909778
 std.core.Error=11862556521397520043
 std.core.Option=11539230284316612175
 std.core.Result=11040488711914238385
-std.core.String=11796450558679535748
+std.core.String=16297020256045562210
 std.data.Json=5091682687923972624
 std.http.Cookies=14949798991177299676
 std.net.Uri=9863377137104173513

@@ -1390,3 +1390,83 @@ probe(): Int -> sql[Row] {select $$x$$$tag$, ${value}}.
         (identifier)
         (type_expression
           (type_identifier))))))
+
+==================
+string-interpolation
+==================
+
+module contract.Cases.
+probe(): String -> "Count: ${count} next: ${count + 1}".
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (string))))
+
+==================
+string-interpolation-nested
+==================
+
+module contract.Cases.
+probe(): String -> "nested: ${"inner ${count}"}".
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (string))))
+
+==================
+string-interpolation-escaped
+==================
+
+module contract.Cases.
+probe(): String -> "\${count}".
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (string))))
+
+==================
+string-interpolation-empty
+==================
+
+module contract.Cases.
+probe(): String -> "${}".
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (string))))

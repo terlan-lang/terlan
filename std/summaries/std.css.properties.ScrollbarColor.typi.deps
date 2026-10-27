@@ -1,7 +1,7 @@
 module=std.css.properties.ScrollbarColor
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=5617092341332657151
 interface_hash=3705635415143863806
 interface_doc_hash=4389877965357514248

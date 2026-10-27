@@ -1,7 +1,7 @@
 module=std.css.properties.MinInlineSize
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=4176829062786044407
 interface_hash=9657247938731552709
 interface_doc_hash=6313682098020271559

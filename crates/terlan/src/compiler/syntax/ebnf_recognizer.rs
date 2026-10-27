@@ -10,14 +10,10 @@ use regex::Regex;
 
 use super::ebnf::{EbnfGrammarContract, EbnfGrammarExpr, EbnfGrammarExprKind as Kind};
 
-const LEXICAL_ROOTS: &[&str] = &[
-    "LowerIdent",
-    "UpperIdent",
-    "Binding",
-    "Int",
-    "Float",
-    "StringLiteral",
-];
+#[path = "ebnf_string_recognizer.rs"]
+mod strings;
+
+const LEXICAL_ROOTS: &[&str] = &["LowerIdent", "UpperIdent", "Binding", "Int", "Float"];
 // Global keywords from the language's lexical policy. Contextual words (as, mut,
 // annotation, etc.) remain identifiers. Kept independent of compiler token kinds.
 const RESERVED: &[&str] = &[
@@ -56,6 +52,8 @@ const RESERVED: &[&str] = &[
 ];
 const EOF_PREDICATE: &str = "end of input after optional whitespace and comments";
 const STRING_PREDICATE: &str = "any source character except unescaped terminator";
+const QUOTED_STRING_PREDICATE: &str =
+    "double-quoted text with balanced interpolation islands and backslash escapes";
 const RAW_PREDICATE: &str = "opaque source text whose unescaped braces are balanced";
 const SQL_PREDICATE: &str = "SQL payload with balanced braces and interpolation islands outside quoted text and nested comments";
 
@@ -67,6 +65,7 @@ enum Symbol {
     End,
     RawText,
     SqlRawText,
+    QuotedString,
     Unsupported(String),
 }
 
@@ -166,6 +165,9 @@ impl Recognizer {
             Kind::Special { text } if text.trim() == RAW_PREDICATE => return Ok(Symbol::RawText),
             Kind::Special { text } if text.trim() == SQL_PREDICATE => {
                 return Ok(Symbol::SqlRawText)
+            }
+            Kind::Special { text } if text.trim() == QUOTED_STRING_PREDICATE => {
+                return Ok(Symbol::QuotedString)
             }
             Kind::Special { text } => return Ok(Symbol::Unsupported(text.clone())),
             Kind::CharacterClass { chars } => {
@@ -338,6 +340,7 @@ impl Recognizer {
         let start = skip_trivia(source, position)?;
         let rest = &source[start..];
         let length = match symbol {
+            Symbol::QuotedString => return Ok(strings::quoted_end(rest).map(|end| start + end)),
             Symbol::End => return Ok((start == source.len()).then_some(start)),
             Symbol::Literal(value) if rest.starts_with(value) => {
                 let end = value.len();
