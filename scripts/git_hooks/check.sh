@@ -15,6 +15,9 @@ cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-w
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 export TERLC="$terlc"
+echo 'pre-commit: generated JavaScript bindings'
+TERLAN_JS_BINDINGS_ROOT="$PWD" TERLAN_JS_BINDINGS_TERLC="$terlc" \
+  "$terlc" test scripts/self_validation/JsBindingsDriftTest.terl
 echo 'pre-commit: canonical executable size budget'
 cargo build --release --locked -p terlan -p terlan-test-orchestrator \
   --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator

@@ -1,7 +1,7 @@
 module=std.js.Dom.AudioProcessingEventInit
 syntax_contract_schema=terlan-syntax-contract-v1
 syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:411e0b1c322fad32
+syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
 source_hash=3687468441427764652
 interface_hash=6525531308175640652
 interface_doc_hash=6525531308175640652

@@ -115,4 +115,34 @@ if bash "$driver" install > "$temporary/install.log" 2>&1; then
   echo 'Hook installer replaced custom hooks' >&2; exit 1
 fi
 test "$(git config --get core.hooksPath)" = /dev/null
-echo 'Git hook snapshot regression tests passed (11 scenarios).'
+
+# Generated binding drift must stop even a documentation-only commit before
+# the optimized build. Exercise the real checker with bounded tool stand-ins.
+mkdir -p "$temporary/early-bindings/bin" "$temporary/early-bindings/cache/debug" \
+  "$temporary/early-bindings/scripts"
+cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+case " $* " in *' --release '*) exit 99 ;; esac
+exit 0
+CARGO
+printf '#!/usr/bin/env bash\nexit 0\n' > "$temporary/early-bindings/bin/make"
+printf 'exit 0\n' > "$temporary/early-bindings/scripts/build_artifact_bootstrap_test.sh"
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+test "$TERLAN_JS_BINDINGS_ROOT" = "$PWD"
+test "$TERLAN_JS_BINDINGS_TERLC" = "$0"
+test "$*" = 'test scripts/self_validation/JsBindingsDriftTest.terl'
+exit 37
+TERLC
+chmod +x "$temporary/early-bindings/bin/"* "$temporary/early-bindings/cache/debug/terlc"
+printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
+(
+  cd "$temporary/early-bindings"
+  status=0
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-bindings.log" 2>&1 || status=$?
+  test "$status" = 37
+)
+echo 'Git hook regression tests passed (12 scenarios).'
