@@ -2659,6 +2659,7 @@ tvm-aot-c-abi-boundary-check:
 tvm-aot-platform-matrix-contract-check: | $(TERLAN_TVM_CONTRACT_BOOTSTRAP)
 	$(TERLAN_TVM_CONTRACT_CHECK) self-test
 	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseChecksumsTest.terl
+	TERLAN_RELEASE_TEST_COMPILER="$(abspath $(TERLAN_BOOTSTRAP_COMPILER))" $(TERLAN_BOOTSTRAP_COMPILER) test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePackageTest.terl
 
 tvm-aot-platform-target-check: tvm-aot-platform-matrix-contract-check
 	$(TERLAN_TVM_PLATFORM_MATRIX) target
