@@ -429,6 +429,10 @@ pub(super) fn unify(
 #[path = "type_system_test.rs"]
 mod list_boundary_tests;
 
+#[cfg(test)]
+#[path = "type_system/union_substitution_test.rs"]
+mod union_substitution_tests;
+
 /// Unifies an applied constructor variable with a concrete named type.
 ///
 /// Inputs:
@@ -611,7 +615,17 @@ pub(super) fn apply_subst(ty: &Type, subst: &HashMap<TypeVarId, Type>) -> Type {
             Type::Tuple(items.iter().map(|item| apply_subst(item, subst)).collect())
         }
         Type::Union(items) => {
-            Type::Union(items.iter().map(|item| apply_subst(item, subst)).collect())
+            // A fresh variable can resolve to a whole union. Keep its members
+            // at this level so union matching checks alternatives individually.
+            // Preserve order: it also determines stable representation layouts.
+            let mut flattened = Vec::with_capacity(items.len());
+            for item in items {
+                match apply_subst(item, subst) {
+                    Type::Union(members) => flattened.extend(members),
+                    other => flattened.push(other),
+                }
+            }
+            Type::Union(flattened)
         }
         Type::Map(fields) => Type::Map(
             fields

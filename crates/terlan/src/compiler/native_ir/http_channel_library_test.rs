@@ -1,6 +1,6 @@
 //! Channel values follow package source, not reserved module or builder names.
 
-use super::source_constructor_test::check_sources;
+use super::source_constructor_test::{check_sources, replace_integer_literal};
 
 #[test]
 fn renamed_websocket_identity_provider_owns_reconnect_role_policy() {
@@ -44,8 +44,8 @@ fn renamed_sse_response_uses_provider_body_defaults_and_stream_policy() {
         .replace("std.http.Sse", "app.Sse")
         .replace("@compiler.native {std.http.sse.encode_event}\n", "")
         .replace("): String.", "): String -> \"package framing\".")
-        .replace("status: Int = 200", "status: Int = 219")
-        .replace("16384", "17");
+        .replace("status: Int = 200", "status: Int = 219");
+    let provider = replace_integer_literal(&provider, 16384, 17);
     check_sources(&[
         r#"module sse_response_authority.
 import app.Sse.

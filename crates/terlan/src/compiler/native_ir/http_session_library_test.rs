@@ -5,8 +5,8 @@ fn source_session_lifetime_controls_allocation_and_is_retained_for_rotation() {
     let request = "module std.http.Request. import std.core.Option.{None}. pub struct Request { value: Int }. pub new(): Request -> Request { value: 0 }. pub (request: Request) cookie(name: String): Option[String] -> None.";
     for owner in ["std.http.Session", "app.Sessions"] {
         for seconds in [7, 86400] {
-            let provider = include_str!("../../../../../std/http/Session.terl")
-                .replace("let ttl_seconds = 86400;", &format!("let ttl_seconds = {seconds};"))
+            let provider = super::super::source_constructor_test::replace_integer_literal(
+                include_str!("../../../../../std/http/Session.terl"), 86400, seconds)
                 .replace("@compiler.native\nlookup(identity: String): Option[String].", "lookup(identity: String): Option[String] -> None.")
                 .replace("Base64.encode_url_unpadded_bytes(Entropy.bytes(byte_count))", "\"allocated\"")
                 .replace("@compiler.native\ntry_create(identity: String, ttl_seconds: Int): Bool.", &format!("try_create(identity: String, ttl_seconds: Int): Bool -> ttl_seconds == {seconds}."))

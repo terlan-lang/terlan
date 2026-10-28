@@ -11,6 +11,48 @@ use crate::terlan_hir::{
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax_module_output};
 
+/// Mutates one numeric token regardless of formatter grouping, failing on drift.
+pub(super) fn replace_integer_literal(source: &str, original: i64, replacement: i64) -> String {
+    use crate::terlan_syntax::integer_literals::{format_integer, parse_integer};
+    let tokens = crate::terlan_syntax::lexer::lex(source).expect("lex provider fixture");
+    let matches = tokens
+        .iter()
+        .filter(|token| {
+            token.kind == crate::terlan_syntax::TokenKind::Int
+                && parse_integer(&token.text) == Some(original)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        matches.len(),
+        1,
+        "fixture must contain one integer {original}"
+    );
+    let token = matches[0];
+    format!(
+        "{}{}{}",
+        &source[..token.start],
+        format_integer(replacement),
+        &source[token.end..]
+    )
+}
+
+#[test]
+fn integer_fixture_mutations_preserve_strings_comments_and_grouping() {
+    for literal in ["16384", "16_384", "0x40_00"] {
+        let source = format!("module mutation. // 16_384\npub value(): Int -> {literal}.\npub label(): String -> \"16_384\".\n");
+        let changed = replace_integer_literal(&source, 16384, 17);
+        assert!(changed.contains("value(): Int -> 17."));
+        assert!(changed.contains("// 16_384"));
+        assert!(changed.contains("\"16_384\""));
+    }
+}
+
+#[test]
+#[should_panic(expected = "fixture must contain one integer")]
+fn missing_integer_fixture_mutations_fail_before_running_the_provider() {
+    replace_integer_literal("module mutation. pub value(): Int -> 1.", 16384, 17);
+}
+
 #[test]
 fn completed_guard_values_do_not_admit_unreachable_effect_adapters() {
     check_sources(&[

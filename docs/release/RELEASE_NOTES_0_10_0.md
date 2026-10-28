@@ -28,6 +28,8 @@ bindings and other calls. An optional field such as `Some(price)` no longer
 changes the inferred type of an unrelated sibling field. Regression coverage
 includes reordered fields, earlier bindings, independent callbacks and shared
 generic constraints, including genuine type errors that must remain rejected.
+Substitution also flattens nested union members without reordering their layouts,
+allowing fresh return-only generic results to adopt their enclosing context.
 
 Native applications carry their image and VM in the executable. External service
 dependencies retain their own deployment requirements. This does not freeze the

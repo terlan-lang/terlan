@@ -27,6 +27,16 @@ refresh reviewed APIs deliberately, pass
 Normal incremental compilation still validates source, dependency and syntax
 identities before reusing its own cache.
 
+Source-authority fixtures must prove that their intended mutation occurred.
+Integer formatting exposed HTTP tests whose string replacements silently stopped
+matching grouped literals. Native source tests now replace one numeric token by
+value, preserve strings and comments, and reject missing or ambiguous matches.
+When inference allocates fresh variables, a substitution can introduce a nested
+union; substitution must flatten its members while preserving their order.
+Regression checks cover contextual generic results, incompatible alternatives,
+layout order and repeated substitution. Focused parser and formatter checks had
+not exercised these native integration cases; the full compiler gate caught them.
+
 Commit messages must contain one nonempty line of at most 50 characters. Put
 detailed explanations in the code, documentation, or pull request. Git's
 `commit-msg` hook checks the message after it is collected; long subjects and
