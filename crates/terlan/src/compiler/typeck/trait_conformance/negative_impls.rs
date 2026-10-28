@@ -305,6 +305,8 @@ fn visible_imported_interfaces<'a>(
 /// Matches provider-qualified or local trait names to one imported trait.
 fn conformance_trait_matches_import(trait_name: &str, imported: &ImportedItem) -> bool {
     trait_name == imported.source_name
+        || (trait_name == imported.source_module
+            && imported.source_module.rsplit('.').next() == Some(imported.source_name.as_str()))
         || trait_name
             .strip_prefix(&imported.source_module)
             .and_then(|suffix| suffix.strip_prefix('.'))

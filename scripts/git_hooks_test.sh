@@ -145,4 +145,29 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
     > "$temporary/early-bindings.log" 2>&1 || status=$?
   test "$status" = 37
 )
-echo 'Git hook regression tests passed (12 scenarios).'
+# Both negative API contracts must run before the optimized compiler build.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+if [[ "$*" == 'test scripts/self_validation/JsBindingsDriftTest.terl' ]]; then
+  exit 0
+fi
+test "$TERLAN_REPOSITORY_ROOT" = "$PWD"
+test "$TERLAN_STDLIB_VALIDATION_TERLC" = "$0"
+test "$1" = run
+test "$2" = scripts/self_validation/StdlibValidation.terls
+test "$3" = --
+case "$4" in negative-api|io-negative-api) ;; *) exit 98 ;; esac
+if [[ "$4" == "$HOOK_NEGATIVE_FAIL" ]]; then exit 38; fi
+TERLC
+for contract in negative-api io-negative-api; do
+  (
+    cd "$temporary/early-bindings"
+    status=0
+    PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" HOOK_NEGATIVE_FAIL="$contract" \
+      bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+      > "$temporary/early-$contract.log" 2>&1 || status=$?
+    test "$status" = 38
+  )
+done
+echo 'Git hook regression tests passed (14 scenarios).'

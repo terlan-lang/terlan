@@ -170,7 +170,10 @@ validate_negative_rows(
                                         row.path,
                                         " missing expected diagnostic `",
                                         row.expectation,
-                                        "`",
+                                        "`; compiler exit status: ",
+                                        Int.to_string(output.status),
+                                        "\nActual compiler output:\n",
+                                        text,
                                     ],
                                 ),
                             );

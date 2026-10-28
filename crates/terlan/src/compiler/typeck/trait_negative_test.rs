@@ -160,6 +160,38 @@ pub leak(value: Secret): String -> render(value).\n",
     );
 }
 
+/// Verifies an imported same-name equality trait retains its explicit denial.
+#[test]
+fn syntax_output_rejects_std_equal_for_secret_with_canonical_trait_name() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        include_str!("../../../../../tests/std/negative/core/SecretRejectsEqualTest.terl"),
+        "std/core/Secret.terl",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.message
+            == "at `equal` call site: trait bound `Equal[std.core.Secret]` is explicitly denied"),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
+/// Verifies an imported same-name ordering trait retains its explicit denial.
+#[test]
+fn syntax_output_rejects_std_ordering_for_secret_with_canonical_trait_name() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        include_str!("../../../../../tests/std/negative/core/SecretRejectsOrderingTest.terl"),
+        "std/core/Secret.terl",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic.message
+            == "at `compare` call site: trait bound `Ordering[std.core.Secret]` is explicitly denied"),
+        "diagnostics: {:?}",
+        diagnostics
+    );
+}
+
 /// Verifies std negative facts do not disable positive primitive evidence.
 #[test]
 fn syntax_output_accepts_std_show_for_int() {

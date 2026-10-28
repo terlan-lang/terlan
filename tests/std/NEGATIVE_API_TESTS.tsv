@@ -15,9 +15,9 @@
 #
 # Format:
 # api_id<TAB>fixture<TAB>expected_diagnostic_substring
-std.core.Secret.denies_show	tests/std/negative/core/SecretRejectsShowTest.terl	trait bound `Show[std.core.Secret.Secret]` is explicitly denied
-std.core.Secret.denies_equal	tests/std/negative/core/SecretRejectsEqualTest.terl	trait bound `Equal[std.core.Secret.Secret]` is explicitly denied
-std.core.Secret.denies_ordering	tests/std/negative/core/SecretRejectsOrderingTest.terl	trait bound `Ordering[std.core.Secret.Secret]` is explicitly denied
+std.core.Secret.denies_show	tests/std/negative/core/SecretRejectsShowTest.terl	trait bound `Show[std.core.Secret]` is explicitly denied
+std.core.Secret.denies_equal	tests/std/negative/core/SecretRejectsEqualTest.terl	trait bound `Equal[std.core.Secret]` is explicitly denied
+std.core.Secret.denies_ordering	tests/std/negative/core/SecretRejectsOrderingTest.terl	trait bound `Ordering[std.core.Secret]` is explicitly denied
 std.vm.Process.send.actor_message	tests/std/negative/vm/ProcessRejectsDeniedActorMessageTest.terl	trait bound `ActorMessage[LocalOnlyMessage]` is explicitly denied
 std.vm.Cluster.send.node_payload	tests/std/negative/vm/ClusterRejectsDeniedNodePayloadTest.terl	trait bound `SendAcrossNode[LocalOnlyPayload]` is explicitly denied
 std.test.Test.assert.condition_bool	tests/std/negative/test/AssertRejectsStringArgumentTest.terl	type mismatch

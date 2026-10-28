@@ -18,6 +18,11 @@ export TERLC="$terlc"
 echo 'pre-commit: generated JavaScript bindings'
 TERLAN_JS_BINDINGS_ROOT="$PWD" TERLAN_JS_BINDINGS_TERLC="$terlc" \
   "$terlc" test scripts/self_validation/JsBindingsDriftTest.terl
+echo 'pre-commit: standard-library negative API contracts'
+for contract in negative-api io-negative-api; do
+  TERLAN_REPOSITORY_ROOT="$PWD" TERLAN_STDLIB_VALIDATION_TERLC="$terlc" \
+    "$terlc" run scripts/self_validation/StdlibValidation.terls -- "$contract"
+done
 echo 'pre-commit: canonical executable size budget'
 cargo build --release --locked -p terlan -p terlan-test-orchestrator \
   --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator
