@@ -3,7 +3,7 @@
  */
 module proof_release_evidence.Builder.
 
-import proof_release_evidence.{Model, RuntimeEvidence, Support}.
+import proof_release_evidence.{LaneFreshness, Model, RuntimeEvidence, Support}.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
@@ -760,6 +760,7 @@ base_material_paths(): List[String] ->
         "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Support.terl",
         "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Model.terl",
         "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Builder.terl",
+        "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/LaneFreshness.terl",
         "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/RuntimeEvidence.terl",
         "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/SemanticKernelRecord.terl",
         "scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl",
@@ -853,6 +854,15 @@ finish_document(
     }.
 
 pub build(root: String): EvidenceBuild ->
+    if {
+        not LaneFreshness.current(root) -> invalid(
+            "stale_input",
+            "proof lane seal does not match current replayed proof bytes; run make lean-proof-lanes-check before checking or recording the baseline",
+        );
+        true -> build_current(root)
+    }.
+
+build_current(root: String): EvidenceBuild ->
     case {
         Support.load_json(root, "proofs/lean/release_evidence/release-mode.json"),
         read_artifacts(root),

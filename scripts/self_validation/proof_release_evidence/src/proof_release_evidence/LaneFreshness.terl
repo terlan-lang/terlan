@@ -1,0 +1,132 @@
+/**
+ * Rejects lane seals that no longer describe the current replayed proof bytes.
+ */
+module proof_release_evidence.LaneFreshness.
+
+import proof_release_evidence.Support.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{Int, String}.
+import std.data.Json.
+
+import type std.data.Json.
+
+same_json(left: Json, right: Json): Bool ->
+    case {Support.canonical_json(left), Support.canonical_json(right)} {
+        {Some(a), Some(b)} -> a == b;
+        _ -> false
+    }.
+
+family_matches(values: Json, index: Int, count: Int, family: String, digest: String): Bool ->
+    if {
+        index >= count -> false;
+        true -> case values.at(index) {
+            Ok(value) ->
+                if {
+                    Support.json_string(value, "family") == Some(family) -> Support.json_string(value, "last_executed_digest") == Some(digest)
+                        and Support.json_string(value, "proof_status") == Some("current")
+                        and Support.json_string(value, "reproducibility_verdict") == Some("pass");
+                    true -> family_matches(values, index + 1, count, family, digest)
+                };
+            _ -> false
+        }
+    }.
+
+families_current(families: Json, replay: Json, index: Int, count: Int, seen: List[String]): Bool ->
+    if {
+        index >= count -> true;
+        true -> let {
+            Ok(value) <- replay.at(index);
+            Some(family) <- Support.json_string(value, "family");
+            Some(digest) <- Support.json_string(value, "proof_digest")
+        } else {
+            _ -> false
+        };
+        not Support.contains_string(seen, family)
+            and family_matches(families, 0, count, family, digest)
+            and Support.json_string(value, "verdict") == Some("pass")
+            and families_current(families, replay, index + 1, count, [family | seen])
+    }.
+
+lanes_current(values: Json, checksums: Json, index: Int, count: Int, seen: List[String]): Bool ->
+    if {
+        index >= count -> true;
+        true -> let {
+            Ok(value) <- values.at(index);
+            Some(lane) <- Support.json_string(value, "lane");
+            Some(digest) <- Support.json_string(value, "checksum")
+        } else {
+            _ -> false
+        };
+        not Support.contains_string(seen, lane)
+            and Support.json_string(checksums, lane) == Some(digest)
+            and Support.json_string(value, "status") == Some("pass")
+            and lanes_current(values, checksums, index + 1, count, [lane | seen])
+    }.
+
+pub reports_match(track: Json, gate: Json, replay: Json, lanes: Json): Bool ->
+    let {
+        Some(families) <- Support.json_member(track, "families");
+        Some(recorded) <- Support.json_member(track, "reproducibility");
+        Some(sealed_families) <- Support.json_member(gate, "families");
+        Some(sealed_replay) <- Support.json_member(gate, "reproducibility");
+        Some(replayed) <- Support.json_member(replay, "families");
+        Some(values) <- Support.json_member(lanes, "lanes");
+        Some(checksums) <- Support.json_member(gate, "lane_checksums");
+        Some(matrix) <- Support.json_string(lanes, "lane_matrix_checksum");
+        Ok(family_count) <- families.length();
+        Ok(replay_count) <- replayed.length();
+        Ok(lane_count) <- values.length();
+        Ok(keys) <- checksums.keys()
+    } else {
+        _ -> false
+    };
+    Support.json_string(track, "schema") == Some("terlan.lean-proof-track.v1")
+        and Support.json_string(gate, "schema") == Some("terlan.lean-proof-gate.v1")
+        and Support.json_string(replay, "schema") == Some("terlan.lean-proof-repro.v1")
+        and Support.json_string(lanes, "schema") == Some("terlan.lean-proof-lanes.v1")
+        and matrix != ""
+        and Support.json_string(gate, "lane_matrix_checksum") == Some(matrix)
+        and family_count > 0
+        and family_count == replay_count
+        and lane_count > 0
+        and lane_count == Support.string_count(keys)
+        and same_json(families, sealed_families)
+        and same_json(recorded, sealed_replay)
+        and same_json(recorded, replayed)
+        and families_current(families, replayed, 0, replay_count, [])
+        and lanes_current(values, checksums, 0, lane_count, []).
+
+pub replay_sources_current(root: String, replay: Json): Bool ->
+    let {
+        Some(values) <- Support.json_member(replay, "families");
+        Ok(count) <- values.length()
+    } else {
+        _ -> false
+    };
+    count > 0 and sources_current(root, values, 0, count).
+
+sources_current(root: String, values: Json, index: Int, count: Int): Bool ->
+    if {
+        index >= count -> true;
+        true -> let {
+            Ok(value) <- values.at(index);
+            Some(path) <- Support.json_string(value, "proof_path");
+            Some(digest) <- Support.json_string(value, "proof_digest");
+            Some(actual) <- Support.file_digest(root, path)
+        } else {
+            _ -> false
+        };
+        actual == digest and sources_current(root, values, index + 1, count)
+    }.
+
+pub current(root: String): Bool ->
+    let {
+        Some(track) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-track.json");
+        Some(gate) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-gate.json");
+        Some(replay) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-repro-report.json");
+        Some(lanes) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-lanes.json")
+    } else {
+        _ -> false
+    };
+    reports_match(track, gate, replay, lanes) and replay_sources_current(root, replay).

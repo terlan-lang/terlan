@@ -1,0 +1,165 @@
+module proof_release_evidence.LaneFreshnessTest.
+
+import proof_release_evidence.{LaneFreshness, Support}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.data.Json.
+import std.io.Directory.{create_temporary, remove_all}.
+import std.io.File.{write_text}.
+
+import type std.data.Json.
+
+test_family(digest: String): Json ->
+    Json.array()
+        .push(
+            Json.object()
+                .put("family", Json.string("parser-shape"))
+                .put("last_executed_digest", Json.string(digest))
+                .put("proof_status", Json.string("current"))
+                .put("reproducibility_verdict", Json.string("pass")),
+        ).
+
+test_replay(digest: String): Json ->
+    Json.array()
+        .push(
+            Json.object()
+                .put("family", Json.string("parser-shape"))
+                .put("proof_digest", Json.string(digest))
+                .put("proof_path", Json.string("proof.lean"))
+                .put("verdict", Json.string("pass")),
+        ).
+
+test_reports(): Json ->
+    Json.object()
+        .put(
+            "track",
+            Json.object()
+                .put("schema", Json.string("terlan.lean-proof-track.v1"))
+                .put("families", test_family("current"))
+                .put("reproducibility", test_replay("current")),
+        )
+        .put(
+            "gate",
+            Json.object()
+                .put("schema", Json.string("terlan.lean-proof-gate.v1"))
+                .put("families", test_family("current"))
+                .put("reproducibility", test_replay("current"))
+                .put("lane_matrix_checksum", Json.string("matrix"))
+                .put("lane_checksums", Json.object().put("parser", Json.string("sealed"))),
+        )
+        .put(
+            "replay",
+            Json.object()
+                .put("schema", Json.string("terlan.lean-proof-repro.v1"))
+                .put("families", test_replay("current")),
+        )
+        .put(
+            "lanes",
+            Json.object()
+                .put("schema", Json.string("terlan.lean-proof-lanes.v1"))
+                .put("lane_matrix_checksum", Json.string("matrix"))
+                .put(
+                    "lanes",
+                    Json.array()
+                        .push(
+                            Json.object()
+                                .put("lane", Json.string("parser"))
+                                .put("checksum", Json.string("sealed"))
+                                .put("status", Json.string("pass")),
+                        ),
+                ),
+        ).
+
+test_matches(bundle: Json): Bool ->
+    let {
+        Some(track) <- Support.json_member(bundle, "track");
+        Some(gate) <- Support.json_member(bundle, "gate");
+        Some(replay) <- Support.json_member(bundle, "replay");
+        Some(lanes) <- Support.json_member(bundle, "lanes")
+    } else {
+        _ -> false
+    };
+    LaneFreshness.reports_match(track, gate, replay, lanes).
+
+@test
+pub coherent_seal_is_accepted(): Bool ->
+    test_matches(test_reports()).
+
+@test
+pub stale_parser_gate_is_rejected(): Bool ->
+    let bundle = test_reports();
+    let Some(gate) <- Support.json_member(bundle, "gate") else {
+        _ -> false
+    };
+    test_matches(bundle)
+        and not test_matches(bundle.put("gate", gate.put("families", test_family("old")))).
+
+@test
+pub inconsistent_replay_digest_is_rejected(): Bool ->
+    let bundle = test_reports();
+    let Some(replay) <- Support.json_member(bundle, "replay") else {
+        _ -> false
+    };
+    not test_matches(bundle.put("replay", replay.put("families", test_replay("old")))).
+
+@test
+pub stale_lane_checksum_is_rejected(): Bool ->
+    let bundle = test_reports();
+    let Some(gate) <- Support.json_member(bundle, "gate") else {
+        _ -> false
+    };
+    not test_matches(
+    bundle.put("gate", gate.put("lane_checksums", Json.object().put("parser", Json.string("old")))),
+).
+
+@test
+pub missing_lane_is_rejected(): Bool ->
+    let bundle = test_reports();
+    let Some(lanes) <- Support.json_member(bundle, "lanes") else {
+        _ -> false
+    };
+    not test_matches(bundle.put("lanes", lanes.put("lanes", Json.array()))).
+
+@test
+pub review_age_does_not_change_seal_identity(): Bool ->
+    let bundle = test_reports();
+    let Some(gate) <- Support.json_member(bundle, "gate") else {
+        _ -> false
+    };
+    test_matches(
+        bundle
+            .put(
+                "gate",
+                gate
+                    .put(
+                        "proof_gap_metrics",
+                        Json.object().put("gap_staleness_days", Json.int(999)),
+                    ),
+            ),
+    ).
+
+@test
+pub replay_digest_must_match_current_proof_bytes(): Bool ->
+    let Ok(directory) <- create_temporary("proof-lane-freshness.") else {
+        _ -> false
+    };
+    (let result = source_test(directory); let _removed = remove_all(directory); result).
+
+source_test(directory: String): Bool ->
+    let Ok(_written) <-
+        write_text(
+            Support.root_path(directory, "proof.lean"),
+            "theorem current : True := by trivial\n",
+        ) else {
+        _ -> false
+    };
+    (let Some(digest) <- Support.file_digest(directory, "proof.lean") else {
+    _ -> false
+};
+(let report = Json.object().put("families", test_replay(digest));
+let current = LaneFreshness.replay_sources_current(directory, report);
+(let Ok(_changed) <- write_text(Support.root_path(directory, "proof.lean"), "theorem changed : True := by trivial\n") else {
+    _ -> false
+};
+current and not LaneFreshness.replay_sources_current(directory, report)))).

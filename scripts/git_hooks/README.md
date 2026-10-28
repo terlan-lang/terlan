@@ -45,6 +45,16 @@ debug compiler build in every commit hook, before optimized builds. Its self-tes
 covers stale counts; the hook regression verifies that this failure stops early.
 The syntax lane retains the full Rust summary comparison.
 
+Proof baselines must consume a current lane seal. A retained local gate and lane
+report still named an earlier parser-proof digest after the replay reports had
+been refreshed. The local baseline check trusted that seal, while CI rebuilt it
+and rejected the aggregate fingerprint. Proof evidence construction now checks
+the track, replay, gate, and lane reports agree and that replay digests match
+the proof files. Stale seals fail before a baseline can be checked or recorded.
+The baseline gate, also used by precommit, runs regressions for stale families,
+replay digests, lane checksums, missing lanes, and changed proof bytes. Review age
+remains informational and does not change seal identity.
+
 Commit messages must contain one nonempty line of at most 50 characters. Put
 detailed explanations in the code, documentation, or pull request. Git's
 `commit-msg` hook checks the message after it is collected; long subjects and

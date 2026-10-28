@@ -1817,6 +1817,7 @@ release-candidate-check: build-artifact-budget-record
 
 .PHONY: release-proof-baseline-check
 release-proof-baseline-check: | terlan-proof-release-bootstrap
+	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/self_validation/proof_release_evidence/src/proof_release_evidence/LaneFreshnessTest.terl
 	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- check
 
