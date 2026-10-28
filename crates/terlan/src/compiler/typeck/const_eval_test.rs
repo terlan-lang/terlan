@@ -13,6 +13,9 @@ use super::{
     lower_syntax_module_output_to_core, prepare_syntax_constants, type_check_syntax_module_output,
 };
 
+#[path = "const_eval_test/imported_signed.rs"]
+mod imported_signed;
+
 #[test]
 fn integer_separators_preserve_const_array_sizes() {
     for source in ["Array[10_000, Int]", "Array[0x27_10, Int]"] {

@@ -450,6 +450,25 @@ pub(super) fn value_to_expr(value: &ConstValue, span: EbnfSourceSpan) -> SyntaxE
 pub(super) fn literal_expr_value(expr: &SyntaxExprOutput) -> Option<ConstValue> {
     match expr.kind {
         SyntaxExprKind::Int => expr.text.as_deref()?.parse().ok().map(ConstValue::Int),
+        // Signed integers are rendered as literals in summaries, but reparsing
+        // represents their sign as a unary expression. Decode those literals
+        // without evaluating arbitrary expressions from imported interfaces.
+        SyntaxExprKind::UnaryOp if expr.operator.as_deref() == Some("-") => {
+            let [value] = expr.children.as_slice() else {
+                return None;
+            };
+            match value.kind {
+                SyntaxExprKind::Int => value
+                    .text
+                    .as_deref()?
+                    .parse::<i128>()
+                    .ok()?
+                    .checked_neg()
+                    .and_then(|value| i64::try_from(value).ok())
+                    .map(ConstValue::Int),
+                _ => None,
+            }
+        }
         SyntaxExprKind::Float => expr
             .text
             .as_deref()?

@@ -162,6 +162,37 @@ pub imported_generic_struct_implication_executes(): Bool ->
     assert_eq!(exit_code, ExitCode::SUCCESS);
 }
 
+/// Exercises signed valued-union namespaces through generated package summaries.
+#[test]
+fn project_vm_tests_execute_imported_signed_valued_union_namespaces() {
+    let exit_code = run_project_vm_test(
+        "terlan_imported_signed_union_vm_test",
+        "signed-union-app",
+        "src/app/Order.terl",
+        r#"module app.Order.
+pub type OrderSide: Int = BUY = 1 | SELL = -1.
+pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 3.
+pub accepts(side: OrderSide, tif: TimeInForce): Bool ->
+    side == OrderSide.SELL and tif == TimeInForce.DAY.
+"#,
+        "tests/app/OrderTest.terl",
+        r#"module app.OrderTest.
+import app.Order.{accepts}.
+import type app.Order.{OrderSide as Side, TimeInForce}.
+@test
+pub imported_signed_arm_executes(): Bool ->
+    accepts(Side.SELL, TimeInForce.DAY).
+@test
+pub positive_arm_remains_distinct(): Bool ->
+    not accepts(Side.BUY, TimeInForce.DAY).
+@test
+pub imported_signed_pattern_executes(): Bool ->
+    case Side.SELL { Side.SELL -> true; _ -> false }.
+"#,
+    );
+    assert_eq!(exit_code, ExitCode::SUCCESS);
+}
+
 /// Runs one temporary project test against a prepared source-root module.
 fn run_project_vm_test(
     prefix: &str,
