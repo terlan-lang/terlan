@@ -1,10 +1,7 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::sync::{Mutex, OnceLock};
 
-use crate::terlan_hir::{
-    parse_interface_dependency_entries, parse_interface_file, ModuleInterface,
-};
+use crate::terlan_hir::{parse_interface_file, ModuleInterface};
 use crate::terlan_syntax::{
     syntax_module_import_identities, SyntaxDeclarationPayload, SyntaxImportKind, SyntaxModuleOutput,
 };
@@ -17,10 +14,10 @@ static STD_INTERFACES: OnceLock<Mutex<HashMap<String, ModuleInterface>>> = OnceL
 /// - `module`: syntax-output fixture whose imports define the roots.
 ///
 /// Output:
-/// - Direct std interfaces and all dependencies declared by `.typi.deps`.
+/// - Direct std interfaces and dependencies derived from their declarations.
 ///
 /// Transformation:
-/// - Traverses structured dependency manifests and parses each exact interface
+/// - Traverses semantic module references and parses each exact interface
 ///   summary at most once per test process.
 pub(crate) fn checked_in_std_interfaces_for_module(
     module: &SyntaxModuleOutput,
@@ -43,14 +40,8 @@ pub(crate) fn checked_in_std_interfaces_for_module(
         let Some(interface) = cached_std_interface(&summaries, &module_name) else {
             continue;
         };
+        pending.extend(interface.dependency_modules.iter().cloned());
         interfaces.insert(module_name.clone(), interface);
-
-        let manifest_path = summaries.join(format!("{module_name}.typi.deps"));
-        let dependencies = fs::read_to_string(manifest_path)
-            .ok()
-            .and_then(|contents| parse_interface_dependency_entries(&contents))
-            .unwrap_or_default();
-        pending.extend(dependencies.into_iter().map(|(dependency, _)| dependency));
     }
 
     interfaces

@@ -101,9 +101,9 @@ bounded_command(
                 Process.with_arguments(Process.command(program), arguments),
                 root,
             ),
-            120000,
+            120_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 run_text(root: String, program: String, arguments: List[String]): Option[String] ->
@@ -347,8 +347,8 @@ source(relative: String, contents: String): RustSource ->
         category = kind,
         physical_lines = physical_lines(contents),
         line_limit = if {
-            kind == "test" or kind == "fixture" -> 2000;
-            true -> 1000
+            kind == "test" or kind == "fixture" -> 2_000;
+            true -> 1_000
         },
     ).
 

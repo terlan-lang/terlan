@@ -1,8 +1,0 @@
-module=std.css.keywords.Dense
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4627653554836823803
-interface_hash=11316208416626610997
-interface_doc_hash=3229021393571418071
-deps=0

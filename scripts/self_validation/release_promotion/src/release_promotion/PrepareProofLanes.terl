@@ -57,7 +57,7 @@ pub declare(
             "TERLAN_PROOF_LANES_OUTPUT",
             "terlan.lean-proof-lanes.v1",
             "Lean proof lanes passed: 8 ordered hard lanes sealed",
-            1800000,
+            1_800_000,
         ),
         [
             OwnerArtifacts.declare_artifact(

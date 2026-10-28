@@ -1,8 +1,0 @@
-module=std.css.keywords.FlipY
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15100086167384582557
-interface_hash=15057342712683580214
-interface_doc_hash=3730417895989454466
-deps=0

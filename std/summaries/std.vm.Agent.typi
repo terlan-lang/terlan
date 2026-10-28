@@ -1,6 +1,9 @@
 //! Typed state cells implemented in Terlan over VM process primitives.
 
 module std.vm.Agent.
+import std.core.Unit.{*}.
+import std.vm.Message.{*}.
+import std.vm.Process.{*}.
 
 pub type Agent[T] =
     {Atom["agent"], process: std.vm.Process[AgentCommand[T]], placeholder: T}.

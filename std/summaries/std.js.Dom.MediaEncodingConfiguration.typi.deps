@@ -1,8 +1,0 @@
-module=std.js.Dom.MediaEncodingConfiguration
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=2644188305705584923
-interface_hash=3329867287399964247
-interface_doc_hash=3329867287399964247
-deps=0

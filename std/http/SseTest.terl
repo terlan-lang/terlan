@@ -18,13 +18,13 @@ pub accepts_response(value: Response): Response ->
     value.
 
 pub event_with_metadata(): Event ->
-    Sse.data("tick").with_id("42").with_name("counter").with_retry_ms(1500).
+    Sse.data("tick").with_id("42").with_name("counter").with_retry_ms(1_500).
 
 pub queued_response(): Response ->
     Sse.response([Sse.data("ready")]).
 
 pub bounded_endpoint(): Endpoint ->
-    Sse.endpoint_with_keep_alive(16, 4096, 15000).
+    Sse.endpoint_with_keep_alive(16, 4_096, 15_000).
 
 idle(): Unit ->
     Unit.
@@ -41,7 +41,7 @@ pub sse_callbacks_are_retained_without_mutating_the_original(): Bool ->
         and configured != original
         and repeated != configured
         and configured.max_pending_events == 16
-        and configured.keep_alive_ms == Some(15000).
+        and configured.keep_alive_ms == Some(15_000).
 
 @test
 pub sse_producer_construction_is_lazy_and_preserves_policy(): Bool ->
@@ -54,13 +54,13 @@ pub sse_producer_construction_is_lazy_and_preserves_policy(): Bool ->
         and repeated != configured
         and callbacks != configured
         and callbacks.max_pending_events == 16
-        and callbacks.max_event_bytes == 4096
-        and callbacks.keep_alive_ms == Some(15000).
+        and callbacks.max_event_bytes == 4_096
+        and callbacks.keep_alive_ms == Some(15_000).
 
 @test
 pub sse_event_metadata_builders_record_typed_descriptor(): Bool ->
     let original = Sse.data("tick");
-    let tagged = original.with_id("42").with_name("counter").with_retry_ms(1500);
+    let tagged = original.with_id("42").with_name("counter").with_retry_ms(1_500);
     original.data == "tick"
         and original.id == None
         and original.event == None
@@ -68,18 +68,18 @@ pub sse_event_metadata_builders_record_typed_descriptor(): Bool ->
         and tagged.data == "tick"
         and tagged.id == Some("42")
         and tagged.event == Some("counter")
-        and tagged.retry_ms == Some(1500).
+        and tagged.retry_ms == Some(1_500).
 
 @test
 pub sse_endpoint_records_stream_limits(): Bool ->
     let defaults = Sse.endpoint();
     let bounded = bounded_endpoint();
     defaults.max_pending_events == 128
-        and defaults.max_event_bytes == 65536
+        and defaults.max_event_bytes == 65_536
         and defaults.keep_alive_ms == None
         and bounded.max_pending_events == 16
-        and bounded.max_event_bytes == 4096
-        and bounded.keep_alive_ms == Some(15000).
+        and bounded.max_event_bytes == 4_096
+        and bounded.keep_alive_ms == Some(15_000).
 
 @test
 pub sse_metadata_replacement_preserves_other_fields_and_empty_values(): Bool ->
@@ -109,13 +109,13 @@ pub sse_response_encodes_in_order_with_source_owned_stream_defaults(): Bool ->
     ["data: first\ndata: second\n\n", "id: 42\nevent: counter\nretry: 1500\ndata: tick\n\n"],
     201,
     "text/event-stream; charset=utf-8",
-    16384,
+    16_384,
     128,
 ).
 
 @test
 pub sse_empty_response_retains_default_status_and_empty_stream(): Bool ->
-    Sse.response([]) == Response.stream([], 200, "text/event-stream; charset=utf-8", 16384, 128).
+    Sse.response([]) == Response.stream([], 200, "text/event-stream; charset=utf-8", 16_384, 128).
 
 @test
 pub sse_newline_policy_preserves_logical_lines_and_event_values(): Bool ->
@@ -137,6 +137,6 @@ newline_policy_holds(value: Row[String, String]): Bool ->
     case value {
         {_name, input, expected} ->
             let event = Sse.data(input);
-            Sse.response([event]) == Response.stream([expected], 200, "text/event-stream; charset=utf-8", 16384, 128)
+            Sse.response([event]) == Response.stream([expected], 200, "text/event-stream; charset=utf-8", 16_384, 128)
                 and event.data == input
     }.

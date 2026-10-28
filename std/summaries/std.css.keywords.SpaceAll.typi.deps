@@ -1,8 +1,0 @@
-module=std.css.keywords.SpaceAll
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=8507446963390387046
-interface_hash=15616018435760398994
-interface_doc_hash=2298766187816501730
-deps=0

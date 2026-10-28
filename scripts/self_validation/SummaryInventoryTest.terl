@@ -14,7 +14,7 @@ import type std.collections.Set.
 import type std.io.File.TextFile.
 
 /**
- * Returns whether every summary-owning std source has a summary and deps file.
+ * Returns whether every source has its reviewed API summary; caches are disposable.
  */
 pub repository_inventory_holds(root: String): Bool ->
     let {
@@ -75,7 +75,6 @@ pub source_inventory_holds(source_path: String, source: String, summary_names: S
             let summary_name = String.append(module_name, ".typi");
             source_has_declaration(source, declaration)
                 and set_has_name(summary_names, summary_name)
-                and set_has_name(summary_names, String.append(summary_name, ".deps"))
     }.
 
 @pure
@@ -142,12 +141,12 @@ pub source_inventory_rejects_a_missing_summary(): Bool ->
 ).
 
 @test
-pub source_inventory_rejects_missing_summary_dependencies(): Bool ->
-    not source_inventory_holds(
-    "std/example/Value.terl",
-    "module std.example.Value.",
-    Set.from_list(["std.example.Value.typi"]),
-).
+pub source_inventory_accepts_missing_disposable_dependencies(): Bool ->
+    source_inventory_holds(
+        "std/example/Value.terl",
+        "module std.example.Value.",
+        Set.from_list(["std.example.Value.typi"]),
+    ).
 
 @test
 pub only_public_test_module_requires_a_summary(): Bool ->

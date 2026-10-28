@@ -55,10 +55,10 @@ rows(
  * Hash every required dependency using its file or directory representation.
  */
 pub files(root: String, paths: List[String]): Result[Json, String] ->
-    rows(root, paths, Json.array(), 16384, false).
+    rows(root, paths, Json.array(), 16_384, false).
 
 /**
  * Preserve explicit absence for optional dependencies.
  */
 pub optional_files(root: String, paths: List[String]): Result[Json, String] ->
-    rows(root, paths, Json.array(), 16384, true).
+    rows(root, paths, Json.array(), 16_384, true).

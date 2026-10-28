@@ -28,6 +28,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextRendering.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.GeometricPrecision.{*}.
+import std.css.keywords.OptimizeLegibility.{*}.
+import std.css.keywords.OptimizeSpeed.{*}.
 
 pub struct Property {
     text_rendering: std.css.keywords.Auto | std.css.keywords.OptimizeSpeed | std.css.keywords.OptimizeLegibility | std.css.keywords.GeometricPrecision | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

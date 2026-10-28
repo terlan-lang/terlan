@@ -533,9 +533,9 @@ pub command_output(
                     ),
                     [Process.environment_entry("PATH", process_path(installed))],
                 ),
-                60000,
+                60_000,
             ),
-            8388608,
+            8_388_608,
         );
     case Process.run(request) {
         Ok(output) ->

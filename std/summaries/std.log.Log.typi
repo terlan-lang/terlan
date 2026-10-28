@@ -6,6 +6,8 @@
 //! without changing handler source.
 
 module std.log.Log.
+import std.io.Console.{*}.
+import std.log.Field.{*}.
 
 /// Writes a debug-level log message.
 ///

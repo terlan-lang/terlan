@@ -6,6 +6,7 @@
 //! exchange instants without exposing host clock handles.
 
 module std.time.Instant.
+import std.time.Duration.{*}.
 
 /// Instant represents a millisecond timestamp from a producer-defined origin.
 ///

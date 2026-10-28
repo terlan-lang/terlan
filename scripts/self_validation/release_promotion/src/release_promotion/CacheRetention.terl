@@ -90,7 +90,7 @@ validate(
                 true <- remaining > 0;
                 true <- valid_key(generation.key);
                 true <- not contains(seen, generation.key);
-                true <- generation.bytes >= 0 and generation.bytes <= 1125899906842624;
+                true <- generation.bytes >= 0 and generation.bytes <= 1_125_899_906_842_624;
                 true <- generation.modified_ns >= 0
             } else {
                 _ -> Err("invalid, duplicate, or excessive cache generation inventory")
@@ -185,11 +185,11 @@ pub plan_retention(
     now_ns: Int,
 ): Result[Plan, String] ->
     let {
-        true <- budget.bytes >= 0 and budget.bytes <= 1152921504606846976;
-        true <- budget.entries >= 0 and budget.entries <= 1024;
+        true <- budget.bytes >= 0 and budget.bytes <= 1_152_921_504_606_846_976;
+        true <- budget.entries >= 0 and budget.entries <= 1_024;
         true <- budget.minimum_age_ns >= 0 and budget.maximum_age_ns >= budget.minimum_age_ns;
         true <- now_ns >= 0;
-        Ok(known) <- validate(generations, [], 1024);
+        Ok(known) <- validate(generations, [], 1_024);
         true <- valid_pins(pins, known, [])
     } else {
         _ -> Err("invalid cache retention policy or generation inventory")

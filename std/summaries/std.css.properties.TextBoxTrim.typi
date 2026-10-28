@@ -21,6 +21,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextBoxTrim.
+import std.css.Values.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.TrimBoth.{*}.
+import std.css.keywords.TrimEnd.{*}.
+import std.css.keywords.TrimStart.{*}.
 
 pub struct Property {
     text_box_trim: std.css.keywords.None | std.css.keywords.TrimStart | std.css.keywords.TrimEnd | std.css.keywords.TrimBoth | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

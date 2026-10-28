@@ -1,8 +1,0 @@
-module=std.js.Dom.RTCTrackEventInit
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=7205638478587370511
-interface_hash=9548895592343335928
-interface_doc_hash=9548895592343335928
-deps=0

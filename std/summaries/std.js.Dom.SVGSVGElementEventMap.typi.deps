@@ -1,8 +1,0 @@
-module=std.js.Dom.SVGSVGElementEventMap
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=8936513950031947632
-interface_hash=8865049865436250667
-interface_doc_hash=8865049865436250667
-deps=0

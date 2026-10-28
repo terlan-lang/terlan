@@ -93,8 +93,8 @@ check_files(paths: List[String], baseline: String): Bool ->
             let command =
                 Process.command("readelf")
                     .with_arguments(["--version-info", "--wide", path])
-                    .with_timeout_ms(30000)
-                    .with_output_limit_bytes(8388608);
+                    .with_timeout_ms(30_000)
+                    .with_output_limit_bytes(8_388_608);
             let valid =
                 case Process.run(command) {
                     Ok(output) -> output.status == 0 and symbols_supported(output.stdout, baseline);

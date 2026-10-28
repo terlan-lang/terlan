@@ -51,7 +51,7 @@ pub struct Property {
  * returns None.
  */
 pub number(value: Float): Option[Checked] ->
-    case value >= 1 and value <= 1000 {
+    case value >= 1 and value <= 1_000 {
         true -> Some(Checked(serialize("font-weight", std.core.Float.to_string(value))));
         false -> Absent
     }.

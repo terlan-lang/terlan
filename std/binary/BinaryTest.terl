@@ -655,8 +655,8 @@ pub decode_prefixed_body_decodes_little_endian_signed_scalars(): Bool ->
     } else {
         _ -> false
     };
-    unsigned == 4660
-        and signed == -32768
+    unsigned == 4_660
+        and signed == -32_768
         and assert_equal(Bytes.from_list([170]), decoded_protocol_remaining_bytes(decoded)).
 
 @test
@@ -791,8 +791,8 @@ pub encode_exact_applies_little_endian_and_fixed_bytes(): Bool ->
     let decoded =
         test_decoded_protocol(
             List(
-                test_decoded_int_field("unsigned", 4660),
-                test_decoded_int_field("signed", -32768),
+                test_decoded_int_field("unsigned", 4_660),
+                test_decoded_int_field("signed", -32_768),
                 test_decoded_bytes_field("prefix", Bytes.from_list([170, 187])),
             ),
             Bytes.from_list([]),

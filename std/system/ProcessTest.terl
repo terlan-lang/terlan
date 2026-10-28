@@ -26,13 +26,13 @@ pub runtime_resource_limits_are_typed_and_positive(): Bool ->
 @test
 pub runtime_resource_limits_match_enforced_contract(): Bool ->
     let limits = Process.limits();
-    limits.maximum_timeout_ms == 21600000
-        and limits.maximum_output_bytes == 16777216
-        and limits.maximum_stdin_bytes == 1048576
-        and limits.maximum_batch_commands == 4096
+    limits.maximum_timeout_ms == 21_600_000
+        and limits.maximum_output_bytes == 16_777_216
+        and limits.maximum_stdin_bytes == 1_048_576
+        and limits.maximum_batch_commands == 4_096
         and limits.maximum_batch_concurrency == 64
-        and limits.maximum_framed_exchanges == 4096
-        and limits.maximum_framed_responses == 4096.
+        and limits.maximum_framed_exchanges == 4_096
+        and limits.maximum_framed_responses == 4_096.
 
 @test
 pub captures_stdout_and_nonzero_status(): Bool ->
@@ -96,7 +96,7 @@ pub publication_budget_accepts_a_completed_child(): Bool ->
     let request =
         Process.with_timeout_ms(
             Process.with_arguments(Process.command("/bin/sh"), ["-c", "printf prepared"]),
-            18000000,
+            18_000_000,
         );
     case Process.run(request) {
         Ok(output) -> output.status == 0 and output.stdout == "prepared";

@@ -5,6 +5,7 @@
 //! visible through this module.
 
 module std.system.Arguments.
+import std.core.Option.{*}.
 
 /// Returns the number of application arguments.
 

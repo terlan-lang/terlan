@@ -174,7 +174,7 @@ scan(
         [""] -> Ok(summary(inventory, processes));
         [line | rest] ->
             let {
-                true <- inventory.events + processes.events < 65536 and line.byte_size() <= 4096;
+                true <- inventory.events + processes.events < 65_536 and line.byte_size() <= 4_096;
                 Ok(document) <- Json.parse(line);
                 Some(schema) <- OwnerStorage.text(document, "schema")
             } else {
@@ -209,7 +209,7 @@ consume(
  */
 pub inspect(source: String): Result[Json, String] ->
     let {
-        true <- source.byte_size() <= 16777216;
+        true <- source.byte_size() <= 16_777_216;
         true <- source == "" or source.ends_with("\n");
         Ok(report) <- scan(source.split("\n"), empty(), ProcessActivity.empty())
     } else {
@@ -262,7 +262,7 @@ pub validate(source: String): Result[Json, String] ->
 pub read(path: String): Result[Json, String] ->
     let {
         Ok(size) <- File.size(path);
-        true <- size <= 16777216;
+        true <- size <= 16_777_216;
         Ok(source) <- File.read_text(path)
     } else {
         _ -> Err("native activity log is missing, unreadable, or oversized")

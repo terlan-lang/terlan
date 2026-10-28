@@ -1,8 +1,0 @@
-module=std.js.Dom.DocumentTimelineOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=2427516574850562798
-interface_hash=6497377055756071733
-interface_doc_hash=6497377055756071733
-deps=0

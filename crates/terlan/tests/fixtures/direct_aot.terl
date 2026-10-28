@@ -247,7 +247,7 @@ pub spawn_then_send(): Bool ->
     received == 73.
 
 pub spawn_invalid_entry(): Bool ->
-    let child = Process.spawn[Int](Process.entry[Int](9999));
+    let child = Process.spawn[Int](Process.entry[Int](9_999));
     true.
 
 pub spawn_failure_isolated(): Bool ->

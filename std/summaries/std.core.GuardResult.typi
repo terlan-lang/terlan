@@ -6,6 +6,7 @@
 //! comprehension.
 
 module std.core.GuardResult.
+import std.core.Effect.{*}.
 
 /// GuardResult represents a completed pure guard decision.
 ///

@@ -1,8 +1,0 @@
-module=std.js.Dom.KeyframeAnimationOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=1911816567136995488
-interface_hash=3283151950345823676
-interface_doc_hash=3283151950345823676
-deps=0

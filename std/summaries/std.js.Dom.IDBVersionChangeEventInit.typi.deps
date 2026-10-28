@@ -1,8 +1,0 @@
-module=std.js.Dom.IDBVersionChangeEventInit
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=14236195425415178987
-interface_hash=13791131813115642066
-interface_doc_hash=13791131813115642066
-deps=0

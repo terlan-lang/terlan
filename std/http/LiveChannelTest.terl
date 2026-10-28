@@ -13,7 +13,7 @@ pub require_user(_request: Request): MiddlewareResult -> Atom["continue"].
 pub counter_events_response(): Response ->
     Sse.response(
         [
-            Sse.data("counter:1").with_id("1").with_name("counter").with_retry_ms(1500),
+            Sse.data("counter:1").with_id("1").with_name("counter").with_retry_ms(1_500),
             Sse.data("counter:2").with_id("2").with_name("counter"),
         ],
     ).
@@ -23,8 +23,8 @@ pub counter_events(_request: Request): Response ->
 
 pub live_channels(router: Router): Router ->
     let routed = Router.use(router, require_user);
-    let routed_2 = Router.sse(routed, "/events/counter", Sse.endpoint_with_keep_alive(32, 8192, 10000));
-    Router.websocket(routed_2, "/ws/counter", WebSocket.endpoint(32, 8192)).
+    let routed_2 = Router.sse(routed, "/events/counter", Sse.endpoint_with_keep_alive(32, 8_192, 10_000));
+    Router.websocket(routed_2, "/ws/counter", WebSocket.endpoint(32, 8_192)).
 
 pub application_router(): Router ->
     let router = Router.get(Router.new(), "/", home);
@@ -39,7 +39,7 @@ pub live_channel_sse_handler_records_queued_events(): Bool ->
     ],
     200,
     "text/event-stream; charset=utf-8",
-    16384,
+    16_384,
     128,
 ).
 
@@ -50,7 +50,7 @@ pub live_channel_group_records_sse_and_websocket_endpoints(): Bool ->
         Router.sse(
             Router.use(empty, require_user),
             "/events/counter",
-            Sse.endpoint_with_keep_alive(32, 8192, 10000),
+            Sse.endpoint_with_keep_alive(32, 8_192, 10_000),
         );
     let channels = live_channels(empty);
     channels != empty

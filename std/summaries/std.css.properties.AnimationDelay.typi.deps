@@ -1,9 +1,0 @@
-module=std.css.properties.AnimationDelay
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=7731353834094926071
-interface_hash=9146590928500332887
-interface_doc_hash=4678634993860521684
-deps=1
-std.css.Values=2905925857807311325

@@ -38,6 +38,14 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ReadingFlow.
+import std.css.Values.{*}.
+import std.css.keywords.FlexFlow.{*}.
+import std.css.keywords.FlexVisual.{*}.
+import std.css.keywords.GridColumns.{*}.
+import std.css.keywords.GridOrder.{*}.
+import std.css.keywords.GridRows.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.SourceOrder.{*}.
 
 pub struct Property {
     reading_flow: std.css.keywords.Normal | std.css.keywords.SourceOrder | std.css.keywords.FlexVisual | std.css.keywords.FlexFlow | std.css.keywords.GridRows | std.css.keywords.GridColumns | std.css.keywords.GridOrder | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

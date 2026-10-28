@@ -57,7 +57,7 @@ pub inventory(path: String): Result[Json, String] ->
         true <- usage.directory_count == 1 and usage.symbolic_link_count == 0;
         true <- usage.regular_file_count > 0 and usage.regular_file_count <= 256;
         true <- count(names) == usage.regular_file_count;
-        true <- usage.logical_file_bytes <= 16777216;
+        true <- usage.logical_file_bytes <= 16_777_216;
         Ok(files) <- OwnerStorage.files(path, names);
         true <- files.length() == Ok(usage.regular_file_count)
     } else {

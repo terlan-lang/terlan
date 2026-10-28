@@ -1,8 +1,0 @@
-module=std.js.Dom.WebTransportSendStreamOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4808335436468683401
-interface_hash=141540973880902373
-interface_doc_hash=141540973880902373
-deps=0

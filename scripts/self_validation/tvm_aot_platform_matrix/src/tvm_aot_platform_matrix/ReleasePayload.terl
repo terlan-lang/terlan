@@ -136,8 +136,14 @@ relative_path(root: String, path: String): Option[String] ->
         )
     }.
 
-accepted(path: String): Bool ->
-    not String.ends_with(path, ".pyc") and not String.ends_with(path, ".vsix").
+/**
+ * Selects distributable inputs while excluding compiler-local cache sidecars.
+ */
+@pure
+pub accepted(path: String): Bool ->
+    not String.ends_with(path, ".pyc")
+        and not String.ends_with(path, ".vsix")
+        and not String.ends_with(path, ".typi.deps").
 
 root_payloads(
     root: PayloadRoot,

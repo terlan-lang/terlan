@@ -1,8 +1,0 @@
-module=std.js.Dom.NavigatorStorage
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=11723889285490935612
-interface_hash=3956307942148510730
-interface_doc_hash=3956307942148510730
-deps=0

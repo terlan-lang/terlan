@@ -24,6 +24,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollbarGutter.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Stable.{*}.
 
 pub struct Property {
     scrollbar_gutter: std.css.keywords.Auto | std.css.keywords.Stable | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

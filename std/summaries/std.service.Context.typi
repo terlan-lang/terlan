@@ -1,6 +1,7 @@
 //! Read-only request identity supplied by the active service host.
 
 module std.service.Context.
+import std.core.Option.{*}.
 
 pub struct RequestContext {
     request_id: String,

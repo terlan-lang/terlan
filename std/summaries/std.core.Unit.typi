@@ -3,6 +3,8 @@
 //! `std.core.Unit` defines the conventional no-information return value.
 
 module std.core.Unit.
+import std.core.Option.{*}.
+import std.core.Ordering.{*}.
 
 /// Unit is the type of the singleton `Atom["unit"]` value.
 ///

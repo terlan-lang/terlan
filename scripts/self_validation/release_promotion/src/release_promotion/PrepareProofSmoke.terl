@@ -41,7 +41,7 @@ smoke_owner(root: String, quality: String, context: Context): Owner ->
             "TERLAN_PROOF_SMOKE_OUTPUT",
             "terlan.lean-proof-smoke.v1",
             "Lean proof smoke passed:",
-            1800000,
+            1_800_000,
         ),
         [
             OwnerArtifacts.declare_optional_rows_tsv(

@@ -4,6 +4,8 @@
 //! implementations for primitive `Int`.
 
 module std.core.Int.
+import std.core.Option.{*}.
+import std.core.Ordering.{*}.
 
 /// Returns the absolute value of an `Int`.
 ///

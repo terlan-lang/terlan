@@ -28,6 +28,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.VectorEffect.
+import std.css.Values.{*}.
+import std.css.keywords.FixedPosition.{*}.
+import std.css.keywords.NonRotation.{*}.
+import std.css.keywords.NonScalingSize.{*}.
+import std.css.keywords.NonScalingStroke.{*}.
+import std.css.keywords.None.{*}.
 
 pub struct Property {
     vector_effect: std.css.keywords.None | std.css.keywords.NonScalingStroke | std.css.keywords.NonScalingSize | std.css.keywords.NonRotation | std.css.keywords.FixedPosition | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

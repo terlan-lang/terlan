@@ -24,6 +24,14 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OffsetPath.
+import std.css.Values.{*}.
+import std.css.keywords.BorderBox.{*}.
+import std.css.keywords.ContentBox.{*}.
+import std.css.keywords.FillBox.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.PaddingBox.{*}.
+import std.css.keywords.StrokeBox.{*}.
+import std.css.keywords.ViewBox.{*}.
 
 pub struct Property {
     offset_path: std.css.keywords.None | std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.FillBox | std.css.keywords.StrokeBox | std.css.keywords.ViewBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

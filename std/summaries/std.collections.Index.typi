@@ -4,6 +4,7 @@
 //! resolves through when a collection-like type supports indexed access.
 
 module std.collections.Index.
+import std.core.Unit.{*}.
 
 /// Describes read access through `collection[index]`.
 ///

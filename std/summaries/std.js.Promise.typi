@@ -6,6 +6,7 @@
 //! promise shape.
 
 module std.js.Promise.
+import std.core.Task.{*}.
 
 /// Represents a JavaScript-native promise.
 ///

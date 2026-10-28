@@ -38,10 +38,7 @@ fixture_holds(generated: String, source: String, artifact: String): Bool ->
             ["interface", source, "--out-dir", generated],
         );
     case Process.run(request) {
-        Ok(output) ->
-            output.status == 0
-                and artifact_matches(generated, artifact)
-                and artifact_matches(generated, append(artifact, ".deps"));
+        Ok(output) -> output.status == 0 and artifact_matches(generated, artifact);
         _ -> false
     }.
 

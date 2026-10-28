@@ -27,6 +27,12 @@
 //!  std tests as the documentation pipeline hardens.
 
 module std.core.String.
+import std.core.Bool.{*}.
+import std.core.Float.{*}.
+import std.core.Int.{*}.
+import std.core.Option.{*}.
+import std.core.Ordering.{*}.
+import std.core.Unit.{*}.
 
 /// Appends two `String` values.
 ///

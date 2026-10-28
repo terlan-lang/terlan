@@ -1,9 +1,0 @@
-module=std.css.properties.ScrollMarginLeft
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4427215421869789898
-interface_hash=5955768478132658242
-interface_doc_hash=500019398905901431
-deps=1
-std.css.Values=2905925857807311325

@@ -23,6 +23,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ScrollPaddingRight.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
 
 pub opaque type Checked.
 

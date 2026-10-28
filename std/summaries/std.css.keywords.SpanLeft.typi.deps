@@ -1,8 +1,0 @@
-module=std.css.keywords.SpanLeft
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=11474152632997390499
-interface_hash=1981585421885941163
-interface_doc_hash=4554717678113028277
-deps=0

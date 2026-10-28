@@ -4,6 +4,7 @@
 //! inside each packed byte. They remain distinct from byte-aligned `Bytes`.
 
 module std.vm.BitString.
+import std.vm.Bytes.{*}.
 
 /// Exact-length immutable bit storage owned by the Terlan VM.
 

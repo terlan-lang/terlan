@@ -342,9 +342,9 @@ compiler_field(root: String, compiler: String, version: String): CheckedField ->
         Process.with_output_limit_bytes(
             Process.with_timeout_ms(
                 Process.with_arguments(Process.command(compiler), ["--version"]),
-                10000,
+                10_000,
             ),
-            65536,
+            65_536,
         );
     let observed =
         case Process.run(request) {

@@ -6,6 +6,9 @@
 //! `Result`.
 
 module std.io.Path.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 
 /// Path represents a lexical filesystem path value.
 ///

@@ -436,7 +436,10 @@ fn syntax_output_std_option_compare_summary_preserves_comparison_return_type() {
     let empty_trait_signatures = HashMap::new();
     let empty_alias_names = HashSet::new();
     let trial_trait_cache = RefCell::new(TraitLookupCache::default());
+    let next_inference_var = std::cell::Cell::new(0);
     let trial_ctx = ExprInferContext {
+        fresh_type_var_floor: 0,
+        next_inference_var: &next_inference_var,
         current_module: "",
         database_schema: None,
         local_fns: &empty_fns,

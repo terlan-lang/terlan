@@ -24,6 +24,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextFit.
+import std.css.Values.{*}.
+import std.css.keywords.Grow.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Shrink.{*}.
 
 pub struct Property {
     text_fit: std.css.keywords.None | std.css.keywords.Grow | std.css.keywords.Shrink | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

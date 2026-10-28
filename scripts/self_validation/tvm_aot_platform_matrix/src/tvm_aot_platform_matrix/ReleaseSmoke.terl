@@ -163,8 +163,8 @@ pub run_output(working_directory: String, program: String, arguments: List[Strin
         Process.command(program)
             .with_arguments(arguments)
             .with_working_directory(working_directory)
-            .with_timeout_ms(300000)
-            .with_output_limit_bytes(8388608);
+            .with_timeout_ms(300_000)
+            .with_output_limit_bytes(8_388_608);
     case Process.run(command) {
         Ok(output) ->
             if {

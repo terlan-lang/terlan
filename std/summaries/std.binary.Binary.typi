@@ -10,6 +10,14 @@
 //! Run `make binary-descriptor-check` to validate the contract.
 
 module std.binary.Binary.
+import std.collections.Enumerable.{*}.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.collections.Map.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.vm.BitString.{*}.
+import std.vm.Bytes.{*}.
 
 /// BigEndian marks network-order binary protocol fields.
 

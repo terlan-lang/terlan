@@ -1,8 +1,0 @@
-module=std.js.Dom.MediaDevices
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=2918884421313271347
-interface_hash=11170676806304363650
-interface_doc_hash=11170676806304363650
-deps=0

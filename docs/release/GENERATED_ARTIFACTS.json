@@ -39,8 +39,7 @@
       "id": "stdlib-summaries",
       "classification": "committed",
       "paths": [
-        "std/summaries/*.typi",
-        "std/summaries/*.typi.deps"
+        "std/summaries/*.typi"
       ],
       "regenerate": "make stdlib-build-interfaces",
       "freshness_gate": "stdlib-summary-drift-check",

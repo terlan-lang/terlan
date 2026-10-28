@@ -78,7 +78,7 @@ pub declare_with_version(
             "TERLAN_MULTICORE_RELEASE_OUTPUT",
             "terlan.vm-multicore-release-closeout.v4",
             "VM multicore release closeout passed:",
-            300000,
+            300_000,
         ),
     ).
 

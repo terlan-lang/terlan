@@ -73,7 +73,7 @@ pub installer_checks_glibc_and_executables_before_replacement(): Bool ->
                     Environment.current_directory() + "/install.sh",
                 ],
             )
-            .with_timeout_ms(30000);
+            .with_timeout_ms(30_000);
     case Process.run(command) {
         Ok(output) -> output.status == 0;
         _ -> false

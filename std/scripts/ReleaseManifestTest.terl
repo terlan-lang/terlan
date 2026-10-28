@@ -464,9 +464,9 @@ process_command(compiler: String, root: String, docs: String, source: String): C
                 ),
                 root,
             ),
-            600000,
+            600_000,
         ),
-        4194304,
+        4_194_304,
     ).
 
 doc_commands(compiler: String, root: String, docs: String, sources: List[String]): List[Command] ->

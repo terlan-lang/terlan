@@ -347,7 +347,7 @@ pub valid_declaration(owner: Owner): Bool ->
     OwnerStorage.safe_name(owner.name)
         and OwnerStorage.safe_name(owner.candidate)
         and owner.timeout_ms > 0
-        and owner.timeout_ms <= 1800000
+        and owner.timeout_ms <= 1_800_000
         and owner.required_stdout != ""
         and OwnerArtifacts.valid(artifacts(owner), owner.environment).
 
@@ -417,7 +417,7 @@ pub checked_admission(root: String, owner: Owner): Option[Admission] ->
                 entries,
                 OwnerStorage.child(root, workspace(owner)),
                 OwnerStorage.child(root, String.append(ledger_path(owner), ".pending")),
-                4096,
+                4_096,
             );
         true <- failure_evidence_valid(root, owner, ledger);
         Ok(inputs) <- identity(root, owner);
@@ -491,7 +491,7 @@ run_ready(root: String, owner: Owner): Decision ->
     };
     case File.read_text(OwnerStorage.child(root, ledger_path(owner))) {
         Ok(source) ->
-            let true <- source.byte_size() <= 16777216 else {
+            let true <- source.byte_size() <= 16_777_216 else {
                 _ -> reject("owner ledger exceeds the 16 MiB budget")
             };
             (let Ok(ledger) <- Json.parse(source) else {
@@ -686,7 +686,7 @@ execute(root: String, owner: Owner, inputs: Json, fingerprint: String): Decision
         .with_working_directory(root)
         .with_stdin("")
         .with_timeout_ms(owner.timeout_ms)
-        .with_output_limit_bytes(8388608);
+        .with_output_limit_bytes(8_388_608);
 let result = Process.run(command);
 let activity = OwnerNative.read_snapshot(staged_activity(root, owner));
 let finished = finish(root, owner, inputs, fingerprint, result, activity);

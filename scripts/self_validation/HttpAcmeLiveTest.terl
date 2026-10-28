@@ -31,7 +31,7 @@ nonempty(value: String): Option[String] ->
 
 pub valid_port(value: String): Bool ->
     case Int.from_string(value) {
-        Some(port) -> 1 <= port and port <= 65535;
+        Some(port) -> 1 <= port and port <= 65_535;
         None -> false
     }.
 
@@ -40,7 +40,7 @@ pub timeout_milliseconds(value: String): Option[Int] ->
         Some({whole, fraction}) -> decimal_timeout_milliseconds(whole, fraction);
         None ->
             case Int.from_string(value) {
-                Some(seconds) -> positive_timeout(seconds * 1000);
+                Some(seconds) -> positive_timeout(seconds * 1_000);
                 None -> None
             }
     }.
@@ -54,7 +54,7 @@ decimal_timeout_milliseconds(whole: String, fraction: String): Option[Int] ->
     case {Int.from_string(whole_text), Int.from_string(fraction)} {
         {Some(seconds), Some(part)} ->
             let divisor = decimal_power(String.length(fraction));
-            let millis = seconds * 1000 + part * 1000 / divisor;
+            let millis = seconds * 1_000 + part * 1_000 / divisor;
             positive_timeout(
                 if {
                     millis == 0 and (seconds > 0 or part > 0) -> 1;
@@ -155,7 +155,7 @@ run_live_in(root: String, work: String, domain: String, email: String, timeout_m
                     ),
                     timeout_ms,
                 ),
-                1048576,
+                1_048_576,
             );
         case Process.run(command) {
             Ok(_) -> inspect_cache(work, cache);
@@ -218,7 +218,7 @@ pub timeout_validation_accepts_positive_fractional_seconds(): Bool ->
         timeout_milliseconds("0"),
         timeout_milliseconds("later"),
     } {
-        {Some(250), Some(60000), None, None} -> true;
+        {Some(250), Some(60_000), None, None} -> true;
         _ -> false
     }.
 

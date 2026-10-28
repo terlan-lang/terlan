@@ -4,6 +4,8 @@
 //! implementations for primitive `Float`.
 
 module std.core.Float.
+import std.core.Option.{*}.
+import std.core.Ordering.{*}.
 
 /// Returns the absolute value of a finite `Float`.
 ///

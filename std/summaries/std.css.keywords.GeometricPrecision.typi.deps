@@ -1,8 +1,0 @@
-module=std.css.keywords.GeometricPrecision
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9017341409027629223
-interface_hash=15990738892128120298
-interface_doc_hash=8748734526431619777
-deps=0

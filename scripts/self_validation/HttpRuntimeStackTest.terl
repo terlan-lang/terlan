@@ -61,7 +61,7 @@ serve_sources_hold(root: String): Bool ->
         [".rs"],
         ["_test.rs"],
         0,
-        2048,
+        2_048,
     ) {
         Ok(files) -> files_reject_patterns(files, forbidden_patterns());
         _ -> false

@@ -74,7 +74,7 @@ pub workspace_packages(metadata: Json): Option[Json] ->
         true <- List.length(sort_unique(members)) == List.length(members);
         Ok(packages) <- metadata.get("packages");
         Ok(count) <- packages.length();
-        true <- count <= 16384
+        true <- count <= 16_384
     } else {
         _ -> None
     };

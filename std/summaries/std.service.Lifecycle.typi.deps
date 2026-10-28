@@ -1,8 +1,0 @@
-module=std.service.Lifecycle
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=3031696025171220896
-interface_hash=544566959131358513
-interface_doc_hash=4649526209542618121
-deps=0

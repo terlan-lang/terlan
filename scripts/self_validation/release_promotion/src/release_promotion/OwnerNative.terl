@@ -41,9 +41,9 @@ pub process_scope(path: String): Result[String, String] ->
 pub read_snapshot(path: String): Result[Snapshot, String] ->
     let {
         Ok(size) <- File.size(path);
-        true <- size <= 16777216;
+        true <- size <= 16_777_216;
         Ok(source) <- File.read_text(path);
-        true <- source.byte_size() <= 16777216
+        true <- source.byte_size() <= 16_777_216
     } else {
         _ -> Err("native attempt log is missing, unreadable, or oversized")
     };
@@ -79,7 +79,7 @@ pub observed_process(report: Json): Bool ->
 pub publish(root: String, retained: String, snapshot: Snapshot): Bool ->
     let pending = append(retained, ".pending");
     let {
-        true <- snapshot.raw.byte_size() <= 16777216;
+        true <- snapshot.raw.byte_size() <= 16_777_216;
         Ok(_written) <- File.write_text(OwnerStorage.child(root, pending), snapshot.raw)
     } else {
         _ -> false

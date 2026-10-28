@@ -152,9 +152,9 @@ generator_command(root: String, compiler: String, output: String): std.system.Pr
                 ),
                 root,
             ),
-            600000,
+            600_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 /**
@@ -189,8 +189,27 @@ run_generator(root: String, compiler: String, output: String): Bool ->
 discover_generated(root: String, output: String): Bool ->
     case files_recursive(output) {
         Err(_reason) -> finish(output, false, 0, "cannot enumerate generated artifacts");
-        Ok(paths) -> compare_pages(root, output, paths, 0)
+        Ok(paths) -> compare_pages(root, output, reviewed_paths(paths), 0)
     }.
+
+@pure
+reviewed_paths(paths: List[String]): List[String] ->
+    reviewed_paths_at(paths, []).
+
+@pure
+reviewed_paths_at(paths: List[String], selected: List[String]): List[String] ->
+    case paths {
+        [] -> reverse_strings(selected);
+        [path | rest] ->
+            if {
+                String.ends_with(path, ".typi.deps") -> reviewed_paths_at(rest, selected);
+                true -> reviewed_paths_at(rest, [path | selected])
+            }
+    }.
+
+@test
+pub disposable_cache_metadata_is_not_an_api_baseline(): Bool ->
+    reviewed_paths(["a.terl", "a.typi", "a.typi.deps", "manifest.json"]) == ["a.terl", "a.typi", "manifest.json"].
 
 compare_pages(root: String, output: String, paths: List[String], compared: Int): Bool ->
     case paths {

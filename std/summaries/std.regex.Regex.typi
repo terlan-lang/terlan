@@ -6,6 +6,10 @@
 //! `regex` crate.
 
 module std.regex.Regex.
+import std.collections.List.{*}.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 
 /// Regex represents a compiled regular expression.
 ///

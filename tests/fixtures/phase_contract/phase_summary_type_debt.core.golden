@@ -1,7 +1,7 @@
 schema=terlan.core_ir.v1
 module=phase_summary_type_debt
 source_kind=Module
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
+syntax_contract_fingerprint=fnv1a64:f281edc57d21d82b
 export=Point:type
 type=Point visibility=Public params= body= body_core=Struct(Point;x:Int,y:Int)
 binding_fingerprint=cbf29ce484222325

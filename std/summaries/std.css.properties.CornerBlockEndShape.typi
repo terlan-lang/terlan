@@ -17,6 +17,13 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.CornerBlockEndShape.
+import std.css.Values.{*}.
+import std.css.keywords.Bevel.{*}.
+import std.css.keywords.Notch.{*}.
+import std.css.keywords.Round.{*}.
+import std.css.keywords.Scoop.{*}.
+import std.css.keywords.Square.{*}.
+import std.css.keywords.Squircle.{*}.
 
 pub opaque type Checked.
 

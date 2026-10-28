@@ -1,8 +1,0 @@
-module=std.css.keywords.ColumnOverRow
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15620448595102337239
-interface_hash=8071464555733058833
-interface_doc_hash=9403536516098342368
-deps=0

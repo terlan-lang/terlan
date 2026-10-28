@@ -356,7 +356,7 @@ pub close(): Frame ->
  * Transformation: records explicit channel bounds for the VM HTTP runtime
  * without allocating a live socket at source evaluation time.
  */
-pub endpoint(max_pending_frames: Int = 128, max_frame_bytes: Int = 65536): Endpoint ->
+pub endpoint(max_pending_frames: Int = 128, max_frame_bytes: Int = 65_536): Endpoint ->
     Endpoint {
         max_pending_frames: max_pending_frames,
         max_frame_bytes: max_frame_bytes,

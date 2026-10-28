@@ -22,6 +22,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RubyOverhang.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Spaces.{*}.
 
 pub struct Property {
     ruby_overhang: std.css.keywords.Auto | std.css.keywords.Spaces | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

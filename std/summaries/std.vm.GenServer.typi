@@ -1,6 +1,9 @@
 //! Typed request servers implemented in Terlan over VM process primitives.
 
 module std.vm.GenServer.
+import std.core.Unit.{*}.
+import std.vm.Message.{*}.
+import std.vm.Process.{*}.
 
 /// State and reply returned by a synchronous request handler.
 

@@ -1,8 +1,0 @@
-module=std.js.Dom.HTMLAudioElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10485121452994653106
-interface_hash=7219773621735910489
-interface_doc_hash=7219773621735910489
-deps=0

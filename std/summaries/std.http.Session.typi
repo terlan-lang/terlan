@@ -7,6 +7,15 @@
 //! entropy and atomically reserve or replace source-selected identities.
 
 module std.http.Session.
+import std.core.Effect.{*}.
+import std.core.Option.{*}.
+import std.core.String.{*}.
+import std.core.Unit.{*}.
+import std.crypto.Entropy.{*}.
+import std.encoding.Base64.{*}.
+import std.http.Cookies.{*}.
+import std.http.Request.{*}.
+import std.http.Response.{*}.
 
 /// Session represents a source-owned reference to an HTTP session actor.
 ///

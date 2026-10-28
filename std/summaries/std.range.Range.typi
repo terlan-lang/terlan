@@ -5,6 +5,9 @@
 //! standard library.
 
 module std.range.Range.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.core.Result.{*}.
 
 /// InvalidStep is returned when a range is requested with a zero step.
 

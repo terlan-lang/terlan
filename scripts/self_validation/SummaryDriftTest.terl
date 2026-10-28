@@ -56,7 +56,7 @@ selected_generator(root: String): String ->
 
 @pure
 pub is_summary_artifact(path: String): Bool ->
-    String.ends_with(path, ".typi") or String.ends_with(path, ".typi.deps").
+    String.ends_with(path, ".typi").
 
 @pure
 package_summary(name: String): Bool ->
@@ -229,9 +229,9 @@ generation_command(
                     Process.environment_entry("TERLAN_BUILD_INTERFACES_TERLC", compiler),
                 ],
             ),
-            600000,
+            600_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 pub validate(root: String, compiler: String, generator: String): Bool ->
@@ -398,7 +398,7 @@ print_diagnostics(diagnostics: List[String]): Bool ->
 @test
 pub summary_artifact_classification_is_exact(): Bool ->
     is_summary_artifact("std.core.String.typi")
-        and is_summary_artifact("std.core.String.typi.deps")
+        and not is_summary_artifact("std.core.String.typi.deps")
         and not is_summary_artifact("std.core.String.native_boundary.json").
 
 @test

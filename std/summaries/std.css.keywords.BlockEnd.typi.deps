@@ -1,8 +1,0 @@
-module=std.css.keywords.BlockEnd
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=14873773299641671875
-interface_hash=15641066909823271251
-interface_doc_hash=9317424926613163674
-deps=0

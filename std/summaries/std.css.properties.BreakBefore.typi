@@ -48,6 +48,21 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BreakBefore.
+import std.css.Values.{*}.
+import std.css.keywords.All.{*}.
+import std.css.keywords.Always.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Avoid.{*}.
+import std.css.keywords.AvoidColumn.{*}.
+import std.css.keywords.AvoidPage.{*}.
+import std.css.keywords.AvoidRegion.{*}.
+import std.css.keywords.Column.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.Page.{*}.
+import std.css.keywords.Recto.{*}.
+import std.css.keywords.Region.{*}.
+import std.css.keywords.Right.{*}.
+import std.css.keywords.Verso.{*}.
 
 pub struct Property {
     break_before: std.css.keywords.Auto | std.css.keywords.Avoid | std.css.keywords.Always | std.css.keywords.All | std.css.keywords.AvoidPage | std.css.keywords.Page | std.css.keywords.Left | std.css.keywords.Right | std.css.keywords.Recto | std.css.keywords.Verso | std.css.keywords.AvoidColumn | std.css.keywords.Column | std.css.keywords.AvoidRegion | std.css.keywords.Region | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

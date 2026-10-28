@@ -1,6 +1,10 @@
 //! Shared typed CSS values. Property constructors enforce property-specific ranges.
 
 module std.css.Values.
+import std.core.Atom.{*}.
+import std.core.Float.{*}.
+import std.core.Int.{*}.
+import std.core.Option.{*}.
 
 /// A CSS angle with a library-owned unit.
 

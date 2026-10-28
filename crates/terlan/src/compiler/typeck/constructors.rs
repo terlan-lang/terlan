@@ -38,15 +38,7 @@ pub(super) fn infer_constructor_call(
     errors: &mut Vec<String>,
 ) -> Option<Type> {
     if let Some(schemes) = ctx.constructors.get(name) {
-        return infer_constructor_schemes(
-            name,
-            schemes,
-            args,
-            arg_names,
-            ctx.aliases,
-            subst,
-            errors,
-        );
+        return infer_constructor_schemes(name, schemes, args, arg_names, ctx, subst, errors);
     }
 
     // An imported explicit constructor owns construction authority before an
@@ -65,15 +57,8 @@ pub(super) fn infer_constructor_call(
                 interface,
                 ctx.aliases,
             ) {
-                let constructed = infer_constructor_schemes(
-                    name,
-                    &schemes,
-                    args,
-                    arg_names,
-                    ctx.aliases,
-                    subst,
-                    errors,
-                )?;
+                let constructed =
+                    infer_constructor_schemes(name, &schemes, args, arg_names, ctx, subst, errors)?;
                 return Some(expand_type_aliases(
                     &constructed,
                     &interface_type_aliases(interface),
@@ -83,7 +68,7 @@ pub(super) fn infer_constructor_call(
     }
 
     let schemes = alias_constructor_call_schemes(name, ctx.aliases)?;
-    infer_constructor_schemes(name, &schemes, args, arg_names, ctx.aliases, subst, errors)
+    infer_constructor_schemes(name, &schemes, args, arg_names, ctx, subst, errors)
 }
 
 /// Infers a constructor call against a candidate scheme set.
@@ -108,16 +93,28 @@ pub(super) fn infer_constructor_schemes(
     schemes: &[ConstructorScheme],
     args: &[Type],
     arg_names: &[Option<String>],
-    aliases: &HashMap<String, TypeAlias>,
+    ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
+    let aliases = ctx.aliases;
     let mut last_error = None;
     let mut last_named_errors = Vec::new();
 
     for scheme in schemes {
-        let instantiated =
-            instantiate_constructor_scheme(scheme, next_constructor_type_var(args, subst));
+        let instantiated = instantiate_constructor_scheme(
+            scheme,
+            next_constructor_type_var(args, subst)
+                .max(ctx.fresh_type_var_floor)
+                .max(ctx.next_inference_var.get()),
+        );
+        ctx.reserve_fresh_types(
+            instantiated
+                .fixed_params
+                .iter()
+                .chain(instantiated.vararg.iter())
+                .chain(std::iter::once(&instantiated.ret)),
+        );
         let param_names = instantiated
             .param_names
             .iter()

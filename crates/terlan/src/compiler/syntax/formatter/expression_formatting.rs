@@ -114,7 +114,9 @@ pub(super) fn format_binary_layout(endian: &str, fields: &[BinaryLayoutField]) -
 /// Inputs: parsed type expression. Output: source type text. Transformation:
 /// trims whitespace and substitutes `Dynamic` for empty type text.
 pub(super) fn format_type_expr(ty: &TypeExpr) -> String {
-    let mut text = normalize_type_text(&ty.text);
+    let mut text = crate::terlan_syntax::integer_literals::format_type_integers(
+        &normalize_type_text(&ty.text),
+    );
     if text.is_empty() {
         text.push_str("Dynamic");
     }
@@ -292,7 +294,7 @@ fn format_clause_body(expr: &Expr, indent: usize) -> String {
 pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
     let spacing = "    ".repeat(indent);
     match expr {
-        Expr::Int(value) => value.to_string(),
+        Expr::Int(value) => crate::terlan_syntax::integer_literals::format_integer(*value),
         Expr::Float(value) => format_float_literal(*value),
         Expr::Atom(value) => value.clone(),
         Expr::AtomLiteral(value) => format!("Atom[{}]", super::quoted_string_literal(value)),

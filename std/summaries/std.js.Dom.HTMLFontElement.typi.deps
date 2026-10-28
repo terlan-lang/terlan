@@ -1,8 +1,0 @@
-module=std.js.Dom.HTMLFontElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=1933107325993128710
-interface_hash=10020898247526579809
-interface_doc_hash=10020898247526579809
-deps=0

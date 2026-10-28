@@ -1,8 +1,0 @@
-module=std.css.keywords.Scroll
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=5339011965838137961
-interface_hash=17168449252506574457
-interface_doc_hash=7468170680172868790
-deps=0

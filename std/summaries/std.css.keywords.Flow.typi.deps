@@ -1,8 +1,0 @@
-module=std.css.keywords.Flow
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=13340145911308034384
-interface_hash=17549672812142020739
-interface_doc_hash=13964537143555749606
-deps=0

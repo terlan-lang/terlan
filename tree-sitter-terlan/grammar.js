@@ -639,7 +639,12 @@ module.exports = grammar({
 
     binary_layout_descriptor_kind: () => choice("UInt", "IntBits", "Bytes", "Bits"),
 
-    binary_layout_width: () => /[0-9]+/,
+    binary_layout_width: () => choice(
+      /0b[01](_?[01])*/,
+      /0o[0-7](_?[0-7])*/,
+      /0x[0-9a-fA-F](_?[0-9a-fA-F])*/,
+      /[0-9](_?[0-9])*/
+    ),
 
     constructor_pattern: ($) => seq($.type_identifier, "(", optional(commaSep1($.pattern)), ")"),
 
@@ -749,7 +754,13 @@ module.exports = grammar({
 
     type_identifier: () => /[A-Z][A-Za-z0-9_]*/,
 
-    number: () => /[0-9]+(\.[0-9]+)?([eE][+-]?[0-9]+)?/,
+    number: () => choice(
+      /0b[01](_?[01])*/,
+      /0o[0-7](_?[0-7])*/,
+      /0x[0-9a-fA-F](_?[0-9a-fA-F])*/,
+      /[0-9](_?[0-9])*/,
+      /[0-9]+(\.[0-9]+([eE][+-]?[0-9]+)?|[eE][+-]?[0-9]+)/
+    ),
 
     string: ($) => choice($._interpolated_string, token(prec(-1, /"([^"\\]|\\.)*"/))),
 

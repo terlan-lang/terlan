@@ -28,6 +28,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Float.
+import std.css.Values.{*}.
+import std.css.keywords.InlineEnd.{*}.
+import std.css.keywords.InlineStart.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Right.{*}.
 
 pub struct Property {
     float: std.css.keywords.InlineStart | std.css.keywords.InlineEnd | std.css.keywords.Left | std.css.keywords.Right | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -47,7 +47,7 @@ pub text(value: Json, key: String): Option[String] ->
 pub read_json(path: String): Result[Json, String] ->
     let {
         Ok(size) <- File.size(path);
-        true <- size <= 16777216
+        true <- size <= 16_777_216
     } else {
         _ -> Err("owner JSON is unavailable or exceeds the 16 MiB budget")
     };
@@ -64,13 +64,13 @@ pub read_json(path: String): Result[Json, String] ->
  * Produces a bounded inventory of explicitly declared regular files.
  */
 pub files(root: String, paths: List[String]): Result[Json, String] ->
-    files_at(root, paths, Json.array(), 16384, false).
+    files_at(root, paths, Json.array(), 16_384, false).
 
 /**
  * Missing optional files are explicit inputs, not omitted declarations.
  */
 pub optional_files(root: String, paths: List[String]): Result[Json, String] ->
-    files_at(root, paths, Json.array(), 16384, true).
+    files_at(root, paths, Json.array(), 16_384, true).
 
 file_row(root: String, path: String, optional: Bool): Result[Json, String] ->
     let row = Json.object().put("path", Json.string(path));
@@ -118,8 +118,8 @@ pub command(root: String, program: String, args: List[String]): Bool ->
             .with_arguments(args)
             .with_working_directory(root)
             .with_stdin("")
-            .with_timeout_ms(30000)
-            .with_output_limit_bytes(1048576),
+            .with_timeout_ms(30_000)
+            .with_output_limit_bytes(1_048_576),
     ) {
         Ok(output) -> output.status == 0;
         Err(_reason) -> false
@@ -133,7 +133,7 @@ pub atomic_json(root: String, path: String, value: Json): Bool ->
     let pending = String.append(path, ".pending");
     let {
         Ok(source) <- Json.stringify_pretty(value);
-        true <- source.byte_size() < 16777216;
+        true <- source.byte_size() < 16_777_216;
         Ok(_written) <- File.write_text(child(root, pending), String.append(source, "\n"))
     } else {
         _ ->

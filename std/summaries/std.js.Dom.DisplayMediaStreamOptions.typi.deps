@@ -1,8 +1,0 @@
-module=std.js.Dom.DisplayMediaStreamOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=6176086953157368984
-interface_hash=3652752613188491001
-interface_doc_hash=3652752613188491001
-deps=0

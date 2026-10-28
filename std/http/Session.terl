@@ -43,7 +43,7 @@ pub struct Session {
  * fresh allocation only on absence. Storage errors propagate without replacement.
  */
 pub current(request: Request): Session ->
-    let ttl_seconds = 86400;
+    let ttl_seconds = 86_400;
     let requested =
         case request.cookie("terlan_session") {
             Some(value) -> value.trim();

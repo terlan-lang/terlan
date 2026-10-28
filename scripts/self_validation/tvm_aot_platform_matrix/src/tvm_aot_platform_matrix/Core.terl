@@ -381,11 +381,11 @@ configured(
                 root,
             ),
             if {
-                stage == "release compiler build" -> 3600000;
-                true -> 1800000
+                stage == "release compiler build" -> 3_600_000;
+                true -> 1_800_000
             },
         ),
-        8388608,
+        8_388_608,
     ).
 
 run_command(

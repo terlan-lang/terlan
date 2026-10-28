@@ -12,6 +12,8 @@ use crate::terlan_syntax::SyntaxExprOutput;
 /// docs, and overload metadata.
 pub struct ModuleInterface {
     pub module: String,
+    /// Provider candidates derived from the same parsed interface bytes.
+    pub dependency_modules: std::collections::BTreeSet<String>,
     pub docs: Vec<String>,
     pub public_types: HashSet<String>,
     pub private_types: HashSet<String>,

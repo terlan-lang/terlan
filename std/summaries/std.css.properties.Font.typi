@@ -30,6 +30,13 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Font.
+import std.css.Values.{*}.
+import std.css.keywords.Caption.{*}.
+import std.css.keywords.Icon.{*}.
+import std.css.keywords.Menu.{*}.
+import std.css.keywords.MessageBox.{*}.
+import std.css.keywords.SmallCaption.{*}.
+import std.css.keywords.StatusBar.{*}.
 
 pub struct Property {
     font: std.css.keywords.Caption | std.css.keywords.Icon | std.css.keywords.Menu | std.css.keywords.MessageBox | std.css.keywords.SmallCaption | std.css.keywords.StatusBar | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

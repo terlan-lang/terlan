@@ -31,6 +31,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeLinejoin.
+import std.css.Values.{*}.
+import std.css.keywords.Arcs.{*}.
+import std.css.keywords.Bevel.{*}.
+import std.css.keywords.Miter.{*}.
+import std.css.keywords.Round.{*}.
 
 pub struct Property {
     stroke_linejoin: std.css.keywords.Arcs | std.css.keywords.Miter | std.css.keywords.Bevel | std.css.keywords.Round | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

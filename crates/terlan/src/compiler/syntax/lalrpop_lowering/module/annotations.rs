@@ -83,7 +83,13 @@ pub(super) fn lower_value(
             .ok_or_else(|| context.error(node, "invalid annotation string")),
         _ if source == "true" => Ok(AnnotationValue::Bool(true)),
         _ if source == "false" => Ok(AnnotationValue::Bool(false)),
-        _ if source.parse::<i64>().is_ok() => Ok(AnnotationValue::Int(source.to_string())),
+        _ if crate::terlan_syntax::integer_literals::parse_integer(source).is_some() => {
+            Ok(AnnotationValue::Int(
+                crate::terlan_syntax::integer_literals::parse_integer(source)
+                    .expect("validated annotation integer")
+                    .to_string(),
+            ))
+        }
         _ if source.parse::<f64>().is_ok() => Ok(AnnotationValue::Float(source.to_string())),
         _ if node.kind == Kind::AnnotationValue => Ok(AnnotationValue::Name(
             source.split('.').map(str::to_string).collect(),

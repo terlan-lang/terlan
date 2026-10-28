@@ -29,6 +29,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BoxDecorationBreak.
+import std.css.Values.{*}.
+import std.css.keywords.Clone.{*}.
+import std.css.keywords.Slice.{*}.
 
 pub struct Property {
     box_decoration_break: std.css.keywords.Slice | std.css.keywords.Clone | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

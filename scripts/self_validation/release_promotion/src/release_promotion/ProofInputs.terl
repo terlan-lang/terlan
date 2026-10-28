@@ -48,7 +48,7 @@ metadata(root: String, proof: String, path: String): Result[List[String], String
         Ok(inputs) <- fingerprints.keys();
         Ok(values) <- document.get("dependency_files");
         Ok(count) <- values.length();
-        true <- count <= 4096;
+        true <- count <= 4_096;
         Ok(dependencies) <- dependency_paths(values, 0, count, []);
         true <- safe(inputs) and safe(dependencies)
     } else {

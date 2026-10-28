@@ -41,7 +41,9 @@ failure_result(retries: Int): Bool ->
             case result {
                 Ok(Unit) -> false;
                 Err(error) ->
-                    error.path == missing and error.message != "" and elapsed >= retries * 500000000
+                    error.path == missing
+                        and error.message != ""
+                        and elapsed >= retries * 500_000_000
             }
     }.
 

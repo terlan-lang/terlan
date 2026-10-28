@@ -5,6 +5,10 @@
 //! an indexed-storage capability before this module can execute.
 
 module std.native.collections.Vector.
+import std.collections.Index.{*}.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
+import std.core.Unit.{*}.
 
 /// Vector represents a native indexed collection.
 ///

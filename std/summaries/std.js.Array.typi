@@ -6,6 +6,10 @@
 //! when they need JavaScript interop shape.
 
 module std.js.Array.
+import std.collections.Index.{*}.
+import std.collections.Iterable.{*}.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
 
 /// Represents a JavaScript-native array value.
 ///

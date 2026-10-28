@@ -149,9 +149,9 @@ process_command(root: String, scenario: Scenario): Command ->
                 Process.with_arguments(Process.command("cargo"), scenario.arguments),
                 root,
             ),
-            900000,
+            900_000,
         ),
-        8388608,
+        8_388_608,
     ).
 
 restore_failure(path: String, reason: String): Measurement ->
@@ -160,7 +160,7 @@ restore_failure(path: String, reason: String): Measurement ->
 execute_and_restore(root: String, scenario: Scenario, accessed: Int, modified: Int): Measurement ->
     let started = Clock.monotonic_time_ns();
     let completed = Process.run(process_command(root, scenario));
-    let elapsed = (Clock.monotonic_time_ns() - started) / 1000000;
+    let elapsed = (Clock.monotonic_time_ns() - started) / 1_000_000;
     let edited = child(root, scenario.edited);
     case File.set_timestamps(edited, accessed, modified) {
         Err(reason) -> restore_failure(scenario.edited, reason.message);
@@ -211,7 +211,7 @@ run_scenario(root: String, scenario: Scenario): Measurement ->
                 true -> case File.set_timestamps(
                     edited,
                     original.accessed_unix_ns,
-                    original.modified_unix_ns + 1000000000,
+                    original.modified_unix_ns + 1_000_000_000,
                 ) {
                     Err(reason) -> failure(String.concat([scenario.name, ": ", reason.message]));
                     Ok(_touched) ->

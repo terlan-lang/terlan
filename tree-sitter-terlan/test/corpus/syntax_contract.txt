@@ -1470,3 +1470,193 @@ probe(): String -> "${}".
       (type_identifier))
     (expression
       (string))))
+
+==================
+integer-separated-decimal
+==================
+
+module contract.Cases.
+probe(): Int -> 1_700_000_000_000_000_000.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))))
+
+==================
+integer-separated-binary
+==================
+
+module contract.Cases.
+probe(): Int -> 0b1111_0000.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))))
+
+==================
+integer-separated-octal
+==================
+
+module contract.Cases.
+probe(): Int -> 0o1_777.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))))
+
+==================
+integer-separated-hex
+==================
+
+module contract.Cases.
+probe(): Int -> 0xdead_beef.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))))
+
+==================
+integer-double-separator
+==================
+
+module contract.Cases.
+probe(): Int -> 1__000.
+
+---
+
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))
+    (ERROR)))
+
+==================
+integer-trailing-separator
+==================
+
+module contract.Cases.
+probe(): Int -> 1000_.
+
+---
+
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))
+    (ERROR)))
+
+==================
+integer-prefix-separator
+==================
+
+module contract.Cases.
+probe(): Int -> 0x_FF.
+
+---
+
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))
+    (ERROR)))
+
+==================
+integer-invalid-radix-digit
+==================
+
+module contract.Cases.
+probe(): Int -> 0b10_2.
+
+---
+
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number))
+    (ERROR)))
+
+==================
+float-integer-separators
+==================
+
+module contract.Cases.
+probe(): Int -> 1_000.5.
+
+---
+
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (identifier)
+    (parameters)
+    (type_expression
+      (type_identifier))
+    (expression
+      (number)))
+  (ERROR))

@@ -1,9 +1,0 @@
-module=std.css.properties.TransitionDuration
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=17940986503006567232
-interface_hash=18305746088161780541
-interface_doc_hash=8382451913660848689
-deps=1
-std.css.Values=2905925857807311325

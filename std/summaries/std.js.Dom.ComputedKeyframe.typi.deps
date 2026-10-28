@@ -1,8 +1,0 @@
-module=std.js.Dom.ComputedKeyframe
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=14438137753439634279
-interface_hash=1297176318815274927
-interface_doc_hash=1297176318815274927
-deps=0

@@ -10,7 +10,7 @@ import std.vm.Bytes.
 @test
 pub entropy_returns_exact_requested_byte_counts(): Bool ->
     each(
-        [row("minimum", 1, 1), row("session", 32, 32), row("maximum", 4096, 4096)],
+        [row("minimum", 1, 1), row("session", 32, 32), row("maximum", 4_096, 4_096)],
         (current) ->
             case current {
                 {_name, count, expected} -> assert_equal(expected, Entropy.bytes(count).length())

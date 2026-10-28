@@ -74,7 +74,10 @@ pub(super) fn check_type_alias_implication_bounds(
 /// Transformation:
 /// - Groups all immutable typechecking lookup tables plus a scoped trait cache
 ///   so expression inference functions do not need long parameter lists.
+#[derive(Clone, Copy)]
 pub(super) struct ExprInferContext<'a> {
+    pub(super) fresh_type_var_floor: TypeVarId,
+    pub(super) next_inference_var: &'a std::cell::Cell<TypeVarId>,
     pub(super) current_module: &'a str,
     pub(super) database_schema: Option<&'a crate::database_schema::DatabaseSchemaSnapshot>,
     pub(super) local_fns: &'a HashMap<(String, usize), FunctionSymbol>,
@@ -104,6 +107,44 @@ pub(super) struct ExprInferContext<'a> {
     pub(super) effectful_calls: EffectfulCallFacts<'a>,
 }
 
+impl ExprInferContext<'_> {
+    /// Reserves variables even when a generic return has no bound substitution.
+    pub(super) fn reserve_fresh_types<'b>(&self, types: impl IntoIterator<Item = &'b Type>) {
+        let next = types
+            .into_iter()
+            .filter_map(max_type_var)
+            .max()
+            .map_or(0, |id| id + 1);
+        self.next_inference_var
+            .set(self.next_inference_var.get().max(next));
+    }
+
+    /// Instantiates a callee outside both live enclosing and prior callee IDs.
+    pub(super) fn instantiate_function(
+        &self,
+        scheme: &FunctionScheme,
+        first: TypeVarId,
+    ) -> FunctionScheme {
+        let first = first
+            .max(self.fresh_type_var_floor)
+            .max(self.next_inference_var.get());
+        let instantiated = instantiate_function_scheme_from(scheme, first);
+        self.reserve_fresh_types(
+            instantiated
+                .params
+                .iter()
+                .chain(std::iter::once(&instantiated.ret))
+                .chain(
+                    instantiated
+                        .bounds
+                        .iter()
+                        .flat_map(|bound| bound.trait_args.iter()),
+                ),
+        );
+        instantiated
+    }
+}
+
 /// Creates an expression-inference context for one callable body.
 ///
 /// Inputs:
@@ -127,6 +168,8 @@ where
     'a: 'b,
 {
     ExprInferContext {
+        fresh_type_var_floor: ctx.fresh_type_var_floor,
+        next_inference_var: ctx.next_inference_var,
         current_module: ctx.current_module,
         database_schema: ctx.database_schema,
         local_fns: ctx.local_fns,
@@ -177,6 +220,8 @@ where
     'a: 'b,
 {
     ExprInferContext {
+        fresh_type_var_floor: ctx.fresh_type_var_floor,
+        next_inference_var: ctx.next_inference_var,
         current_module: ctx.current_module,
         database_schema: ctx.database_schema,
         local_fns: ctx.local_fns,
@@ -287,6 +332,18 @@ pub(super) fn infer_syntax_expr(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
+    // Unrelated live bindings still own their variable IDs. Callee generics
+    // must not capture those IDs merely because they are absent from its args.
+    let local_floor = locals
+        .values()
+        .filter_map(max_type_var)
+        .max()
+        .map_or(0, |id| id + 1);
+    let scoped_ctx = ExprInferContext {
+        fresh_type_var_floor: ctx.fresh_type_var_floor.max(local_floor),
+        ..*ctx
+    };
+    let ctx = &scoped_ctx;
     if let Some(union) = expr
         .raw
         .as_deref()

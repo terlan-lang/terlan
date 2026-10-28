@@ -1,8 +1,0 @@
-module=std.css.keywords.SpanSelfYEnd
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10287939551210078613
-interface_hash=17927567415320676540
-interface_doc_hash=2972851704930014039
-deps=0

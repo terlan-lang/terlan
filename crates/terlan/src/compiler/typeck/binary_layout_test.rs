@@ -4,6 +4,19 @@ use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
 #[test]
+fn integer_separators_preserve_binary_layout_widths() {
+    for width in ["1_024", "0x4_00", "0b100_0000_0000", "0o2_000"] {
+        let source = format!("module grouped_width.Main.\nimport type std.vm.Bytes.Bytes.\npub packet(prefix: Bytes): Dynamic -> Binary[big] {{prefix: Bytes[{width}]}}.\n");
+        let diagnostics = check_syntax_output_with_std_interfaces(&source, "std/vm/Bytes.terl");
+        assert!(diagnostics.is_empty(), "{width}: {diagnostics:?}");
+        assert_eq!(
+            binary_layout::binary_layout_descriptor(&format!("Bytes[{width}]")),
+            Some(binary_layout::BinaryLayoutDescriptor::Bytes(1024))
+        );
+    }
+}
+
+#[test]
 fn syntax_output_accepts_fixed_integer_binary_layout_constructor() {
     let diagnostics = check_syntax_output(
         "\

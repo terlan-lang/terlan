@@ -35,6 +35,17 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantLigatures.
+import std.css.Values.{*}.
+import std.css.keywords.CommonLigatures.{*}.
+import std.css.keywords.Contextual.{*}.
+import std.css.keywords.DiscretionaryLigatures.{*}.
+import std.css.keywords.HistoricalLigatures.{*}.
+import std.css.keywords.NoCommonLigatures.{*}.
+import std.css.keywords.NoContextual.{*}.
+import std.css.keywords.NoDiscretionaryLigatures.{*}.
+import std.css.keywords.NoHistoricalLigatures.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Normal.{*}.
 
 pub struct Property {
     font_variant_ligatures: std.css.keywords.Normal | std.css.keywords.None | std.css.keywords.CommonLigatures | std.css.keywords.NoCommonLigatures | std.css.keywords.DiscretionaryLigatures | std.css.keywords.NoDiscretionaryLigatures | std.css.keywords.HistoricalLigatures | std.css.keywords.NoHistoricalLigatures | std.css.keywords.Contextual | std.css.keywords.NoContextual | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

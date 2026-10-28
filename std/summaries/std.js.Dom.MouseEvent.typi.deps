@@ -1,8 +1,0 @@
-module=std.js.Dom.MouseEvent
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=12104645877079727347
-interface_hash=3653658651655412095
-interface_doc_hash=3653658651655412095
-deps=0

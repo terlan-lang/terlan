@@ -1,8 +1,0 @@
-module=std.css.keywords.Luminance
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=18259663272388589873
-interface_hash=3542661860977505155
-interface_doc_hash=16249311951145534894
-deps=0

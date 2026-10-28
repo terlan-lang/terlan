@@ -45,6 +45,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Position.
+import std.css.Values.{*}.
+import std.css.keywords.Absolute.{*}.
+import std.css.keywords.Fixed.{*}.
+import std.css.keywords.Relative.{*}.
+import std.css.keywords.Static.{*}.
+import std.css.keywords.Sticky.{*}.
 
 pub struct Property {
     position: std.css.keywords.Static | std.css.keywords.Relative | std.css.keywords.Absolute | std.css.keywords.Sticky | std.css.keywords.Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

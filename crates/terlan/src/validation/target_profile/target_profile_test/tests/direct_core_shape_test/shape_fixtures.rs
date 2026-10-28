@@ -131,6 +131,7 @@ pub(super) fn lean_core_metadata() -> CoreModuleMetadata {
 pub(super) fn empty_interface(module: &str) -> ModuleInterface {
     ModuleInterface {
         module: module.to_string(),
+        dependency_modules: Default::default(),
         docs: Vec::new(),
         public_types: HashSet::new(),
         private_types: HashSet::new(),

@@ -17,6 +17,16 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PerspectiveOrigin.
+import std.css.Values.{*}.
+import std.css.keywords.Bottom.{*}.
+import std.css.keywords.Center.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.Right.{*}.
+import std.css.keywords.Top.{*}.
+import std.css.keywords.XEnd.{*}.
+import std.css.keywords.XStart.{*}.
+import std.css.keywords.YEnd.{*}.
+import std.css.keywords.YStart.{*}.
 
 pub struct Property {
     perspective_origin: std.css.keywords.Left | std.css.keywords.Center | std.css.keywords.Right | std.css.keywords.Top | std.css.keywords.Bottom | std.css.keywords.XStart | std.css.keywords.XEnd | std.css.keywords.YStart | std.css.keywords.YEnd | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

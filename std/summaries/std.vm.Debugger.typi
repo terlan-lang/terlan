@@ -1,6 +1,7 @@
 //! VM-owned debugger control surface.
 
 module std.vm.Debugger.
+import std.core.Unit.{*}.
 
 /// Stops the current actor at an AOT continuation boundary.
 ///

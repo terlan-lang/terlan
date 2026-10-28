@@ -6,6 +6,9 @@
 //! Hosts provide project discovery and execution, not TLS mode/cache policy.
 
 module std.http.Tls.
+import std.collections.List.{*}.
+import std.core.Atom.{*}.
+import std.core.Option.{*}.
 
 /// Auto represents automatic public certificate management.
 ///

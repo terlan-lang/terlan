@@ -1,8 +1,0 @@
-module=std.css.keywords.NeswResize
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=13947847021063976118
-interface_hash=17586093772394697862
-interface_doc_hash=2140341390474402513
-deps=0

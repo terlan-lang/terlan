@@ -7,12 +7,18 @@ import std.data.Json.
 import std.io.Console.{eprintln}.
 import std.io.{Directory, File, Path}.
 import std.system.{Environment, Process}.
-import tvm_aot_platform_matrix.{ReleasePackage, ReleasePlatform}.
+import tvm_aot_platform_matrix.{ReleasePackage, ReleasePayload, ReleasePlatform}.
 
 import type std.core.Option.
 
+@test
+pub release_payload_keeps_api_contracts_and_excludes_disposable_caches(): Bool ->
+    ReleasePayload.accepted("std/summaries/std.core.String.typi")
+        and ReleasePayload.accepted("std/core/String.terl")
+        and not ReleasePayload.accepted("std/summaries/std.core.String.typi.deps").
+
 run(program: String, arguments: List[String]): Option[String] ->
-    case Process.run(Process.command(program).with_arguments(arguments).with_timeout_ms(120000)) {
+    case Process.run(Process.command(program).with_arguments(arguments).with_timeout_ms(120_000)) {
         Ok(output) ->
             if {
                 output.status == 0 -> Some(output.stdout);

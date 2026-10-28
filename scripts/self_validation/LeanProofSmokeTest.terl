@@ -406,8 +406,8 @@ process_command(
         .with_working_directory(root_path(root, working))
         .with_environment([Process.environment_entry("ELAN_NO_UPDATE_CHECK", "1")])
         .without_environment(["GITHUB_ACTIONS"])
-        .with_timeout_ms(600000)
-        .with_output_limit_bytes(4194304).
+        .with_timeout_ms(600_000)
+        .with_output_limit_bytes(4_194_304).
 
 proof_paths(rows: List[SmokeRow], seen: List[String]): List[String] ->
     case rows {
@@ -498,8 +498,8 @@ rust_oracle_command(root: String, selector: String): Command ->
         rust_coverage_requested() -> Process.command(root_path(root, "target/validation-tools/terlan-test-orchestrator"))
             .with_arguments(["--coverage-request" | arguments])
             .with_working_directory(root)
-            .with_timeout_ms(30000)
-            .with_output_limit_bytes(131072);
+            .with_timeout_ms(30_000)
+            .with_output_limit_bytes(131_072);
         true -> process_command("cargo", ["test" | arguments], root, ".")
     }.
 

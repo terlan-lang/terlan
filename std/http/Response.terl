@@ -144,7 +144,7 @@ pub production_security_headers(): SecurityHeaders ->
         content_type_options: true,
         frame_options: Deny,
         referrer_policy: StrictOriginWhenCrossOrigin,
-        hsts_max_age: 31536000,
+        hsts_max_age: 31_536_000,
         hsts_include_subdomains: true,
     }.
 
@@ -369,7 +369,7 @@ pub stream(
  * VM descriptor never has to infer omitted integer argument roles.
  */
 pub stream(chunks: List[String]): Response ->
-    stream(chunks, 200, "application/octet-stream", 16384, 128).
+    stream(chunks, 200, "application/octet-stream", 16_384, 128).
 
 /**
  * Creates a redirect response.

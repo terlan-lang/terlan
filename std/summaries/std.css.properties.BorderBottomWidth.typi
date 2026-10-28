@@ -24,6 +24,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderBottomWidth.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Medium.{*}.
+import std.css.keywords.Thick.{*}.
+import std.css.keywords.Thin.{*}.
 
 pub opaque type Checked.
 

@@ -1,8 +1,8 @@
 //! Shared dependency discovery over serialized syntax expressions and types.
 
 use super::{
-    SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxModuleOutput,
-    SyntaxParamOutput,
+    syntax_module_import_identities, SyntaxDeclarationPayload, SyntaxExprOutput,
+    SyntaxFunctionClauseOutput, SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput,
 };
 use std::collections::BTreeSet;
 
@@ -159,5 +159,157 @@ fn collect_expr_modules(expr: &SyntaxExprOutput, modules: &mut BTreeSet<String>)
     if let Some(after) = expr.try_after.as_ref() {
         collect_expr_modules(&after.trigger, modules);
         collect_expr_modules(&after.body, modules);
+    }
+}
+
+/// Source-declared dependency identities, including default imports and remote calls.
+pub(crate) fn syntax_dependency_modules(module: &SyntaxModuleOutput) -> BTreeSet<String> {
+    let mut required = syntax_module_import_identities(module)
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Import {
+            import_kind: SyntaxImportKind::Module,
+            module_name,
+            items,
+            ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        required.extend(
+            items
+                .iter()
+                .map(|item| format!("{module_name}.{}", item.name)),
+        );
+    }
+    collect_remote_modules(module, &mut required);
+    collect_annotation_modules(module, &mut required);
+    required
+}
+
+/// Qualified annotation references are dependencies even without an import.
+fn collect_annotation_modules(module: &SyntaxModuleOutput, modules: &mut BTreeSet<String>) {
+    for declaration in &module.declarations {
+        let mut texts = Vec::new();
+        match &declaration.payload {
+            SyntaxDeclarationPayload::Constant { annotation, .. } => {
+                texts.push(annotation.text.as_str())
+            }
+            SyntaxDeclarationPayload::ConstFunction { return_type, .. } => {
+                texts.push(return_type.text.as_str())
+            }
+            SyntaxDeclarationPayload::Type {
+                params,
+                variants,
+                representation,
+                implements,
+                ..
+            } => {
+                texts.extend(params.iter().map(String::as_str));
+                texts.extend(
+                    variants
+                        .iter()
+                        .chain(representation)
+                        .chain(implements)
+                        .map(|ty| ty.text.as_str()),
+                );
+            }
+            SyntaxDeclarationPayload::Struct {
+                generic_params,
+                includes,
+                implements,
+                fields,
+                ..
+            } => {
+                texts.extend(generic_params.iter().chain(includes).map(String::as_str));
+                texts.extend(implements.iter().map(|ty| ty.text.as_str()));
+                texts.extend(fields.iter().map(|field| field.annotation.text.as_str()));
+            }
+            SyntaxDeclarationPayload::Constructor {
+                params, clauses, ..
+            } => {
+                texts.extend(params.iter().map(String::as_str));
+                for clause in clauses {
+                    texts.push(clause.return_type.text.as_str());
+                    texts.extend(
+                        clause
+                            .params
+                            .iter()
+                            .map(|param| param.annotation.text.as_str()),
+                    );
+                }
+            }
+            SyntaxDeclarationPayload::Function {
+                generic_params,
+                generic_bounds,
+                return_type,
+                ..
+            }
+            | SyntaxDeclarationPayload::Method {
+                generic_params,
+                generic_bounds,
+                return_type,
+                ..
+            } => {
+                texts.extend(
+                    generic_params
+                        .iter()
+                        .chain(generic_bounds)
+                        .map(String::as_str),
+                );
+                texts.push(return_type.text.as_str());
+                if let SyntaxDeclarationPayload::Method { receiver, .. } = &declaration.payload {
+                    texts.push(receiver.annotation.text.as_str());
+                }
+            }
+            SyntaxDeclarationPayload::Trait {
+                params,
+                super_traits,
+                methods,
+                constants,
+                ..
+            } => {
+                texts.extend(params.iter().chain(super_traits).map(String::as_str));
+                for method in methods {
+                    texts.extend(method.generic_params.iter().map(String::as_str));
+                    texts.push(method.return_type.text.as_str());
+                }
+                texts.extend(
+                    constants
+                        .iter()
+                        .map(|constant| constant.annotation.text.as_str()),
+                );
+            }
+            SyntaxDeclarationPayload::TraitImpl {
+                generic_params,
+                trait_ref,
+                for_type,
+                methods,
+                constants,
+                ..
+            } => {
+                texts.extend(generic_params.iter().map(String::as_str));
+                texts.extend([trait_ref.text.as_str(), for_type.text.as_str()]);
+                texts.extend(
+                    methods
+                        .iter()
+                        .map(|method| method.return_type.text.as_str()),
+                );
+                texts.extend(
+                    constants
+                        .iter()
+                        .filter_map(|constant| constant.annotation.as_ref())
+                        .map(|annotation| annotation.text.as_str()),
+                );
+            }
+            SyntaxDeclarationPayload::Template { props, .. } => {
+                texts.extend(props.iter().map(|prop| prop.annotation.text.as_str()))
+            }
+            _ => {}
+        }
+        for text in texts {
+            collect_type_modules(text, modules);
+        }
     }
 }

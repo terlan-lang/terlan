@@ -14,4 +14,4 @@ benchmark_sum(value: Int, total: Int): Int ->
 
 @benchmark
 pub native_sample_executes_checked_work(): Bool ->
-    benchmark_sum(100, 0) == 5050.
+    benchmark_sum(100, 0) == 5_050.

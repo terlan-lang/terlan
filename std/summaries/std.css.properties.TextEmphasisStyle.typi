@@ -34,6 +34,15 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextEmphasisStyle.
+import std.css.Values.{*}.
+import std.css.keywords.Circle.{*}.
+import std.css.keywords.Dot.{*}.
+import std.css.keywords.DoubleCircle.{*}.
+import std.css.keywords.Filled.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Open.{*}.
+import std.css.keywords.Sesame.{*}.
+import std.css.keywords.Triangle.{*}.
 
 pub struct Property {
     text_emphasis_style: std.css.keywords.None | std.css.keywords.Filled | std.css.keywords.Open | std.css.keywords.Dot | std.css.keywords.Circle | std.css.keywords.DoubleCircle | std.css.keywords.Triangle | std.css.keywords.Sesame | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

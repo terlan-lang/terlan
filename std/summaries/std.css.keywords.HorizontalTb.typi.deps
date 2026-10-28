@@ -1,8 +1,0 @@
-module=std.css.keywords.HorizontalTb
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=2900497172259676003
-interface_hash=18045794706047064478
-interface_doc_hash=13685442643134104662
-deps=0

@@ -6,6 +6,13 @@
 //! pending headers are source-owned; wire codecs remain native.
 
 module std.http.Cookies.
+import std.collections.Enumerable.{*}.
+import std.collections.List.{*}.
+import std.collections.Map.{*}.
+import std.core.Atom.{*}.
+import std.core.Option.{*}.
+import std.core.String.{*}.
+import std.core.Unit.{*}.
 
 /// Jar represents request-scoped cookie state.
 ///

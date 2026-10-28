@@ -48,7 +48,7 @@ pub declare(
             "TERLAN_PROOF_REPRO_OUTPUT",
             "terlan.lean-proof-repro.v1",
             "[lean-proof-track]",
-            1800000,
+            1_800_000,
         ),
         [
             OwnerArtifacts.declare_artifact(

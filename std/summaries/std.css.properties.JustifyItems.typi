@@ -55,6 +55,20 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.JustifyItems.
+import std.css.Values.{*}.
+import std.css.keywords.Baseline.{*}.
+import std.css.keywords.Center.{*}.
+import std.css.keywords.End.{*}.
+import std.css.keywords.FlexEnd.{*}.
+import std.css.keywords.FlexStart.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.Legacy.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.Right.{*}.
+import std.css.keywords.SelfEnd.{*}.
+import std.css.keywords.SelfStart.{*}.
+import std.css.keywords.Start.{*}.
+import std.css.keywords.Stretch.{*}.
 
 pub struct Property {
     justify_items: std.css.keywords.Normal | std.css.keywords.Stretch | std.css.keywords.Baseline | std.css.keywords.Center | std.css.keywords.Start | std.css.keywords.End | std.css.keywords.SelfStart | std.css.keywords.SelfEnd | std.css.keywords.FlexStart | std.css.keywords.FlexEnd | std.css.keywords.Left | std.css.keywords.Right | std.css.keywords.Legacy | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

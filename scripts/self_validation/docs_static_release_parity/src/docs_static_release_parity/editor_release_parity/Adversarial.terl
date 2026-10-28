@@ -123,7 +123,15 @@ stale_grammar_rejected(
         true -> case Support.selected_surface_hash(tree, Editor.generated_tree_files()) {
             None -> false;
             Some(before) ->
-                case Support.run_process(tree_cli, ["generate"], tree, environment, "", 60000, 8388608) {
+                case Support.run_process(
+                    tree_cli,
+                    ["generate"],
+                    tree,
+                    environment,
+                    "",
+                    60_000,
+                    8_388_608,
+                ) {
                     None -> true;
                     Some(output) ->
                         if {
@@ -152,8 +160,8 @@ malformed_source_rejected(
                 fixture,
                 environment,
                 "",
-                60000,
-                8388608,
+                60_000,
+                8_388_608,
             )
     } else {
         _ -> false

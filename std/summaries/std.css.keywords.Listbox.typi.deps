@@ -1,8 +1,0 @@
-module=std.css.keywords.Listbox
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=12279266130221080798
-interface_hash=14233301101422293122
-interface_doc_hash=1752900298041591451
-deps=0

@@ -1,8 +1,0 @@
-module=std.css.keywords.SpanXEnd
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=11658743129624112620
-interface_hash=3885788052472630720
-interface_doc_hash=1656867108425772708
-deps=0

@@ -119,9 +119,9 @@ command(
                 Process.with_arguments(Process.command(compiler_path), arguments),
                 repository,
             ),
-            30000,
+            30_000,
         ),
-        1048576,
+        1_048_576,
     ).
 
 json_member(value: Json, field: String): Option[Json] ->

@@ -16,20 +16,20 @@ pub finite_timeout_becomes_due_at_the_deadline(): Bool ->
 @test
 pub zero_timeout_is_immediately_due(): Bool ->
     let timeout = Timeout.milliseconds(0);
-    Timeout.wakes_after(timeout, 0) and Timeout.wakes_after(timeout, 9223372036854775807).
+    Timeout.wakes_after(timeout, 0) and Timeout.wakes_after(timeout, 9_223_372_036_854_775_807).
 
 @test
 pub unbounded_timeout_never_becomes_due(): Bool ->
     let timeout = Timeout.forever();
     not Timeout.wakes_after(timeout, 0)
         and not Timeout.wakes_after(timeout, 1)
-        and not Timeout.wakes_after(timeout, 9223372036854775807).
+        and not Timeout.wakes_after(timeout, 9_223_372_036_854_775_807).
 
 @test
 pub largest_timeout_does_not_overflow(): Bool ->
-    let timeout = Timeout.milliseconds(9223372036854775807);
-    not Timeout.wakes_after(timeout, 9223372036854775806)
-        and Timeout.wakes_after(timeout, 9223372036854775807).
+    let timeout = Timeout.milliseconds(9_223_372_036_854_775_807);
+    not Timeout.wakes_after(timeout, 9_223_372_036_854_775_806)
+        and Timeout.wakes_after(timeout, 9_223_372_036_854_775_807).
 
 @test
 pub values_remain_independent(): Bool ->

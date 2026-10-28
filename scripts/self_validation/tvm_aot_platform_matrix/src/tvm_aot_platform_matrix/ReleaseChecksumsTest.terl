@@ -57,13 +57,13 @@ let written = File.write_text(path, "abc");
 let result =
     (let {
     Ok(_) <- written;
-    Some(output) <- ReleaseChecksums.render(files(8000, path, []))
+    Some(output) <- ReleaseChecksums.render(files(8_000, path, []))
 } else {
     _ -> false
 };
 output.starts_with(digest() + "  share/terlan/std/generated/Item1.terl\n")
     and output.ends_with(digest() + "  share/terlan/std/generated/Item8000.terl\n")
-    and assert_equal(8001, std.collections.List.length(output.split("\n"))));
+    and assert_equal(8_001, std.collections.List.length(output.split("\n"))));
 let cleaned = Directory.remove_all(root);
 result
     and case cleaned {

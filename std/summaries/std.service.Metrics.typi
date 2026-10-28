@@ -1,6 +1,7 @@
 //! Statically bounded service metric declarations and samples.
 
 module std.service.Metrics.
+import std.core.Unit.{*}.
 
 pub struct Instrument {
     name: String,

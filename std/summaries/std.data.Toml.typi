@@ -6,6 +6,9 @@
 //! selected backend owns TOML syntax and parser errors.
 
 module std.data.Toml.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.data.Json.{*}.
 
 /// Stable portable TOML parser error.
 

@@ -23,6 +23,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantPosition.
+import std.css.Values.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.Sub.{*}.
+import std.css.keywords.Super.{*}.
 
 pub struct Property {
     font_variant_position: std.css.keywords.Normal | std.css.keywords.Sub | std.css.keywords.Super | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -65,6 +65,21 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Border.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Dashed.{*}.
+import std.css.keywords.Dotted.{*}.
+import std.css.keywords.Double.{*}.
+import std.css.keywords.Groove.{*}.
+import std.css.keywords.Hidden.{*}.
+import std.css.keywords.Inset.{*}.
+import std.css.keywords.Medium.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Outset.{*}.
+import std.css.keywords.Ridge.{*}.
+import std.css.keywords.Solid.{*}.
+import std.css.keywords.Thick.{*}.
+import std.css.keywords.Thin.{*}.
 
 pub opaque type Checked.
 

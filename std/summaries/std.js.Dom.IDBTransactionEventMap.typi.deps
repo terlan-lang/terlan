@@ -1,8 +1,0 @@
-module=std.js.Dom.IDBTransactionEventMap
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=3564561919495438166
-interface_hash=3652537698738101256
-interface_doc_hash=3652537698738101256
-deps=0

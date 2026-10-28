@@ -4,6 +4,7 @@
 //! the concrete runtime calls needed to implement these operations.
 
 module std.io.Console.
+import std.core.Unit.{*}.
 
 /// Writes a diagnostic string followed by one line terminator to standard error.
 ///

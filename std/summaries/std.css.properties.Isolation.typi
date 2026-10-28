@@ -20,6 +20,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Isolation.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Isolate.{*}.
 
 pub struct Property {
     isolation: std.css.keywords.Auto | std.css.keywords.Isolate | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

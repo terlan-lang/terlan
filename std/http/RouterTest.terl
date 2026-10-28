@@ -33,8 +33,8 @@ pub sample_router(): Router ->
     let router_3 = Router.options(router_2, "/", home);
     let router_4 = Router.overload(router_3, Atom["reject"], 64);
     let router_5 = Router.lifecycle(router_4, lifecycle_policy);
-    let router_6 = Router.sse(router_5, "/events", Sse.endpoint_with_keep_alive(16, 4096, 15000));
-    let router_7 = Router.websocket(router_6, "/socket", WebSocket.endpoint(16, 4096));
+    let router_6 = Router.sse(router_5, "/events", Sse.endpoint_with_keep_alive(16, 4_096, 15_000));
+    let router_7 = Router.websocket(router_6, "/socket", WebSocket.endpoint(16, 4_096));
     let router_8 = Router.group(router_7, "/users", users);
     let router_9 = Router.fallback(router_8, not_found);
     Router.error(router_9, render_error).

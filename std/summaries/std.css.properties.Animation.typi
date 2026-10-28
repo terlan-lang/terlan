@@ -77,6 +77,28 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Animation.
+import std.core.Float.{*}.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Alternate.{*}.
+import std.css.keywords.AlternateReverse.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Backwards.{*}.
+import std.css.keywords.Both.{*}.
+import std.css.keywords.Ease.{*}.
+import std.css.keywords.EaseIn.{*}.
+import std.css.keywords.EaseInOut.{*}.
+import std.css.keywords.EaseOut.{*}.
+import std.css.keywords.Forwards.{*}.
+import std.css.keywords.Infinite.{*}.
+import std.css.keywords.Linear.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.Paused.{*}.
+import std.css.keywords.Reverse.{*}.
+import std.css.keywords.Running.{*}.
+import std.css.keywords.StepEnd.{*}.
+import std.css.keywords.StepStart.{*}.
 
 pub opaque type Checked.
 

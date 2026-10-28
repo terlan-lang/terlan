@@ -793,16 +793,11 @@ add_summary_artifacts(root: String, plan: ArtifactPlan, value: Option[String]): 
             if {
                 safe_repository_path(relative) -> ArtifactPlan(
                     checks = [ArtifactCheck(
-    relative = String.append(relative, ".deps"),
-    absolute = child(root, String.append(relative, ".deps")),
-    kind = "",
-    missing_message = "missing generated summary dependency file",
-) | [ArtifactCheck(
     relative = relative,
     absolute = child(root, relative),
     kind = "",
     missing_message = "missing normalized summary artifact",
-) | plan.checks]],
+) | plan.checks],
                     diagnostics = plan.diagnostics,
                 );
                 true -> unsafe_output_field(plan.checks, plan.diagnostics, "summary")

@@ -25,6 +25,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantEmoji.
+import std.css.Values.{*}.
+import std.css.keywords.Emoji.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.TextKeyword.{*}.
+import std.css.keywords.Unicode.{*}.
 
 pub struct Property {
     font_variant_emoji: std.css.keywords.Normal | std.css.keywords.TextKeyword | std.css.keywords.Emoji | std.css.keywords.Unicode | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

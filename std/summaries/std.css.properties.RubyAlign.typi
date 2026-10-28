@@ -25,6 +25,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RubyAlign.
+import std.css.Values.{*}.
+import std.css.keywords.Center.{*}.
+import std.css.keywords.SpaceAround.{*}.
+import std.css.keywords.SpaceBetween.{*}.
+import std.css.keywords.Start.{*}.
 
 pub struct Property {
     ruby_align: std.css.keywords.Start | std.css.keywords.Center | std.css.keywords.SpaceBetween | std.css.keywords.SpaceAround | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -3,6 +3,7 @@
 //! `std.core.Option` represents either no value or one present value.
 
 module std.core.Option.
+import std.core.Ordering.{*}.
 
 /// None represents a missing optional value.
 ///

@@ -28,6 +28,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextOverflow.
+import std.css.Values.{*}.
+import std.css.keywords.Clip.{*}.
+import std.css.keywords.Ellipsis.{*}.
 
 pub opaque type Checked.
 

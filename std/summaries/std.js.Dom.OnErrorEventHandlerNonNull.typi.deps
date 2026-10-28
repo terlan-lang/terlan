@@ -1,8 +1,0 @@
-module=std.js.Dom.OnErrorEventHandlerNonNull
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15955474899185706751
-interface_hash=16724237497951533267
-interface_doc_hash=16724237497951533267
-deps=0

@@ -227,8 +227,8 @@ pub command(program: String): Command ->
         environment = List.new[EnvironmentEntry](),
         removed_environment = List.new[String](),
         stdin = "",
-        timeout_ms = 60000,
-        output_limit_bytes = 1048576,
+        timeout_ms = 60_000,
+        output_limit_bytes = 1_048_576,
     ).
 
 /**

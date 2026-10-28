@@ -54,6 +54,18 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WhiteSpace.
+import std.css.Values.{*}.
+import std.css.keywords.BreakSpaces.{*}.
+import std.css.keywords.Collapse.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.Nowrap.{*}.
+import std.css.keywords.Pre.{*}.
+import std.css.keywords.PreLine.{*}.
+import std.css.keywords.PreWrap.{*}.
+import std.css.keywords.Preserve.{*}.
+import std.css.keywords.PreserveBreaks.{*}.
+import std.css.keywords.PreserveSpaces.{*}.
+import std.css.keywords.Wrap.{*}.
 
 pub struct Property {
     white_space: std.css.keywords.Normal | std.css.keywords.Pre | std.css.keywords.PreWrap | std.css.keywords.PreLine | std.css.keywords.Collapse | std.css.keywords.Preserve | std.css.keywords.PreserveBreaks | std.css.keywords.PreserveSpaces | std.css.keywords.BreakSpaces | std.css.keywords.Wrap | std.css.keywords.Nowrap | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

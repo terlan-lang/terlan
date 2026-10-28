@@ -60,7 +60,7 @@ event(state: String): String ->
     ).
 
 @test
-pub stdlib_dependency_sidecars_are_part_of_the_input_identity(): Bool ->
+pub stdlib_identity_tracks_source_and_ignores_disposable_sidecars(): Bool ->
     let {
         Ok(directory) <- create_temporary("terlan-compilation-stdlib-");
         Ok(_) <- create_all(String.append(directory, "/std"));
@@ -69,7 +69,17 @@ pub stdlib_dependency_sidecars_are_part_of_the_input_identity(): Bool ->
     } else {
         _ -> false
     };
-    (let original = Evidence.stdlib_digest(directory); let changed = write_text(String.append(directory, "/std/Source.typi.deps"), "second") == Ok(Unit); let current = Evidence.stdlib_digest(directory); let removed = remove_all(directory) == Ok(Unit); changed and original != current and removed).
+    (let original = Evidence.stdlib_digest(directory);
+let changed = write_text(String.append(directory, "/std/Source.typi.deps"), "second") == Ok(Unit);
+let current = Evidence.stdlib_digest(directory);
+let edited =
+    write_text(
+    String.append(directory, "/std/Source.terl"),
+    "module std.Source.\npub value(): Int -> 1.\n",
+) == Ok(Unit);
+let updated = Evidence.stdlib_digest(directory);
+let removed = remove_all(directory) == Ok(Unit);
+changed and original == current and edited and updated != original and removed).
 
 @test
 pub comparison_control_preserves_objects_and_frontend_cache(): Bool ->

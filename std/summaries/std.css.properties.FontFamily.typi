@@ -43,6 +43,18 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontFamily.
+import std.css.Values.{*}.
+import std.css.keywords.Cursive.{*}.
+import std.css.keywords.Fantasy.{*}.
+import std.css.keywords.Math.{*}.
+import std.css.keywords.Monospace.{*}.
+import std.css.keywords.SansSerif.{*}.
+import std.css.keywords.Serif.{*}.
+import std.css.keywords.SystemUi.{*}.
+import std.css.keywords.UiMonospace.{*}.
+import std.css.keywords.UiRounded.{*}.
+import std.css.keywords.UiSansSerif.{*}.
+import std.css.keywords.UiSerif.{*}.
 
 pub struct Property {
     font_family: std.css.keywords.Serif | std.css.keywords.SansSerif | std.css.keywords.SystemUi | std.css.keywords.Cursive | std.css.keywords.Fantasy | std.css.keywords.Math | std.css.keywords.Monospace | std.css.keywords.UiSerif | std.css.keywords.UiSansSerif | std.css.keywords.UiMonospace | std.css.keywords.UiRounded | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

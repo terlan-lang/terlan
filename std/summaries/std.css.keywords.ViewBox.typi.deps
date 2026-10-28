@@ -1,8 +1,0 @@
-module=std.css.keywords.ViewBox
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=13208160982720139602
-interface_hash=11514402586040101300
-interface_doc_hash=3731284466191273307
-deps=0

@@ -4,6 +4,8 @@
 //! collection traversal.
 
 module std.collections.Iterator.
+import std.core.Option.{*}.
+import std.core.Unit.{*}.
 
 /// Iterator represents a traversal state for values of type `T`.
 ///

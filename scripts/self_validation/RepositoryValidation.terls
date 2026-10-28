@@ -25,6 +25,18 @@ struct JobScan {
     timeout: Bool,
 }.
 
+struct BuildPlanLimits {
+    cargo: Int,
+    tests: Int,
+    builds: Int,
+    requests: Int,
+    parallelism: Int,
+}.
+
+@pure
+reviewed_build_plan_limits(): BuildPlanLimits ->
+    BuildPlanLimits(cargo = 8, tests = 32, builds = 18, requests = 19, parallelism = 2).
+
 failure(code: String, message: String): Bool ->
     let _printed = eprintln(String.concat(["error[repository_validation.", code, "]: ", message]));
     false.
@@ -132,7 +144,7 @@ bounded(repository: String, program: String, arguments: List[String], timeout_ms
             ),
             timeout_ms,
         ),
-        8388608,
+        8_388_608,
     ).
 
 run_output(
@@ -277,7 +289,7 @@ source_extensions(repository: String): Bool ->
                 ],
                 List.new[String](),
                 0,
-                20000,
+                20_000,
             );
         Ok(pattern) <-
             Regex.compile(
@@ -330,8 +342,8 @@ first_existing_scratch(repository: String, paths: List[String]): String ->
 
 release_boundary(repository: String): Bool ->
     let {
-        Some(tracked_output) <- run_output(repository, "git", ["ls-files"], 30000);
-        Some(untracked_output) <- run_output(repository, "git", ["ls-files", "--others", "--exclude-standard"], 30000);
+        Some(tracked_output) <- run_output(repository, "git", ["ls-files"], 30_000);
+        Some(untracked_output) <- run_output(repository, "git", ["ls-files", "--others", "--exclude-standard"], 30_000);
         Some(makefile) <- read(repository, "Makefile");
         Some(cli) <- read(repository, "crates/terlan/cli.mk")
     } else {
@@ -388,7 +400,7 @@ accelerator_roots_hold(repository: String, roots: List[String], pattern: Regex):
                     [".rs"],
                     ["_test.rs"],
                     0,
-                    10000,
+                    10_000,
                 ) {
                     Err(reason) -> failure("accelerator.read", reason.message);
                     Ok(files) ->
@@ -421,7 +433,7 @@ accelerator_hard_contract(repository: String): Bool ->
                 ["Cargo.toml"],
                 List.new[String](),
                 0,
-                1000,
+                1_000,
             );
         Ok(term) <- Regex.compile("(?i)\\b(?:cuda|nvidia|cudarc|ptx)\\b");
         Ok(syntax_term) <- Regex.compile("(?i)\\b(?:cuda|gpu|kernel|device|accelerator)\\b");
@@ -502,7 +514,7 @@ let result =
     if {
         source == "" or expected == "" -> failure("readme.block", "README example or output block is missing");
         not prepared -> failure("readme.fixture", "cannot construct README example fixture");
-        true -> case Process.run(Process.with_timeout_ms(command, 120000)) {
+        true -> case Process.run(Process.with_timeout_ms(command, 120_000)) {
             Err(reason) -> failure("readme.process", reason.message);
             Ok(output) ->
                 if {
@@ -870,7 +882,7 @@ build_release_contract(repository: String): Bool ->
                 [".yml", ".yaml"],
                 List.new[String](),
                 0,
-                1000,
+                1_000,
             );
         Ok(shell_scripts) <-
             File.read_text_tree_matching(
@@ -879,7 +891,7 @@ build_release_contract(repository: String): Bool ->
                 [".sh"],
                 List.new[String](),
                 0,
-                10000,
+                10_000,
             )
     } else {
         _ -> failure("build_release.inputs", "cannot load build/release contract inputs")
@@ -1013,14 +1025,14 @@ if {
 
 build_release_process_contract(repository: String): Bool ->
     let {
-        true <- run_ok(repository, "bash", ["scripts/build_typed_validator.sh", "self-test"], 30000);
-        true <- run_ok(repository, "bash", ["scripts/clean_build_outputs.sh", "--dry-run"], 30000);
+        true <- run_ok(repository, "bash", ["scripts/build_typed_validator.sh", "self-test"], 30_000);
+        true <- run_ok(repository, "bash", ["scripts/clean_build_outputs.sh", "--dry-run"], 30_000);
         true <-
             run_ok(
                 repository,
                 "bash",
                 ["scripts/clean_build_outputs.sh", "--check-partials"],
-                30000,
+                30_000,
             );
         Some(plan) <-
             run_output(
@@ -1045,7 +1057,7 @@ build_release_process_contract(repository: String): Bool ->
                     "-n",
                     "release-candidate-check",
                 ],
-                120000,
+                120_000,
             );
         Some(publication) <-
             run_output(
@@ -1062,9 +1074,9 @@ build_release_process_contract(repository: String): Bool ->
                     "-n",
                     "publish-tag",
                 ],
-                30000,
+                30_000,
             );
-        Some(tracked) <- run_output(repository, "git", ["ls-files"], 30000)
+        Some(tracked) <- run_output(repository, "git", ["ls-files"], 30_000)
     } else {
         _ -> false
     };
@@ -1081,6 +1093,7 @@ let terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc b
 let incremental_terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc build --incremental ");
 let lifecycle_partial_checks = count_occurrences(plan_text, "bash scripts/clean_build_outputs.sh --check-partials");
 let validator_build_parallelism = validator_parallelism(plan_text);
+let limits = reviewed_build_plan_limits();
 if {
     plan.status != 0 or publication.status != 0 or tracked.status != 0 -> failure("build_release.plan", "cannot inspect release plan or tracked files");
     contains_any(
@@ -1114,9 +1127,9 @@ if {
         "build_release.lifecycle",
         "release plan must reject partial builds before and after the exhaustive gate graph",
     );
-    cargo_invocations > 8 -> failure(
+    cargo_invocations > limits.cargo -> failure(
         "build_release.cargo_budget",
-        "release plan exceeds the reviewed eight-invocation Cargo budget",
+        "release plan exceeds the reviewed Cargo invocation budget",
     );
     count_occurrences(
     plan_text,
@@ -1125,19 +1138,19 @@ if {
         "build_release.release_control",
         "release plan must build the tag-publication controller exactly once",
     );
-    typed_validator_requests > 19 -> failure(
+    typed_validator_requests > limits.requests -> failure(
         "build_release.validator_budget",
         "release plan exceeds the typed-validator request budget",
     );
-    validator_build_parallelism < 1 or validator_build_parallelism > 2 -> failure(
+    validator_build_parallelism < 1 or validator_build_parallelism > limits.parallelism -> failure(
         "build_release.validator_parallelism",
-        "release plan must use one or two typed-validator build lanes",
+        "release plan exceeds the reviewed typed-validator parallelism budget",
     );
-    terlc_test_invocations > 32 -> failure(
+    terlc_test_invocations > limits.tests -> failure(
         "build_release.terlc_test_budget",
         "release plan exceeds the Terlan test-process budget",
     );
-    terlc_build_invocations > 18 -> failure(
+    terlc_build_invocations > limits.builds -> failure(
         "build_release.terlc_build_budget",
         "release plan exceeds the Terlan AOT build-process budget",
     );
@@ -1158,7 +1171,7 @@ if {
         repository,
         "git",
         ["check-ignore", "tests/example/.terlan/native-aot/module.o"],
-        30000,
+        30_000,
     ) {
         Some(output) ->
             output.status == 0
@@ -1175,6 +1188,7 @@ write_build_plan_report(
     rust_orchestrators: Int,
 ): Bool ->
     let toolchain_probes = count_occurrences(plan, "target/debug/terlc build --print-toolchain-identity");
+    let limits = reviewed_build_plan_limits();
     let report =
         Json.object()
             .put("schema", Json.string("terlan.validation-build-plan.v1"))
@@ -1183,28 +1197,28 @@ write_build_plan_report(
             .put("plan_sha256", Json.string(Hash.sha256(plan)))
             .put("plan_line_count", Json.int(List.length(String.split(plan, "\n"))))
             .put("cargo_invocation_count", Json.int(planned_cargo_count(plan)))
-            .put("cargo_invocation_maximum", Json.int(8))
+            .put("cargo_invocation_maximum", Json.int(limits.cargo))
             .put("count_scope", Json.string("conservative-dry-run-not-observed-execution"))
             .put("rust_orchestrator_count", Json.int(rust_orchestrators))
             .put(
                 "typed_validator_request_count",
                 Json.int(count_occurrences(plan, "bash scripts/build_typed_validator.sh ")),
             )
-            .put("typed_validator_request_maximum", Json.int(19))
+            .put("typed_validator_request_maximum", Json.int(limits.requests))
             .put("typed_validator_parallelism", Json.int(validator_parallelism(plan)))
-            .put("typed_validator_parallelism_maximum", Json.int(2))
+            .put("typed_validator_parallelism_maximum", Json.int(limits.parallelism))
             .put(
                 "terlc_test_invocation_count",
                 Json.int(count_occurrences(plan, "target/debug/terlc test ")),
             )
-            .put("terlc_test_invocation_maximum", Json.int(32))
+            .put("terlc_test_invocation_maximum", Json.int(limits.tests))
             .put(
                 "terlc_build_invocation_count",
                 Json.int(count_occurrences(plan, "target/debug/terlc build ") - toolchain_probes),
             )
             .put("terlc_toolchain_probe_invocation_count", Json.int(toolchain_probes))
             .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
-            .put("terlc_build_invocation_maximum", Json.int(18))
+            .put("terlc_build_invocation_maximum", Json.int(limits.builds))
             .put(
                 "incremental_terlc_build_invocation_count",
                 Json.int(count_occurrences(plan, "target/debug/terlc build --incremental ")),
@@ -1238,9 +1252,96 @@ let expected = String.append(rendered, "\n");
     _ -> failure("build_release.report", "cannot write and read back validation build-plan report")
 };
 if {
-    sealed == expected -> true;
+    sealed == expected -> build_plan_report_text_valid(sealed);
     true -> failure("build_release.report", "validation build-plan report changed before seal")
 })).
+
+@pure
+report_integer(report: Json, name: String): Int ->
+    let {
+        Ok(value) <- report.get(name);
+        Ok(number) <- value.as_int()
+    } else {
+        _ -> -1
+    };
+    number.
+
+@pure
+report_string_is(report: Json, name: String, expected: String): Bool ->
+    let {
+        Ok(value) <- report.get(name);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> false
+    };
+    text == expected.
+
+@pure
+report_budget_valid(report: Json, count: String, maximum: String, limit: Int): Bool ->
+    let actual = report_integer(report, count);
+    actual >= 0 and actual <= limit and report_integer(report, maximum) == limit.
+
+@pure
+build_plan_report_valid(report: Json, limits: BuildPlanLimits): Bool ->
+    report_string_is(report, "schema", "terlan.validation-build-plan.v1")
+        and report_string_is(report, "decision", "pass")
+        and report_string_is(report, "plan", "release-candidate-check")
+        and report_string_is(report, "count_scope", "conservative-dry-run-not-observed-execution")
+        and report_budget_valid(report, "cargo_invocation_count", "cargo_invocation_maximum", limits.cargo)
+        and report_budget_valid(
+    report,
+    "terlc_test_invocation_count",
+    "terlc_test_invocation_maximum",
+    limits.tests,
+)
+        and report_budget_valid(
+    report,
+    "terlc_build_invocation_count",
+    "terlc_build_invocation_maximum",
+    limits.builds,
+)
+        and report_budget_valid(
+    report,
+    "typed_validator_request_count",
+    "typed_validator_request_maximum",
+    limits.requests,
+)
+        and report_budget_valid(
+    report,
+    "typed_validator_parallelism",
+    "typed_validator_parallelism_maximum",
+    limits.parallelism,
+)
+        and report_integer(report, "typed_validator_parallelism") >= 1
+        and report_budget_valid(
+    report,
+    "terlc_toolchain_probe_invocation_count",
+    "terlc_toolchain_probe_invocation_maximum",
+    1,
+)
+        and report_integer(report, "terlc_toolchain_probe_invocation_count") == 1
+        and report_integer(report, "rust_orchestrator_count") == 1
+        and report_integer(report, "duplicate_equivalent_build_count") == 0
+        and report_integer(report, "cargo_run_count") == 0
+        and report_integer(report, "lifecycle_partial_check_count") == 2
+        and report_integer(report, "incremental_terlc_build_invocation_count") == report_integer(report, "terlc_build_invocation_count").
+
+build_plan_report_text_valid(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> build_plan_report_valid(report, reviewed_build_plan_limits());
+        Err(_) -> false
+    }.
+
+check_build_plan_report(repository: String): Bool ->
+    case File.read_text(child(repository, "target/quality/validation-build-plan-report.json")) {
+        Ok(text) ->
+            build_plan_report_text_valid(text)
+                or failure(
+    "build_release.report",
+    "build-plan report violates the reviewed policy; regenerate it with build-release-contract",
+);
+        Err(_) -> failure("build_release.report", "missing build-plan report")
+    }.
 
 duplicate_validator_output(plan: String): String ->
     duplicate_validator_rows(String.split(plan, "\n"), List.new[String](), false).
@@ -1308,7 +1409,7 @@ first_oversized(repository: String, paths: List[String]): String ->
                 true -> case File.size(child(repository, path)) {
                     Ok(size) ->
                         if {
-                            size >= 52428800 -> path;
+                            size >= 52_428_800 -> path;
                             true -> first_oversized(repository, rest)
                         };
                     Err(_reason) -> first_oversized(repository, rest)
@@ -1351,8 +1452,95 @@ budget_validator_plan_self_test(): Bool ->
         and duplicate_validator_output(String.concat([measure, budget, budget])) != ""
         and duplicate_validator_output(String.concat([other, measure, other])) != "".
 
+build_plan_report_fixture(limits: BuildPlanLimits): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.validation-build-plan.v1"))
+        .put("decision", Json.string("pass"))
+        .put("plan", Json.string("release-candidate-check"))
+        .put("count_scope", Json.string("conservative-dry-run-not-observed-execution"))
+        .put("cargo_invocation_count", Json.int(limits.cargo))
+        .put("cargo_invocation_maximum", Json.int(limits.cargo))
+        .put("terlc_test_invocation_count", Json.int(limits.tests))
+        .put("terlc_test_invocation_maximum", Json.int(limits.tests))
+        .put("terlc_build_invocation_count", Json.int(limits.builds))
+        .put("terlc_build_invocation_maximum", Json.int(limits.builds))
+        .put("typed_validator_request_count", Json.int(limits.requests))
+        .put("typed_validator_request_maximum", Json.int(limits.requests))
+        .put("typed_validator_parallelism", Json.int(limits.parallelism))
+        .put("typed_validator_parallelism_maximum", Json.int(limits.parallelism))
+        .put("terlc_toolchain_probe_invocation_count", Json.int(1))
+        .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
+        .put("rust_orchestrator_count", Json.int(1))
+        .put("duplicate_equivalent_build_count", Json.int(0))
+        .put("cargo_run_count", Json.int(0))
+        .put("lifecycle_partial_check_count", Json.int(2))
+        .put("incremental_terlc_build_invocation_count", Json.int(limits.builds)).
+
+build_plan_budget_fields_self_test(limits: BuildPlanLimits, fields: List[String]): Bool ->
+    case fields {
+        [] -> true;
+        [field | rest] ->
+            not build_plan_report_valid(build_plan_report_fixture(limits).put(field, Json.int(-1)), limits)
+                and not build_plan_report_valid(build_plan_report_fixture(limits).put(field, Json.string("8")), limits)
+                and not build_plan_report_valid(build_plan_report_fixture(limits).put(field, Json.int(999_999)), limits)
+                and build_plan_budget_fields_self_test(limits, rest)
+    }.
+
+build_plan_report_self_test(): Bool ->
+    let limits = reviewed_build_plan_limits();
+    let changed =
+        BuildPlanLimits(
+            cargo = limits.cargo + 1,
+            tests = limits.tests + 1,
+            builds = limits.builds + 1,
+            requests = limits.requests + 1,
+            parallelism = limits.parallelism + 1,
+        );
+    build_plan_report_valid(build_plan_report_fixture(limits), limits)
+        and build_plan_report_valid(build_plan_report_fixture(changed), changed)
+        and not build_plan_report_valid(build_plan_report_fixture(limits), changed)
+        and not build_plan_report_valid(build_plan_report_fixture(changed), limits)
+        and not build_plan_report_valid(Json.object(), limits)
+        and not build_plan_report_text_valid("not json")
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("decision", Json.string("fail")),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("schema", Json.string("unknown")),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("duplicate_equivalent_build_count", Json.int(1)),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("incremental_terlc_build_invocation_count", Json.int(0)),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("typed_validator_parallelism", Json.int(0)),
+    limits,
+)
+        and build_plan_budget_fields_self_test(
+    limits,
+    [
+        "cargo_invocation_count",
+        "cargo_invocation_maximum",
+        "terlc_test_invocation_count",
+        "terlc_test_invocation_maximum",
+        "terlc_build_invocation_count",
+        "terlc_build_invocation_maximum",
+        "typed_validator_request_count",
+        "typed_validator_request_maximum",
+        "typed_validator_parallelism",
+        "typed_validator_parallelism_maximum",
+    ],
+).
+
 self_test(): Bool ->
     bootstrap_plan_self_test()
+        and build_plan_report_self_test()
         and budget_validator_plan_self_test()
         and cargo_plan_self_test()
         and rust_orchestrator_count("/checkout/target/validation-tools/terlan-test-orchestrator\n") == 1
@@ -1411,6 +1599,7 @@ dispatch(
         Some("release-artifact-set") -> release_artifact_command(argument, option);
         Some("release-artifact-self-test") -> release_artifact_self_test();
         Some("build-release-contract") -> build_release_contract(repository);
+        Some("build-plan-report") -> check_build_plan_report(repository);
         Some("self-test") -> self_test();
         Some(value) -> failure("arguments", String.append("unknown command: ", value));
         None -> failure("arguments", "expected a repository validation command")

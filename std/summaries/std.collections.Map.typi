@@ -4,6 +4,10 @@
 //! the efficient runtime representation while preserving this source contract.
 
 module std.collections.Map.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
+import std.core.Unit.{*}.
 
 /// Map represents a collection of values addressed by keys.
 ///

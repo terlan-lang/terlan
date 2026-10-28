@@ -5,6 +5,9 @@
 //! adapter once; values, accessors, and portable errors are Terlan-owned.
 
 module std.net.Uri.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 
 /// Uri represents a parsed URI value.
 ///

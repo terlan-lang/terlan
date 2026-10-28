@@ -1,8 +1,0 @@
-module=std.css.keywords.Wait
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=1905173901515299861
-interface_hash=11060776456293734829
-interface_doc_hash=3094895580130357291
-deps=0

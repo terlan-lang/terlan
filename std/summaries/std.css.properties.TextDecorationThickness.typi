@@ -23,6 +23,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationThickness.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.FromFont.{*}.
 
 pub opaque type Checked.
 

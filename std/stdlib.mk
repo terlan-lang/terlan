@@ -39,9 +39,11 @@ stdlib-release-check: stdlib-check stdlib-release-runtime-check
 
 stdlib-release-runtime-check: stdlib-release-contracts-check stdlib-release-tests
 
+TERLAN_STDLIB_INTERFACE_OUTPUT ?= $(CURDIR)/target/stdlib-interfaces
+
 stdlib-build-interfaces:
 	@TERLAN_BUILD_INTERFACES_ROOT="$(CURDIR)" \
-	TERLAN_BUILD_INTERFACES_OUT_DIR="$(CURDIR)/std/summaries" \
+	TERLAN_BUILD_INTERFACES_OUT_DIR="$(TERLAN_STDLIB_INTERFACE_OUTPUT)" \
 	TERLAN_BUILD_INTERFACES_TERLC="$(CURDIR)/target/debug/terlc" \
 		target/debug/terlc test scripts/self_validation/BuildInterfacesTest.terl
 

@@ -4,6 +4,32 @@ use super::{
     apply_subst, ConstructorScheme, FunctionBound, FunctionScheme, MapFieldType, Type, TypeVarId,
 };
 
+/// Reserves enclosing signature, bound-only and field variables before inference.
+pub(super) fn enclosing_type_var_floor(
+    signatures: &HashMap<(String, usize), Vec<FunctionScheme>>,
+    fields: &HashMap<String, HashMap<String, Type>>,
+) -> TypeVarId {
+    signatures
+        .values()
+        .flatten()
+        .flat_map(|scheme| {
+            scheme
+                .params
+                .iter()
+                .chain(std::iter::once(&scheme.ret))
+                .chain(
+                    scheme
+                        .bounds
+                        .iter()
+                        .flat_map(|bound| bound.trait_args.iter()),
+                )
+        })
+        .chain(fields.values().flat_map(|fields| fields.values()))
+        .filter_map(max_type_var)
+        .max()
+        .map_or(0, |id| id + 1)
+}
+
 /// Instantiates a function scheme starting from type variable `0`.
 ///
 /// Inputs:

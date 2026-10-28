@@ -75,7 +75,7 @@ selected(name: String): Owner ->
             "DIRECTORY_OUTPUT",
             "unused",
             "completed",
-            30000,
+            30_000,
         ),
         OwnerArtifacts.declare_directory(
             output(),
@@ -100,7 +100,7 @@ consumer(): Owner ->
         "CONSUMER_OUTPUT",
         "consumer.v1",
         "completed",
-        30000,
+        30_000,
     ).
 
 write(root: String, path: String, source: String): Bool ->

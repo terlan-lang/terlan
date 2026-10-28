@@ -5,6 +5,10 @@
 //! errors into the neutral `FileError` values defined here.
 
 module std.io.File.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.core.Unit.{*}.
+import std.vm.Bytes.{*}.
 
 /// One regular-file copy requested as part of a bounded batch.
 

@@ -1,9 +1,0 @@
-module=std.core.Ordering
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=3663746676679372830
-interface_hash=17520538994048696212
-interface_doc_hash=8488579887735249208
-deps=1
-std.core.Option=11539230284316612175

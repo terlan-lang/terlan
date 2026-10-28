@@ -2,6 +2,10 @@ mod contract_helpers;
 mod type_resolution;
 use contract_helpers::render_module_test;
 
+#[cfg(test)]
+#[path = "ts_dom_generator_test.rs"]
+mod tests;
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -265,10 +269,9 @@ fn generated_file_hashes(
     files: &[GeneratedBindingFile],
 ) -> Result<Vec<GeneratedBindingFileHash>, String> {
     let mut hashes_by_path = BTreeMap::new();
-    for file in files
-        .iter()
-        .filter(|file| !file.path.starts_with("std/js/manifests/"))
-    {
+    for file in files.iter().filter(|file| {
+        !file.path.starts_with("std/js/manifests/") && !file.path.ends_with(".typi.deps")
+    }) {
         let sha256 = sha256_hex(file.contents.as_bytes());
         if let Some(existing) = hashes_by_path.get(&file.path) {
             if existing != &sha256 {

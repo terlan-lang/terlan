@@ -244,7 +244,21 @@ fn write_interface_input(
     syntax_contract_identity: &crate::terlan_syntax::syntax_contract::SyntaxContractIdentity,
     state: &CliState,
 ) -> Result<(), ExitCode> {
-    let interface_text = interface.to_terlan_interface_text();
+    let dependency_hashes =
+        collect_syntax_dependency_hashes(syntax_output, interfaces, Some(Path::new(path)), None);
+    let rendered = interface.to_terlan_interface_text();
+    let declaration = format!("module {}.", syntax_output.module_name);
+    let mut interface_text = String::new();
+    for line in rendered.split_inclusive('\n') {
+        interface_text.push_str(line);
+        if line.trim_end() == declaration {
+            for (dependency, _) in &dependency_hashes {
+                if interfaces.contains_key(dependency) {
+                    interface_text.push_str(&format!("import {dependency}.{{*}}.\n"));
+                }
+            }
+        }
+    }
     let target = state
         .out_dir
         .join(format!("{}.typi", syntax_output.module_name));
@@ -255,8 +269,6 @@ fn write_interface_input(
         return Err(ExitCode::from(1));
     }
 
-    let dependency_hashes =
-        collect_syntax_dependency_hashes(syntax_output, interfaces, Some(Path::new(path)), None);
     let manifest = DependencyManifest {
         module: syntax_output.module_name.clone(),
         syntax_contract_identity: syntax_contract_identity.clone(),

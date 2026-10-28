@@ -74,14 +74,14 @@ outcome(root: String, expected: String): Bool ->
     let {
         Ok(ledger) <-
             OwnerStorage.read_json(
-                OwnerStorage.child(root, PreparationOwner.ledger_path(owner("pass", 30000))),
+                OwnerStorage.child(root, PreparationOwner.ledger_path(owner("pass", 30_000))),
             );
         Some(actual) <- OwnerStorage.text(ledger, "outcome");
         Ok(usage) <- Directory.tree_usage(OwnerStorage.child(root, "target/quality/preparation/candidate"))
     } else {
         _ -> false
     };
-    (let owner = owner("pass", 30000);
+    (let owner = owner("pass", 30_000);
 let registered =
     owned_file_count(
         root,
@@ -96,8 +96,8 @@ let registered =
 actual == expected and usage.regular_file_count == registered).
 
 warm(root: String): Bool ->
-    let first = PreparationOwner.run_locked(root, owner("pass", 30000));
-    let second = PreparationOwner.run_locked(root, owner("pass", 30000));
+    let first = PreparationOwner.run_locked(root, owner("pass", 30_000));
+    let second = PreparationOwner.run_locked(root, owner("pass", 30_000));
     first.valid
         and not first.reused
         and second.valid
@@ -112,7 +112,7 @@ reusable(root: String, selected: Owner): Bool ->
     }.
 
 checked_reuse(root: String): Bool ->
-    let selected = owner("pass", 30000);
+    let selected = owner("pass", 30_000);
     let ledger = OwnerStorage.child(root, PreparationOwner.ledger_path(selected));
     let pending = String.append(ledger, ".pending");
     let work = OwnerStorage.child(root, "target/quality/preparation/candidate/fixture.work");
@@ -188,7 +188,7 @@ checked_reuse(root: String): Bool ->
     calls(root, "run\n").
 
 admitted_execution(root: String): Bool ->
-    let selected = owner("pass", 30000);
+    let selected = owner("pass", 30_000);
     let {
         true <- PreparationOwner.run_locked(root, selected).valid;
         Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "next source");
@@ -203,7 +203,7 @@ admitted_execution(root: String): Bool ->
     true <- calls(root, "run\nrun\n");
     Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output));
     Ok(_changed_again) <- File.write_text(OwnerStorage.child(root, "input.txt"), "another source");
-    Some(mutating) <- PreparationOwner.checked_admission(root, owner("mutate", 30000));
+    Some(mutating) <- PreparationOwner.checked_admission(root, owner("mutate", 30_000));
     false <- mutating.reused
 } else {
     _ -> false
@@ -218,15 +218,15 @@ not rejected.valid
     and outcome(root, "failed"))))).
 
 changed(root: String): Bool ->
-    let first = PreparationOwner.run_locked(root, owner("pass", 30000));
+    let first = PreparationOwner.run_locked(root, owner("pass", 30_000));
     let Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "new source") else {
         _ -> false
     };
-    (let second = PreparationOwner.run_locked(root, owner("pass", 30000));
+    (let second = PreparationOwner.run_locked(root, owner("pass", 30_000));
 (let Ok(_dependency) <- File.write_text(OwnerStorage.child(root, "dependency.txt"), "new dependency") else {
     _ -> false
 };
-(let third = PreparationOwner.run_locked(root, owner("pass", 30000));
+(let third = PreparationOwner.run_locked(root, owner("pass", 30_000));
 first.valid
     and second.valid
     and not second.reused
@@ -243,7 +243,7 @@ let failed_recorded = outcome(root, "failed");
 (let Ok(prior) <- File.read_text(OwnerStorage.child(root, "target/quality/fixture.json")) else {
     _ -> false
 };
-(let resumed = PreparationOwner.run_locked(root, owner("pass", 30000));
+(let resumed = PreparationOwner.run_locked(root, owner("pass", 30_000));
 not failed.valid
     and failed_recorded
     and prior == "prior evidence"
@@ -252,7 +252,7 @@ not failed.valid
     and calls(root, "run\nrun\n")))).
 
 interrupted(root: String): Bool ->
-    let selected = owner("pass", 30000);
+    let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
     let {
         Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
@@ -268,14 +268,14 @@ interrupted(root: String): Bool ->
     (let resumed = PreparationOwner.run_locked(root, selected); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
 
 corrupt_output(root: String): Bool ->
-    let first = PreparationOwner.run_locked(root, owner("pass", 30000));
+    let first = PreparationOwner.run_locked(root, owner("pass", 30_000));
     let Ok(_changed) <- File.write_text(OwnerStorage.child(root, "target/quality/fixture.json"), "corrupt") else {
         _ -> false
     };
-    (let resumed = PreparationOwner.run_locked(root, owner("pass", 30000)); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
+    (let resumed = PreparationOwner.run_locked(root, owner("pass", 30_000)); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
 
 corrupt_ledger(root: String): Bool ->
-    let selected = owner("pass", 30000);
+    let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
     let Ok(_written) <- File.write_text(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)), "{") else {
         _ -> false
@@ -283,7 +283,7 @@ corrupt_ledger(root: String): Bool ->
     (let resumed = PreparationOwner.run_locked(root, selected); first.valid and not resumed.valid and calls(root, "run\n")).
 
 changed_producer(root: String): Bool ->
-    let selected = owner("pass", 30000);
+    let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
     let {
         Ok(source) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
@@ -315,7 +315,7 @@ configuration_changes(root: String): Bool ->
     before == warm and before != created and created != changed and restored == before.
 
 pending_write_is_discarded(root: String): Bool ->
-    let selected = owner("pass", 30000);
+    let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
     let Ok(_pending) <-
         File.write_text(
@@ -342,7 +342,7 @@ count_completed_files(root: String): Bool ->
 
 optional_mutation(root: String, mode: String): Bool ->
     let optional = OwnerStorage.child(root, "optional.txt");
-    let selected = PreparationOwner.with_optional_dependencies(owner("pass", 30000), ["optional.txt"]);
+    let selected = PreparationOwner.with_optional_dependencies(owner("pass", 30_000), ["optional.txt"]);
     let {
         Ok(source) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
         Ok(_producer) <-
@@ -375,7 +375,7 @@ optional_mutation(root: String, mode: String): Bool ->
 (let changed =
     PreparationOwner.run_locked(
         root,
-        PreparationOwner.with_optional_dependencies(owner(mode, 30000), ["optional.txt"]),
+        PreparationOwner.with_optional_dependencies(owner(mode, 30_000), ["optional.txt"]),
     );
 (let {
     false <- changed.valid;
@@ -413,7 +413,7 @@ scenario(mode: String): Bool ->
     "optional-create" -> optional_mutation(root, mode);
     "optional-remove" -> optional_mutation(root, mode);
     "timeout" -> failure_preserves_output(root, "timeout", 50);
-    other -> failure_preserves_output(root, other, 30000)
+    other -> failure_preserves_output(root, other, 30_000)
 };
 (let Ok(_removed) <- Directory.remove_all(root) else {
     _ -> false
@@ -481,7 +481,7 @@ native_owner_check(root: String, mode: String): Bool ->
     } else {
         _ -> false
     };
-    (let selected = PreparationOwner.with_dependencies(owner("pass", 30000), ["native-input.jsonl"]);
+    (let selected = PreparationOwner.with_dependencies(owner("pass", 30_000), ["native-input.jsonl"]);
 let result = PreparationOwner.run_locked(root, selected);
 if {
     mode == "warm" -> result.valid and not result.reused and native_warm(root, selected, source);
@@ -528,10 +528,10 @@ pub native_inventory_is_owned_retained_and_validated_on_reuse(): Bool ->
 
 @test
 pub native_inventory_destination_cannot_be_overridden(): Bool ->
-    not PreparationOwner.valid_declaration(owner("reserved-environment", 30000))
-        and not PreparationOwner.valid_declaration(owner("reserved-output", 30000))
-        and not PreparationOwner.valid_declaration(owner("reserved-process-environment", 30000))
-        and not PreparationOwner.valid_declaration(owner("reserved-process-output", 30000)).
+    not PreparationOwner.valid_declaration(owner("reserved-environment", 30_000))
+        and not PreparationOwner.valid_declaration(owner("reserved-output", 30_000))
+        and not PreparationOwner.valid_declaration(owner("reserved-process-environment", 30_000))
+        and not PreparationOwner.valid_declaration(owner("reserved-process-output", 30_000)).
 
 @test
 pub incomplete_duplicate_missing_and_malformed_native_work_cannot_be_sealed(): Bool ->

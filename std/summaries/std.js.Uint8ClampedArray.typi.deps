@@ -1,8 +1,0 @@
-module=std.js.Uint8ClampedArray
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=13114902123626125574
-interface_hash=12094295213980702580
-interface_doc_hash=12094295213980702580
-deps=0

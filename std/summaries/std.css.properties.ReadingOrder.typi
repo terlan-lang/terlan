@@ -17,6 +17,7 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ReadingOrder.
+import std.css.Values.{*}.
 
 pub struct Property {
     reading_order: Int | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

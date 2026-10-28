@@ -1,6 +1,7 @@
 //! Shared CSS keyword auto. Generated; do not edit.
 
 module std.css.keywords.Auto.
+import std.core.Atom.{*}.
 
 pub type Auto =
     std.core.Atom.Auto.

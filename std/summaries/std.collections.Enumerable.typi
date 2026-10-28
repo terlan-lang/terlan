@@ -4,6 +4,11 @@
 //! collection consumption operations.
 
 module std.collections.Enumerable.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.collections.Set.{*}.
+import std.core.Option.{*}.
+import std.core.Unit.{*}.
 
 /// Enumerable connects a unary collection constructor `C[_]` to the item type
 /// it contains.

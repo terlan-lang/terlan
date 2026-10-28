@@ -6,6 +6,10 @@
 //! delegates event framing to its maintained native codec.
 
 module std.http.Sse.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
+import std.core.String.{*}.
+import std.http.Response.{*}.
 
 /// Endpoint represents one server-sent event route policy.
 ///

@@ -1,8 +1,0 @@
-module=std.js.Dom.OES_texture_float
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4276551092352896822
-interface_hash=13251898349619270912
-interface_doc_hash=13251898349619270912
-deps=0

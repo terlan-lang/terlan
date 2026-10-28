@@ -1,8 +1,0 @@
-module=std.css.keywords.StepEnd
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4208169937867178005
-interface_hash=7528418930364558288
-interface_doc_hash=7310165027473450877
-deps=0

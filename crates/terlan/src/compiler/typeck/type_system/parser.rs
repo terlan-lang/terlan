@@ -585,8 +585,8 @@ pub(crate) fn map_named_or_var(
         "Term" => Type::Term,
         "Dynamic" => Type::Dynamic,
         "Never" => Type::Never,
-        _ if text.chars().all(|c| c.is_ascii_digit()) => {
-            if let Ok(value) = text.parse::<i64>() {
+        _ if crate::terlan_syntax::integer_literals::normalize_integer(text).is_some() => {
+            if let Some(value) = crate::terlan_syntax::integer_literals::parse_integer(text) {
                 Type::LiteralInt(value)
             } else {
                 Type::Dynamic

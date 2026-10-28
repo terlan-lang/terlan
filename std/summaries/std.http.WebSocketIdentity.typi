@@ -1,6 +1,10 @@
 //! Source policy for two-peer reconnect identity; decoding stays in std.net.Uri.
 
 module std.http.WebSocketIdentity.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.core.String.{*}.
+import std.net.Uri.{*}.
 
 /// Resolves a fresh connection or an explicit room and role, preserving last-query-value wins.
 

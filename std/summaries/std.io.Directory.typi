@@ -4,6 +4,10 @@
 //! traversal never follows symbolic links; symlink entries are omitted.
 
 module std.io.Directory.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.core.Unit.{*}.
+import std.io.File.{*}.
 
 pub struct DirectoryError {
     code: Atom,

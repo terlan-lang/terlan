@@ -16,6 +16,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ViewTransitionGroup.
+import std.css.Values.{*}.
+import std.css.keywords.Contain.{*}.
+import std.css.keywords.Nearest.{*}.
+import std.css.keywords.Normal.{*}.
 
 pub struct Property {
     view_transition_group: std.css.keywords.Normal | std.css.keywords.Contain | std.css.keywords.Nearest | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

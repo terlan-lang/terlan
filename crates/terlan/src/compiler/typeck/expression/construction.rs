@@ -550,7 +550,7 @@ fn infer_imported_module_member_function_value(
         ));
         return Some(Type::Dynamic);
     };
-    let instantiated = instantiate_function_scheme(&scheme);
+    let instantiated = ctx.instantiate_function(&scheme, 0);
     Some(Type::Function {
         params: instantiated.params,
         ret: Box::new(instantiated.ret),
@@ -622,7 +622,7 @@ pub(super) fn infer_imported_module_member_function_value_with_expected(
             ));
             return Some(Type::Dynamic);
         };
-        let instantiated = instantiate_function_scheme(&scheme);
+        let instantiated = ctx.instantiate_function(&scheme, 0);
         let candidate = Type::Function {
             params: instantiated.params,
             ret: Box::new(instantiated.ret),

@@ -205,8 +205,8 @@ pub run(
                     "CARGO_TARGET_DIR",
                 ],
             )
-            .with_timeout_ms(300000)
-            .with_output_limit_bytes(16777216);
+            .with_timeout_ms(300_000)
+            .with_output_limit_bytes(16_777_216);
     let started = Clock.monotonic_time_ns();
     case Process.run(command) {
         Ok(output) ->

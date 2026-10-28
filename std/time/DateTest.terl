@@ -8,7 +8,7 @@ pub iso_dates_roundtrip(): Bool ->
     case Date.parse_iso("2026-08-04") {
         Some(date) ->
             Date.to_iso(date) == "2026-08-04"
-                and date.year == 2026
+                and date.year == 2_026
                 and date.month == 8
                 and date.day == 4;
         None -> false
@@ -40,7 +40,7 @@ pub leap_days_and_day_differences_are_exact(): Bool ->
 @test
 pub utc_today_is_a_valid_canonical_date(): Bool ->
     let today = Date.today_utc();
-    today.year >= 2026
+    today.year >= 2_026
         and today.month >= 1
         and today.month <= 12
         and today.day >= 1

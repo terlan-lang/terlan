@@ -41,26 +41,26 @@ pub case_pattern_captures_bytes_bits_and_unaligned_rest(): Bool ->
 
 @test
 pub function_head_pattern_binds_binary_fields(): Bool ->
-    let port = 4660;
+    let port = 4_660;
     let body = from_list([1, 2]);
     let packet = Binary[big] {port: UInt[16], body: Rest};
-    assert_equal(4660, decode_port(packet)).
+    assert_equal(4_660, decode_port(packet)).
 
 @test
 pub shape_backed_function_head_binds_binary_fields(): Bool ->
-    let port = 4660;
+    let port = 4_660;
     let body = from_list([1, 2]);
     let packet = Binary[big] {port: UInt[16], body: Rest};
-    assert_equal(4660, decode_shape_port(packet)).
+    assert_equal(4_660, decode_shape_port(packet)).
 
 @test
 pub shape_backed_case_pattern_reuses_binary_layout(): Bool ->
-    let port = 8080;
+    let port = 8_080;
     let flags = 5;
     let packet = Binary[big] {port: UInt[16], flags: UInt[8]};
     case packet {
         Header(decoded_port, decoded_flags) ->
-            assert_equal(8080, decoded_port) and assert_equal(5, decoded_flags);
+            assert_equal(8_080, decoded_port) and assert_equal(5, decoded_flags);
         _ -> false
     }.
 
@@ -90,10 +90,10 @@ pub let_pattern_binds_binary_fields(): Bool ->
 
 @test
 pub little_endian_pattern_decodes_wire_order(): Bool ->
-    let port = 4660;
+    let port = 4_660;
     let packet = Binary[little] {port: UInt[16]};
     case packet {
-        Binary[little] {found: UInt[16]} -> assert_equal(4660, found);
+        Binary[little] {found: UInt[16]} -> assert_equal(4_660, found);
         _ -> false
     }.
 
@@ -109,10 +109,10 @@ pub exact_pattern_falls_through_when_input_has_trailing_bits(): Bool ->
 
 @test
 pub utf8_pattern_captures_one_unicode_scalar(): Bool ->
-    let scalar = 66376;
+    let scalar = 66_376;
     let packet = Binary[big] {scalar: Utf8};
     case packet {
-        Binary[big] {decoded: Utf8} -> assert_equal(66376, decoded);
+        Binary[big] {decoded: Utf8} -> assert_equal(66_376, decoded);
         _ -> false
     }.
 
@@ -134,9 +134,9 @@ pub utf8_pattern_rejects_malformed_and_truncated_encodings(): Bool ->
 
 @test
 pub utf16_and_utf32_patterns_decode_both_wire_orders(): Bool ->
-    let first = 8364;
-    let second = 128512;
-    let third = 66376;
+    let first = 8_364;
+    let second = 128_512;
+    let third = 66_376;
     let big = Binary[big] {first: Utf16, second: Utf16, third: Utf32};
     let little = Binary[little] {first: Utf16, second: Utf16, third: Utf32};
     let big_matches =

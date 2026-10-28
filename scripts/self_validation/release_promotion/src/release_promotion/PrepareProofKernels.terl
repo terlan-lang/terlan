@@ -31,7 +31,7 @@ semantic_owner(root: String, vm: String, image: String, context: Context, replay
         "TERLAN_PROOF_SEMANTIC_OUTPUT",
         "terlan.lean-semantic-kernels.v1",
         "Lean semantic kernels passed:",
-        1800000,
+        1_800_000,
     ).
 
 image_size(root: String, image: String): Result[Int, String] ->

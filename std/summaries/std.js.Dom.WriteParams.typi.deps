@@ -1,8 +1,0 @@
-module=std.js.Dom.WriteParams
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=7583275251470860298
-interface_hash=8502135911632219394
-interface_doc_hash=8502135911632219394
-deps=0

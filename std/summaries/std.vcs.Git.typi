@@ -1,6 +1,8 @@
 //! Typed Git repository identity for deterministic build and release tooling.
 
 module std.vcs.Git.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
 
 /// Stable failure returned when a repository cannot be identified.
 

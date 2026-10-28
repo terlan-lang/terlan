@@ -148,9 +148,24 @@ pub(super) fn check_syntax_constructor_pattern(
     let mut last_error = None;
 
     for scheme in schemes {
+        let local_floor = locals
+            .values()
+            .filter_map(super::super::max_type_var)
+            .max()
+            .map_or(0, |id| id + 1);
         let instantiated = instantiate_constructor_scheme(
             &scheme,
-            next_constructor_type_var(std::slice::from_ref(expected), subst),
+            next_constructor_type_var(std::slice::from_ref(expected), subst)
+                .max(local_floor)
+                .max(ctx.fresh_type_var_floor)
+                .max(ctx.next_inference_var.get()),
+        );
+        ctx.reserve_fresh_types(
+            instantiated
+                .fixed_params
+                .iter()
+                .chain(instantiated.vararg.iter())
+                .chain(std::iter::once(&instantiated.ret)),
         );
         let mut trial_subst = subst.clone();
         let mut trial_locals = locals.clone();

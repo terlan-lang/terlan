@@ -27,6 +27,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TableLayout.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Fixed.{*}.
 
 pub struct Property {
     table_layout: std.css.keywords.Auto | std.css.keywords.Fixed | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

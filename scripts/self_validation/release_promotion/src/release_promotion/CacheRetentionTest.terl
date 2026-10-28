@@ -67,7 +67,7 @@ age_boundaries(): Bool ->
 invalid_inventory(): Bool ->
     let active = generation("active", 4, 1);
     let negative = generation("negative", -1, 1);
-    let oversized = generation("oversized", 1125899906842625, 1);
+    let oversized = generation("oversized", 1_125_899_906_842_625, 1);
     let {
         Err(_duplicate) <- CacheRetention.plan_retention([active, active], [], budget(10, 3), 200);
         Err(_unknown_pin) <- CacheRetention.plan_retention([active], [sha256("missing")], budget(10, 3), 200);

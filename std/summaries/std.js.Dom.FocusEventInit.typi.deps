@@ -1,8 +1,0 @@
-module=std.js.Dom.FocusEventInit
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9498140808925630524
-interface_hash=3315520918253875326
-interface_doc_hash=3315520918253875326
-deps=0

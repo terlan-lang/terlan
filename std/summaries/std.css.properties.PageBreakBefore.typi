@@ -27,6 +27,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PageBreakBefore.
+import std.css.Values.{*}.
+import std.css.keywords.Always.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Avoid.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.Right.{*}.
 
 pub struct Property {
     page_break_before: std.css.keywords.Auto | std.css.keywords.Always | std.css.keywords.Avoid | std.css.keywords.Left | std.css.keywords.Right | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -12,6 +12,8 @@
 //! tasks are not supported by the VM target and are rejected before emission.
 
 module std.core.Task.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
 
 /// Task represents asynchronous work that produces `T`.
 ///

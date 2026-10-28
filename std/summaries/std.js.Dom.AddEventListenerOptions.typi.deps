@@ -1,8 +1,0 @@
-module=std.js.Dom.AddEventListenerOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15506872857090151762
-interface_hash=7046630744923183063
-interface_doc_hash=7046630744923183063
-deps=0

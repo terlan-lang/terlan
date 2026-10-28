@@ -174,6 +174,7 @@ fn module_shape(module: &Module) -> String {
 
 fn expression_shape(expr: &Expr) -> String {
     match expr {
+        Expr::Int(value) => format!("int({value})"),
         Expr::InterpolatedString { expressions, .. } => {
             format!("interpolation({})", expressions.len())
         }

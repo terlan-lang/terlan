@@ -1,6 +1,9 @@
 //! Typed supervision policy composed over VM-owned lifecycle mechanics.
 
 module std.vm.Supervisor.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.core.Unit.{*}.
 
 /// Typed child declaration consumed by VM-owned supervision admission.
 

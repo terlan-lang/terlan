@@ -41,7 +41,7 @@ pub declare(
             "TERLAN_PROOF_EVIDENCE_OUTPUT",
             "terlan.proof-release-evidence.v1",
             "Proof readiness release mode passed:",
-            300000,
+            300_000,
         ),
         [
             OwnerArtifacts.declare_artifact(

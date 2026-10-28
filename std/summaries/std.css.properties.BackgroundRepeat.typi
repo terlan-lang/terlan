@@ -41,6 +41,13 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundRepeat.
+import std.css.Values.{*}.
+import std.css.keywords.NoRepeat.{*}.
+import std.css.keywords.Repeat.{*}.
+import std.css.keywords.RepeatX.{*}.
+import std.css.keywords.RepeatY.{*}.
+import std.css.keywords.Round.{*}.
+import std.css.keywords.Space.{*}.
 
 pub struct Property {
     background_repeat: std.css.keywords.RepeatX | std.css.keywords.RepeatY | std.css.keywords.Repeat | std.css.keywords.Space | std.css.keywords.Round | std.css.keywords.NoRepeat | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

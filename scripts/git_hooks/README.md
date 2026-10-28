@@ -5,6 +5,28 @@ the checkout-local `core.hooksPath` to `.githooks`; existing custom hooks requir
 integration first. Git does not activate hooks automatically when cloning.
 `bash scripts/git_hooks.sh check` runs the same checks without committing.
 
+For every failure fix, record the failing input and expected behavior, the
+confirmed cause, why existing checks missed it, and the preventive change.
+Add a behavioral regression at the owning boundary and run it locally before
+pushing. Where practical, demonstrate that it fails against the broken behavior
+and passes after the fix. Wire cheap checks before expensive compilation and
+exercise producer/consumer boundaries with the real contracts. Updating an
+expected value, regenerating a baseline, or retrying CI alone does not prevent
+recurrence. Keep unresolved causes and validation limits explicit.
+
+Build-plan limits have one definition in `RepositoryValidation.terls`. Make
+delegates report admission to that typed validator; shell and Rust integration
+fixtures verify dispatch and failure propagation without copying policy numbers.
+
+Reviewed `.typi` API summaries remain source baselines. Their `.typi.deps`
+companions are disposable compiler caches: standard-library loading, generated
+binding review, and release payloads do not require them. `make
+stdlib-build-interfaces` writes to `target/stdlib-interfaces` by default. To
+refresh reviewed APIs deliberately, pass
+`TERLAN_STDLIB_INTERFACE_OUTPUT="$PWD/std/summaries"` and review the semantic diff.
+Normal incremental compilation still validates source, dependency and syntax
+identities before reusing its own cache.
+
 Commit messages must contain one nonempty line of at most 50 characters. Put
 detailed explanations in the code, documentation, or pull request. Git's
 `commit-msg` hook checks the message after it is collected; long subjects and

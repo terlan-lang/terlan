@@ -1,8 +1,0 @@
-module=std.js.Dom.SVGFESpecularLightingElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=11374833719733557348
-interface_hash=14724718862749375598
-interface_doc_hash=14724718862749375598
-deps=0

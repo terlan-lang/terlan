@@ -125,9 +125,9 @@ bounded_command(
                 Process.with_arguments(Process.command(program), arguments),
                 root,
             ),
-            120000,
+            120_000,
         ),
-        4194304,
+        4_194_304,
     ).
 
 run_success(root: String, program: String, arguments: List[String]): Option[Output] ->

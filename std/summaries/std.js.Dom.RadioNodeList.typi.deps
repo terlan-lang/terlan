@@ -1,8 +1,0 @@
-module=std.js.Dom.RadioNodeList
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=2688385457116382104
-interface_hash=7530314788899663213
-interface_doc_hash=7530314788899663213
-deps=0

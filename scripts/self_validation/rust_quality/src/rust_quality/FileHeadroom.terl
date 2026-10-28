@@ -51,7 +51,7 @@ target_rows(): Int -> 65.
 headroom_limit(category: String): Int ->
     if {
         category == "implementation" -> 900;
-        category == "test" -> 1800;
+        category == "test" -> 1_800;
         true -> 0
     }.
 

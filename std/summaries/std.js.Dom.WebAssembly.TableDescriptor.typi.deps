@@ -1,8 +1,0 @@
-module=std.js.Dom.WebAssembly.TableDescriptor
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=1779013392558976508
-interface_hash=2443162211433540149
-interface_doc_hash=2443162211433540149
-deps=0

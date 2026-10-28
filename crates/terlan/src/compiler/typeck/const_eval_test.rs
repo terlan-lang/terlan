@@ -13,6 +13,22 @@ use super::{
     lower_syntax_module_output_to_core, prepare_syntax_constants, type_check_syntax_module_output,
 };
 
+#[test]
+fn integer_separators_preserve_const_array_sizes() {
+    for source in ["Array[10_000, Int]", "Array[0x27_10, Int]"] {
+        let ty = super::type_system::parse_type_expr(
+            source,
+            &std::collections::HashSet::new(),
+            &mut HashMap::new(),
+            &mut 0,
+        );
+        assert!(
+            matches!(ty, Some(super::Type::Array { size: super::types::ArraySize::Known(10000), elem }) if *elem == super::Type::Int),
+            "{source}"
+        );
+    }
+}
+
 const COMPLETE_FIXTURE: &str = r#"
 module lifecycle.demo.
 

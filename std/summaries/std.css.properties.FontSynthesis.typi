@@ -26,6 +26,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontSynthesis.
+import std.css.Values.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Position.{*}.
+import std.css.keywords.SmallCaps.{*}.
+import std.css.keywords.Style.{*}.
+import std.css.keywords.Weight.{*}.
 
 pub struct Property {
     font_synthesis: std.css.keywords.None | std.css.keywords.Weight | std.css.keywords.Style | std.css.keywords.SmallCaps | std.css.keywords.Position | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

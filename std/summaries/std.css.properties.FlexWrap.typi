@@ -25,6 +25,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FlexWrap.
+import std.css.Values.{*}.
+import std.css.keywords.Balance.{*}.
+import std.css.keywords.Nowrap.{*}.
+import std.css.keywords.Wrap.{*}.
+import std.css.keywords.WrapReverse.{*}.
 
 pub struct Property {
     flex_wrap: std.css.keywords.Nowrap | std.css.keywords.Wrap | std.css.keywords.WrapReverse | std.css.keywords.Balance | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

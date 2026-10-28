@@ -473,7 +473,7 @@ fn lex_number_token(chars: &[char], start: usize) -> (TokenKind, String, usize) 
 
     let mut end = start + 1;
     let mut has_dot = false;
-    while end < chars.len() && chars[end].is_ascii_digit() {
+    while end < chars.len() && (chars[end].is_ascii_digit() || chars[end] == '_') {
         end += 1;
     }
     if end + 1 < chars.len()
@@ -499,7 +499,8 @@ fn lex_number_token(chars: &[char], start: usize) -> (TokenKind, String, usize) 
     } else {
         TokenKind::Int
     };
-    (kind, chars[start..end].iter().collect::<String>(), end)
+    let text = chars[start..end].iter().collect::<String>();
+    (kind, text, end)
 }
 
 /// Finds a complete scientific exponent immediately after a decimal literal.
@@ -555,7 +556,7 @@ fn prefixed_integer_literal_end(chars: &[char], start: usize) -> Option<usize> {
     }
 
     let mut end = start + 2;
-    while end < chars.len() && chars[end].is_ascii_alphanumeric() {
+    while end < chars.len() && (chars[end].is_ascii_alphanumeric() || chars[end] == '_') {
         end += 1;
     }
 

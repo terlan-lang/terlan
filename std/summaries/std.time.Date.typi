@@ -1,6 +1,10 @@
 //! Portable UTC civil dates for validation, release evidence, and applications.
 
 module std.time.Date.
+import std.core.Int.{*}.
+import std.core.Option.{*}.
+import std.core.String.{*}.
+import std.time.Clock.{*}.
 
 /// One proleptic-Gregorian calendar date.
 

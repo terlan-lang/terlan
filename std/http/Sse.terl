@@ -181,7 +181,7 @@ pub response(events: List[Event], status: Int = 200): Response ->
         [encode_event(event) | event <- events],
         status,
         "text/event-stream; charset=utf-8",
-        16384,
+        16_384,
         128,
     ).
 
@@ -205,7 +205,7 @@ encode(id: Option[String], event: Option[String], retry_ms: Option[Int], data: S
  * Transformation: records explicit stream bounds for the VM HTTP runtime
  * without allocating a live stream at source evaluation time.
  */
-pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65536): Endpoint ->
+pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65_536): Endpoint ->
     Endpoint {
         max_pending_events: max_pending_events,
         max_event_bytes: max_event_bytes,
@@ -226,8 +226,8 @@ pub endpoint(max_pending_events: Int = 128, max_event_bytes: Int = 65536): Endpo
  */
 pub endpoint_with_keep_alive(
     max_pending_events: Int = 128,
-    max_event_bytes: Int = 65536,
-    keep_alive_ms: Int = 15000,
+    max_event_bytes: Int = 65_536,
+    keep_alive_ms: Int = 15_000,
 ): Endpoint ->
     Endpoint {
         max_pending_events: max_pending_events,

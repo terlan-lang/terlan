@@ -91,7 +91,7 @@ fn infer_unique_imported_function_value(name: &str, ctx: &ExprInferContext<'_>) 
         return None;
     };
     let scheme = parse_interface_signature(signature, interface, ctx.aliases)?;
-    let instantiated = instantiate_function_scheme(&scheme);
+    let instantiated = ctx.instantiate_function(&scheme, 0);
     Some(Type::Function {
         params: instantiated.params,
         ret: Box::new(instantiated.ret),
@@ -195,7 +195,7 @@ fn infer_unique_local_function_value(name: &str, ctx: &ExprInferContext<'_>) -> 
         .iter()
         .filter(|((candidate, _arity), _schemes)| candidate == name)
         .flat_map(|(_key, schemes)| schemes.iter())
-        .map(instantiate_function_scheme);
+        .map(|scheme| ctx.instantiate_function(scheme, 0));
 
     let first = matches.next()?;
     if matches.next().is_some() {

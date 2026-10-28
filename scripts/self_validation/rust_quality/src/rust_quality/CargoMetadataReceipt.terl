@@ -64,8 +64,8 @@ dispatch_verified(observation: Json): Bool ->
  */
 pub admit(root: String, source: String, attempt_source: String): Result[Json, String] ->
     let {
-        true <- source.byte_size() > 0 and source.byte_size() <= 33554432;
-        true <- attempt_source.byte_size() > 0 and attempt_source.byte_size() <= 1048576;
+        true <- source.byte_size() > 0 and source.byte_size() <= 33_554_432;
+        true <- attempt_source.byte_size() > 0 and attempt_source.byte_size() <= 1_048_576;
         Ok(document) <- Json.parse(source);
         Ok(attempt) <- Json.parse(attempt_source);
         Some("terlan.cargo-metadata-attempt.v1") <- text(attempt, "schema");
@@ -127,9 +127,9 @@ pub read(root: String): Result[Json, String] ->
     let path = String.concat([root, "/target/quality/rust-cargo-metadata.json"]);
     let attempt_path = String.append(path, ".attempt.json");
     let {
-        Ok(attempt) <- read_sized(attempt_path, 1048576);
-        Ok(source) <- read_sized(path, 33554432);
-        Ok(closed_attempt) <- read_sized(attempt_path, 1048576);
+        Ok(attempt) <- read_sized(attempt_path, 1_048_576);
+        Ok(source) <- read_sized(path, 33_554_432);
+        Ok(closed_attempt) <- read_sized(attempt_path, 1_048_576);
         true <- attempt == closed_attempt
     } else {
         Err(reason) -> Err(reason);

@@ -50,9 +50,9 @@ configured(
                 ),
                 environment,
             ),
-            900000,
+            900_000,
         ),
-        8388608,
+        8_388_608,
     ).
 
 run_command(

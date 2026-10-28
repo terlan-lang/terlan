@@ -28,7 +28,7 @@ selected(): Owner ->
             "OWNER_OUTPUT",
             "commit.v1",
             "completed",
-            30000,
+            30_000,
         ),
         [
             OwnerArtifacts.declare_artifact(

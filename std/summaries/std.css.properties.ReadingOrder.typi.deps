@@ -1,9 +1,0 @@
-module=std.css.properties.ReadingOrder
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=16544517746842818598
-interface_hash=6316744601688663019
-interface_doc_hash=17564167627006234263
-deps=1
-std.css.Values=2905925857807311325

@@ -1,8 +1,0 @@
-module=std.css.keywords.InlineStart
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=6730809952484215733
-interface_hash=8217143944642741503
-interface_doc_hash=17106030806812184791
-deps=0

@@ -128,9 +128,10 @@ fn format_annotation_value(value: &AnnotationValue) -> String {
     match value {
         AnnotationValue::Name(segments) => segments.join("."),
         AnnotationValue::Bool(value) => value.to_string(),
-        AnnotationValue::Int(text)
-        | AnnotationValue::Float(text)
-        | AnnotationValue::String(text) => text.clone(),
+        AnnotationValue::Int(text) => crate::terlan_syntax::integer_literals::parse_integer(text)
+            .map(crate::terlan_syntax::integer_literals::format_integer)
+            .unwrap_or_else(|| text.clone()),
+        AnnotationValue::Float(text) | AnnotationValue::String(text) => text.clone(),
         AnnotationValue::List(values) => format!(
             "[{}]",
             values

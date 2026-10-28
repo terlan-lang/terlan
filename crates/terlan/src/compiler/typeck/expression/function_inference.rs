@@ -69,8 +69,10 @@ pub(crate) fn infer_function_with_explicit_type_args(
         .max()
         .map(|id| id + 1)
         .unwrap_or(0);
-    let first_var = next_function_type_var(args, subst).max(explicit_type_var_floor);
-    let instantiated = instantiate_function_scheme_from(scheme, first_var);
+    let first_var = next_function_type_var(args, subst)
+        .max(explicit_type_var_floor)
+        .max(ctx.fresh_type_var_floor);
+    let instantiated = ctx.instantiate_function(scheme, first_var);
     bind_explicit_call_type_args(&instantiated, function_name, type_args, ctx, subst)?;
     infer_instantiated_function_with_bounds(&instantiated, function_name, args, ctx, subst)
 }

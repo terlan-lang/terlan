@@ -1,6 +1,9 @@
 //! One-shot tasks implemented in Terlan over VM process primitives.
 
 module std.vm.Task.
+import std.core.Unit.{*}.
+import std.vm.Message.{*}.
+import std.vm.Process.{*}.
 
 pub type Task[T] =
     {Atom["task"], process: std.vm.Process[TaskCommand[T]], witness: T}.

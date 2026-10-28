@@ -4,6 +4,8 @@
 //! equality can be represented safely and portably.
 
 module std.core.Equal.
+import std.core.Ordering.{*}.
+import std.core.Unit.{*}.
 
 /// Describes values that can be compared for equality.
 ///

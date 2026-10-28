@@ -65,7 +65,7 @@ selected_output(root: String): String ->
         None ->
             case argument_value("--out-dir") {
                 Some(path) -> path;
-                None -> child(root, "std/summaries")
+                None -> child(root, "target/stdlib-interfaces")
             }
     }.
 
@@ -223,9 +223,9 @@ process_command(compiler: String, root: String, arguments: List[String]): Comman
                 ),
                 [Process.environment_entry("CARGO_TERM_COLOR", "never")],
             ),
-            600000,
+            600_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 print_output_failure(label: String, output: std.system.Process.Output): Bool ->

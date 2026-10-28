@@ -1,8 +1,0 @@
-module=std.js.Dom.OES_draw_buffers_indexed
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=17722073899288113833
-interface_hash=7657167557124599332
-interface_doc_hash=7657167557124599332
-deps=0

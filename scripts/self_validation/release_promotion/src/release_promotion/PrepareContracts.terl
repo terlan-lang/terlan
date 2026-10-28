@@ -55,7 +55,7 @@ Ok(
         "TERLAN_TVM_CONTRACT_OUTPUT",
         "terlan.validator-contract-receipt.v1",
         expected,
-        300000,
+        300_000,
     ),
 )).
 

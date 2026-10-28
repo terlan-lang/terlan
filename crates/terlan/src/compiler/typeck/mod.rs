@@ -368,7 +368,11 @@ fn type_check_syntax_module_with_inputs<'a>(
         &alias_names,
     );
     let trait_lookup_cache = RefCell::new(TraitLookupCache::default());
+    let fresh_type_var_floor = enclosing_type_var_floor(&function_signatures, &struct_fields);
+    let next_inference_var = std::cell::Cell::new(fresh_type_var_floor);
     let expr_ctx = ExprInferContext {
+        fresh_type_var_floor,
+        next_inference_var: &next_inference_var,
         current_module: &resolved.name,
         database_schema: inputs.database_schema,
         local_fns: &resolved.function_symbols,
@@ -733,7 +737,11 @@ pub fn infer_syntax_expression_type(
     let negative_trait_impl_type_args =
         collect_visible_negative_trait_impl_type_args(module, resolved, &alias_names);
     let trait_lookup_cache = RefCell::new(TraitLookupCache::default());
+    let fresh_type_var_floor = enclosing_type_var_floor(&function_signatures, &struct_fields);
+    let next_inference_var = std::cell::Cell::new(fresh_type_var_floor);
     let expr_ctx = ExprInferContext {
+        fresh_type_var_floor,
+        next_inference_var: &next_inference_var,
         current_module: &resolved.name,
         database_schema: None,
         local_fns: &resolved.function_symbols,

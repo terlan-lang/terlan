@@ -29,6 +29,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.StrokeLinecap.
+import std.css.Values.{*}.
+import std.css.keywords.Butt.{*}.
+import std.css.keywords.Round.{*}.
+import std.css.keywords.Square.{*}.
 
 pub struct Property {
     stroke_linecap: std.css.keywords.Butt | std.css.keywords.Round | std.css.keywords.Square | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

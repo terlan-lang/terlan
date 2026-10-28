@@ -1,8 +1,0 @@
-module=std.js.Dom.IdleRequestCallback
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4107099772011758159
-interface_hash=13074178472449020302
-interface_doc_hash=13074178472449020302
-deps=0

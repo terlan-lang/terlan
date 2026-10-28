@@ -5,6 +5,12 @@
 //! tests.
 
 module std.vm.Port.
+import std.collections.List.{*}.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.core.Unit.{*}.
+import std.vm.Bytes.{*}.
+import std.vm.Timeout.{*}.
 
 /// Command represents one external command invocation.
 ///

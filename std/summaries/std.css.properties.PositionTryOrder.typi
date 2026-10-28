@@ -22,6 +22,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PositionTryOrder.
+import std.css.Values.{*}.
+import std.css.keywords.MostBlockSize.{*}.
+import std.css.keywords.MostHeight.{*}.
+import std.css.keywords.MostInlineSize.{*}.
+import std.css.keywords.MostWidth.{*}.
+import std.css.keywords.Normal.{*}.
 
 pub struct Property {
     position_try_order: std.css.keywords.Normal | std.css.keywords.MostWidth | std.css.keywords.MostHeight | std.css.keywords.MostBlockSize | std.css.keywords.MostInlineSize | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

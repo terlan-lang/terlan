@@ -89,7 +89,7 @@ run_make(integration: String, target: String, compiler: String, browser: Bool): 
                     Process.command("make"),
                     make_arguments(integration, target, compiler, browser),
                 ),
-                600000,
+                600_000,
             ),
             limits.maximum_output_bytes,
         );

@@ -197,7 +197,7 @@ expected_concurrency(name: String): Int ->
     case name {
         "maintained-sequential" -> 1;
         "maintained-concurrency-100" -> 100;
-        "maintained-concurrency-1000" -> 1000;
+        "maintained-concurrency-1000" -> 1_000;
         _ -> 0
     }.
 

@@ -5,6 +5,9 @@
 //! so failing cases can become smaller without hidden randomness.
 
 module std.test.Shrink.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 
 /// Appends shrink candidate lists.
 ///

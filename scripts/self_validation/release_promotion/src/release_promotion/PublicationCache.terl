@@ -22,10 +22,10 @@ import type std.core.Result.
  */
 pub default_budget(): Budget ->
     Budget(
-        bytes = 8589934592,
+        bytes = 8_589_934_592,
         entries = 3,
-        maximum_age_ns = 604800000000000,
-        minimum_age_ns = 300000000000,
+        maximum_age_ns = 604_800_000_000_000,
+        minimum_age_ns = 300_000_000_000,
     ).
 
 cache_root(root: String): String ->
@@ -163,7 +163,7 @@ discard_retired(root: String, path: String): Result[Int, String] ->
     let {
         true <- safe_root(root) and disposable_entry(root, path);
         Ok(usage) <- Directory.tree_usage(path);
-        true <- usage.allocated_bytes <= 1125899906842624;
+        true <- usage.allocated_bytes <= 1_125_899_906_842_624;
         Ok(_removed) <- Directory.remove_all(path)
     } else {
         _ -> Err("cannot finish interrupted cache retirement")
@@ -215,8 +215,8 @@ pub prune_locked(root: String, pinned: String, budget: Budget, now_ns: Int): Res
         true <- safe_root(root);
         true <- CacheRetention.valid_key(pinned);
         Ok(paths) <- cache_entries(root);
-        Ok(interrupted) <- drain_retired(root, paths, 1024);
-        Ok(generations) <- inventory(root, paths, 1024);
+        Ok(interrupted) <- drain_retired(root, paths, 1_024);
+        Ok(generations) <- inventory(root, paths, 1_024);
         Ok(plan) <- CacheRetention.plan_retention(generations, [pinned], budget, now_ns)
     } else {
         Err(reason) -> Err(reason);

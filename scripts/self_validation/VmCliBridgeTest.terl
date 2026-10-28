@@ -37,9 +37,9 @@ run_output(program: String, arguments: List[String], root: String): Option[Strin
                     Process.with_arguments(Process.command(program), arguments),
                     root,
                 ),
-                60000,
+                60_000,
             ),
-            1048576,
+            1_048_576,
         );
     case Process.run(command) {
         Ok(output) ->

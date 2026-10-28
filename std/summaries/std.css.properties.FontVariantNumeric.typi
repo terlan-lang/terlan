@@ -32,6 +32,16 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantNumeric.
+import std.css.Values.{*}.
+import std.css.keywords.DiagonalFractions.{*}.
+import std.css.keywords.LiningNums.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.OldstyleNums.{*}.
+import std.css.keywords.Ordinal.{*}.
+import std.css.keywords.ProportionalNums.{*}.
+import std.css.keywords.SlashedZero.{*}.
+import std.css.keywords.StackedFractions.{*}.
+import std.css.keywords.TabularNums.{*}.
 
 pub struct Property {
     font_variant_numeric: std.css.keywords.Normal | std.css.keywords.LiningNums | std.css.keywords.OldstyleNums | std.css.keywords.ProportionalNums | std.css.keywords.TabularNums | std.css.keywords.DiagonalFractions | std.css.keywords.StackedFractions | std.css.keywords.Ordinal | std.css.keywords.SlashedZero | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -158,8 +158,10 @@ fn exact_local_call_expected_arg_types(
         .local_fns
         .get(&(function_name.to_string(), supplied_arity))?;
     let scheme = parse_symbol_scheme(symbol)?;
-    let instantiated =
-        instantiate_function_scheme_from(&scheme, next_function_type_var(&[], subst));
+    let instantiated = ctx.instantiate_function(
+        &scheme,
+        next_function_type_var(&[], subst).max(ctx.fresh_type_var_floor),
+    );
     let param_names = symbol
         .params
         .iter()
@@ -344,7 +346,7 @@ fn infer_syntax_call_with_arg_types(
                         &schemes,
                         arg_types,
                         &expr.arg_names,
-                        ctx.aliases,
+                        ctx,
                         subst,
                         errors,
                     ) {
@@ -523,9 +525,9 @@ pub(super) fn infer_receiver_method_candidate(
     let mut combined_args = Vec::with_capacity(arg_types.len() + 1);
     combined_args.push(receiver_type);
     combined_args.extend(arg_types);
-    let instantiated = instantiate_function_scheme_from(
+    let instantiated = ctx.instantiate_function(
         &combined_scheme,
-        next_function_type_var(&combined_args, subst),
+        next_function_type_var(&combined_args, subst).max(ctx.fresh_type_var_floor),
     );
 
     infer_instantiated_function_with_bounds(

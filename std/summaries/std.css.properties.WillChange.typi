@@ -27,6 +27,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WillChange.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Contents.{*}.
+import std.css.keywords.ScrollPosition.{*}.
 
 pub struct Property {
     will_change: std.css.keywords.Auto | std.css.keywords.ScrollPosition | std.css.keywords.Contents | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

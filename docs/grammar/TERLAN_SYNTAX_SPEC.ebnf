@@ -386,12 +386,13 @@ CallExpr ::= NameRef [ TypeArgs ] "(" [ CallArgList ] ")" .
 
 ConstructorChainExpr ::= CallExpr "with" CallExpr .
 Int ::= DecimalInt | BinaryInt | HexInt | OctalInt .
-DecimalInt ::= Digit { Digit } .
-BinaryInt ::= "0b" BinaryDigit { BinaryDigit } .
-HexInt ::= "0x" HexDigit { HexDigit } .
-OctalInt ::= "0o" OctalDigit { OctalDigit } .
-Float ::= DecimalInt ( "." DecimalInt [ Exponent ] | Exponent ) .
-Exponent ::= ( "e" | "E" ) [ "+" | "-" ] DecimalInt .
+DecimalInt ::= Digit { [ "_" ] Digit } .
+BinaryInt ::= "0b" BinaryDigit { [ "_" ] BinaryDigit } .
+HexInt ::= "0x" HexDigit { [ "_" ] HexDigit } .
+OctalInt ::= "0o" OctalDigit { [ "_" ] OctalDigit } .
+DecimalDigits ::= Digit { Digit } .
+Float ::= DecimalDigits ( "." DecimalDigits [ Exponent ] | Exponent ) .
+Exponent ::= ( "e" | "E" ) [ "+" | "-" ] DecimalDigits .
 (* In expression position, each unescaped ${ Expr } is rendered through Show[T].
    Empty or invalid expression islands are rejected. In pattern position the
    existing ${binding: Type} capture rules apply. \${ escapes a literal opener. *)

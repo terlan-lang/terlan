@@ -249,9 +249,9 @@ command_succeeds_with_environment(
                     ),
                     environment,
                 ),
-                120000,
+                120_000,
             ),
-            4194304,
+            4_194_304,
         ),
     ) {
         Ok(output) -> output.status == 0;
@@ -308,9 +308,9 @@ cpp_include_environment(repository: String): IncludeEnvironment ->
                             ),
                             "",
                         ),
-                        30000,
+                        30_000,
                     ),
-                    1048576,
+                    1_048_576,
                 );
             case Process.run(request) {
                 Ok(output) ->

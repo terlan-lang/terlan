@@ -45,7 +45,7 @@ fixture(root: String, name: String, modified_ns: Int): Result[Generation, String
     Ok(Generation(key = key, bytes = usage.allocated_bytes, modified_ns = modified_ns)).
 
 policy(entries: Int): Budget ->
-    Budget(bytes = 104857600, entries = entries, maximum_age_ns = 100, minimum_age_ns = 10).
+    Budget(bytes = 104_857_600, entries = entries, maximum_age_ns = 100, minimum_age_ns = 10).
 
 cleanup(root: String, passed: Bool): Bool ->
     case Directory.remove_all(root) {

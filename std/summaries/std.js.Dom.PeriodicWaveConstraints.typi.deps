@@ -1,8 +1,0 @@
-module=std.js.Dom.PeriodicWaveConstraints
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=5925442677736397355
-interface_hash=8732563025401033456
-interface_doc_hash=8732563025401033456
-deps=0

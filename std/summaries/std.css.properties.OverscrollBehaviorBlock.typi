@@ -26,6 +26,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OverscrollBehaviorBlock.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Chain.{*}.
+import std.css.keywords.Contain.{*}.
+import std.css.keywords.None.{*}.
 
 pub struct Property {
     overscroll_behavior_block: std.css.keywords.Contain | std.css.keywords.None | std.css.keywords.Auto | std.css.keywords.Chain | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

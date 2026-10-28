@@ -4,6 +4,9 @@
 //! values.
 
 module std.collections.List.
+import std.collections.Iterator.{*}.
+import std.core.Option.{*}.
+import std.core.Unit.{*}.
 
 /// List represents an ordered collection of values.
 ///

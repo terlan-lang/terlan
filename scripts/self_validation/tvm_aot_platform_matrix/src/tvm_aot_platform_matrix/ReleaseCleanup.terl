@@ -32,7 +32,7 @@ wait(): Bool ->
                 );
             true -> Process.command("sleep").with_arguments(["0.5"])
         };
-    case Process.run(command.with_timeout_ms(10000).with_output_limit_bytes(4096)) {
+    case Process.run(command.with_timeout_ms(10_000).with_output_limit_bytes(4_096)) {
         Ok(output) -> output.status == 0;
         Err(_error) -> false
     }.

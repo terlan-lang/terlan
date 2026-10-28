@@ -1,9 +1,0 @@
-module=std.css.properties.BorderInlineEndColor
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=16082948860467439475
-interface_hash=5007369905603077280
-interface_doc_hash=379880273528305527
-deps=1
-std.css.Values=2905925857807311325

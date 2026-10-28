@@ -33,7 +33,7 @@ selected(mode: String): Owner ->
             "JSON_OUTPUT",
             "table-fixture.v1",
             "completed",
-            30000,
+            30_000,
         ),
         [table("name\tstatus")],
     ).
@@ -123,7 +123,7 @@ columns(count: Int, values: List[String]): String ->
 bounds(root: String): Bool ->
     let header = "name\tstatus\n";
     let rows = double("p\tok\n", 16);
-    let row = String.append(double("x", 15), String.append("\t", double("x", 15).utf8_slice(1, 32767)));
+    let row = String.append(double("x", 15), String.append("\t", double("x", 15).utf8_slice(1, 32_767)));
     OwnerArtifacts.valid([table(columns(64, []))], [])
         and not OwnerArtifacts.valid([table(columns(65, []))], [])
         and not OwnerArtifacts.valid([table(String.append(double("x", 12), "\tstatus"))], [])

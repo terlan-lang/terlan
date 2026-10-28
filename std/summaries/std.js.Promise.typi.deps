@@ -1,9 +1,0 @@
-module=std.js.Promise
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9618420343954938129
-interface_hash=3522480211819711802
-interface_doc_hash=9445425220887705371
-deps=1
-std.core.Task=611742837558446046

@@ -1,8 +1,0 @@
-module=std.css.keywords.BoundingBox
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=6240734645673375819
-interface_hash=8162167080117125741
-interface_doc_hash=2206770187570785071
-deps=0

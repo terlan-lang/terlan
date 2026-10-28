@@ -1,8 +1,0 @@
-module=std.js.Dom.RTCIceCandidatePair
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=3995366294782764569
-interface_hash=12177798430340610595
-interface_doc_hash=12177798430340610595
-deps=0

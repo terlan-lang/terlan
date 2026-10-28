@@ -70,6 +70,43 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Cursor.
+import std.css.Values.{*}.
+import std.css.keywords.Alias.{*}.
+import std.css.keywords.AllScroll.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Cell.{*}.
+import std.css.keywords.ColResize.{*}.
+import std.css.keywords.ContextMenu.{*}.
+import std.css.keywords.Copy.{*}.
+import std.css.keywords.Crosshair.{*}.
+import std.css.keywords.Default.{*}.
+import std.css.keywords.EResize.{*}.
+import std.css.keywords.EwResize.{*}.
+import std.css.keywords.Grab.{*}.
+import std.css.keywords.Grabbing.{*}.
+import std.css.keywords.Help.{*}.
+import std.css.keywords.Move.{*}.
+import std.css.keywords.NResize.{*}.
+import std.css.keywords.NeResize.{*}.
+import std.css.keywords.NeswResize.{*}.
+import std.css.keywords.NoDrop.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.NotAllowed.{*}.
+import std.css.keywords.NsResize.{*}.
+import std.css.keywords.NwResize.{*}.
+import std.css.keywords.NwseResize.{*}.
+import std.css.keywords.Pointer.{*}.
+import std.css.keywords.Progress.{*}.
+import std.css.keywords.RowResize.{*}.
+import std.css.keywords.SResize.{*}.
+import std.css.keywords.SeResize.{*}.
+import std.css.keywords.SwResize.{*}.
+import std.css.keywords.TextKeyword.{*}.
+import std.css.keywords.VerticalText.{*}.
+import std.css.keywords.WResize.{*}.
+import std.css.keywords.Wait.{*}.
+import std.css.keywords.ZoomIn.{*}.
+import std.css.keywords.ZoomOut.{*}.
 
 pub struct Property {
     cursor: std.css.keywords.Auto | std.css.keywords.Default | std.css.keywords.None | std.css.keywords.ContextMenu | std.css.keywords.Help | std.css.keywords.Pointer | std.css.keywords.Progress | std.css.keywords.Wait | std.css.keywords.Cell | std.css.keywords.Crosshair | std.css.keywords.TextKeyword | std.css.keywords.VerticalText | std.css.keywords.Alias | std.css.keywords.Copy | std.css.keywords.Move | std.css.keywords.NoDrop | std.css.keywords.NotAllowed | std.css.keywords.Grab | std.css.keywords.Grabbing | std.css.keywords.EResize | std.css.keywords.NResize | std.css.keywords.NeResize | std.css.keywords.NwResize | std.css.keywords.SResize | std.css.keywords.SeResize | std.css.keywords.SwResize | std.css.keywords.WResize | std.css.keywords.EwResize | std.css.keywords.NsResize | std.css.keywords.NeswResize | std.css.keywords.NwseResize | std.css.keywords.ColResize | std.css.keywords.RowResize | std.css.keywords.AllScroll | std.css.keywords.ZoomIn | std.css.keywords.ZoomOut | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -1,5 +1,62 @@
 use super::*;
 
+/// Cache sidecars cannot change the dependency closure of reviewed interfaces.
+#[test]
+fn shipped_interface_dependencies_ignore_missing_stale_and_corrupt_sidecars() {
+    let root = tempfile::tempdir().unwrap();
+    let summaries = root.path().join("std/summaries");
+    std::fs::create_dir_all(&summaries).unwrap();
+    let entry = summaries.join("std.fixture.Entry.typi");
+    std::fs::write(
+        &entry,
+        "module std.fixture.Entry.\npub value(): std.fixture.Value.\n",
+    )
+    .unwrap();
+    for name in ["Value", "Other"] {
+        std::fs::write(
+            summaries.join(format!("std.fixture.{name}.typi")),
+            format!("module std.fixture.{name}.\npub opaque type {name}.\n"),
+        )
+        .unwrap();
+    }
+    let active = root.path().join("std/caller.terl");
+    for sidecar in [None, Some("corrupt"), Some("deps=1\nstd.fixture.Other=0\n")] {
+        if let Some(text) = sidecar {
+            std::fs::write(entry.with_extension("typi.deps"), text).unwrap();
+        }
+        let mut interfaces = HashMap::new();
+        load_required_standard_interfaces(
+            &active.to_string_lossy(),
+            BTreeSet::from(["std.fixture.Entry".into()]),
+            &mut interfaces,
+        );
+        assert!(interfaces.contains_key("std.fixture.Value"));
+        assert!(!interfaces.contains_key("std.fixture.Other"));
+    }
+    // Reusing the same path after an API edit must follow the new bytes.
+    std::fs::write(
+        &entry,
+        "module std.fixture.Entry.\npub value(): std.fixture.Other.\n",
+    )
+    .unwrap();
+    let mut interfaces = HashMap::new();
+    load_required_standard_interfaces(
+        &active.to_string_lossy(),
+        BTreeSet::from(["std.fixture.Entry".into()]),
+        &mut interfaces,
+    );
+    assert!(interfaces.contains_key("std.fixture.Other"));
+    assert!(!interfaces.contains_key("std.fixture.Value"));
+    std::fs::write(&entry, "invalid interface").unwrap();
+    let mut interfaces = HashMap::new();
+    load_required_standard_interfaces(
+        &active.to_string_lossy(),
+        BTreeSet::from(["std.fixture.Entry".into()]),
+        &mut interfaces,
+    );
+    assert!(!interfaces.contains_key("std.fixture.Entry"));
+}
+
 /// Installed compilation must include nominal types referenced by imported helpers.
 #[test]
 fn scoped_loading_typechecks_table_helpers_with_transitive_iterator_dependency() {
@@ -20,7 +77,7 @@ fn scoped_loading_typechecks_table_helpers_with_transitive_iterator_dependency()
     );
 }
 
-/// Every embedded dependency is available without consulting checkout files.
+/// Embedded interfaces reference embedded or packaged standard providers.
 #[test]
 fn embedded_catalog_has_valid_complete_dependency_closure() {
     let modules = EMBEDDED_STD_INTERFACES
@@ -32,8 +89,27 @@ fn embedded_catalog_has_valid_complete_dependency_closure() {
         EMBEDDED_STD_INTERFACES.len(),
         "duplicate module identity"
     );
+    // Generated DOM interfaces are intentionally shipped on disk; embedding
+    // two entry points does not embed their entire generated type graph.
+    let packaged = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../std/summaries");
+    let mut available = modules
+        .iter()
+        .map(|name| name.to_string())
+        .collect::<BTreeSet<_>>();
+    for path in std::fs::read_dir(packaged)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+    {
+        if path
+            .extension()
+            .is_some_and(|extension| extension == "typi")
+        {
+            available.insert(path.file_stem().unwrap().to_string_lossy().into_owned());
+        }
+    }
+    let mut missing = Vec::new();
     for entry in EMBEDDED_STD_INTERFACES {
-        let Some(manifest) = entry.dependencies else {
+        if entry.namespace {
             let mut lines = entry.summary.lines();
             assert_eq!(lines.next(), Some(entry.module));
             for line in lines {
@@ -41,20 +117,39 @@ fn embedded_catalog_has_valid_complete_dependency_closure() {
                 assert!(modules.contains(format!("{}.{child}", entry.module).as_str()));
             }
             continue;
-        };
-        let (name, _) = cached_embedded_std_interface(entry.summary)
+        }
+        let (name, interface) = cached_embedded_std_interface(entry.summary)
             .unwrap_or_else(|| panic!("invalid embedded interface {}", entry.module));
         assert_eq!(name, entry.module);
-        let dependencies =
-            parse_interface_dependency_entries(manifest).expect("valid dependency manifest");
-        for (dependency, _) in dependencies {
-            assert!(
-                modules.contains(dependency.as_str()),
-                "{} requires unavailable {dependency}",
-                entry.module
-            );
+        // Bare names in constructor bodies are source-local aliases, not
+        // catalog identities. Qualified references must resolve to providers.
+        for dependency in interface
+            .dependency_modules
+            .iter()
+            .filter(|name| name.contains('.'))
+        {
+            // Qualified nominal references can name either a provider module
+            // or its exported type. Resolve the longest available provider.
+            let mut provider = dependency.as_str();
+            while !available.contains(provider) {
+                let Some((parent, _)) = provider.rsplit_once('.') else {
+                    break;
+                };
+                provider = parent;
+            }
+            let namespace_candidate = interface.dependency_modules.iter().any(|candidate| {
+                candidate.starts_with(&format!("{dependency}."))
+                    && available.contains(candidate.as_str())
+            });
+            if !available.contains(provider) && !namespace_candidate {
+                missing.push(format!(
+                    "{} requires unavailable {dependency}",
+                    entry.module
+                ));
+            }
         }
     }
+    assert!(missing.is_empty(), "{}", missing.join("\n"));
 }
 
 #[test]

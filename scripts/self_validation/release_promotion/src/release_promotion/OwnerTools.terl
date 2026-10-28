@@ -52,8 +52,8 @@ pub run(
             .with_arguments(["-i" | PreparationOwner.environment_arguments(env, [program | args])])
             .with_working_directory(root)
             .with_stdin("")
-            .with_timeout_ms(30000)
-            .with_output_limit_bytes(8388608),
+            .with_timeout_ms(30_000)
+            .with_output_limit_bytes(8_388_608),
     ) {
         Err(reason) -> Err(reason.message);
         Ok(output) ->

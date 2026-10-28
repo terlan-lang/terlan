@@ -17,6 +17,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ViewTimelineAxis.
+import std.css.Values.{*}.
+import std.css.keywords.Block.{*}.
+import std.css.keywords.Inline.{*}.
+import std.css.keywords.X.{*}.
+import std.css.keywords.Y.{*}.
 
 pub struct Property {
     view_timeline_axis: std.css.keywords.Block | std.css.keywords.Inline | std.css.keywords.X | std.css.keywords.Y | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

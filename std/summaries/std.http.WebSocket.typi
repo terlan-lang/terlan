@@ -5,6 +5,11 @@
 //! parsing, backpressure, cancellation, and handler scheduling.
 
 module std.http.WebSocket.
+import std.collections.List.{*}.
+import std.core.Int.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.http.WebSocketIdentity.{*}.
 
 /// CloseFrame represents a request to close the channel.
 ///

@@ -1,8 +1,0 @@
-module=std.js.Dom.HTMLDataListElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10697276014133161304
-interface_hash=16041638028123359946
-interface_doc_hash=16041638028123359946
-deps=0

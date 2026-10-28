@@ -1,8 +1,0 @@
-module=std.css.keywords.Progress
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9533065637273524649
-interface_hash=83155138941738884
-interface_doc_hash=3510609855099492318
-deps=0

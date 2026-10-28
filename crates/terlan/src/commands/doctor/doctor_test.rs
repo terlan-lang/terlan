@@ -24,6 +24,60 @@ fn finding_codes(findings: &[super::DoctorFinding]) -> BTreeSet<&'static str> {
     findings.iter().map(|finding| finding.code).collect()
 }
 
+/// A successful compiler check must not make the same project fail doctor.
+#[test]
+fn doctor_accepts_current_check_outputs_and_reports_actual_cache_mismatches() {
+    let root = doctor_test_dir("current_check_outputs");
+    fs::create_dir_all(root.join("app")).unwrap();
+    let source = root.join("app/Main.terl");
+    fs::write(&source, "module app.Main.\npub value(): Int -> 7.\n").unwrap();
+    for relative in [".terlan", "_build/.terlan"] {
+        let cache = root.join(relative);
+        let state = crate::CliState {
+            cache_dir: Some(cache.clone()),
+            out_dir: root.join("_build"),
+            incremental: true,
+            ..Default::default()
+        };
+        let check =
+            || crate::commands::check::run_check_dir(&root.to_string_lossy(), state.clone(), None);
+        assert_eq!(check(), std::process::ExitCode::SUCCESS);
+        assert!(cache.join("app.Main.typi").is_file());
+        assert!(doctor_project(&root).unwrap().is_empty());
+        let deps = cache.join("app.Main.typi.deps");
+        let original = fs::read_to_string(&deps).unwrap();
+        let stale = original
+            .lines()
+            .map(|line| {
+                if line.starts_with("syntax_contract_fingerprint=") {
+                    "syntax_contract_fingerprint=fnv1a64:0000000000000000"
+                } else {
+                    line
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        fs::write(&deps, stale).unwrap();
+        assert!(finding_codes(&doctor_project(&root).unwrap())
+            .contains("doctor_summary_compiler_mismatch"));
+        assert_eq!(check(), std::process::ExitCode::SUCCESS);
+        assert!(doctor_project(&root).unwrap().is_empty());
+    }
+    fs::create_dir_all(root.join("summaries")).unwrap();
+    fs::write(
+        root.join("summaries/api.typi"),
+        "module api.\npub value(): Int.\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("summaries/std.core.typi"),
+        "std.core\nmodule Int\n",
+    )
+    .unwrap();
+    assert!(doctor_project(&root).unwrap().is_empty());
+    fs::remove_dir_all(root).unwrap();
+}
+
 /// Verifies doctor argument parsing accepts the default project directory.
 ///
 /// Inputs:

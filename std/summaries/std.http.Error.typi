@@ -5,6 +5,7 @@
 //! serialization failures into this target-neutral shape.
 
 module std.http.Error.
+import std.core.Error.{*}.
 
 /// HttpError is the portable error returned by HTTP helpers.
 ///

@@ -1,8 +1,0 @@
-module=std.css.keywords.Saturation
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=5925755745485327736
-interface_hash=13945915295252149912
-interface_doc_hash=13340248346565942039
-deps=0

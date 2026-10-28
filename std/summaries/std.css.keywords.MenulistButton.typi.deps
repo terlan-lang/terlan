@@ -1,8 +1,0 @@
-module=std.css.keywords.MenulistButton
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=5085599833740793415
-interface_hash=8836774276643689883
-interface_doc_hash=5989798945846633026
-deps=0

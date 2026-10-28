@@ -262,7 +262,7 @@ pub(super) fn infer_syntax_remote_call(
                 &schemes,
                 arg_types,
                 arg_names,
-                ctx.aliases,
+                ctx,
                 subst,
                 errors,
             ) {
@@ -284,7 +284,7 @@ pub(super) fn infer_syntax_remote_call(
                 &schemes,
                 arg_types,
                 arg_names,
-                ctx.aliases,
+                ctx,
                 subst,
                 errors,
             ) {

@@ -25,7 +25,7 @@ pub sample_default_security_headers(): SecurityHeaders ->
     SecurityHeaders(true, Deny, StrictOriginWhenCrossOrigin, 0, false).
 
 pub sample_production_security_headers(): SecurityHeaders ->
-    SecurityHeaders(true, Deny, StrictOriginWhenCrossOrigin, 31536000, true).
+    SecurityHeaders(true, Deny, StrictOriginWhenCrossOrigin, 31_536_000, true).
 
 pub sample_json(value: Json): Response ->
     Response.json(value).
@@ -82,7 +82,7 @@ pub sample_cookie_with_options(response: Response): Unit ->
             "abc123",
             path = "/account",
             domain = "example.com",
-            max_age = 3600,
+            max_age = 3_600,
             include_max_age = true,
             expires = "Wed, 21 Oct 2015 07:28:00 GMT",
             http_only = true,
@@ -105,7 +105,7 @@ pub stream_response_has_bounds(value: Response): Bool ->
         and value != Response.stream(["hello", " world"], 200, "text/plain", 4, 8).
 
 pub default_stream_response_has_bounds(value: Response): Bool ->
-    value == Response.stream(["ok"], 200, "application/octet-stream", 16384, 128).
+    value == Response.stream(["ok"], 200, "application/octet-stream", 16_384, 128).
 
 pub status_response_has_metadata(value: Response): Bool ->
     value == Response.text("ok", 202) and value != Response.text("ok", 200).

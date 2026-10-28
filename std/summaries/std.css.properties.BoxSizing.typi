@@ -26,6 +26,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BoxSizing.
+import std.css.Values.{*}.
+import std.css.keywords.BorderBox.{*}.
+import std.css.keywords.ContentBox.{*}.
 
 pub struct Property {
     box_sizing: std.css.keywords.ContentBox | std.css.keywords.BorderBox | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

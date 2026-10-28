@@ -379,7 +379,7 @@ pad_four(value: Int): String ->
     if {
         value < 10 -> String.concat(["000", Int.to_string(value)]);
         value < 100 -> String.concat(["00", Int.to_string(value)]);
-        value < 1000 -> String.concat(["0", Int.to_string(value)]);
+        value < 1_000 -> String.concat(["0", Int.to_string(value)]);
         true -> Int.to_string(value)
     }.
 
@@ -393,9 +393,9 @@ trim_fraction(value: String): String ->
 
 @pure
 ratio_text(numerator: Int, denominator: Int): String ->
-    let scaled = (numerator * 10000 + denominator / 2) / denominator;
-    let whole = scaled / 10000;
-    let fraction = trim_fraction(pad_four(scaled - whole * 10000));
+    let scaled = (numerator * 10_000 + denominator / 2) / denominator;
+    let whole = scaled / 10_000;
+    let fraction = trim_fraction(pad_four(scaled - whole * 10_000));
     if {
         fraction == "" -> Int.to_string(whole);
         true -> String.concat([Int.to_string(whole), ".", fraction])
@@ -597,9 +597,9 @@ process_command(root: String, scenario: Scenario): std.system.Process.Command ->
                 Process.with_arguments(Process.command("cargo"), scenario.arguments),
                 root,
             ),
-            900000,
+            900_000,
         ),
-        8388608,
+        8_388_608,
     ).
 
 copy_artifact(
@@ -659,7 +659,7 @@ complete_process(
                     root,
                     artifact_directory,
                     scenario,
-                    (Clock.monotonic_time_ns() - started) / 1000000,
+                    (Clock.monotonic_time_ns() - started) / 1_000_000,
                 )
             }
     }.
@@ -677,7 +677,7 @@ run_touched(root: String, artifact_directory: String, scenario: Scenario): Measu
             case File.set_timestamps(
                 path,
                 original.accessed_unix_ns,
-                original.modified_unix_ns + 1000000000,
+                original.modified_unix_ns + 1_000_000_000,
             ) {
                 Err(reason) -> measurement_failure(reason.message);
                 Ok(_touched) ->
@@ -825,9 +825,9 @@ process_text(root: String, program: String, arguments: List[String]): String ->
                     Process.with_arguments(Process.command(program), arguments),
                     root,
                 ),
-                30000,
+                30_000,
             ),
-            1048576,
+            1_048_576,
         ),
     ) {
         Err(_reason) -> "";

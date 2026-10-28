@@ -34,6 +34,14 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantCaps.
+import std.css.Values.{*}.
+import std.css.keywords.AllPetiteCaps.{*}.
+import std.css.keywords.AllSmallCaps.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.PetiteCaps.{*}.
+import std.css.keywords.SmallCaps.{*}.
+import std.css.keywords.TitlingCaps.{*}.
+import std.css.keywords.Unicase.{*}.
 
 pub struct Property {
     font_variant_caps: std.css.keywords.Normal | std.css.keywords.SmallCaps | std.css.keywords.AllSmallCaps | std.css.keywords.PetiteCaps | std.css.keywords.AllPetiteCaps | std.css.keywords.Unicase | std.css.keywords.TitlingCaps | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

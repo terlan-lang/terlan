@@ -220,7 +220,7 @@ timing_row(
             let p95 = max3(first.wall_time_ns, second.wall_time_ns, third.wall_time_ns);
             let throughput =
                 if {
-                    p50 > 0 -> work_count * 1000000000 / p50;
+                    p50 > 0 -> work_count * 1_000_000_000 / p50;
                     true -> 0
                 };
             Json.object()

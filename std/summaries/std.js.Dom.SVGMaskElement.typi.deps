@@ -1,8 +1,0 @@
-module=std.js.Dom.SVGMaskElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10355717654409503606
-interface_hash=8762337192376550516
-interface_doc_hash=8762337192376550516
-deps=0

@@ -1,8 +1,0 @@
-module=std.css.keywords.PanUp
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15238986600449858760
-interface_hash=13141377352177898998
-interface_doc_hash=10464083902528663136
-deps=0

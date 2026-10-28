@@ -56,7 +56,7 @@ artifact_image_relative_path(): String ->
 artifact_image_path(repository: String): String ->
     Support.child(repository, artifact_image_relative_path()).
 
-artifact_size_maximum_bytes(): Int -> 134217728.
+artifact_size_maximum_bytes(): Int -> 134_217_728.
 
 process_environment(installed: String): List[EnvironmentEntry] ->
     [
@@ -115,9 +115,9 @@ smoke_command(installed: String, smoke: Smoke): Command ->
                 Process.with_arguments(Process.command("node"), [smoke.script]),
                 Support.child(installed, smoke.root),
             ),
-            60000,
+            60_000,
         ),
-        8388608,
+        8_388_608,
     ).
 
 smoke_commands(installed: String, pending: List[Smoke]): List[Command] ->

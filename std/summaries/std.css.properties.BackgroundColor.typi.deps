@@ -1,9 +1,0 @@
-module=std.css.properties.BackgroundColor
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15289729713962116717
-interface_hash=4994169591251756606
-interface_doc_hash=16553630709404673258
-deps=1
-std.css.Values=2905925857807311325

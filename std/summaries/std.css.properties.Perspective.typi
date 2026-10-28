@@ -19,6 +19,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Perspective.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.None.{*}.
 
 pub opaque type Checked.
 

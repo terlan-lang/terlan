@@ -342,15 +342,7 @@ fn require_children(
 }
 
 fn parse_int(text: &str) -> Option<i64> {
-    if let Some(value) = text.strip_prefix("0b") {
-        i64::from_str_radix(value, 2).ok()
-    } else if let Some(value) = text.strip_prefix("0x") {
-        i64::from_str_radix(value, 16).ok()
-    } else if let Some(value) = text.strip_prefix("0o") {
-        i64::from_str_radix(value, 8).ok()
-    } else {
-        text.parse().ok()
-    }
+    crate::terlan_syntax::integer_literals::parse_integer(text)
 }
 
 pub(super) fn unquote(text: &str) -> Option<String> {

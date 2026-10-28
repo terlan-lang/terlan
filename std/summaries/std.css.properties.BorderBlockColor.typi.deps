@@ -1,9 +1,0 @@
-module=std.css.properties.BorderBlockColor
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=17017867266741072437
-interface_hash=11480368514031947917
-interface_doc_hash=10618660543088255163
-deps=1
-std.css.Values=2905925857807311325

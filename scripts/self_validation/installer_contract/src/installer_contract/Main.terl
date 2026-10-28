@@ -157,8 +157,8 @@ installer_command(root: String, environment: List[EnvironmentEntry]): Command ->
         .with_arguments(["install.sh"])
         .with_working_directory(root)
         .with_environment(environment)
-        .with_timeout_ms(60000)
-        .with_output_limit_bytes(1048576).
+        .with_timeout_ms(60_000)
+        .with_output_limit_bytes(1_048_576).
 
 fail(message: String): Bool ->
     let _printed = println(String.append("installer contract: ", message));

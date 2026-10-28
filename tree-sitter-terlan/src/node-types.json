@@ -340,6 +340,11 @@
     }
   },
   {
+    "type": "binary_layout_width",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "call_expression",
     "named": true,
     "fields": {},
@@ -1505,6 +1510,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "number",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "parameter",
@@ -2805,10 +2815,6 @@
     "named": false
   },
   {
-    "type": "binary_layout_width",
-    "named": true
-  },
-  {
     "type": "block_comment",
     "named": true
   },
@@ -2887,10 +2893,6 @@
   {
     "type": "not",
     "named": false
-  },
-  {
-    "type": "number",
-    "named": true
   },
   {
     "type": "opaque",

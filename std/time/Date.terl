@@ -75,7 +75,7 @@ pub to_iso(date: Date): String ->
  * Returns today's date in UTC through the package-owned wall clock.
  */
 pub today_utc(): Date ->
-    from_epoch_days(floor_div(Clock.unix_time_ns(), 86400000000000)).
+    from_epoch_days(floor_div(Clock.unix_time_ns(), 86_400_000_000_000)).
 
 /**
  * Returns signed whole days from `start` to `end`.
@@ -101,7 +101,7 @@ pub equal(left: Date, right: Date): Bool ->
 @pure
 valid_components(year_value: Int, month_value: Int, day_value: Int): Bool ->
     year_value >= 1
-        and year_value <= 9999
+        and year_value <= 9_999
         and month_value >= 1
         and month_value <= 12
         and day_value >= 1
@@ -132,7 +132,7 @@ padded_year(value: Int): String ->
     if {
         value < 10 -> String.append("000", Int.to_string(value));
         value < 100 -> String.append("00", Int.to_string(value));
-        value < 1000 -> String.append("0", Int.to_string(value));
+        value < 1_000 -> String.append("0", Int.to_string(value));
         true -> Int.to_string(value)
     }.
 
@@ -160,14 +160,14 @@ to_epoch_days(date: Date): Int ->
         };
     let day_of_year = (153 * adjusted_month + 2) / 5 + date.day - 1;
     let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    era * 146097 + day_of_era - 719468.
+    era * 146_097 + day_of_era - 719_468.
 
 @pure
 from_epoch_days(days: Int): Date ->
-    let shifted = days + 719468;
-    let era = floor_div(shifted, 146097);
-    let day_of_era = shifted - era * 146097;
-    let year_of_era = (day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096) / 365;
+    let shifted = days + 719_468;
+    let era = floor_div(shifted, 146_097);
+    let day_of_era = shifted - era * 146_097;
+    let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
     let base_year = year_of_era + era * 400;
     let day_of_year = day_of_era - (year_of_era * 365 + year_of_era / 4 - year_of_era / 100);
     let month_part = (5 * day_of_year + 2) / 153;

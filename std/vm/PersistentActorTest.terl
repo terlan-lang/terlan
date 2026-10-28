@@ -66,10 +66,10 @@ pub accepts_package_migration(registration: PackageMigrationRegistration): Bool 
 ).
 
 pub accepts_timer_restore(checkpoint: TimerCheckpoint, plan: TimerRestorePlan): Bool ->
-    checkpoint == PersistentActor.timer_checkpoint(order_actor(), "payment-timeout", 30000)
+    checkpoint == PersistentActor.timer_checkpoint(order_actor(), "payment-timeout", 30_000)
         and plan != PersistentActor.restore_timer(
     order_actor(),
-    PersistentActor.timer_checkpoint(order_actor(), "payment-timeout", 30001),
+    PersistentActor.timer_checkpoint(order_actor(), "payment-timeout", 30_001),
 ).
 
 pub accepts_package_store(binding: PackageStoreBinding): Bool ->
@@ -148,12 +148,12 @@ pub accepts_actor_family_retention_defaults(defaults: ActorFamilyRetentionDefaul
     defaults == PersistentActor.family_retention_defaults(
     "OrderActor",
     PersistentActor.retention_policy(10, 1, 1),
-    PersistentActor.retention_policy(1000, 500, 750),
+    PersistentActor.retention_policy(1_000, 500, 750),
 )
         and defaults != PersistentActor.family_retention_defaults(
     "OtherActor",
     PersistentActor.retention_policy(10, 1, 1),
-    PersistentActor.retention_policy(1000, 500, 750),
+    PersistentActor.retention_policy(1_000, 500, 750),
 ).
 
 pub accepts_audit_retention(plan: AuditRetentionPlan): Bool ->
@@ -203,7 +203,7 @@ pub resource_restore_plan_is_source_visible(): Bool ->
 @test
 pub timer_restore_plan_is_source_visible(): Bool ->
     let actor = order_actor();
-    let checkpoint = PersistentActor.timer_checkpoint(actor, "payment-timeout", 30000);
+    let checkpoint = PersistentActor.timer_checkpoint(actor, "payment-timeout", 30_000);
     let restore = PersistentActor.restore_timer(actor, checkpoint);
     accepts_timer_restore(checkpoint, restore).
 
@@ -307,7 +307,7 @@ pub retention_policy_is_source_visible(): Bool ->
 @test
 pub actor_family_retention_defaults_are_source_visible(): Bool ->
     let local = PersistentActor.retention_policy(10, 1, 1);
-    let production = PersistentActor.retention_policy(1000, 500, 750);
+    let production = PersistentActor.retention_policy(1_000, 500, 750);
     let defaults = PersistentActor.family_retention_defaults("OrderActor", local, production);
     accepts_actor_family_retention_defaults(defaults).
 

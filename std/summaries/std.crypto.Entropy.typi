@@ -2,6 +2,7 @@
 //! of seeded random generators; failure never falls back to predictable data.
 
 module std.crypto.Entropy.
+import std.vm.Bytes.{*}.
 
 /// Acquires fresh entropy from the operating system.
 ///

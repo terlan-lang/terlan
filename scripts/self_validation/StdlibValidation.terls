@@ -118,9 +118,9 @@ bounded_test(repository: String, arguments: List[String]): Command ->
                 Process.with_arguments(Process.command(compiler(repository)), arguments),
                 repository,
             ),
-            120000,
+            120_000,
         ),
-        4194304,
+        4_194_304,
     ).
 
 combined(output: Output): String ->
@@ -331,7 +331,7 @@ core_backend_sources(repository: String): Bool ->
                 [".terl"],
                 List.new[String](),
                 0,
-                4096,
+                4_096,
             );
         Ok(pattern) <-
             Regex.compile(

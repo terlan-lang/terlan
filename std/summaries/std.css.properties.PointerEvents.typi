@@ -62,6 +62,18 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PointerEvents.
+import std.css.Values.{*}.
+import std.css.keywords.All.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.BoundingBox.{*}.
+import std.css.keywords.Fill.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Painted.{*}.
+import std.css.keywords.Stroke.{*}.
+import std.css.keywords.Visible.{*}.
+import std.css.keywords.VisibleFill.{*}.
+import std.css.keywords.VisiblePainted.{*}.
+import std.css.keywords.VisibleStroke.{*}.
 
 pub struct Property {
     pointer_events: std.css.keywords.Auto | std.css.keywords.BoundingBox | std.css.keywords.VisiblePainted | std.css.keywords.VisibleFill | std.css.keywords.VisibleStroke | std.css.keywords.Visible | std.css.keywords.Painted | std.css.keywords.Fill | std.css.keywords.Stroke | std.css.keywords.All | std.css.keywords.None | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

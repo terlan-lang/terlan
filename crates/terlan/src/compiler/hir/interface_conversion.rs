@@ -302,6 +302,7 @@ pub(super) fn syntax_module_output_to_prepared_interface(
     }
 
     ModuleInterface {
+        dependency_modules: crate::terlan_syntax::syntax_dependency_modules(module),
         module: module.module_name.clone(),
         docs: module.docs.clone(),
         public_types,

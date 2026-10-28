@@ -233,30 +233,23 @@ printf '{}\n' > target/quality/tvm-managed-list-profile.json
 }
 
 #[test]
-fn repository_report_consumer_requires_the_reviewed_cargo_budget() {
+fn repository_report_consumer_propagates_typed_validation_failures() {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let source = fs::read_to_string(repository.join("Makefile")).unwrap();
-    for maximum in [6, 8, 9] {
+    for failure in ["", "build-release-contract", "build-plan-report"] {
         let fixture = fixture();
         fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
-        let report = serde_json::json!({
-            "decision":"pass", "duplicate_equivalent_build_count":0,
-            "terlc_test_invocation_count":0, "terlc_test_invocation_maximum":32,
-            "terlc_build_invocation_maximum":18, "incremental_terlc_build_invocation_count":0,
-            "lifecycle_partial_check_count":2, "cargo_invocation_maximum":maximum,
-            "typed_validator_request_maximum":19, "typed_validator_parallelism_maximum":2,
-        });
+        // Policy semantics belong to the typed validator's adversarial tests.
+        // This boundary must invoke it and propagate either command's failure.
         fs::write(
-            fixture
-                .0
-                .join("target/quality/validation-build-plan-report.json"),
-            serde_json::to_string_pretty(&report).unwrap(),
+            fixture.0.join("validator.sh"),
+            "set -eu\nprintf '%s\\n' \"$1\" >> calls\ntest \"$1\" != \"$FAIL_VALIDATION\"\ncase \"$1\" in\n  build-release-contract) printf 'report\\n' > target/quality/validation-build-plan-report.json ;;\n  build-plan-report) test -s target/quality/validation-build-plan-report.json ;;\n  *) exit 90 ;;\nesac\n",
         )
         .unwrap();
         fs::write(
             fixture.0.join("Makefile"),
             format!(
-                "TERLAN_REPOSITORY_VALIDATION := true\nterlan-repository-validation-bootstrap:\n{}",
+                "TERLAN_REPOSITORY_VALIDATION := bash validator.sh\nterlan-repository-validation-bootstrap:\n{}",
                 rule(&source, "repository-build-release-contract-check"),
             ),
         )
@@ -270,12 +263,22 @@ fn repository_report_consumer_requires_the_reviewed_cargo_budget() {
             ])
             .env_remove("MAKEFLAGS")
             .env_remove("MAKEOVERRIDES")
-            .env_remove("MFLAGS");
+            .env_remove("MFLAGS")
+            .env("FAIL_VALIDATION", failure);
         let result = ProcessControl::new(Duration::from_secs(10)).run(&mut command, |_| Ok(()));
         assert_eq!(
             result.is_ok(),
-            maximum == 8,
-            "wrong report budget {maximum}"
+            failure.is_empty(),
+            "wrong validation outcome for {failure}"
+        );
+        let expected = if failure == "build-release-contract" {
+            "build-release-contract\n"
+        } else {
+            "build-release-contract\nbuild-plan-report\n"
+        };
+        assert_eq!(
+            fs::read_to_string(fixture.0.join("calls")).unwrap(),
+            expected
         );
     }
 }

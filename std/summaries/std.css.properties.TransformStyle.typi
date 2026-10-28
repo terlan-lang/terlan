@@ -21,6 +21,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TransformStyle.
+import std.css.Values.{*}.
+import std.css.keywords.Flat.{*}.
+import std.css.keywords.Preserve3d.{*}.
 
 pub struct Property {
     transform_style: std.css.keywords.Flat | std.css.keywords.Preserve3d | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

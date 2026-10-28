@@ -5,6 +5,8 @@
 //! ordinary annotated types and traits instead of source-level actor syntax.
 
 module std.vm.Process.
+import std.core.Unit.{*}.
+import std.vm.Message.{*}.
 
 /// Entry identifies one image-local process entry point.
 ///

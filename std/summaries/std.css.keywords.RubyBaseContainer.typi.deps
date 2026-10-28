@@ -1,8 +1,0 @@
-module=std.css.keywords.RubyBaseContainer
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=14478596284343632905
-interface_hash=8004121945178831008
-interface_doc_hash=9562134252130681687
-deps=0

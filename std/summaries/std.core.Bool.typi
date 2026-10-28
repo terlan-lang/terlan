@@ -4,6 +4,8 @@
 //! implementations for `Bool`.
 
 module std.core.Bool.
+import std.core.Option.{*}.
+import std.core.Ordering.{*}.
 
 /// Compares two `Bool` values using the canonical total ordering.
 ///

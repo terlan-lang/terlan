@@ -4,6 +4,7 @@
 //! duration value for receive, socket, and port operations.
 
 module std.vm.Timeout.
+import std.core.Option.{*}.
 
 /// Timeout represents a millisecond timeout value.
 ///

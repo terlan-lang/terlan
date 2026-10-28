@@ -1,8 +1,0 @@
-module=std.css.keywords.VisibleStroke
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=13207588515370333246
-interface_hash=2815283633634926726
-interface_doc_hash=4987110782503322966
-deps=0

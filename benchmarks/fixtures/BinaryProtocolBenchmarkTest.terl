@@ -52,7 +52,7 @@ pub fixed_header_shape(): ProtocolShape ->
 pub fixed_header_value(): DecodedProtocol ->
     benchmark_protocol(
         List(
-            benchmark_int_field("request_id", 16909060),
+            benchmark_int_field("request_id", 16_909_060),
             benchmark_int_field("flags", 5),
             benchmark_int_field("sequence", 258),
             benchmark_bytes_field("checksum", Bytes.from_list([170, 187])),
@@ -70,7 +70,7 @@ pub repeat_fixed_header(count: Int): Bool ->
             _ -> false
         };
         assert_equal(Bytes.from_list([1, 2, 3, 4, 5, 1, 2, 170, 187]), frame)
-            and option_int_equals(decoded_protocol_int_value(decoded, "request_id"), 16909060)
+            and option_int_equals(decoded_protocol_int_value(decoded, "request_id"), 16_909_060)
             and option_bytes_equals(decoded_protocol_bytes_value(decoded, "checksum"), Bytes.from_list([170, 187]))
             and decoded_protocol_remaining_bytes(decoded).length() == 0
             and repeat_fixed_header(count - 1)
@@ -80,12 +80,12 @@ pub repeat_fixed_header_100(): Bool ->
     repeat_fixed_header(100).
 
 pub repeat_fixed_header_1000(): Bool ->
-    repeat_fixed_header(1000).
+    repeat_fixed_header(1_000).
 
 pub variable_body_value(length: Int, body: std.vm.Bytes): DecodedProtocol ->
     benchmark_protocol(
         List(
-            benchmark_int_field("stream_id", 4660),
+            benchmark_int_field("stream_id", 4_660),
             benchmark_int_field("flags", 5),
             benchmark_int_field("version", 1),
             benchmark_int_field("kind", 2),
@@ -108,7 +108,7 @@ pub repeat_variable_body(shape: ProtocolShape, count: Int): Bool ->
         };
         assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 1, 170]), short_frame)
             and assert_equal(Bytes.from_list([18, 52, 5, 18, 0, 4, 170, 187, 204, 221]), long_frame)
-            and option_int_equals(decoded_protocol_int_value(decoded, "stream_id"), 4660)
+            and option_int_equals(decoded_protocol_int_value(decoded, "stream_id"), 4_660)
             and option_int_equals(decoded_protocol_int_value(decoded, "length"), 4)
             and assert_equal(Bytes.from_list([170, 187, 204, 221]), decoded_protocol_remaining_bytes(decoded))
             and repeat_variable_body(shape, count - 1)
@@ -118,12 +118,12 @@ pub repeat_variable_body_100(shape: ProtocolShape): Bool ->
     repeat_variable_body(shape, 100).
 
 pub repeat_variable_body_1000(shape: ProtocolShape): Bool ->
-    repeat_variable_body(shape, 1000).
+    repeat_variable_body(shape, 1_000).
 
 pub invalid_fixed_header_value(): DecodedProtocol ->
     benchmark_protocol(
         List(
-            benchmark_int_field("request_id", 16909060),
+            benchmark_int_field("request_id", 16_909_060),
             benchmark_int_field("flags", 256),
             benchmark_int_field("sequence", 258),
             benchmark_bytes_field("checksum", Bytes.from_list([170, 187])),
@@ -144,7 +144,7 @@ pub repeat_invalid_width_100(): Bool ->
     repeat_invalid_width(100).
 
 pub repeat_invalid_width_1000(): Bool ->
-    repeat_invalid_width(1000).
+    repeat_invalid_width(1_000).
 
 pub duplicate_capture_shape(): ProtocolShape ->
     protocol_shape(
@@ -168,7 +168,7 @@ pub repeat_duplicate_capture_100(): Bool ->
     repeat_duplicate_capture(100).
 
 pub repeat_duplicate_capture_1000(): Bool ->
-    repeat_duplicate_capture(1000).
+    repeat_duplicate_capture(1_000).
 
 pub repeat_unsupported_backend(count: Int): Bool ->
     if {
@@ -184,7 +184,7 @@ pub repeat_unsupported_backend_100(): Bool ->
     repeat_unsupported_backend(100).
 
 pub repeat_unsupported_backend_1000(): Bool ->
-    repeat_unsupported_backend(1000).
+    repeat_unsupported_backend(1_000).
 
 pub variable_body_shape(): Result[ProtocolShape, BinaryConstructError] ->
     let header =

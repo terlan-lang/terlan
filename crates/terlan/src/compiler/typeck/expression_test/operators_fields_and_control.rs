@@ -1,6 +1,74 @@
 use super::*;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+/// Fresh constructor variables must not capture a later field's live binding.
+#[test]
+fn option_of_struct_field_does_not_pollute_following_field_type() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module option_struct_field.\n\
+import std.core.Option.{None, Some}.\n\
+import type std.core.Option.\n\
+pub struct Price { micros: Int }.\n\
+pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 2.\n\
+pub struct Intent { limit_price: Option[Price], time_in_force: TimeInForce }.\n\
+pub build(requested_price: Price, time_in_force: TimeInForce): Intent ->\n\
+    Intent {limit_price: Some(requested_price), time_in_force: time_in_force}.\n\
+",
+        "std/core/Option.terl",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
+fn generic_calls_keep_unrelated_locals_across_field_orders_and_bindings() {
+    let prefix = "module generic_field_scope.\nimport std.core.Option.{None, Some}.\nimport type std.core.Option.\npub struct Price { micros: Int }.\npub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 2.\npub struct Intent { limit_price: Option[Price], time_in_force: TimeInForce }.\npub identity[T](value: T): T -> value.\npub build(requested_price: Price, time_in_force: TimeInForce): Intent -> ";
+    for body in [
+        "Intent {time_in_force: time_in_force, limit_price: Some(requested_price)}.",
+        "let price = Some(requested_price); Intent {limit_price: price, time_in_force: time_in_force}.",
+        "let price = identity(requested_price); Intent {limit_price: Some(price), time_in_force: time_in_force}.",
+    ] {
+        let diagnostics = check_syntax_output_with_std_interfaces(&format!("{prefix}{body}"), "std/core/Option.terl");
+        assert!(diagnostics.is_empty(), "{body}: {diagnostics:?}");
+    }
+    let diagnostics = check_syntax_output_with_std_interfaces(&format!("{prefix}Intent {{limit_price: Some(requested_price), time_in_force: requested_price}}."), "std/core/Option.terl");
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("TimeInForce")
+                && diagnostic.message.contains("Price")),
+        "invalid field accepted: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn fresh_generics_preserve_shared_constraints_and_independent_unbound_results() {
+    let source = "module generic_scope.Main.\nimport std.core.Option.{None, Some}.\nimport type std.core.Option.\npub struct Pair[T] { first: T, second: T }.\npub pair[T](left: T, right: T): Pair[T] -> Pair {first: left, second: right}.\npub independent(): {Option[Int], Option[String]} -> {None, None}.\n";
+    let diagnostics = check_syntax_output_with_std_interfaces(source, "std/core/Option.terl");
+    assert!(
+        diagnostics.is_empty(),
+        "valid shared and independent generics: {diagnostics:?}"
+    );
+    let invalid =
+        format!("{source}\npub invalid(): Pair[Int] -> Pair {{first: 1, second: \"wrong\"}}.\n");
+    let diagnostics = check_syntax_output_with_std_interfaces(&invalid, "std/core/Option.terl");
+    assert!(
+        !diagnostics.is_empty(),
+        "shared generic field constraint was discarded"
+    );
+    let callbacks = check_syntax_output("module callback_scope.Main.\npub callbacks(): {(Int) -> Int, (String) -> String} -> {(value: T) -> value, (value: U) -> value}.\n");
+    assert!(
+        callbacks.is_empty(),
+        "independent lambda variables collided: {callbacks:?}"
+    );
+    let callbacks = check_syntax_output("module callback_values.Main.\npub identity[T](value: T): T -> value.\npub callbacks(): {(Int) -> Int, (String) -> String} -> {identity, identity}.\n");
+    assert!(
+        callbacks.is_empty(),
+        "independent function values collided: {callbacks:?}"
+    );
+}
+
 /// Case and if results must satisfy the return annotation on every branch.
 #[test]
 fn syntax_output_return_annotation_checks_all_control_flow_branches() {

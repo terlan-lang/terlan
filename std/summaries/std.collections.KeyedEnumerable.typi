@@ -4,6 +4,11 @@
 //! collection transformations that preserve the key channel.
 
 module std.collections.KeyedEnumerable.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.collections.Map.{*}.
+import std.core.Option.{*}.
+import std.core.Unit.{*}.
 
 /// KeyedEnumerable connects a binary key-value collection constructor `C[_, _]`
 /// to collection-preserving transformations.

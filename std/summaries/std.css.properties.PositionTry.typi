@@ -38,6 +38,63 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.PositionTry.
+import std.css.Values.{*}.
+import std.css.keywords.BlockEnd.{*}.
+import std.css.keywords.BlockStart.{*}.
+import std.css.keywords.Bottom.{*}.
+import std.css.keywords.Center.{*}.
+import std.css.keywords.End.{*}.
+import std.css.keywords.FlipBlock.{*}.
+import std.css.keywords.FlipInline.{*}.
+import std.css.keywords.FlipStart.{*}.
+import std.css.keywords.FlipX.{*}.
+import std.css.keywords.FlipY.{*}.
+import std.css.keywords.InlineEnd.{*}.
+import std.css.keywords.InlineStart.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Right.{*}.
+import std.css.keywords.SelfBlockEnd.{*}.
+import std.css.keywords.SelfBlockStart.{*}.
+import std.css.keywords.SelfEnd.{*}.
+import std.css.keywords.SelfInlineEnd.{*}.
+import std.css.keywords.SelfInlineStart.{*}.
+import std.css.keywords.SelfStart.{*}.
+import std.css.keywords.SelfXEnd.{*}.
+import std.css.keywords.SelfXStart.{*}.
+import std.css.keywords.SelfYEnd.{*}.
+import std.css.keywords.SelfYStart.{*}.
+import std.css.keywords.SpanAll.{*}.
+import std.css.keywords.SpanBlockEnd.{*}.
+import std.css.keywords.SpanBlockStart.{*}.
+import std.css.keywords.SpanBottom.{*}.
+import std.css.keywords.SpanEnd.{*}.
+import std.css.keywords.SpanInlineEnd.{*}.
+import std.css.keywords.SpanInlineStart.{*}.
+import std.css.keywords.SpanLeft.{*}.
+import std.css.keywords.SpanRight.{*}.
+import std.css.keywords.SpanSelfBlockEnd.{*}.
+import std.css.keywords.SpanSelfBlockStart.{*}.
+import std.css.keywords.SpanSelfEnd.{*}.
+import std.css.keywords.SpanSelfInlineEnd.{*}.
+import std.css.keywords.SpanSelfInlineStart.{*}.
+import std.css.keywords.SpanSelfStart.{*}.
+import std.css.keywords.SpanSelfXEnd.{*}.
+import std.css.keywords.SpanSelfXStart.{*}.
+import std.css.keywords.SpanSelfYEnd.{*}.
+import std.css.keywords.SpanSelfYStart.{*}.
+import std.css.keywords.SpanStart.{*}.
+import std.css.keywords.SpanTop.{*}.
+import std.css.keywords.SpanXEnd.{*}.
+import std.css.keywords.SpanXStart.{*}.
+import std.css.keywords.SpanYEnd.{*}.
+import std.css.keywords.SpanYStart.{*}.
+import std.css.keywords.Start.{*}.
+import std.css.keywords.Top.{*}.
+import std.css.keywords.XEnd.{*}.
+import std.css.keywords.XStart.{*}.
+import std.css.keywords.YEnd.{*}.
+import std.css.keywords.YStart.{*}.
 
 pub struct Property {
     position_try: std.css.keywords.None | std.css.keywords.FlipBlock | std.css.keywords.FlipInline | std.css.keywords.FlipStart | std.css.keywords.FlipX | std.css.keywords.FlipY | std.css.keywords.Left | std.css.keywords.Center | std.css.keywords.Right | std.css.keywords.SpanLeft | std.css.keywords.SpanRight | std.css.keywords.XStart | std.css.keywords.XEnd | std.css.keywords.SpanXStart | std.css.keywords.SpanXEnd | std.css.keywords.SelfXStart | std.css.keywords.SelfXEnd | std.css.keywords.SpanSelfXStart | std.css.keywords.SpanSelfXEnd | std.css.keywords.SpanAll | std.css.keywords.Top | std.css.keywords.Bottom | std.css.keywords.SpanTop | std.css.keywords.SpanBottom | std.css.keywords.YStart | std.css.keywords.YEnd | std.css.keywords.SpanYStart | std.css.keywords.SpanYEnd | std.css.keywords.SelfYStart | std.css.keywords.SelfYEnd | std.css.keywords.SpanSelfYStart | std.css.keywords.SpanSelfYEnd | std.css.keywords.BlockStart | std.css.keywords.BlockEnd | std.css.keywords.SpanBlockStart | std.css.keywords.SpanBlockEnd | std.css.keywords.InlineStart | std.css.keywords.InlineEnd | std.css.keywords.SpanInlineStart | std.css.keywords.SpanInlineEnd | std.css.keywords.SelfBlockStart | std.css.keywords.SelfBlockEnd | std.css.keywords.SpanSelfBlockStart | std.css.keywords.SpanSelfBlockEnd | std.css.keywords.SelfInlineStart | std.css.keywords.SelfInlineEnd | std.css.keywords.SpanSelfInlineStart | std.css.keywords.SpanSelfInlineEnd | std.css.keywords.Start | std.css.keywords.End | std.css.keywords.SpanStart | std.css.keywords.SpanEnd | std.css.keywords.SelfStart | std.css.keywords.SelfEnd | std.css.keywords.SpanSelfStart | std.css.keywords.SpanSelfEnd | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -27,14 +27,14 @@ pub(super) fn imported_interface_loading_reads_exact_dependency_closure() {
     fs::write(&source_path, source).expect("write source fixture");
     fs::write(
         summaries.join("std.demo.Provider.typi"),
-        "module std.demo.Provider.\n\npub run(): Int.\n",
+        "module std.demo.Provider.\n\npub run(): std.demo.Dependency.Value.\n",
     )
     .expect("write provider summary");
     fs::write(
         summaries.join("std.demo.Provider.typi.deps"),
-        "deps=1\nstd.demo.Dependency=1\n",
+        "deps=1\nstd.demo.Unrelated=1\n",
     )
-    .expect("write provider dependency manifest");
+    .expect("write stale sidecar pointing at an unrelated provider");
     fs::write(
         summaries.join("std.demo.Dependency.typi"),
         "module std.demo.Dependency.\n\npub type Value = Int.\n",

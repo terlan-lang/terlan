@@ -30,6 +30,14 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationLine.
+import std.css.Values.{*}.
+import std.css.keywords.Blink.{*}.
+import std.css.keywords.GrammarError.{*}.
+import std.css.keywords.LineThrough.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Overline.{*}.
+import std.css.keywords.SpellingError.{*}.
+import std.css.keywords.Underline.{*}.
 
 pub struct Property {
     text_decoration_line: std.css.keywords.None | std.css.keywords.Underline | std.css.keywords.Overline | std.css.keywords.LineThrough | std.css.keywords.Blink | std.css.keywords.SpellingError | std.css.keywords.GrammarError | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

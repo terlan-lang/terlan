@@ -42,6 +42,23 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundBlendMode.
+import std.css.Values.{*}.
+import std.css.keywords.ColorBurn.{*}.
+import std.css.keywords.ColorDodge.{*}.
+import std.css.keywords.ColorKeyword.{*}.
+import std.css.keywords.Darken.{*}.
+import std.css.keywords.Difference.{*}.
+import std.css.keywords.Exclusion.{*}.
+import std.css.keywords.HardLight.{*}.
+import std.css.keywords.Hue.{*}.
+import std.css.keywords.Lighten.{*}.
+import std.css.keywords.Luminosity.{*}.
+import std.css.keywords.Multiply.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.Overlay.{*}.
+import std.css.keywords.Saturation.{*}.
+import std.css.keywords.Screen.{*}.
+import std.css.keywords.SoftLight.{*}.
 
 pub struct Property {
     background_blend_mode: std.css.keywords.Normal | std.css.keywords.Darken | std.css.keywords.Multiply | std.css.keywords.ColorBurn | std.css.keywords.Lighten | std.css.keywords.Screen | std.css.keywords.ColorDodge | std.css.keywords.Overlay | std.css.keywords.SoftLight | std.css.keywords.HardLight | std.css.keywords.Difference | std.css.keywords.Exclusion | std.css.keywords.Hue | std.css.keywords.Saturation | std.css.keywords.ColorKeyword | std.css.keywords.Luminosity | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

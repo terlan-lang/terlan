@@ -1,8 +1,0 @@
-module=std.css.keywords.Bar
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=5689030578735597169
-interface_hash=17183318805344118182
-interface_doc_hash=16624614846350946710
-deps=0

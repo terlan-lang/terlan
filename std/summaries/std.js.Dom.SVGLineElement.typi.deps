@@ -1,8 +1,0 @@
-module=std.js.Dom.SVGLineElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9539037897889467415
-interface_hash=4057370550860573650
-interface_doc_hash=4057370550860573650
-deps=0

@@ -1,8 +1,0 @@
-module=std.css.keywords.XxxLarge
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=6539613215057555757
-interface_hash=14497076371672879727
-interface_doc_hash=71629137842648720
-deps=0

@@ -35,6 +35,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WritingMode.
+import std.css.Values.{*}.
+import std.css.keywords.HorizontalTb.{*}.
+import std.css.keywords.SidewaysLr.{*}.
+import std.css.keywords.SidewaysRl.{*}.
+import std.css.keywords.VerticalLr.{*}.
+import std.css.keywords.VerticalRl.{*}.
 
 pub struct Property {
     writing_mode: std.css.keywords.HorizontalTb | std.css.keywords.VerticalRl | std.css.keywords.VerticalLr | std.css.keywords.SidewaysRl | std.css.keywords.SidewaysLr | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

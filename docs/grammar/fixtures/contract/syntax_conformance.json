@@ -1,6 +1,15 @@
 {
   "schema": 2,
   "cases": [
+    {"id":"integer-separated-decimal","rule":"Int","ebnf":"accept","compiler":"accept","shape":"int(1700000000000000000)","editor":"accept"},
+    {"id":"integer-separated-binary","rule":"Int","ebnf":"accept","compiler":"accept","shape":"int(240)","editor":"accept"},
+    {"id":"integer-separated-octal","rule":"Int","ebnf":"accept","compiler":"accept","shape":"int(1023)","editor":"accept"},
+    {"id":"integer-separated-hex","rule":"Int","ebnf":"accept","compiler":"accept","shape":"int(3735928559)","editor":"accept"},
+    {"id":"integer-double-separator","rule":"Int","ebnf":"reject","compiler":"reject","editor":"recover"},
+    {"id":"integer-trailing-separator","rule":"Int","ebnf":"reject","compiler":"reject","editor":"recover"},
+    {"id":"integer-prefix-separator","rule":"Int","ebnf":"reject","compiler":"reject","editor":"recover"},
+    {"id":"integer-invalid-radix-digit","rule":"Int","ebnf":"reject","compiler":"reject","editor":"recover"},
+    {"id":"float-integer-separators","rule":"Float","ebnf":"reject","compiler":"reject","editor":"recover"},
     {"id":"string-interpolation","rule":"StringLiteral","ebnf":"accept","compiler":"accept","shape":"interpolation(2)","editor":"accept"},
     {"id":"string-interpolation-nested","rule":"StringLiteral","ebnf":"accept","compiler":"accept","shape":"interpolation(1)","editor":"accept"},
     {"id":"string-interpolation-escaped","rule":"StringLiteral","ebnf":"accept","compiler":"accept","shape":"interpolation(0)","editor":"accept"},

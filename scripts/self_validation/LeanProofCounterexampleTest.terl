@@ -284,8 +284,8 @@ run_oracle(root: String, source: String): Bool ->
                 ],
             )
             .with_working_directory(root)
-            .with_timeout_ms(60000)
-            .with_output_limit_bytes(1048576);
+            .with_timeout_ms(60_000)
+            .with_output_limit_bytes(1_048_576);
     case Process.run(command) {
         Ok(output) -> inspect_oracle(root, source, output);
         Err(reason) -> fail(reason.message)

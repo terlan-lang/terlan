@@ -7,6 +7,13 @@
 //! the HTTP package validates its returned declarations and callbacks.
 
 module std.http.Router.
+import std.collections.List.{*}.
+import std.core.String.{*}.
+import std.http.Error.{*}.
+import std.http.Request.{*}.
+import std.http.Response.{*}.
+import std.http.Sse.{*}.
+import std.http.WebSocket.{*}.
 
 /// ChannelEndpoint represents any VM-owned long-lived HTTP channel endpoint.
 ///

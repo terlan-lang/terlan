@@ -21,6 +21,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.OffsetRotate.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Reverse.{*}.
 
 pub struct Property {
     offset_rotate: std.css.keywords.Auto | std.css.keywords.Reverse | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

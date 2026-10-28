@@ -70,7 +70,7 @@ artifact_image_path(repository: String): String ->
 artifact_image_relative_path(): String ->
     "target/self-validation/docs-static-release-parity/vm/docs_static_release_parity_Main.tvm".
 
-artifact_size_maximum_bytes(): Int -> 134217728.
+artifact_size_maximum_bytes(): Int -> 134_217_728.
 
 json_string(value: Json, name: String): Option[String] ->
     let {

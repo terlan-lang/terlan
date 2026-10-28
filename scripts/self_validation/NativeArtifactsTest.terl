@@ -246,9 +246,9 @@ emit_command(compiler: String, root: String, source: String, output: String): Co
                 ),
                 [Process.environment_entry("CARGO_TERM_COLOR", "never")],
             ),
-            600000,
+            600_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 rustc_command(
@@ -267,9 +267,9 @@ rustc_command(
                 ),
                 root,
             ),
-            600000,
+            600_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 pub validate(root: String, compiler: String, rustc: String): Bool ->

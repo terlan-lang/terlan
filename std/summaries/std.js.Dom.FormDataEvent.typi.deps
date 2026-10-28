@@ -1,8 +1,0 @@
-module=std.js.Dom.FormDataEvent
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=16886779558544978693
-interface_hash=12021390293588333839
-interface_doc_hash=12021390293588333839
-deps=0

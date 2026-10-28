@@ -5,6 +5,7 @@
 //! only depends on the typed trait contract.
 
 module std.vm.Backpressure.
+import std.core.Unit.{*}.
 
 /// Credit represents available work capacity.
 ///

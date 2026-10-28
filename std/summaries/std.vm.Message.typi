@@ -5,6 +5,7 @@
 //! portable `std.core`.
 
 module std.vm.Message.
+import std.core.Unit.{*}.
 
 /// Message represents one typed runtime process message.
 ///

@@ -1,8 +1,0 @@
-module=std.js.Dom.Animation
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=22679528682007206
-interface_hash=813919724457191177
-interface_doc_hash=813919724457191177
-deps=0

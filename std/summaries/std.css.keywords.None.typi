@@ -1,6 +1,7 @@
 //! Shared CSS keyword none. Generated; do not edit.
 
 module std.css.keywords.None.
+import std.core.Option.{*}.
 
 pub type None =
     std.core.Option.None.

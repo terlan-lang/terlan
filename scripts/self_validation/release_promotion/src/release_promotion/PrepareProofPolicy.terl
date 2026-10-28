@@ -65,7 +65,7 @@ Ok(
         "TERLAN_PROOF_POLICY_OUTPUT",
         schema,
         String.concat(["[", command, "]"]),
-        60000,
+        60_000,
     ),
 ))).
 

@@ -34,6 +34,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Overflow.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Clip.{*}.
+import std.css.keywords.Hidden.{*}.
+import std.css.keywords.Scroll.{*}.
+import std.css.keywords.Visible.{*}.
 
 pub opaque type Checked.
 

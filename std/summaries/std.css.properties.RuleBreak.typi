@@ -22,6 +22,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.RuleBreak.
+import std.css.Values.{*}.
+import std.css.keywords.Intersection.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Normal.{*}.
 
 pub struct Property {
     rule_break: std.css.keywords.None | std.css.keywords.Normal | std.css.keywords.Intersection | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

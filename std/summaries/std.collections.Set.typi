@@ -3,6 +3,9 @@
 //! `std.collections.Set` is the portable unique-value collection surface.
 
 module std.collections.Set.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.core.Unit.{*}.
 
 /// Set represents a collection of unique values.
 ///

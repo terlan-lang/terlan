@@ -1,8 +1,0 @@
-module=std.js.Dom.WebGL2RenderingContextOverloads
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9550325084001895734
-interface_hash=13616696382975638929
-interface_doc_hash=13616696382975638929
-deps=0

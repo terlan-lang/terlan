@@ -5,6 +5,11 @@
 //! networking API.
 
 module std.vm.Tcp.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.core.Unit.{*}.
+import std.vm.Bytes.{*}.
+import std.vm.Timeout.{*}.
 
 /// TcpListener represents a VM-owned TCP listener.
 ///

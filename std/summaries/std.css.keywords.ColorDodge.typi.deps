@@ -1,8 +1,0 @@
-module=std.css.keywords.ColorDodge
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=6282046572744748821
-interface_hash=9197321074423437497
-interface_doc_hash=2485884554836164075
-deps=0

@@ -178,7 +178,7 @@ pub characters_accepts_empty_string(): Bool ->
 
 @test
 pub codepoints_returns_unicode_scalar_numbers_in_order(): Bool ->
-    assert_equal([97, 233, 128578], "aé🙂".codepoints()).
+    assert_equal([97, 233, 128_578], "aé🙂".codepoints()).
 
 @test
 pub codepoints_accepts_empty_string(): Bool ->

@@ -114,9 +114,9 @@ command(arguments: List[String]): Command ->
                 Process.with_arguments(Process.command("cargo"), arguments),
                 root(),
             ),
-            120000,
+            120_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 run(arguments: List[String]): Option[Output] ->
@@ -386,9 +386,9 @@ build_report(): Option[Json] ->
             .put(
                 "cardinality_and_redaction",
                 Json.object()
-                    .put("max_field_value_bytes", Json.int(1024))
+                    .put("max_field_value_bytes", Json.int(1_024))
                     .put("max_fields", Json.int(32))
-                    .put("max_metric_label_tuples", Json.int(1024))
+                    .put("max_metric_label_tuples", Json.int(1_024))
                     .put("max_name_bytes", Json.int(64))
                     .put("raw_url_labels_allowed", Json.bool(false))
                     .put("secret_values_representable_as_fields", Json.bool(false))

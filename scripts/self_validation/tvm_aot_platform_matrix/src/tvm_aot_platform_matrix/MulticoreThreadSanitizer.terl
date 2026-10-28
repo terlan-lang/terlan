@@ -66,9 +66,9 @@ configured(
                 ),
                 environment,
             ),
-            600000,
+            600_000,
         ),
-        16777216,
+        16_777_216,
     ).
 
 run_command(
@@ -134,7 +134,7 @@ pub validate_stress_report(report: Json): Bool ->
         report_schema != stress_schema() -> false;
         decision != "pass" -> false;
         count != seed_count() -> false;
-        watchdog != 15000 -> false;
+        watchdog != 15_000 -> false;
         true -> unique_strings(seeds, 0, [])
     }.
 
@@ -504,7 +504,7 @@ pub self_test(): Bool ->
             .put("schema", Json.string(stress_schema()))
             .put("decision", Json.string("pass"))
             .put("seeds", seeds)
-            .put("watchdog_timeout_millis", Json.int(15000));
+            .put("watchdog_timeout_millis", Json.int(15_000));
     let valid = base_report();
     if {
         not validate_stress_report(stress) -> failure("valid stress fixture was rejected");

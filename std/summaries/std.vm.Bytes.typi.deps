@@ -1,9 +1,0 @@
-module=std.vm.Bytes
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=137305858678503963
-interface_hash=13330016521384643893
-interface_doc_hash=4577853125340422183
-deps=1
-std.collections.List=14680201998966909778

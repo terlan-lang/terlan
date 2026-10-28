@@ -44,6 +44,16 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AlignmentBaseline.
+import std.css.Values.{*}.
+import std.css.keywords.Alphabetic.{*}.
+import std.css.keywords.Baseline.{*}.
+import std.css.keywords.Central.{*}.
+import std.css.keywords.Hanging.{*}.
+import std.css.keywords.Ideographic.{*}.
+import std.css.keywords.Mathematical.{*}.
+import std.css.keywords.Middle.{*}.
+import std.css.keywords.TextBottom.{*}.
+import std.css.keywords.TextTop.{*}.
 
 pub struct Property {
     alignment_baseline: std.css.keywords.Baseline | std.css.keywords.TextBottom | std.css.keywords.Alphabetic | std.css.keywords.Ideographic | std.css.keywords.Middle | std.css.keywords.Central | std.css.keywords.Mathematical | std.css.keywords.Hanging | std.css.keywords.TextTop | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

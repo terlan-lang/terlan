@@ -28,6 +28,11 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.MaskSize.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Contain.{*}.
+import std.css.keywords.Cover.{*}.
 
 pub opaque type Checked.
 

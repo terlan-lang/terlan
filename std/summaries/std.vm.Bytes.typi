@@ -5,6 +5,7 @@
 //! exact byte sequences without adding byte-array syntax to portable Terlan.
 
 module std.vm.Bytes.
+import std.collections.List.{*}.
 
 /// Byte is an integer interpreted as one unsigned octet.
 ///

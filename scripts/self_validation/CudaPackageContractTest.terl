@@ -246,9 +246,9 @@ run_package_check(staged: String, compiler: String): Bool ->
                     ),
                     ["RUSTFLAGS"],
                 ),
-                3600000,
+                3_600_000,
             ),
-            16777216,
+            16_777_216,
         );
     case Process.run(command) {
         Ok(output) ->

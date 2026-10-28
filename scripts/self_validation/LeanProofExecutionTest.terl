@@ -37,7 +37,10 @@ proof_command(root: String, proof_path: String): Command ->
     let configured =
         Process.command(child(root, "target/debug/terlan-quality"))
             .with_arguments(["lean-proof-replay", String.append("proofs/lean/", proof_path)]);
-    configured.with_working_directory(root).with_timeout_ms(600000).with_output_limit_bytes(8388608).
+    configured
+        .with_working_directory(root)
+        .with_timeout_ms(600_000)
+        .with_output_limit_bytes(8_388_608).
 
 report_failure(message: String): Bool ->
     let _reported = println(message);

@@ -6,6 +6,10 @@
 //! specific runtime representation.
 
 module std.core.Functional.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 
 /// Applicative describes functors that can lift values and apply lifted
 /// functions.

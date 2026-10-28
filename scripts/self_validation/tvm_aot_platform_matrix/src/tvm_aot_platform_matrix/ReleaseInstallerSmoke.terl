@@ -34,8 +34,8 @@ run_installer(
             .with_arguments(arguments)
             .with_working_directory(root)
             .with_environment(environment)
-            .with_timeout_ms(300000)
-            .with_output_limit_bytes(8388608);
+            .with_timeout_ms(300_000)
+            .with_output_limit_bytes(8_388_608);
     case Process.run(command) {
         Ok(output) ->
             if {
@@ -199,8 +199,8 @@ raw_installer(
             .without_environment(
                 ["GITHUB_TOKEN", "GH_TOKEN", "CARGO_REGISTRY_TOKEN", "TERLAN_REPOSITORY_ROOT"],
             )
-            .with_timeout_ms(300000)
-            .with_output_limit_bytes(8388608);
+            .with_timeout_ms(300_000)
+            .with_output_limit_bytes(8_388_608);
     case Process.run(command) {
         Ok(output) -> Some(output);
         Err(error) ->

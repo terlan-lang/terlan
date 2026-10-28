@@ -1,6 +1,9 @@
 //! Bounded external-process orchestration for trusted Terlan tooling.
 
 module std.system.Process.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 
 /// One ordered batch completion; exactly one optional field is populated.
 

@@ -91,7 +91,7 @@ pub declare_with_tools(context: Context, tools: BuildIdentity): Result[Owner, St
             "TERLAN_MANAGED_LIST_PROFILE_OUTPUT",
             "terlan.tvm.managed-list-profile.v1",
             "running 1 test",
-            1800000,
+            1_800_000,
         ),
     ).
 

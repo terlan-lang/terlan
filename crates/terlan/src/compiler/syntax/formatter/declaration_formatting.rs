@@ -461,7 +461,7 @@ pub(crate) fn format_pattern(pattern: &Pattern) -> String {
     match pattern {
         Pattern::Wildcard => "_".to_string(),
         Pattern::Var(name) => name.clone(),
-        Pattern::Int(value) => value.to_string(),
+        Pattern::Int(value) => crate::terlan_syntax::integer_literals::format_integer(*value),
         Pattern::Float(value) => format_float_literal(*value),
         Pattern::String(value) => super::quoted_string_literal(value),
         Pattern::StringSegments(segments) => format_string_pattern(segments),

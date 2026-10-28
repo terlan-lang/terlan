@@ -1,8 +1,0 @@
-module=std.css.keywords.BreakWord
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=5906151173478709318
-interface_hash=825611537943482338
-interface_doc_hash=405453792192471534
-deps=0

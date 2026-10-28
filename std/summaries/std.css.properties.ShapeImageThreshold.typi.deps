@@ -1,9 +1,0 @@
-module=std.css.properties.ShapeImageThreshold
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10585244159845608786
-interface_hash=8117401269701340100
-interface_doc_hash=16009690387175929156
-deps=1
-std.css.Values=2905925857807311325

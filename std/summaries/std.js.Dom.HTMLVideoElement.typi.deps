@@ -1,8 +1,0 @@
-module=std.js.Dom.HTMLVideoElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=9106048522054179295
-interface_hash=15903613655215013154
-interface_doc_hash=15903613655215013154
-deps=0

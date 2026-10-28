@@ -302,7 +302,7 @@ invalidated_lines(lines: List[String], count: Int): Int ->
     }.
 
 elapsed_milliseconds(started_ns: Int, finished_ns: Int): Int ->
-    (finished_ns - started_ns) / 1000000.
+    (finished_ns - started_ns) / 1_000_000.
 
 run_lane(
     repository: String,
@@ -1588,7 +1588,7 @@ pub clock_contract_supports_evidence_and_elapsed_time(): Bool ->
     let started = monotonic_time_ns();
     unix_time_ns() > 0
         and monotonic_time_ns() >= started
-        and elapsed_milliseconds(1000000000, 1123456789) == 123.
+        and elapsed_milliseconds(1_000_000_000, 1_123_456_789) == 123.
 
 @test
 pub executable_budget_rejects_overflow_missing_files_and_invalid_policy(): Bool ->

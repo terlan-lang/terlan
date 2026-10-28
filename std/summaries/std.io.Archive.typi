@@ -1,6 +1,8 @@
 //! Safe deterministic creation and extraction of release-owned archives.
 
 module std.io.Archive.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
 
 /// Portable archive failure retaining both input and destination paths.
 

@@ -1,6 +1,7 @@
 //! Typed access to immutable host process context admitted to a Terlan VM run.
 
 module std.system.Environment.
+import std.core.Option.{*}.
 
 /// Returns whether one environment key is present and Unicode representable.
 

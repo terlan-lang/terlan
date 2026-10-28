@@ -6,6 +6,8 @@
 //! with partial JSON projections.
 
 module std.package.Registry.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
 
 /// Registry-owned fields needed to begin one durable publication attempt.
 

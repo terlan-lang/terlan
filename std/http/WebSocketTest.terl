@@ -22,7 +22,7 @@ pub close_frame(): Frame ->
     WebSocket.close().
 
 pub bounded_endpoint(): Endpoint ->
-    WebSocket.endpoint(16, 4096).
+    WebSocket.endpoint(16, 4_096).
 
 idle(): Unit ->
     Unit.
@@ -45,7 +45,7 @@ pub websocket_callbacks_and_pairing_are_retained_without_overwrite(): Bool ->
         and conflicting != callbacks
         and conflicting != paired
         and conflicting.max_pending_frames == 16
-        and conflicting.max_frame_bytes == 4096.
+        and conflicting.max_frame_bytes == 4_096.
 
 @test
 pub websocket_text_records_typed_descriptor(): Bool ->
@@ -77,9 +77,9 @@ pub websocket_endpoint_records_channel_limits(): Bool ->
     let defaults = WebSocket.endpoint();
     let bounded = bounded_endpoint();
     defaults.max_pending_frames == 128
-        and defaults.max_frame_bytes == 65536
+        and defaults.max_frame_bytes == 65_536
         and bounded.max_pending_frames == 16
-        and bounded.max_frame_bytes == 4096.
+        and bounded.max_frame_bytes == 4_096.
 
 @test
 pub websocket_variants_remain_distinct_with_identical_payloads(): Bool ->

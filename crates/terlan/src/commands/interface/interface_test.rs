@@ -153,6 +153,10 @@ fn interface_first_generation_preserves_cross_directory_contract_boundaries() {
     .unwrap();
     assert_eq!(generate(&[&client, &provider], &out), ExitCode::SUCCESS);
     let api = fs::read_to_string(out.join("api.typi")).unwrap();
+    let client_summary = fs::read_to_string(out.join("client.typi")).unwrap();
+    assert!(client_summary.contains("\nimport api.{*}.\n"));
+    let (_, client_interface) = crate::terlan_hir::parse_interface_text(&client_summary).unwrap();
+    assert!(client_interface.dependency_modules.contains("api"));
     let manifest =
         crate::commands::artifacts::read_manifest(&out.join("client.typi.deps")).unwrap();
     let (_, interface) = crate::terlan_hir::parse_interface_text(&api).unwrap();

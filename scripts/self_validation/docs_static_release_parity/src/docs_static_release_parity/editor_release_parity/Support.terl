@@ -174,7 +174,7 @@ pub successful_output(
     cwd: String,
     environment: List[EnvironmentEntry],
 ): Option[String] ->
-    case run_process(program, arguments, cwd, environment, "", 60000, 8388608) {
+    case run_process(program, arguments, cwd, environment, "", 60_000, 8_388_608) {
         Some(output) ->
             if {
                 output.status == 0 -> Some(output.stdout);

@@ -18,6 +18,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TransformOrigin.
+import std.css.Values.{*}.
+import std.css.keywords.Bottom.{*}.
+import std.css.keywords.Center.{*}.
+import std.css.keywords.Left.{*}.
+import std.css.keywords.Right.{*}.
+import std.css.keywords.Top.{*}.
 
 pub struct Property {
     transform_origin: std.css.keywords.Left | std.css.keywords.Center | std.css.keywords.Right | std.css.keywords.Top | std.css.keywords.Bottom | std.css.Values.Length | std.css.Values.Percentage | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

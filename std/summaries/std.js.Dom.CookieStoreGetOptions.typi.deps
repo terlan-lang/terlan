@@ -1,8 +1,0 @@
-module=std.js.Dom.CookieStoreGetOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=11263037373512455797
-interface_hash=10141402224691750458
-interface_doc_hash=10141402224691750458
-deps=0

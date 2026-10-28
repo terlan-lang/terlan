@@ -1,8 +1,0 @@
-module=std.js.Dom.CSSNumericValue
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=3108018070454194811
-interface_hash=750525060568113489
-interface_doc_hash=750525060568113489
-deps=0

@@ -6,6 +6,9 @@
 //! `rand_chacha` crates.
 
 module std.random.Random.
+import std.collections.List.{*}.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
 
 /// Generator represents explicit random generator state.
 ///

@@ -5,6 +5,10 @@
 //! `serde_json`, but source code sees only `Json`, `JsonError`, and `Result`.
 
 module std.data.Json.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.core.String.{*}.
 
 /// Json represents a parsed JSON value.
 ///

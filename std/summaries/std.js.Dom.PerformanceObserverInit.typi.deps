@@ -1,8 +1,0 @@
-module=std.js.Dom.PerformanceObserverInit
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=4934479518010360977
-interface_hash=6044808934238257044
-interface_doc_hash=6044808934238257044
-deps=0

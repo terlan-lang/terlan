@@ -23,7 +23,6 @@ selected(root: String, files: List[String], accumulated: List[String]): List[Str
                 path.ends_with(".terl")
                     or path.ends_with(".terli")
                     or path.ends_with(".typi")
-                    or path.ends_with(".typi.deps")
                     or path.ends_with(".toml");
             let prefix = String.append(root, "/");
             if {

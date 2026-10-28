@@ -1,8 +1,0 @@
-module=std.css.keywords.Wavy
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=17917994653543470576
-interface_hash=3106973896796885635
-interface_doc_hash=5811517668376126209
-deps=0

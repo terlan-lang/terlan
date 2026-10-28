@@ -33,7 +33,7 @@ owner(name: String, candidate: String, output: String, argument: String): Owner 
             "OWNER_OUTPUT",
             "fixture.v1",
             "producer completed",
-            30000,
+            30_000,
         ),
         [String.append(name, ".native")],
     ).

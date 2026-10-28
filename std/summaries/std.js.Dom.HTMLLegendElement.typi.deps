@@ -1,8 +1,0 @@
-module=std.js.Dom.HTMLLegendElement
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=1466338937052543152
-interface_hash=5048229435106474918
-interface_doc_hash=5048229435106474918
-deps=0

@@ -49,7 +49,7 @@ number(state: Json, field: String): Result[Int, String] ->
     let {
         Ok(value) <- state.get(field);
         Ok(count) <- value.as_int();
-        true <- count >= 0 and count <= 65536
+        true <- count >= 0 and count <= 65_536
     } else {
         _ -> Err("invalid native cycle count")
     };
@@ -71,10 +71,10 @@ load(root: String, journal: String, candidate: String, graph: String): Result[Js
         Some(_before) <- OwnerStorage.text(state, "active_before");
         Ok(claims) <- state.get("claims");
         Ok(claim_count) <- claims.object_length();
-        true <- claim_count <= 65536;
+        true <- claim_count <= 65_536;
         Ok(consumed) <- state.get("consumed");
         Ok(consumed_count) <- consumed.object_length();
-        true <- consumed_count <= 4096;
+        true <- consumed_count <= 4_096;
         Ok(_launches) <- number(state, "native_link_launches")
     } else {
         _ -> Err("native cycle checkpoint is corrupt or belongs to another graph")
@@ -178,13 +178,13 @@ merge(state: Json, owner: String, digest: String, report: Json): Result[Bool, St
         true <- count == completed;
         Ok(launches) <- number(report, "native_link_launches");
         Ok(prior_launches) <- number(state, "native_link_launches");
-        true <- launches + prior_launches <= 65536;
+        true <- launches + prior_launches <= 65_536;
         Ok(claims) <- state.get("claims");
         Ok(prior_count) <- claims.object_length();
-        true <- prior_count + count <= 65536;
+        true <- prior_count + count <= 65_536;
         Ok(consumed) <- state.get("consumed");
         Ok(consumed_count) <- consumed.object_length();
-        true <- consumed_count < 4096
+        true <- consumed_count < 4_096
     } else {
         _ -> Err("native cycle inventory is invalid or exceeds its budget")
     };

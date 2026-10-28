@@ -78,7 +78,7 @@ make_owner(binding: Binding, producer: Producer): Owner ->
         producer.variable,
         producer.schema,
         producer.marker,
-        300000,
+        300_000,
     ).
 
 nodes(binding: Binding): List[Node] ->

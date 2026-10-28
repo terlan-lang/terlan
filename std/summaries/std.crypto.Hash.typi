@@ -6,6 +6,9 @@
 //! hashing objects or a host-language escape hatch.
 
 module std.crypto.Hash.
+import std.core.Result.{*}.
+import std.io.File.{*}.
+import std.vm.Bytes.{*}.
 
 /// One regular file and the portable label incorporated into an artifact digest.
 

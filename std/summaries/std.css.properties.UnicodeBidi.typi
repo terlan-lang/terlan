@@ -42,6 +42,13 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.UnicodeBidi.
+import std.css.Values.{*}.
+import std.css.keywords.BidiOverride.{*}.
+import std.css.keywords.Embed.{*}.
+import std.css.keywords.Isolate.{*}.
+import std.css.keywords.IsolateOverride.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.Plaintext.{*}.
 
 pub struct Property {
     unicode_bidi: std.css.keywords.Normal | std.css.keywords.Embed | std.css.keywords.Isolate | std.css.keywords.BidiOverride | std.css.keywords.IsolateOverride | std.css.keywords.Plaintext | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

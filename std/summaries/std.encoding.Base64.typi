@@ -6,6 +6,9 @@
 //! `Result`.
 
 module std.encoding.Base64.
+import std.core.Error.{*}.
+import std.core.Result.{*}.
+import std.vm.Bytes.{*}.
 
 /// Base64Error is the portable error returned by Base64 decoding operations.
 ///

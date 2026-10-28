@@ -524,9 +524,9 @@ build_and_validate(package_dir: String, compiler: String, temporary: String): Op
                     Process.command(compiler),
                     ["build", package_dir, "--out-dir", temporary],
                 ),
-                120000,
+                120_000,
             ),
-            4194304,
+            4_194_304,
         );
     case Process.run(command) {
         Ok(completed) ->

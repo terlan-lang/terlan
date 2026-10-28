@@ -6,6 +6,7 @@
 //! mechanics; Terlan code owns when to build and pass these descriptors.
 
 module std.vm.ModelSync.
+import std.vm.PersistentActor.{*}.
 
 /// AdapterContract represents one portable model-sync adapter declaration.
 ///

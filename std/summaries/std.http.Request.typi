@@ -5,6 +5,15 @@
 //! fields after parsing HTTP; no native handle is needed to read a request.
 
 module std.http.Request.
+import std.collections.Enumerable.{*}.
+import std.collections.List.{*}.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.core.String.{*}.
+import std.data.Json.{*}.
+import std.http.Cookies.{*}.
+import std.net.Uri.{*}.
 
 /// Request represents one HTTP request received by a Terlan server.
 ///

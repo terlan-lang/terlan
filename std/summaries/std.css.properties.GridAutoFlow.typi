@@ -25,6 +25,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.GridAutoFlow.
+import std.css.Values.{*}.
+import std.css.keywords.Column.{*}.
+import std.css.keywords.Dense.{*}.
+import std.css.keywords.Row.{*}.
 
 pub struct Property {
     grid_auto_flow: std.css.keywords.Row | std.css.keywords.Column | std.css.keywords.Dense | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

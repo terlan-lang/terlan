@@ -1,8 +1,0 @@
-module=std.js.Dom.SVGMatrix
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=12170570136708019590
-interface_hash=9271936305652981794
-interface_doc_hash=9271936305652981794
-deps=0

@@ -8,6 +8,7 @@
 //! Node membership and load are supplied explicitly by the caller.
 
 module std.vm.Scheduler.
+import std.collections.List.{*}.
 
 /// Event represents one scheduler notification.
 ///

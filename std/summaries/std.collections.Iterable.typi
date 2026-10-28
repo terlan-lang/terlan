@@ -3,6 +3,10 @@
 //! `std.collections.Iterable` is the portable contract used by collection traversal.
 
 module std.collections.Iterable.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.collections.Map.{*}.
+import std.collections.Set.{*}.
 
 /// Iterable connects a collection type `C` to the item type `T` it yields.
 ///

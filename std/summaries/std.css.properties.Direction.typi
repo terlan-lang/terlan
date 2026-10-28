@@ -21,6 +21,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Direction.
+import std.css.Values.{*}.
+import std.css.keywords.Ltr.{*}.
+import std.css.keywords.Rtl.{*}.
 
 pub struct Property {
     direction: std.css.keywords.Ltr | std.css.keywords.Rtl | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

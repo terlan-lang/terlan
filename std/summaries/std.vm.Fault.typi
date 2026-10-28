@@ -9,6 +9,8 @@
 //! classifies the supplied policy flags, not the capabilities of a remote node.
 
 module std.vm.Fault.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
 
 /// Failure represents one replayable distributed failure envelope.
 ///

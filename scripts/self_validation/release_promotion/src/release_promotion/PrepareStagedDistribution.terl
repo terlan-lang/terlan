@@ -96,7 +96,7 @@ Ok(
         "TERLAN_STAGED_DISTRIBUTION_OUTPUT",
         "terlan.release-staged-distribution-verification.v1",
         "Staged distribution verification passed",
-        1800000,
+        1_800_000,
     ),
 ))).
 

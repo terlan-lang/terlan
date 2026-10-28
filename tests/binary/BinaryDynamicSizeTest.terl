@@ -50,4 +50,4 @@ pub computed_bit_size_slices_unaligned_fields(): Bool ->
     let bits = from_bytes(from_list([171, 192]), 16);
     let field = bits.slice(0, width);
     assert_equal(width, field.bit_length());
-    assert_equal(5496, field.to_uint_be()).
+    assert_equal(5_496, field.to_uint_be()).

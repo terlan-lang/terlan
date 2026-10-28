@@ -50,7 +50,7 @@ matrix_owner(root: String, compiler: String, context: Context): Owner ->
             "TERLAN_PROOF_BINDING_MATRIX_OUTPUT",
             "table",
             "Lean proof feature binding passed:",
-            1800000,
+            1_800_000,
         ),
         OwnerArtifacts.declare_tsv(
             artifact_path("lean-proof-coverage-matrix.tsv"),
@@ -139,7 +139,7 @@ snapshot_owner(root: String, compiler: String, context: Context, day: String): O
             "TERLAN_PROOF_BINDING_DIFF_OUTPUT",
             "terlan.lean-proof-binding-diff.v1",
             "[lean-proof-snapshot] consistency passed:",
-            1800000,
+            1_800_000,
         ),
         snapshot_outputs(day),
     ).

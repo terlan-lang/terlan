@@ -1,8 +1,0 @@
-module=std.js.Dom.RemotePlaybackEventMap
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=14336038510549812193
-interface_hash=3627278118357837407
-interface_doc_hash=3627278118357837407
-deps=0

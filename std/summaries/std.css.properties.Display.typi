@@ -102,6 +102,38 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.Display.
+import std.css.Values.{*}.
+import std.css.keywords.Block.{*}.
+import std.css.keywords.Contents.{*}.
+import std.css.keywords.Flex.{*}.
+import std.css.keywords.Flow.{*}.
+import std.css.keywords.FlowRoot.{*}.
+import std.css.keywords.Grid.{*}.
+import std.css.keywords.GridLanes.{*}.
+import std.css.keywords.Inline.{*}.
+import std.css.keywords.InlineBlock.{*}.
+import std.css.keywords.InlineFlex.{*}.
+import std.css.keywords.InlineGrid.{*}.
+import std.css.keywords.InlineGridLanes.{*}.
+import std.css.keywords.InlineTable.{*}.
+import std.css.keywords.ListItem.{*}.
+import std.css.keywords.Math.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.Ruby.{*}.
+import std.css.keywords.RubyBase.{*}.
+import std.css.keywords.RubyBaseContainer.{*}.
+import std.css.keywords.RubyText.{*}.
+import std.css.keywords.RubyTextContainer.{*}.
+import std.css.keywords.RunIn.{*}.
+import std.css.keywords.Table.{*}.
+import std.css.keywords.TableCaption.{*}.
+import std.css.keywords.TableCell.{*}.
+import std.css.keywords.TableColumn.{*}.
+import std.css.keywords.TableColumnGroup.{*}.
+import std.css.keywords.TableFooterGroup.{*}.
+import std.css.keywords.TableHeaderGroup.{*}.
+import std.css.keywords.TableRow.{*}.
+import std.css.keywords.TableRowGroup.{*}.
 
 pub struct Property {
     display: std.css.keywords.Block | std.css.keywords.Inline | std.css.keywords.RunIn | std.css.keywords.Flow | std.css.keywords.FlowRoot | std.css.keywords.Table | std.css.keywords.Flex | std.css.keywords.Grid | std.css.keywords.Ruby | std.css.keywords.ListItem | std.css.keywords.TableRowGroup | std.css.keywords.TableHeaderGroup | std.css.keywords.TableFooterGroup | std.css.keywords.TableRow | std.css.keywords.TableCell | std.css.keywords.TableColumnGroup | std.css.keywords.TableColumn | std.css.keywords.TableCaption | std.css.keywords.RubyBase | std.css.keywords.RubyText | std.css.keywords.RubyBaseContainer | std.css.keywords.RubyTextContainer | std.css.keywords.Contents | std.css.keywords.None | std.css.keywords.InlineBlock | std.css.keywords.InlineTable | std.css.keywords.InlineFlex | std.css.keywords.InlineGrid | std.css.keywords.GridLanes | std.css.keywords.InlineGridLanes | std.css.keywords.Math | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

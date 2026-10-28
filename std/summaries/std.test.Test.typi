@@ -4,6 +4,9 @@
 //! runners and generated project tests.
 
 module std.test.Test.
+import std.collections.Iterator.{*}.
+import std.collections.List.{*}.
+import std.core.Option.{*}.
 
 /// Assertion is the portable result value returned by test assertions.
 ///

@@ -285,7 +285,10 @@ impl ConfigEntryParser<'_> {
             }
             TokenKind::Int => {
                 self.pos += 1;
-                Some(SyntaxConfigValueOutput::Int { value: text })
+                let value = crate::terlan_syntax::integer_literals::parse_integer(&text)
+                    .map(|value| value.to_string())
+                    .unwrap_or(text);
+                Some(SyntaxConfigValueOutput::Int { value })
             }
             TokenKind::Float => {
                 self.pos += 1;

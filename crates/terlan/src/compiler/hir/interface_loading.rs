@@ -239,17 +239,9 @@ pub fn load_imported_interfaces_from_file_set(
         }
         let path = summaries.join(format!("{module_name}.typi"));
         if let Some((parsed_name, interface)) = parse_interface_file(&path) {
+            pending.extend(interface.dependency_modules.iter().cloned());
             insert_interface_if_not_poorer(&mut interfaces, parsed_name, interface);
         }
-        let manifest = summaries.join(format!("{module_name}.typi.deps"));
-        pending.extend(
-            fs::read_to_string(manifest)
-                .ok()
-                .and_then(|contents| parse_interface_dependency_entries(&contents))
-                .unwrap_or_default()
-                .into_iter()
-                .map(|(dependency, _)| dependency),
-        );
     }
 
     interfaces

@@ -55,6 +55,17 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TouchAction.
+import std.css.Values.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.Manipulation.{*}.
+import std.css.keywords.None.{*}.
+import std.css.keywords.PanDown.{*}.
+import std.css.keywords.PanLeft.{*}.
+import std.css.keywords.PanRight.{*}.
+import std.css.keywords.PanUp.{*}.
+import std.css.keywords.PanX.{*}.
+import std.css.keywords.PanY.{*}.
+import std.css.keywords.PinchZoom.{*}.
 
 pub struct Property {
     touch_action: std.css.keywords.Auto | std.css.keywords.None | std.css.keywords.PanX | std.css.keywords.PanLeft | std.css.keywords.PanRight | std.css.keywords.PanY | std.css.keywords.PanUp | std.css.keywords.PanDown | std.css.keywords.PinchZoom | std.css.keywords.Manipulation | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

@@ -61,7 +61,7 @@ pub is_reconnected_without_pending_ack(outcome: ReconnectOutcome): Bool ->
     }.
 
 pub disconnect_reason_round_trips(reason: DisconnectReason, tick: Int): Bool ->
-    let session = Cluster.open(local_profile(), remote_profile(), 1024);
+    let session = Cluster.open(local_profile(), remote_profile(), 1_024);
     let result = session.disconnect(reason, tick);
     let disconnected_session = result.session;
     result.event.reason == reason
@@ -197,13 +197,13 @@ pub bootstrap_delivery_failover_and_restart_execute_end_to_end(): Bool ->
     let membership = Cluster.membership(local, 5);
     let primary = membership.join(primary_profile, 1, "leader");
     let redundant = primary.join(backup, 1, "leader");
-    let primary_outbound = Cluster.open(local, primary_profile, 1024);
-    let primary_inbound = Cluster.open(primary_profile, local, 1024);
+    let primary_outbound = Cluster.open(local, primary_profile, 1_024);
+    let primary_inbound = Cluster.open(primary_profile, local, 1_024);
     let primary_send = primary_outbound.send("message", "primary");
     let primary_accept = primary_inbound.accept(primary_send.frame);
     let partitioned = redundant.partition("node-b", 2);
-    let backup_outbound = Cluster.open(local, backup, 1024);
-    let backup_inbound = Cluster.open(backup, local, 1024);
+    let backup_outbound = Cluster.open(local, backup, 1_024);
+    let backup_inbound = Cluster.open(backup, local, 1_024);
     let backup_send = backup_outbound.send("message", "backup");
     let backup_accept = backup_inbound.accept(backup_send.frame);
     let restarted_profile = primary_profile.next_epoch();
@@ -221,8 +221,8 @@ pub bootstrap_delivery_failover_and_restart_execute_end_to_end(): Bool ->
 pub two_node_message_exchange_preserves_order_and_duplicate_history(): Bool ->
     let local = local_profile();
     let remote = remote_profile();
-    let outbound = Cluster.open(local, remote, 1024);
-    let inbound = Cluster.open(remote, local, 1024);
+    let outbound = Cluster.open(local, remote, 1_024);
+    let inbound = Cluster.open(remote, local, 1_024);
     let first_send = outbound.send("message", "first");
     let outbound_after_first = first_send.session;
     let first = first_send.frame;
@@ -242,7 +242,7 @@ pub two_node_message_exchange_preserves_order_and_duplicate_history(): Bool ->
 
 @test
 pub explicit_delivery_and_acknowledgement_lifecycle_is_typed(): Bool ->
-    let outbound = Cluster.open(local_profile(), remote_profile(), 1024);
+    let outbound = Cluster.open(local_profile(), remote_profile(), 1_024);
     let needs_ack_send = outbound.send_with("message", "confirmed", NeedsAck);
     let pending = needs_ack_send.session;
     let needs_ack_frame = needs_ack_send.frame;
@@ -267,7 +267,7 @@ pub explicit_delivery_and_acknowledgement_lifecycle_is_typed(): Bool ->
 pub session_disconnect_and_reconnect_preserve_transport_continuity(): Bool ->
     let local = local_profile();
     let remote = remote_profile();
-    let outbound = Cluster.open(local, remote, 1024);
+    let outbound = Cluster.open(local, remote, 1_024);
     let no_op_reconnect = outbound.reconnect(remote, 1);
     let outbound_after_no_op = no_op_reconnect.session;
     let first_send = outbound_after_no_op.send("message", "first");
@@ -281,7 +281,7 @@ pub session_disconnect_and_reconnect_preserve_transport_continuity(): Bool ->
     let reconnected_state = reconnected_session.state();
     let second_send = reconnected_session.send("message", "second");
     let second = second_send.frame;
-    let inbound = Cluster.open(remote, local, 1024);
+    let inbound = Cluster.open(remote, local, 1_024);
     let gap_accept = inbound.accept(second);
     let inbound_after_gap = gap_accept.session;
     let first_accept = inbound_after_gap.accept(first);
@@ -310,8 +310,8 @@ pub session_disconnect_reasons_are_typed_and_lossless(): Bool ->
 pub typed_atom_payload_uses_the_admitted_image_vocabulary(): Bool ->
     let local = local_profile();
     let remote = remote_profile();
-    let outbound = Cluster.open(local, remote, 1024);
-    let inbound = Cluster.open(remote, local, 1024);
+    let outbound = Cluster.open(local, remote, 1_024);
+    let inbound = Cluster.open(remote, local, 1_024);
     let sent = outbound.send("message", Active);
     let received = inbound.accept(sent.frame);
     is_accepted(received.outcome).
@@ -320,8 +320,8 @@ pub typed_atom_payload_uses_the_admitted_image_vocabulary(): Bool ->
 pub aggregate_payloads_use_the_same_checked_transport(): Bool ->
     let local = local_profile();
     let remote = remote_profile();
-    let outbound = Cluster.open(local, remote, 1024);
-    let inbound = Cluster.open(remote, local, 1024);
+    let outbound = Cluster.open(local, remote, 1_024);
+    let inbound = Cluster.open(remote, local, 1_024);
     let first = outbound.send("message", {42, "payload", Active});
     let after_first = first.session;
     let second = after_first.send("message", [1, 2, 3]);
@@ -336,8 +336,8 @@ pub aggregate_payloads_use_the_same_checked_transport(): Bool ->
 pub portable_payload_is_accepted[Payload](payload: Payload): Bool ->
     let local = local_profile();
     let remote = remote_profile();
-    let outbound = Cluster.open(local, remote, 1024);
-    let inbound = Cluster.open(remote, local, 1024);
+    let outbound = Cluster.open(local, remote, 1_024);
+    let inbound = Cluster.open(remote, local, 1_024);
     let sent = outbound.send("message", payload);
     let received = inbound.accept(sent.frame);
     is_accepted(received.outcome).

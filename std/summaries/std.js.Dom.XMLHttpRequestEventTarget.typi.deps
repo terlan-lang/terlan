@@ -1,8 +1,0 @@
-module=std.js.Dom.XMLHttpRequestEventTarget
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=7131929990924986071
-interface_hash=4645801351008454127
-interface_doc_hash=4645801351008454127
-deps=0

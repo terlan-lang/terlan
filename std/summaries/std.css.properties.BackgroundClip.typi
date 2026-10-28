@@ -27,6 +27,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BackgroundClip.
+import std.css.Values.{*}.
+import std.css.keywords.BorderArea.{*}.
+import std.css.keywords.BorderBox.{*}.
+import std.css.keywords.ContentBox.{*}.
+import std.css.keywords.PaddingBox.{*}.
+import std.css.keywords.TextKeyword.{*}.
 
 pub struct Property {
     background_clip: std.css.keywords.ContentBox | std.css.keywords.PaddingBox | std.css.keywords.BorderBox | std.css.keywords.BorderArea | std.css.keywords.TextKeyword | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

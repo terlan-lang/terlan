@@ -5,6 +5,14 @@
 //! slice so tests remain replayable without hidden global randomness.
 
 module std.test.Gen.
+import std.collections.List.{*}.
+import std.collections.Map.{*}.
+import std.core.Int.{*}.
+import std.core.Object.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.range.Range.{*}.
+import std.test.Test.{*}.
 
 /// DiscardReport records conditional-property discard diagnostics.
 ///

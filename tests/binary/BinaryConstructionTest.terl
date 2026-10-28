@@ -14,7 +14,7 @@ pub fixed_integer_layout_constructs_big_endian_bitstring(): Bool ->
 
 @test
 pub fixed_integer_layout_constructs_little_endian_bitstring(): Bool ->
-    let source_port = 4660;
+    let source_port = 4_660;
     let packet = Binary[little] {source_port: UInt[16]};
     assert_equal([52, 18], packet.to_bytes().to_list()).
 
@@ -44,14 +44,14 @@ pub terminal_rest_layout_appends_complete_body(): Bool ->
 
 @test
 pub utf8_layout_encodes_one_unicode_scalar(): Bool ->
-    let scalar = 8364;
+    let scalar = 8_364;
     let packet = Binary[big] {scalar: Utf8};
     assert_equal(24, packet.bit_length());
     assert_equal([226, 130, 172], packet.to_bytes().to_list()).
 
 @test
 pub utf16_and_utf32_layouts_follow_the_declared_wire_order(): Bool ->
-    let scalar = 128512;
+    let scalar = 128_512;
     let utf16_be = Binary[big] {scalar: Utf16};
     let utf16_le = Binary[little] {scalar: Utf16};
     let utf32_be = Binary[big] {scalar: Utf32};

@@ -20,6 +20,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.BorderCollapse.
+import std.css.Values.{*}.
+import std.css.keywords.Collapse.{*}.
+import std.css.keywords.Separate.{*}.
 
 pub struct Property {
     border_collapse: std.css.keywords.Separate | std.css.keywords.Collapse | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

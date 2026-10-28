@@ -5,8 +5,13 @@ prerequisite for the 0.10.0 release.
 
 ## Generated Metadata and Build Reliability
 
-Scheduled for 0.11.0 on 2026-10-28. Keep this work outside the 0.10.0
-release candidate.
+The immediate metadata and budget reliability work moved into the 0.10.0
+release candidate on 2026-10-28 at the release owner's request. Its scope is
+removing disposable dependency sidecars from source requirements and release
+payloads, deriving dependencies from interface declarations, and sharing build
+budget policy. See the [0.10.0 release notes](../release/RELEASE_NOTES_0_10_0.md).
+The broader ownership and cache work below remains a follow-up; the acceptance
+criteria are not a claim that all of it is already implemented.
 
 The 0.10.0 interpolation change required updating syntax fingerprints in
 1,451 generated JavaScript `.typi.deps` files and their manifest hashes.

@@ -27,6 +27,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.TextDecorationSkipInk.
+import std.css.Values.{*}.
+import std.css.keywords.All.{*}.
+import std.css.keywords.Auto.{*}.
+import std.css.keywords.None.{*}.
 
 pub struct Property {
     text_decoration_skip_ink: std.css.keywords.Auto | std.css.keywords.None | std.css.keywords.All | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

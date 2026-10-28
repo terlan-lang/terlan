@@ -20,6 +20,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.AnimationPlayState.
+import std.css.Values.{*}.
+import std.css.keywords.Paused.{*}.
+import std.css.keywords.Running.{*}.
 
 pub struct Property {
     animation_play_state: std.css.keywords.Running | std.css.keywords.Paused | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

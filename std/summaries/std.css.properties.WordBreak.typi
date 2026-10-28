@@ -26,6 +26,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WordBreak.
+import std.css.Values.{*}.
+import std.css.keywords.AutoPhrase.{*}.
+import std.css.keywords.BreakAll.{*}.
+import std.css.keywords.BreakWord.{*}.
+import std.css.keywords.KeepAll.{*}.
+import std.css.keywords.Normal.{*}.
 
 pub struct Property {
     word_break: std.css.keywords.Normal | std.css.keywords.BreakAll | std.css.keywords.KeepAll | std.css.keywords.AutoPhrase | std.css.keywords.BreakWord | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

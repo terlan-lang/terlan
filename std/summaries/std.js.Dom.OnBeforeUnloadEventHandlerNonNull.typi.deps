@@ -1,8 +1,0 @@
-module=std.js.Dom.OnBeforeUnloadEventHandlerNonNull
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=16215173195259884282
-interface_hash=14508552916084933082
-interface_doc_hash=14508552916084933082
-deps=0

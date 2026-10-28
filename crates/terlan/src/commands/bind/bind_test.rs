@@ -351,6 +351,20 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     assert!(generated_file_paths.contains("std/js/dom/Document.terl"));
     assert!(generated_file_paths.contains("std/js/dom/Document.terli"));
     assert!(generated_file_paths.contains("std/summaries/std.js.Dom.Document.typi"));
+    assert!(!generated_file_paths
+        .iter()
+        .any(|path| path.ends_with(".typi.deps")));
+    let generated_cache =
+        fs::read_to_string(out_dir.join("std/summaries/std.js.Dom.Document.typi.deps"))
+            .expect("disposable cache metadata is still generated");
+    let cache = crate::commands::artifacts::DependencyManifest::decode(&generated_cache)
+        .expect("generated cache manifest is valid");
+    assert!(
+        crate::terlan_syntax::syntax_contract_identity_matches_current(
+            &cache.syntax_contract_identity
+        )
+        .expect("current syntax identity")
+    );
     assert!(generated_file_paths.contains("std/js/dom/DocumentTest.terl"));
     assert!(!generated_file_paths.contains("std/js/manifests/std_js_bindings.json"));
 

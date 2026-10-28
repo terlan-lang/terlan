@@ -27,6 +27,9 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantAlternates.
+import std.css.Values.{*}.
+import std.css.keywords.HistoricalForms.{*}.
+import std.css.keywords.Normal.{*}.
 
 pub struct Property {
     font_variant_alternates: std.css.keywords.Normal | std.css.keywords.HistoricalForms | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

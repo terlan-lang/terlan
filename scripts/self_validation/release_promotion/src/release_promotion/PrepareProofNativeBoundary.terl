@@ -133,7 +133,7 @@ pub declare(
             "TERLAN_NATIVE_BOUNDARY_OUTPUT",
             "directory",
             "Lean NativeBoundary proof passed:",
-            1800000,
+            1_800_000,
         ),
         generation(names),
     ).

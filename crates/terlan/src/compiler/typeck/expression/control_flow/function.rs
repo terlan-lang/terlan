@@ -16,7 +16,9 @@ pub(crate) fn infer_syntax_fun_expr(
             let mut clause_subst = subst.clone();
             let mut variables = HashMap::new();
             let mut next_variable =
-                next_function_type_var(&locals.values().cloned().collect::<Vec<_>>(), subst);
+                next_function_type_var(&locals.values().cloned().collect::<Vec<_>>(), subst)
+                    .max(ctx.fresh_type_var_floor)
+                    .max(ctx.next_inference_var.get());
             let parameters = clause
                 .patterns
                 .iter()
@@ -47,6 +49,7 @@ pub(crate) fn infer_syntax_fun_expr(
                     }
                 })
                 .collect::<Vec<_>>();
+            ctx.reserve_fresh_types(parameters.iter());
             if !clause.parameter_types.is_empty()
                 && clause.parameter_types.len() != clause.patterns.len()
             {

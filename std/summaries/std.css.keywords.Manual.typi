@@ -1,6 +1,7 @@
 //! Shared CSS keyword manual. Generated; do not edit.
 
 module std.css.keywords.Manual.
+import std.core.Atom.{*}.
 
 pub type Manual =
     std.core.Atom.Manual.

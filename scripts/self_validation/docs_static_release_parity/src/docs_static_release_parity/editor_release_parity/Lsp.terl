@@ -359,7 +359,7 @@ pub run_smoke(
     } else {
         _ -> None
     };
-    (let command = Support.process_command(lsp, ["--stdio"], workspace, environment, 30000, 8388608);
+    (let command = Support.process_command(lsp, ["--stdio"], workspace, environment, 30_000, 8_388_608);
 case Process.run_length_framed(Process.length_framed(command, exchanges, "Content-Length")) {
     Err(reason) -> lsp_failure(String.append("framed process failed: ", reason.message));
     Ok(output) ->

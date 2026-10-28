@@ -1,8 +1,0 @@
-module=std.js.Intl.ResolvedDateTimeFormatOptions
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=2007460746728765292
-interface_hash=214635849103241540
-interface_doc_hash=214635849103241540
-deps=0

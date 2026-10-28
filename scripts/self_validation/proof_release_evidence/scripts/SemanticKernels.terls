@@ -143,10 +143,10 @@ run_command(root_path: String, working: String, values: List[String]): KernelRes
                 );
             let bounded =
                 if {
-                    program == "cargo" -> Process.with_timeout_ms(configured, 300000);
-                    true -> Process.with_timeout_ms(configured, 600000)
+                    program == "cargo" -> Process.with_timeout_ms(configured, 300_000);
+                    true -> Process.with_timeout_ms(configured, 600_000)
                 }
-                    .with_output_limit_bytes(8388608);
+                    .with_output_limit_bytes(8_388_608);
             case Process.run(bounded) {
                 Ok(output) -> command_result(program, output);
                 Err(reason) -> reject(reason.message)
@@ -192,8 +192,8 @@ let request =
     Process.command(program)
         .with_arguments(["--coverage-request" | arguments])
         .with_working_directory(root_path)
-        .with_timeout_ms(30000)
-        .with_output_limit_bytes(131072);
+        .with_timeout_ms(30_000)
+        .with_output_limit_bytes(131_072);
 case Process.run(request) {
     Ok(output) -> command_result(program, output);
     Err(reason) -> reject(reason.message)

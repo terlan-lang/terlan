@@ -59,16 +59,16 @@ ephemeral_prefix(target_root: String): String ->
     child(target_root, "terlan-").
 
 @pure
-maximum_incremental_bytes(): Int -> 17179869184.
+maximum_incremental_bytes(): Int -> 17_179_869_184.
 
 @pure
-warning_debug_bytes(): Int -> 34359738368.
+warning_debug_bytes(): Int -> 34_359_738_368.
 
 @pure
 retained_test_executable_generations(): Int -> 2.
 
 @pure
-minimum_test_executable_age_ns(): Int -> 300000000000.
+minimum_test_executable_age_ns(): Int -> 300_000_000_000.
 
 @pure
 workspace_executable_stems(): List[String] ->
@@ -816,10 +816,10 @@ run_self_test(workspace: String): Bool ->
     let stale_b_written = write_text(stale_b, "old-b");
     let stale_a_dep = write_text(String.append(stale_a, ".d"), "dep");
     let stale_b_dep = write_text(String.append(stale_b, ".d"), "dep");
-    let newest_time = set_timestamps(newest, now - 1000000000, now - 1000000000);
-    let previous_time = set_timestamps(previous, now - 2000000000, now - 2000000000);
-    let stale_a_time = set_timestamps(stale_a, now - 600000000000, now - 600000000000);
-    let stale_b_time = set_timestamps(stale_b, now - 700000000000, now - 700000000000);
+    let newest_time = set_timestamps(newest, now - 1_000_000_000, now - 1_000_000_000);
+    let previous_time = set_timestamps(previous, now - 2_000_000_000, now - 2_000_000_000);
+    let stale_a_time = set_timestamps(stale_a, now - 600_000_000_000, now - 600_000_000_000);
+    let stale_b_time = set_timestamps(stale_b, now - 700_000_000_000, now - 700_000_000_000);
     let preserved = write_text(child(debug, "preserved"), "keep");
     let cache = write_text(child(incremental, "cache"), "incremental");
     let before = findings(target_root, 4);

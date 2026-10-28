@@ -55,6 +55,19 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontSize.
+import std.core.Option.{*}.
+import std.css.Values.{*}.
+import std.css.keywords.Large.{*}.
+import std.css.keywords.Larger.{*}.
+import std.css.keywords.Math.{*}.
+import std.css.keywords.Medium.{*}.
+import std.css.keywords.Small.{*}.
+import std.css.keywords.Smaller.{*}.
+import std.css.keywords.XLarge.{*}.
+import std.css.keywords.XSmall.{*}.
+import std.css.keywords.XxLarge.{*}.
+import std.css.keywords.XxSmall.{*}.
+import std.css.keywords.XxxLarge.{*}.
 
 pub opaque type Checked.
 

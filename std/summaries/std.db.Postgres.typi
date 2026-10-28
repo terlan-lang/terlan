@@ -10,6 +10,11 @@
 //! unknown. An `Err` does not authorize retrying a write automatically.
 
 module std.db.Postgres.
+import std.collections.List.{*}.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
+import std.data.Json.{*}.
 
 /// Config represents the minimal Postgres connection configuration.
 ///

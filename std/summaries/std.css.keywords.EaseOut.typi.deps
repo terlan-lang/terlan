@@ -1,8 +1,0 @@
-module=std.css.keywords.EaseOut
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=14646992695725242745
-interface_hash=15297336452223108166
-interface_doc_hash=17358010294619851506
-deps=0

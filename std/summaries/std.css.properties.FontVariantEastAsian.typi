@@ -32,6 +32,17 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.FontVariantEastAsian.
+import std.css.Values.{*}.
+import std.css.keywords.FullWidth.{*}.
+import std.css.keywords.Jis04.{*}.
+import std.css.keywords.Jis78.{*}.
+import std.css.keywords.Jis83.{*}.
+import std.css.keywords.Jis90.{*}.
+import std.css.keywords.Normal.{*}.
+import std.css.keywords.ProportionalWidth.{*}.
+import std.css.keywords.Ruby.{*}.
+import std.css.keywords.Simplified.{*}.
+import std.css.keywords.Traditional.{*}.
 
 pub struct Property {
     font_variant_east_asian: std.css.keywords.Normal | std.css.keywords.Jis78 | std.css.keywords.Jis83 | std.css.keywords.Jis90 | std.css.keywords.Jis04 | std.css.keywords.Simplified | std.css.keywords.Traditional | std.css.keywords.FullWidth | std.css.keywords.ProportionalWidth | std.css.keywords.Ruby | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

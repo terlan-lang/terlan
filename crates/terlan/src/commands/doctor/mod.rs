@@ -232,38 +232,52 @@ fn scan_source_file(
     Ok(())
 }
 
-/// Scans generated summary artifacts that should not survive app migration.
+/// Checks summary contents without treating current caches as migration debris.
 fn scan_summary_file(root: &Path, path: &Path, findings: &mut Vec<DoctorFinding>) {
     let is_typi = path.extension().and_then(|ext| ext.to_str()) == Some("typi");
-    let is_summary_artifact = is_typi
-        || relative_path(root, path)
-            .components()
-            .any(|component| component.as_os_str() == "summaries");
-    if is_summary_artifact {
+    if !is_typi {
+        return;
+    }
+    let valid = fs::read_to_string(path).is_ok_and(|text| {
+        crate::terlan_hir::parse_interface_text(&text).is_some() || valid_namespace_summary(&text)
+    });
+    if !valid {
         findings.push(DoctorFinding {
             path: relative_path(root, path),
             code: "doctor_stale_summary_artifact",
-            message: "project contains generated summary artifacts".to_string(),
-            fix: "delete generated summaries and let the installed compiler regenerate interfaces"
-                .to_string(),
+            message: "summary is not a current interface or namespace declaration".to_string(),
+            fix: "regenerate the malformed summary with the installed compiler".to_string(),
         });
     }
-    if is_typi {
-        scan_summary_compiler_contract(root, path, findings);
-    }
+    scan_summary_compiler_contract(root, path, findings);
+}
+
+/// Recognizes the stable namespace indexes shipped beside module interfaces.
+fn valid_namespace_summary(text: &str) -> bool {
+    let identifier = |name: &str| {
+        !name.is_empty()
+            && name.split('.').all(|part| {
+                let mut chars = part.chars();
+                chars
+                    .next()
+                    .is_some_and(|ch| ch.is_ascii_alphabetic() || ch == '_')
+                    && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+            })
+    };
+    let mut lines = text.lines();
+    let Some(namespace) = lines.next() else {
+        return false;
+    };
+    identifier(namespace)
+        && lines.clone().next().is_some()
+        && lines.all(|line| line.strip_prefix("module ").is_some_and(identifier))
 }
 
 /// Scans `.typi` dependency metadata against the installed compiler contract.
 fn scan_summary_compiler_contract(root: &Path, path: &Path, findings: &mut Vec<DoctorFinding>) {
     let deps_path = summary_dependency_path(path);
     if !deps_path.exists() {
-        findings.push(DoctorFinding {
-            path: relative_path(root, path),
-            code: "doctor_summary_missing_compiler_metadata",
-            message: "summary cannot be matched to the installed compiler".to_string(),
-            fix: "delete the `.typi` file or regenerate summaries with the installed compiler"
-                .to_string(),
-        });
+        // Reviewed API declarations and namespace indexes need no cache sidecar.
         return;
     }
 

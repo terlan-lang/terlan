@@ -28,6 +28,9 @@
 //! external workers retain their separate, narrower wire vocabulary.
 
 module std.vm.Cluster.
+import std.collections.List.{*}.
+import std.core.Atom.{*}.
+import std.core.Option.{*}.
 
 /// AcceptResult carries delivery classification and the advanced session.
 ///

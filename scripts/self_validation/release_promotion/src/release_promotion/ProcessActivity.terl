@@ -86,7 +86,7 @@ valid_code(code: Json, success: Bool): Bool ->
         true -> let Ok(number) <- code.as_int() else {
             _ -> false
         };
-        number >= -2147483648 and number <= 2147483647 and success == (number == 0)
+        number >= -2_147_483_648 and number <= 2_147_483_647 and success == (number == 0)
     }.
 
 outcome(document: Json, phase: String): Result[Bool, String] ->

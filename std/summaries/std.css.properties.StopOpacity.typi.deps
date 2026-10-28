@@ -1,9 +1,0 @@
-module=std.css.properties.StopOpacity
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=11415150822145687317
-interface_hash=6875057157247143893
-interface_doc_hash=9565706949045800973
-deps=1
-std.css.Values=2905925857807311325

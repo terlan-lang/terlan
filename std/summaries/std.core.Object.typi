@@ -5,6 +5,9 @@
 //! configuration fragments, OpenAPI data, and other variable-key values.
 
 module std.core.Object.
+import std.collections.List.{*}.
+import std.collections.Map.{*}.
+import std.core.Option.{*}.
 
 /// Object represents a dynamic string-keyed value map.
 ///

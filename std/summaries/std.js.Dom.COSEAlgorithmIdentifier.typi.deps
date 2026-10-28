@@ -1,8 +1,0 @@
-module=std.js.Dom.COSEAlgorithmIdentifier
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10881596487254474402
-interface_hash=154018410692118993
-interface_doc_hash=154018410692118993
-deps=0

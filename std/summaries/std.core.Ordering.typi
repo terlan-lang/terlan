@@ -4,6 +4,7 @@
 //! closed comparison result is named `Comparison`.
 
 module std.core.Ordering.
+import std.core.Option.{*}.
 
 /// Comparison is the closed result domain for total ordering.
 ///

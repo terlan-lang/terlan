@@ -1,8 +1,0 @@
-module=std.js.DataViewConstructor
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=15981936865237692674
-interface_hash=15719022048647030637
-interface_doc_hash=15719022048647030637
-deps=0

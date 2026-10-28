@@ -17,6 +17,7 @@
 //! storage service will own consensus, not the VM's core scheduling semantics.
 
 module std.vm.DistributedStorage.
+import std.vm.DistributedState.{*}.
 
 /// Adapter represents one VM-owned storage backend instance.
 ///

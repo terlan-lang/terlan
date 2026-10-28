@@ -4299,8 +4299,25 @@
       ]
     },
     "binary_layout_width": {
-      "type": "PATTERN",
-      "value": "[0-9]+"
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PATTERN",
+          "value": "0b[01](_?[01])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "0o[0-7](_?[0-7])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "0x[0-9a-fA-F](_?[0-9a-fA-F])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "[0-9](_?[0-9])*"
+        }
+      ]
     },
     "constructor_pattern": {
       "type": "SEQ",
@@ -4842,8 +4859,29 @@
       "value": "[A-Z][A-Za-z0-9_]*"
     },
     "number": {
-      "type": "PATTERN",
-      "value": "[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?"
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PATTERN",
+          "value": "0b[01](_?[01])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "0o[0-7](_?[0-7])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "0x[0-9a-fA-F](_?[0-9a-fA-F])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "[0-9](_?[0-9])*"
+        },
+        {
+          "type": "PATTERN",
+          "value": "[0-9]+(\\.[0-9]+([eE][+-]?[0-9]+)?|[eE][+-]?[0-9]+)"
+        }
+      ]
     },
     "string": {
       "type": "CHOICE",

@@ -1,8 +1,0 @@
-module=std.css.keywords.Screen
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=10970284346416984357
-interface_hash=4770091625887162542
-interface_doc_hash=678309050224066481
-deps=0

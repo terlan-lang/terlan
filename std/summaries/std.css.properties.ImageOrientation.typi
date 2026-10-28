@@ -26,6 +26,10 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.ImageOrientation.
+import std.css.Values.{*}.
+import std.css.keywords.Flip.{*}.
+import std.css.keywords.FromImage.{*}.
+import std.css.keywords.None.{*}.
 
 pub struct Property {
     image_orientation: std.css.keywords.FromImage | std.css.keywords.None | std.css.keywords.Flip | std.css.Values.Angle | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer

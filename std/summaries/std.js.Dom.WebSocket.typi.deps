@@ -1,8 +1,0 @@
-module=std.js.Dom.WebSocket
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=18043988595034594257
-interface_hash=657447464913754602
-interface_doc_hash=657447464913754602
-deps=0

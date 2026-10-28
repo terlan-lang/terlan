@@ -1,12 +1,11 @@
-//! Packaged standard interfaces and their exact dependency manifests.
+//! Reviewed standard interfaces; dependency references derive from their declarations.
 //!
-//! One catalogue binds each implementation summary to its dependency closure.
-//! Namespace-only summaries have no implementation dependency manifest.
+//! Disposable cache manifests are never inputs to the Rust compiler build.
 
 pub(super) struct EmbeddedStdInterface {
     pub(super) module: &'static str,
     pub(super) summary: &'static str,
-    pub(super) dependencies: Option<&'static str>,
+    pub(super) namespace: bool,
 }
 
 macro_rules! embedded {
@@ -14,11 +13,7 @@ macro_rules! embedded {
         EmbeddedStdInterface {
             module: $module,
             summary: include_str!(concat!("../../../../std/summaries/", $module, ".typi")),
-            dependencies: Some(include_str!(concat!(
-                "../../../../std/summaries/",
-                $module,
-                ".typi.deps"
-            ))),
+            namespace: false,
         }
     };
 }
@@ -28,7 +23,7 @@ macro_rules! namespace {
         EmbeddedStdInterface {
             module: $module,
             summary: include_str!(concat!("../../../../std/summaries/", $module, ".typi")),
-            dependencies: None,
+            namespace: true,
         }
     };
 }

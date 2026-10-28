@@ -1,8 +1,0 @@
-module=std.js.Dom.TextTrackEventMap
-syntax_contract_schema=terlan-syntax-contract-v1
-syntax_contract_fingerprint_algorithm=fnv1a64
-syntax_contract_fingerprint=fnv1a64:b9e183c0575aeaba
-source_hash=17861769170694170935
-interface_hash=13201193298791560150
-interface_doc_hash=13201193298791560150
-deps=0

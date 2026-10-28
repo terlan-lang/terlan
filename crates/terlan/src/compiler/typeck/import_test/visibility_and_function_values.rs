@@ -338,6 +338,7 @@ fn public_function_interface(
     functions: &[(&str, Vec<(&str, &str)>, &str)],
 ) -> ModuleInterface {
     let mut interface = ModuleInterface {
+        dependency_modules: Default::default(),
         module: module.to_string(),
         docs: Vec::new(),
         public_types: HashSet::new(),

@@ -27,7 +27,7 @@ selected(mode: String): Owner ->
             "PRIMARY_OUTPUT",
             "outputs.v1",
             "completed",
-            30000,
+            30_000,
         ),
         [OwnerArtifacts.declare_artifact("target/quality/extra.json", "EXTRA_OUTPUT", "outputs.v1")],
     ).
@@ -59,7 +59,7 @@ declarations(): Bool ->
                 "OTHER",
                 "outputs.v1",
                 "completed",
-                30000,
+                30_000,
             ),
             value.additional_outputs,
         );

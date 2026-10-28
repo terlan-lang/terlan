@@ -23,28 +23,28 @@ pub bitstring_slices_arbitrary_offsets_and_converts_aligned_values(): Bool ->
 
 @test
 pub bitstring_utf8_scalar_uses_canonical_utf8_bytes(): Bool ->
-    let bits = utf8_scalar(8364);
+    let bits = utf8_scalar(8_364);
     assert_equal(24, bits.bit_length());
     assert_equal([226, 130, 172], bits.to_bytes().to_list());
-    assert_equal(8364, bits.to_utf8_scalar()).
+    assert_equal(8_364, bits.to_utf8_scalar()).
 
 @test
 pub bitstring_utf16_scalars_preserve_wire_order_and_round_trip(): Bool ->
-    let big = utf16_be_scalar(128512);
-    let little = utf16_le_scalar(128512);
+    let big = utf16_be_scalar(128_512);
+    let little = utf16_le_scalar(128_512);
     assert_equal([216, 61, 222, 0], big.to_bytes().to_list());
     assert_equal([61, 216, 0, 222], little.to_bytes().to_list());
-    assert_equal(128512, big.to_utf16_be_scalar());
-    assert_equal(128512, little.to_utf16_le_scalar()).
+    assert_equal(128_512, big.to_utf16_be_scalar());
+    assert_equal(128_512, little.to_utf16_le_scalar()).
 
 @test
 pub bitstring_utf32_scalars_preserve_wire_order_and_round_trip(): Bool ->
-    let big = utf32_be_scalar(128512);
-    let little = utf32_le_scalar(128512);
+    let big = utf32_be_scalar(128_512);
+    let little = utf32_le_scalar(128_512);
     assert_equal([0, 1, 246, 0], big.to_bytes().to_list());
     assert_equal([0, 246, 1, 0], little.to_bytes().to_list());
-    assert_equal(128512, big.to_utf32_be_scalar());
-    assert_equal(128512, little.to_utf32_le_scalar()).
+    assert_equal(128_512, big.to_utf32_be_scalar());
+    assert_equal(128_512, little.to_utf32_le_scalar()).
 
 @test
 pub bitstring_concat_preserves_unaligned_bit_order(): Bool ->
@@ -63,17 +63,17 @@ pub bitstring_concat_handles_empty_values(): Bool ->
 
 @test
 pub bitstring_integer_constructors_preserve_width_and_endian_policy(): Bool ->
-    assert_equal([18, 52], from_uint_be(4660, 16).to_bytes().to_list());
-    assert_equal([52, 18], from_uint_le(4660, 16).to_bytes().to_list());
-    assert_equal(12, from_uint_be(2748, 12).bit_length());
+    assert_equal([18, 52], from_uint_be(4_660, 16).to_bytes().to_list());
+    assert_equal([52, 18], from_uint_le(4_660, 16).to_bytes().to_list());
+    assert_equal(12, from_uint_be(2_748, 12).bit_length());
     assert_equal([239], from_int_be(-2, 4).concat(from_int_be(-1, 4)).to_bytes().to_list());
     assert_equal([255, 224], from_int_le(-257, 12).concat(from_uint_be(0, 4)).to_bytes().to_list()).
 
 @test
 pub bitstring_integer_decoders_round_trip_exact_widths_and_endian_policy(): Bool ->
-    assert_equal(4660, from_uint_be(4660, 16).to_uint_be());
-    assert_equal(4660, from_uint_le(4660, 16).to_uint_le());
+    assert_equal(4_660, from_uint_be(4_660, 16).to_uint_be());
+    assert_equal(4_660, from_uint_le(4_660, 16).to_uint_le());
     assert_equal(-257, from_int_be(-257, 12).to_int_be());
     assert_equal(-257, from_int_le(-257, 12).to_int_le());
-    assert_equal(2748, from_uint_be(2748, 12).to_uint_be());
-    assert_equal(2748, from_uint_le(2748, 12).to_uint_le()).
+    assert_equal(2_748, from_uint_be(2_748, 12).to_uint_be());
+    assert_equal(2_748, from_uint_le(2_748, 12).to_uint_le()).

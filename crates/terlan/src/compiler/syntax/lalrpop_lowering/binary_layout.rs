@@ -89,7 +89,7 @@ fn has_width(text: &str, name: &str) -> bool {
         return false;
     }
     let width = close[open + 1..].trim();
-    !width.is_empty() && width != "0" && width.chars().all(|character| character.is_ascii_digit())
+    crate::terlan_syntax::integer_literals::parse_integer(width).is_some_and(|width| width > 0)
 }
 
 fn matches_name(head: &str, name: &str) -> bool {

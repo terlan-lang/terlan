@@ -30,6 +30,12 @@
 //! Generated from @webref/css 8.7.8. Do not edit.
 
 module std.css.properties.WhiteSpaceCollapse.
+import std.css.Values.{*}.
+import std.css.keywords.BreakSpaces.{*}.
+import std.css.keywords.Collapse.{*}.
+import std.css.keywords.Preserve.{*}.
+import std.css.keywords.PreserveBreaks.{*}.
+import std.css.keywords.PreserveSpaces.{*}.
 
 pub struct Property {
     white_space_collapse: std.css.keywords.Collapse | std.css.keywords.Preserve | std.css.keywords.PreserveBreaks | std.css.keywords.PreserveSpaces | std.css.keywords.BreakSpaces | std.css.Values.Inherit | std.css.Values.Initial | std.css.Values.Unset | std.css.Values.Revert | std.css.Values.RevertLayer
