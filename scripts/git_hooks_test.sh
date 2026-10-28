@@ -116,8 +116,8 @@ if bash "$driver" install > "$temporary/install.log" 2>&1; then
 fi
 test "$(git config --get core.hooksPath)" = /dev/null
 
-# Generated binding drift must stop even a documentation-only commit before
-# the optimized build. Exercise the real checker with bounded tool stand-ins.
+# Grammar and generated binding drift must stop documentation-only commits
+# before the optimized build, using the real checker with bounded stand-ins.
 mkdir -p "$temporary/early-bindings/bin" "$temporary/early-bindings/cache/debug" \
   "$temporary/early-bindings/scripts"
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
@@ -130,6 +130,25 @@ printf 'exit 0\n' > "$temporary/early-bindings/scripts/build_artifact_bootstrap_
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
+test "$TERLAN_EBNF_ROOT" = "$PWD"
+test "$TERLAN_EBNF_COMPILER" = "$0"
+test "$*" = 'run scripts/self_validation/EbnfValidator.terls'
+exit 39
+TERLC
+chmod +x "$temporary/early-bindings/bin/"* "$temporary/early-bindings/cache/debug/terlc"
+printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
+(
+  cd "$temporary/early-bindings"
+  status=0
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-grammar.log" 2>&1 || status=$?
+  test "$status" = 39
+)
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
 test "$TERLAN_JS_BINDINGS_ROOT" = "$PWD"
 test "$TERLAN_JS_BINDINGS_TERLC" = "$0"
 test "$*" = 'test scripts/self_validation/JsBindingsDriftTest.terl'
@@ -149,6 +168,7 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
+if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
 if [[ "$*" == 'test scripts/self_validation/JsBindingsDriftTest.terl' ]]; then
   exit 0
 fi
@@ -170,4 +190,4 @@ for contract in negative-api io-negative-api; do
     test "$status" = 38
   )
 done
-echo 'Git hook regression tests passed (14 scenarios).'
+echo 'Git hook regression tests passed (15 scenarios).'

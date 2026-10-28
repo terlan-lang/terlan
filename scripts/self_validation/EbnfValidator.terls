@@ -8,7 +8,7 @@ import std.core.{Int, String, Unit}.
 import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.Directory.{create_temporary, remove_all}.
-import std.io.File.{write_text}.
+import std.io.File.{read_text, write_text}.
 import std.system.{Arguments, Environment, Process}.
 
 import type std.core.Option.
@@ -181,6 +181,39 @@ report_summary(source: String): Option[ReportSummary] ->
         )
     }.
 
+summary_fixture_matches(definitions: Int, source: String): Bool ->
+    let {
+        Ok(fixture) <- Json.parse(source);
+        Some(version) <- json_int(fixture, "format_version");
+        Some(entry_rule) <- json_string(fixture, "entry_rule");
+        Some(rule_count) <- json_int(fixture, "rule_count")
+    } else {
+        _ -> false
+    };
+    version == 1 and entry_rule == "SyntaxSpec" and rule_count == definitions.
+
+canonical_summary_matches(repository: String, path: String, definitions: Int): Bool ->
+    if {
+        path != "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
+            and path != join(repository, "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf") -> true;
+        true -> case read_text(
+            join(
+                repository,
+                "docs/grammar/fixtures/contract/terlan_syntax_spec_contract_summary.json",
+            ),
+        ) {
+            Ok(source) ->
+                if {
+                    summary_fixture_matches(definitions, source) -> true;
+                    true -> failure(
+                        "canonical grammar summary is stale or malformed; review its rule_count alongside the EBNF change",
+                    )
+                };
+            Err(reason) ->
+                failure(String.append("could not read canonical grammar summary: ", reason.message))
+        }
+    }.
+
 render_count(label: String, count: Int): Unit ->
     println(String.append(label, Int.to_string(count))).
 
@@ -264,7 +297,7 @@ validate(repository: String, compiler_path: String, path: String, strict: Bool):
                     let rendered = render_report(path, strict, output.stdout, summary);
                     if {
                         not rendered -> failure("compiler emitted a malformed EBNF report");
-                        output.status == 0 and summary.valid -> true;
+                        output.status == 0 and summary.valid -> canonical_summary_matches(repository, path, summary.definitions);
                         output.status == 1 and not summary.valid -> false;
                         true -> failure("compiler status disagrees with its EBNF report")
                     };
@@ -353,7 +386,14 @@ self_test(repository: String, compiler_path: String): Bool ->
                     } else {
                         _ -> false
                     };
-                    output_matches(valid, 0, true, 0)
+                    summary_fixture_matches(2, "{\"format_version\":1,\"entry_rule\":\"SyntaxSpec\",\"rule_count\":2}")
+                        and not summary_fixture_matches(3, "{\"format_version\":1,\"entry_rule\":\"SyntaxSpec\",\"rule_count\":2}")
+                        and not summary_fixture_matches(
+    2,
+    "{\"format_version\":1,\"entry_rule\":\"SyntaxSpec\",\"rule_count\":\"2\"}",
+)
+                        and not summary_fixture_matches(2, "{}")
+                        and output_matches(valid, 0, true, 0)
                         and output_matches(undefined, 1, false, 0)
                         and output_matches(unreachable, 1, false, 0)
                         and output_matches(strict, 1, false, 2)

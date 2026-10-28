@@ -15,6 +15,9 @@ cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-w
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 export TERLC="$terlc"
+echo 'pre-commit: canonical grammar and summary'
+TERLAN_EBNF_ROOT="$PWD" TERLAN_EBNF_COMPILER="$terlc" \
+  "$terlc" run scripts/self_validation/EbnfValidator.terls
 echo 'pre-commit: generated JavaScript bindings'
 TERLAN_JS_BINDINGS_ROOT="$PWD" TERLAN_JS_BINDINGS_TERLC="$terlc" \
   "$terlc" test scripts/self_validation/JsBindingsDriftTest.terl

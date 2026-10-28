@@ -37,6 +37,14 @@ Regression checks cover contextual generic results, incompatible alternatives,
 layout order and repeated substitution. Focused parser and formatter checks had
 not exercised these native integration cases; the full compiler gate caught them.
 
+Integer separators added a `DecimalDigits` EBNF rule while the reviewed grammar
+summary still counted the previous rules. Reduced manual checks missed its
+existing Rust golden test. The Terlan EBNF validator now also checks the canonical
+summary's rule count, rejects malformed fixtures, and runs immediately after the
+debug compiler build in every commit hook, before optimized builds. Its self-test
+covers stale counts; the hook regression verifies that this failure stops early.
+The syntax lane retains the full Rust summary comparison.
+
 Commit messages must contain one nonempty line of at most 50 characters. Put
 detailed explanations in the code, documentation, or pull request. Git's
 `commit-msg` hook checks the message after it is collected; long subjects and
