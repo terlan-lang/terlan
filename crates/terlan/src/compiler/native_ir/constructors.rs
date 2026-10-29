@@ -504,7 +504,7 @@ pub(super) fn structural_constructor_fields(
                 }
                 return None;
             }
-            if matches!(variant, CoreType::AtomLiteral(atom) if name.eq_ignore_ascii_case(atom)) {
+            if matches!(variant, CoreType::AtomLiteral(atom) if constructor_tag(name) == *atom) {
                 return Some((
                     u32::try_from(index).ok()?,
                     u32::try_from(variants.len()).ok()?,
@@ -523,7 +523,7 @@ pub(super) fn structural_constructor_fields(
                 } => atom,
                 _ => return None,
             };
-            if !((name == "Err" && atom == "error") || name.eq_ignore_ascii_case(atom)) {
+            if !((name == "Err" && atom == "error") || constructor_tag(name) == *atom) {
                 return None;
             }
             Some((
@@ -562,18 +562,7 @@ pub(super) fn structural_constructor_fields(
 }
 
 fn constructor_tag(name: &str) -> String {
-    let mut tag = String::new();
-    for (index, character) in name.chars().enumerate() {
-        if character.is_uppercase() {
-            if index != 0 {
-                tag.push('_');
-            }
-            tag.extend(character.to_lowercase());
-        } else {
-            tag.push(character);
-        }
-    }
-    tag
+    crate::terlan_syntax::type_name_to_atom_payload(name)
 }
 
 /// Returns the exact result kind for one resolved constructor call.

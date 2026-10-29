@@ -8,6 +8,9 @@ mod assignment_templates_and_html;
 #[path = "expression_test/comprehensions_calls_and_collections.rs"]
 mod comprehensions_calls_and_collections;
 #[cfg(test)]
+#[path = "expression_test/constructor_tags_test.rs"]
+mod constructor_tags_test;
+#[cfg(test)]
 #[path = "expression_test/finite_coverage.rs"]
 mod finite_coverage;
 #[cfg(test)]

@@ -241,18 +241,7 @@ fn constructor_argument_types<'a>(ty: &'a CoreType, name: &str) -> Option<Vec<&'
 }
 
 fn constructor_tag(name: &str) -> String {
-    let mut tag = String::new();
-    for (index, character) in name.chars().enumerate() {
-        if character.is_uppercase() {
-            if index != 0 {
-                tag.push('_');
-            }
-            tag.extend(character.to_lowercase());
-        } else {
-            tag.push(character);
-        }
-    }
-    tag
+    crate::terlan_syntax::type_name_to_atom_payload(name)
 }
 
 /// Returns the type carried by one positional or named tuple element.

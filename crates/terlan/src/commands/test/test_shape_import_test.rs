@@ -201,6 +201,55 @@ pub qualified_constant_receiver_executes(): Bool -> app.Constants.Direction.FORW
     assert_eq!(exit_code, ExitCode::SUCCESS);
 }
 
+/// Constructor-backed closed unions remain exhaustive across package summaries.
+#[test]
+fn project_vm_tests_execute_imported_constructor_union_patterns() {
+    let exit_code = run_project_vm_test(
+        "terlan_constructor_union_coverage_vm_test",
+        "constructor-union-app",
+        "src/app/Events.terl",
+        r#"module app.Events.
+pub type Reason: Int = READY = 1 | WAITING = 2.
+pub struct Payload { value: Int }.
+pub payload(value: Int): Payload -> Payload {value: value}.
+pub type Message = {Atom["idle"], Int, Reason} | {Atom["send_packet"], Payload}
+    | {Atom["http_error"], Int} | {Atom["frame_2_d"], Bool}.
+pub constructor Idle {
+    (sequence: Int, reason: Reason): Message -> {Atom["idle"], sequence, reason}
+}.
+pub constructor SendPacket {
+    (payload: Payload): Message -> {Atom["send_packet"], payload}
+}.
+pub constructor HTTPError {
+    (code: Int): Message -> {Atom["http_error"], code}
+}.
+pub constructor Frame2D {
+    (flag: Bool): Message -> {Atom["frame_2_d"], flag}
+}.
+"#,
+        "tests/app/EventsTest.terl",
+        r#"module app.EventsTest.
+import app.Events.{Frame2D, HTTPError, Idle, SendPacket, payload}.
+import type app.Events.{Reason, Payload, Message}.
+pub inspect(message: Message): Bool -> case message {
+    Idle(sequence, reason) -> sequence == 7 and reason == Reason.READY;
+    SendPacket(payload) -> payload.value == 9;
+    HTTPError(code) -> code == 13;
+    Frame2D(flag) -> flag
+}.
+@test
+pub imported_idle_variant_executes(): Bool -> inspect(Idle(7, Reason.READY)).
+@test
+pub imported_multiword_variant_executes(): Bool -> inspect(SendPacket(payload(9))).
+@test
+pub imported_acronym_variant_executes(): Bool -> inspect(HTTPError(13)).
+@test
+pub imported_digit_boundary_variant_executes(): Bool -> inspect(Frame2D(true)).
+"#,
+    );
+    assert_eq!(exit_code, ExitCode::SUCCESS);
+}
+
 /// Runs one temporary project test against a prepared source-root module.
 fn run_project_vm_test(
     prefix: &str,

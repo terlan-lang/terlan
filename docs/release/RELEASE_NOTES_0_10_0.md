@@ -24,12 +24,22 @@ their existing syntax. Consecutive, leading and trailing numeric separators
 are invalid.
 
 Generic inference keeps freshly instantiated variables separate from enclosing
-bindings and other calls. An optional field such as `Some(price)` no longer
+bindings and other calls. An optional field such as `Some(value)` no longer
 changes the inferred type of an unrelated sibling field. Regression coverage
 includes reordered fields, earlier bindings, independent callbacks and shared
 generic constraints, including genuine type errors that must remain rejected.
 Substitution also flattens nested union members without reordering their layouts,
 allowing fresh return-only generic results to adopt their enclosing context.
+
+Signed constants and valued-union arms retain their nominal types across
+package summaries. Receiver calls directly on qualified union constants use
+ordinary receiver dispatch. Constructor coverage and native matching share
+canonical atom tags, including multiword names, acronyms and digit boundaries.
+Missing variants and branches covered only by guards remain rejected.
+
+Native helpers support chunked owned-buffer transfers up to 16 MiB while
+keeping physical frames bounded to 1 MiB. Regenerate C/C++ helpers to receive
+large arguments; the runtime can stream bounded legacy binary replies.
 
 Native applications carry their image and VM in the executable. External service
 dependencies retain their own deployment requirements. This does not freeze the

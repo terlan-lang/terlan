@@ -97,14 +97,13 @@ pub(super) fn check_structural_constructor_pattern(
 /// - `name`: constructor-pattern identifier such as `Some`.
 ///
 /// Output:
-/// - Lowercase atom name used by structural tuple aliases.
+/// - Canonical snake-case atom name used by structural tuple aliases.
 ///
 /// Transformation:
-/// - Lowercases all characters without adding punctuation or backend syntax.
+/// - Shares the language's camel-case, acronym, and digit-boundary conversion
+///   instead of inventing a different tag spelling during coverage analysis.
 pub(super) fn constructor_pattern_atom_name(name: &str) -> String {
-    name.chars()
-        .flat_map(|ch| ch.to_lowercase())
-        .collect::<String>()
+    crate::terlan_syntax::type_name_to_atom_payload(name)
 }
 
 /// Checks a constructor-style pattern against an expected type.

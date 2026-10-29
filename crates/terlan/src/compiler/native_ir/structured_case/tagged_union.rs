@@ -79,12 +79,7 @@ fn tagged_union_by_constructor_name(
     name: &str,
     variants: &[CoreType],
 ) -> Option<(u32, u32, Vec<CoreType>)> {
-    let mut chars = name.chars();
-    let expected = chars
-        .next()?
-        .to_lowercase()
-        .chain(chars)
-        .collect::<String>();
+    let expected = crate::terlan_syntax::type_name_to_atom_payload(name);
     tagged_union_by_atom(&expected, variants)
 }
 
