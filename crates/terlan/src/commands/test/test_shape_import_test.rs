@@ -174,10 +174,12 @@ pub type OrderSide: Int = BUY = 1 | SELL = -1.
 pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 3.
 pub accepts(side: OrderSide, tif: TimeInForce): Bool ->
     side == OrderSide.SELL and tif == TimeInForce.DAY.
+pub (current: OrderSide) matches(other: OrderSide): Bool -> current == other.
+pub local_receiver(): Bool -> OrderSide.SELL.matches(OrderSide.SELL).
 "#,
         "tests/app/OrderTest.terl",
         r#"module app.OrderTest.
-import app.Order.{accepts}.
+import app.Order.{accepts, matches, local_receiver}.
 import type app.Order.{OrderSide as Side, TimeInForce}.
 @test
 pub imported_signed_arm_executes(): Bool ->
@@ -188,6 +190,12 @@ pub positive_arm_remains_distinct(): Bool ->
 @test
 pub imported_signed_pattern_executes(): Bool ->
     case Side.SELL { Side.SELL -> true; _ -> false }.
+@test
+pub local_constant_receiver_executes(): Bool -> local_receiver().
+@test
+pub selected_constant_receiver_executes(): Bool -> (Side.SELL).matches(Side.SELL).
+@test
+pub qualified_constant_receiver_executes(): Bool -> app.Order.OrderSide.BUY.matches(Side.BUY).
 "#,
     );
     assert_eq!(exit_code, ExitCode::SUCCESS);

@@ -77,6 +77,22 @@ The generator must produce:
 Conformance tests must call through the Rust adapter. They must not mock the
 native library as a substitute for validating the binding boundary.
 
+## Helper Transport
+
+The VM and generated C/C++ helpers share the same transport codec. Physical
+frames remain bounded to 1 MiB; one call may transfer an owned buffer up to
+16 MiB. Larger logical messages use ordered, request-correlated `chunk` and
+`reply_chunk` frames. Both endpoints reject oversized frames, excessive total
+data, interrupted transfers, invalid encodings, and mismatched chunk identities.
+Incomplete or malformed replies close the VM's helper connection so leftover
+bytes cannot become another call's reply.
+
+For compatibility, the VM streams legacy `ok_bytes` and `result_ok_bytes`
+replies directly through a bounded base64 decoder. This exception does not
+increase the control-frame limit or buffer an entire encoded binary line.
+Helpers receiving large arguments must be regenerated with the current binding
+generator; older helpers understand only single-frame requests.
+
 ## Dispatcher Families
 
 An explicit manifest may use `function_families` inside a module when multiple

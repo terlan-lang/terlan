@@ -64,6 +64,14 @@ pub(in crate::commands::bind::cpp_binding_generator) fn render_native_helper(
     let crate_ident = manifest.package.crate_name.replace('-', "_");
     Ok(HELPER_TEMPLATE
         .replace("@CRATE@", &crate_ident)
+        .replace(
+            "@TRANSPORT_MAIN@",
+            crate::commands::bind::native_helper_transport::MAIN,
+        )
+        .replace(
+            "@TRANSPORT_SOURCE@",
+            crate::commands::bind::native_helper_transport::SOURCE,
+        )
         .replace("@HANDLE_VARIANTS@", &variants)
         .replace("@OPERATION_ARMS@", &arms)
         .replace("@NULL_FAILURE@", &null_failure)

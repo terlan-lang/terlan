@@ -586,6 +586,14 @@ pub(super) fn render_native_helper(
     };
     let root = template
         .replace("@CRATE@", &crate_ident)
+        .replace(
+            "@TRANSPORT_MAIN@",
+            crate::commands::bind::native_helper_transport::MAIN,
+        )
+        .replace(
+            "@TRANSPORT_SOURCE@",
+            crate::commands::bind::native_helper_transport::SOURCE,
+        )
         .replace("@IMPORTS@", &imports.join(", "))
         .replace("@DISPATCH_MODULES@", &dispatch_modules)
         .replace("@DISPATCH_CALLS@", &dispatch_calls)

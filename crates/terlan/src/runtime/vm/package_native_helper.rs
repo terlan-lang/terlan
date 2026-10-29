@@ -43,6 +43,10 @@ pub(crate) use execution::execute_call;
 pub(crate) use storage_transport::VmStorageBinding;
 #[path = "package_native_helper/helper_process.rs"]
 mod helper_process;
+mod legacy_reply;
+mod transport;
+#[cfg(test)]
+mod transport_test;
 use helper_process::VmPackageNativeHelper;
 #[cfg(any(
     test,
@@ -663,12 +667,7 @@ fn decode_payload(fields: &[&str]) -> VmRuntimeResult<ReplValue> {
         ["ok_atom", value] => decode_text(value).map(ReplValue::Atom),
         ["ok_string", value] => decode_text(value).map(ReplValue::String),
         ["ok_bytes"] => Ok(ReplValue::Bytes(Vec::new().into())),
-        ["ok_bytes", value] => STANDARD
-            .decode(value)
-            .map(|value| ReplValue::Bytes(value.into()))
-            .map_err(|error| {
-                VmRuntimeError::message(format!("error[native_helper_protocol]: {error}"))
-            }),
+        ["ok_bytes", value] => legacy_reply::decode_bytes(value),
         ["ok_ints"] => Ok(ReplValue::List(Vec::new())),
         ["ok_ints", values] => parse_list(values, |value| value.parse::<i64>().map(ReplValue::Int)),
         ["ok_floats"] => Ok(ReplValue::List(Vec::new())),
@@ -733,13 +732,7 @@ fn decode_payload(fields: &[&str]) -> VmRuntimeResult<ReplValue> {
             }),
         ["result_ok_string", value] => decode_text(value).map(ReplValue::String).map(result_ok),
         ["result_ok_bytes"] => Ok(result_ok(ReplValue::Bytes(Vec::new().into()))),
-        ["result_ok_bytes", value] => STANDARD
-            .decode(value)
-            .map(|value| ReplValue::Bytes(value.into()))
-            .map(result_ok)
-            .map_err(|error| {
-                VmRuntimeError::message(format!("error[native_helper_protocol]: {error}"))
-            }),
+        ["result_ok_bytes", value] => legacy_reply::decode_bytes(value).map(result_ok),
         ["result_ok_handle", owner, id, generation, type_name] => {
             decode_handle(owner, id, generation, type_name).map(result_ok)
         }

@@ -212,6 +212,7 @@ pub(super) fn substitute_expr(
     functions: &HashMap<(String, usize), ConstFunction>,
     diagnostics: &mut Vec<ValueLifecycleDiagnostic>,
 ) {
+    substitute_union_receiver(expr, values);
     if expr.kind == SyntaxExprKind::Var {
         if let Some(value) = expr.text.as_ref().and_then(|name| values.get(name)) {
             *expr = value_to_expr(value, expr.span);
@@ -260,6 +261,29 @@ pub(super) fn substitute_expr(
         substitute_expr(&mut after.trigger, values, functions, diagnostics);
         substitute_expr(&mut after.body, values, functions, diagnostics);
     }
+}
+
+/// Dotted syntax is also used for module calls. A known union arm is a value
+/// receiver, so retain its nominal tag and use ordinary receiver dispatch.
+fn substitute_union_receiver(expr: &mut SyntaxExprOutput, values: &HashMap<String, ConstValue>) {
+    if expr.kind != SyntaxExprKind::Call {
+        return;
+    }
+    let Some(value @ ConstValue::Union { .. }) =
+        expr.remote.as_ref().and_then(|name| values.get(name))
+    else {
+        return;
+    };
+    let Some(callee) = expr.children.first_mut() else {
+        return;
+    };
+    if !matches!(callee.kind, SyntaxExprKind::Var | SyntaxExprKind::Atom) {
+        return;
+    }
+    callee.kind = SyntaxExprKind::FieldAccess;
+    callee.arity = 1;
+    callee.children = vec![value_to_expr(value, callee.span)];
+    expr.remote = None;
 }
 
 pub(super) fn qualified_expr_name(expr: &SyntaxExprOutput) -> Option<String> {

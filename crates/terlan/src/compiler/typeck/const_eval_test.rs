@@ -13,7 +13,7 @@ use super::{
     lower_syntax_module_output_to_core, prepare_syntax_constants, type_check_syntax_module_output,
 };
 
-#[path = "const_eval_test/imported_signed.rs"]
+#[path = "const_eval_test/imported_signed_test.rs"]
 mod imported_signed;
 
 #[test]

@@ -8,6 +8,7 @@ pub type OrderSide: Int = BUY = 1 | SELL = -1.
 pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 3.
 pub const NEGATIVE: Int = -7.
 pub const NEGATIVE_LIMIT: Int = -9223372036854775807.
+pub (current: OrderSide) matches(other: OrderSide): Bool -> current == other.
 "#,
     )
     .expect("parse signed provider");
@@ -99,4 +100,65 @@ pub invalid(): TimeInForce -> OrderSide.SELL.
             .any(|diagnostic| diagnostic.message.contains("found Dynamic")),
         "{diagnostics:#?}"
     );
+}
+
+/// Parentheses and formatting must not turn constant receivers into modules.
+#[test]
+fn imported_signed_union_constant_receiver_calls_resolve() {
+    let interfaces = signed_interfaces();
+    for receiver in ["Side.SELL", "(Side.SELL)", "lifecycle.signed.OrderSide.BUY"] {
+        let source = format!(
+            "module lifecycle.receiver_consumer.\n\
+             import lifecycle.signed.{{matches}}.\n\
+             import type lifecycle.signed.{{OrderSide as Side}}.\n\
+             pub sample(): Bool -> {receiver}.matches(Side.SELL).\n"
+        );
+        for source in [
+            source.clone(),
+            format_source_module(&source).expect("format receiver"),
+        ] {
+            let consumer = parse_module_as_syntax_output(&source).expect("parse constant receiver");
+            let resolved =
+                resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+            let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+            assert!(diagnostics.is_empty(), "{source}\n{diagnostics:#?}");
+            let core = lower_syntax_module_output_to_core(&consumer, &resolved);
+            let rendered = format!("{core:#?}");
+            assert!(!rendered.contains("module: \"Side.SELL\""), "{rendered}");
+            assert!(
+                !rendered.contains("module: \"lifecycle.signed.OrderSide.BUY\""),
+                "{rendered}"
+            );
+        }
+    }
+}
+
+/// Reclassification must still check the method's receiver and argument types.
+#[test]
+fn imported_signed_union_receiver_rejects_wrong_union() {
+    let interfaces = signed_interfaces();
+    for call in [
+        "TimeInForce.DAY.matches(Side.SELL)",
+        "Side.SELL.matches(TimeInForce.DAY)",
+    ] {
+        let consumer = parse_module_as_syntax_output(&format!(
+            "module lifecycle.receiver_wrong_type.\n\
+             import lifecycle.signed.{{matches}}.\n\
+             import type lifecycle.signed.{{OrderSide as Side, TimeInForce}}.\n\
+             pub invalid(): Bool -> {call}.\n"
+        ))
+        .expect("parse invalid constant receiver");
+        let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+        let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+        assert!(
+            !diagnostics.is_empty(),
+            "wrong nominal call accepted: {call}"
+        );
+        assert!(
+            !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("cannot resolve module")),
+            "{diagnostics:#?}"
+        );
+    }
 }

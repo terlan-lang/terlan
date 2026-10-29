@@ -3,7 +3,7 @@ pub(super) const NATIVE_HELPER_TEMPLATE: &str = r##"//! Native-boundary helper g
 #![forbid(unsafe_code)]
 
 @DISPATCH_MODULES@use std::collections::HashMap;
-use std::io::{self, BufRead, Read, Write};
+use std::io::{self, Write};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -12,42 +12,7 @@ use @CRATE@::{@IMPORTS@};
 const MAX_ADAPTER_FRAME_BYTES: usize = @MAX_FRAME_BYTES@;
 const MAX_ADAPTER_TRANSFER_BYTES: usize = @MAX_TRANSFER_BYTES@;
 
-fn main() {
-    let mut worker = match Worker::new() {
-        Ok(worker) => worker,
-        Err(error) => {
-            eprintln!("native worker identity initialization failed: {error}");
-            return;
-        }
-    };
-    let stdin = io::stdin();
-    let mut input = stdin.lock();
-    let mut stdout = io::stdout().lock();
-    loop {
-        let mut frame = Vec::new();
-        let read = Read::by_ref(&mut input)
-            .take((MAX_ADAPTER_FRAME_BYTES + 1) as u64)
-            .read_until(b'\n', &mut frame);
-        let (payload, terminate) = match read {
-            Ok(0) => break,
-            Ok(_) if frame.len() > MAX_ADAPTER_FRAME_BYTES => (
-                protocol_error("frame_too_large", "native adapter frame exceeds its bound"),
-                true,
-            ),
-            Ok(_) => match String::from_utf8(frame) {
-                Ok(line) => (
-                    worker.execute_line(line.trim_end_matches(['\r', '\n'])),
-                    false,
-                ),
-                Err(error) => (protocol_error("invalid_utf8", &error.to_string()), false),
-            },
-            Err(error) => (protocol_error("native_read_error", &error.to_string()), true),
-        };
-        if writeln!(stdout, "{payload}").is_err() || stdout.flush().is_err() || terminate {
-            break;
-        }
-    }
-}
+@TRANSPORT_MAIN@
 
 @RESOURCE_DEAD_CODE@struct Worker {
     owner: String,

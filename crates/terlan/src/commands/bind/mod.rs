@@ -40,6 +40,7 @@ struct BindCArgs {
 
 mod c_abi_binding_generator;
 mod cpp_binding_generator;
+mod native_helper_transport;
 mod polars_probe;
 mod polars_probe_files;
 mod ts_dom_manifest;
