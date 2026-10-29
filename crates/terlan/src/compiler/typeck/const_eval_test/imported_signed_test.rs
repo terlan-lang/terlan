@@ -4,11 +4,11 @@ fn signed_interfaces() -> HashMap<String, crate::terlan_hir::ModuleInterface> {
     let provider = parse_module_as_syntax_output(
         r#"
 module lifecycle.signed.
-pub type OrderSide: Int = BUY = 1 | SELL = -1.
-pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 3.
+pub type Direction: Int = FORWARD = 1 | BACKWARD = -1.
+pub type Mode: Int = FAST = 1 | SAFE = 3.
 pub const NEGATIVE: Int = -7.
 pub const NEGATIVE_LIMIT: Int = -9223372036854775807.
-pub (current: OrderSide) matches(other: OrderSide): Bool -> current == other.
+pub (current: Direction) matches(other: Direction): Bool -> current == other.
 "#,
     )
     .expect("parse signed provider");
@@ -26,10 +26,10 @@ fn imported_signed_values_survive_interface_round_trip() {
         let consumer = parse_module_as_syntax_output(&format!(
             r#"
 module lifecycle.signed_consumer.
-{import_prefix} lifecycle.signed.{{OrderSide as Side, TimeInForce}}.
+{import_prefix} lifecycle.signed.{{Direction as Heading, Mode}}.
 import lifecycle.signed.{{NEGATIVE, NEGATIVE_LIMIT}}.
-pub sample(): {{Side, Side, TimeInForce, Int, Int}} ->
-    {{Side.BUY, Side.SELL, TimeInForce.DAY, NEGATIVE, NEGATIVE_LIMIT}}.
+pub sample(): {{Heading, Heading, Mode, Int, Int}} ->
+    {{Heading.FORWARD, Heading.BACKWARD, Mode.FAST, NEGATIVE, NEGATIVE_LIMIT}}.
 "#,
         ))
         .expect("parse signed consumer");
@@ -69,7 +69,7 @@ pub sample(): {{Side, Side, TimeInForce, Int, Int}} ->
         );
         assert_eq!(
             body.children[1].raw.as_deref(),
-            Some("const_union:lifecycle.signed.OrderSide.SELL")
+            Some("const_union:lifecycle.signed.Direction.BACKWARD")
         );
     }
 }
@@ -81,8 +81,8 @@ fn imported_signed_union_still_rejects_wrong_nominal_type() {
     let consumer = parse_module_as_syntax_output(
         r#"
 module lifecycle.signed_wrong_type.
-import type lifecycle.signed.{OrderSide, TimeInForce}.
-pub invalid(): TimeInForce -> OrderSide.SELL.
+import type lifecycle.signed.{Direction, Mode}.
+pub invalid(): Mode -> Direction.BACKWARD.
 "#,
     )
     .expect("parse wrong union consumer");
@@ -90,7 +90,7 @@ pub invalid(): TimeInForce -> OrderSide.SELL.
     let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
     assert!(
         diagnostics.iter().any(|diagnostic| {
-            diagnostic.message.contains("OrderSide") && diagnostic.message.contains("TimeInForce")
+            diagnostic.message.contains("Direction") && diagnostic.message.contains("Mode")
         }),
         "{diagnostics:#?}"
     );
@@ -106,12 +106,16 @@ pub invalid(): TimeInForce -> OrderSide.SELL.
 #[test]
 fn imported_signed_union_constant_receiver_calls_resolve() {
     let interfaces = signed_interfaces();
-    for receiver in ["Side.SELL", "(Side.SELL)", "lifecycle.signed.OrderSide.BUY"] {
+    for receiver in [
+        "Heading.BACKWARD",
+        "(Heading.BACKWARD)",
+        "lifecycle.signed.Direction.FORWARD",
+    ] {
         let source = format!(
             "module lifecycle.receiver_consumer.\n\
              import lifecycle.signed.{{matches}}.\n\
-             import type lifecycle.signed.{{OrderSide as Side}}.\n\
-             pub sample(): Bool -> {receiver}.matches(Side.SELL).\n"
+             import type lifecycle.signed.{{Direction as Heading}}.\n\
+             pub sample(): Bool -> {receiver}.matches(Heading.BACKWARD).\n"
         );
         for source in [
             source.clone(),
@@ -124,9 +128,12 @@ fn imported_signed_union_constant_receiver_calls_resolve() {
             assert!(diagnostics.is_empty(), "{source}\n{diagnostics:#?}");
             let core = lower_syntax_module_output_to_core(&consumer, &resolved);
             let rendered = format!("{core:#?}");
-            assert!(!rendered.contains("module: \"Side.SELL\""), "{rendered}");
             assert!(
-                !rendered.contains("module: \"lifecycle.signed.OrderSide.BUY\""),
+                !rendered.contains("module: \"Heading.BACKWARD\""),
+                "{rendered}"
+            );
+            assert!(
+                !rendered.contains("module: \"lifecycle.signed.Direction.FORWARD\""),
                 "{rendered}"
             );
         }
@@ -138,13 +145,13 @@ fn imported_signed_union_constant_receiver_calls_resolve() {
 fn imported_signed_union_receiver_rejects_wrong_union() {
     let interfaces = signed_interfaces();
     for call in [
-        "TimeInForce.DAY.matches(Side.SELL)",
-        "Side.SELL.matches(TimeInForce.DAY)",
+        "Mode.FAST.matches(Heading.BACKWARD)",
+        "Heading.BACKWARD.matches(Mode.FAST)",
     ] {
         let consumer = parse_module_as_syntax_output(&format!(
             "module lifecycle.receiver_wrong_type.\n\
              import lifecycle.signed.{{matches}}.\n\
-             import type lifecycle.signed.{{OrderSide as Side, TimeInForce}}.\n\
+             import type lifecycle.signed.{{Direction as Heading, Mode}}.\n\
              pub invalid(): Bool -> {call}.\n"
         ))
         .expect("parse invalid constant receiver");

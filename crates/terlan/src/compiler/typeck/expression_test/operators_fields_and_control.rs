@@ -9,11 +9,11 @@ fn option_of_struct_field_does_not_pollute_following_field_type() {
 module option_struct_field.\n\
 import std.core.Option.{None, Some}.\n\
 import type std.core.Option.\n\
-pub struct Price { micros: Int }.\n\
-pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 2.\n\
-pub struct Intent { limit_price: Option[Price], time_in_force: TimeInForce }.\n\
-pub build(requested_price: Price, time_in_force: TimeInForce): Intent ->\n\
-    Intent {limit_price: Some(requested_price), time_in_force: time_in_force}.\n\
+pub struct Payload { value: Int }.\n\
+pub type Mode: Int = FAST = 1 | SAFE = 2.\n\
+pub struct Container { payload: Option[Payload], mode: Mode }.\n\
+pub build(input: Payload, mode: Mode): Container ->\n\
+    Container {payload: Some(input), mode: mode}.\n\
 ",
         "std/core/Option.terl",
     );
@@ -23,21 +23,27 @@ pub build(requested_price: Price, time_in_force: TimeInForce): Intent ->\n\
 
 #[test]
 fn generic_calls_keep_unrelated_locals_across_field_orders_and_bindings() {
-    let prefix = "module generic_field_scope.\nimport std.core.Option.{None, Some}.\nimport type std.core.Option.\npub struct Price { micros: Int }.\npub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 2.\npub struct Intent { limit_price: Option[Price], time_in_force: TimeInForce }.\npub identity[T](value: T): T -> value.\npub build(requested_price: Price, time_in_force: TimeInForce): Intent -> ";
+    let prefix = "module generic_field_scope.\nimport std.core.Option.{None, Some}.\nimport type std.core.Option.\npub struct Payload { value: Int }.\npub type Mode: Int = FAST = 1 | SAFE = 2.\npub struct Container { payload: Option[Payload], mode: Mode }.\npub identity[T](value: T): T -> value.\npub build(input: Payload, mode: Mode): Container -> ";
     for body in [
-        "Intent {time_in_force: time_in_force, limit_price: Some(requested_price)}.",
-        "let price = Some(requested_price); Intent {limit_price: price, time_in_force: time_in_force}.",
-        "let price = identity(requested_price); Intent {limit_price: Some(price), time_in_force: time_in_force}.",
+        "Container {mode: mode, payload: Some(input)}.",
+        "let value = Some(input); Container {payload: value, mode: mode}.",
+        "let value = identity(input); Container {payload: Some(value), mode: mode}.",
     ] {
-        let diagnostics = check_syntax_output_with_std_interfaces(&format!("{prefix}{body}"), "std/core/Option.terl");
+        let diagnostics = check_syntax_output_with_std_interfaces(
+            &format!("{prefix}{body}"),
+            "std/core/Option.terl",
+        );
         assert!(diagnostics.is_empty(), "{body}: {diagnostics:?}");
     }
-    let diagnostics = check_syntax_output_with_std_interfaces(&format!("{prefix}Intent {{limit_price: Some(requested_price), time_in_force: requested_price}}."), "std/core/Option.terl");
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        &format!("{prefix}Container {{payload: Some(input), mode: input}}."),
+        "std/core/Option.terl",
+    );
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.message.contains("TimeInForce")
-                && diagnostic.message.contains("Price")),
+            .any(|diagnostic| diagnostic.message.contains("Mode")
+                && diagnostic.message.contains("Payload")),
         "invalid field accepted: {diagnostics:?}"
     );
 }

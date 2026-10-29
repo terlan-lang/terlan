@@ -168,34 +168,34 @@ fn project_vm_tests_execute_imported_signed_valued_union_namespaces() {
     let exit_code = run_project_vm_test(
         "terlan_imported_signed_union_vm_test",
         "signed-union-app",
-        "src/app/Order.terl",
-        r#"module app.Order.
-pub type OrderSide: Int = BUY = 1 | SELL = -1.
-pub type TimeInForce: Int = DAY = 1 | GOOD_TIL_CANCELLED = 3.
-pub accepts(side: OrderSide, tif: TimeInForce): Bool ->
-    side == OrderSide.SELL and tif == TimeInForce.DAY.
-pub (current: OrderSide) matches(other: OrderSide): Bool -> current == other.
-pub local_receiver(): Bool -> OrderSide.SELL.matches(OrderSide.SELL).
+        "src/app/Constants.terl",
+        r#"module app.Constants.
+pub type Direction: Int = FORWARD = 1 | BACKWARD = -1.
+pub type Mode: Int = FAST = 1 | SAFE = 3.
+pub accepts(direction: Direction, mode: Mode): Bool ->
+    direction == Direction.BACKWARD and mode == Mode.FAST.
+pub (current: Direction) matches(other: Direction): Bool -> current == other.
+pub local_receiver(): Bool -> Direction.BACKWARD.matches(Direction.BACKWARD).
 "#,
-        "tests/app/OrderTest.terl",
-        r#"module app.OrderTest.
-import app.Order.{accepts, matches, local_receiver}.
-import type app.Order.{OrderSide as Side, TimeInForce}.
+        "tests/app/ConstantsTest.terl",
+        r#"module app.ConstantsTest.
+import app.Constants.{accepts, matches, local_receiver}.
+import type app.Constants.{Direction as Heading, Mode}.
 @test
 pub imported_signed_arm_executes(): Bool ->
-    accepts(Side.SELL, TimeInForce.DAY).
+    accepts(Heading.BACKWARD, Mode.FAST).
 @test
 pub positive_arm_remains_distinct(): Bool ->
-    not accepts(Side.BUY, TimeInForce.DAY).
+    not accepts(Heading.FORWARD, Mode.FAST).
 @test
 pub imported_signed_pattern_executes(): Bool ->
-    case Side.SELL { Side.SELL -> true; _ -> false }.
+    case Heading.BACKWARD { Heading.BACKWARD -> true; _ -> false }.
 @test
 pub local_constant_receiver_executes(): Bool -> local_receiver().
 @test
-pub selected_constant_receiver_executes(): Bool -> (Side.SELL).matches(Side.SELL).
+pub selected_constant_receiver_executes(): Bool -> (Heading.BACKWARD).matches(Heading.BACKWARD).
 @test
-pub qualified_constant_receiver_executes(): Bool -> app.Order.OrderSide.BUY.matches(Side.BUY).
+pub qualified_constant_receiver_executes(): Bool -> app.Constants.Direction.FORWARD.matches(Heading.FORWARD).
 "#,
     );
     assert_eq!(exit_code, ExitCode::SUCCESS);
