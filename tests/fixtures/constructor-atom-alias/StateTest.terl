@@ -1,0 +1,35 @@
+module fixture.StateTest.
+
+import fixture.State.{Offline as Lost, Ready, availability, retry, sequence}.
+
+import type fixture.State.{Availability, State}.
+
+pub inspect(state: State): Int ->
+    case state {
+        Lost(value, _) -> value;
+        Ready(value) -> value
+    }.
+
+@test
+pub local_imported_tag_matches(): Bool ->
+    sequence(Lost(7, true)) == 7.
+
+@test
+pub imported_constructor_matches(): Bool ->
+    inspect(Lost(9, false)) == 9.
+
+@test
+pub remaining_constructor_matches(): Bool ->
+    inspect(Ready(11)) == 11.
+
+@test
+pub finite_payload_is_refined(): Bool ->
+    retry(Lost(3, true)) and not retry(Lost(3, false)).
+
+@test
+pub imported_constructor_receiver_chain_executes(): Bool ->
+    Ready(13).availability() == Availability.ACTIVE.
+
+@test
+pub aliased_constructor_receiver_chain_executes(): Bool ->
+    Lost(17, true).availability() == Availability.IDLE.

@@ -266,7 +266,9 @@ fn check_clauses_exhaustiveness(
             return;
         }
 
-        remaining = match subtract_finite_pattern(remaining, pattern, ctx.aliases) {
+        let mut coverage_pattern = pattern.clone();
+        resolve_coverage_pattern(&mut coverage_pattern, ctx);
+        remaining = match subtract_finite_pattern(remaining, &coverage_pattern, ctx.aliases) {
             Ok(remaining) => remaining,
             Err(message) => {
                 errors.push(message.to_string());
@@ -393,7 +395,7 @@ fn widen_case_scrutinee_type_for_patterns(
         if !matches!(expanded_body, Type::Union(_)) {
             continue;
         }
-        if !case_patterns_match_alias_variants(expr, &expanded_body, ctx.aliases) {
+        if !case_patterns_match_alias_variants(expr, &expanded_body, ctx) {
             continue;
         }
 
@@ -449,7 +451,7 @@ fn pattern_contains_constructor(pattern: &SyntaxPatternOutput) -> bool {
 fn case_patterns_match_alias_variants(
     expr: &SyntaxExprOutput,
     expanded_alias_body: &Type,
-    aliases: &HashMap<String, TypeAlias>,
+    ctx: &ExprInferContext<'_>,
 ) -> bool {
     let Type::Union(variants) = expanded_alias_body else {
         return false;
@@ -458,10 +460,12 @@ fn case_patterns_match_alias_variants(
         let Some(pattern) = clause.patterns.first() else {
             return true;
         };
+        let mut coverage_pattern = pattern.clone();
+        resolve_coverage_pattern(&mut coverage_pattern, ctx);
         !matches!(pattern.kind, SyntaxPatternKind::Constructor)
-            || variants
-                .iter()
-                .any(|variant| syntax_pattern_subsumes_variant(pattern, variant, aliases))
+            || variants.iter().any(|variant| {
+                syntax_pattern_subsumes_variant(&coverage_pattern, variant, ctx.aliases)
+            })
     })
 }
 

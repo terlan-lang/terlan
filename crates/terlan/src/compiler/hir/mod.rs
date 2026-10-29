@@ -24,7 +24,7 @@ mod shapes_test;
 #[cfg(test)]
 pub(crate) mod test_support;
 
-pub(crate) use imported_type_refs::qualify_syntax_type_text;
+pub(crate) use imported_type_refs::{collect_syntax_callable_type_refs, qualify_syntax_type_text};
 pub use interface_loading::{
     load_discovery_interfaces_for_symbol_from_file_set, load_imported_interfaces_from_file_set,
     load_interfaces_from_dir, load_interfaces_from_file_set, parse_interface_dependency_entries,

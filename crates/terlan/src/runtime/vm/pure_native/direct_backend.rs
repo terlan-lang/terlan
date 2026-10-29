@@ -800,7 +800,9 @@ fn transition_injected_type(
         TvmTransitionOperation::Spawn
         | TvmTransitionOperation::Monitor
         | TvmTransitionOperation::Resource => Ok(Some(TvmBoundaryType::Int)),
-        TvmTransitionOperation::Capability => capability_result_type(arguments).map(Some),
+        TvmTransitionOperation::Capability | TvmTransitionOperation::Supervision => {
+            capability_result_type(arguments).map(Some)
+        }
         _ => Ok(None),
     }
 }

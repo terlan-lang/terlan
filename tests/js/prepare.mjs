@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { inventory, output, root } from './inventory.mjs';
 import { consumerSource } from './consumer.mjs';
+import { verifyCompilations } from './compilation-results.mjs';
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -71,4 +72,5 @@ export default async function prepare() {
   const report = { schema: 'terlan.js.browser-compilation.v1', compilerSha256, totalModules: total, selectedModules: modules.length, results };
   await writeFile(path.join(output, 'compilation.json'), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`Terlan browser compilation: ${results.filter(result => result.status === 0).length}/${results.length} succeeded`);
+  verifyCompilations(results);
 }

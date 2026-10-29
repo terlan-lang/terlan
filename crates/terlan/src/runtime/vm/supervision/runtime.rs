@@ -65,7 +65,7 @@ pub struct VmSupervisionError {
 }
 
 impl VmSupervisionError {
-    fn new(kind: VmSupervisionErrorKind, message: impl Into<String>) -> Self {
+    pub(crate) fn new(kind: VmSupervisionErrorKind, message: impl Into<String>) -> Self {
         Self {
             kind,
             message: message.into(),

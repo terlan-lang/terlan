@@ -1,0 +1,9 @@
+module app.Main.
+
+import fixture.Codec.{convert}.
+import fixture.Store.
+
+import type fixture.State.{State}.
+
+pub restore(): State ->
+    convert(Store.restore()).

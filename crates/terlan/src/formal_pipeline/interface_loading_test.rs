@@ -1,5 +1,50 @@
 use super::*;
 
+/// A cached local provider must retain its canonical standard-library atom tags.
+#[test]
+fn scoped_loading_follows_cached_constructor_providers_to_atom_dependencies() {
+    let root = tempfile::tempdir().unwrap();
+    let summaries = root.path().join("std/summaries");
+    let cache = root.path().join(".terlan");
+    std::fs::create_dir_all(&summaries).unwrap();
+    std::fs::create_dir_all(&cache).unwrap();
+    let tags = include_str!("../../../../tests/fixtures/constructor-atom-alias/Tags.terl")
+        .replace("fixture.Tags", "std.fixture.Tags");
+    let tags = crate::terlan_syntax::parse_module_as_syntax_output(&tags).unwrap();
+    let tags = crate::terlan_hir::syntax_module_output_to_interface(&tags);
+    std::fs::write(
+        summaries.join("std.fixture.Tags.typi"),
+        tags.to_terlan_interface_text(),
+    )
+    .unwrap();
+    let provider = include_str!("../../../../tests/fixtures/constructor-atom-alias/State.terl")
+        .replace("fixture.Tags", "std.fixture.Tags");
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(&provider).unwrap();
+    let interface = crate::terlan_hir::syntax_module_output_to_interface(&syntax);
+    std::fs::write(
+        cache.join("fixture.State.typi"),
+        interface.to_terlan_interface_text(),
+    )
+    .unwrap();
+    let consumer = crate::terlan_syntax::parse_module_as_syntax_output(include_str!(
+        "../../../../tests/fixtures/constructor-atom-alias/StateTest.terl"
+    ))
+    .unwrap();
+    let active = root.path().join("std/tests/StateTest.terl");
+    let interfaces =
+        load_external_interfaces_for_module(&active.to_string_lossy(), Some(&cache), &consumer);
+    assert!(
+        interfaces.contains_key("std.fixture.Tags"),
+        "the constructor provider's canonical atom dependency was omitted"
+    );
+    assert!(!interfaces.contains_key("std.db.Postgres"));
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&consumer, &interfaces)
+            .module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&consumer, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}
+
 /// Cache sidecars cannot change the dependency closure of reviewed interfaces.
 #[test]
 fn shipped_interface_dependencies_ignore_missing_stale_and_corrupt_sidecars() {

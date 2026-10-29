@@ -80,6 +80,20 @@ impl VmActorRuntime {
             .exit_process(&mut self.processes, pid, reason)?;
         let initiated_exit = report.exited.contains(&pid);
         for exited in &report.exited {
+            let supervised = self
+                .source_supervision
+                .owner_exited(*exited, &mut self.processes, &mut self.timers)
+                .map_err(|error| error.to_string())?;
+            for child in supervised {
+                self.exit_actor(child, VmExitReason::Killed)?;
+            }
+            if self.source_supervision.owns_process(*exited) {
+                if let Some(process) = self.processes.get(*exited) {
+                    if let VmProcessState::Exited(reason) = &process.state {
+                        self.source_supervision.record_exit(*exited, reason.clone());
+                    }
+                }
+            }
             self.meta_trace.observer_exited(*exited);
             self.scheduler.forget_process(*exited);
             self.remove_native_continuation_for_owner(*exited);

@@ -391,6 +391,17 @@ impl ScalarCaseLowerer {
         let ordinal = self.scrutinee_ordinal;
         self.scrutinee_ordinal = self.scrutinee_ordinal.saturating_add(1);
         let temporary = format!("$native_let_{ordinal}_scrutinee");
+        // A wildcard still evaluates its value exactly once, but introduces
+        // no pattern decision or scrutinee capture across later suspensions.
+        if matches!(binding.pattern, CorePattern::Wildcard) {
+            return Ok(CoreExpr::Let {
+                bindings: vec![CoreLetBinding {
+                    pattern: CorePattern::Var(temporary),
+                    value,
+                }],
+                body: Box::new(continuation),
+            });
+        }
         Ok(CoreExpr::Let {
             bindings: vec![CoreLetBinding {
                 pattern: CorePattern::Var(temporary.clone()),

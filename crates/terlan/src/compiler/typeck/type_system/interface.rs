@@ -60,8 +60,8 @@ pub(crate) fn parse_symbol_scheme(symbol: &FunctionSymbol) -> Option<FunctionSch
 /// - `None` when the return annotation cannot be parsed.
 ///
 /// Transformation:
-/// - Parses parameter and return type text, expands interface aliases, expands
-///   unique global aliases, and qualifies local interface type names.
+/// - Parses parameters and returns, expands interface aliases, qualifies
+///   provider-owned names, then resolves dependency aliases in the caller.
 pub(crate) fn parse_interface_signature(
     signature: &FunctionSignature,
     interface: &ModuleInterface,
@@ -137,8 +137,8 @@ fn parse_interface_signature_in_context(
             )
         })
         .map(|param| expand_type_aliases(&param, interface_aliases))
-        .map(|param| expand_interface_global_aliases(&param, global_aliases))
         .map(|param| qualify_type_names(&param, qualified_names))
+        .map(|param| expand_interface_global_aliases(&param, global_aliases))
         .collect::<Vec<_>>();
 
     let ret = parse_type_expr(
@@ -148,8 +148,8 @@ fn parse_interface_signature_in_context(
         &mut next_var,
     )?;
     let ret = expand_type_aliases(&ret, interface_aliases);
-    let ret = expand_interface_global_aliases(&ret, global_aliases);
     let ret = qualify_type_names(&ret, qualified_names);
+    let ret = expand_interface_global_aliases(&ret, global_aliases);
     let mut parsed_bounds = parse_generic_bounds(&signature.generic_bounds, &vars, alias_names);
     parsed_bounds.extend(parse_structural_implication_bounds(
         &signature.generic_params,
@@ -164,8 +164,8 @@ fn parse_interface_signature_in_context(
                 .trait_args
                 .into_iter()
                 .map(|arg| expand_type_aliases(&arg, interface_aliases))
-                .map(|arg| expand_interface_global_aliases(&arg, global_aliases))
                 .map(|arg| qualify_type_names(&arg, qualified_names))
+                .map(|arg| expand_interface_global_aliases(&arg, global_aliases))
                 .collect(),
         })
         .collect();
@@ -472,8 +472,8 @@ pub(crate) fn parse_interface_constructor_schemes(
                         .unwrap_or(Type::Dynamic)
                 })
                 .map(|param| expand_type_aliases(&param, &interface_aliases))
-                .map(|param| expand_interface_global_aliases(&param, global_aliases))
                 .map(|param| qualify_type_names(&param, &qualified_names))
+                .map(|param| expand_interface_global_aliases(&param, global_aliases))
                 .collect::<Vec<_>>();
             let param_names = signature
                 .params
@@ -486,8 +486,8 @@ pub(crate) fn parse_interface_constructor_schemes(
                     parse_type_expr(&param.annotation, &alias_names, &mut vars, &mut next_var)
                         .unwrap_or(Type::Dynamic);
                 let parsed = expand_type_aliases(&parsed, &interface_aliases);
-                let parsed = expand_interface_global_aliases(&parsed, global_aliases);
-                qualify_type_names(&parsed, &qualified_names)
+                let parsed = qualify_type_names(&parsed, &qualified_names);
+                expand_interface_global_aliases(&parsed, global_aliases)
             });
 
             let ret = parse_type_expr(
@@ -498,8 +498,8 @@ pub(crate) fn parse_interface_constructor_schemes(
             )
             .unwrap_or(Type::Dynamic);
             let ret = expand_type_aliases(&ret, &interface_aliases);
-            let ret = expand_interface_global_aliases(&ret, global_aliases);
             let ret = qualify_type_names(&ret, &qualified_names);
+            let ret = expand_interface_global_aliases(&ret, global_aliases);
 
             ConstructorScheme {
                 param_names,

@@ -10,6 +10,7 @@ use super::{
 pub(crate) mod backoff;
 mod runtime;
 pub(crate) mod shutdown;
+pub(crate) mod source;
 
 pub use runtime::{
     VmSupervisedChild, VmSupervisionAdvance, VmSupervisionChildSpec, VmSupervisionDeadline,
@@ -908,10 +909,8 @@ fn shutdown_timeout_ms(spec: &VmChildSpec) -> Option<u64> {
 
 #[cfg(test)]
 #[path = "supervision_test.rs"]
-#[cfg(test)]
 mod supervision_test;
 
 #[cfg(test)]
 #[path = "supervision/memory_pressure_test.rs"]
-#[cfg(test)]
 mod memory_pressure_test;

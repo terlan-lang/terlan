@@ -30,6 +30,7 @@ fn layouts() -> NativeConstructorLayouts {
     };
     let declarations = vec![CoreConstructorDecl {
         implementation: None,
+        physical_body: None,
         name: "Pair".to_owned(),
         public: true,
         min_arity: 2,

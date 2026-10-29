@@ -23,6 +23,7 @@ mod dispatch;
 mod effect_failure;
 #[path = "execution/entry.rs"]
 mod entry;
+mod supervision;
 pub(crate) use dispatch::dispatch_transition_operation;
 #[path = "execution/reply.rs"]
 mod reply;
@@ -95,7 +96,10 @@ impl PureNativeBoundary {
         if suspension.owner_id() != context.owner_id() {
             return Err("error[pure_native_capability_owner]: foreign suspension owner".into());
         }
-        if suspension.operation() != TvmTransitionOperation::Capability {
+        if !matches!(
+            suspension.operation(),
+            TvmTransitionOperation::Capability | TvmTransitionOperation::Supervision
+        ) {
             return Err(format!(
                 "error[pure_native_capability_operation]: expected Capability, found {:?}",
                 suspension.operation()
@@ -351,6 +355,9 @@ impl PureNativeBoundary {
                 owner_id
             ));
         }
+        if operation == TvmTransitionOperation::Supervision {
+            return self.resume_supervision(actors, context, suspension);
+        }
         let spawn_export = if matches!(operation, TvmTransitionOperation::Spawn) {
             Some(self.resolve_spawn_export(arguments[0])?)
         } else {
@@ -472,6 +479,7 @@ impl PureNativeBoundary {
         if let Some(recipient) = resident_recipient {
             self.drive_resident_actor(actors, context, recipient)?;
         }
+        self.drive_supervised_children(actors, context)?;
         Ok(execution)
     }
 
@@ -511,6 +519,7 @@ impl PureNativeBoundary {
                 suspension.operation()
             ));
         }
+        self.drive_supervised_children(actors, context)?;
         self.finish_transition_resume(actors, context, suspension, Vec::new(), None, None)
     }
 
@@ -687,6 +696,8 @@ impl PureNativeBoundary {
                     PureNativeExecution::Suspended(suspension) => {
                         let parked_identity =
                             (suspension.request_id(), suspension.continuation_id());
+                        let synchronous =
+                            suspension.operation() == TvmTransitionOperation::Supervision;
                         match boundary.resume_transition_for_actor(
                             actors,
                             &mut child_context,
@@ -694,7 +705,8 @@ impl PureNativeBoundary {
                         )? {
                             PureNativeExecution::Suspended(next)
                                 if (next.request_id(), next.continuation_id())
-                                    == parked_identity =>
+                                    == parked_identity
+                                    && !synchronous =>
                             {
                                 child_context.park_resident_suspension(*next)?;
                                 return Ok(false);
@@ -762,13 +774,15 @@ impl PureNativeBoundary {
                 }
                 PureNativeExecution::Suspended(suspension) => {
                     let parked_identity = (suspension.request_id(), suspension.continuation_id());
+                    let synchronous = suspension.operation() == TvmTransitionOperation::Supervision;
                     let resumed = {
                         let mut resident_context = context.reborrow(owner);
                         self.resume_transition_for_actor(actors, &mut resident_context, *suspension)
                     };
                     execution = match resumed {
                         Ok(PureNativeExecution::Suspended(next))
-                            if (next.request_id(), next.continuation_id()) == parked_identity =>
+                            if (next.request_id(), next.continuation_id()) == parked_identity
+                                && !synchronous =>
                         {
                             context.park_resident_suspension(*next)?;
                             return Ok(false);

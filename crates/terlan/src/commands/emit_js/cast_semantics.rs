@@ -18,6 +18,14 @@ use crate::terlan_typeck::{CoreExpr, CoreType};
 ///   emission may erase safely. This deliberately refuses trait-backed
 ///   conversions until they lower as explicit conversion calls.
 pub(super) fn cast_can_lower_as_js_identity(expr: &CoreExpr, target_type: &CoreType) -> bool {
+    // Contextual generic specialization annotates [] with its checked element
+    // type. There are no values to convert; this is not a widening of an
+    // arbitrary List[Dynamic] value or a cast to a target-specific wrapper.
+    if matches!(expr, CoreExpr::List(items) | CoreExpr::Array(items) if items.is_empty())
+        && matches!(target_type, CoreType::List(_))
+    {
+        return true;
+    }
     inferred_core_expr_type(expr)
         .as_ref()
         .is_some_and(|source_type| core_type_is_js_identity_assignable(source_type, target_type))

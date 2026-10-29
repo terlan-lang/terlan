@@ -44,6 +44,7 @@ impl VmActorRuntime {
     ) -> Result<Self, String> {
         Ok(Self {
             processes: VmProcessTable::default(),
+            source_supervision: Default::default(),
             aliases: VmProcessAliasTable::default(),
             failures: VmFailureRuntime::default(),
             references: VmReferenceAllocator::new(node_id, epoch)?,

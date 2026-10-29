@@ -222,6 +222,25 @@ impl VmSupervisionBackoffQueue {
     }
 
     /// Cancels one pending restart through the timer table.
+    pub(crate) fn cancel_child(
+        &mut self,
+        supervision: &mut VmSupervisionSystem,
+        timers: &mut VmTimerTable,
+        processes: &mut VmProcessTable,
+        supervisor_id: VmSupervisorId,
+        child_id: &str,
+    ) -> Result<(), String> {
+        if let Some(timer_id) = self
+            .pending_children
+            .get(&(supervisor_id, child_id.into()))
+            .copied()
+        {
+            self.cancel_restart(supervision, timers, processes, timer_id)?;
+        }
+        Ok(())
+    }
+
+    /// Cancels one pending restart through the timer table.
     pub(crate) fn cancel_restart(
         &mut self,
         supervision: &mut VmSupervisionSystem,
@@ -237,6 +256,15 @@ impl VmSupervisionBackoffQueue {
                     timer_id.as_u64()
                 )
             })
+    }
+
+    /// Retires the internal timer authority after its final restart is settled.
+    pub(crate) fn take_idle_timer_owner(&mut self) -> Option<VmProcessId> {
+        if self.pending.is_empty() {
+            self.timer_owner.take()
+        } else {
+            None
+        }
     }
 
     /// Returns the number of pending restart intents.

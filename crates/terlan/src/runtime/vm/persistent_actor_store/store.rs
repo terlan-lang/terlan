@@ -1,11 +1,7 @@
-#[cfg(any(test, feature = "benchmark-tools"))]
 use std::collections::BTreeMap;
-#[cfg(any(test, feature = "benchmark-tools"))]
 use std::fs;
-#[cfg(any(test, feature = "benchmark-tools"))]
 use std::path::PathBuf;
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 use super::serialization::*;
 use crate::runtime::vm::ReplValue;
 
@@ -170,7 +166,6 @@ impl VmPersistentActorEvent {
 
 /// Result of replaying the durable actor checkpoint and committed events.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmPersistentActorReplay {
     pub(crate) snapshot: VmPersistentActorSnapshot,
     pub(crate) events: Vec<VmPersistentActorEvent>,
@@ -178,7 +173,6 @@ pub(crate) struct VmPersistentActorReplay {
 
 /// Typed store result for writes and replay setup.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) enum VmPersistentActorStoreOutcome {
     SnapshotStored(Box<VmPersistentActorSnapshot>),
     EventAppended(VmPersistentActorEvent),
@@ -215,7 +209,6 @@ pub(crate) enum VmPersistentActorStoreOutcome {
 }
 
 /// Explicit adapter contract shared by VM-owned persistent actor stores.
-#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) trait VmPersistentActorStoreAdapter {
     fn store_snapshot(
         &mut self,
@@ -242,13 +235,11 @@ pub(crate) trait VmPersistentActorStoreAdapter {
 
 /// Deterministic in-memory adapter used by VM replay and adversarial tests.
 #[derive(Clone, Debug, Default, PartialEq)]
-#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmInMemoryPersistentActorStore {
     snapshots: BTreeMap<VmPersistentActorId, VmPersistentActorSnapshot>,
     events: BTreeMap<VmPersistentActorId, BTreeMap<u64, VmPersistentActorEvent>>,
 }
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 impl VmInMemoryPersistentActorStore {
     pub(crate) fn new() -> Self {
         Self::default()
@@ -274,7 +265,6 @@ impl VmInMemoryPersistentActorStore {
     }
 }
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 impl VmPersistentActorStoreAdapter for VmInMemoryPersistentActorStore {
     fn store_snapshot(
         &mut self,
@@ -409,13 +399,11 @@ impl VmPersistentActorStoreAdapter for VmInMemoryPersistentActorStore {
 
 /// File-backed adapter that persists the same typed snapshot/event contract.
 #[derive(Clone, Debug, PartialEq)]
-#[cfg(any(test, feature = "benchmark-tools"))]
 pub(crate) struct VmFileBackedPersistentActorStore {
     path: PathBuf,
     inner: VmInMemoryPersistentActorStore,
 }
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 impl VmFileBackedPersistentActorStore {
     pub(crate) fn open_file_backed(path: impl Into<PathBuf>) -> Result<Self, String> {
         let path = path.into();
@@ -499,16 +487,41 @@ impl VmFileBackedPersistentActorStore {
                 tmp_path.display()
             )
         })?;
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&tmp_path)
+            .and_then(|file| file.sync_all())
+            .map_err(|err| {
+                format!(
+                    "error[vm_persistent_actor]: failed to sync store `{}`: {err}",
+                    tmp_path.display()
+                )
+            })?;
         fs::rename(&tmp_path, &self.path).map_err(|err| {
             format!(
                 "error[vm_persistent_actor]: failed to commit file-backed store `{}`: {err}",
                 self.path.display()
             )
-        })
+        })?;
+        #[cfg(unix)]
+        if let Some(parent) = self
+            .path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::File::open(parent)
+                .and_then(|directory| directory.sync_all())
+                .map_err(|err| {
+                    format!(
+                        "error[vm_persistent_actor]: failed to sync store directory `{}`: {err}",
+                        parent.display()
+                    )
+                })?;
+        }
+        Ok(())
     }
 }
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 impl VmPersistentActorStoreAdapter for VmFileBackedPersistentActorStore {
     fn store_snapshot(
         &mut self,
@@ -878,7 +891,6 @@ impl VmPersistentActorStoreAdapter for VmDatabaseBackedPersistentActorStore {
     }
 }
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 pub(super) enum FileBackedRecord {
     Snapshot(VmPersistentActorSnapshot),
     Event(VmPersistentActorEvent),

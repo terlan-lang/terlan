@@ -237,3 +237,16 @@ pub render(next: () -> Int): String -> "${next()}|${next()}".
 "#;
     execute(&compiled(source), "let calls = 0; if (render(() => ++calls) !== '1|2' || calls !== 2 || identity(42) !== 42 || identity('text') !== 'text') throw Error('interpolation or generic export changed');");
 }
+
+/// The browser consumer must compile every shipped Array test body.
+#[test]
+fn shipped_array_consumer_executes_empty_and_nonempty_conversions() {
+    let source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../std/js/ArrayTest.terl"
+    ));
+    execute(
+        &compiled(source),
+        "if (!array_conversion_preserves_length_order_and_indexing() || !empty_array_conversion_preserves_zero_length()) throw new Error('shipped Array conversion contract failed');",
+    );
+}

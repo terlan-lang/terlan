@@ -2632,13 +2632,18 @@ tvm-aot-image-lifetime-check: tvm-aot-package-install-consumer-check
 		exit 1; \
 	fi
 
-tvm-aot-c-abi-boundary-check:
-	$(RUST_TEST) -p terlan --lib runtime::native_boundary::adapter_abi::adapter_abi_test
-	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::native_image_test::native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi -- --exact
+.PHONY: native-binding-consistency-check
+native-binding-consistency-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::fixtures_and_generation::structured_c_metadata_generates_real_ffi_package -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::structured_cpp_metadata_generates_real_cxx_package -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::pkg_config_distribution::checked_libpq_package_matches_deterministic_regeneration -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::ownership_adapters::integration::generated_c_adapter_compiles_and_enforces_public_protocol -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::bind::cpp_binding_generator::generator::generator_test::fixtures_and_generation::generated_cxx_adapter_compiles_and_enforces_public_protocol -- --exact
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::package_native_helper::transport_test
+
+tvm-aot-c-abi-boundary-check: native-binding-consistency-check
+	$(RUST_TEST) -p terlan --lib runtime::native_boundary::adapter_abi::adapter_abi_test
+	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::native_image::native_image_test::native_inspection_accepts_real_elf_and_rejects_wrong_target_and_abi -- --exact
 	@rg -q 'PUBLIC_ADAPTER_ABI_VERSION' crates/terlan/src/runtime/native_image/image.rs crates/terlan/src/commands/build/vm_artifact/native_descriptor.rs
 	@rg -q 'cache_identity\(&target\.triple, &target\.calling_convention\)' crates/terlan/src/commands/build/vm_artifact/native_image.rs
 	@if rg -ni 'TvmRef|actor.?heap|Cranelift|continuation|native.?stack|shard|thread.?identity' \
@@ -3108,7 +3113,8 @@ vm-supervision-restart-check: vm-supervision-primitives-check vm-timer-deadline-
 	$(EXACT_CARGO_TEST) -p terlan --test vm_supervision_runtime product_native_boundary_worker_crash_uses_vm_backoff_and_restart -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --test vm_supervision_runtime product_handler_pool_memory_exhaustion_restarts_the_group -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --test vm_supervision_runtime product_in_flight_shutdown_timeout_cancels_old_actor_and_restarts -- --exact
-	$(TERLC) test tests/language/VmSupervisorPolicyTest.terl
+	$(RUST_TEST) -p terlan --lib runtime::vm::supervision::source::source_test
+	$(TERLC) test tests/language/VmSupervisorPolicyTest.terl tests/language/VmSupervisorRuntimeTest.terl
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::tests::actor_relationship_test::actor_unlinked_child_termination_preserves_parent_mailbox_progress -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_waits_for_clean_exit_and_cancels_deadline -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_distinguishes_in_budget_and_overdue_child_termination -- --exact

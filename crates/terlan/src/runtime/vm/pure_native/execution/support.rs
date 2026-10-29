@@ -82,6 +82,7 @@ pub(super) fn validate_transition_continuation(
             | TvmTransitionOperation::Monitor
             | TvmTransitionOperation::Resource
             | TvmTransitionOperation::Capability
+            | TvmTransitionOperation::Supervision
     ) {
         let _ = result_type;
         return Ok(validate_continuation_captures(continuation, values)?);
@@ -89,7 +90,10 @@ pub(super) fn validate_transition_continuation(
     let injected_type =
         if matches!(operation, TvmTransitionOperation::Receive) && arguments.len() == 3 {
             TvmBoundaryType::from_transition_words(arguments)?
-        } else if matches!(operation, TvmTransitionOperation::Capability) {
+        } else if matches!(
+            operation,
+            TvmTransitionOperation::Capability | TvmTransitionOperation::Supervision
+        ) {
             TvmBoundaryType::from_transition_words(&arguments[1..4])?
         } else {
             TvmBoundaryType::Int
@@ -120,7 +124,7 @@ pub(super) fn transition_capture_types(
         | TvmTransitionOperation::Spawn
         | TvmTransitionOperation::Monitor
         | TvmTransitionOperation::Resource => Some(TvmBoundaryType::Int),
-        TvmTransitionOperation::Capability => {
+        TvmTransitionOperation::Capability | TvmTransitionOperation::Supervision => {
             Some(TvmBoundaryType::from_transition_words(&arguments[1..4])?)
         }
         _ => None,

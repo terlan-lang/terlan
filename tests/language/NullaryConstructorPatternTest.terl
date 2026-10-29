@@ -1,0 +1,53 @@
+module tests.language.NullaryConstructorPatternTest.
+
+pub type Action = Atom["pause_work"] | {Atom["resume_work"], Int}.
+
+pub constructor PauseWork {
+    (): Action ->
+        Atom["pause_work"]
+}.
+
+pub constructor ResumeWork {
+    (value: Int): Action ->
+        {Atom["resume_work"], value}
+}.
+
+pub classify(action: Action): Int ->
+    case action {
+        PauseWork() -> 0;
+        ResumeWork(value) -> value
+    }.
+
+pub type Signal = Atom["enabled"] | Atom["disabled"].
+
+pub constructor Enabled {
+    (): Signal ->
+        Atom["enabled"]
+}.
+
+pub constructor Disabled {
+    (): Signal ->
+        Atom["disabled"]
+}.
+
+pub enabled(signal: Signal): Bool ->
+    case signal {
+        Enabled() -> true;
+        Disabled() -> false
+    }.
+
+@test
+pub nullary_constructor_matches_in_mixed_union(): Bool ->
+    classify(PauseWork()) == 0.
+
+@test
+pub payload_constructor_still_matches(): Bool ->
+    classify(ResumeWork(7)) == 7.
+
+@test
+pub first_nullary_constructor_matches_in_atom_union(): Bool ->
+    enabled(Enabled()).
+
+@test
+pub second_nullary_constructor_matches_in_atom_union(): Bool ->
+    not enabled(Disabled()).

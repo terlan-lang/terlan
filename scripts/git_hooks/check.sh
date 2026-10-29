@@ -10,6 +10,21 @@ make --no-print-directory editor-release-contract-check
 bash scripts/build_artifact_bootstrap_test.sh
 echo 'pre-commit: Rust formatting'
 cargo fmt --all -- --check
+if [[ ${TERLAN_HOOK_SHARED_TARGET:-0} == 1 ]]; then
+  # Bootstrap this before trusting any compiler in the shared target. Cargo's
+  # dep-info can still refer to the other checkout even when files here changed.
+  cache_metadata=$(mktemp)
+  cargo metadata --locked --no-deps --format-version 1 > "$cache_metadata"
+  invalidate_workspace_cache() {
+    local result=$?
+    trap - EXIT
+    node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR" || result=1
+    rm -f "$cache_metadata"
+    exit "$result"
+  }
+  trap invalidate_workspace_cache EXIT
+  node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
+fi
 echo 'pre-commit: build the staged compiler, VM, native worker, and service runtime'
 cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
 cargo build --locked -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
@@ -26,6 +41,12 @@ for contract in negative-api io-negative-api; do
   TERLAN_REPOSITORY_ROOT="$PWD" TERLAN_STDLIB_VALIDATION_TERLC="$terlc" \
     "$terlc" run scripts/self_validation/StdlibValidation.terls -- "$contract"
 done
+plan="${changes%.txt}.plan"
+"$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$plan"
+if rg -qx 'native-bindings' "$plan"; then
+  echo 'pre-commit: native binding generation, drift, and compiled protocols'
+  make --no-print-directory native-binding-consistency-check
+fi
 echo 'pre-commit: canonical executable size budget'
 cargo build --release --locked -p terlan -p terlan-test-orchestrator \
   --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-test-orchestrator
@@ -44,6 +65,8 @@ echo 'pre-commit: proof release baseline'
 cargo build --locked -p terlan --bin terlan-quality --features quality-tools
 echo 'pre-commit: Rust documentation'
 "$CARGO_TARGET_DIR/debug/terlan-quality" rust-docs
+echo 'pre-commit: preparation owner Cargo resource controls'
+"$terlc" test scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl
 bash scripts/git_hooks/proof_baseline.sh
 echo 'pre-commit: Terlan formatting'
 make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
@@ -59,12 +82,14 @@ echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh
 bash scripts/git_commit_message_test.sh
+node scripts/git_hooks/cache_test.cjs
 TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh
-plan="${changes%.txt}.plan"
-"$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$plan"
 while IFS= read -r lane; do
   echo "pre-commit: $lane"
   case "$lane" in
+    native-bindings)
+      # Already checked with the staged debug compiler before optimized builds.
+      ;;
     proofs)
       cargo build --locked -p terlan --bin terlan-quality --features quality-tools
       bash scripts/git_hooks/proofs.sh

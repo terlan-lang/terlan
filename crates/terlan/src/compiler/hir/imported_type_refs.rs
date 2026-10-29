@@ -83,7 +83,7 @@ fn collect_syntax_type_refs(
 
 /// Collects selected type names and module-prefix aliases used by callable
 /// annotations without treating a default module import as a type alias.
-pub(super) fn collect_syntax_callable_type_refs(
+pub(crate) fn collect_syntax_callable_type_refs(
     module: &SyntaxModuleOutput,
 ) -> HashMap<String, String> {
     let mut refs = collect_syntax_type_refs(module, false);

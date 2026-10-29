@@ -410,3 +410,99 @@ fn escaped_session_pipe_cannot_extend_the_capture_deadline() {
     assert!(started.elapsed() < Duration::from_millis(800));
     thread::sleep(Duration::from_secs(1));
 }
+
+#[cfg(target_os = "linux")]
+struct BusyExecutable(std::path::PathBuf);
+
+#[cfg(target_os = "linux")]
+impl BusyExecutable {
+    fn new() -> Self {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "terlan-busy-executable-{}-{stamp}",
+            std::process::id()
+        ));
+        std::fs::copy("/bin/echo", &path).unwrap();
+        Self(path)
+    }
+
+    fn writer(&self) -> std::fs::File {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&self.0)
+            .unwrap()
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Drop for BusyExecutable {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// A copied image can remain write-held by another process during launch.
+#[cfg(target_os = "linux")]
+#[test]
+fn busy_executable_launch_waits_for_the_writer_and_observes_one_child() {
+    let executable = BusyExecutable::new();
+    let writer = executable.writer();
+    assert_eq!(
+        Command::new(&executable.0).spawn().unwrap_err().kind(),
+        io::ErrorKind::ExecutableFileBusy
+    );
+    let release = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(30));
+        drop(writer);
+    });
+    let mut launches = 0;
+    let result = ProcessControl::new(Duration::from_secs(2)).capture_stdout(
+        Command::new(&executable.0).arg("ready"),
+        128,
+        |_| {
+            launches += 1;
+            Ok(())
+        },
+    );
+    release.join().unwrap();
+    assert_eq!(result.unwrap(), b"ready\n");
+    assert_eq!(launches, 1);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn busy_executable_launch_respects_the_original_deadline() {
+    let executable = BusyExecutable::new();
+    let _writer = executable.writer();
+    let started = Instant::now();
+    let result = ProcessControl::new(Duration::from_millis(20)).capture_stdout(
+        &mut Command::new(&executable.0),
+        128,
+        |_| panic!("unlaunched child observed"),
+    );
+    assert_eq!(result.unwrap_err().kind, "timed-out");
+    assert!(started.elapsed() < Duration::from_secs(1));
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn busy_executable_launch_remains_cancellable() {
+    let executable = BusyExecutable::new();
+    let _writer = executable.writer();
+    let cancellation = Arc::new(AtomicBool::new(false));
+    let signal = cancellation.clone();
+    let cancel = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(20));
+        signal.store(true, Ordering::Release);
+    });
+    let result = ProcessControl::new(Duration::from_secs(2))
+        .with_cancellation(&cancellation)
+        .capture_stdout(&mut Command::new(&executable.0), 128, |_| {
+            panic!("unlaunched child observed")
+        });
+    cancel.join().unwrap();
+    assert_eq!(result.unwrap_err().kind, "cancelled");
+}

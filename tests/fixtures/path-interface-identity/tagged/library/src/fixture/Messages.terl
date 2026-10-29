@@ -1,0 +1,21 @@
+module fixture.Messages.
+
+import type std.vm.Process.{Process}.
+
+pub type AttachTag = Atom["attach_observer"].
+
+pub type Envelope[T] = {AttachTag, Process[T]}.
+
+pub constructor AttachObserver[T] {
+    (peer: Process[T]): Envelope[T] ->
+        {AttachTag, peer}
+}.
+
+pub type FrameTag = Atom["framed"].
+
+pub type Frame = {FrameTag, Int}.
+
+pub constructor Wrap {
+    (value: Int): Frame ->
+        {FrameTag, value}
+}.

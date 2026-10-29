@@ -9,8 +9,43 @@ import std.system.{Environment, Process}.
 
 import type std.system.Process.EnvironmentEntry.
 
+/**
+ * Preserve explicit Cargo resource controls across the owner's env -i boundary.
+ * They are recorded in owner identity together with all other admitted values.
+ */
 pub selected(keys: List[String]): List[EnvironmentEntry] ->
-    collect(keys, List.new[EnvironmentEntry]()).
+    collect(
+        append_missing(
+            keys,
+            [
+                "CARGO_TARGET_DIR",
+                "CARGO_INCREMENTAL",
+                "CARGO_BUILD_JOBS",
+                "CARGO_PROFILE_DEV_DEBUG",
+                "CARGO_PROFILE_TEST_DEBUG",
+            ],
+        ),
+        List.new[EnvironmentEntry](),
+    ).
+
+contains(keys: List[String], key: String): Bool ->
+    case keys {
+        [] -> false;
+        [first | rest] -> first == key or contains(rest, key)
+    }.
+
+append_missing(keys: List[String], controls: List[String]): List[String] ->
+    case controls {
+        [] -> keys;
+        [key | rest] ->
+            append_missing(
+                if {
+                    contains(keys, key) -> keys;
+                    true -> List.concat(keys, [key])
+                },
+                rest,
+            )
+    }.
 
 collect(keys: List[String], entries: List[EnvironmentEntry]): List[EnvironmentEntry] ->
     case keys {

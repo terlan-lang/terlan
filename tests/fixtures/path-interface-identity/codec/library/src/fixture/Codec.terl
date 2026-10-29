@@ -1,0 +1,9 @@
+module fixture.Codec.
+
+import fixture.State.{Ready}.
+
+import type fixture.State.{State as DomainState}.
+import type fixture.Store.{State as DurableState}.
+
+pub convert(durable: DurableState): DomainState ->
+    Ready(durable.value).

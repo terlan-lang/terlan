@@ -362,8 +362,8 @@ pub(super) fn lower_escaping_function_reference(
     })?;
     if target.parameters != expected_params || target.result != expected_result {
         return Err(format!(
-            "error[native_ir.function_value_abi]: `{}/{}` does not match its declared closure signature",
-            identity.0, identity.1
+            "error[native_ir.function_value_abi]: `{}/{}` does not match its declared closure signature; expected `({expected_params:?}) -> {expected_result:?}`, found `({:?}) -> {:?}`",
+            identity.0, identity.1, target.parameters, target.result
         ));
     }
     let encoded = encode_closure_allocation(target.id)

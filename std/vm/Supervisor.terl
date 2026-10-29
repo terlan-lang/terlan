@@ -5,6 +5,9 @@ module std.vm.Supervisor.
 
 import std.core.{Error, Result, Unit}.
 
+import type std.vm.Bytes.
+import type std.vm.Process.{Entry, Process}.
+
 pub type OneForOne.
 
 pub type OneForAll.
@@ -83,6 +86,153 @@ pub child_spec[P](
     shutdown_timeout: Int,
 ): ChildSpec[P] ->
     ChildSpec(id, value, restart_class, order, initial_backoff, maximum_backoff, shutdown_timeout).
+
+/**
+ * A rejected admission, lookup, persistence, or shutdown operation.
+ */
+pub struct SupervisorError {
+    message: String,
+}.
+
+/**
+ * One stable child declaration and its current process identity.
+ */
+pub struct ChildSnapshot {
+    id: Int,
+    process_id: Int,
+    restart_count: Int,
+    running: Bool,
+    pending_restart: Bool,
+    last_backoff: Int,
+    shutdown_timeout: Int,
+}.
+
+/**
+ * An actual VM restart decision, including the replacement identity, if any.
+ */
+pub struct RestartEvent {
+    child_id: Int,
+    old_process_id: Int,
+    new_process_id: Int,
+    restart_count: Int,
+    reason: String,
+    outcome: String,
+    backoff: Int,
+}.
+
+/**
+ * Immutable inspection evidence from the running supervision graph.
+ */
+pub struct SupervisorSnapshot {
+    running: Bool,
+    children: List[ChildSnapshot],
+    restart_history: List[RestartEvent],
+}.
+
+/**
+ * Admits and starts an image entry in the calling actor's supervision tree.
+ * Names are local to that owner. Time policies use monotonic VM clock ticks.
+ * Ordinary Process.spawn remains unsupervised.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.start_child}
+pub start_child[T](
+    supervisor: Supervisor,
+    spec: ChildSpec[Entry[T]],
+): Result[Process[T], SupervisorError].
+
+/**
+ * Resolves the current replacement using the original typed declaration.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.current_child}
+pub current_child[T](
+    supervisor: Supervisor,
+    spec: ChildSpec[Entry[T]],
+): Result[Process[T], SupervisorError].
+
+/**
+ * Requests shutdown and suppresses future restarts for this declaration.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.stop_child}
+pub stop_child[T](supervisor: Supervisor, spec: ChildSpec[Entry[T]]): Result[Unit, SupervisorError].
+
+/**
+ * Reads actual children, replacement identities, and restart decisions.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.snapshot}
+pub snapshot(supervisor: Supervisor): Result[SupervisorSnapshot, SupervisorError].
+
+/**
+ * Durable recovery binding. The restore entry runs after a restart and calls
+ * restore() to load the validated snapshot and committed event suffix.
+ */
+pub type Recovery[T] =
+      {
+          Atom["supervisor_recovery"],
+          path: String,
+          schema: String,
+          version: Int,
+          restore_entry: Entry[T]
+      }.
+
+/**
+ * Builds the durable store and recovery-entry binding for one child.
+ */
+pub recovery[T](path: String, schema: String, version: Int, restore_entry: Entry[T]): Recovery[T] ->
+    Recovery(path, schema, version, restore_entry).
+
+/**
+ * Registers a durable child with distinct initial and recovery entry points.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.start_persistent_child}
+pub start_persistent_child[T](
+    supervisor: Supervisor,
+    spec: ChildSpec[Entry[T]],
+    recovery: Recovery[T],
+): Result[Process[T], SupervisorError].
+
+/**
+ * One committed event following the stored snapshot.
+ */
+pub struct PersistedEvent {
+    sequence: Int,
+    payload: Bytes,
+}.
+
+/**
+ * Validated state and ordered events loaded for the current logical child.
+ */
+pub struct RecoveryState {
+    generation: Int,
+    sequence: Int,
+    state: Bytes,
+    events: List[PersistedEvent],
+}.
+
+/**
+ * Stores a durable snapshot for the calling supervised child.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.checkpoint}
+pub checkpoint(sequence: Int, state: Bytes): Result[Unit, SupervisorError].
+
+/**
+ * Appends one ordered event to the calling supervised child's durable store.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.append_event}
+pub append_event(sequence: Int, payload: Bytes): Result[Unit, SupervisorError].
+
+/**
+ * Reopens the durable store and validates the declared schema before replay.
+ */
+@target.vm {process_mailbox: true}
+@compiler.native {std.vm.supervisor.restore}
+pub restore(): Result[RecoveryState, SupervisorError].
 
 /**
  * Selects whether a child class restarts for a normal or abnormal exit.

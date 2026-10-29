@@ -1,0 +1,87 @@
+module release_promotion.PreparationEnvironmentTest.
+
+import release_promotion.{PreparationEnvironment, PreparationOwner}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.system.{Environment, Process}.
+
+import type std.system.Process.EnvironmentEntry.
+
+controls(): List[String] ->
+    [
+        "CARGO_TARGET_DIR",
+        "CARGO_INCREMENTAL",
+        "CARGO_BUILD_JOBS",
+        "CARGO_PROFILE_DEV_DEBUG",
+        "CARGO_PROFILE_TEST_DEBUG",
+    ].
+
+expected_arguments(keys: List[String]): List[String] ->
+    case keys {
+        [] -> [];
+        [key | rest] ->
+            case Environment.get(key) {
+                None -> expected_arguments(rest);
+                Some(value) -> List.concat([key, value], expected_arguments(rest))
+            }
+    }.
+
+count_key(entries: List[EnvironmentEntry], key: String): Int ->
+    case entries {
+        [] -> 0;
+        [entry | rest] ->
+            if {
+    entry.key == key -> 1;
+    true -> 0
+} + count_key(rest, key)
+    }.
+
+unique_controls(keys: List[String], entries: List[EnvironmentEntry]): Bool ->
+    case keys {
+        [] -> true;
+        [key | rest] ->
+            count_key(entries, key) == case Environment.get(key) {
+    None -> 0;
+    Some(_) -> 1
+}
+                and unique_controls(rest, entries)
+    }.
+
+/**
+ * Exercise the actual isolated child environment used by preparation owners.
+ * Hook validation supplies every Cargo resource control; standalone runs also
+ * verify that absent controls remain absent.
+ */
+@test
+pub isolated_owner_preserves_cargo_resource_controls(): Bool ->
+    let entries = PreparationEnvironment.selected(["PATH", "HOME"]);
+    let command =
+        [
+            "/bin/sh",
+            "-c",
+            "set -eu; while [ \"$#\" -gt 0 ]; do key=$1; expected=$2; shift 2; actual=$(printenv \"$key\") || exit 1; test \"$actual\" = \"$expected\" || exit 1; done",
+            "owner-resource-controls",
+        ];
+    case Process.run(
+        Process.command("/usr/bin/env")
+            .with_arguments(
+                ["-i" | PreparationOwner.environment_arguments(
+    entries,
+    List.concat(command, expected_arguments(controls())),
+)],
+            )
+            .with_timeout_ms(30_000)
+            .with_output_limit_bytes(4_096),
+    ) {
+        Err(_) -> false;
+        Ok(output) -> output.status == 0
+    }.
+
+@test
+pub explicit_controls_are_unique_and_absent_values_stay_absent(): Bool ->
+    unique_controls(controls(), PreparationEnvironment.selected(List.concat(["PATH"], controls()))).
+
+@test
+pub unrelated_variables_are_not_admitted(): Bool ->
+    count_key(PreparationEnvironment.selected(["PATH"]), "HOME") == 0.

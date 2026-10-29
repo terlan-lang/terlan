@@ -1,0 +1,11 @@
+module fixture.Entries.
+
+import std.vm.{DistributedState, Process}.
+
+import type std.vm.Process.{Entry}.
+
+pub initial_entry(): Entry[Int] ->
+    Process.entry[Int](9_011).
+
+pub spawn_9011(): Unit ->
+    Unit.

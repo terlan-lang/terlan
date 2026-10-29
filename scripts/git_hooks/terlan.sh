@@ -5,7 +5,7 @@ changes=$1
 base=$2
 terlc=$3
 typed_css_checked=$4
-tested_terlan=(scripts/git_hooks/src/git_hooks/PlanTest.terl)
+tested_terlan=(scripts/git_hooks/src/git_hooks/PlanTest.terl scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl)
 run_terlan_test() {
   local previous
   for previous in "${tested_terlan[@]}"; do

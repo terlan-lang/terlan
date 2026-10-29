@@ -357,6 +357,9 @@ impl VmActorRuntime {
 
     /// Validates owner graphs before any actor component is detached.
     fn validate_detachable_owner_state(&self, owner: VmProcessId) -> Result<(), String> {
+        if self.source_supervision.owns_process(owner) {
+            return Err("actor supervision graphs are not yet transferable".into());
+        }
         let process_heap_bytes = self
             .processes
             .get(owner)

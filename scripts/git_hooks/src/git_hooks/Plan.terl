@@ -46,6 +46,21 @@ pub syntax(paths: List[String]): Bool ->
         or affected(paths, "docs/grammar/", "")
         or affected(paths, "tree-sitter-terlan/", "").
 
+pub native_bindings(paths: List[String]): Bool ->
+    syntax(paths)
+        or affected(paths, "", "Cargo.toml")
+        or affected(paths, "", "Cargo.lock")
+        or affected(paths, "", "rust-toolchain.toml")
+        or affected(paths, "crates/terlan/src/commands/bind/", "")
+        or affected(paths, "crates/terlan/src/runtime/vm/package_native_helper", "")
+        or affected(paths, "crates/terlan/src/runtime/native_boundary/adapter_abi", "")
+        or affected(paths, "crates/terlan/tests/fixtures/c_abi_native_boundary/", "")
+        or affected(paths, "crates/terlan/tests/fixtures/cpp_native_boundary/", "")
+        or affected(paths, "std/native/", "")
+        or affected(paths, "Makefile", "")
+        or affected(paths, "scripts/git_hooks/check.sh", "")
+        or affected(paths, "scripts/git_hooks/src/git_hooks/Plan", "").
+
 pub compiler(paths: List[String]): Bool ->
     case paths {
         [] -> false;
@@ -187,7 +202,12 @@ pub lanes(paths: List[String]): List[String] ->
             proofs(paths) -> ["proofs" | bootstrapped];
             true -> bootstrapped
         };
-    append(["shell" | proved], contracted).
+    let native =
+        if {
+            native_bindings(paths) -> ["native-bindings"];
+            true -> List.new[String]()
+        };
+    append(["shell" | native], append(proved, contracted)).
 
 append(left: List[String], right: List[String]): List[String] ->
     case left {

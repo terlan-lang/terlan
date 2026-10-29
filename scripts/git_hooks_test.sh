@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Exercise the Git boundary with tiny repositories and a staged fixture checker.
 set -euo pipefail
+unset TERLAN_HOOK_SHARED_TARGET
 driver="$(cd "$(dirname "$0")" && pwd)/git_hooks.sh"
 mkdir -p target
 temporary=$(mktemp -d "$(pwd)/target/git-hooks-test.XXXXXX")
@@ -190,4 +191,51 @@ for contract in negative-api io-negative-api; do
     test "$status" = 38
   )
 done
-echo 'Git hook regression tests passed (15 scenarios).'
+# Native generation drift must stop before optimized builds. The real planner
+# separately tests the changed-path classification; this checks execution order
+# and failure propagation through the actual hook checker.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+case "$*" in
+  'run scripts/self_validation/EbnfValidator.terls'|'test scripts/self_validation/JsBindingsDriftTest.terl'|'run scripts/self_validation/StdlibValidation.terls -- negative-api'|'run scripts/self_validation/StdlibValidation.terls -- io-negative-api') exit 0 ;;
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
+    printf 'shell\n'
+    if [[ "$HOOK_NATIVE_SELECTED" == yes ]]; then printf 'native-bindings\n'; fi
+    ;;
+  *) exit 98 ;;
+esac
+TERLC
+cat > "$temporary/early-bindings/bin/make" <<'MAKE'
+#!/usr/bin/env bash
+if [[ "$*" == '--no-print-directory native-binding-consistency-check' ]]; then
+  printf '%s\n' "$*" >> "$HOOK_NATIVE_CALLS"
+  exit "${HOOK_NATIVE_FAILURE:-0}"
+fi
+exit 0
+MAKE
+chmod +x "$temporary/early-bindings/cache/debug/terlc" "$temporary/early-bindings/bin/make"
+for scenario in failure success unrelated; do
+  (
+    cd "$temporary/early-bindings"
+    selected=yes
+    failure=0
+    expected=99 # The stand-in rejects the optimized build if reached.
+    if [[ "$scenario" == failure ]]; then failure=41; expected=41; fi
+    if [[ "$scenario" == unrelated ]]; then selected=no; fi
+    calls="$temporary/native-$scenario.calls"
+    : > "$calls"
+    status=0
+    PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+      HOOK_NATIVE_SELECTED="$selected" HOOK_NATIVE_FAILURE="$failure" HOOK_NATIVE_CALLS="$calls" \
+      bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+      > "$temporary/native-$scenario.log" 2>&1 || status=$?
+    test "$status" = "$expected"
+    if [[ "$selected" == yes ]]; then
+      test "$(wc -l < "$calls")" = 1
+    else
+      test ! -s "$calls"
+    fi
+  )
+done
+echo 'Git hook regression tests passed (18 scenarios).'

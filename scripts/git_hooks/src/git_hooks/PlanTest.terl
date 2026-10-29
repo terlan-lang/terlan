@@ -34,7 +34,17 @@ pub every_inventory_manifest_triggers_proof_validation(): Bool ->
 
 @test
 pub grammar_requires_phase_goldens(): Bool ->
-    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"]) == [
+    "shell",
+    "native-bindings",
+    "proofs",
+    "clippy",
+    "rust-reports",
+    "summaries",
+    "syntax",
+    "phase",
+    "editor",
+].
 
 @test
 pub proof_metadata_changes_replay_proofs(): Bool ->
@@ -66,7 +76,17 @@ pub unrelated_documents_do_not_require_lean(): Bool ->
 
 @test
 pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
-    Plan.lanes(["crates/terlan/src/compiler/syntax/lexer_test.rs"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+    Plan.lanes(["crates/terlan/src/compiler/syntax/lexer_test.rs"]) == [
+    "shell",
+    "native-bindings",
+    "proofs",
+    "clippy",
+    "rust-reports",
+    "summaries",
+    "syntax",
+    "phase",
+    "editor",
+].
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
@@ -78,7 +98,7 @@ pub runtime_changes_use_workspace_fallback(): Bool ->
 
 @test
 pub lockfile_changes_use_workspace_fallback(): Bool ->
-    Plan.lanes(["Cargo.lock"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
+    Plan.lanes(["Cargo.lock"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
 pub fixture_only_changes_are_tested(): Bool ->
@@ -86,7 +106,17 @@ pub fixture_only_changes_are_tested(): Bool ->
 
 @test
 pub renamed_old_paths_still_trigger_checks(): Bool ->
-    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf", "archive/grammar.txt"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "syntax", "phase", "editor"].
+    Plan.lanes(["docs/grammar/TERLAN_SYNTAX_SPEC.ebnf", "archive/grammar.txt"]) == [
+    "shell",
+    "native-bindings",
+    "proofs",
+    "clippy",
+    "rust-reports",
+    "summaries",
+    "syntax",
+    "phase",
+    "editor",
+].
 
 @test
 pub terlan_changes_are_checked(): Bool ->
@@ -122,7 +152,7 @@ pub clippy_configuration_changes_are_checked(): Bool ->
 
 @test
 pub make_quality_changes_require_clippy(): Bool ->
-    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "bootstrap", "clippy", "rust-reports", "release-contract"].
+    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "native-bindings", "bootstrap", "clippy", "rust-reports", "release-contract"].
 
 @test
 pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
@@ -130,15 +160,15 @@ pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
 
 @test
 pub bootstrap_runner_changes_test_the_lane(): Bool ->
-    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "bootstrap", "release-contract"].
+    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "native-bindings", "bootstrap", "release-contract"].
 
 @test
 pub workspace_tests_already_cover_bootstrap(): Bool ->
-    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace", "release-contract"].
+    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace", "release-contract"].
 
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->
-    Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"]) == ["shell", "proofs", "clippy", "rust-reports", "summaries", "workspace", "editor"].
+    Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"]) == ["shell", "native-bindings", "proofs", "clippy", "rust-reports", "summaries", "workspace", "editor"].
 
 @test
 pub inventory_updates_require_source_report_validation(): Bool ->
@@ -187,3 +217,29 @@ pub platform_installer_changes_execute_release_contract_tests(): Bool ->
         "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseInstallerSmoke.terl",
     ],
 ) == ["shell", "release-contract", "terlan"].
+
+@test
+pub native_generator_changes_run_consistency_before_workspace_tests(): Bool ->
+    Plan.lanes(["crates/terlan/src/commands/bind/native_helper_transport.rs"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace"].
+
+native_paths_are_checked(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] -> Plan.native_bindings([path]) and native_paths_are_checked(rest)
+    }.
+
+@test
+pub native_templates_protocols_and_reviewed_outputs_share_a_gate(): Bool ->
+    native_paths_are_checked(
+    [
+        "crates/terlan/src/commands/bind/c_abi_binding_generator/generator/worker_rendering/native_helper_template.rs",
+        "crates/terlan/src/commands/bind/cpp_binding_generator/generator/native_helper/template.rs",
+        "crates/terlan/src/runtime/vm/package_native_helper/transport.rs",
+        "crates/terlan/src/runtime/vm/package_native_helper/legacy_reply.rs",
+        "crates/terlan/src/runtime/native_boundary/adapter_abi.rs",
+        "std/native/libpq/native-binding.json",
+        "std/native/libpq/generated/native/rust/src/bin/native_boundary_helper.rs",
+        "crates/terlan/tests/fixtures/cpp_native_boundary/native-binding.json",
+    ],
+)
+        and not Plan.native_bindings(["README.md", "crates/terlan/src/compiler/native_ir.rs"]).

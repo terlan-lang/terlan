@@ -4,6 +4,7 @@ use super::*;
 
 pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
     let singletons = singleton_types(resolved);
+    let imported_aliases = imported_type_aliases(resolved);
     let mut names = resolved
         .imported_types
         .iter()
@@ -12,6 +13,10 @@ pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
             (provider.struct_fields.contains_key(&imported.source_name)
                 || provider.opaque_types.contains(&imported.source_name)
                 || (local != &imported.source_name
+                    && imported_aliases
+                        .get(local)
+                        .is_some_and(|alias| !alias.is_opaque))
+                || (!imported.source_module.starts_with("std.")
                     && provider.public_types.contains(&imported.source_name)))
             .then(|| {
                 (

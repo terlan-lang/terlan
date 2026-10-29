@@ -338,31 +338,29 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
 /// - Converts constructor signatures into semantic constructor declarations
 ///   without committing to tuple, atom, record, or backend layout encoding.
 pub(crate) fn lower_core_constructors(interface: &ModuleInterface) -> Vec<CoreConstructorDecl> {
+    let physical_atoms = interface
+        .type_bodies
+        .iter()
+        .filter_map(|(name, bodies)| {
+            let [body] = bodies.as_slice() else {
+                return None;
+            };
+            match core_type_from_text(body)? {
+                CoreType::AtomLiteral(atom) => Some((name.clone(), atom)),
+                _ => None,
+            }
+        })
+        .collect::<HashMap<_, _>>();
     let mut constructors = interface
         .constructors
         .iter()
         .flat_map(|(name, signatures)| {
+            let physical_atoms = &physical_atoms;
             signatures
                 .iter()
                 .enumerate()
-                .map(move |(index, signature)| CoreConstructorDecl {
-                    implementation: Some(CoreConstructorImplementation {
-                        function: format!("$constructor_{name}_{index}"),
-                        defaults: signature
-                            .params
-                            .iter()
-                            .enumerate()
-                            .map(|(parameter, param)| {
-                                param.default.as_ref().map(|_| {
-                                    format!("$constructor_{name}_{index}_default_{parameter}")
-                                })
-                            })
-                            .collect(),
-                    }),
-                    name: name.clone(),
-                    public: signature.public,
-                    min_arity: signature.min_arity,
-                    params: signature
+                .map(move |(index, signature)| {
+                    let params = signature
                         .params
                         .iter()
                         .map(|param| CoreParam {
@@ -370,14 +368,47 @@ pub(crate) fn lower_core_constructors(interface: &ModuleInterface) -> Vec<CoreCo
                             ty: param.annotation.clone(),
                             core_ty: core_type_from_text(&param.annotation),
                         })
-                        .collect(),
-                    vararg: signature.vararg.as_ref().map(|param| CoreParam {
-                        name: param.name.clone(),
-                        ty: param.annotation.clone(),
-                        core_ty: core_type_from_text(&param.annotation),
-                    }),
-                    return_type: signature.return_type.clone(),
-                    core_return_type: core_type_from_text(&signature.return_type),
+                        .collect::<Vec<_>>();
+                    let mut physical_body =
+                        crate::terlan_syntax::parse_expr_as_syntax_output(&signature.body)
+                            .ok()
+                            .and_then(|body| {
+                                super::core_expr_lowering::core_expr_from_syntax(&body)
+                            });
+                    if let Some(body) = &mut physical_body {
+                        super::core_lowering::canonicalize_physical_atom(
+                            body,
+                            &params,
+                            physical_atoms,
+                        );
+                    }
+                    CoreConstructorDecl {
+                        implementation: Some(CoreConstructorImplementation {
+                            function: format!("$constructor_{name}_{index}"),
+                            defaults: signature
+                                .params
+                                .iter()
+                                .enumerate()
+                                .map(|(parameter, param)| {
+                                    param.default.as_ref().map(|_| {
+                                        format!("$constructor_{name}_{index}_default_{parameter}")
+                                    })
+                                })
+                                .collect(),
+                        }),
+                        physical_body,
+                        name: name.clone(),
+                        public: signature.public,
+                        min_arity: signature.min_arity,
+                        params,
+                        vararg: signature.vararg.as_ref().map(|param| CoreParam {
+                            name: param.name.clone(),
+                            ty: param.annotation.clone(),
+                            core_ty: core_type_from_text(&param.annotation),
+                        }),
+                        return_type: signature.return_type.clone(),
+                        core_return_type: core_type_from_text(&signature.return_type),
+                    }
                 })
         })
         .collect::<Vec<_>>();

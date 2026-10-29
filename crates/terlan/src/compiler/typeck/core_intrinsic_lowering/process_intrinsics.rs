@@ -23,14 +23,14 @@ pub(super) fn core_typed_process_intrinsic_expr_from_parts(
         ("entry", 1) => (
             CoreIntrinsicId::VmProcessEntry(value_type.clone()),
             CoreType::Apply {
-                constructor: "Entry".to_string(),
+                constructor: "std.vm.Process.Entry".to_string(),
                 args: vec![value_type],
             },
         ),
         ("current", 0) => (
             CoreIntrinsicId::VmProcessCurrent(value_type.clone()),
             CoreType::Apply {
-                constructor: "Process".to_string(),
+                constructor: "std.vm.Process.Process".to_string(),
                 args: vec![value_type],
             },
         ),
@@ -42,14 +42,14 @@ pub(super) fn core_typed_process_intrinsic_expr_from_parts(
         ("receive", 0) => (
             CoreIntrinsicId::VmProcessReceiveMessage(value_type.clone()),
             CoreType::Apply {
-                constructor: "Message".to_string(),
+                constructor: "std.vm.Message.Message".to_string(),
                 args: vec![value_type],
             },
         ),
         ("spawn", 1) => (
             CoreIntrinsicId::VmProcessSpawn(value_type.clone()),
             CoreType::Apply {
-                constructor: "Process".to_string(),
+                constructor: "std.vm.Process.Process".to_string(),
                 args: vec![value_type],
             },
         ),
@@ -60,14 +60,14 @@ pub(super) fn core_typed_process_intrinsic_expr_from_parts(
         ("monitor", 1) => (
             CoreIntrinsicId::VmProcessMonitor(value_type.clone()),
             CoreType::Apply {
-                constructor: "Monitor".to_string(),
+                constructor: "std.vm.Process.Monitor".to_string(),
                 args: vec![value_type],
             },
         ),
         ("acquire", 1) => (
             CoreIntrinsicId::VmProcessAcquireResource(value_type.clone()),
             CoreType::Apply {
-                constructor: "Resource".to_string(),
+                constructor: "std.vm.Process.Resource".to_string(),
                 args: vec![value_type],
             },
         ),

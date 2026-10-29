@@ -1,0 +1,37 @@
+module fixture.Worker.
+
+import fixture.Messages.{AttachObserver}.
+import std.core.Result.{Err, Ok}.
+import std.vm.Process.{ActorMessage}.
+import std.vm.{Message, Process}.
+
+import type fixture.Messages.{Envelope}.
+import type std.vm.Process.{Entry, Process}.
+
+pub entry(): Entry[Envelope[Int]] ->
+    Process.entry[Envelope[Int]](9_012).
+
+pub case_entry(): Entry[Envelope[Int]] ->
+    Process.entry[Envelope[Int]](9_013).
+
+receive_observer(): Process[Int] ->
+    let AttachObserver(peer) = Message.unwrap[Envelope[Int]](Process.receive[Envelope[Int]]());
+    peer.
+
+pub spawn_9012(): Unit ->
+    let peer = receive_observer();
+    let _ = Process.send[Int](peer, Message.wrap[Int](42));
+    Unit.
+
+stored_value(): Result[Int, String] ->
+    Ok(41).
+
+pub spawn_9013(): Unit ->
+    let recovered =
+        case stored_value() {
+            Ok(value) -> value + 1;
+            Err(_error) -> 0
+        };
+    let peer = receive_observer();
+    let _ = Process.send[Int](peer, Message.wrap[Int](recovered));
+    Unit.

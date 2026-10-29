@@ -5,6 +5,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::*;
 
+#[path = "test_shape_import_test/constructor_alias_test.rs"]
+mod constructor_alias_test;
+#[path = "test_shape_import_test/path_dependency_identity_test.rs"]
+mod path_dependency_identity_test;
+#[path = "test_shape_import_test/supervision_test.rs"]
+mod supervision_test;
+
 /// Proves exported shape aliases survive project interface generation and
 /// execute as ordinary VM patterns in an importing test module.
 #[test]
@@ -259,6 +266,22 @@ fn run_project_vm_test(
     test_path: &str,
     test_source: &str,
 ) -> ExitCode {
+    run_multi_module_project_vm_test(
+        prefix,
+        package,
+        &[(source_path, source)],
+        test_path,
+        test_source,
+    )
+}
+
+fn run_multi_module_project_vm_test(
+    prefix: &str,
+    package: &str,
+    sources: &[(&str, &str)],
+    test_path: &str,
+    test_source: &str,
+) -> ExitCode {
     let root = std::env::temp_dir().join(format!(
         "{prefix}_{}_{}",
         std::process::id(),
@@ -274,7 +297,9 @@ fn run_project_vm_test(
             "[package]\nname = \"{package}\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\n"
         ),
     );
-    write_project_file(&root, source_path, source);
+    for (source_path, source) in sources {
+        write_project_file(&root, source_path, source);
+    }
     write_project_file(&root, test_path, test_source);
 
     let exit_code = run(

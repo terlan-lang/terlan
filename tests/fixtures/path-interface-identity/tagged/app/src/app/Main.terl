@@ -1,0 +1,14 @@
+module app.Main.
+
+import fixture.Messages.{AttachObserver, Wrap}.
+import std.vm.Process.
+
+import type std.vm.Process.{Process}.
+
+pub peer(value: Process[Int]): Process[Int] ->
+    let AttachObserver(peer) = AttachObserver[Int](value);
+    peer.
+
+pub payload(value: Int): Int ->
+    let Wrap(payload) = Wrap(value);
+    payload.

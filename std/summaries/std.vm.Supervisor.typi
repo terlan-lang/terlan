@@ -4,6 +4,20 @@ module std.vm.Supervisor.
 import std.core.Error.{*}.
 import std.core.Result.{*}.
 import std.core.Unit.{*}.
+import std.vm.Bytes.{*}.
+import std.vm.Process.{*}.
+
+/// One stable child declaration and its current process identity.
+
+pub struct ChildSnapshot {
+    id: Int,
+    process_id: Int,
+    restart_count: Int,
+    running: Bool,
+    pending_restart: Bool,
+    last_backoff: Int,
+    shutdown_timeout: Int
+}.
 
 /// Typed child declaration consumed by VM-owned supervision admission.
 
@@ -22,6 +36,28 @@ pub type OneForOne =
 pub type Permanent =
     Atom["permanent"].
 
+/// One committed event following the stored snapshot.
+
+pub struct PersistedEvent {
+    sequence: Int,
+    payload: std.vm.Bytes
+}.
+
+/// Durable recovery binding. The restore entry runs after a restart and calls
+/// restore() to load the validated snapshot and committed event suffix.
+
+pub type Recovery[T] =
+    {Atom["supervisor_recovery"], path: String, schema: String, version: Int, restore_entry: std.vm.Process.Entry[T]}.
+
+/// Validated state and ordered events loaded for the current logical child.
+
+pub struct RecoveryState {
+    generation: Int,
+    sequence: Int,
+    state: std.vm.Bytes,
+    events: List[PersistedEvent]
+}.
+
 pub type RestForOne =
     Atom["rest_for_one"].
 
@@ -29,6 +65,18 @@ pub type RestartClass =
     Permanent
   | Transient
   | Temporary.
+
+/// An actual VM restart decision, including the replacement identity, if any.
+
+pub struct RestartEvent {
+    child_id: Int,
+    old_process_id: Int,
+    new_process_id: Int,
+    restart_count: Int,
+    reason: String,
+    outcome: String,
+    backoff: Int
+}.
 
 pub type RestartStrategy =
     OneForOne
@@ -40,6 +88,20 @@ pub type RestartStrategy =
 pub type Supervisor =
     {Atom["supervisor"], name: Int, strategy: RestartStrategy, restart_limit: Int, restart_window: Int}.
 
+/// A rejected admission, lookup, persistence, or shutdown operation.
+
+pub struct SupervisorError {
+    message: String
+}.
+
+/// Immutable inspection evidence from the running supervision graph.
+
+pub struct SupervisorSnapshot {
+    running: Bool,
+    children: List[ChildSnapshot],
+    restart_history: List[RestartEvent]
+}.
+
 pub type SupervisorTag =
     Atom["supervisor"].
 
@@ -49,17 +111,37 @@ pub type Temporary =
 pub type Transient =
     Atom["transient"].
 
+/// Appends one ordered event to the calling supervised child's durable store.
+
+pub append_event(sequence: Int, payload: std.vm.Bytes): Result[Unit, SupervisorError].
+
 @pure
 pub cap_backoff(delay: Int, maximum: Int): Int.
+
+/// Stores a durable snapshot for the calling supervised child.
+
+pub checkpoint(sequence: Int, state: std.vm.Bytes): Result[Unit, SupervisorError].
 
 /// Builds a typed child declaration without exposing a host tuple protocol.
 
 pub child_spec[P](id: Int, value: P, restart_class: RestartClass, order: Int, initial_backoff: Int, maximum_backoff: Int, shutdown_timeout: Int): ChildSpec[P].
 
+/// Resolves the current replacement using the original typed declaration.
+
+pub current_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]]): Result[std.vm.Process[T], SupervisorError].
+
+/// Builds the durable store and recovery-entry binding for one child.
+
+pub recovery[T](path: String, schema: String, version: Int, restore_entry: std.vm.Process.Entry[T]): Recovery[T].
+
 /// Computes capped exponential backoff for a one-based restart attempt.
 
 @pure
 pub restart_backoff(initial: Int, maximum: Int, attempt: Int): Int.
+
+/// Reopens the durable store and validates the declared schema before replay.
+
+pub restore(): Result[RecoveryState, SupervisorError].
 
 /// Builds one source-owned policy value; the VM owns its mutable graph.
 
@@ -82,6 +164,24 @@ pub should_restart(restart_class: RestartClass, abnormal: Bool): Bool.
 
 @pure
 pub shutdown_expired(start_tick: Int, timeout: Int, now_tick: Int): Bool.
+
+/// Reads actual children, replacement identities, and restart decisions.
+
+pub snapshot(supervisor: Supervisor): Result[SupervisorSnapshot, SupervisorError].
+
+/// Admits and starts an image entry in the calling actor's supervision tree.
+/// Names are local to that owner. Time policies use monotonic VM clock ticks.
+/// Ordinary Process.spawn remains unsupervised.
+
+pub start_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]]): Result[std.vm.Process[T], SupervisorError].
+
+/// Registers a durable child with distinct initial and recovery entry points.
+
+pub start_persistent_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]], recovery: Recovery[T]): Result[std.vm.Process[T], SupervisorError].
+
+/// Requests shutdown and suppresses future restarts for this declaration.
+
+pub stop_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]]): Result[Unit, SupervisorError].
 
 /// Enforces a finite restart-intensity budget before escalation.
 

@@ -791,6 +791,11 @@ impl PureNativeExecutionShard {
         } else if self.actors.processes().get(owner).is_none() {
             return Err(format!("missing process {}", owner.as_u64()));
         }
+        {
+            let mut context = PureNativeExecutionContext::new(owner, &mut self.execution);
+            self.boundary
+                .drive_supervised_children(&mut self.actors, &mut context)?;
+        }
         self.release_owner_heap(owner)?;
         self.actors.reap_exited_actors()?;
         Ok(())

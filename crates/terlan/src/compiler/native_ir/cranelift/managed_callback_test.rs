@@ -1050,7 +1050,7 @@ fn source_named_function_value_rejects_signature_drift_before_codegen() {
 
     assert_eq!(
         NativeModule::lower_application(&[&core]).unwrap_err(),
-        "error[native_ir.function_value_abi]: `negate/1` does not match its declared closure signature; while lowering `escaping_named_mismatch.make/0`"
+        "error[native_ir.function_value_abi]: `negate/1` does not match its declared closure signature; expected `([Int]) -> Int`, found `([Bool]) -> Bool`; while lowering `escaping_named_mismatch.make/0`"
     );
 }
 

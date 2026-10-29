@@ -226,10 +226,8 @@ pub(super) fn structured_c_metadata_generates_real_ffi_package() {
     }
     let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
         .expect("helper");
-    assert!(helper.contains("const MAX_ADAPTER_FRAME_BYTES: usize = 1048576"));
-    assert!(helper.contains("take((limits.frame + 1) as u64)"));
-    assert!(helper.contains("last_request_id"));
-    assert!(helper.contains("request_not_monotonic"));
+    // Frame bounds and request correlation are exercised by the compiled
+    // adapter protocol test, rather than assertions about private source text.
     assert!(helper.contains("request_handles"));
     assert!(helper.contains("unknown_handle_reference"));
 

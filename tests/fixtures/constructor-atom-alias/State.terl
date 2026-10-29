@@ -1,0 +1,36 @@
+module fixture.State.
+
+import fixture.Tags.{Offline as OfflineTag}.
+
+pub type State = {OfflineTag, Int, Bool} | {Atom["ready"], Int}.
+
+pub constructor Offline {
+    (sequence: Int, retry: Bool): State ->
+        {OfflineTag, sequence, retry}
+}.
+
+pub constructor Ready {
+    (sequence: Int): State ->
+        {Atom["ready"], sequence}
+}.
+
+pub sequence(state: State): Int ->
+    case state {
+        Offline(value, _) -> value;
+        Ready(value) -> value
+    }.
+
+pub retry(state: State): Bool ->
+    case state {
+        Offline(_, true) -> true;
+        Offline(_, false) -> false;
+        Ready(_) -> false
+    }.
+
+pub type Availability: Int = ACTIVE = 1 | IDLE = 2.
+
+pub (state: State) availability(): Availability ->
+    case state {
+        Ready(_) -> Availability.ACTIVE;
+        Offline(_, _) -> Availability.IDLE
+    }.

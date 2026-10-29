@@ -1,0 +1,21 @@
+module app.MainTest.
+
+import app.Main.{payload, peer}.
+import fixture.Worker.{case_entry, entry}.
+import std.vm.Process.
+
+@test
+pub imported_tag_preserves_typed_process_payload(): Bool ->
+    peer(Process.current[Int]()) == Process.current[Int]().
+
+@test
+pub imported_constructor_pattern_uses_its_body_tag(): Bool ->
+    payload(41) == 41.
+
+@test
+pub process_entry_lowers_suspending_helper_call(): Bool ->
+    entry() == entry().
+
+@test
+pub process_entry_lowers_helper_after_pure_case(): Bool ->
+    case_entry() == case_entry().

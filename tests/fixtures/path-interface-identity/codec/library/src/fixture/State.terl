@@ -1,0 +1,8 @@
+module fixture.State.
+
+pub type State = Atom["idle"] | {Atom["ready"], Int}.
+
+pub constructor Ready {
+    (value: Int): State ->
+        {Atom["ready"], value}
+}.

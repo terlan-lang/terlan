@@ -38,7 +38,7 @@ pub(super) fn frame_from_status(
         25 => (TvmTransitionOperation::Debug, 0),
         26 => (TvmTransitionOperation::Identity, 0),
         27 => (TvmTransitionOperation::FailureTyped, 1),
-        24 => {
+        24 | 28 => {
             let tag = transition_values.first().copied().ok_or_else(|| {
                 "error[execution_shard.capability_arguments]: missing capability tag".to_string()
             })?;
@@ -97,7 +97,14 @@ pub(super) fn frame_from_status(
                     ));
                 }
             };
-            (TvmTransitionOperation::Capability, count)
+            (
+                if status == 28 {
+                    TvmTransitionOperation::Supervision
+                } else {
+                    TvmTransitionOperation::Capability
+                },
+                count,
+            )
         }
         _ => {
             return Ok(TvmControlFrame::Failure {

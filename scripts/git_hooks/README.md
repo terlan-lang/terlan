@@ -14,6 +14,27 @@ exercise producer/consumer boundaries with the real contracts. Updating an
 expected value, regenerating a baseline, or retrying CI alone does not prevent
 recurrence. Keep unresolved causes and validation limits explicit.
 
+Release commits must run the staged-source hook. Do not use `--no-verify` for
+release work; a reduced selection of tests does not replace the hook.
+
+When validation shares a Cargo target with the working checkout, the hook
+invalidates workspace fingerprints before building and again on exit. Cargo can
+otherwise retain dep-info pointing at the other checkout and report a changed
+compiler as fresh. Registry dependency caches and existing executables remain
+available. This is a bootstrap operation, so its small Node helper runs before
+trusting a compiler from that target; the build planner remains a Terlan script.
+`node scripts/git_hooks/cache_test.cjs` exercises actual Cargo builds in two
+checkouts sharing one target and verifies both source changes are compiled.
+
+Native binding changes run `make native-binding-consistency-check` with the
+staged debug compiler before optimized builds. This includes C/C++ metadata,
+deterministic libpq regeneration, both compiled helper protocols, and bounded
+transport regressions. Generator, shared protocol, ABI, reviewed package, fixture,
+syntax and dependency changes select this gate. Private framing implementation
+text is not an ABI contract: compiled helper tests enforce frame bounds,
+chunking and request correlation. The full workspace suite remains selected.
+The same Make gate is available for focused feedback before staging changes.
+
 Build-plan limits have one definition in `RepositoryValidation.terls`. Make
 delegates report admission to that typed validator; shell and Rust integration
 fixtures verify dispatch and failure propagation without copying policy numbers.
@@ -193,3 +214,19 @@ touching the active snapshot. Filenames containing newlines are rejected.
 
 Rust report checks compile the staged validator once with the canonical optimized
 compiler, then execute every report check with its paired VM.
+
+Preparation owners launch isolated commands with `env -i`. Their original
+allowlist discarded explicit Cargo resource settings, which silently restored
+incremental caches and larger debug profiles in nested proof commands. Owners
+now preserve `CARGO_TARGET_DIR`, `CARGO_INCREMENTAL`, `CARGO_BUILD_JOBS`,
+`CARGO_PROFILE_DEV_DEBUG`, and `CARGO_PROFILE_TEST_DEBUG` when supplied, and bind
+the admitted values to their existing environment fingerprint. Unset controls
+retain Cargo defaults. A compiled Terlan regression verifies the actual isolated
+child receives those controls before the proof baseline runs.
+
+Browser preparation saves every consumer compilation result and rejects failed
+or terminated compilations before starting Playwright. Previously a shared
+compiler failure still launched the entire browser matrix. The shipped Array
+consumer now has a Rust regression that compiles and executes its empty and
+nonempty conversions; empty literal lists preserve their contextual element
+type without accepting casts from arbitrary dynamic lists.

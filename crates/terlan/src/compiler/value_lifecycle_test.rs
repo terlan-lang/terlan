@@ -167,3 +167,46 @@ pub invalid(): Status -> Status.parse().
         .iter()
         .any(|diagnostic| { diagnostic.code == "VALUED_UNION_PARSE_ARITY" }));
 }
+
+#[test]
+fn const_generic_import_bindings_preserve_provider_arity_and_aliases() {
+    use super::evaluate_and_substitute_module_constants_with_interfaces;
+    use crate::terlan_hir::syntax_module_output_to_interface;
+    use crate::terlan_syntax::parse_interface_module_as_syntax_output;
+    let process = parse_interface_module_as_syntax_output(
+        "module std.vm.Process.\npub opaque type Entry[T].\npub entry[T](slot: Int): Entry[T].\n",
+    )
+    .unwrap();
+    let other = parse_interface_module_as_syntax_output(
+        "module fixture.Other.\npub opaque type Entry.\npub entry(slot: Int): Entry.\n",
+    )
+    .unwrap();
+    for _ in 0..64 {
+        let interfaces = std::collections::HashMap::from([
+            (
+                process.module_name.clone(),
+                syntax_module_output_to_interface(&process),
+            ),
+            (
+                other.module_name.clone(),
+                syntax_module_output_to_interface(&other),
+            ),
+        ]);
+        for (imports, result, call, valid) in [
+            ("import type std.vm.Process.{Entry}.\nimport std.vm.Process.{entry}.", "Entry[Int]", "entry[Int](7)", true),
+            ("import type std.vm.Process.{Entry as WorkerEntry}.\nimport std.vm.Process.{entry as worker_entry}.", "WorkerEntry[Int]", "worker_entry[Int](7)", true),
+            ("import type std.vm.Process.{Entry}.\nimport std.vm.Process.{entry}.", "Entry[Int, Bool]", "entry[Int](7)", false),
+            ("import type fixture.Other.{Entry as PlainEntry}.\nimport fixture.Other.{entry}.", "PlainEntry[Int]", "entry(7)", false),
+        ] {
+            let mut module = parse_module_as_syntax_output(&format!(
+                "module fixture.Client.\n{imports}\npub value(): {result} -> {call}.\n"
+            )).unwrap();
+            let report = evaluate_and_substitute_module_constants_with_interfaces(&mut module, &interfaces);
+            if valid {
+                assert!(report.diagnostics.is_empty(), "{imports}: {:?}", report.diagnostics);
+            } else {
+                assert!(report.diagnostics.iter().any(|d| d.code == "CONST_GENERIC_ARITY"), "{:?}", report.diagnostics);
+            }
+        }
+    }
+}

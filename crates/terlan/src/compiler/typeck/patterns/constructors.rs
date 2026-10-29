@@ -103,7 +103,7 @@ pub(super) fn check_structural_constructor_pattern(
 /// - Shares the language's camel-case, acronym, and digit-boundary conversion
 ///   instead of inventing a different tag spelling during coverage analysis.
 pub(super) fn constructor_pattern_atom_name(name: &str) -> String {
-    crate::terlan_syntax::type_name_to_atom_payload(name)
+    crate::terlan_syntax::type_name_to_atom_payload(name.rsplit('.').next().unwrap_or(name))
 }
 
 /// Checks a constructor-style pattern against an expected type.

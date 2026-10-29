@@ -1,0 +1,11 @@
+module app.MainTest.
+
+import app.Main.{restore}.
+import fixture.State.{Ready}.
+
+@test
+pub distinct_provider_types_remain_distinct(): Bool ->
+    case restore() {
+        Ready(value) -> value == 41;
+        _ -> false
+    }.

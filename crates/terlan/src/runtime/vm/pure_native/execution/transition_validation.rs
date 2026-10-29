@@ -117,6 +117,6 @@ pub(crate) fn validate_transition_arguments(
                 .to_string(),
         ),
         TvmTransitionOperation::Scheduling => Ok(()),
-        TvmTransitionOperation::Capability => Ok(validate_capability_arguments(arguments)?),
+        TvmTransitionOperation::Capability | TvmTransitionOperation::Supervision => Ok(validate_capability_arguments(arguments)?),
     }
 }

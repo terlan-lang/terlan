@@ -1,0 +1,293 @@
+module tests.language.VmSupervisorRuntimeTest.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.io.Directory.
+import std.vm.Process.{ActorMessage}.
+import std.vm.Supervisor.{OneForAll, OneForOne, Permanent, RestForOne, Temporary, Transient}.
+import std.vm.{Bytes, Message, Process, Supervisor}.
+
+import type std.vm.Process.{Entry, Process}.
+import type std.vm.Supervisor.{RecoveryState, RestartStrategy}.
+
+/**
+ * Initial entry commits a snapshot and event before an actual process crash.
+ */
+pub spawn_701(): Unit ->
+    let parent = Message.unwrap[Process[Int]](Process.receive[Process[Int]]());
+    let _ =
+        case Supervisor.checkpoint(1, Bytes.from_list([41])) {
+            Ok(_) -> Unit;
+            Err(_) -> Process.fail(Process.exit_reason(101))
+        };
+    let _ =
+        case Supervisor.append_event(2, Bytes.from_list([1])) {
+            Ok(_) -> Unit;
+            Err(_) -> Process.fail(Process.exit_reason(102))
+        };
+    let _ = Process.send[Int](parent, Message.wrap[Int](41));
+    Process.fail(Process.exit_reason(7)).
+
+/**
+ * Recovery entry reopens the durable store and applies its event suffix.
+ */
+pub spawn_702(): Unit ->
+    let restored =
+        case Supervisor.restore() {
+            Ok(state) -> replay_counter(state);
+            Err(_) -> 0
+        };
+    let parent = Message.unwrap[Process[Int]](Process.receive[Process[Int]]());
+    let _ = Process.send[Int](parent, Message.wrap[Int](restored));
+    let _ = Process.receive[Process[Int]]();
+    Unit.
+
+pub replay_counter(state: RecoveryState): Int ->
+    let {
+        [value] <- state.state.to_list();
+        [event] <- state.events;
+        [delta] <- event.payload.to_list()
+    } else {
+        _ -> 0
+    };
+    if {
+        state.generation == 1 and state.sequence == 1 and event.sequence == 2 -> value + delta;
+        true -> 0
+    }.
+
+pub durable_restart(path: String): Bool ->
+    let root = Supervisor.root(701, OneForOne, 3, 100);
+    let spec =
+        Supervisor.child_spec[Entry[Process[Int]]](
+            1,
+            Process.entry[Process[Int]](701),
+            Permanent,
+            0,
+            0,
+            0,
+            0,
+        );
+    let recovery = Supervisor.recovery[Process[Int]](path, "Counter", 1, Process.entry[Process[Int]](702));
+    case Supervisor.start_persistent_child[Process[Int]](root, spec, recovery) {
+        Ok(original) ->
+            let parent = Process.current[Int]();
+            let _ = Process.send[Process[Int]](original, Message.wrap[Process[Int]](parent));
+            let committed = Message.unwrap[Int](Process.receive[Int]());
+            case Supervisor.current_child[Process[Int]](root, spec) {
+                Ok(replacement) ->
+                    let _ = Process.send[Process[Int]](replacement, Message.wrap[Process[Int]](parent));
+                    let restored = Message.unwrap[Int](Process.receive[Int]());
+                    let evidence =
+                        (let {
+    Ok(snapshot) <- Supervisor.snapshot(root);
+    [event] <- snapshot.restart_history
+} else {
+    _ -> false
+};
+snapshot.running
+    and original != replacement
+    and event.child_id == 1
+    and event.old_process_id != event.new_process_id
+    and event.new_process_id > 0
+    and event.restart_count == 1
+    and event.outcome == "Restarted");
+                    let stopped =
+                        (let {
+    Ok(_) <- Supervisor.stop_child[Process[Int]](root, spec);
+    Ok(snapshot) <- Supervisor.snapshot(root);
+    [child] <- snapshot.children
+} else {
+    _ -> false
+};
+child.running == false and child.pending_restart == false);
+                    committed == 41 and restored == 42 and evidence and stopped;
+                Err(_) -> false
+            };
+        Err(_) -> false
+    }.
+
+@test
+pub supervised_crash_replaces_identity_and_restores_persisted_state(): Bool ->
+    case Directory.create_temporary("terlan-supervision-") {
+        Ok(directory) ->
+            let passed = durable_restart(directory + "/counter.log");
+            let _ = Directory.remove_all(directory);
+            passed;
+        Err(_) -> false
+    }.
+
+/**
+ * Immediate crashes must exhaust the finite intensity budget.
+ */
+pub spawn_703(): Unit ->
+    Process.fail(Process.exit_reason(9)).
+
+@test
+pub supervision_enforces_restart_intensity(): Bool ->
+    let root = Supervisor.root(703, OneForOne, 2, 100);
+    let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 0, 0, 0);
+    let {
+        Ok(_) <- Supervisor.start_child[Int](root, spec);
+        Ok(snapshot) <- Supervisor.snapshot(root)
+    } else {
+        _ -> false
+    };
+    snapshot.running == false and snapshot.restart_history.length() == 3.
+
+/**
+ * A normal transient exit and an abnormal temporary exit do not restart.
+ */
+pub spawn_704(): Unit ->
+    Unit.
+
+@test
+pub restart_classes_control_actual_process_exits(): Bool ->
+    let root = Supervisor.root(704, OneForOne, 2, 100);
+    let normal = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](704), Transient, 0, 0, 0, 0);
+    let failed = Supervisor.child_spec[Entry[Int]](2, Process.entry[Int](703), Temporary, 1, 0, 0, 0);
+    let _ = Supervisor.start_child[Int](root, normal);
+    let _ = Supervisor.start_child[Int](root, failed);
+    let {
+        Ok(snapshot) <- Supervisor.snapshot(root);
+        [first, second] <- snapshot.restart_history
+    } else {
+        _ -> false
+    };
+    snapshot.running
+        and first.new_process_id == 0
+        and second.new_process_id == 0
+        and first.outcome == "NotRestarted"
+        and second.outcome == "NotRestarted".
+
+/**
+ * A stable child parks until a message causes a normal exit.
+ */
+pub spawn_705(): Unit ->
+    let _ = Process.receive[Int]();
+    Unit.
+
+pub group_restarts(strategy: RestartStrategy, expected: Int): Bool ->
+    let root = Supervisor.root(705, strategy, 3, 100);
+    let last = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](705), Permanent, 2, 0, 0, 0);
+    let first = Supervisor.child_spec[Entry[Int]](2, Process.entry[Int](705), Permanent, 0, 0, 0, 0);
+    let middle = Supervisor.child_spec[Entry[Int]](3, Process.entry[Int](705), Permanent, 1, 0, 0, 0);
+    let {
+        Ok(old_last) <- Supervisor.start_child[Int](root, last);
+        Ok(old_first) <- Supervisor.start_child[Int](root, first);
+        Ok(old_middle) <- Supervisor.start_child[Int](root, middle)
+    } else {
+        _ -> false
+    };
+    (let _ = Process.send[Int](old_middle, Message.wrap[Int](1));
+(let {
+    Ok(new_last) <- Supervisor.current_child[Int](root, last);
+    Ok(new_first) <- Supervisor.current_child[Int](root, first);
+    Ok(new_middle) <- Supervisor.current_child[Int](root, middle);
+    Ok(snapshot) <- Supervisor.snapshot(root)
+} else {
+    _ -> false
+};
+(let _ = Supervisor.stop_child[Int](root, first);
+let _ = Supervisor.stop_child[Int](root, middle);
+let _ = Supervisor.stop_child[Int](root, last);
+old_last != new_last
+    and old_middle != new_middle
+    and old_first != new_first == (strategy == OneForAll)
+    and snapshot.restart_history.length() == expected))).
+
+@test
+pub one_for_all_restarts_running_siblings(): Bool ->
+    group_restarts(OneForAll, 3).
+
+@test
+pub rest_for_one_uses_declaration_order(): Bool ->
+    group_restarts(RestForOne, 2).
+
+@test
+pub backoff_defers_replacement_until_the_vm_deadline(): Bool ->
+    let root = Supervisor.root(706, OneForOne, 1, 100);
+    let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 2, 8, 0);
+    let {
+        Ok(_) <- Supervisor.start_child[Int](root, spec);
+        Ok(before) <- Supervisor.snapshot(root);
+        [child] <- before.children
+    } else {
+        _ -> false
+    };
+    (let deferred = child.pending_restart and child.restart_count == 0 and before.restart_history.is_empty();
+let _ = Process.sleep(Process.timer(2));
+(let {
+    Ok(observed) <- Supervisor.snapshot(root);
+    [restarted, exhausted] <- observed.restart_history
+} else {
+    _ -> false
+};
+deferred
+    and observed.running == false
+    and restarted.backoff == 2
+    and restarted.outcome == "Restarted"
+    and exhausted.outcome == "LimitReached")).
+
+@test
+pub stopping_during_backoff_prevents_a_replacement(): Bool ->
+    let root = Supervisor.root(707, OneForOne, 3, 100);
+    let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 2, 8, 0);
+    let {
+        Ok(_) <- Supervisor.start_child[Int](root, spec);
+        Ok(_) <- Supervisor.stop_child[Int](root, spec)
+    } else {
+        _ -> false
+    };
+    (let _ = Process.sleep(Process.timer(3));
+(let {
+    Ok(snapshot) <- Supervisor.snapshot(root);
+    [child] <- snapshot.children
+} else {
+    _ -> false
+};
+child.running == false and child.pending_restart == false and snapshot.restart_history.is_empty())).
+
+@test
+pub shutdown_deadline_terminates_a_blocked_child(): Bool ->
+    let root = Supervisor.root(708, OneForOne, 3, 100);
+    let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](705), Permanent, 0, 0, 0, 2);
+    let {
+        Ok(_) <- Supervisor.start_child[Int](root, spec);
+        Ok(_) <- Supervisor.stop_child[Int](root, spec);
+        Ok(before) <- Supervisor.snapshot(root);
+        [pending] <- before.children
+    } else {
+        _ -> false
+    };
+    (let _ = Process.sleep(Process.timer(2));
+(let {
+    Ok(observed) <- Supervisor.snapshot(root);
+    [stopped] <- observed.children
+} else {
+    _ -> false
+};
+pending.running and stopped.running == false and stopped.shutdown_timeout == 2)).
+
+@test
+pub intensity_exhaustion_cancels_other_pending_restarts(): Bool ->
+    let root = Supervisor.root(709, OneForOne, 1, 100);
+    let first = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 3, 8, 0);
+    let second = Supervisor.child_spec[Entry[Int]](2, Process.entry[Int](703), Permanent, 1, 3, 8, 0);
+    let {
+        Ok(_) <- Supervisor.start_child[Int](root, first);
+        Ok(_) <- Supervisor.start_child[Int](root, second)
+    } else {
+        _ -> false
+    };
+    (let _ = Process.sleep(Process.timer(3));
+(let {
+    Ok(snapshot) <- Supervisor.snapshot(root);
+    [left, right] <- snapshot.children
+} else {
+    _ -> false
+};
+snapshot.running == false
+    and left.running == false
+    and right.running == false
+    and left.pending_restart == false
+    and right.pending_restart == false)).

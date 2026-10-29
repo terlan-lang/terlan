@@ -66,6 +66,10 @@ pub(crate) fn load_required_standard_interfaces(
         if let Some((name, interface)) = parsed {
             required.extend(interface.dependency_modules.iter().cloned());
             interfaces.insert(name, interface);
+        } else if let Some(interface) = interfaces.get(&module_name) {
+            // A reachable cached project provider can reference shipped atom
+            // aliases even when the importing source never imports their owner.
+            required.extend(interface.dependency_modules.iter().cloned());
         }
     }
 }

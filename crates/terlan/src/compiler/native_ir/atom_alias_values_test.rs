@@ -5,6 +5,37 @@ use crate::terlan_typeck::CorePattern;
 use super::{rewrite, rewrite_pattern, AliasValue};
 
 #[test]
+fn forwarding_tuple_constructor_patterns_keep_the_declared_atom_tag() {
+    use crate::terlan_typeck::CoreExpr;
+    let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
+        "module fixture.Messages.\npub type Tag = Atom[\"framed\"].\npub type Frame = {Tag, Int}.\npub constructor Wrap { (value: Int): Frame -> {Tag, value} }.\npub unwrap(frame: Frame): Int -> let Wrap(value) = frame; value.\n"
+    ).unwrap();
+    let resolved = crate::terlan_hir::resolve_syntax_module_output(&syntax).module;
+    let mut core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    let before = format!(
+        "constructors: {:#?}\nfunctions: {:#?}\ntypes: {:#?}",
+        core.constructors, core.functions, core.types
+    );
+    super::lower_atom_alias_values(std::slice::from_mut(&mut core));
+    let function = core
+        .functions
+        .iter()
+        .find(|function| function.name == "unwrap")
+        .unwrap();
+    let Some(CoreExpr::Let { bindings, .. }) = &function.clauses[0].body.core_expr else {
+        panic!("let binding");
+    };
+    assert_eq!(
+        bindings[0].pattern,
+        CorePattern::Tuple(vec![
+            CorePattern::Atom("framed".into()),
+            CorePattern::Var("value".into())
+        ]),
+        "{before}"
+    );
+}
+
+#[test]
 fn bare_type_constructor_pattern_becomes_its_canonical_atom() {
     let mut pattern = CorePattern::Constructor {
         name: "std.binary.Binary.TruncatedPayload".to_string(),
@@ -15,11 +46,13 @@ fn bare_type_constructor_pattern_becomes_its_canonical_atom() {
     rewrite_pattern(
         &mut pattern,
         &HashMap::from([(
-            "TruncatedPayload".to_string(),
+            "std.binary.Binary.TruncatedPayload".to_string(),
             AliasValue {
                 atom: "truncatedpayload".to_string(),
+                tuple_arity: None,
             },
         )]),
+        &HashMap::new(),
     );
 
     assert_eq!(pattern, CorePattern::Atom("truncatedpayload".to_string()));
@@ -27,12 +60,22 @@ fn bare_type_constructor_pattern_becomes_its_canonical_atom() {
 
 #[test]
 fn atom_alias_value_and_pattern_keep_the_same_semantic_identity() {
-    let aliases = HashMap::from([(
-        "None".to_string(),
-        AliasValue {
-            atom: "none".to_string(),
-        },
-    )]);
+    let aliases = HashMap::from([
+        (
+            "None".to_string(),
+            AliasValue {
+                atom: "none".to_string(),
+                tuple_arity: None,
+            },
+        ),
+        (
+            "std.core.Option.None".to_string(),
+            AliasValue {
+                atom: "none".to_string(),
+                tuple_arity: None,
+            },
+        ),
+    ]);
     let mut expression = crate::terlan_typeck::CoreExpr::Var("None".to_string());
     let mut pattern = CorePattern::Constructor {
         name: "None".to_string(),
@@ -40,8 +83,8 @@ fn atom_alias_value_and_pattern_keep_the_same_semantic_identity() {
         args: Vec::new(),
     };
 
-    rewrite(&mut expression, &aliases);
-    rewrite_pattern(&mut pattern, &aliases);
+    rewrite(&mut expression, &aliases, &HashMap::new());
+    rewrite_pattern(&mut pattern, &aliases, &HashMap::new());
 
     assert_eq!(
         expression,
@@ -56,11 +99,12 @@ fn unit_alias_keeps_the_native_unit_sentinel() {
         "Unit".to_string(),
         AliasValue {
             atom: "unit".to_string(),
+            tuple_arity: None,
         },
     )]);
     let mut expression = crate::terlan_typeck::CoreExpr::Var("Unit".to_string());
 
-    rewrite(&mut expression, &aliases);
+    rewrite(&mut expression, &aliases, &HashMap::new());
 
     assert_eq!(
         expression,

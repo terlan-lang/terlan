@@ -58,6 +58,7 @@ pub(super) fn materialize(
                     function: function.clone(),
                     defaults,
                 }),
+                physical_body: None,
                 name: name.clone(),
                 public: *is_public,
                 min_arity: clause
@@ -95,10 +96,35 @@ pub(super) fn materialize(
 /// Attributes constructor bodies and default helpers to their original clause.
 pub(super) fn retain_sources(core: &mut CoreModule) {
     let mut sources = std::collections::HashMap::new();
-    for constructor in &core.constructors {
+    let physical_atoms = core
+        .types
+        .iter()
+        .filter_map(|declaration| match declaration.core_body.as_ref() {
+            Some(CoreType::AtomLiteral(atom)) => Some((declaration.name.clone(), atom.clone())),
+            _ => None,
+        })
+        .collect::<std::collections::HashMap<_, _>>();
+    for constructor in &mut core.constructors {
         let Some(implementation) = &constructor.implementation else {
             continue;
         };
+        constructor.physical_body = core
+            .functions
+            .iter()
+            .find(|function| function.name == implementation.function)
+            .and_then(|function| {
+                let [clause] = function.clauses.as_slice() else {
+                    return None;
+                };
+                clause
+                    .guard
+                    .is_none()
+                    .then(|| clause.body.core_expr.clone())
+                    .flatten()
+            });
+        if let Some(body) = &mut constructor.physical_body {
+            canonicalize_physical_atom(body, &constructor.params, &physical_atoms);
+        }
         let source = CoreFunctionSource {
             module: core.module.clone(),
             function: constructor.name.clone(),
@@ -114,6 +140,30 @@ pub(super) fn retain_sources(core: &mut CoreModule) {
         if let Some(source) = sources.get(function.name.as_str()) {
             function.source = Some(source.clone());
         }
+    }
+}
+
+pub(crate) fn canonicalize_physical_atom(
+    body: &mut CoreExpr,
+    parameters: &[CoreParam],
+    atoms: &std::collections::HashMap<String, String>,
+) {
+    let candidate = match body {
+        CoreExpr::Tuple(items) => items.first_mut(),
+        other if parameters.is_empty() => Some(other),
+        _ => None,
+    };
+    let Some(candidate) = candidate else {
+        return;
+    };
+    let CoreExpr::Var(name) = candidate else {
+        return;
+    };
+    if parameters.iter().any(|parameter| parameter.name == *name) {
+        return;
+    }
+    if let Some(atom) = atoms.get(name) {
+        *candidate = CoreExpr::Atom(atom.clone());
     }
 }
 

@@ -14,6 +14,7 @@ pub(super) const DATABASE_BACKED_SQL_STATEMENTS: &[&str] = &[
     "DELETE FROM {table} WHERE record_key = $1",
 ];
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(super) fn validate_database_table_name(table_name: &str) -> Result<(), String> {
     if table_name.is_empty() {
         return Err(
@@ -41,10 +42,12 @@ pub(super) fn parse_database_backed_row_record(
     parse_embedded_key_value_record(key, value)
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(super) fn database_snapshot_row_key(actor_id: &VmPersistentActorId) -> String {
     embedded_snapshot_key(actor_id)
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(super) fn database_event_row_key(actor_id: &VmPersistentActorId, sequence: u64) -> String {
     embedded_event_key(actor_id, sequence)
 }
@@ -98,10 +101,12 @@ pub(super) fn parse_embedded_key_value_record(
     }
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(super) fn embedded_snapshot_key(actor_id: &VmPersistentActorId) -> String {
     format!("snapshot/{}", hex_encode(actor_id.as_str().as_bytes()))
 }
 
+#[cfg(any(test, feature = "benchmark-tools"))]
 pub(super) fn embedded_event_key(actor_id: &VmPersistentActorId, sequence: u64) -> String {
     format!(
         "event/{}/{sequence:020}",
@@ -203,6 +208,7 @@ pub(super) fn encode_repl_value(value: &ReplValue) -> Result<String, String> {
         ReplValue::String(value) => Ok(format!("s:{}", hex_encode(value.as_bytes()))),
         ReplValue::Atom(value) => Ok(format!("a:{}", hex_encode(value.as_bytes()))),
         ReplValue::Bool(value) => Ok(format!("b:{value}")),
+        ReplValue::Bytes(value) => Ok(format!("x:{}", hex_encode(value))),
         other => Err(format!(
             "error[vm_persistent_actor]: file-backed store cannot encode value `{other:?}`"
         )),
@@ -245,6 +251,9 @@ pub(super) fn parse_repl_value(value: &str) -> Result<ReplValue, String> {
     }
     if let Some(rest) = value.strip_prefix("a:") {
         return Ok(ReplValue::Atom(hex_decode_string(rest)?));
+    }
+    if let Some(rest) = value.strip_prefix("x:") {
+        return hex_decode(rest).map(|bytes| ReplValue::Bytes(bytes.into()));
     }
     if let Some(rest) = value.strip_prefix("b:") {
         return match rest {

@@ -34,6 +34,7 @@ pub(super) fn transition_status(operation: NativeTransitionOperation) -> i32 {
         NativeTransitionOperation::FailureTyped => status::FAILURE_TYPED,
         NativeTransitionOperation::Scheduling => status::SCHEDULING,
         NativeTransitionOperation::Capability => status::CAPABILITY,
+        NativeTransitionOperation::Supervision => status::SUPERVISION,
     }
 }
 
@@ -59,6 +60,8 @@ pub(super) fn transition_flags(
     let failed = builder.ins().bor(failed, failed_typed);
     let scheduled = status_flag(builder, call_status, status::SCHEDULING);
     let capability = status_flag(builder, call_status, status::CAPABILITY);
+    let supervision = status_flag(builder, call_status, status::SUPERVISION);
+    let capability = builder.ins().bor(capability, supervision);
     let any_sent = builder.ins().bor(sent, typed_sent);
     let yielded_or_sent = builder.ins().bor(yielded, any_sent);
     let debugged_or_effect = builder.ins().bor(debugged, yielded_or_sent);

@@ -44,17 +44,68 @@ pub(super) fn resolve_const_generic_arguments(
         for (name, params) in &interface.type_params {
             let spec = const_generic_params(params);
             type_specs.insert(format!("{module_name}.{name}"), spec.clone());
-            type_specs.entry(name.clone()).or_insert(spec);
+            type_specs
+                .entry(crate::terlan_hir::public_type_path(module_name, name))
+                .or_insert(spec);
         }
         for (name, signature) in &interface.traits {
             let spec = const_generic_params(&signature.type_params);
             type_specs.insert(format!("{module_name}.{name}"), spec.clone());
-            type_specs.entry(name.clone()).or_insert(spec);
+            type_specs
+                .entry(crate::terlan_hir::public_type_path(module_name, name))
+                .or_insert(spec);
         }
         for ((name, arity), signature) in &interface.functions {
             let spec = const_generic_params(&signature.generic_params);
             callable_specs.insert((format!("{module_name}.{name}"), *arity), spec.clone());
-            callable_specs.entry((name.clone(), *arity)).or_insert(spec);
+        }
+    }
+    // Short names belong to source import bindings. Unrelated providers must
+    // not decide generic arities through HashMap iteration order.
+    let mut imported_specs = Vec::new();
+    for (visible, provider) in crate::terlan_hir::collect_syntax_callable_type_refs(module) {
+        if visible.ends_with('.') {
+            let prefix = format!("{provider}.");
+            for (qualified, spec) in &type_specs {
+                if let Some(member) = qualified.strip_prefix(&prefix) {
+                    if !member.contains('.') {
+                        imported_specs.push((format!("{visible}{member}"), spec.clone()));
+                    }
+                }
+            }
+        } else if let Some(spec) = type_specs.get(&provider) {
+            imported_specs.push((visible, spec.clone()));
+        }
+    }
+    for (visible, spec) in imported_specs {
+        type_specs.entry(visible).or_insert(spec);
+    }
+    for declaration in &module.declarations {
+        let SyntaxDeclarationPayload::Import {
+            module_name, items, ..
+        } = &declaration.payload
+        else {
+            continue;
+        };
+        let Some(interface) = interfaces.get(module_name) else {
+            continue;
+        };
+        for item in items {
+            if item.name == "*" {
+                for (name, params) in &interface.type_params {
+                    type_specs
+                        .entry(name.clone())
+                        .or_insert_with(|| const_generic_params(params));
+                }
+            }
+            for ((name, arity), signature) in &interface.functions {
+                if item.name == "*" || *name == item.name {
+                    let local = item.as_alias.as_ref().unwrap_or(name).clone();
+                    callable_specs
+                        .entry((local, *arity))
+                        .or_insert_with(|| const_generic_params(&signature.generic_params));
+                }
+            }
         }
     }
 

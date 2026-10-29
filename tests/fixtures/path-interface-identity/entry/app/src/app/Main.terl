@@ -1,0 +1,8 @@
+module app.Main.
+
+import fixture.Entries.{initial_entry}.
+
+import type std.vm.Process.{Entry}.
+
+pub value(): Entry[Int] ->
+    initial_entry().

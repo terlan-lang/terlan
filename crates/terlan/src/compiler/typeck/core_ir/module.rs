@@ -320,8 +320,13 @@ impl CoreModule {
             let implementation = constructor.implementation.as_ref().map(|implementation| {
                 format!(" implementation={} defaults={:?}", implementation.function, implementation.defaults)
             }).unwrap_or_default();
+            let physical = constructor
+                .physical_body
+                .as_ref()
+                .map(CoreExpr::contract_text)
+                .unwrap_or_else(|| "none".to_string());
             format!(
-                "constructor={} public={} min_arity={} params={} vararg={} return={} return_core={}{}",
+                "constructor={} public={} min_arity={} params={} vararg={} return={} return_core={} physical={}{}",
                 constructor.name,
                 constructor.public,
                 constructor.min_arity,
@@ -329,6 +334,7 @@ impl CoreModule {
                 vararg,
                 constructor.return_type,
                 core_type_contract_text(constructor.core_return_type.as_ref()),
+                physical,
                 implementation
             )
         }));

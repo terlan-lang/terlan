@@ -1,6 +1,7 @@
 use super::*;
 
 mod constructor_functions;
+pub(super) use constructor_functions::canonicalize_physical_atom;
 #[path = "core_lowering/default_arguments.rs"]
 mod default_arguments;
 #[path = "core_lowering/implementation_dependencies.rs"]

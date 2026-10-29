@@ -545,6 +545,9 @@ pub struct CoreConstructorDecl {
     /// Checked source implementation; absent only for layout-only declarations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub implementation: Option<CoreConstructorImplementation>,
+    /// Checked physical value expression retained across package boundaries.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub physical_body: Option<CoreExpr>,
     pub name: String,
     pub public: bool,
     pub min_arity: usize,

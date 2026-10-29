@@ -1,0 +1,7 @@
+[package]
+name="boundary-client"
+version="0.0.0"
+[build]
+source_roots=["src"]
+[dependencies]
+boundary-library={path="../library"}

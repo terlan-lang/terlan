@@ -299,12 +299,14 @@ fn constructor_plan(
         native_type: value_type,
         core_type,
     } = subject;
-    if name == "Unit" && patterns.is_empty() {
+    let resolved_name = identity.unwrap_or(name);
+    let source_name = resolved_name.rsplit('.').next().unwrap_or(resolved_name);
+    if source_name == "Unit" && patterns.is_empty() {
         return Ok(equality(value, NativeExpr::Unit, NativeType::Unit));
     }
     if let Some(element) = option_element_type(core_type) {
         return option_constructor_plan(
-            name,
+            source_name,
             patterns,
             value,
             value_type,
@@ -314,7 +316,7 @@ fn constructor_plan(
         );
     }
     if let Some((ok, error)) = result_element_types(core_type) {
-        let (discriminant, field) = match name.rsplit('.').next().unwrap_or(name) {
+        let (discriminant, field) = match source_name {
             "Ok" => (0, ok),
             "Err" => (1, error),
             _ => {
@@ -336,7 +338,8 @@ fn constructor_plan(
             depth,
         );
     }
-    if let Some((discriminant, _variant_count, fields)) = tagged_union_constructor(name, core_type)
+    if let Some((discriminant, _variant_count, fields)) =
+        tagged_union_constructor(resolved_name, core_type)
     {
         return tagged_union_constructor_plan(
             TaggedUnionPattern {

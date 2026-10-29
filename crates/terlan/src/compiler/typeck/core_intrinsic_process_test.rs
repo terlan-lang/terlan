@@ -137,7 +137,7 @@ fn syntax_output_lowering_canonicalizes_typed_mailbox_operations() {
             CoreIntrinsicId::VmProcessReceiveMessage(CoreType::Named("Pair".to_owned())),
             0,
             CoreType::Apply {
-                constructor: "Message".to_owned(),
+                constructor: "std.vm.Message.Message".to_owned(),
                 args: vec![CoreType::Named("Pair".to_owned())],
             },
         ),
@@ -196,7 +196,7 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
             "spawn_child",
             CoreIntrinsicId::VmProcessSpawn(typed.clone()),
             CoreType::Apply {
-                constructor: "Process".to_string(),
+                constructor: "std.vm.Process.Process".to_string(),
                 args: vec![typed.clone()],
             },
         ),
@@ -209,7 +209,7 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
             "monitor",
             CoreIntrinsicId::VmProcessMonitor(typed.clone()),
             CoreType::Apply {
-                constructor: "Monitor".to_string(),
+                constructor: "std.vm.Process.Monitor".to_string(),
                 args: vec![typed.clone()],
             },
         ),
@@ -217,7 +217,7 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
             "acquire",
             CoreIntrinsicId::VmProcessAcquireResource(typed.clone()),
             CoreType::Apply {
-                constructor: "Resource".to_string(),
+                constructor: "std.vm.Process.Resource".to_string(),
                 args: vec![typed.clone()],
             },
         ),

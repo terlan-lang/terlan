@@ -37,16 +37,12 @@ use super::postgres::VmPostgresInspectionSnapshot;
 use super::postgres::{VmPostgresDriverControl, VmPostgresLibpqWorker, VmPostgresRuntime};
 #[cfg(any(test, feature = "benchmark-tools"))]
 use super::process::VmMessage;
-#[cfg(test)]
-use super::process::VmProcessRegistryError;
-#[cfg(test)]
-use super::process::VmProcessSnapshot;
 use super::process::{VmExitReason, VmProcessId, VmProcessSource, VmProcessTable};
 #[cfg(test)]
-use super::process_alias::VmProcessAliasError;
+use super::process::{VmProcessRegistryError, VmProcessSnapshot};
 use super::process_alias::VmProcessAliasTable;
 #[cfg(test)]
-use super::process_alias::{VmProcessAlias, VmProcessAliasOptions};
+use super::process_alias::{VmProcessAlias, VmProcessAliasError, VmProcessAliasOptions};
 #[cfg(test)]
 use super::process_environment::{VmRuntimeEnvironmentProfile, VmRuntimeEnvironmentSnapshot};
 use super::reference::VmReferenceAllocator;
@@ -100,6 +96,7 @@ pub(crate) enum VmActorReceive {
 #[derive(Debug)]
 pub(crate) struct VmActorRuntime {
     processes: VmProcessTable,
+    source_supervision: super::supervision::source::VmSourceSupervision,
     aliases: VmProcessAliasTable,
     failures: VmFailureRuntime,
     references: VmReferenceAllocator,
@@ -904,6 +901,8 @@ mod actor_suspension;
 mod actor_timer;
 #[path = "actor_timer_options.rs"]
 mod actor_timer_options;
+#[path = "actor/supervision.rs"]
+mod source_supervision;
 
 pub(crate) use actor_native_trace::VmNativeTraceCall;
 #[cfg(test)]

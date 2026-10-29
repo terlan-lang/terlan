@@ -36,10 +36,20 @@ package summaries. Receiver calls directly on qualified union constants use
 ordinary receiver dispatch. Constructor coverage and native matching share
 canonical atom tags, including multiword names, acronyms and digit boundaries.
 Missing variants and branches covered only by guards remain rejected.
+Renamed imported constructors retain their provider identities during coverage,
+payload refinement and native matching, including same-named constructors from
+different modules.
 
 Native helpers support chunked owned-buffer transfers up to 16 MiB while
 keeping physical frames bounded to 1 MiB. Regenerate C/C++ helpers to receive
 large arguments; the runtime can stream bounded legacy binary replies.
+
+`std.vm.Supervisor` admits typed ordinary processes into the VM supervision
+graph, exposes replacement identities and restart history, and enforces restart,
+backoff, and shutdown policies. Optional file-backed snapshot/event hooks let a
+recovery entry restore a logical child's state after a crash. Nine compiled
+Terlan regressions exercise these operations; `Process.spawn` remains
+unsupervised. See [VM source supervision](../runtime/VM_SOURCE_SUPERVISION.md).
 
 Native applications carry their image and VM in the executable. External service
 dependencies retain their own deployment requirements. This does not freeze the
@@ -83,3 +93,34 @@ symbol requirements newer than the declared baseline. The installer checks
 `minimum_glibc` in the verified release metadata and starts each staged
 executable before replacing an existing installation, so missing native
 libraries also produce an error before replacement.
+
+Zero-argument source constructor patterns now retain their provider identity and
+match literal atom or singleton alias bodies in both mixed and all-atom unions,
+including renamed imports. Alias bodies resolve before constructor identities
+are collected, so matching no longer depends on alias-rewrite pass order.
+Generic compiled regressions cover local and imported forms.
+
+Importing a cached package summary now loads its reachable standard-library
+dependencies before checking constructor coverage. This keeps imported singleton
+atom tags consistent with directory checking; generic regressions cover aliased
+tags, local matches, interface round-tripping, and compiled package tests.
+
+Path-dependency imports preserve provider-owned type identities through generic
+argument checking, imported signature expansion, and CoreIR lowering. Same-named
+types from unrelated providers no longer substitute for process entries or
+closed-union results. External package regressions execute cold and warm imports
+and verify that a genuine provider mismatch remains rejected.
+
+Constructor physical tags now remain self-contained in serialized CoreIR, so
+pattern-only imports survive package caching and dead-code pruning. Native
+lowering supports imported tuple-constructor patterns inside suspending helpers,
+including process entries that call the helper after pure structured cases.
+Cold and warm path-package regressions exercise both decomposition shapes.
+
+JavaScript Array conversion accepts contextually typed empty list literals.
+The shipped consumer is compiled and executed in regression coverage. Browser
+validation stops on consumer compilation failures after saving diagnostics.
+
+Controlled executable launches now retry the operating system’s transient
+write-held executable error within the existing timeout and cancellation limit.
+Regression tests cover successful release, timeout, and cancellation.

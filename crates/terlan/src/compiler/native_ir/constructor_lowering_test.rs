@@ -166,6 +166,7 @@ fn declaration(name: &str, parameter: &str) -> CoreConstructorDecl {
     CoreConstructorDecl {
         name: name.to_owned(),
         implementation: None,
+        physical_body: None,
         public: true,
         min_arity: 1,
         params: vec![CoreParam {
@@ -254,6 +255,7 @@ fn transparent_record_constructor_uses_qualified_nominal_semantic_identity() {
     let declaration = CoreConstructorDecl {
         name: "Range".to_owned(),
         implementation: None,
+        physical_body: None,
         public: true,
         min_arity: 4,
         params: vec![

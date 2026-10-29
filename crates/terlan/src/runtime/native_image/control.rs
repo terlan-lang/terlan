@@ -59,6 +59,8 @@ pub enum TvmTransitionOperation {
     Failure,
     /// Failure with one actor-owned, typed error envelope rather than a code.
     FailureTyped,
+    /// Typed actor-local supervision operation; never dispatched to a helper.
+    Supervision,
     Scheduling,
     Capability,
 }
@@ -369,6 +371,7 @@ fn decode_payload(kind: u16, payload: &[u8]) -> Result<TvmControlFrame, String> 
                 13 => TvmTransitionOperation::Debug,
                 14 => TvmTransitionOperation::Identity,
                 15 => TvmTransitionOperation::FailureTyped,
+                16 => TvmTransitionOperation::Supervision,
                 tag => {
                     return Err(format!(
                         "error[tvm.control.transition]: unsupported transition operation {tag}"
@@ -423,6 +426,7 @@ fn transition_operation_tag(operation: &TvmTransitionOperation) -> u16 {
         TvmTransitionOperation::Cancellation => 9,
         TvmTransitionOperation::Failure => 10,
         TvmTransitionOperation::FailureTyped => 15,
+        TvmTransitionOperation::Supervision => 16,
         TvmTransitionOperation::Scheduling => 11,
         TvmTransitionOperation::Capability => 12,
     }

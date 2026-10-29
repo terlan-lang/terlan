@@ -213,6 +213,11 @@ pub(super) fn check_syntax_callable_clauses(
         clause_patterns.push((clause.patterns.clone(), span));
     }
 
+    for (patterns, _) in &mut clause_patterns {
+        for pattern in patterns {
+            resolve_coverage_pattern(pattern, expr_ctx);
+        }
+    }
     check_syntax_function_clause_exhaustiveness(
         callable_name,
         params.first().map(|param| param.annotation.text.as_str()),

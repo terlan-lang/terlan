@@ -1,0 +1,8 @@
+module fixture.Store.
+
+pub struct State {
+    value: Int,
+}.
+
+pub restore(): State ->
+    State {value: 41}.

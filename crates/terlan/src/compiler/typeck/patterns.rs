@@ -15,7 +15,9 @@ use super::{
 };
 
 mod binary_layout;
+mod constructor_coverage;
 mod constructors;
+pub(super) use constructor_coverage::resolve_coverage_pattern;
 use constructors::{
     check_structural_constructor_pattern, check_syntax_constructor_pattern,
     constructor_pattern_atom_name,

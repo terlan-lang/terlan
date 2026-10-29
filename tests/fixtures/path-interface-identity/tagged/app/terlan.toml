@@ -1,0 +1,9 @@
+[package]
+name = "tagged-client"
+version = "0.0.0"
+
+[build]
+source_roots = ["src"]
+
+[dependencies]
+tagged-library = { path = "../library" }

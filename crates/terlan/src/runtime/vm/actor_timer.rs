@@ -231,6 +231,8 @@ impl VmActorRuntime {
         #[cfg(test)]
         let mut postgres_diagnostics = Vec::new();
         for event in &timer_events {
+            self.source_supervision
+                .timer_event(&mut self.processes, event);
             let timer_id = event.timer_id();
             let Some(delayed) = self.delayed_messages.remove(&timer_id) else {
                 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]

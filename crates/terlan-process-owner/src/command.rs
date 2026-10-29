@@ -57,13 +57,28 @@ impl<'a> ProcessControl<'a> {
         self
     }
 
-    fn spawn(self, command: &mut Command) -> Result<OwnedChild, Failure> {
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        if let Some(owner) = self.enclosing_process_group {
-            return OwnedChild::spawn_in_enclosing_group(command, owner)
-                .map_err(|error| Failure::new("launch-failed", error));
+    fn spawn(self, command: &mut Command, started: Instant) -> Result<OwnedChild, Failure> {
+        loop {
+            self.check(started)?;
+            #[cfg(any(target_os = "linux", target_os = "macos"))]
+            let result = if let Some(owner) = self.enclosing_process_group {
+                OwnedChild::spawn_in_enclosing_group(command, owner)
+            } else {
+                OwnedChild::spawn_command(command)
+            };
+            #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+            let result = OwnedChild::spawn_command(command);
+            match result {
+                Ok(child) => return Ok(child),
+                // Parallel fork/exec can briefly retain a writable descriptor
+                // for a freshly copied executable. Retry only that OS failure,
+                // within the same cancellation and execution deadline.
+                Err(error) if error.kind() == io::ErrorKind::ExecutableFileBusy => {
+                    thread::sleep(POLL_INTERVAL);
+                }
+                Err(error) => return Err(Failure::new("launch-failed", error)),
+            }
         }
-        OwnedChild::spawn_command(command).map_err(|error| Failure::new("launch-failed", error))
     }
 
     /// Runs with inherited output and observed, cancellable child ownership.
@@ -179,7 +194,7 @@ fn run_controlled(
         .stdin(Stdio::null())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
-    let mut child = control.spawn(command)?;
+    let mut child = control.spawn(command, started)?;
     launched(child.id()).map_err(|error| Failure::new("observation-failed", error))?;
     loop {
         control.check(started)?;
@@ -232,7 +247,7 @@ fn capture_controlled(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit());
-    let mut child = control.spawn(command)?;
+    let mut child = control.spawn(command, started)?;
     launched(child.id()).map_err(|error| Failure::new("observation-failed", error))?;
     let stdout = child
         .take_stdout()

@@ -265,7 +265,11 @@ fn native_operation_transition(
         arguments[6] = CoreExpr::Int(arguments.len() as i64);
     }
     Some((
-        NativeTransitionOperation::Capability,
+        if operation.starts_with("std.vm.supervisor.") {
+            NativeTransitionOperation::Supervision
+        } else {
+            NativeTransitionOperation::Capability
+        },
         arguments,
         Some(result),
     ))

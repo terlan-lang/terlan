@@ -109,6 +109,7 @@ fn control_protocol_round_trips_and_rejects_malformed_frames() {
         TvmTransitionOperation::FailureTyped,
         TvmTransitionOperation::Scheduling,
         TvmTransitionOperation::Capability,
+        TvmTransitionOperation::Supervision,
     ] {
         frames.push(TvmControlFrame::Transition {
             request_id: 7,

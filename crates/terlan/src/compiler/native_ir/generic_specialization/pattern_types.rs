@@ -48,8 +48,14 @@ pub(in crate::compiler::native_ir) fn bind_pattern_types(
             variables.insert(alias.clone(), ty.clone());
             bind_pattern_types(pattern, ty, variables);
         }
-        CorePattern::Constructor { name, args, .. } => {
-            if let Some(argument_types) = constructor_argument_types(ty, name) {
+        CorePattern::Constructor {
+            name,
+            constructor_identity,
+            args,
+        } => {
+            if let Some(argument_types) =
+                constructor_argument_types(ty, constructor_identity.as_deref().unwrap_or(name))
+            {
                 for (pattern, argument_type) in args.iter().zip(argument_types) {
                     bind_pattern_types(pattern, argument_type, variables);
                 }

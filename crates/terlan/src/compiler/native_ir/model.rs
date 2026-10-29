@@ -304,6 +304,8 @@ pub(crate) enum NativeTransitionOperation {
     Scheduling,
     /// One declared asynchronous capability request serviced outside the shard.
     Capability,
+    /// Actor-local supervision admission and inspection serviced by the VM.
+    Supervision,
 }
 
 /// Arithmetic and comparison operations in the native scalar profile.

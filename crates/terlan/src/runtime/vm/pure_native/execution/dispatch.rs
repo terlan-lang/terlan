@@ -137,5 +137,8 @@ pub(crate) fn dispatch_transition_operation(
                 .map(|()| Some(Vec::new()))
         }
         TvmTransitionOperation::Capability => Ok(None),
+        TvmTransitionOperation::Supervision => {
+            Err("supervision requires its owning native heap".into())
+        }
     }
 }

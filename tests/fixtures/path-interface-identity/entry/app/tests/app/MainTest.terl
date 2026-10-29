@@ -1,0 +1,7 @@
+module app.MainTest.
+
+import app.Main.{value}.
+
+@test
+pub imported_generic_entry_executes(): Bool ->
+    value() == value().
