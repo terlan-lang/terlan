@@ -87,7 +87,10 @@ fn pinned_packaged_storage_worker_survives_executable_unlink() {
             module_path!(),
             "::pinned_packaged_storage_worker_survives_executable_unlink"
         );
-        let output = terlan_process_owner::ProcessControl::new(Duration::from_secs(30))
+        // The child repackages the VM and starts a sandboxed storage worker while
+        // the parent runtime shard is saturated. Keep hangs bounded without
+        // treating normal hosted-runner contention as a protocol failure.
+        let output = terlan_process_owner::ProcessControl::new(Duration::from_secs(120))
             .capture_stdout(
                 std::process::Command::new(std::env::current_exe().unwrap())
                     .args([

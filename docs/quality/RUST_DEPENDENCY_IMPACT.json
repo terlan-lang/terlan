@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "83768549bd1952b42b864ac144c3c4da3ae52e14372e6ec2cbaf73d7623f98e4",
+  "compilation_input_sha256": "2cdc2c5fb00fbee5242357caf6a33dc667f1b82d52c84eb8d10827523fc37fcf",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -1508,7 +1508,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 83386,
+      "physical_lines": 83389,
       "rust_files": 371
     },
     {
