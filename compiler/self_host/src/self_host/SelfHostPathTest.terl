@@ -1,0 +1,14 @@
+/**
+ * Regression coverage for self-host output path preparation.
+ */
+module self_host.SelfHostPathTest.
+
+import self_host.SelfHostPath.
+
+@test
+pub relative_parent_is_preserved(): Bool ->
+    SelfHostPath.parent("target/quality/output.json") == "target/quality".
+
+@test
+pub absolute_parent_keeps_its_root(): Bool ->
+    SelfHostPath.parent("/home/terlan/target/quality/output.json") == "/home/terlan/target/quality".

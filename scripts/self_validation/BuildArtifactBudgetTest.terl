@@ -267,6 +267,19 @@ target_roots(repository: String): Option[List[String]] ->
         Err(_reason) -> None
     }.
 
+print_target_roots(roots: List[String]): Bool ->
+    case roots {
+        [] -> false;
+        [root | rest] ->
+            let _printed = eprintln(String.append("  - ", root));
+            print_target_roots(rest)
+    }.
+
+reject_target_roots(roots: List[String]): Option[Json] ->
+    let _header = eprintln("Build artifact measurement requires only the canonical target root; found:");
+    let _listed = print_target_roots(roots);
+    None.
+
 run_command(
     repository: String,
     arguments: List[String],
@@ -690,9 +703,28 @@ measure(repository: String, policy: Json): Option[Json] ->
                     None -> None;
                     Some(temporary) -> measure_preserved(repository, policy, input_hash, temporary)
                 };
-                true -> None
+                true -> reject_target_roots(roots)
             };
         _ -> None
+    }.
+
+target_root_search_self_test(): Bool ->
+    case create_temporary("terlan-build-budget-roots") {
+        Err(_reason) -> false;
+        Ok(temporary) ->
+            let canonical = create_all(child(temporary, "target"));
+            let duplicate = create_all(child(temporary, "fixture/target"));
+            let found = target_roots(temporary);
+            let valid =
+                case {canonical, duplicate, found} {
+                    {Ok(Unit), Ok(Unit), Some(roots)} ->
+                        same_strings(roots, ["fixture/target", "target"]);
+                    _ -> false
+                };
+            case remove_all(temporary) {
+                Ok(Unit) -> valid;
+                Err(_reason) -> false
+            }
     }.
 
 measure_preserved(
@@ -1366,7 +1398,7 @@ pub self_test(repository: String, policy: Json): Bool ->
             let _broken = report.put("clean_rebuild", Json.bool(false));
             let second_validation = validate(repository, report, policy);
             let rejected = not findings_empty(second_validation);
-            valid and rejected;
+            valid and rejected and target_root_search_self_test();
         _ -> false
     }.
 

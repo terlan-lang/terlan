@@ -15,22 +15,7 @@ import std.system.Arguments.
 import self_host.CanonicalLexer.
 import self_host.ProjectedParser.
 import self_host.ProjectionAdapter.
-
-parent(path: String): String ->
-    parent_parts(String.split(path, "/"), "").
-
-parent_parts(parts: List[String], output: String): String ->
-    case parts {
-        [] -> output;
-        [_file] -> output;
-        [part | rest] -> parent_parts(rest, append_parent_part(output, part))
-    }.
-
-append_parent_part(output: String, part: String): String ->
-    if {
-        output == "" -> part;
-        true -> String.concat([output, "/", part])
-    }.
+import self_host.SelfHostPath.
 
 ensure_directory(path: String): Bool ->
     if {
@@ -68,7 +53,7 @@ main_interface_unit(): Unit ->
     let Some(output) <- Arguments.get(2) else {
         None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
     };
-    let _completed = ensure_directory(parent(output))
+    let _completed = ensure_directory(SelfHostPath.parent(output))
         and ProjectedInterfaceCatalog.write_interface(input, output);
     Unit.
 

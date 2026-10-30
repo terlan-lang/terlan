@@ -1,0 +1,21 @@
+/**
+ * Portable lexical path helpers shared by self-host entrypoints.
+ */
+module self_host.SelfHostPath.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Path.
+
+/**
+ * Returns the lexical parent without discarding an absolute path root.
+ */
+pub parent(path: String): String ->
+    let {
+        Ok(value) <- Path.from_string(path);
+        Some(directory) <- value.parent()
+    } else {
+        _ -> ""
+    };
+    directory.to_string().

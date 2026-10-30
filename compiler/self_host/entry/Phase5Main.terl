@@ -11,19 +11,8 @@ import std.system.Arguments.
 import self_host.ProjectedInterfaceCatalog.
 import self_host.SelfHostCoreOptimizeEvidenceTool.
 import self_host.SelfHostCoreOptimizeRuntimeTool.
+import self_host.SelfHostPath.
 
-
-parent(path: String): String -> parent_parts(String.split(path, "/"), "").
-
-parent_parts(parts: List[String], output: String): String ->
-    case parts {
-        [] -> output;
-        [_file] -> output;
-        [part | rest] -> parent_parts(rest, append_parent_part(output, part))
-    }.
-
-append_parent_part(output: String, part: String): String ->
-    if { output == "" -> part; true -> String.concat([output, "/", part]) }.
 
 report_false(message: String): Bool ->
     let _reported = eprintln(message);
@@ -52,8 +41,8 @@ main_backend_unit(): Unit ->
     let Some(interfaces) <- Arguments.get(2) else { None -> backend_usage() };
     let Some(output) <- Arguments.get(3) else { None -> backend_usage() };
     let Some(diagnostics) <- Arguments.get(4) else { None -> backend_usage() };
-    let _completed = ensure_directory(parent(output))
-        and ensure_directory(parent(diagnostics))
+    let _completed = ensure_directory(SelfHostPath.parent(output))
+        and ensure_directory(SelfHostPath.parent(diagnostics))
         and ProjectedInterfaceCatalog.write_backend(source, interfaces, output, diagnostics);
     Unit.
 
@@ -66,8 +55,8 @@ main_optimizer_evidence(): Unit ->
     let Some(root) <- Arguments.get(1) else { None -> optimizer_usage() };
     let Some(output) <- Arguments.get(2) else { None -> optimizer_usage() };
     let Some(marker) <- Arguments.get(3) else { None -> optimizer_usage() };
-    let _completed = ensure_directory(parent(output))
-        and ensure_directory(parent(marker))
+    let _completed = ensure_directory(SelfHostPath.parent(output))
+        and ensure_directory(SelfHostPath.parent(marker))
         and SelfHostCoreOptimizeEvidenceTool.write(root, output, marker);
     Unit.
 

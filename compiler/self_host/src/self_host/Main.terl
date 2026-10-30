@@ -39,6 +39,7 @@ import self_host.SelfHostDocumentationTool.
 import self_host.SelfHostFormatterTool.
 import self_host.SelfHostCompilerTraceTool.
 import self_host.SelfHostCoreOptimizeEvidenceTool.
+import self_host.SelfHostPath.
 import std.collections.List.
 import std.core.{String, Unit}.
 import std.data.Json.
@@ -46,22 +47,6 @@ import std.io.Console.{eprintln, println}.
 import std.io.Directory.
 import std.io.File.
 import std.system.Arguments.
-
-parent(path: String): String ->
-    parent_parts(String.split(path, "/"), "").
-
-parent_parts(parts: List[String], output: String): String ->
-    case parts {
-        [] -> output;
-        [_file] -> output;
-        [part | rest] -> parent_parts(rest, append_parent_part(output, part))
-    }.
-
-append_parent_part(output: String, part: String): String ->
-    if {
-        output == "" -> part;
-        true -> String.concat([output, "/", part])
-    }.
 
 some_string(value: String): Option[String] ->
     Some(value).
@@ -99,7 +84,7 @@ print_true(rendered: String): Bool ->
 
 write_or_print_path(path: String, rendered: String): Bool ->
     if {
-        not ensure_directory(parent(path)) -> false;
+        not ensure_directory(SelfHostPath.parent(path)) -> false;
         true -> write_text_or_report(path, String.append(rendered, "\n"))
     }.
 
@@ -111,7 +96,7 @@ write_exact_or_print(output: Option[String], rendered: String): Bool ->
 
 write_exact_or_print_path(path: String, rendered: String): Bool ->
     if {
-        not ensure_directory(parent(path)) -> false;
+        not ensure_directory(SelfHostPath.parent(path)) -> false;
         true -> write_text_or_report(path, rendered)
     }.
 
@@ -680,7 +665,7 @@ main_stage_layer_output(layer: String, input: String): Unit ->
     }.
 
 run_stage_layer(layer: String, input: String, output: String): Unit ->
-    let _completed = ensure_directory(parent(output))
+    let _completed = ensure_directory(SelfHostPath.parent(output))
         and ProjectedStageEvidence.write_layer(input, layer, output);
     Unit.
 
@@ -734,10 +719,10 @@ run_stage_complete(
     common: String,
     supplemental: String,
 ): Unit ->
-    let _completed = ensure_directory(parent(tokens))
-        and ensure_directory(parent(syntax))
-        and ensure_directory(parent(common))
-        and ensure_directory(parent(supplemental))
+    let _completed = ensure_directory(SelfHostPath.parent(tokens))
+        and ensure_directory(SelfHostPath.parent(syntax))
+        and ensure_directory(SelfHostPath.parent(common))
+        and ensure_directory(SelfHostPath.parent(supplemental))
         and ProjectedStageEvidence.write_complete_unit(
             input,
             tokens,
@@ -760,7 +745,7 @@ main_interface_unit_output(input: String): Unit ->
     }.
 
 run_interface_unit(input: String, output: String): Unit ->
-    let _completed = ensure_directory(parent(output))
+    let _completed = ensure_directory(SelfHostPath.parent(output))
         and ProjectedInterfaceCatalog.write_interface(input, output);
     Unit.
 
@@ -812,8 +797,8 @@ run_backend_unit(
     output: String,
     diagnostics: String,
 ): Unit ->
-    let _completed = ensure_directory(parent(output))
-        and ensure_directory(parent(diagnostics))
+    let _completed = ensure_directory(SelfHostPath.parent(output))
+        and ensure_directory(SelfHostPath.parent(diagnostics))
         and ProjectedInterfaceCatalog.write_backend(
             input,
             interface_manifest,
@@ -829,8 +814,8 @@ run_backend_units(index: Int, catalog: self_host.ProjectedInterfaceCatalog.Inter
         Arguments.get(index + 2)
     } {
         {Some(input), Some(output), Some(diagnostics)} ->
-            let completed = ensure_directory(parent(output))
-                and ensure_directory(parent(diagnostics))
+            let completed = ensure_directory(SelfHostPath.parent(output))
+                and ensure_directory(SelfHostPath.parent(diagnostics))
                 and ProjectedInterfaceCatalog.write_backend_catalog(
                     input,
                     catalog,
@@ -869,7 +854,7 @@ parallel_backend_jobs(index: Int): Result[List[BackendWorkerJob], String] ->
         Arguments.get(index + 3)
     } {
         {Some(identity), Some(input), Some(output), Some(diagnostics)} -> if {
-            not ensure_directory(parent(output)) or not ensure_directory(parent(diagnostics)) ->
+            not ensure_directory(SelfHostPath.parent(output)) or not ensure_directory(SelfHostPath.parent(diagnostics)) ->
                 Err("cannot create parallel backend output directories");
             true -> case parallel_backend_jobs(index + 4) {
                 Err(reason) -> Err(reason);
@@ -909,8 +894,8 @@ lint_unit_usage(): Unit ->
 main_lint_unit(): Unit ->
     case { Arguments.get(1), Arguments.get(2), Arguments.get(3) } {
         {Some(source), Some(diagnostics), Some(marker)} -> let _completed =
-            ensure_directory(parent(diagnostics))
-                and ensure_directory(parent(marker))
+            ensure_directory(SelfHostPath.parent(diagnostics))
+                and ensure_directory(SelfHostPath.parent(marker))
                 and SelfHostLintTool.write(source, diagnostics, marker);
             Unit;
         _ -> lint_unit_usage()
@@ -924,8 +909,8 @@ lint_fix_unit_usage(): Unit ->
 main_lint_fix_unit(): Unit ->
     case { Arguments.get(1), Arguments.get(2), Arguments.get(3) } {
         {Some(source), Some(fixed), Some(marker)} -> let _completed =
-            ensure_directory(parent(fixed))
-                and ensure_directory(parent(marker))
+            ensure_directory(SelfHostPath.parent(fixed))
+                and ensure_directory(SelfHostPath.parent(marker))
                 and SelfHostLintTool.write_fixed(source, fixed, marker);
             Unit;
         _ -> lint_fix_unit_usage()
@@ -956,8 +941,8 @@ main_lint_parity_tail(
             Some(evidence),
             Some(marker),
         } -> let _completed =
-            ensure_directory(parent(evidence))
-                and ensure_directory(parent(marker))
+            ensure_directory(SelfHostPath.parent(evidence))
+                and ensure_directory(SelfHostPath.parent(marker))
                 and SelfHostLintParityTool.write(
                     native_diagnostics,
                     self_host_diagnostics,
@@ -1002,7 +987,7 @@ lint_authority_unit_usage(): Unit ->
 main_lint_authority_unit(): Unit ->
     case { Arguments.get(1), Arguments.get(2) } {
         {Some(parity), Some(registry)} -> let _completed =
-            ensure_directory(parent(SelfHostLintAuthorityTool.registry_path()))
+            ensure_directory(SelfHostPath.parent(SelfHostLintAuthorityTool.registry_path()))
                 and SelfHostLintAuthorityPipeline.write(parity, registry);
             Unit;
         _ -> lint_authority_unit_usage()
@@ -1028,9 +1013,9 @@ main_production_evidence(): Unit ->
             Some(decision),
             Some(marker),
         } -> let _completed =
-            ensure_directory(parent(catalog))
-                and ensure_directory(parent(decision))
-                and ensure_directory(parent(marker))
+            ensure_directory(SelfHostPath.parent(catalog))
+                and ensure_directory(SelfHostPath.parent(decision))
+                and ensure_directory(SelfHostPath.parent(marker))
                 and ProductionEvidencePipeline.run(
                     plan,
                     sources,
@@ -1050,8 +1035,8 @@ convergence_evidence_unit_usage(): Unit ->
 main_convergence_evidence_unit(): Unit ->
     case { Arguments.get(1), Arguments.get(2), Arguments.get(3) } {
         {Some(manifest), Some(output), Some(marker)} -> let _completed =
-            ensure_directory(parent(output))
-                and ensure_directory(parent(marker))
+            ensure_directory(SelfHostPath.parent(output))
+                and ensure_directory(SelfHostPath.parent(marker))
                 and SelfHostConvergenceMaterialize.write(manifest, output, marker);
             Unit;
         _ -> convergence_evidence_unit_usage()
@@ -1070,9 +1055,9 @@ main_doc_unit(): Unit ->
         Arguments.get(4)
     } {
         {Some(source), Some(markdown), Some(diagnostics), Some(marker)} -> let _completed =
-            ensure_directory(parent(markdown))
-                and ensure_directory(parent(diagnostics))
-                and ensure_directory(parent(marker))
+            ensure_directory(SelfHostPath.parent(markdown))
+                and ensure_directory(SelfHostPath.parent(diagnostics))
+                and ensure_directory(SelfHostPath.parent(marker))
                 and SelfHostDocumentationTool.write(source, markdown, diagnostics, marker);
             Unit;
         _ -> doc_unit_usage()
@@ -1081,7 +1066,7 @@ main_doc_unit(): Unit ->
 run_interface_units(index: Int): Bool ->
     case { Arguments.get(index), Arguments.get(index + 1) } {
         {Some(input), Some(output)} ->
-            let completed = ensure_directory(parent(output))
+            let completed = ensure_directory(SelfHostPath.parent(output))
                 and ProjectedInterfaceCatalog.write_interface(input, output);
             completed and run_interface_units(index + 2);
         {None, None} -> true;
