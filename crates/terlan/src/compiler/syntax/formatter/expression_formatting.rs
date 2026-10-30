@@ -171,6 +171,29 @@ fn format_expr_delimited(prefix: &str, suffix: &str, items: &[Expr], indent: usi
     format_rendered_delimited(prefix, suffix, inline_items, items, indent)
 }
 
+fn format_list_item(item: &Expr, indent: usize) -> String {
+    parenthesize_if_needed(
+        format_assignment_child(item, indent),
+        matches!(item, Expr::Fun { .. }),
+    )
+}
+
+fn format_list(items: &[Expr], indent: usize) -> String {
+    let inline_items = items
+        .iter()
+        .map(|item| format_list_item(item, 0))
+        .collect::<Vec<_>>();
+    let inline = format!("[{}]", inline_items.join(", "));
+    if !inline.contains('\n') && indent * 4 + inline.chars().count() <= DEFAULT_MAX_LINE_LENGTH {
+        return inline;
+    }
+    let rendered = items
+        .iter()
+        .map(|item| format_list_item(item, indent + 1))
+        .collect::<Vec<_>>();
+    format_multiline_delimited("[", "]", &rendered, indent)
+}
+
 fn format_rendered_delimited(
     prefix: &str,
     suffix: &str,
@@ -307,7 +330,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         }),
         Expr::Var(name) => name.clone(),
         Expr::Tuple(items) => format_tuple(items, indent),
-        Expr::List(items) => format_expr_delimited("[", "]", items, indent),
+        Expr::List(items) => format_list(items, indent),
         Expr::Array(items) => format_expr_delimited("#[", "]", items, indent),
         Expr::ListCons(head, tail) => {
             format!(
@@ -626,6 +649,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
             UnaryOp::Neg => format!("-{}", format_unary_operand(expr)),
             UnaryOp::Not => format!("not {}", format_unary_operand(expr)),
             UnaryOp::Bang => format!("!{}", format_unary_operand(expr)),
+            UnaryOp::BitNot => format!("~{}", format_unary_operand(expr)),
         },
         Expr::Cast { expr, target_type } => {
             format!("{} as {}", format_cast_operand(expr), target_type.text)

@@ -96,7 +96,7 @@ ConstFunctionDecl ::= [ "pub" ] "const" LowerIdent "(" [ ParamList ] ")" ":" Typ
 
 TypeDecl ::= [ "pub" ] "type" TypeName [ TypeParams ] ( ValuedUnionBody | [ ImplementsClause ] [ "=" TypeExpr ] ) .
 ValuedUnionBody ::= ":" TypeExpr "=" ValuedUnionArm { "|" ValuedUnionArm } .
-ValuedUnionArm ::= ConstName "=" Expr .
+ValuedUnionArm ::= ConstName "=" ListElementExpr .
 
 OpaqueTypeDecl ::= [ "pub" ] "opaque" "type" TypeName [ TypeParams ] [ ImplementsClause ] [ "=" TypeExpr ] .
 
@@ -274,14 +274,19 @@ UnquoteExpr ::= "unquote" "(" Expr ")" .
 PipeExpr ::= OrExpr { "|>" OrExpr } .
 OrExpr ::= AndExpr { OrOp AndExpr } .
 AndExpr ::= CmpExpr { AndOp CmpExpr } .
-CmpExpr ::= AddExpr { CmpOp AddExpr } .
+CmpExpr ::= BitOrExpr { CmpOp BitOrExpr } .
+BitOrExpr ::= BitXorExpr { "|" BitXorExpr } .
+BitXorExpr ::= BitAndExpr { "^" BitAndExpr } .
+BitAndExpr ::= ShiftExpr { "&" ShiftExpr } .
+ShiftExpr ::= AddExpr { ShiftOp AddExpr } .
 AddExpr ::= MulExpr { AddOp MulExpr } .
 MulExpr ::= CastExpr { MulOp CastExpr } .
 CastExpr ::= UnaryExpr { "as" TypeExpr } .
 UnaryExpr ::= UnaryOp UnaryExpr | PostfixExpr .
-UnaryOp ::= "-" | "not" | "!" .
+UnaryOp ::= "-" | "not" | "!" | "~" .
 OrOp ::= "or" .
 AndOp ::= "and" .
+ShiftOp ::= "<<" | ">>" .
 AddOp ::= "+" | "-" | ".." .
 MulOp ::= "*" | "/" | "div" | "rem" .
 CmpOp ::= "==" | "!=" | ">=" | ">" | "<=" | "<" | "in" .
@@ -316,10 +321,17 @@ PrimaryExpr
 
 AtomLiteralExpr ::= "Atom" "[" StringLiteral "]" .
 TupleExpr ::= "{" Expr "," Expr { "," Expr } [ "," ] "}" .
-ListExpr ::= "[" [ Expr { "," Expr } [ "," ] ] "]" .
-ConsListExpr ::= "[" Expr "|" Expr "]" .
+ListExpr ::= "[" [ ListElementExpr { "," ListElementExpr } [ "," ] ] "]" .
+ConsListExpr ::= "[" ListElementExpr "|" Expr "]" .
 ArrayExpr ::= "#[" [ Expr { "," Expr } [ "," ] ] "]" .
-ListGeneratorExpr ::= "[" Expr "|" Generator { "," ComprehensionQualifier } "]" .
+ListGeneratorExpr ::= "[" ListElementExpr "|" Generator { "," ComprehensionQualifier } "]" .
+ListElementExpr ::= ListElementPipeExpr { "with" ListElementPipeExpr } .
+ListElementPipeExpr ::= ListElementOrExpr { "|>" ListElementOrExpr } .
+ListElementOrExpr ::= ListElementAndExpr { OrOp ListElementAndExpr } .
+ListElementAndExpr ::= ListElementCmpExpr { AndOp ListElementCmpExpr } .
+ListElementCmpExpr ::= ListElementBitwiseExpr { CmpOp ListElementBitwiseExpr } .
+ListElementBitwiseExpr ::= AddExpr { ListElementBitwiseOp AddExpr } .
+ListElementBitwiseOp ::= "<<" | ">>" | "&" | "^" .
 ComprehensionQualifier ::= Generator | ComprehensionFilter .
 Generator ::= Pattern "<-" Expr .
 ComprehensionFilter ::= Expr .

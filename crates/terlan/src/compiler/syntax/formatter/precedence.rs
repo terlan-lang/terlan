@@ -7,12 +7,16 @@ const PRECEDENCE_PIPE: u8 = 2;
 const PRECEDENCE_OR: u8 = 3;
 const PRECEDENCE_AND: u8 = 4;
 const PRECEDENCE_COMPARE: u8 = 5;
-const PRECEDENCE_ADD: u8 = 6;
-const PRECEDENCE_MULTIPLY: u8 = 7;
-const PRECEDENCE_CAST: u8 = 8;
-const PRECEDENCE_UNARY: u8 = 9;
-const PRECEDENCE_POSTFIX: u8 = 10;
-const PRECEDENCE_PRIMARY: u8 = 11;
+const PRECEDENCE_BIT_OR: u8 = 6;
+const PRECEDENCE_BIT_XOR: u8 = 7;
+const PRECEDENCE_BIT_AND: u8 = 8;
+const PRECEDENCE_SHIFT: u8 = 9;
+const PRECEDENCE_ADD: u8 = 10;
+const PRECEDENCE_MULTIPLY: u8 = 11;
+const PRECEDENCE_CAST: u8 = 12;
+const PRECEDENCE_UNARY: u8 = 13;
+const PRECEDENCE_POSTFIX: u8 = 14;
+const PRECEDENCE_PRIMARY: u8 = 15;
 
 fn binary_precedence(op: BinaryOp) -> u8 {
     match op {
@@ -26,6 +30,10 @@ fn binary_precedence(op: BinaryOp) -> u8 {
         | BinaryOp::LtEq
         | BinaryOp::GtEq
         | BinaryOp::In => PRECEDENCE_COMPARE,
+        BinaryOp::BitOr => PRECEDENCE_BIT_OR,
+        BinaryOp::BitXor => PRECEDENCE_BIT_XOR,
+        BinaryOp::BitAnd => PRECEDENCE_BIT_AND,
+        BinaryOp::ShiftLeft | BinaryOp::ShiftRight => PRECEDENCE_SHIFT,
         BinaryOp::Add | BinaryOp::Sub | BinaryOp::Range => PRECEDENCE_ADD,
         BinaryOp::Mul | BinaryOp::Div | BinaryOp::DivRem | BinaryOp::Rem => PRECEDENCE_MULTIPLY,
     }

@@ -269,6 +269,25 @@ impl LalrpopSyntaxNode {
         left
     }
 
+    /// Folds the compact generated bitwise production using normative precedence.
+    pub fn fold_bitwise(left: Self, tails: Vec<(String, Self)>) -> Self {
+        let mut values = vec![left];
+        let mut operators = Vec::<String>::new();
+        for (operator, right) in tails {
+            while operators.last().is_some_and(|previous| {
+                bitwise_precedence(previous) >= bitwise_precedence(&operator)
+            }) {
+                reduce_binary_stack(&mut values, &mut operators);
+            }
+            operators.push(operator);
+            values.push(right);
+        }
+        while !operators.is_empty() {
+            reduce_binary_stack(&mut values, &mut operators);
+        }
+        values.pop().expect("bitwise fold retains its left operand")
+    }
+
     /// Applies postfix syntax in source order.
     pub fn apply_postfix(mut value: Self, suffixes: Vec<LalrpopPostfixSyntax>) -> Self {
         for suffix in suffixes {
@@ -350,6 +369,35 @@ impl LalrpopSyntaxNode {
         }
         value
     }
+}
+
+fn bitwise_precedence(operator: &str) -> u8 {
+    match operator {
+        "|" => 1,
+        "^" => 2,
+        "&" => 3,
+        "<<" | ">>" => 4,
+        _ => unreachable!("generated bitwise production has a closed operator set"),
+    }
+}
+
+fn reduce_binary_stack(values: &mut Vec<LalrpopSyntaxNode>, operators: &mut Vec<String>) {
+    let operator = operators
+        .pop()
+        .expect("binary reduction requires an operator");
+    let right = values
+        .pop()
+        .expect("binary reduction requires a right operand");
+    let left = values
+        .pop()
+        .expect("binary reduction requires a left operand");
+    values.push(LalrpopSyntaxNode::branch(
+        LalrpopSyntaxNodeKind::Binary,
+        left.span.start,
+        right.span.end,
+        Some(operator),
+        vec![left, right],
+    ));
 }
 
 /// Deferred postfix payload used to keep grammar actions structural.

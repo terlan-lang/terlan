@@ -610,7 +610,11 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     require_rule_reference(contract, "OrExpr", "OrOp", &mut diagnostics);
     require_rule_reference(contract, "AndExpr", "CmpExpr", &mut diagnostics);
     require_rule_reference(contract, "AndExpr", "AndOp", &mut diagnostics);
-    require_rule_reference(contract, "CmpExpr", "AddExpr", &mut diagnostics);
+    require_rule_reference(contract, "CmpExpr", "BitOrExpr", &mut diagnostics);
+    require_rule_reference(contract, "BitOrExpr", "BitXorExpr", &mut diagnostics);
+    require_rule_reference(contract, "BitXorExpr", "BitAndExpr", &mut diagnostics);
+    require_rule_reference(contract, "BitAndExpr", "ShiftExpr", &mut diagnostics);
+    require_rule_reference(contract, "ShiftExpr", "AddExpr", &mut diagnostics);
     require_rule_reference(contract, "AddExpr", "MulExpr", &mut diagnostics);
     require_rule_reference(contract, "MulExpr", "CastExpr", &mut diagnostics);
     require_rule_reference(contract, "CastExpr", "UnaryExpr", &mut diagnostics);
@@ -626,6 +630,19 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     require_rule_reference(contract, "TypeRef", "TypeName", &mut diagnostics);
     require_rule_reference(contract, "Pattern", "PrimaryPattern", &mut diagnostics);
     require_rule_reference(contract, "ListPattern", "Pattern", &mut diagnostics);
+    require_rule_reference(contract, "ListExpr", "ListElementExpr", &mut diagnostics);
+    require_rule_reference(
+        contract,
+        "ConsListExpr",
+        "ListElementExpr",
+        &mut diagnostics,
+    );
+    require_rule_reference(
+        contract,
+        "ListGeneratorExpr",
+        "ListElementExpr",
+        &mut diagnostics,
+    );
 
     diagnostics
 }
@@ -667,6 +684,14 @@ const REQUIRED_SYNTAX_RULES: &[&str] = &[
     "OrOp",
     "AndExpr",
     "AndOp",
+    "BitOrExpr",
+    "BitXorExpr",
+    "BitAndExpr",
+    "ShiftExpr",
+    "ShiftOp",
+    "ListElementExpr",
+    "ListElementBitwiseExpr",
+    "ListElementBitwiseOp",
     "CastExpr",
     "PrimaryExpr",
     "Pattern",

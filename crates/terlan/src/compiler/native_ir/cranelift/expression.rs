@@ -337,6 +337,27 @@ pub(super) fn emit_expr(
                         builder.ins().srem(left, right)
                     })
                 }
+                NativeBinaryOperator::BitAnd => Ok(builder.ins().band(left, right)),
+                NativeBinaryOperator::BitXor => Ok(builder.ins().bxor(left, right)),
+                NativeBinaryOperator::BitOr => Ok(builder.ins().bor(left, right)),
+                NativeBinaryOperator::ShiftLeft | NativeBinaryOperator::ShiftRight => {
+                    let out_of_range = builder.ins().icmp_imm_s(
+                        IntCC::UnsignedGreaterThan,
+                        right,
+                        63,
+                    );
+                    branch_on_flag(
+                        builder,
+                        out_of_range,
+                        status::INVALID_SHIFT_COUNT,
+                        error_block,
+                    );
+                    Ok(if *operator == NativeBinaryOperator::ShiftLeft {
+                        builder.ins().ishl(left, right)
+                    } else {
+                        builder.ins().sshr(left, right)
+                    })
+                }
                 NativeBinaryOperator::Equal
                 | NativeBinaryOperator::NotEqual
                 | NativeBinaryOperator::LessThan

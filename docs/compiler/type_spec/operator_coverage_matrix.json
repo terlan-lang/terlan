@@ -141,6 +141,144 @@
       ]
     },
     {
+      "id": "shift_left",
+      "spelling": "<<",
+      "kind": "binary-integer",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_shift_left_executes"
+      ],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/native_ir/small_suite_native_parity_test.rs::small_suite_bitwise_contract_executes_with_checked_shift_counts"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::ShiftLeft",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::ShiftLeft",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::ShiftLeft"
+      ]
+    },
+    {
+      "id": "shift_right",
+      "spelling": ">>",
+      "kind": "binary-integer",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_shift_right_is_arithmetic"
+      ],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/native_ir/small_suite_native_parity_test.rs::small_suite_bitwise_contract_executes_with_checked_shift_counts"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::ShiftRight",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::ShiftRight",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::ShiftRight"
+      ]
+    },
+    {
+      "id": "bit_and",
+      "spelling": "&",
+      "kind": "binary-integer",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_bitwise_and_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::BitAnd",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::BitAnd",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::BitAnd"
+      ]
+    },
+    {
+      "id": "bit_xor",
+      "spelling": "^",
+      "kind": "binary-integer",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_bitwise_xor_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::BitXor",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::BitXor",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::BitXor"
+      ]
+    },
+    {
+      "id": "bit_or",
+      "spelling": "|",
+      "kind": "binary-integer",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_bitwise_or_executes"
+      ],
+      "adversarial_tests": [
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::list_pipe_remains_cons_and_grouped_pipe_is_bitwise_or"
+      ],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::BitOr",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::BitOr",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::BitOr"
+      ]
+    },
+    {
+      "id": "bit_not",
+      "spelling": "~",
+      "kind": "unary-integer",
+      "parse": "supported",
+      "format": "supported",
+      "typecheck": "supported",
+      "core_ir": "supported",
+      "target_profile": "supported",
+      "vm": "supported",
+      "js": "unsupported",
+      "diagnostic": null,
+      "positive_tests": [
+        "integer_bitwise_not_executes"
+      ],
+      "adversarial_tests": [],
+      "source_fragments": [
+        "crates/terlan/src/compiler/syntax/parse_tree.rs::BitNot",
+        "crates/terlan/src/compiler/typeck/expression/operators.rs::\"~\" =>",
+        "crates/terlan/src/compiler/native_ir/expression.rs::NativeBinaryOperator::BitXor"
+      ]
+    },
+    {
       "id": "eq",
       "spelling": "==",
       "kind": "binary",
@@ -460,7 +598,7 @@
       "adversarial_tests": [],
       "source_fragments": [
         "crates/terlan/src/compiler/typeck/expression/operators.rs::is_string_concat_pair",
-        "crates/terlan/src/compiler/native_ir/expression.rs::encoded: Arc::from(encode_string_append_operation())"
+        "crates/terlan/src/compiler/native_ir/expression/string_concat.rs::let append = encode_string_append_operation();"
       ]
     },
     {
@@ -546,7 +684,7 @@
         "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::formal_deprecated_equality_operators_are_rejected"
       ],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::[\"=:=\", \"=/=\", \"/=\"]"
+        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::\"=:=\" | \"=/=\" | \"/=\""
       ]
     },
     {
@@ -566,7 +704,7 @@
         "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::formal_deprecated_equality_operators_are_rejected"
       ],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::[\"=:=\", \"=/=\", \"/=\"]"
+        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::\"=:=\" | \"=/=\" | \"/=\""
       ]
     },
     {
@@ -587,7 +725,7 @@
         "crates/terlan/src/compiler/syntax/lexer_test.rs::exact_inequality_is_one_token"
       ],
       "source_fragments": [
-        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::[\"=:=\", \"=/=\", \"/=\"]"
+        "crates/terlan/src/compiler/syntax/lalrpop_diagnostics.rs::\"=:=\" | \"=/=\" | \"/=\""
       ]
     }
   ]

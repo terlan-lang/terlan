@@ -261,6 +261,21 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             }
         }
 
+        if ch == '<'
+            && i + 1 < chars.len()
+            && chars[i + 1] == '<'
+            && previous_token_can_end_expression(&tokens)
+        {
+            tokens.push(Token::new(
+                TokenKind::ShiftLeft,
+                "<<",
+                byte_offsets[i],
+                byte_offsets[i + 2],
+            ));
+            i += 2;
+            continue;
+        }
+
         if ch == '<' && i + 1 < chars.len() && chars[i + 1] == '<' {
             if let Some((text, end)) = parse_binary(&chars, i) {
                 tokens.push(Token::new(
@@ -305,6 +320,9 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
             ':' => (TokenKind::Colon, ":".to_string(), i + 1),
             ';' => (TokenKind::Semicolon, ";".to_string(), i + 1),
             '|' => (TokenKind::Pipe, "|".to_string(), i + 1),
+            '&' => (TokenKind::BitAnd, "&".to_string(), i + 1),
+            '^' => (TokenKind::BitXor, "^".to_string(), i + 1),
+            '~' => (TokenKind::BitNot, "~".to_string(), i + 1),
             '+' => (TokenKind::Plus, "+".to_string(), i + 1),
             '-' => (TokenKind::Minus, "-".to_string(), i + 1),
             '*' => (TokenKind::Star, "*".to_string(), i + 1),
@@ -602,10 +620,42 @@ fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, 
         ('<', '-') => Some((TokenKind::LtMinus, "<-".to_string(), i + 2)),
         ('<', '=') => Some((TokenKind::LtEq, "<=".to_string(), i + 2)),
         ('>', '=') => Some((TokenKind::GtEq, ">=".to_string(), i + 2)),
+        ('>', '>') => Some((TokenKind::ShiftRight, ">>".to_string(), i + 2)),
         ('|', '>') => Some((TokenKind::PipeForward, "|>".to_string(), i + 2)),
         ('=', _) => Some((TokenKind::Equals, "=".to_string(), i + 1)),
         _ => None,
     }
+}
+
+/// Returns whether `<<` follows a complete expression and is therefore a shift.
+fn previous_token_can_end_expression(tokens: &[Token]) -> bool {
+    tokens
+        .iter()
+        .rev()
+        .find(|token| {
+            !matches!(
+                token.kind,
+                TokenKind::Comment
+                    | TokenKind::DocBlockComment
+                    | TokenKind::DocComment
+                    | TokenKind::ModuleDocComment
+            )
+        })
+        .is_some_and(|token| {
+            matches!(
+                token.kind,
+                TokenKind::Atom
+                    | TokenKind::Ident
+                    | TokenKind::Var
+                    | TokenKind::Int
+                    | TokenKind::Float
+                    | TokenKind::String
+                    | TokenKind::Binary
+                    | TokenKind::RParen
+                    | TokenKind::RBracket
+                    | TokenKind::RBrace
+            )
+        })
 }
 
 /// Parses a double-quoted string literal.

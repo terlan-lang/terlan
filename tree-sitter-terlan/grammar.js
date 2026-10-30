@@ -26,6 +26,7 @@ module.exports = grammar({
     [$.identifier, $.raw_macro_expression],
     [$.expression, $._name_ref],
     [$.expression, $.pattern],
+    [$._list_element_expression, $.pattern],
     [$.constructor_pattern, $._name_ref],
     [$.list_expression, $.list_pattern],
     [$.shape_pattern, $.tuple_pattern],
@@ -106,7 +107,11 @@ module.exports = grammar({
       ),
 
     valued_union_arm: ($) =>
-      seq(field("name", $.type_identifier), "=", field("value", $.expression)),
+      seq(
+        field("name", $.type_identifier),
+        "=",
+        field("value", alias($._list_element_expression, $.expression))
+      ),
 
     constant_declaration: ($) =>
       seq(
@@ -408,6 +413,64 @@ module.exports = grammar({
         seq("(", $.expression, ")")
       ),
 
+    _list_element_expression: ($) =>
+      choice(
+        $.let_expression,
+        $.case_expression,
+        $.if_expression,
+        $.lambda_expression,
+        $.binary_layout_expression,
+        $.list_expression,
+        alias($._list_method_call_expression, $.method_call_expression),
+        $.call_expression,
+        alias($._list_field_expression, $.field_expression),
+        alias($._list_cast_expression, $.cast_expression),
+        alias($._list_unary_expression, $.unary_expression),
+        alias($._list_binary_expression, $.binary_expression),
+        $.raw_macro_expression,
+        $.interpolation,
+        $.identifier,
+        $.type_identifier,
+        $.number,
+        $.string,
+        $.atom_literal,
+        seq("(", $.expression, ")")
+      ),
+
+    _list_method_call_expression: ($) =>
+      prec.left(
+        14,
+        seq(alias($._list_element_expression, $.expression), $._field_selector, $.arguments)
+      ),
+
+    _list_field_expression: ($) =>
+      prec.left(
+        13,
+        seq(alias($._list_element_expression, $.expression), $._field_selector)
+      ),
+
+    _list_cast_expression: ($) =>
+      prec.left(
+        12,
+        seq(alias($._list_element_expression, $.expression), "as", $.type_expression)
+      ),
+
+    _list_unary_expression: ($) =>
+      prec(11, seq(choice("-", "not", "!", "~"), alias($._list_element_expression, $.expression))),
+
+    _list_binary_expression: ($) =>
+      choice(
+        prec.left(1, seq(alias($._list_element_expression, $.expression), "|>", alias($._list_element_expression, $.expression))),
+        prec.left(2, seq(alias($._list_element_expression, $.expression), "or", alias($._list_element_expression, $.expression))),
+        prec.left(3, seq(alias($._list_element_expression, $.expression), "and", alias($._list_element_expression, $.expression))),
+        prec.left(4, seq(alias($._list_element_expression, $.expression), choice("==", "!=", ">=", "<=", ">", "<", "in"), alias($._list_element_expression, $.expression))),
+        prec.left(6, seq(alias($._list_element_expression, $.expression), "^", alias($._list_element_expression, $.expression))),
+        prec.left(7, seq(alias($._list_element_expression, $.expression), "&", alias($._list_element_expression, $.expression))),
+        prec.left(8, seq(alias($._list_element_expression, $.expression), choice("<<", ">>"), alias($._list_element_expression, $.expression))),
+        prec.left(9, seq(alias($._list_element_expression, $.expression), choice("+", "-", ".."), alias($._list_element_expression, $.expression))),
+        prec.left(10, seq(alias($._list_element_expression, $.expression), choice("*", "/", "div", "rem"), alias($._list_element_expression, $.expression)))
+      ),
+
     let_expression: ($) =>
       choice(
         prec.dynamic(2, $.refutable_let_expression),
@@ -478,20 +541,30 @@ module.exports = grammar({
     list_expression: ($) =>
       seq(
         "[",
-        optional(choice($.list_comprehension_body, $.list_cons_body, commaSep1($.expression))),
+        optional(
+          choice(
+            $.list_comprehension_body,
+            $.list_cons_body,
+            commaSep1(alias($._list_element_expression, $.expression))
+          )
+        ),
         "]"
       ),
 
     list_comprehension_body: ($) =>
       seq(
-        field("yield", $.expression),
+        field("yield", alias($._list_element_expression, $.expression)),
         "|",
         $.comprehension_generator,
         repeat(seq(",", $.comprehension_clause))
       ),
 
     list_cons_body: ($) =>
-      seq(field("head", $.expression), "|", field("tail", $.expression)),
+      seq(
+        field("head", alias($._list_element_expression, $.expression)),
+        "|",
+        field("tail", $.expression)
+      ),
 
     comprehension_clause: ($) =>
       choice($.comprehension_generator, $.comprehension_filter),
@@ -504,40 +577,26 @@ module.exports = grammar({
     call_expression: ($) => seq($._name_ref, $.arguments),
 
     method_call_expression: ($) =>
-      prec.left(5, seq($.expression, $._field_selector, $.arguments)),
+      prec.left(14, seq($.expression, $._field_selector, $.arguments)),
 
-    field_expression: ($) => prec.left(4, seq($.expression, $._field_selector)),
+    field_expression: ($) => prec.left(13, seq($.expression, $._field_selector)),
 
-    cast_expression: ($) => prec.left(3, seq($.expression, "as", $.type_expression)),
+    cast_expression: ($) => prec.left(12, seq($.expression, "as", $.type_expression)),
 
-    unary_expression: ($) => prec(4, seq(choice("-", "not"), $.expression)),
+    unary_expression: ($) => prec(11, seq(choice("-", "not", "!", "~"), $.expression)),
 
     binary_expression: ($) =>
-      prec.left(
-        1,
-        seq(
-          $.expression,
-          choice(
-            "+",
-            "-",
-            "*",
-            "/",
-            "div",
-            "rem",
-            "==",
-            "!=",
-            ">=",
-            "<=",
-            ">",
-            "<",
-            "in",
-            "..",
-            "and",
-            "or",
-            "|>"
-          ),
-          $.expression
-        )
+      choice(
+        prec.left(1, seq($.expression, "|>", $.expression)),
+        prec.left(2, seq($.expression, "or", $.expression)),
+        prec.left(3, seq($.expression, "and", $.expression)),
+        prec.left(4, seq($.expression, choice("==", "!=", ">=", "<=", ">", "<", "in"), $.expression)),
+        prec.left(5, seq($.expression, "|", $.expression)),
+        prec.left(6, seq($.expression, "^", $.expression)),
+        prec.left(7, seq($.expression, "&", $.expression)),
+        prec.left(8, seq($.expression, choice("<<", ">>"), $.expression)),
+        prec.left(9, seq($.expression, choice("+", "-", ".."), $.expression)),
+        prec.left(10, seq($.expression, choice("*", "/", "div", "rem"), $.expression))
       ),
 
     raw_macro_expression: ($) => choice(

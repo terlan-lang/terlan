@@ -29,3 +29,4 @@ pub(crate) const DEBUG: i32 = 25;
 pub(crate) const IDENTITY: i32 = 26;
 pub(crate) const FAILURE_TYPED: i32 = 27;
 pub(crate) const SUPERVISION: i32 = 28;
+pub(crate) const INVALID_SHIFT_COUNT: i32 = 29;

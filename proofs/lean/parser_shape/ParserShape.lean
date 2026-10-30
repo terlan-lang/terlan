@@ -6,12 +6,12 @@ classification. They verify the contract consumed by lowering; they do not
 claim that the generated Rust parser implementation is formally verified.
 -/
 
--- canonical-ebnf-sha256: 55eba908539c9b4189622aceb88a576f106e628b71deae43a00e88a39c6b96ee
+-- canonical-ebnf-sha256: 9e180fb1195f56067fe22efe208bb9bbb8a768837a1ef6fe7993a2dfe153e42d
 
 namespace Terlan.ParserShape
 
 def canonicalEbnfSha256 : String :=
-  "55eba908539c9b4189622aceb88a576f106e628b71deae43a00e88a39c6b96ee"
+  "9e180fb1195f56067fe22efe208bb9bbb8a768837a1ef6fe7993a2dfe153e42d"
 
 def syntaxOutputSchema : String := "terlan.lalrpop-module-output.v1"
 
@@ -75,6 +75,10 @@ inductive Operator where
   | disjunction
   | conjunction
   | comparison
+  | bitwiseOr
+  | bitwiseXor
+  | bitwiseAnd
+  | shift
   | addition
   | multiplication
   deriving DecidableEq
@@ -84,6 +88,10 @@ def precedence : Operator → Nat
   | .disjunction => 20
   | .conjunction => 30
   | .comparison => 40
+  | .bitwiseOr => 42
+  | .bitwiseXor => 44
+  | .bitwiseAnd => 46
+  | .shift => 48
   | .addition => 50
   | .multiplication => 60
 
@@ -102,6 +110,14 @@ theorem multiplicationBindsAboveAddition :
 
 theorem additionBindsAboveComparison :
     precedence .addition > precedence .comparison := by
+  decide
+
+theorem bitwisePrecedenceIsCanonical :
+    precedence .addition > precedence .shift ∧
+      precedence .shift > precedence .bitwiseAnd ∧
+      precedence .bitwiseAnd > precedence .bitwiseXor ∧
+      precedence .bitwiseXor > precedence .bitwiseOr ∧
+      precedence .bitwiseOr > precedence .comparison := by
   decide
 
 theorem conjunctionBindsAboveDisjunction :

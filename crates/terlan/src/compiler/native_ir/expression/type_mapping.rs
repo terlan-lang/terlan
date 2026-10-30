@@ -310,6 +310,9 @@ fn literal_value_type(expr: &CoreExpr) -> Option<CoreType> {
                 _ => None,
             }
         }
+        CoreExpr::UnaryOp { operator, operand } if operator == "~" => {
+            (literal_value_type(operand) == Some(CoreType::Int)).then_some(CoreType::Int)
+        }
         CoreExpr::List(_) => literal_collection_type(expr),
         CoreExpr::Tuple(items) => items
             .iter()

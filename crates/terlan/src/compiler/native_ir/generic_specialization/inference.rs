@@ -216,6 +216,10 @@ pub(in crate::compiler::native_ir) fn infer_type(
         CoreExpr::UnaryOp { operator, operand } if operator == "-" => {
             infer_type(operand, variables, templates, module)
         }
+        CoreExpr::UnaryOp { operator, operand } if operator == "~" => {
+            (infer_type(operand, variables, templates, module) == Some(CoreType::Int))
+                .then_some(CoreType::Int)
+        }
         CoreExpr::BinaryOp { operator, .. }
             if matches!(
                 operator.as_str(),

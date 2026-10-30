@@ -626,6 +626,7 @@ pub enum UnaryOp {
     Neg,
     Not,
     Bang,
+    BitNot,
 }
 
 /// Binary operator kind.
@@ -643,6 +644,11 @@ pub enum BinaryOp {
     GtEq,
     DivRem,
     Rem,
+    ShiftLeft,
+    ShiftRight,
+    BitAnd,
+    BitXor,
+    BitOr,
     Range,
     In,
     And,

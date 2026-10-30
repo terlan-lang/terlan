@@ -687,7 +687,7 @@ request_pipeline(callbacks: List[Middleware]): RequestPipeline ->
     let execute =
         case callbacks {
             [] -> [];
-            _ -> [(request: Request) -> run_request_pipeline(callbacks, request)]
+            _ -> [((request: Request) -> run_request_pipeline(callbacks, request))]
         };
     RequestPipeline {#callbacks: callbacks, #execute: execute}.
 
@@ -707,7 +707,7 @@ response_pipeline(callbacks: List[ResponseMiddleware]): ResponsePipeline ->
             [] -> [];
             _ ->
                 [
-                    (request: Request, response: Response) -> run_response_pipeline(callbacks, request, response),
+                    ((request: Request, response: Response) -> run_response_pipeline(callbacks, request, response)),
                 ]
         };
     ResponsePipeline {#callbacks: callbacks, #execute: execute}.

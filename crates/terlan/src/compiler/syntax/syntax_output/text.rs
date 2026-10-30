@@ -383,6 +383,7 @@ pub(super) fn unary_op_text(op: &UnaryOp) -> &'static str {
         UnaryOp::Neg => "-",
         UnaryOp::Not => "not",
         UnaryOp::Bang => "!",
+        UnaryOp::BitNot => "~",
     }
 }
 
@@ -404,6 +405,11 @@ pub(crate) fn binary_op_text(op: &BinaryOp) -> &'static str {
         BinaryOp::GtEq => ">=",
         BinaryOp::DivRem => "div",
         BinaryOp::Rem => "rem",
+        BinaryOp::ShiftLeft => "<<",
+        BinaryOp::ShiftRight => ">>",
+        BinaryOp::BitAnd => "&",
+        BinaryOp::BitXor => "^",
+        BinaryOp::BitOr => "|",
         BinaryOp::Range => "..",
         BinaryOp::In => "in",
         BinaryOp::And => "and",

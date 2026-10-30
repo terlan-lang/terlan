@@ -752,6 +752,84 @@ fn formal_boolean_operators_preserve_ebnf_precedence() {
     ));
 }
 
+#[test]
+fn formal_bitwise_operators_preserve_contract_precedence() {
+    let expr = parse_terlan_expr("1 | 2 ^ 3 & 4 << 1 + 1 == 3 and true or false")
+        .expect("parse bitwise precedence");
+    let Expr::BinaryOp { op, left, .. } = expr else {
+        panic!("expected or expression");
+    };
+    assert!(matches!(op, crate::terlan_syntax::parse_tree::BinaryOp::Or));
+    let Expr::BinaryOp { op, left, .. } = left.as_ref() else {
+        panic!("expected and expression");
+    };
+    assert!(matches!(
+        op,
+        crate::terlan_syntax::parse_tree::BinaryOp::And
+    ));
+    let Expr::BinaryOp { op, left, .. } = left.as_ref() else {
+        panic!("expected comparison expression");
+    };
+    assert!(matches!(
+        op,
+        crate::terlan_syntax::parse_tree::BinaryOp::EqEq
+    ));
+    let Expr::BinaryOp { op, right, .. } = left.as_ref() else {
+        panic!("expected bitwise-or expression");
+    };
+    assert!(matches!(
+        op,
+        crate::terlan_syntax::parse_tree::BinaryOp::BitOr
+    ));
+    let Expr::BinaryOp { op, right, .. } = right.as_ref() else {
+        panic!("expected bitwise-xor expression");
+    };
+    assert!(matches!(
+        op,
+        crate::terlan_syntax::parse_tree::BinaryOp::BitXor
+    ));
+    let Expr::BinaryOp { op, right, .. } = right.as_ref() else {
+        panic!("expected bitwise-and expression");
+    };
+    assert!(matches!(
+        op,
+        crate::terlan_syntax::parse_tree::BinaryOp::BitAnd
+    ));
+    let Expr::BinaryOp { op, right, .. } = right.as_ref() else {
+        panic!("expected shift expression");
+    };
+    assert!(matches!(
+        op,
+        crate::terlan_syntax::parse_tree::BinaryOp::ShiftLeft
+    ));
+    assert!(matches!(
+        right.as_ref(),
+        Expr::BinaryOp {
+            op: crate::terlan_syntax::parse_tree::BinaryOp::Add,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn list_pipe_remains_cons_and_grouped_pipe_is_bitwise_or() {
+    assert!(matches!(
+        parse_terlan_expr("[head | tail]").expect("parse list cons"),
+        Expr::ListCons(_, _)
+    ));
+    let Expr::List(items) = parse_terlan_expr("[(1 | 2)]").expect("parse grouped bitwise or")
+    else {
+        panic!("expected ordinary list");
+    };
+    assert!(matches!(
+        items.as_slice(),
+        [Expr::BinaryOp {
+            op: crate::terlan_syntax::parse_tree::BinaryOp::BitOr,
+            ..
+        }]
+    ));
+}
+
 /// Verifies explicit cast syntax follows the canonical precedence chain.
 ///
 /// Inputs:

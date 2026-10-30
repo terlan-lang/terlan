@@ -34,7 +34,7 @@ pub(crate) fn expr_is_scalar(expr: &CoreExpr) -> bool {
             expr_is_scalar(base)
         }
         CoreExpr::UnaryOp { operator, operand } => {
-            matches!(operator.as_str(), "-" | "not" | "!") && expr_is_scalar(operand)
+            matches!(operator.as_str(), "-" | "not" | "!" | "~") && expr_is_scalar(operand)
         }
         CoreExpr::BinaryOp {
             operator,
@@ -48,6 +48,11 @@ pub(crate) fn expr_is_scalar(expr: &CoreExpr) -> bool {
                     | "/"
                     | "div"
                     | "rem"
+                    | "&"
+                    | "^"
+                    | "|"
+                    | "<<"
+                    | ">>"
                     | "=="
                     | "!="
                     | "<"

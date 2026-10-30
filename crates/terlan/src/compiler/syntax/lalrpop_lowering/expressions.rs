@@ -554,6 +554,7 @@ fn lower_unary(
         Some("-") => UnaryOp::Neg,
         Some("not") => UnaryOp::Not,
         Some("!") => UnaryOp::Bang,
+        Some("~") => UnaryOp::BitNot,
         _ => return Err(context.error(node, "unknown unary operator")),
     };
     Ok(Expr::UnaryOp {
@@ -580,6 +581,11 @@ fn lower_binary(
         Some(">=") => BinaryOp::GtEq,
         Some("div") => BinaryOp::DivRem,
         Some("rem") => BinaryOp::Rem,
+        Some("<<") => BinaryOp::ShiftLeft,
+        Some(">>") => BinaryOp::ShiftRight,
+        Some("&") => BinaryOp::BitAnd,
+        Some("^") => BinaryOp::BitXor,
+        Some("|") => BinaryOp::BitOr,
         Some("..") => BinaryOp::Range,
         Some("in") => BinaryOp::In,
         Some("and") => BinaryOp::And,

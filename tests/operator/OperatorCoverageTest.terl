@@ -36,6 +36,30 @@ pub arithmetic_remainder_executes(): Bool ->
         and assert_equal(-1, remainder(-7, -3)).
 
 @test
+pub integer_shift_left_executes(): Bool ->
+    assert_equal(8, 1 << 3).
+
+@test
+pub integer_shift_right_is_arithmetic(): Bool ->
+    assert_equal(-2, -8 >> 2).
+
+@test
+pub integer_bitwise_and_executes(): Bool ->
+    assert_equal(2, 6 & 3).
+
+@test
+pub integer_bitwise_xor_executes(): Bool ->
+    assert_equal(6, 5 ^ 3).
+
+@test
+pub integer_bitwise_or_executes(): Bool ->
+    assert_equal(5, 4 | 1).
+
+@test
+pub integer_bitwise_not_executes(): Bool ->
+    assert_equal(-1, ~0).
+
+@test
 pub unary_negation_executes(): Bool ->
     assert_equal(-4, -4).
 

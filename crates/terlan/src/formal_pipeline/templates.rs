@@ -175,6 +175,8 @@ fn infer_expression_type(
             .and_then(|function| function.core_return_type.clone()),
         CoreExpr::UnaryOp { operator, operand } => match operator.as_str() {
             "-" => infer_expression_type(operand, props, core),
+            "~" => (infer_expression_type(operand, props, core) == Some(CoreType::Int))
+                .then_some(CoreType::Int),
             "not" | "!" => Some(CoreType::Bool),
             _ => None,
         },
@@ -193,6 +195,7 @@ fn infer_expression_type(
                         CoreType::Int
                     })
                 }
+                "&" | "^" | "|" | "<<" | ">>" => Some(CoreType::Int),
                 "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or" => Some(CoreType::Bool),
                 _ => None,
             }

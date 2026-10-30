@@ -98,6 +98,25 @@ pub values(): List[String] -> ["the-first-deliberately-long-value", "the-second-
 }
 
 #[test]
+fn formatter_groups_lambda_list_elements() {
+    let output = format_source_module(
+        r#"
+module lambda_list.
+
+pub callbacks(): List[(Int) -> Int] -> [((value: Int) -> value + 1)].
+"#,
+    )
+    .expect("format lambda list");
+
+    assert!(output.contains("[((value: Int) -> value + 1)]"), "{output}");
+    parse_module(&output).expect("formatted lambda list should parse");
+    assert_eq!(
+        format_source_module(&output).expect("reformat lambda list"),
+        output
+    );
+}
+
+#[test]
 fn formatter_wraps_long_records_with_trailing_commas() {
     let output = format_source_module(
         r#"
@@ -289,6 +308,19 @@ pub mixed(first: Bool, second: Bool, third: Bool, fourth: Bool): Bool -> first o
     parse_module(&output).expect("boolean precedence output should parse");
     assert_eq!(
         format_source_module(&output).expect("reformat boolean precedence"),
+        output
+    );
+}
+
+#[test]
+fn formatter_preserves_bitwise_precedence_and_unary_complement() {
+    let source =
+        "module bitwise_format. pub value(input: Int): Int -> ~input | 2 ^ 3 & 4 << 1 + 1.";
+    let output = format_source_module(source).expect("format bitwise source");
+    assert!(output.contains("~input | 2 ^ 3 & 4 << 1 + 1"));
+    parse_module(&output).expect("formatted bitwise source should parse");
+    assert_eq!(
+        format_source_module(&output).expect("reformat bitwise source"),
         output
     );
 }

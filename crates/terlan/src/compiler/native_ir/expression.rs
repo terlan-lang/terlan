@@ -418,6 +418,28 @@ pub(super) fn lower_expr_with_constructors(
                 constructors,
             )?)))
         }
+        CoreExpr::UnaryOp { operator, operand } if operator == "~" => {
+            let operand_type =
+                infer_native_type_for_lowering(operand, param_types, function_types, constructors)?;
+            if operand_type != Some(NativeType::Int) {
+                return Err(
+                    "error[native_ir.operator]: bitwise complement requires Int".to_string(),
+                );
+            }
+            Ok(NativeExpr::Binary {
+                operator: NativeBinaryOperator::BitXor,
+                operand_type: NativeType::Int,
+                left: Box::new(lower_expr_with_constructors(
+                    operand,
+                    params,
+                    param_types,
+                    functions,
+                    function_types,
+                    constructors,
+                )?),
+                right: Box::new(NativeExpr::Int(-1)),
+            })
+        }
         CoreExpr::BinaryOp {
             operator,
             left,
@@ -601,6 +623,11 @@ pub(super) fn lower_expr_with_constructors(
                 "*" => NativeBinaryOperator::Multiply,
                 "/" | "div" => NativeBinaryOperator::Divide,
                 "rem" => NativeBinaryOperator::Remainder,
+                "&" => NativeBinaryOperator::BitAnd,
+                "^" => NativeBinaryOperator::BitXor,
+                "|" => NativeBinaryOperator::BitOr,
+                "<<" => NativeBinaryOperator::ShiftLeft,
+                ">>" => NativeBinaryOperator::ShiftRight,
                 "==" => NativeBinaryOperator::Equal,
                 "!=" => NativeBinaryOperator::NotEqual,
                 "<" => NativeBinaryOperator::LessThan,

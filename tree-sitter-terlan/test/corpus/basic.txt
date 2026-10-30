@@ -853,30 +853,30 @@ pub widen(value: Int): Float -> value as Float.
     (expression
       (binary_expression
         (expression
-          (binary_expression
+          (unary_expression
             (expression
-              (unary_expression
-                (expression
+              (expression
+                (binary_expression
                   (expression
                     (binary_expression
                       (expression
-                        (binary_expression
-                          (expression
-                            (binary_expression
-                              (expression
-                                (identifier))
-                              (expression
-                                (number))))
-                          (expression
-                            (identifier))))
+                        (identifier))
                       (expression
-                        (number)))))))
-            (expression
-              (identifier))))
+                        (number))))
+                  (expression
+                    (binary_expression
+                      (expression
+                        (identifier))
+                      (expression
+                        (number)))))))))
         (expression
-          (list_expression
+          (binary_expression
             (expression
-              (identifier)))))))
+              (identifier))
+            (expression
+              (list_expression
+                (expression
+                  (identifier)))))))))
   (function_declaration
     (pub_keyword)
     (identifier)

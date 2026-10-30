@@ -14,8 +14,8 @@
   "family": "parser-shape",
   "manifest_fingerprints": {
     "crates/terlan/src/compiler/syntax/syntax_output.rs": "sha256:31785fcfe62f31417f8060987f5400738d247e1bb7feb616010c95319b085be7",
-    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:817d44c88dd3dfca46c0647c8f5dd5c8106d8de78c781f6b59ec564fd09082f8",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:55eba908539c9b4189622aceb88a576f106e628b71deae43a00e88a39c6b96ee"
+    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:2bfd3373b4ba5ce804b4f9a1e66ce634a8e44ccb0a27006f5348106c005904cb",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:9e180fb1195f56067fe22efe208bb9bbb8a768837a1ef6fe7993a2dfe153e42d"
   },
   "output_signature": {
     "exit_class": "success",
@@ -24,12 +24,13 @@
   },
   "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
   "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:cbcedab91b0ca2ba47cfa4927d27308f3484b0843b6bb1f4b6b2fccc130d22c2",
+  "source_digest": "sha256:c788563a9228ef8323c34d5559df0eaa38c8fb38d32c3ee356ec50de28c9d920",
   "theorem_names": [
     "Terlan.ParserShape.canonicalGrammarIdentityIsStable",
     "Terlan.ParserShape.canonicalModuleClassificationAccepted",
     "Terlan.ParserShape.plainAssignmentClassificationRejected",
     "Terlan.ParserShape.multiplicationBindsAboveAddition",
+    "Terlan.ParserShape.bitwisePrecedenceIsCanonical",
     "Terlan.ParserShape.generatedFoldIsLeftAssociative",
     "Terlan.ParserShape.tupleOutputWellFormed",
     "Terlan.ParserShape.recordOutputWellFormed",

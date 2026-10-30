@@ -109,6 +109,12 @@ fn infer_unary_operator(
             }
             Type::Bool
         }
+        "~" => {
+            if let Err(message) = unify(value, &Type::Int, subst) {
+                errors.push(message);
+            }
+            Type::Int
+        }
         _ => Type::Dynamic,
     }
 }
@@ -174,6 +180,19 @@ fn infer_syntax_binary_types(
             }
         }
         SyntaxBinaryOp::DivRem => {
+            if let Err(message) = unify(left, &Type::Int, subst) {
+                errors.push(format!("left side {}", message));
+            }
+            if let Err(message) = unify(right, &Type::Int, subst) {
+                errors.push(format!("right side {}", message));
+            }
+            Type::Int
+        }
+        SyntaxBinaryOp::ShiftLeft
+        | SyntaxBinaryOp::ShiftRight
+        | SyntaxBinaryOp::BitAnd
+        | SyntaxBinaryOp::BitXor
+        | SyntaxBinaryOp::BitOr => {
             if let Err(message) = unify(left, &Type::Int, subst) {
                 errors.push(format!("left side {}", message));
             }
@@ -536,6 +555,11 @@ enum SyntaxBinaryOp {
     Gt,
     LtEq,
     DivRem,
+    ShiftLeft,
+    ShiftRight,
+    BitAnd,
+    BitXor,
+    BitOr,
     Range,
     In,
     And,
@@ -572,6 +596,11 @@ fn syntax_binary_op(operator: Option<&str>) -> SyntaxBinaryOp {
         ">" => SyntaxBinaryOp::Gt,
         "<=" => SyntaxBinaryOp::LtEq,
         "div" | "rem" => SyntaxBinaryOp::DivRem,
+        "<<" => SyntaxBinaryOp::ShiftLeft,
+        ">>" => SyntaxBinaryOp::ShiftRight,
+        "&" => SyntaxBinaryOp::BitAnd,
+        "^" => SyntaxBinaryOp::BitXor,
+        "|" => SyntaxBinaryOp::BitOr,
         ".." => SyntaxBinaryOp::Range,
         "in" => SyntaxBinaryOp::In,
         "and" => SyntaxBinaryOp::And,

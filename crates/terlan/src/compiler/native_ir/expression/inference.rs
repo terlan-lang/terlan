@@ -173,6 +173,9 @@ pub(super) fn infer_native_type_impl(
             "not" | "!" => (infer_native_type_impl(operand, variables, functions, constructors)
                 == Some(NativeType::Bool))
             .then_some(NativeType::Bool),
+            "~" => (infer_native_type_impl(operand, variables, functions, constructors)
+                == Some(NativeType::Int))
+            .then_some(NativeType::Int),
             _ => None,
         },
         CoreExpr::BinaryOp {
@@ -211,6 +214,11 @@ pub(super) fn infer_native_type_impl(
                     Some(NativeType::StringRef)
                 }
                 "div" | "rem" if left == NativeType::Int && right == NativeType::Int => {
+                    Some(NativeType::Int)
+                }
+                "&" | "^" | "|" | "<<" | ">>"
+                    if left == NativeType::Int && right == NativeType::Int =>
+                {
                     Some(NativeType::Int)
                 }
                 "==" | "!="

@@ -13,8 +13,8 @@
   ],
   "family": "shape-implication",
   "manifest_fingerprints": {
-    "docs/compiler/TERLAN_CORE_TYPING_SPEC.md": "sha256:88cab32207008497f794ea61331b54c640e7a14cbc6c87c80cd573e26c330e7a",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:55eba908539c9b4189622aceb88a576f106e628b71deae43a00e88a39c6b96ee"
+    "docs/compiler/TERLAN_CORE_TYPING_SPEC.md": "sha256:f3f8ce05ec03513d3eb437f256a84b84df9d659e0a62cb1e8af7c188a9d3d838",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:9e180fb1195f56067fe22efe208bb9bbb8a768837a1ef6fe7993a2dfe153e42d"
   },
   "output_signature": {
     "exit_class": "success",

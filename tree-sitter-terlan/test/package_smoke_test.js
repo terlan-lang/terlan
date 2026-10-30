@@ -296,7 +296,8 @@ function testInjectionQueryCoverage() {
  * @description
  * Locks the 0.0.5 template-expression rule that pipes inside `${...}` are
  * ordinary Terlan `|>` expressions, not template-only `{ value | filter }`
- * filters.
+ * filters. A single `|` remains available as the distinct bitwise-OR
+ * expression operator.
  */
 function testCanonicalPipeOperatorSpelling() {
   const grammar = readText("grammar.js");
@@ -307,8 +308,12 @@ function testCanonicalPipeOperatorSpelling() {
   assert.ok(grammar.includes('"|"'), "grammar should recognize the list-comprehension separator");
   assert.ok(binaryExpression, "grammar should expose binary expression production");
   assert.ok(
-    !binaryExpression[0].includes('"|"'),
-    "grammar must not introduce single-bar expression pipes"
+    binaryExpression[0].includes('prec.left(1, seq($.expression, "|>", $.expression))'),
+    "grammar must keep |> as the pipeline operator"
+  );
+  assert.ok(
+    binaryExpression[0].includes('prec.left(5, seq($.expression, "|", $.expression))'),
+    "grammar must keep | as the distinct bitwise-OR operator"
   );
 }
 

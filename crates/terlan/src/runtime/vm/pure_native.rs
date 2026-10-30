@@ -873,6 +873,7 @@ fn native_status_error(status: i32) -> String {
         18 => "error[arithmetic_overflow]: native Float operation produced a non-finite value"
             .to_string(),
         19 => "error[division_by_zero]: native Float operation cannot divide by zero".to_string(),
+        29 => "error[invalid_shift_count]: native shift count must be between 0 and 63".to_string(),
         crate::runtime::native_image::managed::MANAGED_ALLOCATION_FAILED_STATUS => {
             "error[managed_allocation]: native managed allocation failed".to_string()
         }

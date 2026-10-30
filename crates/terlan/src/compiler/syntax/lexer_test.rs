@@ -125,6 +125,17 @@ fn symbolic_boolean_operators_are_rejected() {
     );
 }
 
+#[test]
+fn bitwise_shifts_coexist_with_binary_literals() {
+    let tokens = lex("value << count >> 2").expect("lex shifts");
+    assert_eq!(tokens[1].kind, TokenKind::ShiftLeft);
+    assert_eq!(tokens[3].kind, TokenKind::ShiftRight);
+
+    let tokens = lex("<<1>> >> 1").expect("lex binary then shift");
+    assert_eq!(tokens[0].kind, TokenKind::Binary);
+    assert_eq!(tokens[1].kind, TokenKind::ShiftRight);
+}
+
 /// Verifies scientific Float spellings remain one typed token.
 #[test]
 fn small_float_parity_scientific_literals_are_single_float_tokens() {

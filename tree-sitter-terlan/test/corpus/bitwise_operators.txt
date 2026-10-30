@@ -1,0 +1,94 @@
+==================
+integer bitwise precedence
+==================
+
+module app.Bits.
+
+pub combine(a: Int, b: Int, c: Int): Bool ->
+  ~a & b ^ c | 1 << 2 >> 1 == 3 and true or false.
+
+pub grouped_list(): List[Int] -> [(1 | 2), 3 & 1].
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier)))
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier)))
+      (parameter
+        (identifier)
+        (type_expression
+          (type_identifier))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (binary_expression
+        (expression
+          (binary_expression
+            (expression
+              (binary_expression
+                (expression
+                  (binary_expression
+                    (expression
+                      (binary_expression
+                        (expression
+                          (binary_expression
+                            (expression
+                              (unary_expression
+                                (expression
+                                  (identifier))))
+                            (expression
+                              (identifier))))
+                        (expression
+                          (identifier))))
+                    (expression
+                      (binary_expression
+                        (expression
+                          (binary_expression
+                            (expression
+                              (number))
+                            (expression
+                              (number))))
+                        (expression
+                          (number))))))
+                (expression
+                  (number))))
+            (expression
+              (identifier))))
+        (expression
+          (identifier)))))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters)
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))))
+    (expression
+      (list_expression
+        (expression
+          (expression
+            (binary_expression
+              (expression
+                (number))
+              (expression
+                (number)))))
+        (expression
+          (binary_expression
+            (expression
+              (number))
+            (expression
+              (number))))))))

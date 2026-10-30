@@ -9,6 +9,14 @@ use crate::runtime::native_image::managed::{
 
 use super::*;
 
+#[test]
+fn invalid_shift_count_status_has_stable_diagnostic() {
+    assert_eq!(
+        native_status_error(29),
+        "error[invalid_shift_count]: native shift count must be between 0 and 63"
+    );
+}
+
 /// Deterministic backend for a complete typed Send-to-Receive lifecycle.
 #[derive(Debug)]
 struct TypedMailboxBackend;

@@ -76,7 +76,12 @@ pub(super) fn emit_float_binary(
             let comparison = builder.ins().fcmp(condition, left, right);
             Ok(builder.ins().uextend(types::I64, comparison))
         }
-        NativeBinaryOperator::Remainder => Err(
+        NativeBinaryOperator::Remainder
+        | NativeBinaryOperator::BitAnd
+        | NativeBinaryOperator::BitXor
+        | NativeBinaryOperator::BitOr
+        | NativeBinaryOperator::ShiftLeft
+        | NativeBinaryOperator::ShiftRight => Err(
             "error[cranelift.float_operator]: unsupported Float operator reached code generation"
                 .to_string(),
         ),

@@ -23,6 +23,13 @@ pub mul_add(left: Int, right: Int, addend: Int): Int ->\n\
     left * right + addend.\n\
 pub divide(left: Int, right: Int): Int -> left div right.\n\
 pub remainder(left: Int, right: Int): Int -> left rem right.\n\
+pub bit_and(left: Int, right: Int): Int -> left & right.\n\
+pub bit_xor(left: Int, right: Int): Int -> left ^ right.\n\
+pub bit_or(left: Int, right: Int): Int -> left | right.\n\
+pub bit_not(value: Int): Int -> ~value.\n\
+pub shift_left(value: Int, count: Int): Int -> value << count.\n\
+pub shift_right(value: Int, count: Int): Int -> value >> count.\n\
+pub bitwise_precedence(): Int -> 1 | 2 ^ 3 & 4 << 1 + 1.\n\
 pub reconstruct(left: Int, right: Int): Int ->\n\
     (left div right) * right + (left rem right).\n\
 pub square_twice(value: Int): Int -> value * value + value * value.\n\
@@ -294,6 +301,68 @@ fn small_suite_division_reconstructs_operands_and_reports_typed_failures() {
     }
 
     assert_native_object_invocations("small-suite-division", &object, &invocations);
+}
+
+#[test]
+fn small_suite_bitwise_contract_executes_with_checked_shift_counts() {
+    let (modules, exports) = native_small_module();
+    let object =
+        emit_native_application_object("small_suite_native_bitwise", &modules).expect("object");
+    let mut invocations = Vec::new();
+
+    success(
+        &mut invocations,
+        &exports,
+        "bit_and",
+        &[0b1100, 0b1010],
+        0b1000,
+    );
+    success(
+        &mut invocations,
+        &exports,
+        "bit_xor",
+        &[0b1100, 0b1010],
+        0b0110,
+    );
+    success(
+        &mut invocations,
+        &exports,
+        "bit_or",
+        &[0b1100, 0b1010],
+        0b1110,
+    );
+    success(&mut invocations, &exports, "bit_not", &[0], -1);
+    success(&mut invocations, &exports, "bit_not", &[-1], 0);
+    success(&mut invocations, &exports, "shift_left", &[1, 63], i64::MIN);
+    success(&mut invocations, &exports, "shift_left", &[-1, 1], -2);
+    success(&mut invocations, &exports, "shift_right", &[-8, 2], -2);
+    success(
+        &mut invocations,
+        &exports,
+        "shift_right",
+        &[i64::MIN, 63],
+        -1,
+    );
+    success(&mut invocations, &exports, "bitwise_precedence", &[], 3);
+
+    for function in ["shift_left", "shift_right"] {
+        failure(
+            &mut invocations,
+            &exports,
+            function,
+            &[1, -1],
+            status::INVALID_SHIFT_COUNT,
+        );
+        failure(
+            &mut invocations,
+            &exports,
+            function,
+            &[1, 64],
+            status::INVALID_SHIFT_COUNT,
+        );
+    }
+
+    assert_native_object_invocations("small-suite-bitwise", &object, &invocations);
 }
 
 /// Executes range-sensitive arithmetic and every valid fixed tuple index.

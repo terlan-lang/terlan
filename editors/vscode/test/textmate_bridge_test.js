@@ -196,8 +196,8 @@ function testInterpolationBridgeCoverage() {
  * @returns {void}
  *
  * @description
- * Locks `<-` and pipe highlighting in the temporary TextMate bridge against
- * the Tree-sitter query contract used by the multi-editor grammar package.
+ * Locks operator highlighting in the temporary TextMate bridge against the
+ * Tree-sitter query contract used by the multi-editor grammar package.
  */
 function testOperatorBridgeCoverage() {
   const grammar = readTextMateGrammar();
@@ -211,6 +211,16 @@ function testOperatorBridgeCoverage() {
       operatorRegex.test(operator),
       `TextMate operators missing ${operator}`
     );
+  }
+}
+
+/** Verifies every fixed-width integer bitwise operator has an operator scope. */
+function testBitwiseOperatorBridgeCoverage() {
+  const grammar = readTextMateGrammar();
+  const operatorRegex = new RegExp(operatorPattern(grammar).match);
+
+  for (const operator of ["&", "|", "^", "~", "<<", ">>"]) {
+    assert.ok(operatorRegex.test(operator), `TextMate bitwise operators missing ${operator}`);
   }
 }
 
@@ -290,6 +300,7 @@ function testTemplateMarkdownGrammarEmbedsMarkdownAndTerlan() {
 testKeywordBridgeCoverage();
 testInterpolationBridgeCoverage();
 testOperatorBridgeCoverage();
+testBitwiseOperatorBridgeCoverage();
 testCanonicalWordOperators();
 testBinaryLayoutBridgeCoverage();
 testTemplateHtmlGrammarEmbedsHtmlAndTerlan();

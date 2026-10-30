@@ -45,3 +45,23 @@ fn equality_failure_preserves_existing_substitutions() {
     assert!(unify_equality_types(&left, &right, &HashMap::new(), &mut subst).is_err());
     assert_eq!(subst, before);
 }
+
+#[test]
+fn bitwise_operators_require_and_return_int() {
+    let diagnostics = crate::terlan_typeck::test_support::check_syntax_output(
+        "module bitwise_types.\n\
+         pub binary(left: Int, right: Int): Int ->\n\
+             (left & right) | (left ^ right) | (left << 1) | (right >> 1).\n\
+         pub unary(value: Int): Int -> ~value.",
+    );
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+
+    for body in ["value & 1", "1 << value", "~value"] {
+        let source = format!("module invalid_bitwise. pub invalid(value: Float): Int -> {body}.");
+        let diagnostics = crate::terlan_typeck::test_support::check_syntax_output(&source);
+        assert!(
+            !diagnostics.is_empty(),
+            "expected Int diagnostic for {body}"
+        );
+    }
+}

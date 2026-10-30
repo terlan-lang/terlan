@@ -15,7 +15,7 @@ language configuration, and `terlc lsp --stdio` startup.
   Terlan header annotations, imports, and `${...}` expression islands.
 - Provide editor comment, bracket, and auto-closing behavior.
 - Provide conservative TextMate highlighting until the Tree-sitter grammar is
-  promoted.
+  promoted, including Boolean, arithmetic, and fixed-width bitwise operators.
 - Package the shared Terlan SVG icon and fixed-size PNG variants for editor
   and marketplace surfaces.
 - Start the Terlan language server through the compiler-owned `terlc lsp`

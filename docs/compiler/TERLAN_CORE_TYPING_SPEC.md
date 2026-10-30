@@ -43,6 +43,23 @@ String literals currently lower into the Lean-covered binary/string runtime
 payload subset and remain source-level `String` in production CoreIR where the
 compiler preserves that distinction.
 
+### Integer bitwise operators
+
+`Int` is a fixed signed two's-complement `i64`; it is never pointer-sized.
+Bitwise complement (`~`), intersection (`&`), exclusive-or (`^`), union (`|`),
+left shift (`<<`), and right shift (`>>`) accept only `Int` operands and return
+`Int`.
+
+Left shift discards bits shifted beyond bit 63, fills low bits with zero, and
+interprets the resulting 64-bit pattern as a signed `Int`. Right shift is
+arithmetic and therefore sign-extends negative values. A shift count must be in
+the inclusive range `0..63`; any other runtime value fails with the stable
+`invalid_shift_count` status instead of inheriting host-language behavior.
+
+The normative precedence, from tighter to looser within this family, is shift,
+`&`, `^`, then `|`. Arithmetic binds more tightly than shifts; comparisons and
+Boolean `and`/`or` bind less tightly.
+
 ### Variables
 
 Local variables are looked up in `Gamma` by compiler-owned binding identity,
