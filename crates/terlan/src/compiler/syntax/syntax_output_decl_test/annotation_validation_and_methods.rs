@@ -1,41 +1,5 @@
 use super::super::*;
 
-#[test]
-pub(super) fn validated_and_trusted_annotations_have_fixed_targets() {
-    let validated_error = parse_module_as_syntax_output(
-        "module annotation.ValidatedTarget. @validated pub run(): Int -> 1.",
-    )
-    .expect_err("@validated must only annotate structs");
-    assert!(format!("{validated_error:?}").contains("@validated cannot annotate FunctionDecl"));
-
-    let trusted_error = parse_module_as_syntax_output(
-        "module annotation.TrustedTarget. @trusted pub struct Value { value: Int }.",
-    )
-    .expect_err("@trusted must only annotate constructors");
-    assert!(format!("{trusted_error:?}").contains("@trusted cannot annotate StructDecl"));
-}
-
-#[test]
-pub(super) fn validated_and_trusted_annotations_are_marker_only() {
-    for (annotation, declaration) in [
-        (
-            "@validated { enabled: true }",
-            "pub struct Value { value: Int }.",
-        ),
-        (
-            "@trusted { reason: \"migration\" }",
-            "pub constructor Value { (value: Int): Int -> value }.",
-        ),
-    ] {
-        let source = format!("module annotation.MarkerOnly. {annotation} {declaration}");
-        let error = parse_module_as_syntax_output(&source).expect_err("reject marker metadata");
-        assert!(
-            format!("{error:?}").contains("does not accept metadata"),
-            "unexpected diagnostic: {error:?}"
-        );
-    }
-}
-
 /// Prevents user metadata from shadowing compiler-owned annotation paths.
 #[test]
 pub(super) fn annotation_isolation_parity_rejects_reserved_schema_namespace() {

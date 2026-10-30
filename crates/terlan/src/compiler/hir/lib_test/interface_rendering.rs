@@ -281,55 +281,6 @@ pub struct Error {\n\
     assert_eq!(reparsed_fields, fields);
 }
 
-#[test]
-pub(super) fn interface_rendering_preserves_validated_construction_markers() {
-    let module = parse_module_as_syntax_output(
-        r#"
-module interface_validated_construction.
-
-@validated
-pub struct Profile {
-    name: String
-}.
-
-@trusted
-pub constructor Profile {
-    (name: String): Profile -> Profile { name: name }
-}.
-"#,
-    )
-    .expect("parse validated construction interface fixture");
-
-    let interface = syntax_module_output_to_interface(&module);
-    assert!(interface.validated_types.contains("Profile"));
-    assert!(interface
-        .constructors
-        .get("Profile")
-        .is_some_and(|constructors| constructors.iter().all(|constructor| constructor.trusted)));
-
-    let rendered = interface.to_terlan_interface_text();
-    assert!(
-        rendered.contains("@validated\npub struct Profile"),
-        "{rendered}"
-    );
-    assert!(
-        rendered.contains("@trusted\npub constructor Profile"),
-        "{rendered}"
-    );
-
-    let reparsed = parse_interface_module_as_syntax_output(&rendered)
-        .expect("parse rendered validated construction interface");
-    let reparsed_interface = syntax_module_output_to_interface(&reparsed);
-    assert_eq!(
-        reparsed_interface.validated_types,
-        interface.validated_types
-    );
-    assert!(reparsed_interface
-        .constructors
-        .get("Profile")
-        .is_some_and(|constructors| constructors.iter().all(|constructor| constructor.trusted)));
-}
-
 /// Verifies public generic struct implications survive interface round trips.
 #[test]
 pub(super) fn interface_rendering_preserves_generic_struct_implications() {

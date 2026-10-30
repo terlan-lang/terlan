@@ -18,8 +18,6 @@ pub struct ModuleInterface {
     pub public_types: HashSet<String>,
     pub private_types: HashSet<String>,
     pub opaque_types: HashSet<String>,
-    /// Public structs whose constructors enforce checked construction.
-    pub validated_types: HashSet<String>,
     pub type_params: HashMap<String, Vec<String>>,
     pub type_bodies: HashMap<String, Vec<String>>,
     pub struct_fields: HashMap<String, Vec<StructFieldSignature>>,
@@ -136,8 +134,6 @@ pub struct ConstructorSignature {
     pub min_arity: usize,
     pub varargs: bool,
     pub public: bool,
-    /// Explicit audited escape hatch for a bare validated return type.
-    pub trusted: bool,
     pub docs: Vec<String>,
 }
 

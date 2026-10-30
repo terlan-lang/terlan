@@ -344,7 +344,6 @@ fn public_function_interface(
         public_types: HashSet::new(),
         private_types: HashSet::new(),
         opaque_types: HashSet::new(),
-        validated_types: HashSet::new(),
         type_params: HashMap::new(),
         type_bodies: HashMap::new(),
         struct_fields: HashMap::new(),

@@ -141,6 +141,50 @@ pub user_id(value: Int): UserId ->\n\
 }
 
 #[test]
+fn explicit_constructor_may_return_option() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module checked.OptionalProfile.
+
+import std.core.Option.{Option, Some}.
+
+pub struct Profile {
+    name: String
+}.
+
+pub constructor Profile {
+    (name: String): Option[Profile] -> Some(Profile { name: name })
+}.
+"#,
+        "std/core/Option.terl",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
+fn explicit_constructor_may_return_result() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        r#"
+module checked.ResultProfile.
+
+import std.core.Result.{Result, Ok}.
+
+pub struct Profile {
+    name: String
+}.
+
+pub constructor Profile {
+    (name: String): Result[Profile, String] -> Ok(Profile { name: name })
+}.
+"#,
+        "std/core/Result.terl",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
 fn syntax_output_checks_struct_includes_on_formal_path() {
     let valid_diagnostics = check_syntax_output(
         "\

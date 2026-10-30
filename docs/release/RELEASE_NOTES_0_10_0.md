@@ -23,11 +23,10 @@ The formatter groups decimal integers in threes; floating-point literals keep
 their existing syntax. Consecutive, leading and trailing numeric separators
 are invalid.
 
-Structs may opt into checked public construction with `@validated`. Their public
-constructors return standard `Option[T]` or `Result[T, E]` values unless the
-constructor declares the explicit audited `@trusted` boundary. Unannotated
-structs keep their existing construction behavior, and generated interfaces
-preserve both markers.
+Explicit constructors may return any declared result type. Checked construction
+can return `Option[T]` or `Result[T, E]`; infallible construction can continue
+to return `T`. No validation annotation or standard-library validation trait is
+required.
 
 Generic inference keeps freshly instantiated variables separate from enclosing
 bindings and other calls. An optional field such as `Some(value)` no longer

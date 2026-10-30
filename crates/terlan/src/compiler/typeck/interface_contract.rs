@@ -58,11 +58,6 @@ pub(crate) fn check_module_interface_contract(
         if generic_shape(&expected_params) != generic_shape(&actual_params) {
             report(format!("type parameters differ for `{name}`"));
         }
-        if expected.validated_types.contains(name) && !actual.validated_types.contains(name) {
-            report(format!(
-                "struct `{name}` must preserve its validated construction contract"
-            ));
-        }
         if expected.opaque_types.contains(name) {
             if !actual.opaque_types.contains(name) {
                 report(format!("type `{name}` must remain opaque"));

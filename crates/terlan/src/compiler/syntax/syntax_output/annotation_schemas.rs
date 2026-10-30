@@ -41,37 +41,12 @@ pub(super) fn collect_user_annotation_schemas(
     Ok(schemas)
 }
 
-/// Validates compiler-owned construction-contract markers.
-pub(super) fn validate_construction_marker(
-    annotation: &SyntaxAnnotationOutput,
-    declaration: &SyntaxDeclarationOutput,
-) -> EbnfCompileResult<bool> {
-    let schema = if super::annotations::annotation_path_matches(annotation, &["validated"]) {
-        Some((&["StructDecl"][..], "@validated"))
-    } else if super::annotations::annotation_path_matches(annotation, &["trusted"]) {
-        Some((&["ConstructorDecl"][..], "@trusted"))
-    } else {
-        None
-    };
-    let Some((targets, label)) = schema else {
-        return Ok(false);
-    };
-    super::annotations::validate_marker_annotation(annotation, declaration, targets, label)?;
-    Ok(true)
-}
-
 /// Returns whether a user schema path overlaps compiler-owned metadata.
 fn annotation_schema_path_is_reserved(path: &[String]) -> bool {
     matches!(
         path.first().map(String::as_str),
         Some("compiler" | "target" | "native")
-    ) || matches!(
-        path,
-        [name] if name == "test"
-            || name == "pure"
-            || name == "validated"
-            || name == "trusted"
-    )
+    ) || matches!(path, [name] if name == "test" || name == "pure")
 }
 
 /// Builds a parse diagnostic at an annotation schema declaration.

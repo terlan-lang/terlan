@@ -222,33 +222,6 @@ metadata. The compiler owns purity validation from the function body, and later
 phases may use validated purity for guards, templates, native lowering, or
 constant folding without changing runtime semantics.
 
-`@validated` is an opt-in construction contract for a struct. A public
-constructor that exposes the annotated type must return the standard
-`Option[T]` or `Result[T, E]` type. Existing unannotated structs keep their
-current constructor behavior. `@trusted` permits a public constructor to return
-bare `T`; it is marker-only and represents an explicit audited construction
-boundary rather than proof that the body validates its input.
-
-```terlan
-@validated
-pub struct Port {
-    value: Int
-}.
-
-pub constructor Port {
-    (value: Int): Result[Port, String] ->
-        if {
-            value > 0 -> Ok(Port { value: value });
-            _ -> Err("port must be positive")
-        }
-}.
-```
-
-Raw construction of imported structs remains unavailable outside their defining
-module. Deserializers, native adapters, and persistence restore paths should
-therefore call a checked constructor or declare and audit an explicit trusted
-constructor boundary.
-
 ## Visibility
 
 Terlan source uses declaration-site visibility. A declaration is private to its
@@ -371,6 +344,12 @@ cache entries are not published by the interface-only operation.
 Opaque types enforce representation boundaries. They do not prove business
 invariants such as nonnegative money: validate constructors and test those
 properties in the implementation.
+
+An explicit constructor's declared result is an ordinary `TypeExpr`; it is not
+restricted to the type named by the constructor declaration. Checked
+construction can therefore return `Option[T]` or `Result[T, E]`, while an
+infallible constructor can return `T`. This is a type-level capability, not a
+compiler-owned validation annotation or a required standard-library trait.
 
 ## Native declarations
 

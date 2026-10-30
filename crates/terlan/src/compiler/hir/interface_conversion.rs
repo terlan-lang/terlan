@@ -13,7 +13,6 @@ pub(super) fn syntax_module_output_to_prepared_interface(
     let mut public_types = HashSet::new();
     let mut private_types = HashSet::new();
     let mut opaque_types = HashSet::new();
-    let mut validated_types = HashSet::new();
     let imported_type_refs = collect_syntax_callable_type_refs(module);
     let type_params = collect_syntax_type_params(module);
     let type_bodies = collect_syntax_type_bodies(module, &imported_type_refs);
@@ -116,9 +115,6 @@ pub(super) fn syntax_module_output_to_prepared_interface(
             } => {
                 if *is_public {
                     public_types.insert(name.clone());
-                    if declaration_has_marker_annotation(declaration, &["validated"]) {
-                        validated_types.insert(name.clone());
-                    }
                 } else {
                     private_types.insert(name.clone());
                 }
@@ -312,7 +308,6 @@ pub(super) fn syntax_module_output_to_prepared_interface(
         public_types,
         private_types,
         opaque_types,
-        validated_types,
         type_params,
         type_bodies,
         struct_fields,
@@ -596,7 +591,6 @@ pub(super) fn collect_syntax_constructor_signatures(
                     min_arity,
                     varargs: clause.params.iter().any(|param| param.is_varargs),
                     public: *is_public,
-                    trusted: declaration_has_marker_annotation(declaration, &["trusted"]),
                     docs: declaration.docs.clone(),
                 }
             })

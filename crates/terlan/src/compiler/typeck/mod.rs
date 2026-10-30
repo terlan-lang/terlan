@@ -882,8 +882,6 @@ mod string_interpolation_test;
 mod struct_test;
 #[cfg(test)]
 mod test_support;
-#[cfg(test)]
-mod validated_construction_test;
 
 #[cfg(test)]
 mod trait_test;

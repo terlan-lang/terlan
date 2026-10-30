@@ -11,9 +11,8 @@ documentation; unchanged capabilities do not need a release recap.
 
 ### Language contracts
 
-- Opt structs into checked public construction with `@validated`. Public
-  constructors return `Option[T]` or `Result[T, E]`; audited bare constructors
-  use the explicit `@trusted` boundary.
+- Allow explicit constructors to return their declared result type, including
+  `Option[T]` and `Result[T, E]`, without requiring validation annotations.
 
 ### Applications and JavaScript
 
