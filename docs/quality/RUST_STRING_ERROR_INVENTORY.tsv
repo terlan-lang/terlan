@@ -272,9 +272,10 @@ crates/terlan/src/compiler/native_ir/self_host_pattern_ir.rs	4	internal-helper	c
 crates/terlan/src/compiler/native_ir/specialization_budget.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/static_callable.rs	13	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/static_callable/preflight.rs	1	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/structured_case.rs	13	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/structured_case.rs	10	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/binary.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/boundary.rs	1	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/structured_case/constructor.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/lowering.rs	6	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/plain.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/structured_case/record.rs	1	internal-helper	compiler-errors	0.0.9

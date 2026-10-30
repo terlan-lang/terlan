@@ -264,6 +264,42 @@ fn record_and_constructor_patterns_lower_to_checked_aggregate_matchers() {
     ));
 }
 
+/// Literal payload constraints do not erase a checked union constructor tag.
+#[test]
+fn constructor_patterns_with_literal_payloads_keep_the_union_discriminant() {
+    let modules = lower(
+        r#"module native_literal_constructor_patterns.
+
+pub struct Clock { tick: Int }.
+pub constructor Clock { (tick: Int): Clock -> Clock { tick: tick } }.
+
+pub type Event =
+      {Atom["accepted"], Int, Int, String, Clock}
+    | {Atom["recorded"], String}.
+
+pub constructor Accepted {
+    (command: Int, attempt: Int, reference: String, at: Clock): Event ->
+        {Atom["accepted"], command, attempt, reference, at}
+}.
+pub constructor Recorded {
+    (reference: String): Event -> {Atom["recorded"], reference}
+}.
+
+pub matches(value: Event): Bool ->
+    case value {
+        Accepted(_command, 1, "ref-99", Clock(18)) -> true;
+        Recorded("ref-99") -> true;
+        _ -> false
+    }.
+"#,
+    );
+
+    assert!(modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .any(|function| function.name == "matches"));
+}
+
 #[test]
 fn structured_pattern_depth_budget_has_stable_prelink_rejection() {
     let syntax = parse_module_as_syntax_output(
