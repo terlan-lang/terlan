@@ -9,6 +9,12 @@ documentation; unchanged capabilities do not need a release recap.
 
 ## 0.10.0
 
+### Language contracts
+
+- Opt structs into checked public construction with `@validated`. Public
+  constructors return `Option[T]` or `Result[T, E]`; audited bare constructors
+  use the explicit `@trusted` boundary.
+
 ### Applications and JavaScript
 
 - Build native applications as a single executable with the application image

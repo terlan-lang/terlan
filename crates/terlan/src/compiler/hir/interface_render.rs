@@ -188,6 +188,9 @@ impl ModuleInterface {
                     render_type_params(self.type_params.get(ty))
                 ));
             } else if let Some(fields) = self.struct_fields.get(ty) {
+                if self.validated_types.contains(ty) {
+                    out.push_str("@validated\n");
+                }
                 out.push_str(&format!(
                     "pub struct {}{} {{\n",
                     ty,
@@ -460,6 +463,9 @@ impl ModuleInterface {
                 current_constructor = constructor.name.clone();
                 if include_docs {
                     push_doc_lines(&mut out, "/", &constructor.docs);
+                }
+                if constructor.trusted {
+                    out.push_str("@trusted\n");
                 }
                 out.push_str(&format!(
                     "pub constructor {}{} {{\n",

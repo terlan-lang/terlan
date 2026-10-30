@@ -1,24 +1,18 @@
-use super::annotation_schemas::collect_user_annotation_schemas;
+use super::annotation_schemas::{collect_user_annotation_schemas, validate_construction_marker};
 use super::*;
 
 /// Validates compiler-known annotation schemas before syntax output is returned.
-///
-/// Inputs:
-/// - `declarations`: structured syntax declarations with parsed annotations.
-///
-/// Output:
-/// - `Ok(())` when all compiler-known annotations satisfy their built-in schema.
-/// - `EbnfCompileError::Parse` at the offending annotation or entry span.
-///
-/// Transformation:
-/// - Applies early metadata validation for built-in annotation paths so invalid
-///   compiler metadata stops before semantic lowering, CoreIR, or backends.
+/// Applies early metadata validation so invalid compiler metadata stops before
+/// semantic lowering, CoreIR, or backends.
 pub(super) fn validate_builtin_annotation_schemas(
     declarations: &[SyntaxDeclarationOutput],
 ) -> EbnfCompileResult<()> {
     let user_schemas = collect_user_annotation_schemas(declarations)?;
     for declaration in declarations {
         for annotation in &declaration.annotations {
+            if validate_construction_marker(annotation, declaration)? {
+                continue;
+            }
             if annotation_path_matches(annotation, &["test"]) {
                 validate_marker_annotation(annotation, declaration, &["FunctionDecl"], "@test")?;
             } else if annotation_path_matches(annotation, &["benchmark"]) {
@@ -356,7 +350,7 @@ fn annotation_value_matches_type(value: &SyntaxAnnotationValueOutput, value_type
 /// Transformation:
 /// - Compares owned compiler output strings against borrowed schema strings
 ///   without allocating a temporary path.
-fn annotation_path_matches(annotation: &SyntaxAnnotationOutput, path: &[&str]) -> bool {
+pub(super) fn annotation_path_matches(annotation: &SyntaxAnnotationOutput, path: &[&str]) -> bool {
     annotation.path.len() == path.len()
         && annotation
             .path
@@ -380,7 +374,7 @@ fn annotation_path_matches(annotation: &SyntaxAnnotationOutput, path: &[&str]) -
 /// Transformation:
 /// - Rejects metadata and invalid targets for annotations whose presence alone
 ///   carries all required meaning.
-fn validate_marker_annotation(
+pub(super) fn validate_marker_annotation(
     annotation: &SyntaxAnnotationOutput,
     declaration: &SyntaxDeclarationOutput,
     targets: &[&str],

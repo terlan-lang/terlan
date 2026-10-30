@@ -3,6 +3,7 @@ mod atom_aliases;
 pub(crate) use atom_aliases::check as check_public_atom_aliases;
 mod purity;
 mod trait_impl;
+mod validated_construction;
 
 use self::alias_implications::{
     check_callable_alias_implications, check_non_callable_alias_implications,
@@ -12,6 +13,7 @@ use self::purity::{
     receiver_method_requires_pure_body, ImportedEffectFacts,
 };
 use self::trait_impl::{check_trait_impl_methods, TraitImplCheckContext};
+use self::validated_construction::check_validated_construction_contracts;
 use super::expression::{
     check_clause_guard_purity, check_pure_expression_effects_with_call_facts,
     refine_by_syntax_guard,
@@ -52,6 +54,11 @@ pub(super) fn check_syntax_module_functions(
         expr_ctx,
     } = environment;
     let mut diagnostics = atom_aliases::check(module, expr_ctx.interface_map);
+    diagnostics.extend(check_validated_construction_contracts(
+        module,
+        alias_names,
+        imported_type_names,
+    ));
     let effectful_imported_calls = collect_effectful_imported_calls(expr_ctx);
     timings.mark("effectful-imports");
     let effectful_local_calls = collect_effectful_local_calls(

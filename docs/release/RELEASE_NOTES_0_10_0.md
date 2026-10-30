@@ -23,6 +23,12 @@ The formatter groups decimal integers in threes; floating-point literals keep
 their existing syntax. Consecutive, leading and trailing numeric separators
 are invalid.
 
+Structs may opt into checked public construction with `@validated`. Their public
+constructors return standard `Option[T]` or `Result[T, E]` values unless the
+constructor declares the explicit audited `@trusted` boundary. Unannotated
+structs keep their existing construction behavior, and generated interfaces
+preserve both markers.
+
 Generic inference keeps freshly instantiated variables separate from enclosing
 bindings and other calls. An optional field such as `Some(value)` no longer
 changes the inferred type of an unrelated sibling field. Regression coverage
