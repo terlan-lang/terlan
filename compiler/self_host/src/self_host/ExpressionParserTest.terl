@@ -1,10 +1,11 @@
-/** Positive and negative contracts for self-hosted expression parsing. */
+/**
+ * Positive and negative contracts for self-hosted expression parsing.
+ */
 module self_host.ExpressionParserTest.
 
-import self_host.ExpressionSyntax.{ArrayExpression, IfExpression, LambdaExpression, LetExpression, ListComprehensionExpression, PipeExpression, SequenceExpression}.
-
-import std.collections.List.
 import self_host.ExpressionParser.
+import self_host.ExpressionSyntax.{ArrayExpression, BitAndExpression, BitOrExpression, BitXorExpression, IfExpression, LambdaExpression, LetExpression, ListComprehensionExpression, PipeExpression, SequenceExpression, ShiftExpression, UnaryExpression}.
+import std.collections.List.
 
 @pure
 positive_expressions(): Bool ->
@@ -15,6 +16,12 @@ positive_expressions(): Bool ->
     let conditional = ExpressionParser.parse("if { ready -> run(); true -> wait() }");
     let binding = ExpressionParser.parse("let value = prepare(); consume(value)");
     let array = ExpressionParser.parse("#[1, 2]");
+    let bit_or = ExpressionParser.parse("flags | mask");
+    let bit_xor = ExpressionParser.parse("flags ^ mask");
+    let bit_and = ExpressionParser.parse("flags & mask");
+    let shift = ExpressionParser.parse("flags << width");
+    let bit_not = ExpressionParser.parse("~flags");
+    let bitwise_precedence = ExpressionParser.parse("flags | mask ^ bits & one << 2 + 1");
     sequence.valid
         and sequence.syntax.class == SequenceExpression
         and List.length(sequence.syntax.parts) == 3
@@ -29,7 +36,19 @@ positive_expressions(): Bool ->
         and binding.valid
         and binding.syntax.class == LetExpression
         and array.valid
-        and array.syntax.class == ArrayExpression.
+        and array.syntax.class == ArrayExpression
+        and bit_or.valid
+        and bit_or.syntax.class == BitOrExpression
+        and bit_xor.valid
+        and bit_xor.syntax.class == BitXorExpression
+        and bit_and.valid
+        and bit_and.syntax.class == BitAndExpression
+        and shift.valid
+        and shift.syntax.class == ShiftExpression
+        and bit_not.valid
+        and bit_not.syntax.class == UnaryExpression
+        and bitwise_precedence.valid
+        and bitwise_precedence.syntax.class == BitOrExpression.
 
 @pure
 negative_expressions(): Bool ->

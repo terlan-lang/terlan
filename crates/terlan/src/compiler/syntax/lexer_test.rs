@@ -136,6 +136,28 @@ fn bitwise_shifts_coexist_with_binary_literals() {
     assert_eq!(tokens[1].kind, TokenKind::ShiftRight);
 }
 
+/// Invalid escapes must fail before backend-specific string decoding.
+#[test]
+fn rejects_unsupported_string_escapes_during_lexing() {
+    let errors = lex(r#""invalid \` escape""#).expect_err("unknown escape must fail lexing");
+
+    assert_eq!(errors[0].message, "unsupported string escape");
+    assert_eq!(errors[0].span.start, 9);
+    assert_eq!(errors[0].span.end, 11);
+}
+
+/// Canonical JSON escapes and escaped interpolation remain source syntax.
+#[test]
+fn accepts_supported_string_escapes_during_lexing() {
+    for source in [
+        r#""quote \" slash \\ solidus \/ controls \b\f\n\r\t""#,
+        r#""unicode \u0000""#,
+        r#""literal \${value}""#,
+    ] {
+        lex(source).expect(source);
+    }
+}
+
 /// Verifies scientific Float spellings remain one typed token.
 #[test]
 fn small_float_parity_scientific_literals_are_single_float_tokens() {

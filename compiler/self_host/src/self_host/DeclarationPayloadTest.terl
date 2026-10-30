@@ -77,9 +77,10 @@ duplicate_struct_fields(): Bool ->
         [declaration] ->
             let structure = StructLowering.lower(declaration);
             not structure.valid
-                and structure.message == "duplicate field \`value\` in struct declaration";
+                and structure.message == "duplicate field `value` in struct declaration";
         _ -> false
     }.
 
+@test
 pub self_test(): Bool ->
     positive_payloads() and negative_payloads() and duplicate_struct_fields().

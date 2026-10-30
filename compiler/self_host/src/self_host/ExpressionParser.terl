@@ -1,14 +1,12 @@
-/** Precedence-aligned, lossless parser for complete Terlan expressions. */
+/**
+ * Precedence-aligned, lossless parser for complete Terlan expressions.
+ */
 module self_host.ExpressionParser.
 
-import std.core.String.
-
-import self_host.ExpressionSyntax.{AddExpression, AndExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, ArrayExpression, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
-
+import self_host.Delimited.
+import self_host.ExpressionSyntax.{AddExpression, AndExpression, ArrayExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, BitAndExpression, BitOrExpression, BitXorExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, ShiftExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
 import std.collections.List.
 import std.core.{Int, String}.
-import self_host.Delimited.
-
 
 @pure
 drop_terminal_empty(values: List[String]): List[String] ->
@@ -33,7 +31,8 @@ inner(source: String): String ->
 starts_digit(source: String): Bool ->
     if {
         source == "" -> false;
-        true -> let byte = source.utf8_byte_at(0); byte >= 48 and byte <= 57
+        true -> let byte = source.utf8_byte_at(0);
+        byte >= 48 and byte <= 57
     }.
 
 @pure
@@ -41,8 +40,8 @@ is_quoted(source: String): Bool ->
     if {
         source.byte_size() < 2 -> false;
         true -> let first = source.utf8_byte_at(0);
-            let last = source.utf8_byte_at(source.byte_size() - 1);
-            (first == 34 and last == 34) or (first == 39 and last == 39)
+        let last = source.utf8_byte_at(source.byte_size() - 1);
+        first == 34 and last == 34 or first == 39 and last == 39
     }.
 
 @pure
@@ -105,6 +104,7 @@ is_unary(source: String): Bool ->
     if {
         String.starts_with(source, "-") -> true;
         String.starts_with(source, "!") -> true;
+        String.starts_with(source, "~") -> true;
         true -> String.starts_with(source, "not ")
     }.
 
@@ -138,185 +138,378 @@ classify_list(source: String): ExpressionClass ->
 
 @pure
 classify_call(source: String): ExpressionClass ->
-    if { String.contains(source, "(") and String.ends_with(source, ")") -> CallExpression; true -> NameExpression }.
+    if {
+        String.contains(source, "(") and String.ends_with(source, ")") -> CallExpression;
+        true -> NameExpression
+    }.
 
 @pure
 classify_group(source: String): ExpressionClass ->
-    if { String.starts_with(source, "(") -> GroupExpression; true -> classify_call(source) }.
+    if {
+        String.starts_with(source, "(") -> GroupExpression;
+        true -> classify_call(source)
+    }.
 
 @pure
 classify_integer(source: String): ExpressionClass ->
-    if { starts_digit(source) -> IntegerExpression; true -> classify_group(source) }.
+    if {
+        starts_digit(source) -> IntegerExpression;
+        true -> classify_group(source)
+    }.
 
 @pure
 classify_float(source: String): ExpressionClass ->
-    if { is_float_number(source) -> FloatExpression; true -> classify_integer(source) }.
+    if {
+        is_float_number(source) -> FloatExpression;
+        true -> classify_integer(source)
+    }.
 
 @pure
 classify_unary(source: String): ExpressionClass ->
-    if { is_unary(source) -> UnaryExpression; true -> classify_float(source) }.
+    if {
+        is_unary(source) -> UnaryExpression;
+        true -> classify_float(source)
+    }.
 
 @pure
 classify_cast(source: String): ExpressionClass ->
-    if { Delimited.top_level_text(source, " as ") >= 0 -> CastExpression; true -> classify_unary(source) }.
+    if {
+        Delimited.top_level_text(source, " as ") >= 0 -> CastExpression;
+        true -> classify_unary(source)
+    }.
 
 @pure
 classify_multiply(source: String): ExpressionClass ->
-    if { is_multiply(source) -> MultiplyExpression; true -> classify_cast(source) }.
+    if {
+        is_multiply(source) -> MultiplyExpression;
+        true -> classify_cast(source)
+    }.
 
 @pure
 classify_add(source: String): ExpressionClass ->
-    if { is_add(source) -> AddExpression; true -> classify_multiply(source) }.
+    if {
+        is_add(source) -> AddExpression;
+        true -> classify_multiply(source)
+    }.
+
+@pure
+classify_shift(source: String): ExpressionClass ->
+    if {
+        Delimited.top_level_text(source, " << ") >= 0 -> ShiftExpression;
+        Delimited.top_level_text(source, " >> ") >= 0 -> ShiftExpression;
+        true -> classify_add(source)
+    }.
+
+@pure
+classify_bit_and(source: String): ExpressionClass ->
+    if {
+        Delimited.top_level_text(source, " & ") >= 0 -> BitAndExpression;
+        true -> classify_shift(source)
+    }.
+
+@pure
+classify_bit_xor(source: String): ExpressionClass ->
+    if {
+        Delimited.top_level_text(source, " ^ ") >= 0 -> BitXorExpression;
+        true -> classify_bit_and(source)
+    }.
+
+@pure
+classify_bit_or(source: String): ExpressionClass ->
+    if {
+        Delimited.top_level_text(source, " | ") >= 0 -> BitOrExpression;
+        true -> classify_bit_xor(source)
+    }.
 
 @pure
 classify_compare(source: String): ExpressionClass ->
-    if { has_compare(source) -> CompareExpression; true -> classify_add(source) }.
+    if {
+        has_compare(source) -> CompareExpression;
+        true -> classify_bit_or(source)
+    }.
 
 @pure
 classify_and(source: String): ExpressionClass ->
-    if { Delimited.top_level_text(source, " and ") >= 0 -> AndExpression; true -> classify_compare(source) }.
+    if {
+        Delimited.top_level_text(source, " and ") >= 0 -> AndExpression;
+        true -> classify_compare(source)
+    }.
 
 @pure
 classify_or(source: String): ExpressionClass ->
-    if { Delimited.top_level_text(source, " or ") >= 0 -> OrExpression; true -> classify_and(source) }.
+    if {
+        Delimited.top_level_text(source, " or ") >= 0 -> OrExpression;
+        true -> classify_and(source)
+    }.
 
 @pure
 classify_pipe(source: String): ExpressionClass ->
-    if { Delimited.top_level_pair(source, 124, 62) >= 0 -> PipeExpression; true -> classify_or(source) }.
+    if {
+        Delimited.top_level_pair(source, 124, 62) >= 0 -> PipeExpression;
+        true -> classify_or(source)
+    }.
 
 @pure
 classify_constructor_chain(source: String): ExpressionClass ->
-    if { Delimited.top_level_text(source, " with ") >= 0 -> ConstructorChainExpression; true -> classify_pipe(source) }.
+    if {
+        Delimited.top_level_text(source, " with ") >= 0 -> ConstructorChainExpression;
+        true -> classify_pipe(source)
+    }.
 
 @pure
 classify_assignment(source: String): ExpressionClass ->
-    if { Delimited.top_level_assignment(source) >= 0 -> AssignmentExpression; true -> classify_constructor_chain(source) }.
+    if {
+        Delimited.top_level_assignment(source) >= 0 -> AssignmentExpression;
+        true -> classify_constructor_chain(source)
+    }.
 
 @pure
 classify_sequence(source: String, sequence: List[String]): ExpressionClass ->
-    if { List.length(sequence) > 1 -> SequenceExpression; true -> classify_assignment(source) }.
+    if {
+        List.length(sequence) > 1 -> SequenceExpression;
+        true -> classify_assignment(source)
+    }.
 
 @pure
 classify_braces(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "{") -> classify_braced(source); true -> classify_sequence(source, sequence) }.
+    if {
+        String.starts_with(source, "{") -> classify_braced(source);
+        true -> classify_sequence(source, sequence)
+    }.
 
 @pure
 classify_square(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "[") -> classify_list(source); true -> classify_braces(source, sequence) }.
+    if {
+        String.starts_with(source, "[") -> classify_list(source);
+        true -> classify_braces(source, sequence)
+    }.
 
 @pure
 classify_nominal(source: String, sequence: List[String]): ExpressionClass ->
-    if { is_nominal_keyed(source) -> NominalKeyedExpression; true -> classify_square(source, sequence) }.
+    if {
+        is_nominal_keyed(source) -> NominalKeyedExpression;
+        true -> classify_square(source, sequence)
+    }.
 
 @pure
 classify_layout(source: String, sequence: List[String]): ExpressionClass ->
-    if { is_binary_layout(source) -> BinaryLayoutExpression; true -> classify_nominal(source, sequence) }.
+    if {
+        is_binary_layout(source) -> BinaryLayoutExpression;
+        true -> classify_nominal(source, sequence)
+    }.
 
 @pure
 classify_array(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "#[") -> ArrayExpression; true -> classify_layout(source, sequence) }.
+    if {
+        String.starts_with(source, "#[") -> ArrayExpression;
+        true -> classify_layout(source, sequence)
+    }.
 
 @pure
 classify_binary(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "<<") -> BinaryExpression; true -> classify_array(source, sequence) }.
+    if {
+        String.starts_with(source, "<<") -> BinaryExpression;
+        true -> classify_array(source, sequence)
+    }.
 
 @pure
 classify_string(source: String, sequence: List[String]): ExpressionClass ->
-    if { is_quoted(source) -> StringExpression; true -> classify_binary(source, sequence) }.
+    if {
+        is_quoted(source) -> StringExpression;
+        true -> classify_binary(source, sequence)
+    }.
 
 @pure
 classify_macro(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "?") -> MacroExpression; true -> classify_string(source, sequence) }.
+    if {
+        String.starts_with(source, "?") -> MacroExpression;
+        true -> classify_string(source, sequence)
+    }.
 
 @pure
 classify_unquote(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "unquote(") -> UnquoteExpression; true -> classify_macro(source, sequence) }.
+    if {
+        String.starts_with(source, "unquote(") -> UnquoteExpression;
+        true -> classify_macro(source, sequence)
+    }.
 
 @pure
 classify_if(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "if {") -> IfExpression; true -> classify_unquote(source, sequence) }.
+    if {
+        String.starts_with(source, "if {") -> IfExpression;
+        true -> classify_unquote(source, sequence)
+    }.
 
 @pure
 classify_try(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "try ") -> TryExpression; true -> classify_if(source, sequence) }.
+    if {
+        String.starts_with(source, "try ") -> TryExpression;
+        true -> classify_if(source, sequence)
+    }.
 
 @pure
 classify_case(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "case ") -> CaseExpression; true -> classify_try(source, sequence) }.
+    if {
+        String.starts_with(source, "case ") -> CaseExpression;
+        true -> classify_try(source, sequence)
+    }.
 
 @pure
 classify_quote(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "quote ") -> QuoteExpression; true -> classify_case(source, sequence) }.
+    if {
+        String.starts_with(source, "quote ") -> QuoteExpression;
+        true -> classify_case(source, sequence)
+    }.
 
 @pure
 classify_lambda(source: String, sequence: List[String]): ExpressionClass ->
-    if { is_lambda(source) -> LambdaExpression; true -> classify_quote(source, sequence) }.
+    if {
+        is_lambda(source) -> LambdaExpression;
+        true -> classify_quote(source, sequence)
+    }.
 
 @pure
 classify_let(source: String, sequence: List[String]): ExpressionClass ->
-    if { String.starts_with(source, "let ") -> LetExpression; true -> classify_lambda(source, sequence) }.
+    if {
+        String.starts_with(source, "let ") -> LetExpression;
+        true -> classify_lambda(source, sequence)
+    }.
 
 @pure
 classify(source: String): ExpressionClass ->
     let sequence = Delimited.split_top_level(source, 59);
-    if { is_refutable_let(source) -> RefutableLetExpression; true -> classify_let(source, sequence) }.
+    if {
+        is_refutable_let(source) -> RefutableLetExpression;
+        true -> classify_let(source, sequence)
+    }.
 
 @pure
 parts_comprehension(source: String, class: ExpressionClass): List[String] ->
-    if { class == ListComprehensionExpression -> Delimited.split_top_level(inner(source), 124); true -> List.new[String]() }.
+    if {
+        class == ListComprehensionExpression -> Delimited.split_top_level(inner(source), 124);
+        true -> List.new[String]()
+    }.
 
 @pure
 parts_cons(source: String, class: ExpressionClass): List[String] ->
-    if { class == ListConsExpression -> Delimited.split_top_level(inner(source), 124); true -> parts_comprehension(source, class) }.
+    if {
+        class == ListConsExpression -> Delimited.split_top_level(inner(source), 124);
+        true -> parts_comprehension(source, class)
+    }.
 
 @pure
 parts_list(source: String, class: ExpressionClass): List[String] ->
-    if { class == ListExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44)); true -> parts_cons(source, class) }.
+    if {
+        class == ListExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        true -> parts_cons(source, class)
+    }.
 
 @pure
 parts_map(source: String, class: ExpressionClass): List[String] ->
-    if { class == MapExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44)); true -> parts_list(source, class) }.
+    if {
+        class == MapExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        true -> parts_list(source, class)
+    }.
 
 @pure
 parts_tuple(source: String, class: ExpressionClass): List[String] ->
-    if { class == TupleExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44)); true -> parts_map(source, class) }.
+    if {
+        class == TupleExpression -> drop_terminal_empty(Delimited.split_top_level(inner(source), 44));
+        true -> parts_map(source, class)
+    }.
 
 @pure
 parts_for(source: String, class: ExpressionClass): List[String] ->
-    if { class == SequenceExpression -> drop_terminal_empty(Delimited.split_top_level(source, 59)); true -> parts_tuple(source, class) }.
+    if {
+        class == SequenceExpression -> drop_terminal_empty(Delimited.split_top_level(source, 59));
+        true -> parts_tuple(source, class)
+    }.
 
 @pure
 invalid(source: String, message: String): ExpressionParse ->
     ExpressionParse(false, ExpressionSyntax(InvalidExpression, source, List.new[String]()), message).
 
 @pure
-parse_comprehension(source: String, normalized: String, class: ExpressionClass, parts: List[String]): ExpressionParse ->
-    if { class == ListComprehensionExpression and List.length(parts) != 2 -> invalid(source, "list comprehension requires a value and qualifiers"); true -> ExpressionParse(true, ExpressionSyntax(class, normalized, parts), "") }.
+parse_comprehension(
+    source: String,
+    normalized: String,
+    class: ExpressionClass,
+    parts: List[String],
+): ExpressionParse ->
+    if {
+        class == ListComprehensionExpression and List.length(parts) != 2 -> invalid(source, "list comprehension requires a value and qualifiers");
+        true -> ExpressionParse(true, ExpressionSyntax(class, normalized, parts), "")
+    }.
 
 @pure
-parse_cons(source: String, normalized: String, class: ExpressionClass, parts: List[String]): ExpressionParse ->
-    if { class == ListConsExpression and List.length(parts) != 2 -> invalid(source, "list-cons expression requires one head and one tail"); true -> parse_comprehension(source, normalized, class, parts) }.
+parse_cons(
+    source: String,
+    normalized: String,
+    class: ExpressionClass,
+    parts: List[String],
+): ExpressionParse ->
+    if {
+        class == ListConsExpression and List.length(parts) != 2 -> invalid(source, "list-cons expression requires one head and one tail");
+        true -> parse_comprehension(source, normalized, class, parts)
+    }.
 
 @pure
-parse_tuple(source: String, normalized: String, class: ExpressionClass, parts: List[String]): ExpressionParse ->
-    if { class == TupleExpression and List.length(parts) < 2 -> invalid(source, "tuple expression requires at least two items"); true -> parse_cons(source, normalized, class, parts) }.
+parse_tuple(
+    source: String,
+    normalized: String,
+    class: ExpressionClass,
+    parts: List[String],
+): ExpressionParse ->
+    if {
+        class == TupleExpression and List.length(parts) < 2 -> invalid(source, "tuple expression requires at least two items");
+        true -> parse_cons(source, normalized, class, parts)
+    }.
 
 @pure
-parse_parts(source: String, normalized: String, class: ExpressionClass, parts: List[String]): ExpressionParse ->
-    if { not all_nonempty(parts) -> invalid(source, "expression contains an empty component"); true -> parse_tuple(source, normalized, class, parts) }.
+parse_parts(
+    source: String,
+    normalized: String,
+    class: ExpressionClass,
+    parts: List[String],
+): ExpressionParse ->
+    if {
+        not all_nonempty(parts) -> invalid(source, "expression contains an empty component");
+        true -> parse_tuple(source, normalized, class, parts)
+    }.
 
 @pure
-parse_class(source: String, normalized: String, class: ExpressionClass, parts: List[String]): ExpressionParse ->
-    if { class == InvalidExpression -> invalid(source, "braced expression must be a tuple or keyed map"); true -> parse_parts(source, normalized, class, parts) }.
+parse_class(
+    source: String,
+    normalized: String,
+    class: ExpressionClass,
+    parts: List[String],
+): ExpressionParse ->
+    if {
+        class == InvalidExpression -> invalid(source, "braced expression must be a tuple or keyed map");
+        true -> parse_parts(source, normalized, class, parts)
+    }.
 
 @pure
-parse_balanced(source: String, normalized: String, class: ExpressionClass, parts: List[String]): ExpressionParse ->
-    if { not Delimited.balanced(normalized) -> invalid(source, "expression has unbalanced delimiters"); true -> parse_class(source, normalized, class, parts) }.
+parse_balanced(
+    source: String,
+    normalized: String,
+    class: ExpressionClass,
+    parts: List[String],
+): ExpressionParse ->
+    if {
+        not Delimited.balanced(normalized) -> invalid(source, "expression has unbalanced delimiters");
+        true -> parse_class(source, normalized, class, parts)
+    }.
 
-/** Parses one complete expression and preserves immediate precedence components. */
+/**
+ * Parses one complete expression and preserves immediate precedence components.
+ */
 @pure
 pub parse(source: String): ExpressionParse ->
     let normalized = String.trim(source);
     let class = classify(normalized);
     let parts = parts_for(normalized, class);
-    if { normalized == "" -> invalid(source, "expression is empty"); true -> parse_balanced(source, normalized, class, parts) }.
+    if {
+        normalized == "" -> invalid(source, "expression is empty");
+        true -> parse_balanced(source, normalized, class, parts)
+    }.

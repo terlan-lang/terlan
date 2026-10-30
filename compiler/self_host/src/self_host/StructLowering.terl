@@ -299,7 +299,7 @@ struct_fields(field_text: String, body_valid: Bool): List[StructFieldSyntax] ->
 struct_message_after_fields(fields: List[StructFieldSyntax], duplicate_field: String): String ->
     if {
         not fields_valid(fields) -> first_error(fields);
-        duplicate_field != "" -> String.concat(["duplicate field \`", duplicate_field, "\` in struct declaration"]);
+        duplicate_field != "" -> String.concat(["duplicate field `", duplicate_field, "` in struct declaration"]);
         true -> ""
     }.
 

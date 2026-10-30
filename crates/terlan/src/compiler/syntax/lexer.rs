@@ -220,6 +220,15 @@ pub fn lex(input: &str) -> Result<Vec<Token>, Vec<LexError>> {
         if ch == '"' {
             match parse_string(&chars, i) {
                 Some((text, end)) => {
+                    if let Some(invalid) =
+                        super::string_interpolation::invalid_escape(&chars, i, end)
+                    {
+                        errors.push(LexError {
+                            message: "unsupported string escape".to_string(),
+                            span: byte_span(&byte_offsets, invalid, (invalid + 2).min(chars.len())),
+                        });
+                        break;
+                    }
                     tokens.push(Token::new(
                         TokenKind::String,
                         text,

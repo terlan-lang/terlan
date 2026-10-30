@@ -4,6 +4,31 @@ use super::parse_tree::Expr;
 
 const MAX_NESTING: usize = 128;
 
+/// Returns the first backslash whose escape is not part of Terlan's
+/// source-string contract.
+pub(super) fn invalid_escape(chars: &[char], start: usize, end: usize) -> Option<usize> {
+    let mut index = start.saturating_add(1);
+    while index + 1 < end {
+        if chars[index] != '\\' {
+            index += 1;
+            continue;
+        }
+        match chars[index + 1] {
+            '"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't' => index += 2,
+            '$' if chars.get(index + 2) == Some(&'{') => index += 2,
+            'u' if index + 6 <= end.saturating_sub(1)
+                && chars[index + 2..index + 6]
+                    .iter()
+                    .all(|digit| digit.is_ascii_hexdigit()) =>
+            {
+                index += 6;
+            }
+            _ => return Some(index),
+        }
+    }
+    None
+}
+
 /// Returns the exclusive end of a quoted string, including expression islands.
 pub(super) fn string_end(chars: &[char], start: usize, depth: usize) -> Option<usize> {
     if depth >= MAX_NESTING || chars.get(start) != Some(&'"') {
