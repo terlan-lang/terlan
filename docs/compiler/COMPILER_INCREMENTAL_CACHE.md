@@ -224,6 +224,37 @@ records its command and input hashes. This is one validator observation, not
 the cost of the full precommit suite. The hook now selects the already-built
 optimized compiler before invoking this validator.
 
+### Measured candidate-admission reuse: October 30, 2026
+
+Native application admission now projects each module's resolver identities,
+suspending names, and composable names once, then shares those immutable sets
+across the module's candidate functions. The previous implementation rebuilt
+the same sets inside per-candidate and diagnostic loops. This is an in-process
+analysis optimization; it does not weaken cache keys or skip frontend checks.
+
+The [retained observation](../../scripts/benchmarks/compilation/results/admission-environments-20261030.json)
+compares optimized compilers immediately before and after that change using the
+same 128-by-64 scalar and record/generic fixtures. One observation was taken per
+cell, so these figures are exploratory rather than release thresholds.
+
+| Workload | Phase | Before | After | Change |
+| --- | --- | ---: | ---: | ---: |
+| Scalar | Fresh build | 13.313 s | 10.344 s | -22.31% |
+| Scalar | Implementation edit | 12.030 s | 9.112 s | -24.25% |
+| Scalar | Public-interface edit | 12.205 s | 9.304 s | -23.77% |
+| Records/generics | Fresh build | 13.961 s | 11.079 s | -20.64% |
+| Records/generics | Implementation edit | 12.691 s | 9.779 s | -22.94% |
+| Records/generics | Public-interface edit | 13.121 s | 9.994 s | -23.83% |
+
+An instrumented scalar build reduced the native candidate fixed point from
+4.106 seconds to 1.203 seconds (70.70%) and the complete native AOT/artifact
+phase from 8.676 seconds to 5.783 seconds (33.35%). Warm build and typecheck
+times remained within about 3% in this single run. Both suites passed runtime
+output checks, byte-for-byte clean/incremental artifact parity, diagnostic
+parity, and repair checks. The after run began under higher reported host load;
+repeat with alternating multi-sample runs before treating these percentages as
+a stable guarantee.
+
 ### Rust bootstrap measurements
 
 Rust bootstrap and repository validation costs are separate from the Terlan

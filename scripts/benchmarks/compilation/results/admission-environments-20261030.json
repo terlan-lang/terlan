@@ -1,0 +1,62 @@
+{
+  "schema": "terlan.compilation-optimization.v1",
+  "date": "2026-10-30",
+  "change": "Reuse immutable module resolver projections during native application candidate admission.",
+  "scope": "One before/after observation per workload with the same 128-module, 64-function fixture, optimized compiler profile, standard library, native toolchain, and eight native build jobs.",
+  "reproduction": {
+    "command": "target/release/terlc run scripts/benchmarks/compilation/scripts/Suite.terls -- <compiler> <new-output-directory> 128 64 1",
+    "leaf_modules": 128,
+    "functions_per_leaf": 64,
+    "leaf_functions": 8192,
+    "build_jobs": 8,
+    "target": "x86_64-unknown-linux-gnu",
+    "backend": "cranelift-0.134.4"
+  },
+  "identities": {
+    "before_compiler_sha256": "3fdca8e57df64713d39cdfe6a41cb8ec2989c40bd7f8c82e0d5630b62b4666dc",
+    "after_compiler_sha256": "2f0a56d3d68b762c88e7df49fffa8949d159519171714348445116e9676b8b4c",
+    "initial_scalar_project_sha256": "dee821924f88c1ca1de5dfa898208ee36f806145a8173faf2fcbeac69af10f7e",
+    "stdlib_source_and_summary_sha256": "1b31599a4d7bd5b5597764a242163b0184d369a03fe1ff718fd74c67ccb1283a",
+    "after_application_source_sha256": "ee888af37031e10d43ae6029ed362ab0b7b4665c7fb370647a2eb8b9a9826ff4",
+    "after_analysis_source_sha256": "7efee03c7056fd51b4886e13f66c7019650840ec04570c8c5fe1a7ed209606c6"
+  },
+  "measurements": [
+    {"workload": "scalar-calls", "phase": "build-cold", "before_seconds": 13.313, "after_seconds": 10.344, "change_percent": -22.31},
+    {"workload": "scalar-calls", "phase": "build-warm", "before_seconds": 3.388, "after_seconds": 3.334, "change_percent": -1.60},
+    {"workload": "scalar-calls", "phase": "implementation-edit", "before_seconds": 12.030, "after_seconds": 9.112, "change_percent": -24.25},
+    {"workload": "scalar-calls", "phase": "public-interface-edit", "before_seconds": 12.205, "after_seconds": 9.304, "change_percent": -23.77},
+    {"workload": "scalar-calls", "phase": "check-cold", "before_seconds": 13.041, "after_seconds": 13.197, "change_percent": 1.20},
+    {"workload": "scalar-calls", "phase": "check-warm", "before_seconds": 0.862, "after_seconds": 0.858, "change_percent": -0.53},
+    {"workload": "records-generics", "phase": "build-cold", "before_seconds": 13.961, "after_seconds": 11.079, "change_percent": -20.64},
+    {"workload": "records-generics", "phase": "build-warm", "before_seconds": 3.429, "after_seconds": 3.484, "change_percent": 1.60},
+    {"workload": "records-generics", "phase": "implementation-edit", "before_seconds": 12.691, "after_seconds": 9.779, "change_percent": -22.94},
+    {"workload": "records-generics", "phase": "public-interface-edit", "before_seconds": 13.121, "after_seconds": 9.994, "change_percent": -23.83},
+    {"workload": "records-generics", "phase": "check-cold", "before_seconds": 13.410, "after_seconds": 13.503, "change_percent": 0.69},
+    {"workload": "records-generics", "phase": "check-warm", "before_seconds": 0.878, "after_seconds": 0.903, "change_percent": 2.85}
+  ],
+  "profile": {
+    "workload": "scalar-calls",
+    "candidate_fixed_point_before_ms": 4106,
+    "candidate_fixed_point_after_ms": 1203,
+    "candidate_fixed_point_change_percent": -70.70,
+    "application_aot_and_artifact_before_ms": 8676,
+    "application_aot_and_artifact_after_ms": 5783,
+    "application_aot_and_artifact_change_percent": -33.35,
+    "runtime_output": "8320"
+  },
+  "correctness": {
+    "suite_passed_before": true,
+    "suite_passed_after": true,
+    "runtime_output_checked": true,
+    "clean_incremental_artifact_bytes_equal": true,
+    "clean_incremental_diagnostics_equal": true,
+    "repair_check_passed": true
+  },
+  "host_observation": {
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12950HX",
+    "governor": "powersave",
+    "before_load_1m": 0.98,
+    "after_load_1m": 13.47
+  },
+  "limitations": "Each cell is one exploratory observation on a development workstation. The after run started under higher reported load. Reproduce with multiple alternating repetitions before treating the percentages as a stable performance guarantee."
+}

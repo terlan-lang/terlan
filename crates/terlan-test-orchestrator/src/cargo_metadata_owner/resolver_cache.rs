@@ -296,6 +296,37 @@ impl Observer<'_> {
                 )?;
                 self.covered.insert(path);
             }
+        } else if before.is_symlink() && matches!(policy, Contents::Manifests) {
+            let resolved = fs::canonicalize(&path).map_err(failure)?;
+            if !resolved.starts_with(root) || !resolved.is_file() {
+                return Err(failure(
+                    "Cargo resolver manifest links must resolve to files inside Cargo home",
+                ));
+            }
+            field(&mut self.digest, b"manifest-scan-link");
+            field(
+                &mut self.digest,
+                fs::read_link(&path)
+                    .map_err(failure)?
+                    .as_os_str()
+                    .as_encoded_bytes(),
+            );
+            field(&mut self.digest, resolved.as_os_str().as_encoded_bytes());
+            if manifest(relative) {
+                self.content_bytes += hash_file(
+                    &resolved,
+                    &mut self.digest,
+                    self.byte_limit.saturating_sub(self.content_bytes),
+                    self.control,
+                    self.started,
+                )?;
+                self.covered.insert(resolved);
+            }
+            if !same_file(&before, &fs::symlink_metadata(&path).map_err(failure)?) {
+                return Err(failure(
+                    "Cargo resolver manifest link changed during observation",
+                ));
+            }
         } else if before.is_symlink() && matches!(policy, Contents::Sources { .. }) {
             let resolved = fs::canonicalize(&path).map_err(failure)?;
             if !resolved.is_file() {

@@ -135,3 +135,59 @@ fn resolver_cache_rejects_nested_symlinks_and_binds_home_retargeting() {
     symlink(root.join("first"), root.join("second/registry/src/escape")).unwrap();
     assert!(observe(&selected, control(), MAX_ENTRIES, MAX_BYTES).is_err());
 }
+
+#[cfg(unix)]
+#[test]
+fn checkout_file_links_are_bound_without_hashing_non_manifest_contents() {
+    use std::os::unix::fs::symlink;
+    let fixture = temporary_fixture("resolver-cache-checkout-links");
+    let root = &fixture.0;
+    write(
+        root,
+        "git/checkouts/repository/revision/package/README.md",
+        "before",
+    );
+    write(
+        root,
+        "git/checkouts/repository/revision/package/Cargo.toml",
+        "before manifest",
+    );
+    symlink(
+        "package/README.md",
+        root.join("git/checkouts/repository/revision/README.md"),
+    )
+    .unwrap();
+    symlink(
+        "package/Cargo.toml",
+        root.join("git/checkouts/repository/revision/Cargo.toml"),
+    )
+    .unwrap();
+
+    let prior = capture(root);
+    write(
+        root,
+        "git/checkouts/repository/revision/package/README.md",
+        "after",
+    );
+    assert_eq!(
+        prior,
+        capture(root),
+        "non-manifest link contents are not Cargo metadata inputs"
+    );
+    write(
+        root,
+        "git/checkouts/repository/revision/package/Cargo.toml",
+        "after manifest",
+    );
+    assert_ne!(prior, capture(root));
+
+    let outside_fixture = temporary_fixture("resolver-cache-outside-link");
+    let outside = outside_fixture.0.join("outside-manifest");
+    fs::write(&outside, "outside").unwrap();
+    symlink(
+        &outside,
+        root.join("git/checkouts/repository/revision/outside-link"),
+    )
+    .unwrap();
+    assert!(observe(root, control(), MAX_ENTRIES, MAX_BYTES).is_err());
+}

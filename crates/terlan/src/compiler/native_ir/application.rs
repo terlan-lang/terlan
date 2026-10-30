@@ -390,21 +390,14 @@ impl NativeModule {
         let suspending = application_suspending(&candidates, &selected, &resolvers);
         let composable_candidates =
             application_composable_candidates(&candidates, &selected, &resolvers, &suspending);
+        let admission_environments =
+            candidate_admission_environments(&resolvers, &suspending, &composable_candidates);
         for (index, candidate) in candidates.iter().enumerate() {
             if !selected[index] {
                 continue;
             }
             let resolver = &resolvers[&candidate.core.module];
-            let identities = resolver
-                .keys()
-                .map(|(name, arity)| (name.as_str(), *arity))
-                .collect::<Vec<_>>();
-            let suspending_names = resolved_names(resolver, &suspending);
-            let composable = resolver
-                .iter()
-                .filter(|(_, candidate_index)| composable_candidates.contains(candidate_index))
-                .map(|(identity, _)| identity.clone())
-                .collect::<HashSet<_>>();
+            let environment = &admission_environments[candidate.core.module.as_str()];
             // Application composition is a fixed-point proof that every
             // reachable suspension has a closed continuation profile. A
             // candidate admitted by that proof may contain grouped-let
@@ -423,9 +416,9 @@ impl NativeModule {
                     );
                     expr_calls_are_supported(
                         &body,
-                        &identities,
-                        &suspending_names,
-                        &composable,
+                        &environment.identities,
+                        &environment.suspending,
+                        &environment.composable,
                         true,
                     ) || composable_candidates.contains(&index)
                 });
@@ -438,8 +431,8 @@ impl NativeModule {
                     .map(|body| {
                         super::call_composition::composable_suspension_gap_reason(
                             body,
-                            &suspending_names,
-                            &composable,
+                            &environment.suspending,
+                            &environment.composable,
                         )
                     })
                     .unwrap_or_else(|| "missing checked body".to_string());
@@ -454,8 +447,8 @@ impl NativeModule {
                         let identity = (function.to_string(), args.len());
                         call_membership.push((
                             identity.clone(),
-                            suspending_names.contains(&identity),
-                            composable.contains(&identity),
+                            environment.suspending.contains(&identity),
+                            environment.composable.contains(&identity),
                         ));
                     });
                 }
@@ -469,15 +462,8 @@ impl NativeModule {
                     .filter_map(|(identity, _, _)| {
                         let target_index = *resolver.get(identity)?;
                         let target = candidates.get(target_index)?;
-                        let target_resolver = &resolvers[&target.core.module];
-                        let target_suspending = resolved_names(target_resolver, &suspending);
-                        let target_composable = target_resolver
-                            .iter()
-                            .filter(|(_, candidate_index)| {
-                                composable_candidates.contains(candidate_index)
-                            })
-                            .map(|(identity, _)| identity.clone())
-                            .collect::<HashSet<_>>();
+                        let target_environment =
+                            &admission_environments[target.core.module.as_str()];
                         let target_body = target
                             .function
                             .clauses
@@ -485,16 +471,16 @@ impl NativeModule {
                             .and_then(|clause| clause.body.core_expr.as_ref())?;
                         let target_gap = super::call_composition::composable_suspension_gap_reason(
                             target_body,
-                            &target_suspending,
-                            &target_composable,
+                            &target_environment.suspending,
+                            &target_environment.composable,
                         );
                         let mut target_calls = Vec::new();
                         dynamic_targets::walk_calls(target_body, &mut |function, args| {
                             let called = (function.to_string(), args.len());
                             target_calls.push((
                                 called.clone(),
-                                target_suspending.contains(&called),
-                                target_composable.contains(&called),
+                                target_environment.suspending.contains(&called),
+                                target_environment.composable.contains(&called),
                             ));
                         });
                         target_calls.sort();
@@ -506,8 +492,9 @@ impl NativeModule {
                     })
                     .collect::<Vec<_>>();
                 return Err(format!(
-                        "error[native_ir.unsupported_application_function]: `{}.{}/{}` cannot be closed over the native application image; runtime CoreIR interpretation has been removed (gap={gap}; calls={call_membership:?}; blocked={blocked_details:?}; composable={composable:?})",
+                        "error[native_ir.unsupported_application_function]: `{}.{}/{}` cannot be closed over the native application image; runtime CoreIR interpretation has been removed (gap={gap}; calls={call_membership:?}; blocked={blocked_details:?}; composable={:?})",
                         candidate.core.module, candidate.function.name, candidate.function.arity,
+                        environment.composable,
                     ));
             }
         }

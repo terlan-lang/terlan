@@ -64,6 +64,10 @@ pub(super) fn application_composable_candidates(
     resolvers: &HashMap<String, HashMap<CallIdentity, usize>>,
     suspending: &HashSet<usize>,
 ) -> HashSet<usize> {
+    let suspending_names_by_module = resolvers
+        .iter()
+        .map(|(module, resolver)| (module.as_str(), resolved_names(resolver, suspending)))
+        .collect::<HashMap<_, _>>();
     let mut composable_candidates = HashSet::new();
     loop {
         let before = composable_candidates.len();
@@ -72,7 +76,7 @@ pub(super) fn application_composable_candidates(
                 continue;
             }
             let resolver = &resolvers[&candidate.core.module];
-            let suspending_names = resolved_names(resolver, suspending);
+            let suspending_names = &suspending_names_by_module[candidate.core.module.as_str()];
             let composable_names = resolver
                 .iter()
                 .filter(|(_, index)| composable_candidates.contains(*index))
@@ -86,7 +90,7 @@ pub(super) fn application_composable_candidates(
             else {
                 continue;
             };
-            if is_composable_suspending_body(body, &suspending_names, &composable_names) {
+            if is_composable_suspending_body(body, suspending_names, &composable_names) {
                 composable_candidates.insert(candidate_index);
             }
         }
@@ -94,7 +98,7 @@ pub(super) fn application_composable_candidates(
             candidates,
             selected,
             resolvers,
-            suspending,
+            &suspending_names_by_module,
             &mut composable_candidates,
         );
         if composable_candidates.len() == before {
@@ -163,7 +167,7 @@ pub(super) fn admit_recursive_reduction_components(
     candidates: &[Candidate<'_>],
     selected: &[bool],
     resolvers: &HashMap<String, HashMap<CallIdentity, usize>>,
-    suspending: &HashSet<usize>,
+    suspending_names_by_module: &HashMap<&str, HashSet<CallIdentity>>,
     composable: &mut HashSet<usize>,
 ) {
     for candidate_index in 0..candidates.len() {
@@ -188,7 +192,7 @@ pub(super) fn admit_recursive_reduction_components(
                 return false;
             };
             let resolver = &resolvers[&member.core.module];
-            let suspending_names = resolved_names(resolver, suspending);
+            let suspending_names = &suspending_names_by_module[member.core.module.as_str()];
             let mut composable_names = resolver
                 .iter()
                 .filter(|(_, index)| composable.contains(*index) || members.contains(index))
@@ -198,12 +202,50 @@ pub(super) fn admit_recursive_reduction_components(
                 let function = &candidates[*index].function;
                 (function.name.clone(), function.arity)
             }));
-            is_composable_suspending_body(body, &suspending_names, &composable_names)
+            is_composable_suspending_body(body, suspending_names, &composable_names)
         });
         if admitted {
             composable.extend(members);
         }
     }
+}
+
+/// Resolver projections shared by every candidate declared in one module.
+pub(super) struct CandidateAdmissionEnvironment<'a> {
+    pub(super) identities: Vec<(&'a str, usize)>,
+    pub(super) suspending: HashSet<CallIdentity>,
+    pub(super) composable: HashSet<CallIdentity>,
+}
+
+/// Projects immutable candidate-admission inputs once per application module.
+pub(super) fn candidate_admission_environments<'a>(
+    resolvers: &'a HashMap<String, HashMap<CallIdentity, usize>>,
+    suspending: &HashSet<usize>,
+    composable: &HashSet<usize>,
+) -> HashMap<&'a str, CandidateAdmissionEnvironment<'a>> {
+    resolvers
+        .iter()
+        .map(|(module, resolver)| {
+            let identities = resolver
+                .keys()
+                .map(|(name, arity)| (name.as_str(), *arity))
+                .collect();
+            let suspending = resolved_names(resolver, suspending);
+            let composable = resolver
+                .iter()
+                .filter(|(_, candidate)| composable.contains(candidate))
+                .map(|(identity, _)| identity.clone())
+                .collect();
+            (
+                module.as_str(),
+                CandidateAdmissionEnvironment {
+                    identities,
+                    suspending,
+                    composable,
+                },
+            )
+        })
+        .collect()
 }
 
 pub(super) fn recursive_reduction_profile(
