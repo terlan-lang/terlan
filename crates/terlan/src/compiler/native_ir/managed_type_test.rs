@@ -174,6 +174,52 @@ fn managed_core_types_map_to_closed_pointer_width_native_kinds() {
         Some(NativeType::ManagedRef(request_expected))
     );
 
+    let concrete_application = CoreType::Apply {
+        constructor: "sample.Transition".to_string(),
+        args: vec![
+            CoreType::Struct {
+                name: "sample.State".to_string(),
+                fields: vec![],
+            },
+            CoreType::Struct {
+                name: "sample.Observation".to_string(),
+                fields: vec![],
+            },
+        ],
+    };
+    let application_expected = SemanticTypeId::from_canonical(
+        &super::super::expression::managed_semantic_contract(&concrete_application),
+    )
+    .expect("concrete generic nominal semantic type");
+    assert_eq!(
+        super::super::native_type(
+            Some(&concrete_application),
+            &concrete_application.contract_text(),
+        ),
+        Some(NativeType::ManagedRef(application_expected))
+    );
+    let open_application = CoreType::Apply {
+        constructor: "sample.Transition".to_string(),
+        args: vec![CoreType::Named("State".to_string())],
+    };
+    assert_eq!(
+        super::super::native_type(Some(&open_application), &open_application.contract_text()),
+        None,
+        "an unresolved generic argument must not manufacture a managed identity",
+    );
+    let unqualified_application = CoreType::Apply {
+        constructor: "Transition".to_string(),
+        args: vec![CoreType::Int],
+    };
+    assert_eq!(
+        super::super::native_type(
+            Some(&unqualified_application),
+            &unqualified_application.contract_text(),
+        ),
+        None,
+        "an unqualified nominal application has no authoritative layout owner",
+    );
+
     for (name, physical) in [
         ("std.http.Cookies.Jar", "std.http.Cookies.Jar"),
         ("std.http.Session.Session", "std.http.Session.Session"),

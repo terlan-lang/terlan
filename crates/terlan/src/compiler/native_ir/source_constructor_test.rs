@@ -681,6 +681,36 @@ pub check(): Bool -> Items[Entry](Entry(value = 42)).length() == 1.
 }
 
 #[test]
+fn result_recursively_registers_concrete_generic_nominal_payload() {
+    check_sources(&[
+        r#"
+module generic_result_payload.
+import std.core.Result.{Ok}.
+import type std.core.Result.{Result}.
+pub struct Transition[State, Observation] {
+    state: State,
+    observation: Observation,
+}.
+pub constructor Transition[State, Observation] {
+    (state: State, observation: Observation): Transition[State, Observation] ->
+        Transition {state: state, observation: observation}
+}.
+pub struct State { count: Int }.
+pub struct Observation { value: Int }.
+produce(): Result[Transition[State, Observation], Int] ->
+    Ok(Transition(State {count: 1}, Observation {value: 2})).
+pub check(): Bool ->
+    case produce() {
+        Ok(transition) ->
+            transition.state.count == 1 and transition.observation.value == 2;
+        _ -> false
+    }.
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
 fn provider_local_intrinsic_calls_use_the_registered_operation() {
     check_source(
         r#"

@@ -113,6 +113,17 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
         {
             managed_reference_type(core)
         }
+        // Generic nominal structs are retained as concrete layouts before
+        // native admission. Their checked uses remain `Apply` nodes, including
+        // when transparent Option/Result aliases expose them as nested union
+        // payloads. Admit only qualified applications whose complete argument
+        // graph is closed; unqualified/open applications must still fail rather
+        // than manufacturing a managed identity without a concrete layout.
+        Some(core @ CoreType::Apply { constructor, args })
+            if constructor.contains('.') && args.iter().all(closed_managed_type) =>
+        {
+            managed_reference_type(core)
+        }
         None if text == "Unit" => Some(NativeType::Unit),
         None if text == "Int" => Some(NativeType::Int),
         None if text == "Float" => Some(NativeType::Float),
@@ -130,6 +141,60 @@ pub(crate) fn native_type(core: Option<&CoreType>, text: &str) -> Option<NativeT
             Some(NativeType::BinaryRef)
         }
         _ => None,
+    }
+}
+
+fn closed_managed_type(core: &CoreType) -> bool {
+    match core {
+        CoreType::Int
+        | CoreType::Float
+        | CoreType::String
+        | CoreType::Binary
+        | CoreType::Atom
+        | CoreType::Bool
+        | CoreType::Never
+        | CoreType::AtomLiteral(_) => true,
+        CoreType::Number | CoreType::Term | CoreType::Dynamic => false,
+        CoreType::Named(name) => {
+            name.contains('.')
+                || name.starts_with('$')
+                || matches!(
+                    name.as_str(),
+                    "Unit"
+                        | "Bytes"
+                        | "Binary"
+                        | "BitString"
+                        | "Error"
+                        | "Timer"
+                        | "ExitReason"
+                        | "SchedulingClass"
+                )
+        }
+        CoreType::Apply { constructor, args } => {
+            (constructor.contains('.')
+                || scalar_types::managed_aggregate_constructor(constructor)
+                || matches!(
+                    constructor.rsplit('.').next(),
+                    Some("Process" | "Message" | "Entry" | "Monitor" | "ResourceKind" | "Resource")
+                ))
+                && args.iter().all(closed_managed_type)
+        }
+        CoreType::List(element) => closed_managed_type(element),
+        CoreType::Tuple(elements) => elements.iter().all(|element| match element {
+            CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => {
+                closed_managed_type(ty)
+            }
+        }),
+        CoreType::Struct { name, fields } => {
+            (name.contains('.') || name.starts_with("Apply("))
+                && fields.iter().all(|field| closed_managed_type(&field.ty))
+        }
+        CoreType::Map(fields) => fields.iter().all(|field| closed_managed_type(&field.value)),
+        CoreType::Arrow {
+            params,
+            return_type,
+        } => params.iter().all(closed_managed_type) && closed_managed_type(return_type),
+        CoreType::Union(variants) => variants.iter().all(closed_managed_type),
     }
 }
 
