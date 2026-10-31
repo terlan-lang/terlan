@@ -18,7 +18,7 @@ import std.vm.Process.{exit_reason}.
 import type std.core.Option.
 import type std.data.Json.
 import type std.io.File.{FileTimestamps, TextFile}.
-import type std.system.Process.{EnvironmentEntry}.
+import type std.system.Process.{EnvironmentEntry, Output}.
 
 struct Lane {
     name: String,
@@ -284,7 +284,7 @@ run_command(
     repository: String,
     arguments: List[String],
     environment: List[EnvironmentEntry],
-): Option[std.system.Process.Output] ->
+): Option[Output] ->
     let base = Process.with_arguments(Process.command("cargo"), arguments);
     let working = Process.with_working_directory(base, repository);
     let limits = Process.limits();
@@ -296,6 +296,40 @@ run_command(
     case Process.run(configured) {
         Ok(output) -> Some(output);
         Err(_reason) -> None
+    }.
+
+report_command_failure(label: String, output: Option[Output]): Bool ->
+    case output {
+        Some(value) ->
+            let _status =
+                eprintln(
+                    String.concat(
+                        [
+                            "Build artifact command failed: ",
+                            label,
+                            " exited with status ",
+                            Int.to_string(value.status),
+                        ],
+                    ),
+                );
+            let error = String.trim(value.stderr);
+            if {
+                error == "" -> false;
+                true -> let _error = eprintln(error);
+                false
+            };
+        None ->
+            let _missing =
+                eprintln(
+                    String.concat(
+                        [
+                            "Build artifact command failed: ",
+                            label,
+                            " did not return bounded process output",
+                        ],
+                    ),
+                );
+            false
     }.
 
 invalidated_count(text: String): Int ->
@@ -754,7 +788,8 @@ measure_preserved(
             clean_finished,
             lane_set,
         );
-        true -> let _cleaned = cleanup_failed_measurement(repository, temporary);
+        true -> let _reported = report_command_failure("initial cargo clean", cleaned);
+        let _cleaned = cleanup_failed_measurement(repository, temporary);
         None
     }.
 
@@ -764,6 +799,11 @@ cleanup_failed_measurement(repository: String, temporary: String): Bool ->
         case cleaned {
             Some(output) -> output.status == 0;
             None -> false
+        };
+    let _reported =
+        if {
+            cargo_cleaned -> true;
+            true -> report_command_failure("cleanup cargo clean", cleaned)
         };
     let restored = restore_quality(repository, temporary);
     cargo_cleaned and restored.

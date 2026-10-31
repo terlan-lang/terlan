@@ -5487,6 +5487,7 @@ release-control-check: | terlan-release-control-bootstrap
 publish: publish-source-preflight
 	@test "$$(git branch --show-current)" = main || { echo 'publish requires main' >&2; exit 1; }
 	@test "$(VERSION)" = "$(RELEASE_VERSION)" || { echo 'VERSION must match workspace.package.version' >&2; exit 1; }
+	bash scripts/publication_process_preflight.sh "$(CURDIR)"
 	@set -eu; \
 	case "$${MAKEFLAGS%% *}" in *n*) $(MAKE) --no-print-directory -n publish-local VERSION="$(VERSION)" PUBLISH_REVISION="$$(git rev-parse HEAD)"; exit ;; esac; \
 	test ! -L target && test ! -L target/quality; \
@@ -5508,6 +5509,7 @@ publish-local-check:
 	TERLAN_TEST_PHASE_TIMEOUT_SECONDS=3600 $(MAKE) --no-print-directory release-candidate-check
 	$(MAKE) --no-print-directory tvm-aot-platform-target-check tvm-aot-thread-sanitizer-check vm-multicore-thread-sanitizer-check release-control-check
 	bash scripts/git_hooks_test.sh
+	bash scripts/publication_process_preflight_test.sh
 	bash scripts/publish_command_test.sh "$(CURDIR)/$(TERLAN_BOOTSTRAP_VM)" "$(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE)"
 	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/git_hooks/src/git_hooks/PlanTest.terl
 	go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml

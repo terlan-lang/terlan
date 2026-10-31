@@ -18,6 +18,8 @@ for mode in ready failed dirty staged untracked drift head-drift version dry-run
     printf '/target/\n' > .gitignore
     printf '[workspace.package]\nversion = "0.0.9"\n' > Cargo.toml
     printf 'SHELL := /bin/bash\nRELEASE_VERSION := 0.0.9\nTERLAN_RELEASE_CONTROL := bash submit.sh\n' > Makefile
+    mkdir -p scripts
+    cp "$root/scripts/publication_process_preflight.sh" scripts/
     awk '/^publish-source-preflight:/ { active=1 } active && /^# Network\/tag/ { exit } active { print }' "$root/Makefile" >> Makefile
     awk '/^\.PHONY: publish publish-local / { active=1 } active && /^publish-local-check:/ { exit } active { print }' "$root/Makefile" >> Makefile
     cat >> Makefile <<'MAKE'

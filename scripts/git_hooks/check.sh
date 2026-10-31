@@ -82,6 +82,7 @@ echo 'pre-commit: hook policy and snapshot regression tests'
 "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
 bash scripts/git_hooks_test.sh
 bash scripts/git_commit_message_test.sh
+bash scripts/publication_process_preflight_test.sh
 node scripts/git_hooks/cache_test.cjs
 TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh
 while IFS= read -r lane; do
