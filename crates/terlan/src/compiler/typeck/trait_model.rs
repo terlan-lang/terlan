@@ -398,7 +398,7 @@ pub(super) fn collect_syntax_trait_method_calls(
 /// - No direct return value.
 ///
 /// Transformation:
-/// - Reads public provider `ModuleInterface::trait_conformances`, keeps only
+/// - Reads public conformances from every loaded provider interface, keeps only
 ///   facts for selected imported traits, rewrites the trait head to the local
 ///   import name, and reuses the existing candidate specialization machinery.
 fn collect_imported_interface_trait_method_calls(
@@ -409,47 +409,48 @@ fn collect_imported_interface_trait_method_calls(
     inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
 ) {
     for imported in resolved.imported_traits.values() {
-        let Some(interface) = resolved.interface_map.get(&imported.source_module) else {
-            continue;
-        };
-
-        for conformance in &interface.trait_conformances {
-            if !conformance.public || conformance.is_negative {
-                continue;
+        let canonical_trait = format!("{}.{}", imported.source_module, imported.source_name);
+        for (provider_module, interface) in &resolved.interface_map {
+            for conformance in &interface.trait_conformances {
+                if !conformance.public || conformance.is_negative {
+                    continue;
+                }
+                let Some(mut implemented_trait) =
+                    parse_trait_instance_from_text(&conformance.trait_ref)
+                else {
+                    continue;
+                };
+                let provider_local_trait = provider_module == &imported.source_module
+                    && implemented_trait.name == imported.source_name;
+                if !provider_local_trait && implemented_trait.name != canonical_trait {
+                    continue;
+                }
+                implemented_trait.name = imported.local_name.clone();
+                implemented_trait.type_args = qualify_interface_trait_type_args(
+                    &implemented_trait.type_args,
+                    interface,
+                    &resolved.interface_map,
+                );
+                let for_type = qualify_interface_trait_type_text(
+                    &conformance.for_type,
+                    interface,
+                    &resolved.interface_map,
+                )
+                .unwrap_or_else(|| conformance.for_type.clone());
+                collect_trait_method_candidates(
+                    methods,
+                    &ParsedTraitImpl {
+                        target: implemented_trait,
+                        generic_params: conformance.generic_params.clone(),
+                        for_type: Some(for_type),
+                        methods: Vec::new(),
+                    },
+                    &imported.local_name,
+                    trait_signatures,
+                    alias_names,
+                    inheritance_cache,
+                );
             }
-            let Some(mut implemented_trait) =
-                parse_trait_instance_from_text(&conformance.trait_ref)
-            else {
-                continue;
-            };
-            if implemented_trait.name != imported.source_name {
-                continue;
-            }
-            implemented_trait.name = imported.local_name.clone();
-            implemented_trait.type_args = qualify_interface_trait_type_args(
-                &implemented_trait.type_args,
-                interface,
-                &resolved.interface_map,
-            );
-            let for_type = qualify_interface_trait_type_text(
-                &conformance.for_type,
-                interface,
-                &resolved.interface_map,
-            )
-            .unwrap_or_else(|| conformance.for_type.clone());
-            collect_trait_method_candidates(
-                methods,
-                &ParsedTraitImpl {
-                    target: implemented_trait,
-                    generic_params: conformance.generic_params.clone(),
-                    for_type: Some(for_type),
-                    methods: Vec::new(),
-                },
-                &imported.local_name,
-                trait_signatures,
-                alias_names,
-                inheritance_cache,
-            );
         }
     }
 }

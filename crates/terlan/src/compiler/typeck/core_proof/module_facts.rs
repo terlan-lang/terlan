@@ -147,61 +147,38 @@ pub(crate) fn merge_core_imports(imports: &mut Vec<CoreImport>, extra: Vec<CoreI
 /// Collects source trait conformance facts into deterministic CoreIR summaries.
 ///
 /// Inputs:
-/// - `module`: compiler-facing syntax output.
+/// - `resolved`: resolved module whose interface contains canonical identities.
 ///
 /// Output:
 /// - Sorted, deduplicated Core trait conformance summaries.
 ///
 /// Transformation:
-/// - Converts declaration-site `implements` and explicit `impl Trait for Type`
-///   blocks into backend-neutral conformance facts while preserving source
-///   category and visibility. Struct `includes` is not included because it is
-///   struct-to-struct shape inclusion, not trait conformance.
+/// - Converts checked interface conformances into backend-neutral facts while
+///   preserving canonical imported trait identities, source category, and
+///   visibility. Negative facts remain type-checking evidence and are omitted
+///   because they have no executable implementation body.
 pub(crate) fn core_syntax_trait_conformances(
-    module: &SyntaxModuleOutput,
+    resolved: &ResolvedModule,
 ) -> Vec<CoreTraitConformance> {
-    let mut conformances = Vec::new();
-
-    for declaration in &module.declarations {
-        match &declaration.payload {
-            SyntaxDeclarationPayload::Type {
-                name,
-                is_public,
-                implements,
-                ..
-            }
-            | SyntaxDeclarationPayload::Struct {
-                name,
-                is_public,
-                implements,
-                ..
-            } => {
-                conformances.extend(implements.iter().map(|trait_ref| CoreTraitConformance {
-                    trait_ref: normalize_trait_type_text(&trait_ref.text),
-                    for_type: name.clone(),
-                    source: CoreTraitConformanceSource::Implements,
-                    public: *is_public,
-                }));
-            }
-            _ => {}
-        }
-
-        if let SyntaxDeclarationPayload::TraitImpl {
-            trait_ref,
-            for_type,
-            is_negative: false,
-            is_public,
-            ..
-        } = &declaration.payload
-        {
-            conformances.push(CoreTraitConformance {
-                trait_ref: normalize_trait_type_text(&trait_ref.text),
-                for_type: normalize_trait_type_text(&for_type.text),
-                source: CoreTraitConformanceSource::ExplicitImpl,
-                public: *is_public,
-            });
-        }
-    }
+    let mut conformances = resolved
+        .interface
+        .trait_conformances
+        .iter()
+        .filter(|conformance| !conformance.is_negative)
+        .map(|conformance| CoreTraitConformance {
+            trait_ref: normalize_trait_type_text(&conformance.trait_ref),
+            for_type: normalize_trait_type_text(&conformance.for_type),
+            source: match conformance.source {
+                crate::terlan_hir::TraitConformanceSource::Implements => {
+                    CoreTraitConformanceSource::Implements
+                }
+                crate::terlan_hir::TraitConformanceSource::ExplicitImpl => {
+                    CoreTraitConformanceSource::ExplicitImpl
+                }
+            },
+            public: conformance.public,
+        })
+        .collect::<Vec<_>>();
 
     conformances.sort_by(|left, right| {
         left.trait_ref

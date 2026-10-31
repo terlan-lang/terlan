@@ -198,7 +198,7 @@ pub fn lower_syntax_module_output_to_core(
         core_resolved_executable_modules(module, resolved),
     );
     merge_core_imports(&mut core.imports, core_resolved_imported_modules(resolved));
-    core.trait_conformances = core_syntax_trait_conformances(module);
+    core.trait_conformances = core_syntax_trait_conformances(resolved);
     let syntax_types = core_syntax_type_representations(module);
     for type_decl in &mut core.types {
         if let Some((params, core_body)) = syntax_types.get(&type_decl.name) {

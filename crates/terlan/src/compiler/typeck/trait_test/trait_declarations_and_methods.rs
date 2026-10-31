@@ -502,6 +502,50 @@ pub (worker: Worker) start(): Worker ->\n\
     );
 }
 
+/// Public declaration-site conformances may live in a module other than the
+/// module defining their traits. Consumers must discover both conformances
+/// through imported interface metadata for direct dispatch and generic bounds.
+#[test]
+pub(super) fn syntax_output_resolves_cross_provider_declaration_site_conformances() {
+    let contract = "\
+module multi.Contract.\n\
+pub trait First[T] {\n\
+    first(value: T): Int.\n\
+}.\n\
+pub trait Second[T] {\n\
+    second(value: T, increment: Int): Int.\n\
+}.\n";
+    let value = "\
+module multi.Value.\n\
+import type multi.Contract.{First, Second}.\n\
+pub struct Value implements First[Value], Second[Value] {\n\
+    number: Int\n\
+}.\n\
+pub constructor Value {\n\
+    (number: Int): Value -> Value {number: number}\n\
+}.\n\
+pub (value: Value) first(): Int -> value.number.\n\
+pub (value: Value) second(increment: Int): Int -> value.number + increment.\n";
+    let diagnostics = check_syntax_output_with_interfaces(
+        "\
+module multi.Consumer.\n\
+import multi.Contract.{First, Second}.\n\
+import multi.Value.{Value}.\n\
+call_first[T](value: T)[First[T]]: Int -> First.first(value).\n\
+call_second[T](value: T, increment: Int)[Second[T]]: Int ->\n\
+    Second.second(value, increment).\n\
+pub verify(): Bool ->\n\
+    let value = Value(4);\n\
+    First.first(value) == 4\n\
+        and Second.second(value, 3) == 7\n\
+        and call_first(value) == 4\n\
+        and call_second(value, 3) == 7.\n",
+        &[contract, value],
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+}
+
 #[test]
 pub(super) fn syntax_output_accepts_std_vm_gen_server_source_policy() {
     let diagnostics = check_syntax_output_with_std_interfaces(

@@ -560,6 +560,42 @@ pub explicit(value: Int): Int -> Rating[Int].score(value).
     );
 }
 
+/// Imported declaration-site conformances remain executable across providers.
+#[test]
+fn imported_declaration_site_traits_dispatch_and_satisfy_bounds() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module multi.Consumer.
+import multi.Contract.{First, Second}.
+import multi.Value.{Value}.
+call_first[T](value: T)[First[T]]: Int -> First.first(value).
+call_second[T](value: T, increment: Int)[Second[T]]: Int ->
+    Second.second(value, increment).
+pub check(): Bool ->
+    let value = Value(4);
+    value.first() == 4
+        and value.second(3) == 7
+        and First.first(value) == 4
+        and Second.second(value, 3) == 7
+        and call_first(value) == 4
+        and call_second(value, 3) == 7.
+"#,
+        r#"
+module multi.Contract.
+pub trait First[T] { first(value: T): Int. }.
+pub trait Second[T] { second(value: T, increment: Int): Int. }.
+"#,
+        r#"
+module multi.Value.
+import type multi.Contract.{First, Second}.
+pub struct Value implements First[Value], Second[Value] { number: Int }.
+pub constructor Value { (number: Int): Value -> Value {number: number} }.
+pub (value: Value) first(): Int -> value.number.
+pub (value: Value) second(increment: Int): Int -> value.number + increment.
+"#,
+    ]);
+}
+
 /// Selecting a trait template must not bypass its generic argument constraints.
 #[test]
 fn explicit_generic_trait_method_checks_arguments_during_specialization() {
