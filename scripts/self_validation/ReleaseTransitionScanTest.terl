@@ -7,7 +7,7 @@ import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.io.Console.{eprintln}.
-import std.io.Directory.{create_temporary, files_recursive, remove_all}.
+import std.io.Directory.{create_all, create_temporary, files_recursive_excluding, remove_all}.
 import std.io.File.{read_bytes, read_text, read_text_many, read_text_tree_matching, write_text}.
 import std.vm.Bytes.{from_list}.
 
@@ -26,7 +26,7 @@ diagnostic_roots_hold(roots: List[String]): Bool ->
     }.
 
 diagnostic_root_holds(root: String): Bool ->
-    case files_recursive(root) {
+    case files_recursive_excluding(root, generated_directory_names()) {
         Ok(files) -> diagnostic_files_hold(files);
         Err(_reason) ->
             let _reported = eprintln(String.append("release transition scan could not traverse ", root));
@@ -216,10 +216,14 @@ runtime_marker_contract(): Bool ->
     }.
 
 root_holds(root: String): Bool ->
-    case files_recursive(root) {
+    case files_recursive_excluding(root, generated_directory_names()) {
         Ok(files) -> files_hold(files);
         _ -> false
     }.
+
+@pure
+generated_directory_names(): List[String] ->
+    [".git", ".terlan", "_build", "node_modules", "target"].
 
 files_hold(files: List[String]): Bool ->
     case files {
@@ -294,6 +298,22 @@ fixture_accepted(name: String, contents: String): Bool ->
         _ -> false
     }.
 
+generated_fixture_is_pruned(directory: String, name: String, contents: String): Bool ->
+    case create_temporary("terlan-transition-scan") {
+        Ok(root) ->
+            let generated = child(root, directory);
+            let created = create_all(generated);
+            let written = write_text(child(generated, name), contents);
+            let accepted =
+                case {created, written} {
+                    {Ok(Unit), Ok(Unit)} -> root_holds(root);
+                    _ -> false
+                };
+            let cleaned = remove_succeeds(root);
+            accepted and cleaned;
+        _ -> false
+    }.
+
 remove_succeeds(path: String): Bool ->
     case remove_all(path) {
         Ok(Unit) -> true;
@@ -319,6 +339,10 @@ pub clean_binary_candidate_is_accepted(): Bool ->
 @test
 pub clean_array_json_candidate_is_accepted(): Bool ->
     fixture_accepted("compile_commands.json", "[{\"safe\":true}]").
+
+@test
+pub generated_dependency_tree_is_pruned(): Bool ->
+    generated_fixture_is_pruned("node_modules", "legacy.vmir", "opaque").
 
 @test
 pub retired_filename_is_rejected(): Bool ->
