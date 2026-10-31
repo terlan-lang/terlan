@@ -354,6 +354,8 @@ pub(super) fn collect_syntax_trait_method_calls(
     let mut methods: HashMap<(String, String), Vec<ResolvedTraitMethod>> = HashMap::new();
     let mut inheritance_cache: HashMap<String, Option<HashMap<String, TraitMethodSignature>>> =
         HashMap::new();
+    let imported_type_refs =
+        imported_type_text_refs(&imported_type_names_for_module(module, resolved));
 
     seed_syntax_trait_method_call_keys(trait_signatures, &mut methods, &mut inheritance_cache);
     collect_syntax_declared_implements_trait_method_calls(
@@ -361,6 +363,7 @@ pub(super) fn collect_syntax_trait_method_calls(
         &mut methods,
         trait_signatures,
         alias_names,
+        &imported_type_refs,
         &mut inheritance_cache,
     );
     collect_syntax_explicit_trait_method_calls(
@@ -368,7 +371,7 @@ pub(super) fn collect_syntax_trait_method_calls(
         &mut methods,
         trait_signatures,
         alias_names,
-        &imported_type_text_refs(&imported_type_names_for_module(module, resolved)),
+        &imported_type_refs,
         &mut inheritance_cache,
     );
     collect_imported_interface_trait_method_calls(
@@ -409,7 +412,8 @@ fn collect_imported_interface_trait_method_calls(
     inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
 ) {
     for imported in resolved.imported_traits.values() {
-        let canonical_trait = format!("{}.{}", imported.source_module, imported.source_name);
+        let canonical_trait =
+            crate::terlan_hir::public_type_path(&imported.source_module, &imported.source_name);
         for (provider_module, interface) in &resolved.interface_map {
             for conformance in &interface.trait_conformances {
                 if !conformance.public || conformance.is_negative {
@@ -619,15 +623,20 @@ fn collect_syntax_declared_implements_trait_method_calls(
     methods: &mut HashMap<(String, String), Vec<ResolvedTraitMethod>>,
     trait_signatures: &HashMap<String, ParsedTraitSignature>,
     alias_names: &HashSet<String>,
+    imported_type_refs: &HashMap<String, String>,
     inheritance_cache: &mut HashMap<String, Option<HashMap<String, TraitMethodSignature>>>,
 ) {
     for declaration in &module.declarations {
-        let Some((_type_name, implements)) = syntax_declared_implements(declaration) else {
+        let Some((_type_name, _type_params, implements)) = syntax_declared_implements(declaration)
+        else {
             continue;
         };
 
         for trait_ref in implements {
-            let Some(implemented_trait) = parse_trait_instance_from_text(&trait_ref.text) else {
+            let qualified_trait_ref =
+                crate::terlan_hir::qualify_syntax_type_text(&trait_ref.text, imported_type_refs);
+            let Some(implemented_trait) = parse_trait_instance_from_text(&qualified_trait_ref)
+            else {
                 continue;
             };
             let trait_name = implemented_trait.name.clone();

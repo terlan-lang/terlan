@@ -305,8 +305,11 @@ fn typed_public_lifecycle_operations_lower_to_existing_vm_transitions() {
         "pub spawn(entry: Entry[Int]): Process[Int] -> Process.spawn[Int](entry).\n",
         "pub sleep(timer: Timer): Unit -> Process.sleep(timer).\n",
         "pub link(peer: Process[Int]): Unit -> Process.link[Int](peer).\n",
+        "pub unlink(peer: Process[Int]): Bool -> Process.unlink[Int](peer).\n",
         "pub monitor(peer: Process[Int]): Monitor[Int] -> Process.monitor[Int](peer).\n",
+        "pub demonitor(monitor: Monitor[Int]): Bool -> Process.demonitor[Int](monitor).\n",
         "pub acquire(kind: ResourceKind[Int]): Resource[Int] -> Process.acquire[Int](kind).\n",
+        "pub release(resource: Resource[Int]): Bool -> Process.release[Int](resource).\n",
         "pub cancel(target: Process[Int]): Unit -> Process.cancel[Int](target).\n",
         "pub fail(reason: ExitReason): Unit -> Process.fail(reason).\n",
         "pub schedule(class: SchedulingClass): Unit -> Process.schedule(class).\n",
@@ -321,14 +324,29 @@ fn typed_public_lifecycle_operations_lower_to_existing_vm_transitions() {
         ("sleep", NativeTransitionOperation::Timer, NativeType::Unit),
         ("link", NativeTransitionOperation::Link, NativeType::Unit),
         (
+            "unlink",
+            NativeTransitionOperation::Unlink,
+            NativeType::Bool,
+        ),
+        (
             "monitor",
             NativeTransitionOperation::Monitor,
             NativeType::Int,
         ),
         (
+            "demonitor",
+            NativeTransitionOperation::Demonitor,
+            NativeType::Bool,
+        ),
+        (
             "acquire",
             NativeTransitionOperation::Resource,
             NativeType::Int,
+        ),
+        (
+            "release",
+            NativeTransitionOperation::ResourceRelease,
+            NativeType::Bool,
         ),
         (
             "cancel",

@@ -137,6 +137,9 @@ fn qualify_nominal_types(core: &mut CoreModule, imported: &HashMap<String, Strin
         }
     }
     for function in &mut core.functions {
+        for bound in &mut function.generic_bounds {
+            qualify_type(bound, &scope);
+        }
         function
             .params
             .iter_mut()
@@ -200,8 +203,11 @@ fn qualify_intrinsic_id(id: &mut CoreIntrinsicId, scope: &NominalScope<'_>) {
         | CoreIntrinsicId::VmProcessEntry(ty)
         | CoreIntrinsicId::VmProcessCurrent(ty)
         | CoreIntrinsicId::VmProcessLink(ty)
+        | CoreIntrinsicId::VmProcessUnlink(ty)
         | CoreIntrinsicId::VmProcessMonitor(ty)
+        | CoreIntrinsicId::VmProcessDemonitor(ty)
         | CoreIntrinsicId::VmProcessAcquireResource(ty)
+        | CoreIntrinsicId::VmProcessReleaseResource(ty)
         | CoreIntrinsicId::VmProcessCancel(ty)
         | CoreIntrinsicId::MemoryLayoutOf(ty)
         | CoreIntrinsicId::MemoryShallowSize(ty)

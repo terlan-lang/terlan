@@ -363,6 +363,7 @@ pub enum CoreRuntimeCapability {
     FileExists,
     FileReadText,
     FileReadBytes,
+    FileWriteBytes,
     FileSize,
     FileTimestamps,
     FileSetTimestamps,
@@ -430,6 +431,7 @@ impl CoreRuntimeCapability {
             Self::FileExists => "runtime.file.exists",
             Self::FileReadText => "runtime.file.read_text",
             Self::FileReadBytes => "runtime.file.read_bytes",
+            Self::FileWriteBytes => "runtime.file.write_bytes",
             Self::FileSize => "runtime.file.size",
             Self::FileTimestamps => "runtime.file.timestamps",
             Self::FileSetTimestamps => "runtime.file.set_timestamps",
@@ -520,10 +522,16 @@ pub enum CoreIntrinsicId {
     VmProcessCurrent(CoreType),
     /// Typed process link retaining the peer mailbox payload type.
     VmProcessLink(CoreType),
+    /// Typed process unlink retaining the peer mailbox payload type.
+    VmProcessUnlink(CoreType),
     /// Typed process monitor retaining the target mailbox payload type.
     VmProcessMonitor(CoreType),
+    /// Typed monitor cancellation retaining the target mailbox payload type.
+    VmProcessDemonitor(CoreType),
     /// Typed resource acquisition retaining the resource family type.
     VmProcessAcquireResource(CoreType),
+    /// Typed resource release retaining the resource family type.
+    VmProcessReleaseResource(CoreType),
     /// Typed process cancellation retaining the target mailbox payload type.
     VmProcessCancel(CoreType),
 }
@@ -586,11 +594,20 @@ impl CoreIntrinsicId {
             Self::VmProcessLink(value_type) => {
                 format!("vm.process.link[{}]", value_type.contract_text())
             }
+            Self::VmProcessUnlink(value_type) => {
+                format!("vm.process.unlink[{}]", value_type.contract_text())
+            }
             Self::VmProcessMonitor(value_type) => {
                 format!("vm.process.monitor[{}]", value_type.contract_text())
             }
+            Self::VmProcessDemonitor(value_type) => {
+                format!("vm.process.demonitor[{}]", value_type.contract_text())
+            }
             Self::VmProcessAcquireResource(value_type) => {
                 format!("vm.process.acquire[{}]", value_type.contract_text())
+            }
+            Self::VmProcessReleaseResource(value_type) => {
+                format!("vm.process.release[{}]", value_type.contract_text())
             }
             Self::VmProcessCancel(value_type) => {
                 format!("vm.process.cancel[{}]", value_type.contract_text())

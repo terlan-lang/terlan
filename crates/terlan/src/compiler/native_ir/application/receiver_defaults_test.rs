@@ -77,3 +77,54 @@ pub check(): Bool ->
         and inferred_boolean.choose(false).
 "#]);
 }
+
+#[test]
+fn imported_generic_receiver_results_use_concrete_receiver_arguments() {
+    check_sources(&[
+        r#"
+module generic_receiver_projection_consumer.
+import std.core.Option.{Some}.
+import app.Pair.{Pair}.
+import app.Builder.{Builder}.
+import app.Model.{Model}.
+import type app.Builder.{Builder}.
+import type app.Pair.{Pair}.
+import type std.core.Option.{Option}.
+build_with[M, First, Second](model: M)[Builder[M, First, Second]]: Option[Pair[First, Second]] ->
+    Builder.build(model).
+same[T](left: T, right: T): Bool -> left == right.
+pub check(): Bool ->
+    let Some(pair) <- build_with(Model()) else { _ -> false };
+    same(true, pair.second()).
+"#,
+        r#"
+module app.Pair.
+pub struct Pair[First, Second] { first: First, second: Second }.
+pub constructor Pair[First, Second] {
+    (first: First, second: Second): Pair[First, Second] ->
+        Pair {first: first, second: second}
+}.
+pub (pair: Pair[First, Second]) second(): Second -> pair.second.
+"#,
+        r#"
+module app.Builder.
+import type app.Pair.{Pair}.
+import type std.core.Option.{Option}.
+pub trait Builder[Model, First, Second] {
+    build(model: Model): Option[Pair[First, Second]].
+}.
+"#,
+        r#"
+module app.Model.
+import std.core.Option.{Some}.
+import app.Pair.{Pair}.
+import type app.Builder.{Builder}.
+import type app.Pair.{Pair}.
+import type std.core.Option.{Option}.
+pub struct Model implements Builder[Model, Int, Bool] {}.
+pub constructor Model { (): Model -> Model {} }.
+pub (model: Model) build(): Option[Pair[Int, Bool]] -> Some(Pair(42, true)).
+"#,
+        include_str!("../../../../../../std/core/Option.terl"),
+    ]);
+}

@@ -8,7 +8,7 @@
   },
   "executable_maximum_bytes": {
     "debug": 2147483648,
-    "release": 134217728
+    "release": 135266304
   },
   "lane_maximum_wall_time_ms": {
     "clean_debug": 900000,

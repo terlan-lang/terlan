@@ -63,7 +63,7 @@ pub(super) fn map_record_descriptor(
     fields: &[CoreMapTypeField],
 ) -> super::NativeIrResult<ManagedAggregateDescriptor> {
     ManagedAggregateDescriptor::record(
-        &CoreType::Map(fields.to_vec()).contract_text(),
+        &managed_semantic_contract(&CoreType::Map(fields.to_vec())),
         fields
             .iter()
             .map(|field| {
@@ -107,8 +107,9 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                         .and_then(managed_field_type)
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            let descriptor = ManagedAggregateDescriptor::tuple(&ty.contract_text(), fields)
-                .map_err(|error| format!("error[native_ir.tuple_layout]: {error}"))?;
+            let descriptor =
+                ManagedAggregateDescriptor::tuple(&managed_semantic_contract(ty), fields)
+                    .map_err(|error| format!("error[native_ir.tuple_layout]: {error}"))?;
             layouts.insert(
                 encode_aggregate_layout(&descriptor)
                     .map_err(|error| format!("error[native_ir.tuple_layout_abi]: {error}"))?,
@@ -134,16 +135,11 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                     )
                 })
                 .and_then(managed_field_type)?;
+            let canonical = managed_semantic_contract(ty);
             for descriptor in [
+                ManagedAggregateDescriptor::constructor(&canonical, "None", 0, 2, Vec::new()),
                 ManagedAggregateDescriptor::constructor(
-                    &ty.contract_text(),
-                    "None",
-                    0,
-                    2,
-                    Vec::new(),
-                ),
-                ManagedAggregateDescriptor::constructor(
-                    &ty.contract_text(),
+                    &canonical,
                     "Some",
                     1,
                     2,
@@ -163,6 +159,7 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
             if constructor.rsplit('.').next() == Some("Result") && args.len() == 2 =>
         {
             let fields = [("Ok", "value", &args[0]), ("Err", "reason", &args[1])];
+            let canonical = managed_semantic_contract(ty);
             for (discriminant, (variant, field_name, field)) in fields.into_iter().enumerate() {
                 let field_type = native_type(Some(field), &field.contract_text())
                     .ok_or_else(|| {
@@ -173,7 +170,7 @@ fn inventory(ty: &CoreType, layouts: &mut BTreeSet<Vec<u8>>) -> Result<(), Strin
                     })
                     .and_then(managed_field_type)?;
                 let descriptor = ManagedAggregateDescriptor::constructor(
-                    &ty.contract_text(),
+                    &canonical,
                     variant,
                     u32::try_from(discriminant).map_err(|_| {
                         "error[native_ir.result_layout]: discriminant exceeds u32".to_string()

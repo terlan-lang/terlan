@@ -113,6 +113,7 @@ pub(crate) fn core_syntax_structural_impl_dispatch(
             arity: *arity,
             public: false,
             generic_params: Vec::new(),
+            generic_bounds: Vec::new(),
             native_operation: None,
             params: method
                 .params

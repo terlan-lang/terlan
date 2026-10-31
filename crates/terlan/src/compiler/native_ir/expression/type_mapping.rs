@@ -282,6 +282,40 @@ pub(in crate::compiler::native_ir) fn normalize_recursive_managed_type(
             constructor: constructor.clone(),
             args: args.iter().map(normalize_recursive_managed_type).collect(),
         },
+        CoreType::Tuple(elements) => CoreType::Tuple(
+            elements
+                .iter()
+                .map(|element| match element {
+                    CoreTupleTypeElem::Type(ty) => {
+                        CoreTupleTypeElem::Type(normalize_recursive_managed_type(ty))
+                    }
+                    CoreTupleTypeElem::Field { name, ty } => CoreTupleTypeElem::Field {
+                        name: name.clone(),
+                        ty: normalize_recursive_managed_type(ty),
+                    },
+                })
+                .collect(),
+        ),
+        CoreType::Map(fields) => CoreType::Map(
+            fields
+                .iter()
+                .map(|field| crate::terlan_typeck::CoreMapTypeField {
+                    key: field.key.clone(),
+                    operator: field.operator.clone(),
+                    value: normalize_recursive_managed_type(&field.value),
+                })
+                .collect(),
+        ),
+        CoreType::Arrow {
+            params,
+            return_type,
+        } => CoreType::Arrow {
+            params: params
+                .iter()
+                .map(normalize_recursive_managed_type)
+                .collect(),
+            return_type: Box::new(normalize_recursive_managed_type(return_type)),
+        },
         CoreType::Union(variants) => {
             let normalized = variants
                 .iter()

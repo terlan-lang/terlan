@@ -255,6 +255,28 @@ pub stringify(user: User): String ->\n\
     );
 }
 
+/// Generic declaration-site owners retain their applied receiver identity.
+#[test]
+pub(super) fn syntax_output_accepts_generic_declared_implements_receiver() {
+    let diagnostics = check_syntax_output(
+        r#"
+module generic_declared_implements_receiver.
+
+pub trait Validate[T] {
+    validate(value: T): Bool.
+}.
+
+pub struct Generic[T] implements Validate[Generic[T]] {
+    value: T
+}.
+
+pub (value: Generic[T]) validate(): Bool -> true.
+"#,
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+}
+
 /// Verifies mutable trait receiver requirements are enforced.
 ///
 /// Inputs:
@@ -541,6 +563,104 @@ pub verify(): Bool ->\n\
         and call_first(value) == 4\n\
         and call_second(value, 3) == 7.\n",
         &[contract, value],
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+}
+
+/// Imported declaration-site conformances determine trait parameters that do
+/// not appear in a method's value arguments, including parameters nested in a
+/// generic return type.
+#[test]
+pub(super) fn imported_conformance_specializes_output_only_trait_parameters() {
+    let outcome = r#"
+module generic.Outcome.
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Outcome[T, E] = Ok[T] | Err[E].
+"#;
+    let transition = r#"
+module generic.Transition.
+pub struct Transition[S, O] { state: S, observation: O }.
+"#;
+    let contract = r#"
+module generic.Streaming.
+import type generic.Outcome.{Outcome}.
+import type generic.Transition.{Transition}.
+pub trait Streaming[M, S, I, O, F] {
+    initial(model: M): Outcome[S, F].
+    observe(model: M, state: S, input: I): Outcome[Transition[S, O], F].
+}.
+"#;
+    let model = r#"
+module generic.Model.
+import type generic.Streaming.{Streaming}.
+import type generic.Outcome.{Outcome}.
+import type generic.Transition.{Transition}.
+pub struct Model implements Streaming[Model, State, Input, Observation, Failure] {}.
+pub struct State { value: Int }.
+pub struct Input { value: Int }.
+pub struct Observation { value: Int }.
+pub type Failure = Atom["failed"].
+pub (model: Model) initial(): Outcome[State, Failure].
+pub (model: Model) observe(state: State, input: Input): Outcome[Transition[State, Observation], Failure].
+"#;
+    let diagnostics = check_syntax_output_with_interfaces(
+        r#"
+module generic.Consumer.
+import generic.Streaming.{Streaming}.
+import generic.Model.{Model}.
+import type generic.Streaming.{Streaming}.
+import type generic.Model.{Failure, Input, Model, Observation, State}.
+import type generic.Outcome.{Outcome}.
+import type generic.Transition.{Transition}.
+observe_with[M, S, I, O, F](
+    model: M,
+    state: S,
+    input: I,
+)[Streaming[M, S, I, O, F]]: Outcome[Transition[S, O], F] ->
+    Streaming.observe(model, state, input).
+pub initial(model: Model): Outcome[State, Failure] ->
+    Streaming.initial(model).
+pub observe(model: Model, state: State, input: Input): Outcome[Transition[State, Observation], Failure] ->
+    observe_with(model, state, input).
+"#,
+        &[outcome, transition, contract, model],
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
+}
+
+/// A local declaration-site conformance keeps imported nominal arguments
+/// qualified while it completes output-only generic parameters.
+#[test]
+pub(super) fn local_conformance_preserves_imported_nominal_trait_arguments() {
+    let handler = r#"
+module message.Handler.
+pub trait Handler[Owner, Message, Output, Failure] {
+    handle(owner: Owner, message: Message): Output.
+}.
+"#;
+    let envelope = r#"
+module message.Envelope.
+pub struct Envelope { value: Int }.
+"#;
+    let diagnostics = check_syntax_output_with_interfaces(
+        r#"
+module message.Consumer.
+import message.Handler.{Handler}.
+import type message.Envelope.{Envelope}.
+import type message.Handler.{Handler}.
+pub struct Inbox implements Handler[Inbox, Envelope, Int, Bool] {}.
+pub (inbox: Inbox) handle(message: Envelope): Int -> message.value.
+handle_with[Owner, Message, Output, Failure](
+    owner: Owner,
+    message: Message,
+)[Handler[Owner, Message, Output, Failure]]: Output ->
+    Handler.handle(owner, message).
+pub run(inbox: Inbox, message: Envelope): Int -> handle_with(inbox, message).
+"#,
+        &[handler, envelope],
     );
 
     assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");

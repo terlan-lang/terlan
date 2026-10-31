@@ -340,7 +340,8 @@ pub(super) fn receiver_method_requires_pure_body(
         .map(|instance| instance.name)
         .unwrap_or_else(|| receiver_type.to_string());
     module.declarations.iter().any(|declaration| {
-        let Some((type_name, implements)) = syntax_declared_implements(declaration) else {
+        let Some((type_name, _type_params, implements)) = syntax_declared_implements(declaration)
+        else {
             return false;
         };
         type_name == receiver_name

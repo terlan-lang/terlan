@@ -255,6 +255,11 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
                 arity: *arity,
                 public: signature.public,
                 generic_params: signature.generic_params.clone(),
+                generic_bounds: signature
+                    .generic_bounds
+                    .iter()
+                    .filter_map(|bound| core_type_from_text(bound))
+                    .collect(),
                 native_operation: None,
                 params: signature
                     .params
@@ -286,6 +291,11 @@ pub(crate) fn lower_core_functions(interface: &ModuleInterface) -> Vec<CoreFunct
                 arity: *arity,
                 public: signature.public,
                 generic_params: signature.generic_params.clone(),
+                generic_bounds: signature
+                    .generic_bounds
+                    .iter()
+                    .filter_map(|bound| core_type_from_text(bound))
+                    .collect(),
                 native_operation: None,
                 params: signature
                     .params

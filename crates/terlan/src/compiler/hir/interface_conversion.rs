@@ -1,10 +1,11 @@
-use super::imported_type_refs::{
-    collect_syntax_callable_type_refs, collect_syntax_imported_type_refs,
-};
+use super::imported_type_refs::collect_syntax_callable_type_refs;
 use super::interface_render::normalize_type_text;
 use super::shapes::collect_syntax_shape_signatures;
 use super::*;
 use crate::terlan_syntax::{parse_expr_as_syntax_output, SyntaxExprOutput};
+
+mod trait_conformances;
+use trait_conformances::collect_syntax_trait_conformances;
 
 pub(super) fn syntax_module_output_to_prepared_interface(
     module: &SyntaxModuleOutput,
@@ -333,94 +334,6 @@ pub(super) fn interface_fingerprint(text: &str) -> String {
         hash = hash.wrapping_mul(0x100000001b3);
     }
     format!("fnv1a64:{hash:016x}")
-}
-
-/// Collects public and private trait conformance facts from syntax output.
-///
-/// Inputs:
-/// - `module`: syntax-output module containing type, struct, or explicit impl
-///   declarations.
-///
-/// Output:
-/// - Sorted, deduplicated trait conformance summaries.
-///
-/// Transformation:
-/// - Converts declaration-site `implements` and explicit `impl Trait[...] for
-///   Type` declarations into stable interface metadata so imported modules can
-///   expose conformance without exposing implementation bodies. Struct
-///   `includes` is intentionally excluded because it expands struct shape, not
-///   trait conformance.
-pub(super) fn collect_syntax_trait_conformances(
-    module: &SyntaxModuleOutput,
-) -> Vec<TraitConformanceSignature> {
-    let mut conformances = Vec::new();
-    let imported_type_refs = collect_syntax_imported_type_refs(module);
-
-    for declaration in &module.declarations {
-        match &declaration.payload {
-            SyntaxDeclarationPayload::Type {
-                name,
-                implements,
-                is_public,
-                ..
-            }
-            | SyntaxDeclarationPayload::Struct {
-                name,
-                implements,
-                is_public,
-                ..
-            } => {
-                conformances.extend(
-                    implements
-                        .iter()
-                        .map(|trait_ref| TraitConformanceSignature {
-                            trait_ref: qualify_syntax_type_text(
-                                &normalize_type_text(&trait_ref.text),
-                                &imported_type_refs,
-                            ),
-                            generic_params: Vec::new(),
-                            for_type: qualify_syntax_type_text(
-                                &normalize_type_text(name),
-                                &imported_type_refs,
-                            ),
-                            is_negative: false,
-                            source: TraitConformanceSource::Implements,
-                            public: *is_public,
-                        }),
-                );
-            }
-            _ => {}
-        }
-
-        if let SyntaxDeclarationPayload::TraitImpl {
-            trait_ref,
-            generic_params,
-            for_type,
-            is_negative,
-            is_public,
-            ..
-        } = &declaration.payload
-        {
-            conformances.push(TraitConformanceSignature {
-                trait_ref: qualify_syntax_type_text(
-                    &normalize_type_text(&trait_ref.text),
-                    &imported_type_refs,
-                ),
-                generic_params: generic_params.clone(),
-                for_type: qualify_syntax_type_text(
-                    &normalize_type_text(&for_type.text),
-                    &imported_type_refs,
-                ),
-                is_negative: *is_negative,
-                source: TraitConformanceSource::ExplicitImpl,
-                public: *is_public,
-            });
-        }
-    }
-
-    conformances.sort();
-    conformances.dedup();
-    conformances
 }
 
 /// Collects public trait signatures from syntax output.

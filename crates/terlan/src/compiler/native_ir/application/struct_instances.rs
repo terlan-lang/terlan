@@ -80,6 +80,17 @@ pub(super) fn retain(
         let Some((owner, template)) = templates.get(constructor) else {
             continue;
         };
+        // An open generic signature may remain in a template catalog long
+        // enough to be visited here. It describes no runtime identity and
+        // must never become an admitted managed layout. Only applications
+        // whose arguments no longer mention this declaration's parameters
+        // are concrete struct instances.
+        if args
+            .iter()
+            .any(|argument| contains_parameter(argument, &template.params))
+        {
+            continue;
+        }
         let canonical = super::super::expression::managed_semantic_contract(&application);
         if args.len() != template.params.len() || !seen.insert(canonical.clone()) {
             continue;
@@ -110,6 +121,44 @@ pub(super) fn retain(
         cores[*owner].types.push(declaration);
     }
     Ok(())
+}
+
+fn contains_parameter(ty: &CoreType, parameters: &[String]) -> bool {
+    match ty {
+        CoreType::Named(name) => parameters.contains(name),
+        CoreType::Apply { args, .. } | CoreType::Union(args) => {
+            args.iter().any(|ty| contains_parameter(ty, parameters))
+        }
+        CoreType::List(element) => contains_parameter(element, parameters),
+        CoreType::Tuple(elements) => elements.iter().any(|element| {
+            let (CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. }) = element;
+            contains_parameter(ty, parameters)
+        }),
+        CoreType::Struct { fields, .. } => fields
+            .iter()
+            .any(|field| contains_parameter(&field.ty, parameters)),
+        CoreType::Map(fields) => fields
+            .iter()
+            .any(|field| contains_parameter(&field.value, parameters)),
+        CoreType::Arrow {
+            params,
+            return_type,
+        } => {
+            params.iter().any(|ty| contains_parameter(ty, parameters))
+                || contains_parameter(return_type, parameters)
+        }
+        CoreType::Int
+        | CoreType::Float
+        | CoreType::Number
+        | CoreType::String
+        | CoreType::Binary
+        | CoreType::Atom
+        | CoreType::Bool
+        | CoreType::Term
+        | CoreType::Dynamic
+        | CoreType::Never
+        | CoreType::AtomLiteral(_) => false,
+    }
 }
 
 fn collect(ty: &CoreType, pending: &mut Vec<CoreType>) {

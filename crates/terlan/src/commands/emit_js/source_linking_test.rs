@@ -110,6 +110,24 @@ pub unused(): Int -> 123.
 }
 
 #[test]
+fn source_linker_preserves_implicit_long_named_generic_exports() {
+    let mut cores = checked_cores(&[r#"
+module generic_export.
+pub opaque type View[TArrayBuffer].
+pub buffer_typechecks(_receiver: View[TArrayBuffer], value: TArrayBuffer): TArrayBuffer ->
+    value.
+"#]);
+    crate::commands::emit_js::js_bindings::materialize(&mut cores[0]);
+
+    let linked = link_cores(cores).expect("link implicit generic export");
+
+    assert!(linked
+        .functions
+        .iter()
+        .any(|function| function.name == "buffer_typechecks"));
+}
+
+#[test]
 fn rejects_colliding_javascript_exports_instead_of_overwriting_a_body() {
     let cores = checked_cores(&[
         "module overloaded. pub value(): Int -> 1. pub value(input: Int): Int -> input.",

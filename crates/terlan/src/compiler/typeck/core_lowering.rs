@@ -765,6 +765,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
             SyntaxDeclarationPayload::Function {
                 name,
                 generic_params,
+                generic_bounds,
                 params,
                 return_type,
                 is_public,
@@ -780,6 +781,10 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 arity: params.len(),
                 public: *is_public,
                 generic_params: generic_params.clone(),
+                generic_bounds: generic_bounds
+                    .iter()
+                    .filter_map(|bound| core_type_from_text(bound))
+                    .collect(),
                 native_operation: None,
                 params: params.iter().map(core_syntax_param).collect(),
                 return_type: return_type.text.clone(),
@@ -790,6 +795,7 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 receiver,
                 name,
                 generic_params,
+                generic_bounds,
                 params,
                 return_type,
                 is_public,
@@ -813,6 +819,10 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                     arity: core_params.len(),
                     public: *is_public,
                     generic_params: generic_params.clone(),
+                    generic_bounds: generic_bounds
+                        .iter()
+                        .filter_map(|bound| core_type_from_text(bound))
+                        .collect(),
                     native_operation: None,
                     params: core_params,
                     return_type: internal_return.to_string(),

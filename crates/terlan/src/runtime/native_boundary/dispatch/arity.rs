@@ -53,6 +53,7 @@ const OPERATION_ARITIES: &[(&str, usize)] = &[
     ("std.io.file.exists", 1),
     ("std.io.file.read_text", 1),
     ("std.io.file.read_bytes", 1),
+    ("std.io.file.write_bytes", 2),
     ("std.io.file.size", 1),
     ("std.io.file.timestamps", 1),
     ("std.io.file.set_timestamps", 3),

@@ -27,8 +27,11 @@ pub(super) fn transition_status(operation: NativeTransitionOperation) -> i32 {
         NativeTransitionOperation::Spawn => status::SPAWN,
         NativeTransitionOperation::Timer => status::TIMER,
         NativeTransitionOperation::Link => status::LINK,
+        NativeTransitionOperation::Unlink => status::UNLINK,
         NativeTransitionOperation::Monitor => status::MONITOR,
+        NativeTransitionOperation::Demonitor => status::DEMONITOR,
         NativeTransitionOperation::Resource => status::RESOURCE,
+        NativeTransitionOperation::ResourceRelease => status::RESOURCE_RELEASE,
         NativeTransitionOperation::Cancellation => status::CANCELLATION,
         NativeTransitionOperation::Failure => status::FAILURE,
         NativeTransitionOperation::FailureTyped => status::FAILURE_TYPED,
@@ -52,8 +55,11 @@ pub(super) fn transition_flags(
     let spawned = status_flag(builder, call_status, status::SPAWN);
     let timed = status_flag(builder, call_status, status::TIMER);
     let linked = status_flag(builder, call_status, status::LINK);
+    let unlinked = status_flag(builder, call_status, status::UNLINK);
     let monitored = status_flag(builder, call_status, status::MONITOR);
+    let demonitored = status_flag(builder, call_status, status::DEMONITOR);
     let resource = status_flag(builder, call_status, status::RESOURCE);
+    let resource_released = status_flag(builder, call_status, status::RESOURCE_RELEASE);
     let cancelled = status_flag(builder, call_status, status::CANCELLATION);
     let failed = status_flag(builder, call_status, status::FAILURE);
     let failed_typed = status_flag(builder, call_status, status::FAILURE_TYPED);
@@ -70,7 +76,10 @@ pub(super) fn transition_flags(
     let any_received = builder.ins().bor(received, typed_received);
     let received_or_spawned = builder.ins().bor(any_received, spawned);
     let received_spawned_or_identified = builder.ins().bor(received_or_spawned, identified);
+    let relationship_removed = builder.ins().bor(unlinked, demonitored);
+    let removed = builder.ins().bor(relationship_removed, resource_released);
     let monitored_or_resource = builder.ins().bor(monitored, resource);
+    let monitored_or_resource = builder.ins().bor(monitored_or_resource, removed);
     let injected_input = builder
         .ins()
         .bor(received_spawned_or_identified, monitored_or_resource);
@@ -81,6 +90,7 @@ pub(super) fn transition_flags(
     let transitioned = builder.ins().bor(transitioned, capability);
     let spawned_or_timed = builder.ins().bor(spawned, timed);
     let linked_or_monitored = builder.ins().bor(linked, monitored);
+    let linked_or_monitored = builder.ins().bor(linked_or_monitored, removed);
     let resource_or_terminal = builder.ins().bor(resource, terminal_or_scheduled);
     let relationship_or_resource = builder.ins().bor(linked_or_monitored, resource_or_terminal);
     let one_argument = builder

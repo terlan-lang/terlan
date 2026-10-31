@@ -76,6 +76,7 @@ fn emit_core_module_to_rust_fails_closed_for_unsupported_body() {
             arity: 0,
             public: true,
             generic_params: Vec::new(),
+            generic_bounds: Vec::new(),
             native_operation: None,
             params: Vec::new(),
             return_type: "Term".to_string(),
@@ -124,6 +125,7 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
                 arity: 2,
                 public: true,
                 generic_params: Vec::new(),
+                generic_bounds: Vec::new(),
                 native_operation: None,
                 params: vec![
                     CoreParam {
@@ -165,6 +167,7 @@ fn emit_core_module_to_rust_compiles_pipe_forward_probe() {
                 arity: 0,
                 public: true,
                 generic_params: Vec::new(),
+                generic_bounds: Vec::new(),
                 native_operation: None,
                 params: Vec::new(),
                 return_type: "Int".to_string(),
@@ -221,6 +224,7 @@ fn emit_core_module_to_rust_handles_function_value_call() {
             arity: 1,
             public: true,
             generic_params: Vec::new(),
+            generic_bounds: Vec::new(),
             native_operation: None,
             params: vec![CoreParam {
                 name: "f".to_string(),
@@ -278,6 +282,7 @@ fn emit_core_module_to_rust_escapes_binary_literals_portably() {
             arity: 0,
             public: true,
             generic_params: Vec::new(),
+            generic_bounds: Vec::new(),
             native_operation: None,
             params: Vec::new(),
             return_type: "Binary".to_string(),

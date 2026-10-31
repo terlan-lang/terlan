@@ -13,6 +13,14 @@ documentation; unchanged capabilities do not need a release recap.
 
 - Allow explicit constructors to return their declared result type, including
   `Option[T]` and `Result[T, E]`, without requiring validation annotations.
+- Preserve concrete generic arguments through imported trait dispatch and
+  nested managed result layouts.
+
+### Standard library and runtime
+
+- Add exact binary file output with `std.io.File.write_bytes`.
+- Add owner-authenticated `Process.unlink`, `Process.demonitor`, and
+  `Process.release` lifecycle operations.
 
 ### Applications and JavaScript
 

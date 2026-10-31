@@ -152,7 +152,6 @@ impl VmFailureRuntime {
     }
 
     /// Removes a link if it exists.
-    #[cfg(test)]
     pub(crate) fn unlink(&mut self, left: VmProcessId, right: VmProcessId) {
         let link = canonical_link(left, right);
         self.links.remove(&link);
@@ -312,6 +311,33 @@ impl VmFailureRuntime {
             return Err(format!(
                 "monitor reference {} belongs to process {}, not process {}",
                 monitor_ref.as_u64(),
+                owner.as_u64(),
+                watcher.as_u64()
+            ));
+        }
+        Ok(self.monitors.remove(&monitor_ref).is_some())
+    }
+
+    /// Removes a monitor using the local identity carried by source code.
+    pub(crate) fn demonitor_for_id(
+        &mut self,
+        watcher: VmProcessId,
+        monitor_id: u64,
+    ) -> Result<bool, String> {
+        let monitor_ref = self
+            .monitors
+            .keys()
+            .find(|monitor_ref| monitor_ref.as_u64() == monitor_id)
+            .cloned();
+        let Some(monitor_ref) = monitor_ref else {
+            return Ok(false);
+        };
+        let Some((owner, _, _)) = self.monitors.get(&monitor_ref) else {
+            return Ok(false);
+        };
+        if *owner != watcher {
+            return Err(format!(
+                "monitor reference {monitor_id} belongs to process {}, not process {}",
                 owner.as_u64(),
                 watcher.as_u64()
             ));

@@ -4,7 +4,7 @@ import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
 import std.io.Directory.{create_all, remove_all}.
-import std.io.File.{NotFound, append_text, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, timestamps, write_text}.
+import std.io.File.{NotFound, append_text, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, timestamps, write_bytes, write_text}.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.{from_list}.
 
@@ -96,6 +96,17 @@ read_bytes_fixture_holds(file: String): Bool ->
     let removed = delete(file);
     case {read, removed} {
         {Ok(value), Ok(Unit)} -> assert_equal(from_list([65, 195, 169]), value);
+        _ -> false
+    }.
+
+@test
+pub write_bytes_preserves_every_octet(): Bool ->
+    let file = "target/terlan-file-write-bytes-test.bin";
+    let written = write_bytes(file, from_list([0, 10, 127, 128, 255]));
+    let read = read_bytes(file);
+    let removed = delete(file);
+    case {written, read, removed} {
+        {Ok(Unit), Ok(value), Ok(Unit)} -> assert_equal(from_list([0, 10, 127, 128, 255]), value);
         _ -> false
     }.
 

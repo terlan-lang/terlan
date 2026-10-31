@@ -73,6 +73,15 @@ pub(crate) fn validate_transition_arguments(
                 .to_string(),
         ),
         TvmTransitionOperation::Link => Ok(()),
+        TvmTransitionOperation::Unlink if arguments.len() != 1 => Err(format!(
+            "error[pure_native_transition_arguments]: Unlink transition requires one positive peer identity, received {} arguments",
+            arguments.len()
+        )),
+        TvmTransitionOperation::Unlink if arguments[0] <= 0 => Err(
+            "error[pure_native_transition_arguments]: Unlink peer must be a positive process identity"
+                .to_string(),
+        ),
+        TvmTransitionOperation::Unlink => Ok(()),
         TvmTransitionOperation::Monitor if arguments.len() != 1 => Err(format!(
             "error[pure_native_transition_arguments]: Monitor transition requires one positive target identity, received {} arguments",
             arguments.len()
@@ -82,6 +91,15 @@ pub(crate) fn validate_transition_arguments(
                 .to_string(),
         ),
         TvmTransitionOperation::Monitor => Ok(()),
+        TvmTransitionOperation::Demonitor if arguments.len() != 1 => Err(format!(
+            "error[pure_native_transition_arguments]: Demonitor transition requires one positive monitor identity, received {} arguments",
+            arguments.len()
+        )),
+        TvmTransitionOperation::Demonitor if arguments[0] <= 0 => Err(
+            "error[pure_native_transition_arguments]: Demonitor reference must be positive"
+                .to_string(),
+        ),
+        TvmTransitionOperation::Demonitor => Ok(()),
         TvmTransitionOperation::Resource if arguments.len() != 1 => Err(format!(
             "error[pure_native_transition_arguments]: Resource transition requires one positive kind tag, received {} arguments",
             arguments.len()
@@ -91,6 +109,15 @@ pub(crate) fn validate_transition_arguments(
                 .to_string(),
         ),
         TvmTransitionOperation::Resource => Ok(()),
+        TvmTransitionOperation::ResourceRelease if arguments.len() != 1 => Err(format!(
+            "error[pure_native_transition_arguments]: ResourceRelease transition requires one positive resource identity, received {} arguments",
+            arguments.len()
+        )),
+        TvmTransitionOperation::ResourceRelease if arguments[0] <= 0 => Err(
+            "error[pure_native_transition_arguments]: resource identity must be positive"
+                .to_string(),
+        ),
+        TvmTransitionOperation::ResourceRelease => Ok(()),
         TvmTransitionOperation::Cancellation if arguments.len() != 1 => Err(format!(
             "error[pure_native_transition_arguments]: Cancellation transition requires one positive target identity, received {} arguments",
             arguments.len()

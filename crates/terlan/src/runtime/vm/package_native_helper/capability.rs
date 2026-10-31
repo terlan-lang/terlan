@@ -62,6 +62,7 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
         request.operation.as_str(),
         "std.io.file.read_text"
             | "std.io.file.read_bytes"
+            | "std.io.file.write_bytes"
             | "std.io.file.size"
             | "std.io.file.timestamps"
             | "std.io.file.set_timestamps"

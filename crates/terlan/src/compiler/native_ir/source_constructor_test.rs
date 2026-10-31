@@ -682,7 +682,7 @@ pub check(): Bool -> Items[Entry](Entry(value = 42)).length() == 1.
 
 #[test]
 fn result_recursively_registers_concrete_generic_nominal_payload() {
-    check_sources(&[
+    let modules = check_sources(&[
         r#"
 module generic_result_payload.
 import std.core.Result.{Ok}.
@@ -695,6 +695,9 @@ pub constructor Transition[State, Observation] {
     (state: State, observation: Observation): Transition[State, Observation] ->
         Transition {state: state, observation: observation}
 }.
+pub (transition: Transition[State, Observation]) state(): State -> transition.state.
+pub (transition: Transition[State, Observation]) observation(): Observation ->
+    transition.observation.
 pub struct State { count: Int }.
 pub struct Observation { value: Int }.
 produce(): Result[Transition[State, Observation], Int] ->
@@ -702,12 +705,33 @@ produce(): Result[Transition[State, Observation], Int] ->
 pub check(): Bool ->
     case produce() {
         Ok(transition) ->
-            transition.state.count == 1 and transition.observation.value == 2;
+            transition.state().count == 1 and transition.observation().value == 2;
         _ -> false
     }.
 "#,
         include_str!("../../../../../std/core/Result.terl"),
     ]);
+    let semantic_types = modules
+        .iter()
+        .flat_map(|module| &module.managed_layouts)
+        .map(|encoded| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(encoded)
+                .expect("decode managed layout")
+                .canonical_type()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    assert!(semantic_types.iter().any(|semantic| {
+        semantic.contains("generic_result_payload.State")
+            && semantic.contains("generic_result_payload.Observation")
+    }));
+    assert!(
+        semantic_types
+            .iter()
+            .all(|semantic| !semantic.contains("Named(State)")
+                && !semantic.contains("Named(Observation)")),
+        "open generic layout leaked into image metadata: {semantic_types:#?}"
+    );
 }
 
 #[test]

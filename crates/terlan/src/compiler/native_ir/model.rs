@@ -295,8 +295,11 @@ pub(crate) enum NativeTransitionOperation {
     Spawn,
     Timer,
     Link,
+    Unlink,
     Monitor,
+    Demonitor,
     Resource,
+    ResourceRelease,
     Cancellation,
     Failure,
     /// Terminal failure carrying one checked existential error envelope.

@@ -49,6 +49,21 @@ Native helpers support chunked owned-buffer transfers up to 16 MiB while
 keeping physical frames bounded to 1 MiB. Regenerate C/C++ helpers to receive
 large arguments; the runtime can stream bounded legacy binary replies.
 
+`std.io.File.write_bytes` writes VM-owned `Bytes` without text conversion and
+round-trips every octet, including non-UTF-8 data. Process lifecycle resources
+now have source-visible owner-authenticated opposites: `Process.unlink`,
+`Process.demonitor`, and `Process.release`.
+
+Imported declaration-site trait implementations preserve their concrete
+receiver and method parameter types. Recursive generic substitution now reaches
+nested return values such as `Result[ModelTransition[State, Observation], E]`,
+and emitted managed layouts use those concrete arguments rather than open trait
+placeholders. Generic declaration-site owners such as `Generic[T] implements
+Validate[Generic[T]]` retain their applied arguments in local checks, package
+interfaces, bound resolution, and native specialization.
+JavaScript linking uses the same nominal generic-parameter catalog, preserving
+implicit generic exports with long parameter names such as `TArrayBuffer`.
+
 `std.vm.Supervisor` admits typed ordinary processes into the VM supervision
 graph, exposes replacement identities and restart history, and enforces restart,
 backoff, and shutdown policies. Optional file-backed snapshot/event hooks let a

@@ -58,7 +58,8 @@ pub(super) fn core_runtime_capability_return_type(capability: &CoreRuntimeCapabi
                 CoreType::Named("std.io.File.FileError".to_string()),
             ],
         },
-        CoreRuntimeCapability::FileWriteText
+        CoreRuntimeCapability::FileWriteBytes
+        | CoreRuntimeCapability::FileWriteText
         | CoreRuntimeCapability::FileAppendText
         | CoreRuntimeCapability::FileDelete
         | CoreRuntimeCapability::FileSetTimestamps

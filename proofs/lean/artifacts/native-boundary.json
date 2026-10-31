@@ -26,7 +26,7 @@
     "Terlan.NativeBoundary.typedVmDispatchAdmitted"
   ],
   "manifest_fingerprints": {
-    "crates/terlan/src/runtime/native_boundary/dispatch.rs": "sha256:adea38a5517f98417151d67fb1bbff5c3d396b215a441ebe694d37865ca86891",
+    "crates/terlan/src/runtime/native_boundary/dispatch.rs": "sha256:0986855e7cead80caed1f946faf9bbc2cb3bb8ae9358490992bcb2375bd110ca",
     "crates/terlan/src/runtime/native_boundary/dispatch/error.rs": "sha256:8e9c20cb1d5d39162d4a8aecbddf86110f75492cfe4228c7cb95d4503d6c39c4",
     "crates/terlan/src/runtime/native_boundary/dispatch/value.rs": "sha256:1f923b92af26cb9a765944d2cb142fe1ed3015bdcdb733653922912e914244f7",
     "crates/terlan/src/runtime/native_boundary/metadata.rs": "sha256:845d662acd46e2783d4c6e10b621626aff0453a8c973b20a83f3532afb040242",

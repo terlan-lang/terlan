@@ -31,6 +31,9 @@ mod reply;
 mod support;
 #[path = "execution/transition_validation.rs"]
 mod transition_validation;
+#[cfg(test)]
+#[path = "execution/transition_validation_test.rs"]
+mod transition_validation_test;
 
 use reply::handle_reply;
 pub(crate) use support::repl_value_to_boundary_term;
@@ -263,6 +266,7 @@ impl PureNativeBoundary {
                     (31, 0) => managed_capability_type("Named(std.system.Process.BatchRequest)")?,
                     (48, 0) => managed_capability_type("Named(std.system.Process.FramedRequest)")?,
                     (54, 0) => managed_capability_type("List(Named(std.io.File.CopyPlan))")?,
+                    (61, 1) => TvmBoundaryType::Bytes,
                     (55 | 56 | 58, 0) => {
                         managed_capability_type("List(Named(std.crypto.Hash.LabeledFile))")?
                     }

@@ -13,6 +13,7 @@ fn function(name: &str, arity: usize) -> CoreFunction {
         arity,
         public: false,
         generic_params: Vec::new(),
+        generic_bounds: Vec::new(),
         native_operation: None,
         params: Vec::new(),
         return_type: "Int".to_string(),

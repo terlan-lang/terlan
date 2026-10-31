@@ -25,7 +25,7 @@ pub const fn tvm_fixed_capability_frame_words(tag: i64) -> Option<usize> {
         8 | 12 | 33 | 59 => Some(4),
         1 | 2 | 3 | 6 | 9 | 10 | 11 | 13 | 14 | 15 | 16 | 18 | 19 | 22 | 23 | 30 | 31 | 32 | 35
         | 38 | 40 | 44 | 46 | 48 | 49 | 53 | 54 | 55 | 58 => Some(5),
-        4 | 5 | 17 | 20 | 34 | 43 | 45 | 47 | 50 | 51 | 52 | 56 => Some(6),
+        4 | 5 | 17 | 20 | 34 | 43 | 45 | 47 | 50 | 51 | 52 | 56 | 61 => Some(6),
         24 | 39 | 41 | 57 => Some(7),
         21 => Some(10),
         _ => None,
@@ -53,8 +53,11 @@ pub enum TvmTransitionOperation {
     Spawn,
     Timer,
     Link,
+    Unlink,
     Monitor,
+    Demonitor,
     Resource,
+    ResourceRelease,
     Cancellation,
     Failure,
     /// Failure with one actor-owned, typed error envelope rather than a code.
@@ -372,6 +375,9 @@ fn decode_payload(kind: u16, payload: &[u8]) -> Result<TvmControlFrame, String> 
                 14 => TvmTransitionOperation::Identity,
                 15 => TvmTransitionOperation::FailureTyped,
                 16 => TvmTransitionOperation::Supervision,
+                17 => TvmTransitionOperation::Unlink,
+                18 => TvmTransitionOperation::Demonitor,
+                19 => TvmTransitionOperation::ResourceRelease,
                 tag => {
                     return Err(format!(
                         "error[tvm.control.transition]: unsupported transition operation {tag}"
@@ -421,8 +427,11 @@ fn transition_operation_tag(operation: &TvmTransitionOperation) -> u16 {
         TvmTransitionOperation::Spawn => 4,
         TvmTransitionOperation::Timer => 5,
         TvmTransitionOperation::Link => 6,
+        TvmTransitionOperation::Unlink => 17,
         TvmTransitionOperation::Monitor => 7,
+        TvmTransitionOperation::Demonitor => 18,
         TvmTransitionOperation::Resource => 8,
+        TvmTransitionOperation::ResourceRelease => 19,
         TvmTransitionOperation::Cancellation => 9,
         TvmTransitionOperation::Failure => 10,
         TvmTransitionOperation::FailureTyped => 15,

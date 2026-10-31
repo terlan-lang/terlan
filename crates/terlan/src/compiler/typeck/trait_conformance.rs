@@ -274,9 +274,11 @@ pub(super) fn check_syntax_declared_implements(
         HashMap::new();
 
     for declaration in &module.declarations {
-        let Some((type_name, implements)) = syntax_declared_implements(declaration) else {
+        let Some((type_name, type_params, implements)) = syntax_declared_implements(declaration)
+        else {
             continue;
         };
+        let implemented_type = declared_type_text(type_name, type_params);
 
         let mut seen = HashSet::new();
         for trait_ref in implements {
@@ -343,13 +345,13 @@ pub(super) fn check_syntax_declared_implements(
             for (method_name, expected_method) in methods {
                 check_declared_implements_method(
                     DeclaredMethodConformance {
-                        type_name,
+                        type_name: &implemented_type,
                         implemented_trait: &implemented_trait,
                         trait_signature: signature,
                         method_name: &method_name,
                         expected_method: &expected_method,
                         receiver_method: receiver_methods
-                            .get(&(type_name.to_string(), method_name.clone())),
+                            .get(&(implemented_type.clone(), method_name.clone())),
                         fallback_span: trait_ref.span.into(),
                     },
                     &mut diagnostics,
@@ -409,14 +411,18 @@ fn collect_syntax_positive_trait_impl_keys(
 ) -> Vec<(String, Span)> {
     let mut keys = Vec::new();
     for declaration in &module.declarations {
-        if let Some((type_name, implements)) = syntax_declared_implements(declaration) {
+        if let Some((type_name, type_params, implements)) = syntax_declared_implements(declaration)
+        {
+            let implemented_type = declared_type_text(type_name, type_params);
             for trait_ref in implements {
                 let trait_ref_text = crate::terlan_hir::qualify_syntax_type_text(
                     &trait_ref.text,
                     imported_type_refs,
                 );
-                let for_type_text =
-                    crate::terlan_hir::qualify_syntax_type_text(type_name, imported_type_refs);
+                let for_type_text = crate::terlan_hir::qualify_syntax_type_text(
+                    &implemented_type,
+                    imported_type_refs,
+                );
                 let Some(target) = parse_trait_instance_from_text(&trait_ref_text) else {
                     continue;
                 };
@@ -570,16 +576,41 @@ pub(super) fn imported_type_text_refs(
 ///   one path for both declaration forms.
 pub(super) fn syntax_declared_implements(
     declaration: &SyntaxDeclarationOutput,
-) -> Option<(&str, &[SyntaxTypeOutput])> {
+) -> Option<(&str, &[String], &[SyntaxTypeOutput])> {
     match &declaration.payload {
         SyntaxDeclarationPayload::Type {
-            name, implements, ..
+            name,
+            params,
+            implements,
+            ..
+        } if !implements.is_empty() => {
+            Some((name.as_str(), params.as_slice(), implements.as_slice()))
         }
-        | SyntaxDeclarationPayload::Struct {
-            name, implements, ..
-        } if !implements.is_empty() => Some((name.as_str(), implements.as_slice())),
+        SyntaxDeclarationPayload::Struct {
+            name,
+            generic_params,
+            implements,
+            ..
+        } if !implements.is_empty() => Some((
+            name.as_str(),
+            generic_params.as_slice(),
+            implements.as_slice(),
+        )),
         _ => None,
     }
+}
+
+/// Renders a declaration owner with its generic parameter identities.
+pub(super) fn declared_type_text(type_name: &str, type_params: &[String]) -> String {
+    if type_params.is_empty() {
+        return type_name.to_string();
+    }
+    let params = type_params
+        .iter()
+        .map(|param| normalize_type_param_name(param))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{type_name}[{params}]")
 }
 
 /// Validates local receiver-method declaration identity and ownership.

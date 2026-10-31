@@ -154,6 +154,9 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileReadBytes) => {
             LoweringCoverage::native("Intrinsic.runtime.file.read_bytes")
         }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteBytes) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.write_bytes")
+        }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileSize) => {
             LoweringCoverage::native("Intrinsic.runtime.file.size")
         }
@@ -319,11 +322,20 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
             LoweringCoverage::native("Intrinsic.vm.process.current")
         }
         CoreIntrinsicId::VmProcessLink(_) => LoweringCoverage::native("Intrinsic.vm.process.link"),
+        CoreIntrinsicId::VmProcessUnlink(_) => {
+            LoweringCoverage::native("Intrinsic.vm.process.unlink")
+        }
         CoreIntrinsicId::VmProcessMonitor(_) => {
             LoweringCoverage::native("Intrinsic.vm.process.monitor")
         }
+        CoreIntrinsicId::VmProcessDemonitor(_) => {
+            LoweringCoverage::native("Intrinsic.vm.process.demonitor")
+        }
         CoreIntrinsicId::VmProcessAcquireResource(_) => {
             LoweringCoverage::native("Intrinsic.vm.process.acquire")
+        }
+        CoreIntrinsicId::VmProcessReleaseResource(_) => {
+            LoweringCoverage::native("Intrinsic.vm.process.release")
         }
         CoreIntrinsicId::VmProcessCancel(_) => {
             LoweringCoverage::native("Intrinsic.vm.process.cancel")

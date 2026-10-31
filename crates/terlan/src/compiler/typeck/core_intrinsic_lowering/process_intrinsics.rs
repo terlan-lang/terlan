@@ -57,6 +57,7 @@ pub(super) fn core_typed_process_intrinsic_expr_from_parts(
             CoreIntrinsicId::VmProcessLink(value_type),
             CoreType::Named("Unit".to_string()),
         ),
+        ("unlink", 1) => (CoreIntrinsicId::VmProcessUnlink(value_type), CoreType::Bool),
         ("monitor", 1) => (
             CoreIntrinsicId::VmProcessMonitor(value_type.clone()),
             CoreType::Apply {
@@ -64,12 +65,20 @@ pub(super) fn core_typed_process_intrinsic_expr_from_parts(
                 args: vec![value_type],
             },
         ),
+        ("demonitor", 1) => (
+            CoreIntrinsicId::VmProcessDemonitor(value_type),
+            CoreType::Bool,
+        ),
         ("acquire", 1) => (
             CoreIntrinsicId::VmProcessAcquireResource(value_type.clone()),
             CoreType::Apply {
                 constructor: "std.vm.Process.Resource".to_string(),
                 args: vec![value_type],
             },
+        ),
+        ("release", 1) => (
+            CoreIntrinsicId::VmProcessReleaseResource(value_type),
+            CoreType::Bool,
         ),
         ("cancel", 1) => (
             CoreIntrinsicId::VmProcessCancel(value_type),

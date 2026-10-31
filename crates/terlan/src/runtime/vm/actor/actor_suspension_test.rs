@@ -814,6 +814,38 @@ fn native_link_transition_creates_failure_relationship_before_owner_resume() {
 }
 
 #[test]
+fn native_unlink_transition_removes_relationship_before_peer_exit() {
+    let mut runtime = VmActorRuntime::default();
+    let owner = runtime.spawn_root(source("native-unlinker"));
+    let peer = runtime.spawn_root(source("native-peer"));
+    runtime
+        .park_native_continuation(owner.as_u64(), 140, 150)
+        .expect("native link continuation should park");
+    assert!(runtime
+        .service_native_link(owner.as_u64(), 140, 150, peer.as_u64())
+        .expect("native link should be created"));
+    runtime
+        .park_native_continuation(owner.as_u64(), 141, 151)
+        .expect("native unlink continuation should park");
+
+    assert!(runtime
+        .service_native_unlink(owner.as_u64(), 141, 151, peer.as_u64())
+        .expect("native link should be removed"));
+    assert!(runtime
+        .failure_snapshot(owner)
+        .expect("owner relationships")
+        .links
+        .is_empty());
+    runtime
+        .exit_actor(peer, VmExitReason::Killed)
+        .expect("unlinked peer exit should remain isolated");
+    assert_eq!(
+        runtime.processes().get(owner).expect("owner exists").state,
+        VmProcessState::Runnable
+    );
+}
+
+#[test]
 fn native_link_transition_rejects_invalid_ownership_without_relationship_mutation() {
     let mut runtime = VmActorRuntime::default();
     let owner = runtime.spawn_root(source("native-linker"));
@@ -893,6 +925,40 @@ fn native_monitor_transition_allocates_reference_before_down_delivery() {
 }
 
 #[test]
+fn native_demonitor_transition_prevents_down_delivery() {
+    let mut runtime = VmActorRuntime::default();
+    let owner = runtime.spawn_root(source("native-demonitor"));
+    let target = runtime.spawn_root(source("native-target"));
+    runtime
+        .park_native_continuation(owner.as_u64(), 164, 168)
+        .expect("native monitor continuation should park");
+    let monitor_ref = runtime
+        .service_native_monitor(owner.as_u64(), 164, 168, target.as_u64())
+        .expect("native monitor should be created");
+    runtime
+        .park_native_continuation(owner.as_u64(), 165, 169)
+        .expect("native demonitor continuation should park");
+
+    assert!(runtime
+        .service_native_demonitor(owner.as_u64(), 165, 169, monitor_ref)
+        .expect("native monitor should be removed"));
+    assert!(runtime
+        .failure_snapshot(owner)
+        .expect("owner relationships")
+        .monitoring
+        .is_empty());
+    runtime
+        .exit_actor(target, VmExitReason::Killed)
+        .expect("demonitored target should exit");
+    assert_eq!(
+        runtime
+            .receive_next_or_block(owner)
+            .expect("owner remains receivable"),
+        VmActorReceive::Blocked
+    );
+}
+
+#[test]
 fn native_monitor_transition_rejects_missing_targets_before_reference_allocation() {
     let mut runtime = VmActorRuntime::default();
     let owner = runtime.spawn_root(source("native-monitor"));
@@ -965,6 +1031,36 @@ fn native_resource_transition_registers_owned_handle_and_cleans_up_on_exit() {
         ["resource:1"]
     );
     assert!(runtime.resource_snapshots().is_empty());
+}
+
+#[test]
+fn native_resource_release_removes_live_handle_before_owner_exit() {
+    let mut runtime = VmActorRuntime::default();
+    let owner = runtime.spawn_root(source("native-resource-release"));
+    runtime
+        .park_native_continuation(owner.as_u64(), 182, 192)
+        .expect("native resource continuation should park");
+    let resource_id = runtime
+        .service_native_resource(owner.as_u64(), 182, 192, 7)
+        .expect("native resource should register");
+    runtime
+        .park_native_continuation(owner.as_u64(), 183, 193)
+        .expect("native release continuation should park");
+
+    assert!(runtime
+        .service_native_resource_release(owner.as_u64(), 183, 193, resource_id)
+        .expect("native resource should release"));
+    assert!(runtime.resource_snapshots().is_empty());
+    assert!(runtime
+        .processes()
+        .get(owner)
+        .expect("resource owner")
+        .resource_handles
+        .is_empty());
+    assert!(runtime
+        .exit_actor(owner, VmExitReason::Normal)
+        .expect("resource owner exit")
+        .is_empty());
 }
 
 #[test]

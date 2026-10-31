@@ -38,6 +38,21 @@ fn built_in_arguments_are_borrowed_without_cloning() {
 }
 
 #[test]
+fn binary_file_write_has_a_fixed_typed_capability_frame() {
+    assert_eq!(
+        crate::runtime::native_image::control::tvm_fixed_capability_frame_words(61),
+        Some(6)
+    );
+    assert_eq!(
+        capability_identity(61).unwrap(),
+        (
+            "filesystem".to_string(),
+            "std.io.file.write_bytes".to_string()
+        )
+    );
+}
+
+#[test]
 fn wire_conversion_uses_typed_package_values_not_stale_wire_fields() {
     let mut request = package(vec![ReplValue::Tuple(vec![
         ReplValue::Int(7),

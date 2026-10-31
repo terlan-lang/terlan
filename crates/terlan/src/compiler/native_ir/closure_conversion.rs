@@ -563,6 +563,7 @@ fn lower_escaping_lambda_at(
         arity: lambda_names.len(),
         public: false,
         generic_params: Vec::new(),
+        generic_bounds: Vec::new(),
         native_operation: None,
         params: lambda_names
             .iter()

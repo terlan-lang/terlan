@@ -181,8 +181,11 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
         "pub spawn_child(entry: Entry[Int]): ProcessHandle[Int] -> Process.spawn[Int](entry).\n",
         "pub sleep(timer: Timer): Unit -> Process.sleep(timer).\n",
         "pub link(peer: ProcessHandle[Int]): Unit -> Process.link[Int](peer).\n",
+        "pub unlink(peer: ProcessHandle[Int]): Bool -> Process.unlink[Int](peer).\n",
         "pub monitor(peer: ProcessHandle[Int]): Monitor[Int] -> Process.monitor[Int](peer).\n",
+        "pub demonitor(monitor: Monitor[Int]): Bool -> Process.demonitor[Int](monitor).\n",
         "pub acquire(kind: ResourceKind[Int]): Resource[Int] -> Process.acquire[Int](kind).\n",
+        "pub release(resource: Resource[Int]): Bool -> Process.release[Int](resource).\n",
         "pub cancel(target: ProcessHandle[Int]): Unit -> Process.cancel[Int](target).\n",
         "pub fail(reason: ExitReason): Unit -> Process.fail(reason).\n",
         "pub schedule(class: SchedulingClass): Unit -> Process.schedule(class).\n",
@@ -206,6 +209,11 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
             CoreType::Named("Unit".to_string()),
         ),
         (
+            "unlink",
+            CoreIntrinsicId::VmProcessUnlink(typed.clone()),
+            CoreType::Bool,
+        ),
+        (
             "monitor",
             CoreIntrinsicId::VmProcessMonitor(typed.clone()),
             CoreType::Apply {
@@ -214,12 +222,22 @@ fn syntax_output_lowering_canonicalizes_typed_process_lifecycle_transitions() {
             },
         ),
         (
+            "demonitor",
+            CoreIntrinsicId::VmProcessDemonitor(typed.clone()),
+            CoreType::Bool,
+        ),
+        (
             "acquire",
             CoreIntrinsicId::VmProcessAcquireResource(typed.clone()),
             CoreType::Apply {
                 constructor: "std.vm.Process.Resource".to_string(),
                 args: vec![typed.clone()],
             },
+        ),
+        (
+            "release",
+            CoreIntrinsicId::VmProcessReleaseResource(typed.clone()),
+            CoreType::Bool,
         ),
         (
             "cancel",

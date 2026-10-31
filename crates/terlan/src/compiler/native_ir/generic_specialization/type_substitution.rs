@@ -44,8 +44,11 @@ fn substitute_expr_types(
                 | CoreIntrinsicId::VmProcessEntry(ty)
                 | CoreIntrinsicId::VmProcessCurrent(ty)
                 | CoreIntrinsicId::VmProcessLink(ty)
+                | CoreIntrinsicId::VmProcessUnlink(ty)
                 | CoreIntrinsicId::VmProcessMonitor(ty)
+                | CoreIntrinsicId::VmProcessDemonitor(ty)
                 | CoreIntrinsicId::VmProcessAcquireResource(ty)
+                | CoreIntrinsicId::VmProcessReleaseResource(ty)
                 | CoreIntrinsicId::VmProcessCancel(ty) => {
                     *ty = substitute(ty, parameters, values);
                 }

@@ -5,9 +5,11 @@ use super::super::QualifiedFunctionIdentity as OverloadKey;
 use super::*;
 use crate::terlan_typeck::{core_type_contract_text, CoreTupleTypeElem};
 
+mod callable_lookup;
 mod selected_imports;
 mod trait_methods;
 mod type_scoring;
+use callable_lookup::{local_overload_candidates, lookup_call_return};
 pub(crate) use selected_imports::resolve as resolve_selected_imports;
 use type_scoring::{argument_contract, type_match_score};
 
@@ -707,25 +709,6 @@ fn rewrite_fields(
     Ok(())
 }
 
-/// Finds a local or already-qualified overload group.
-fn local_overload_candidates<'a>(
-    current_module: &str,
-    function: &str,
-    arity: usize,
-    groups: &'a HashMap<OverloadKey, Vec<OverloadCandidate>>,
-) -> Option<&'a [OverloadCandidate]> {
-    if let Some(candidates) = groups.get(&(current_module.to_string(), function.to_string(), arity))
-    {
-        return Some(candidates);
-    }
-    groups
-        .iter()
-        .find_map(|((module, name, candidate_arity), candidates)| {
-            (*candidate_arity == arity && format!("{module}.{name}") == function)
-                .then_some(candidates.as_slice())
-        })
-}
-
 /// Selects the unique most-specific candidate accepted by inferred arguments.
 fn select_candidate<'a>(
     candidates: &'a [OverloadCandidate],
@@ -776,26 +759,6 @@ fn select_candidate<'a>(
         ));
     }
     Ok(best)
-}
-
-/// Looks up a non-overloaded local or qualified call result.
-fn lookup_call_return(
-    current_module: &str,
-    function: &str,
-    arity: usize,
-    returns: &HashMap<OverloadKey, CoreType>,
-) -> Option<CoreType> {
-    returns
-        .get(&(current_module.to_string(), function.to_string(), arity))
-        .cloned()
-        .or_else(|| {
-            returns
-                .iter()
-                .find_map(|((module, name, candidate_arity), result)| {
-                    (*candidate_arity == arity && format!("{module}.{name}") == function)
-                        .then(|| result.clone())
-                })
-        })
 }
 
 /// Binds variables introduced by a pattern to the retained structural type.

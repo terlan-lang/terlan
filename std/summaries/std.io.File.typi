@@ -233,6 +233,16 @@ pub size(path: String): Result[Int, FileError].
 
 pub timestamps(path: String): Result[FileTimestamps, FileError].
 
+/// Writes one file from VM-owned immutable bytes without text transcoding.
+///
+/// Input: a UTF-8 path string and the exact byte buffer to persist.
+/// Output: `Result[Unit, FileError]`.
+/// Transformation: lowers through the compiler-owned
+/// `runtime.file.write_bytes` capability, preserving every octet exactly and
+/// normalizing backend failures into `FileError`.
+
+pub write_bytes(path: String, content: std.vm.Bytes): Result[Unit, FileError].
+
 /// Writes a UTF-8 text file.
 ///
 /// Input: a UTF-8 path string and UTF-8 text content.

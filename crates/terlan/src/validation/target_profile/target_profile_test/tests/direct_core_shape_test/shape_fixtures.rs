@@ -318,6 +318,7 @@ pub(super) fn module_with_core_body_and_evidence(
             arity: 1,
             public: true,
             generic_params: Vec::new(),
+            generic_bounds: Vec::new(),
             native_operation: None,
             params: vec![CoreParam {
                 name: "input".to_string(),

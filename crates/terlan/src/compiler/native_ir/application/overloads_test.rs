@@ -596,6 +596,124 @@ pub (value: Value) second(increment: Int): Int -> value.number + increment.
     ]);
 }
 
+/// Imported generic declaration-site owners retain their applied arguments.
+#[test]
+fn imported_generic_declaration_site_owner_dispatches() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module generic_owner.Consumer.
+import generic_owner.Contract.{Validate}.
+import generic_owner.Value.{Generic}.
+import type generic_owner.Contract.{Validate}.
+validate_with[T](value: T)[Validate[T]]: Bool -> Validate.validate(value).
+pub check(): Bool ->
+    let value = Generic(42);
+    validate_with(value).
+"#,
+        r#"
+module generic_owner.Contract.
+pub trait Validate[T] { validate(value: T): Bool. }.
+"#,
+        r#"
+module generic_owner.Value.
+import type generic_owner.Contract.{Validate}.
+pub struct Generic[T] implements Validate[Generic[T]] { value: T }.
+pub constructor Generic[T] { (value: T): Generic[T] -> Generic {value: value} }.
+pub (value: Generic[T]) validate(): Bool -> true.
+"#,
+    ]);
+}
+
+/// Native monomorphization uses a declaration-site conformance to recover
+/// call-local generic arguments that occur only in a bound and an earlier
+/// constructor-pattern binding.
+#[test]
+fn imported_conformance_completes_native_output_only_generics() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module bound.Consumer.
+import std.core.Option.{Some}.
+import bound.Producer.{Producer}.
+import bound.Model.{Model}.
+import type bound.Producer.{Producer}.
+import type std.core.Option.{Option}.
+same[M, S](model: M, state: S)[Producer[M, S]]: S -> state.
+pub check(): Bool ->
+    let model = Model();
+    let Some(initial) <- Producer.initial(model) else {
+        _ -> false
+    };
+    same(model, initial).value == 42.
+"#,
+        r#"
+module bound.Producer.
+import type std.core.Option.{Option}.
+pub trait Producer[M, S] {
+    initial(model: M): Option[S].
+}.
+"#,
+        r#"
+module bound.Model.
+import std.core.Option.{Some}.
+import type bound.Producer.{Producer}.
+import type std.core.Option.{Option}.
+pub struct Model implements Producer[Model, State] {}.
+pub struct State { value: Int }.
+pub constructor Model { (): Model -> Model {} }.
+pub (model: Model) initial(): Option[State] -> Some(State {value: 42}).
+"#,
+        include_str!("../../../../../../std/core/Option.terl"),
+    ]);
+}
+
+/// Declaration-site dispatch preserves the concrete managed return layout of
+/// a generic trait method, including parameters used only by `Result`.
+#[test]
+fn imported_generic_trait_dispatch_preserves_result_layout() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module handler.Consumer.
+import std.core.Result.{Ok}.
+import handler.Contract.{Handler}.
+import handler.Values.{Message, Output}.
+import type handler.Contract.{Handler}.
+import type handler.Values.{Message, Output}.
+import type std.core.Result.{Result}.
+pub struct Implementation implements Handler[Implementation, Message, Output, Int] {}.
+pub constructor Implementation { (): Implementation -> Implementation {} }.
+pub (implementation: Implementation) handle(message: Message): Result[Output, Int] ->
+    Ok(Output(message.value())).
+handle_with[Implementation, Message, Output, Failure](
+    implementation: Implementation,
+    message: Message,
+)[Handler[Implementation, Message, Output, Failure]]: Result[Output, Failure] ->
+    Handler.handle(implementation, message).
+pub check(): Bool ->
+    let Ok(output) <- handle_with(Implementation(), Message(42)) else {
+        _ -> false
+    };
+    output.value() == 42.
+"#,
+        r#"
+module handler.Contract.
+import type std.core.Result.{Result}.
+pub trait Handler[Implementation, Message, Output, Failure] {
+    handle(implementation: Implementation, message: Message): Result[Output, Failure].
+}.
+"#,
+        r#"
+module handler.Values.
+pub struct Message { value: Int }.
+pub struct Output { value: Int }.
+pub constructor Message { (value: Int): Message -> Message {value: value} }.
+pub constructor Output { (value: Int): Output -> Output {value: value} }.
+pub (message: Message) value(): Int -> message.value.
+pub (output: Output) value(): Int -> output.value.
+"#,
+        include_str!("../../../../../../std/core/Result.terl"),
+    ]);
+}
+
 /// Selecting a trait template must not bypass its generic argument constraints.
 #[test]
 fn explicit_generic_trait_method_checks_arguments_during_specialization() {

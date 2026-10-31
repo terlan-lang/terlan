@@ -112,6 +112,15 @@ pub cancel[T](target: Process[T]): Unit.
 
 pub current[T](): Process[T].
 
+/// Removes one monitor owned by the current process.
+///
+/// Input: an opaque monitor returned by `monitor`.
+/// Output: `true` when the active monitor was removed, otherwise `false`.
+/// Transformation: the VM authenticates monitor ownership; application code
+/// cannot cancel another process's monitor by guessing its numeric identity.
+
+pub demonitor[T](monitor: Monitor[T]): Bool.
+
 /// Builds an image-local typed process entry.
 ///
 /// Input: a positive image entry tag and mailbox payload type `T`.
@@ -228,6 +237,15 @@ pub receive_string(): String.
 
 pub receive_where[T](predicate: (T) -> Bool): std.vm.Message[T].
 
+/// Releases one resource owned by the current process.
+///
+/// Input: an opaque owner-bound resource returned by `acquire`.
+/// Output: `true` after the live resource and ownership row are removed.
+/// Transformation: validates ownership and performs the same cleanup that an
+/// owning process exit would perform, without exposing the resource identity.
+
+pub release[K](resource: Resource[K]): Bool.
+
 /// Builds a typed application resource kind.
 ///
 /// Input: a positive application-defined kind tag and phantom family `K`.
@@ -325,6 +343,15 @@ pub spawn[T](entry: Entry[T]): Process[T].
 /// Transformation: erases to the validated tick count after type checking.
 
 pub timer(ticks: Int): Timer.
+
+/// Removes the current process's symmetric link to one peer.
+///
+/// Input: a typed process handle previously linked to the current process.
+/// Output: `true` when a live relationship was removed, otherwise `false`.
+/// Transformation: validates ownership and updates both link endpoints before
+/// the current continuation resumes.
+
+pub unlink[T](peer: Process[T]): Bool.
 
 /// Voluntarily yields the current process at an AOT continuation boundary.
 ///

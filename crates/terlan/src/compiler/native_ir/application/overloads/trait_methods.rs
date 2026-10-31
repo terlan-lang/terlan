@@ -87,9 +87,6 @@ fn collect_declaration_site_methods(
     groups: &mut HashMap<OverloadKey, Vec<OverloadCandidate>>,
 ) {
     for conformance in &core.trait_conformances {
-        if conformance.source != crate::terlan_typeck::CoreTraitConformanceSource::Implements {
-            continue;
-        }
         let Some(trait_type) = crate::terlan_typeck::core_type_from_text(&conformance.trait_ref)
         else {
             continue;
@@ -115,6 +112,21 @@ fn collect_declaration_site_methods(
             type_args,
             method: String::new(),
         };
+        // Serialized interfaces render declaration-site conformances as empty
+        // `pub impl` blocks, so reparsing classifies them as ExplicitImpl.
+        // A real explicit impl already has adapter functions carrying the same
+        // checked trait identity and was collected above; only the bodyless
+        // round-trip form needs receiver-method recovery here.
+        if conformance.source == crate::terlan_typeck::CoreTraitConformanceSource::ExplicitImpl
+            && core.functions.iter().any(|function| {
+                function.trait_method.as_ref().is_some_and(|method| {
+                    method.trait_name == identity.trait_name
+                        && method.type_args == identity.type_args
+                })
+            })
+        {
+            continue;
+        }
         let dispatch_owner = identity.dispatch_owner();
 
         for function in &core.functions {

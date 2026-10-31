@@ -11,6 +11,7 @@ pub(crate) fn resolve_typed_generic_calls(cores: &mut [CoreModule]) -> NativeIrR
     super::normalize_application_remote_calls(cores, false);
     let deferred = super::overloads::resolve_typed_overloads(cores)?;
     super::transparent_aliases::expand_transparent_aliases(cores);
+    let nominal_parameters = generic_specialization::nominal_parameter_catalog(cores);
     let exported_templates = cores
         .iter()
         .map(|core| {
@@ -18,7 +19,11 @@ pub(crate) fn resolve_typed_generic_calls(cores: &mut [CoreModule]) -> NativeIrR
                 .iter()
                 .filter(|function| {
                     function.public
-                        && !generic_specialization::generic_parameters(function).is_empty()
+                        && !generic_specialization::generic_parameters_with_nominals(
+                            function,
+                            &nominal_parameters,
+                        )
+                        .is_empty()
                 })
                 .cloned()
                 .collect::<Vec<_>>()

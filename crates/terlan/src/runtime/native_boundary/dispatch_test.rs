@@ -16,6 +16,27 @@ mod toml_operations;
 mod typed_handle_operations;
 
 #[test]
+fn binary_file_write_roundtrips_exact_octets() {
+    let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "write_bytes");
+    let path = root.join("artifact.bin");
+    let bytes = vec![0, 10, 127, 128, 255];
+    assert_eq!(
+        dispatch(
+            "std.io.file.write_bytes",
+            &[
+                NativeBoundaryValue::Text(path.to_string_lossy().into_owned()),
+                NativeBoundaryValue::Bytes(bytes.clone()),
+            ],
+        ),
+        Ok(NativeBoundaryValue::Unit)
+    );
+    assert_eq!(
+        std::fs::read(path).expect("read binary file artifact"),
+        bytes
+    );
+}
+
+#[test]
 fn selected_file_hash_preserves_release_surface_framing() {
     let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "selected_hash");
     std::fs::write(root.join("a.txt"), "a").expect("write first selected file");

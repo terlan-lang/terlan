@@ -369,6 +369,18 @@ pub link[T](peer: Process[T]): Unit ->
     native.
 
 /**
+ * Removes the current process's symmetric link to one peer.
+ *
+ * Input: a typed process handle previously linked to the current process.
+ * Output: `true` when a live relationship was removed, otherwise `false`.
+ * Transformation: validates ownership and updates both link endpoints before
+ * the current continuation resumes.
+ */
+@target.vm {process_mailbox: true}
+pub unlink[T](peer: Process[T]): Bool ->
+    native.
+
+/**
  * Monitors one live VM process from the current process.
  *
  * Input: a typed target process.
@@ -378,6 +390,18 @@ pub link[T](peer: Process[T]): Unit ->
  */
 @target.vm {process_mailbox: true}
 pub monitor[T](peer: Process[T]): Monitor[T] ->
+    native.
+
+/**
+ * Removes one monitor owned by the current process.
+ *
+ * Input: an opaque monitor returned by `monitor`.
+ * Output: `true` when the active monitor was removed, otherwise `false`.
+ * Transformation: the VM authenticates monitor ownership; application code
+ * cannot cancel another process's monitor by guessing its numeric identity.
+ */
+@target.vm {process_mailbox: true}
+pub demonitor[T](monitor: Monitor[T]): Bool ->
     native.
 
 /**
@@ -401,6 +425,18 @@ pub resource_kind[K](tag: Int): ResourceKind[K] ->
  */
 @target.vm {process_mailbox: true}
 pub acquire[K](kind: ResourceKind[K]): Resource[K] ->
+    native.
+
+/**
+ * Releases one resource owned by the current process.
+ *
+ * Input: an opaque owner-bound resource returned by `acquire`.
+ * Output: `true` after the live resource and ownership row are removed.
+ * Transformation: validates ownership and performs the same cleanup that an
+ * owning process exit would perform, without exposing the resource identity.
+ */
+@target.vm {process_mailbox: true}
+pub release[K](resource: Resource[K]): Bool ->
     native.
 
 /**

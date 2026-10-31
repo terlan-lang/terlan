@@ -6,6 +6,7 @@ pub(super) fn specialize_core(
     core: &mut CoreModule,
     templates: &CallableTemplates,
     budget: &mut super::super::specialization_budget::SpecializationBudget,
+    retain_generic_templates: bool,
 ) -> Result<(), String> {
     let mut cache = BTreeMap::<(String, Vec<String>), String>::new();
     let mut cursor = 0usize;
@@ -66,7 +67,9 @@ pub(super) fn specialize_core(
         core.functions.extend(generated);
         cursor += 1;
     }
-    core.functions
-        .retain(|function| !function_is_generic(function));
+    if !retain_generic_templates {
+        core.functions
+            .retain(|function| !function_is_generic(function));
+    }
     Ok(())
 }

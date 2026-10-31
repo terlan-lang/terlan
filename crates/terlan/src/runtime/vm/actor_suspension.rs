@@ -1,4 +1,6 @@
-use super::super::resource::{VmResourceDescriptor, VmResourceEvent, VmResourceTransferPolicy};
+use super::super::resource::{
+    VmResourceDescriptor, VmResourceEvent, VmResourceId, VmResourceTransferPolicy,
+};
 use super::{ReplValue, VmActorRuntime, ACTOR_OPERATION_REDUCTIONS};
 use crate::runtime::native_image::TvmBoundaryType;
 use crate::runtime::vm::process::{
@@ -557,6 +559,22 @@ impl VmActorRuntime {
         Ok(created)
     }
 
+    /// Removes one VM-owned symmetric link before resuming its native owner.
+    pub(crate) fn service_native_unlink(
+        &mut self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+        peer_id: u64,
+    ) -> Result<bool, String> {
+        let owner =
+            self.validate_native_continuation_owner(owner_id, request_id, continuation_id)?;
+        let peer = VmProcessId::from_native_recipient(peer_id)?;
+        let removed = self.unlink_actors(owner, peer)?;
+        self.consume_native_continuation(owner, (request_id, continuation_id))?;
+        Ok(removed)
+    }
+
     /// Creates one owner-bound monitor before resuming its native watcher.
     pub(crate) fn service_native_monitor(
         &mut self,
@@ -571,6 +589,21 @@ impl VmActorRuntime {
         let monitor_ref = self.monitor_actor(owner, target)?;
         self.consume_native_continuation(owner, (request_id, continuation_id))?;
         Ok(monitor_ref.as_u64())
+    }
+
+    /// Removes one owner-authenticated monitor before resuming native code.
+    pub(crate) fn service_native_demonitor(
+        &mut self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+        monitor_id: u64,
+    ) -> Result<bool, String> {
+        let owner =
+            self.validate_native_continuation_owner(owner_id, request_id, continuation_id)?;
+        let removed = self.demonitor_actor_by_id(owner, monitor_id)?;
+        self.consume_native_continuation(owner, (request_id, continuation_id))?;
+        Ok(removed)
     }
 
     /// Registers one opaque VM resource before resuming its native owner.
@@ -597,6 +630,23 @@ impl VmActorRuntime {
         };
         self.consume_native_continuation(owner, (request_id, continuation_id))?;
         Ok(id.as_u64())
+    }
+
+    /// Releases one owner-bound VM resource before resuming native code.
+    pub(crate) fn service_native_resource_release(
+        &mut self,
+        owner_id: u64,
+        request_id: u64,
+        continuation_id: u64,
+        resource_id: u64,
+    ) -> Result<bool, String> {
+        let owner =
+            self.validate_native_continuation_owner(owner_id, request_id, continuation_id)?;
+        let resource = VmResourceId::from_native_handle(resource_id)?;
+        self.resources
+            .release(&mut self.processes, owner, resource)?;
+        self.consume_native_continuation(owner, (request_id, continuation_id))?;
+        Ok(true)
     }
 
     /// Records one scheduler-owned cancellation before resuming its native requester.

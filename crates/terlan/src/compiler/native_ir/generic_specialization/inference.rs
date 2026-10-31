@@ -323,6 +323,9 @@ fn infer_call_type(
         {
             continue;
         }
+        // Output-only parameters can be fixed by declaration-site trait
+        // conformance even though no value argument carries their types.
+        templates.refine_generic_bounds(template, &mut values);
         let result = substitute(
             template.core_return_type.as_ref()?,
             &template.generic_params,
@@ -514,6 +517,7 @@ pub(super) fn infer_generic_argument_types(
         )?;
         concrete[index] = Some(inferred);
     }
+    templates.refine_generic_bounds(template, &mut substitution);
     let mut pending = (0..arguments.len()).collect::<Vec<_>>();
     while !pending.is_empty() {
         let mut deferred = Vec::new();
@@ -554,6 +558,13 @@ pub(super) fn infer_generic_argument_types(
                         templates,
                         module,
                     )
+                    .filter(|inferred| {
+                        !super::contains_implicit_generic_type(inferred)
+                            || super::contains_generic_parameter(
+                                &contextual_expected,
+                                &template.generic_params,
+                            )
+                    })
                 })
                 .or_else(|| {
                     (!contains_generic_parameter(&contextual_expected, &template.generic_params))

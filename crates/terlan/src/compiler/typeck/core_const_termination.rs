@@ -54,6 +54,7 @@ pub(crate) fn core_const_function_termination_evidence(
                 arity: params.len(),
                 public: *is_public,
                 generic_params: Vec::new(),
+                generic_bounds: Vec::new(),
                 native_operation: None,
                 params: params
                     .iter()

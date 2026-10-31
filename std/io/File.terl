@@ -145,6 +145,19 @@ pub read_bytes(path: String): Result[Bytes, FileError] ->
     Err(new(Unknown, "unknown file error", path)).
 
 /**
+ * Writes one file from VM-owned immutable bytes without text transcoding.
+ *
+ * Input: a UTF-8 path string and the exact byte buffer to persist.
+ * Output: `Result[Unit, FileError]`.
+ * Transformation: lowers through the compiler-owned
+ * `runtime.file.write_bytes` capability, preserving every octet exactly and
+ * normalizing backend failures into `FileError`.
+ */
+@compiler.intrinsic
+pub write_bytes(path: String, content: Bytes): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", path)).
+
+/**
  * Returns the logical byte length of one regular file without reading it.
  *
  * This metadata operation follows the selected path in the same way as a

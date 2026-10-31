@@ -533,6 +533,7 @@ std.io.File.read_text.not_found.code	std/io/FileTest.terl	read_text_reports_miss
 std.io.File.read_text.not_found.message	std/io/FileTest.terl	read_text_reports_missing_file_message
 std.io.File.read_text.not_found.path	std/io/FileTest.terl	read_text_reports_missing_file_path
 std.io.File.read_bytes	std/io/FileTest.terl	read_bytes_preserves_non_utf8_octets
+std.io.File.write_bytes	std/io/FileTest.terl	write_bytes_preserves_every_octet
 std.io.File.size	std/io/FileTest.terl	size_reads_metadata_without_materializing_contents
 std.io.File.timestamps	std/io/FileTest.terl	timestamps_restore_metadata_after_a_temporary_rewrite
 std.io.File.set_timestamps	std/io/FileTest.terl	timestamps_restore_metadata_after_a_temporary_rewrite

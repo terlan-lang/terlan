@@ -116,6 +116,15 @@ Every nonempty commit builds the four canonical debug and release executables
 and checks their combined sizes against `docs/quality/BUILD_ARTIFACT_BUDGET.json`.
 The check uses the staged source and the hook's Cargo cache, rejects missing or
 empty executables, and shares the release gate's size-budget calculation.
+
+The 0.10.0 compiler, VM, native worker, and test orchestrator measured
+134,384,008 release bytes after concrete imported-generic layouts and
+source-visible process teardown operations were added. That exceeded the former
+128 MiB aggregate ceiling by 166,280 bytes. The reviewed ceiling is therefore
+129 MiB (135,266,304 bytes), leaving 882,296 bytes of headroom; the existing
+ratchet policy still requires three comparable measurements before lowering it
+and a new reviewed rationale before any later increase.
+
 The full clean-build timing and artifact-footprint measurement remains a release gate.
 After this size check, Terlan compilation, formatting, summary checks, and browser
 fixture generation use the optimized compiler already built from the same staged

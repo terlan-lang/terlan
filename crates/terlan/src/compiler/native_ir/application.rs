@@ -239,12 +239,21 @@ impl NativeModule {
         timings.mark("pre-specialization");
         // Monomorphization must observe typed constructor patterns before
         // scalar case lowering erases their payload types into managed words.
-        super::generic_specialization::specialize_application_generics_with_budget(
+        super::generic_specialization::specialize_application_generics_retaining_templates_with_budget(
             &mut normalized_cores,
             &mut specialization_budget,
         )?;
         timings.mark("generic-specialization");
         deferred_overloads.resolve(&mut normalized_cores)?;
+        // Trait overloads inside a generic helper can select their concrete
+        // implementation only after the helper itself is instantiated. Keep
+        // templates through that selection, then close the newly qualified
+        // generic implementation calls in one bounded second pass.
+        super::generic_specialization::specialize_application_generics_with_budget(
+            &mut normalized_cores,
+            &mut specialization_budget,
+        )?;
+        timings.mark("deferred-overload-specialization");
         // Generic specialization substitutes concrete arguments into cloned
         // signatures and intrinsic payloads after the first alias pass. Run
         // the idempotent resolver again so every generated mailbox boundary

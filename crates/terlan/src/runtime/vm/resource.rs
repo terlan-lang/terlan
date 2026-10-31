@@ -24,6 +24,13 @@ pub(crate) mod transfer;
 pub(crate) struct VmResourceId(u64);
 
 impl VmResourceId {
+    /// Validates a source-visible resource identity at the native boundary.
+    pub(crate) fn from_native_handle(raw: u64) -> Result<Self, String> {
+        (raw != 0)
+            .then_some(Self(raw))
+            .ok_or_else(|| "native resource identity must be positive".to_string())
+    }
+
     /// Returns the numeric resource id.
     pub(crate) fn as_u64(self) -> u64 {
         self.0
@@ -91,7 +98,6 @@ pub(crate) enum VmResourceEvent {
         from: VmProcessId,
         to: VmProcessId,
     },
-    #[cfg(any(test, feature = "benchmark-tools"))]
     Released {
         id: VmResourceId,
         owner: VmProcessId,
@@ -267,7 +273,6 @@ impl VmResourceTable {
     }
 
     /// Releases a resource by its current owner.
-    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn release(
         &mut self,
         processes: &mut VmProcessTable,
@@ -287,7 +292,6 @@ impl VmResourceTable {
     }
 
     /// Validates resource release without mutating ownership state.
-    #[cfg(any(test, feature = "benchmark-tools"))]
     pub(crate) fn validate_release(
         &self,
         processes: &VmProcessTable,
@@ -366,7 +370,6 @@ impl VmResourceTable {
             .collect()
     }
 
-    #[cfg(any(test, feature = "benchmark-tools"))]
     fn live_resource(&self, resource: VmResourceId) -> Result<&VmResourceRecord, String> {
         self.resources
             .get(&resource)
@@ -418,7 +421,6 @@ fn resource_handle_name(resource: VmResourceId) -> String {
     format!("resource:{}", resource.as_u64())
 }
 
-#[cfg(any(test, feature = "benchmark-tools"))]
 fn stale_resource_diagnostic(resource: VmResourceId) -> String {
     format!("stale native resource handle {}", resource.as_u64())
 }

@@ -322,6 +322,19 @@ pub fn dispatch(
                 .map(|()| NativeBoundaryValue::Unit)
                 .map_err(|error| dispatch_file_error(operation, value, error))
         }
+        "std.io.file.write_bytes" => {
+            let path = expect_text(operation, args, 0)?;
+            let Some(NativeBoundaryValue::Bytes(contents)) = args.get(1) else {
+                return Err(DispatchError::new(
+                    "boundary.type",
+                    format!("{operation} argument 1 must be Bytes"),
+                    1,
+                ));
+            };
+            std::fs::write(path, contents)
+                .map(|()| NativeBoundaryValue::Unit)
+                .map_err(|error| dispatch_file_error(operation, path, error))
+        }
         "std.io.file.append_text" => {
             use std::io::Write as _;
             let value = expect_text(operation, args, 0)?;

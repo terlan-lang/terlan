@@ -439,7 +439,9 @@ fn resolve_scoped_call(
         return providers
             .iter()
             .find(|(module, function, candidate_arity)| {
-                format!("{module}.{function}") == name && *candidate_arity == arity
+                canonical_callable_path(&format!("{module}.{function}"))
+                    == canonical_callable_path(name)
+                    && *candidate_arity == arity
             })
             .cloned();
     }
@@ -454,6 +456,25 @@ fn resolve_scoped_call(
         });
     let first = matches.next()?.clone();
     matches.next().is_none().then_some(first)
+}
+
+/// Collapses an internal default nominal segment in a callable owner.
+///
+/// A selected import may spell `pkg.Trait.Trait.method` while the public
+/// conformance contract spells `pkg.Trait.method`; both identify one dispatch
+/// node and must therefore retain the same implementation body.
+fn canonical_callable_path(path: &str) -> String {
+    let Some((owner, method)) = path.rsplit_once('.') else {
+        return path.to_string();
+    };
+    let Some((parent, leaf)) = owner.rsplit_once('.') else {
+        return path.to_string();
+    };
+    if parent.rsplit('.').next() == Some(leaf) {
+        format!("{parent}.{method}")
+    } else {
+        path.to_string()
+    }
 }
 
 fn resolve_remote(

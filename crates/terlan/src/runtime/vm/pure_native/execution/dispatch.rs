@@ -76,6 +76,15 @@ pub(crate) fn dispatch_transition_operation(
                 .service_native_link(owner_id, request_id, continuation_id, peer_id)
                 .map(|_| Some(Vec::new()))
         }
+        TvmTransitionOperation::Unlink => {
+            let peer_id = u64::try_from(arguments[0]).map_err(|_| {
+                "error[pure_native_transition_arguments]: Unlink peer must be a positive process identity"
+                    .to_string()
+            })?;
+            actors
+                .service_native_unlink(owner_id, request_id, continuation_id, peer_id)
+                .map(|removed| Some(vec![i64::from(removed)]))
+        }
         TvmTransitionOperation::Monitor => {
             let target_id = u64::try_from(arguments[0]).map_err(|_| {
                 "error[pure_native_transition_arguments]: Monitor target must be a positive process identity"
@@ -92,6 +101,15 @@ pub(crate) fn dispatch_transition_operation(
                         })
                 })
         }
+        TvmTransitionOperation::Demonitor => {
+            let monitor_id = u64::try_from(arguments[0]).map_err(|_| {
+                "error[pure_native_transition_arguments]: Demonitor reference must be positive"
+                    .to_string()
+            })?;
+            actors
+                .service_native_demonitor(owner_id, request_id, continuation_id, monitor_id)
+                .map(|removed| Some(vec![i64::from(removed)]))
+        }
         TvmTransitionOperation::Resource => {
             let kind_tag = u64::try_from(arguments[0]).map_err(|_| {
                 "error[pure_native_transition_arguments]: Resource kind tag must be positive"
@@ -107,6 +125,15 @@ pub(crate) fn dispatch_transition_operation(
                                 .to_string()
                         })
                 })
+        }
+        TvmTransitionOperation::ResourceRelease => {
+            let resource_id = u64::try_from(arguments[0]).map_err(|_| {
+                "error[pure_native_transition_arguments]: resource identity must be positive"
+                    .to_string()
+            })?;
+            actors
+                .service_native_resource_release(owner_id, request_id, continuation_id, resource_id)
+                .map(|released| Some(vec![i64::from(released)]))
         }
         TvmTransitionOperation::Cancellation => {
             let target_id = u64::try_from(arguments[0]).map_err(|_| {

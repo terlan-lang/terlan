@@ -81,6 +81,9 @@ pub(super) fn validate_transition_continuation(
             | TvmTransitionOperation::Spawn
             | TvmTransitionOperation::Monitor
             | TvmTransitionOperation::Resource
+            | TvmTransitionOperation::Unlink
+            | TvmTransitionOperation::Demonitor
+            | TvmTransitionOperation::ResourceRelease
             | TvmTransitionOperation::Capability
             | TvmTransitionOperation::Supervision
     ) {
@@ -124,6 +127,9 @@ pub(super) fn transition_capture_types(
         | TvmTransitionOperation::Spawn
         | TvmTransitionOperation::Monitor
         | TvmTransitionOperation::Resource => Some(TvmBoundaryType::Int),
+        TvmTransitionOperation::Unlink
+        | TvmTransitionOperation::Demonitor
+        | TvmTransitionOperation::ResourceRelease => Some(TvmBoundaryType::Bool),
         TvmTransitionOperation::Capability | TvmTransitionOperation::Supervision => {
             Some(TvmBoundaryType::from_transition_words(&arguments[1..4])?)
         }
@@ -346,6 +352,10 @@ pub(super) fn capability_identity(tag: i64) -> VmRuntimeResult<(String, String)>
         30 => Ok((
             "filesystem".to_string(),
             "std.io.file.read_bytes".to_string(),
+        )),
+        61 => Ok((
+            "filesystem".to_string(),
+            "std.io.file.write_bytes".to_string(),
         )),
         38 => Ok(("filesystem".to_string(), "std.io.file.size".to_string())),
         40 => Ok((

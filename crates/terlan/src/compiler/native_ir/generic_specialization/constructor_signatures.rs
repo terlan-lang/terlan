@@ -74,6 +74,7 @@ pub(super) fn collect(cores: &[CoreModule], templates: &mut CallableTemplates) {
                     arity: fields.len(),
                     public: false,
                     generic_params: declaration.params.clone(),
+                    generic_bounds: Vec::new(),
                     native_operation: None,
                     params: fields
                         .iter()

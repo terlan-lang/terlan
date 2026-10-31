@@ -105,15 +105,30 @@ pub(super) fn process_transition(
         CoreIntrinsicId::VmProcessLink(_) if call.args.len() == 1 => {
             Some((NativeTransitionOperation::Link, call.args.clone(), None))
         }
+        CoreIntrinsicId::VmProcessUnlink(_) if call.args.len() == 1 => Some((
+            NativeTransitionOperation::Unlink,
+            call.args.clone(),
+            Some(NativeType::Bool),
+        )),
         CoreIntrinsicId::VmProcessMonitor(_) if call.args.len() == 1 => Some((
             NativeTransitionOperation::Monitor,
             call.args.clone(),
             Some(NativeType::Int),
         )),
+        CoreIntrinsicId::VmProcessDemonitor(_) if call.args.len() == 1 => Some((
+            NativeTransitionOperation::Demonitor,
+            call.args.clone(),
+            Some(NativeType::Bool),
+        )),
         CoreIntrinsicId::VmProcessAcquireResource(_) if call.args.len() == 1 => Some((
             NativeTransitionOperation::Resource,
             call.args.clone(),
             Some(NativeType::Int),
+        )),
+        CoreIntrinsicId::VmProcessReleaseResource(_) if call.args.len() == 1 => Some((
+            NativeTransitionOperation::ResourceRelease,
+            call.args.clone(),
+            Some(NativeType::Bool),
         )),
         CoreIntrinsicId::VmProcessCancel(_) if call.args.len() == 1 => Some((
             NativeTransitionOperation::Cancellation,
@@ -285,6 +300,7 @@ fn capability_transition(
         CoreRuntimeCapability::FileExists => (2, 1),
         CoreRuntimeCapability::FileReadText => (3, 1),
         CoreRuntimeCapability::FileReadBytes => (30, 1),
+        CoreRuntimeCapability::FileWriteBytes => (61, 2),
         CoreRuntimeCapability::FileSize => (38, 1),
         CoreRuntimeCapability::FileTimestamps => (40, 1),
         CoreRuntimeCapability::FileSetTimestamps => (41, 3),

@@ -157,6 +157,7 @@ pub(super) fn core_runtime_capability(
         ("std.io.File", "exists", 1) => Some(CoreRuntimeCapability::FileExists),
         ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
         ("std.io.File", "read_bytes", 1) => Some(CoreRuntimeCapability::FileReadBytes),
+        ("std.io.File", "write_bytes", 2) => Some(CoreRuntimeCapability::FileWriteBytes),
         ("std.io.File", "size", 1) => Some(CoreRuntimeCapability::FileSize),
         ("std.io.File", "timestamps", 1) => Some(CoreRuntimeCapability::FileTimestamps),
         ("std.io.File", "set_timestamps", 3) => Some(CoreRuntimeCapability::FileSetTimestamps),

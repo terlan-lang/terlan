@@ -525,17 +525,16 @@ pub(super) fn infer_receiver_method_candidate(
     let mut combined_args = Vec::with_capacity(arg_types.len() + 1);
     combined_args.push(receiver_type);
     combined_args.extend(arg_types);
-    let instantiated = ctx.instantiate_function(
-        &combined_scheme,
-        next_function_type_var(&combined_args, subst).max(ctx.fresh_type_var_floor),
-    );
+    let first_var = next_function_type_var(&combined_args, subst).max(ctx.fresh_type_var_floor);
+    let instantiated = ctx.instantiate_function(&combined_scheme, first_var);
 
-    infer_instantiated_function_with_bounds(
+    infer_instantiated_function_with_bounds_from(
         &instantiated,
         function_name,
         &combined_args,
         ctx,
         subst,
+        Some(first_var),
     )
 }
 

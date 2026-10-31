@@ -155,7 +155,7 @@ pub(in crate::compiler::native_ir) fn unify(
         }
         (CoreType::Struct { name, .. }, CoreType::Named(concrete))
         | (CoreType::Named(concrete), CoreType::Struct { name, .. })
-            if name == concrete =>
+            if canonical_nominal_name(name) == canonical_nominal_name(concrete) =>
         {
             Ok(())
         }
@@ -165,6 +165,19 @@ pub(in crate::compiler::native_ir) fn unify(
             template.contract_text(),
             concrete.contract_text()
         )),
+    }
+}
+
+/// Normalizes a default nominal whose internal Core spelling repeats the
+/// module leaf (`pkg.State.State`) while its public type path is `pkg.State`.
+fn canonical_nominal_name(name: &str) -> &str {
+    let Some((owner, leaf)) = name.rsplit_once('.') else {
+        return name;
+    };
+    if owner.rsplit('.').next() == Some(leaf) {
+        owner
+    } else {
+        name
     }
 }
 

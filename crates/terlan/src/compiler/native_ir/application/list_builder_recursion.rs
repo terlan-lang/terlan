@@ -276,6 +276,7 @@ fn apply_plan(
         arity: 2,
         public: false,
         generic_params: Vec::new(),
+        generic_bounds: Vec::new(),
         native_operation: None,
         params: vec![
             CoreParam {

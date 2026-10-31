@@ -112,6 +112,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
                     | CoreRuntimeCapability::FileExists
                     | CoreRuntimeCapability::FileReadText
                     | CoreRuntimeCapability::FileWriteText
+                    | CoreRuntimeCapability::FileWriteBytes
                     | CoreRuntimeCapability::FileAppendText
                     | CoreRuntimeCapability::FileDelete
                     | CoreRuntimeCapability::FileIsExecutable

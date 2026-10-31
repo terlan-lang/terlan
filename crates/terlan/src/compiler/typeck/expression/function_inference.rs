@@ -10,7 +10,8 @@ pub(crate) use trait_bounds::{
     alias_name_for_type, canonicalize_trait_lookup_types, check_function_bounds,
     check_function_call_bounds, collect_trait_bound_impl_type_args,
     infer_trait_method_call_from_current_bounds, refine_by_syntax_guard,
-    structural_implication_field_type, trait_has_bound_implementation, TraitLookupCache,
+    refine_call_local_trait_bounds, structural_implication_field_type,
+    trait_has_bound_implementation, TraitLookupCache,
 };
 pub(super) use trait_bounds::{TraitMethodLookupKey, TraitMethodLookupResult};
 
@@ -74,33 +75,25 @@ pub(crate) fn infer_function_with_explicit_type_args(
         .max(ctx.fresh_type_var_floor);
     let instantiated = ctx.instantiate_function(scheme, first_var);
     bind_explicit_call_type_args(&instantiated, function_name, type_args, ctx, subst)?;
-    infer_instantiated_function_with_bounds(&instantiated, function_name, args, ctx, subst)
+    infer_instantiated_function_with_bounds_from(
+        &instantiated,
+        function_name,
+        args,
+        ctx,
+        subst,
+        Some(first_var),
+    )
 }
 
-/// Infers a function call from an already-instantiated function scheme.
-///
-/// Inputs:
-/// - `scheme`: function scheme whose generic variables have already been
-///   freshened for this call site.
-/// - `function_name`: optional diagnostic context.
-/// - `args`: inferred argument types.
-/// - `ctx` and `subst`: active inference context and substitutions.
-///
-/// Output:
-/// - Instantiated return type or diagnostic string.
-///
-/// Transformation:
-/// - Checks arity, unifies instantiated parameters with value arguments,
-///   validates trait bounds, and applies the final substitution to the return
-///   type. This is used when a caller must freshen a larger synthetic callable,
-///   such as receiver-method dispatch where the receiver type and method
-///   parameters must share one type-variable mapping.
-pub(crate) fn infer_instantiated_function_with_bounds(
+/// Infers an instantiated callable while permitting its own fresh variables
+/// to be completed by a unique visible trait conformance.
+pub(crate) fn infer_instantiated_function_with_bounds_from(
     scheme: &FunctionScheme,
     function_name: Option<&str>,
     args: &[Type],
     ctx: &ExprInferContext<'_>,
     subst: &mut HashMap<TypeVarId, Type>,
+    call_local_var_floor: Option<TypeVarId>,
 ) -> Result<Type, String> {
     if scheme.params.len() != args.len() {
         return Err(format!(
@@ -160,6 +153,9 @@ pub(crate) fn infer_instantiated_function_with_bounds(
         }
     }
 
+    if let Some(call_local_var_floor) = call_local_var_floor {
+        refine_call_local_trait_bounds(scheme, ctx, subst, call_local_var_floor);
+    }
     check_function_call_bounds(scheme, function_name, args, ctx, subst)?;
 
     Ok(instantiate_type(&scheme.ret, subst))

@@ -768,8 +768,11 @@ fn intrinsic_is_actor_operation(id: &CoreIntrinsicId) -> bool {
         | CoreIntrinsicId::VmProcessSpawn(_)
         | CoreIntrinsicId::VmProcessCurrent(_)
         | CoreIntrinsicId::VmProcessLink(_)
+        | CoreIntrinsicId::VmProcessUnlink(_)
         | CoreIntrinsicId::VmProcessMonitor(_)
+        | CoreIntrinsicId::VmProcessDemonitor(_)
         | CoreIntrinsicId::VmProcessAcquireResource(_)
+        | CoreIntrinsicId::VmProcessReleaseResource(_)
         | CoreIntrinsicId::VmProcessCancel(_) => true,
         CoreIntrinsicId::Primitive(primitive) => matches!(
             primitive,

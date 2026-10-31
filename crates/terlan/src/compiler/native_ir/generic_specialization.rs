@@ -2,47 +2,12 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::terlan_typeck::{
-    CoreExpr, CoreFunction, CoreModule, CorePattern, CoreTupleTypeElem, CoreType,
-};
+use crate::terlan_typeck::{CoreExpr, CoreFunction, CoreModule, CorePattern, CoreType};
 
 const MAX_GENERIC_SPECIALIZATIONS: usize = 128;
 
 mod record_forwarding;
 use record_forwarding::inline_record_forwarder;
-
-/// Every callable candidate grouped by its qualified name and arity.
-#[derive(Default)]
-pub(super) struct CallableTemplates {
-    pub(super) functions: BTreeMap<(String, usize), Vec<CoreFunction>>,
-    receivers: super::application::mutable_receivers::ReceiverTargets,
-}
-
-impl CallableTemplates {
-    /// Starts a callable catalog with the application's shared receiver index.
-    pub(super) fn new(cores: &[CoreModule]) -> Self {
-        Self {
-            functions: BTreeMap::new(),
-            receivers: super::application::mutable_receivers::receiver_targets(cores),
-        }
-    }
-
-    fn receiver_callable(
-        &self,
-        method: &str,
-        arity: usize,
-        receiver: &CoreType,
-        caller: &str,
-    ) -> Option<String> {
-        super::application::mutable_receivers::receiver_callable(
-            &self.receivers,
-            method,
-            arity,
-            receiver,
-            caller,
-        )
-    }
-}
 
 #[path = "generic_specialization/constructor_signatures.rs"]
 mod constructor_signatures;
@@ -51,10 +16,13 @@ mod contextual_result;
 mod generic_unification;
 #[path = "generic_specialization/inference.rs"]
 mod inference;
+#[path = "generic_specialization/nominal_parameters.rs"]
+mod nominal_parameters;
 #[path = "generic_specialization/pattern_types.rs"]
 mod pattern_types;
 #[path = "generic_specialization/primitive_receivers.rs"]
 mod primitive_receivers;
+mod templates;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
 pub(super) use generic_unification::substitute;
@@ -64,7 +32,13 @@ use inference::{
     common_concrete_parameter_types, contains_implicit_generic_type, infer_generic_argument_types,
     needs_contextual_type,
 };
+use nominal_parameters::collect_conformances;
+pub(super) use nominal_parameters::{
+    collect_implicit_generic_params, contains_generic_parameter, generic_parameters,
+    generic_parameters_with_nominals, nominal_parameter_catalog,
+};
 pub(super) use pattern_types::{bind_pattern_types, lambda_type_scope, structural_tuple_variant};
+pub(super) use templates::CallableTemplates;
 use type_substitution::substitute_function_types;
 
 #[path = "generic_specialization/module.rs"]
@@ -75,9 +49,26 @@ pub(super) fn specialize_application_generics_with_budget(
     cores: &mut [CoreModule],
     budget: &mut super::specialization_budget::SpecializationBudget,
 ) -> Result<(), String> {
+    specialize_application_generics(cores, budget, false)
+}
+
+pub(super) fn specialize_application_generics_retaining_templates_with_budget(
+    cores: &mut [CoreModule],
+    budget: &mut super::specialization_budget::SpecializationBudget,
+) -> Result<(), String> {
+    specialize_application_generics(cores, budget, true)
+}
+
+fn specialize_application_generics(
+    cores: &mut [CoreModule],
+    budget: &mut super::specialization_budget::SpecializationBudget,
+    retain_generic_templates: bool,
+) -> Result<(), String> {
+    let nominal_parameters = nominal_parameter_catalog(cores);
     for core in cores.iter_mut() {
         for function in &mut core.functions {
-            function.generic_params = generic_parameters(function);
+            function.generic_params =
+                generic_parameters_with_nominals(function, &nominal_parameters);
         }
     }
     let mut templates = CallableTemplates::new(cores);
@@ -103,7 +94,7 @@ pub(super) fn specialize_application_generics_with_budget(
         return Ok(());
     }
     for core in cores.iter_mut() {
-        specialize_core(core, &templates, budget)?;
+        specialize_core(core, &templates, budget, retain_generic_templates)?;
     }
     Ok(())
 }
@@ -276,6 +267,11 @@ fn rewrite_expr(
                     &mut substitution,
                 )?;
             }
+            // Some declaration parameters occur only in a trait bound and the
+            // result type. Recover those witnesses again in the substitution
+            // used to build the specialization; argument inference maintains
+            // its own temporary substitution and cannot transfer them here.
+            templates.refine_generic_bounds(template, &mut substitution);
             // Arguments use the instantiated declaration's ABI, not the
             // narrower literal type used to infer its parameters. In
             // particular Ok/Err literals must carry the same union layout as
@@ -334,6 +330,7 @@ fn rewrite_expr(
             specialized.name = name.clone();
             specialized.public = false;
             specialized.generic_params.clear();
+            specialized.generic_bounds.clear();
             for parameter in &mut specialized.params {
                 let ty = substitute(
                     parameter.core_ty.as_ref().ok_or_else(|| {
@@ -493,10 +490,26 @@ fn rewrite_expr(
             expr: base,
             target_type,
         } => {
+            let generic_call_target = match base.as_ref() {
+                CoreExpr::Call { function, args, .. } => {
+                    generic_template(templates, module, function, args.len())
+                        .filter(|template| {
+                            contains_generic_parameter(target_type, &template.generic_params)
+                        })
+                        .and_then(|template| {
+                            infer_type(base, variables, templates, module).filter(|inferred| {
+                                !contains_generic_parameter(inferred, &template.generic_params)
+                            })
+                        })
+                }
+                _ => None,
+            };
             contextual_result::seed(base, target_type, variables, templates, module);
-            let concrete_target = contains_implicit_generic_type(target_type)
-                .then(|| infer_type(base, variables, templates, module))
-                .flatten();
+            let concrete_target = generic_call_target.or_else(|| {
+                contains_implicit_generic_type(target_type)
+                    .then(|| infer_type(base, variables, templates, module))
+                    .flatten()
+            });
             rewrite_expr(base, variables, templates, cache, generated, module, budget)?;
             if let Some(concrete_target) = concrete_target {
                 *target_type = concrete_target;
@@ -564,10 +577,12 @@ fn rewrite_expr(
             }
         }
         CoreExpr::Case { scrutinee, clauses } => {
-            let scrutinee_type = infer_type(scrutinee, variables, templates, module);
+            let scrutinee_type_before = infer_type(scrutinee, variables, templates, module);
             rewrite_expr(
                 scrutinee, variables, templates, cache, generated, module, budget,
             )?;
+            let scrutinee_type =
+                infer_type(scrutinee, variables, templates, module).or(scrutinee_type_before);
             if let Some(ty) = scrutinee_type
                 .as_ref()
                 .filter(|ty| !contains_implicit_generic_type(ty))
@@ -777,110 +792,6 @@ fn callable_templates<'a>(
         .map(|(_, candidates)| candidates.as_slice());
     let candidate = matches.next()?;
     matches.next().is_none().then_some(candidate)
-}
-
-/// Canonical declaration order shared by contextual inference and instantiation.
-pub(super) fn generic_parameters(function: &CoreFunction) -> Vec<String> {
-    if !function.generic_params.is_empty() {
-        return function
-            .generic_params
-            .iter()
-            .map(|parameter| {
-                parameter
-                    .split_once("=>")
-                    .map_or(parameter.as_str(), |(name, _)| name)
-                    .trim()
-                    .trim_start_matches(['-', '+'])
-                    .to_string()
-            })
-            .collect();
-    }
-    let mut names = HashSet::new();
-    for ty in function
-        .params
-        .iter()
-        .filter_map(|parameter| parameter.core_ty.as_ref())
-        .chain(function.core_return_type.as_ref())
-    {
-        collect_implicit_generic_params(ty, &mut names);
-    }
-    let mut names = names.into_iter().collect::<Vec<_>>();
-    names.sort();
-    names
-}
-
-fn collect_implicit_generic_params(ty: &CoreType, names: &mut HashSet<String>) {
-    match ty {
-        CoreType::Named(name) if name.len() == 1 && name.as_bytes()[0].is_ascii_uppercase() => {
-            names.insert(name.clone());
-        }
-        CoreType::Apply { args, .. } | CoreType::Union(args) => {
-            for ty in args {
-                collect_implicit_generic_params(ty, names);
-            }
-        }
-        CoreType::Tuple(elements) => {
-            for element in elements {
-                match element {
-                    CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => {
-                        collect_implicit_generic_params(ty, names)
-                    }
-                }
-            }
-        }
-        CoreType::List(element) => collect_implicit_generic_params(element, names),
-        CoreType::Struct { fields, .. } => {
-            for field in fields {
-                collect_implicit_generic_params(&field.ty, names);
-            }
-        }
-        CoreType::Map(fields) => {
-            for field in fields {
-                collect_implicit_generic_params(&field.value, names);
-            }
-        }
-        CoreType::Arrow {
-            params,
-            return_type,
-        } => {
-            for ty in params {
-                collect_implicit_generic_params(ty, names);
-            }
-            collect_implicit_generic_params(return_type, names);
-        }
-        _ => {}
-    }
-}
-
-pub(super) fn contains_generic_parameter(ty: &CoreType, parameters: &[String]) -> bool {
-    match ty {
-        CoreType::Named(name) => parameters.contains(name),
-        CoreType::Apply { args, .. } | CoreType::Union(args) => args
-            .iter()
-            .any(|ty| contains_generic_parameter(ty, parameters)),
-        CoreType::List(element) => contains_generic_parameter(element, parameters),
-        CoreType::Tuple(elements) => elements.iter().any(|element| match element {
-            CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => {
-                contains_generic_parameter(ty, parameters)
-            }
-        }),
-        CoreType::Struct { fields, .. } => fields
-            .iter()
-            .any(|field| contains_generic_parameter(&field.ty, parameters)),
-        CoreType::Map(fields) => fields
-            .iter()
-            .any(|field| contains_generic_parameter(&field.value, parameters)),
-        CoreType::Arrow {
-            params,
-            return_type,
-        } => {
-            params
-                .iter()
-                .any(|ty| contains_generic_parameter(ty, parameters))
-                || contains_generic_parameter(return_type, parameters)
-        }
-        _ => false,
-    }
 }
 
 mod call_qualification;

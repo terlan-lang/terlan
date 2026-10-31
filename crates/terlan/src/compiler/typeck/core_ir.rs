@@ -208,6 +208,9 @@ pub struct CoreFunction {
     pub public: bool,
     /// Source-declared generic parameters retained for exact AOT monomorphization.
     pub generic_params: Vec<String>,
+    /// Checked generic trait bounds retained for native specialization.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub generic_bounds: Vec<CoreType>,
     /// Inferred or explicit native operation selected by `@compiler.native`.
     pub native_operation: Option<String>,
     pub params: Vec<CoreParam>,

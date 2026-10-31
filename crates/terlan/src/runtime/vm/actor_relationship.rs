@@ -55,7 +55,6 @@ impl VmActorRuntime {
     }
 
     /// Removes a relationship between two live actors when present.
-    #[cfg(test)]
     pub(crate) fn unlink_actors(
         &mut self,
         left: VmProcessId,
@@ -72,6 +71,18 @@ impl VmActorRuntime {
         let removed = self.failures.is_linked(left, right);
         self.failures.unlink(left, right);
         self.charge_actor_reductions(left, ACTOR_OPERATION_REDUCTIONS);
+        Ok(removed)
+    }
+
+    /// Removes an observer-owned monitor by its source-visible local identity.
+    pub(crate) fn demonitor_actor_by_id(
+        &mut self,
+        observer: VmProcessId,
+        monitor_id: u64,
+    ) -> Result<bool, String> {
+        self.ensure_live_process(observer, "demonitor from")?;
+        let removed = self.failures.demonitor_for_id(observer, monitor_id)?;
+        self.charge_actor_reductions(observer, ACTOR_OPERATION_REDUCTIONS);
         Ok(removed)
     }
 

@@ -628,6 +628,44 @@ impl not Show[String].\n",
     );
 }
 
+/// Declaration-site generic conformances export the applied owner type.
+#[test]
+pub(super) fn interface_rendering_preserves_generic_declaration_site_owner() {
+    let module = parse_module_as_syntax_output(
+        r#"
+module interface_generic_declaration_site_owner.
+pub trait Validate[T] { validate(value: T): Bool. }.
+pub struct Generic[T] implements Validate[Generic[T]] { value: T }.
+pub (value: Generic[T]) validate(): Bool -> true.
+"#,
+    )
+    .expect("parse generic declaration-site fixture");
+
+    let interface = syntax_module_output_to_interface(&module);
+    let conformance = interface
+        .trait_conformances
+        .iter()
+        .find(|conformance| conformance.source == TraitConformanceSource::Implements)
+        .expect("generic declaration-site conformance");
+    assert_eq!(conformance.trait_ref, "Validate[Generic[T]]");
+    assert_eq!(conformance.for_type, "Generic[T]");
+
+    let rendered = interface.to_terlan_interface_text();
+    assert!(
+        rendered.contains("pub impl Validate[Generic[T]] for Generic[T]"),
+        "rendered interface should preserve applied owner:\n{rendered}"
+    );
+    let reparsed = parse_interface_module_as_syntax_output(&rendered)
+        .expect("parse rendered generic declaration-site interface");
+    assert_trait_conformance(
+        &syntax_module_output_to_interface(&reparsed),
+        "Validate[Generic[T]]",
+        "Generic[T]",
+        TraitConformanceSource::ExplicitImpl,
+        false,
+    );
+}
+
 /// Verifies interface rendering qualifies default-imported impl type heads.
 ///
 /// Inputs:

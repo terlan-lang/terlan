@@ -189,6 +189,15 @@ pub(super) fn find_alias<'a>(
     if let Some(alias) = aliases.get(name) {
         return Some((name.to_string(), alias));
     }
+    // A module's default nominal has public path `pkg.Value`, while the
+    // declaration catalog is keyed as `pkg.Value.Value`. Generated package
+    // interfaces use the public spelling, including inside generic results.
+    if let Some(leaf) = name.rsplit('.').next() {
+        let default = format!("{name}.{leaf}");
+        if let Some(alias) = aliases.get(&default) {
+            return Some((default, alias));
+        }
+    }
     let local = format!("{module}.{name}");
     if let Some(alias) = aliases.get(&local) {
         return Some((local, alias));

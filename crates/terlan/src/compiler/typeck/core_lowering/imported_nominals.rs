@@ -50,6 +50,9 @@ pub(super) fn qualify(core: &mut CoreModule, resolved: &ResolvedModule) {
         }
     }
     for function in &mut core.functions {
+        for bound in &mut function.generic_bounds {
+            qualify_type(bound, &names, &singletons, &function.generic_params);
+        }
         for ty in function
             .params
             .iter_mut()

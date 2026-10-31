@@ -257,6 +257,63 @@ pub imported_digit_boundary_variant_executes(): Bool -> inspect(Frame2D(true)).
     assert_eq!(exit_code, ExitCode::SUCCESS);
 }
 
+/// Generated source interfaces preserve concrete managed layouts selected by
+/// declaration-site generic trait conformance in a test module.
+#[test]
+fn project_vm_tests_preserve_generic_trait_result_layouts() {
+    let exit_code = run_multi_module_project_vm_test(
+        "terlan_generic_trait_result_layout_vm_test",
+        "generic-trait-result-layout-app",
+        &[
+            (
+                "src/app/Handler.terl",
+                r#"module app.Handler.
+import type std.core.Result.{Result}.
+pub trait Handler[Implementation, Message, Output, Failure] {
+    handle(implementation: Implementation, message: Message): Result[Output, Failure].
+}.
+"#,
+            ),
+            (
+                "src/app/Values.terl",
+                r#"module app.Values.
+pub struct Message { value: Int }.
+pub struct Output { value: Int }.
+pub constructor Message { (value: Int): Message -> Message {value: value} }.
+pub constructor Output { (value: Int): Output -> Output {value: value} }.
+pub (message: Message) value(): Int -> message.value.
+pub (output: Output) value(): Int -> output.value.
+"#,
+            ),
+        ],
+        "tests/app/HandlerTest.terl",
+        r#"module app.HandlerTest.
+import std.core.Result.{Ok}.
+import app.Handler.{Handler}.
+import app.Values.{Message, Output}.
+import type app.Handler.{Handler}.
+import type app.Values.{Message, Output}.
+import type std.core.Result.{Result}.
+pub struct Implementation implements Handler[Implementation, Message, Output, Int] {}.
+pub constructor Implementation { (): Implementation -> Implementation {} }.
+pub (implementation: Implementation) handle(message: Message): Result[Output, Int] ->
+    Ok(Output(message.value())).
+handle_with[Implementation, Message, Output, Failure](
+    implementation: Implementation,
+    message: Message,
+)[Handler[Implementation, Message, Output, Failure]]: Result[Output, Failure] ->
+    Handler.handle(implementation, message).
+@test
+pub preserves_result_layout(): Bool ->
+    let Ok(output) <- handle_with(Implementation(), Message(42)) else {
+        _ -> false
+    };
+    output.value() == 42.
+"#,
+    );
+    assert_eq!(exit_code, ExitCode::SUCCESS);
+}
+
 /// Runs one temporary project test against a prepared source-root module.
 fn run_project_vm_test(
     prefix: &str,

@@ -1,5 +1,8 @@
 use super::*;
 
+mod trait_bound_refinement;
+pub(crate) use trait_bound_refinement::refine_call_local_trait_bounds;
+
 /// Cache for repeated trait lookup work during expression inference.
 ///
 /// Inputs:
