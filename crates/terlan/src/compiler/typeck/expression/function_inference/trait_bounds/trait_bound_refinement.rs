@@ -74,12 +74,14 @@ pub(crate) fn refine_call_local_trait_bounds(
             {
                 continue;
             }
-            // A callee's fresh inference variables may be refined. A type
-            // variable inherited from the caller remains universally
-            // quantified and must never be fixed by a concrete impl.
+            // Inference variables allocated while checking earlier argument
+            // expressions may be refined together with this call. Only
+            // variables below the module's inference floor belong to an
+            // enclosing generic declaration and remain universally
+            // quantified.
             if trial
                 .iter()
-                .any(|(id, value)| *id < call_local_var_floor && subst.get(id) != Some(value))
+                .any(|(id, value)| *id < ctx.fresh_type_var_floor && subst.get(id) != Some(value))
             {
                 continue;
             }

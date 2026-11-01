@@ -5,10 +5,19 @@ use std::collections::HashMap;
 use crate::terlan_typeck::{core_type_from_text, CoreExpr, CoreModule, CorePattern, CoreType};
 
 #[derive(Clone)]
+struct NominalType {
+    params: Vec<String>,
+    body: CoreType,
+}
+
+type NominalTypes = HashMap<String, NominalType>;
+
+#[derive(Clone)]
 pub(in crate::compiler::native_ir) struct ReceiverTarget {
     module: String,
     function: String,
     receiver: CoreType,
+    result: Option<CoreType>,
     public: bool,
     generic_params: Vec<String>,
     trait_fallback: bool,
@@ -26,6 +35,7 @@ pub(crate) fn resolve_typed_mutable_receiver_calls(
     cores: &mut [CoreModule],
 ) -> super::super::NativeIrResult<()> {
     let targets = receiver_targets(cores);
+    let types = nominal_types(cores);
     let qualified_results = function_results(cores);
     for core in cores {
         let mut results = qualified_results.clone();
@@ -56,15 +66,38 @@ pub(crate) fn resolve_typed_mutable_receiver_calls(
                     .as_mut()
                     .and_then(|summary| summary.core_expr.as_mut())
                 {
-                    resolve_expr(guard, &module, &variables, &results, &targets)?;
+                    resolve_expr(guard, &module, &variables, &results, &targets, &types)?;
                 }
                 if let Some(body) = clause.body.core_expr.as_mut() {
-                    resolve_expr(body, &module, &variables, &results, &targets)?;
+                    resolve_expr(body, &module, &variables, &results, &targets, &types)?;
                 }
             }
         }
     }
     Ok(())
+}
+
+fn nominal_types(cores: &[CoreModule]) -> NominalTypes {
+    let mut types = HashMap::new();
+    for core in cores {
+        for declaration in &core.types {
+            let Some(body) = &declaration.core_body else {
+                continue;
+            };
+            let ty = NominalType {
+                params: declaration.params.clone(),
+                body: body.clone(),
+            };
+            for name in [
+                declaration.name.clone(),
+                format!("{}.{}", core.module, declaration.name),
+                crate::terlan_hir::public_type_path(&core.module, &declaration.name),
+            ] {
+                types.insert(name, ty.clone());
+            }
+        }
+    }
+    types
 }
 
 /// Checked receiver and trait methods grouped by source method name and arity.
@@ -74,6 +107,7 @@ pub(in crate::compiler::native_ir) type ReceiverTargets =
 /// Collects declared methods without interpreting standard-library module names.
 pub(in crate::compiler::native_ir) fn receiver_targets(cores: &[CoreModule]) -> ReceiverTargets {
     let mut targets = HashMap::<(String, usize), Vec<ReceiverTarget>>::new();
+    let nominal_parameters = super::super::generic_specialization::nominal_parameter_catalog(cores);
     for core in cores {
         for function in &core.functions {
             let method = if function.receiver_method {
@@ -98,13 +132,19 @@ pub(in crate::compiler::native_ir) fn receiver_targets(cores: &[CoreModule]) -> 
                     module: core.module.clone(),
                     function: function.name.clone(),
                     receiver,
+                    result: function
+                        .core_return_type
+                        .clone()
+                        .or_else(|| core_type_from_text(&function.return_type)),
                     public: function.public,
                     trait_fallback: !function.receiver_method,
                     mutable: function.receiver_mutable,
                     command: function.receiver_command,
-                    generic_params: super::super::generic_specialization::generic_parameters(
-                        function,
-                    ),
+                    generic_params:
+                        super::super::generic_specialization::generic_parameters_with_nominals(
+                            function,
+                            &nominal_parameters,
+                        ),
                 });
         }
     }
@@ -179,6 +219,7 @@ fn resolve_expr(
     variables: &HashMap<String, CoreType>,
     functions: &HashMap<(String, usize), CoreType>,
     targets: &HashMap<(String, usize), Vec<ReceiverTarget>>,
+    types: &NominalTypes,
 ) -> super::super::NativeIrResult<()> {
     match expr {
         CoreExpr::MutableReceiverCall {
@@ -187,11 +228,13 @@ fn resolve_expr(
             args,
             ..
         } => {
-            resolve_expr(receiver, module, variables, functions, targets)?;
+            resolve_expr(receiver, module, variables, functions, targets, types)?;
             for argument in args.iter_mut() {
-                resolve_expr(argument, module, variables, functions, targets)?;
+                resolve_expr(argument, module, variables, functions, targets, types)?;
             }
-            let Some(receiver_type) = infer_core_type(receiver, variables, functions) else {
+            let Some(receiver_type) =
+                infer_core_type(receiver, variables, functions, targets, types, module)
+            else {
                 return Ok(());
             };
             if let Some(target) =
@@ -219,11 +262,13 @@ fn resolve_expr(
             args,
         } if receiver_module == "__receiver__" => {
             for argument in args.iter_mut() {
-                resolve_expr(argument, module, variables, functions, targets)?;
+                resolve_expr(argument, module, variables, functions, targets, types)?;
             }
             let target = args
                 .first()
-                .and_then(|receiver| infer_core_type(receiver, variables, functions))
+                .and_then(|receiver| {
+                    infer_core_type(receiver, variables, functions, targets, types, module)
+                })
                 .and_then(|receiver_type| {
                     receiver_target(function, args.len(), &receiver_type, module, targets)
                 });
@@ -240,7 +285,14 @@ fn resolve_expr(
             let mut rewritten = Vec::with_capacity(bindings.len());
             for mut binding in std::mem::take(bindings) {
                 let receiver = binding_receiver(&binding, &locals, module, targets);
-                resolve_expr(&mut binding.value, module, &locals, functions, targets)?;
+                resolve_expr(
+                    &mut binding.value,
+                    module,
+                    &locals,
+                    functions,
+                    targets,
+                    types,
+                )?;
                 if let Some((name, command)) = receiver {
                     // The internal receiver result is not another public command
                     // invocation when this pass runs again after source linking.
@@ -260,23 +312,27 @@ fn resolve_expr(
                     }
                 }
                 if let CorePattern::Var(name) = &binding.pattern {
-                    if let Some(ty) = infer_core_type(&binding.value, &locals, functions) {
+                    if let Some(ty) =
+                        infer_core_type(&binding.value, &locals, functions, targets, types, module)
+                    {
                         locals.insert(name.clone(), ty);
                     }
                 }
                 rewritten.push(binding);
             }
             *bindings = rewritten;
-            resolve_expr(body, module, &locals, functions, targets)?;
+            resolve_expr(body, module, &locals, functions, targets, types)?;
         }
         CoreExpr::Call { function, args, .. } => {
             for argument in args.iter_mut() {
-                resolve_expr(argument, module, variables, functions, targets)?;
+                resolve_expr(argument, module, variables, functions, targets, types)?;
             }
             if !function.contains('.') && !functions.contains_key(&(function.clone(), args.len())) {
                 let target = args
                     .first()
-                    .and_then(|receiver| infer_core_type(receiver, variables, functions))
+                    .and_then(|receiver| {
+                        infer_core_type(receiver, variables, functions, targets, types, module)
+                    })
                     .and_then(|receiver_type| {
                         receiver_target(function, args.len(), &receiver_type, module, targets)
                     });
@@ -289,18 +345,18 @@ fn resolve_expr(
         | CoreExpr::ConstructorCall { args, .. }
         | CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall { args, .. }) => {
             for argument in args.iter_mut() {
-                resolve_expr(argument, module, variables, functions, targets)?;
+                resolve_expr(argument, module, variables, functions, targets, types)?;
             }
         }
         CoreExpr::FunctionCall { callee, args } => {
-            resolve_expr(callee, module, variables, functions, targets)?;
+            resolve_expr(callee, module, variables, functions, targets, types)?;
             for argument in args {
-                resolve_expr(argument, module, variables, functions, targets)?;
+                resolve_expr(argument, module, variables, functions, targets, types)?;
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {
-                resolve_expr(item, module, variables, functions, targets)?;
+                resolve_expr(item, module, variables, functions, targets, types)?;
             }
         }
         CoreExpr::ListCons { head, tail }
@@ -309,30 +365,51 @@ fn resolve_expr(
             right: tail,
             ..
         } => {
-            resolve_expr(head, module, variables, functions, targets)?;
-            resolve_expr(tail, module, variables, functions, targets)?;
+            resolve_expr(head, module, variables, functions, targets, types)?;
+            resolve_expr(tail, module, variables, functions, targets, types)?;
         }
         CoreExpr::Map(fields) => {
             for field in fields {
-                resolve_expr(&mut field.value, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut field.value,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
         }
         CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
             for field in fields {
-                resolve_expr(&mut field.value, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut field.value,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            resolve_expr(base, module, variables, functions, targets)?;
+            resolve_expr(base, module, variables, functions, targets, types)?;
             for field in fields {
-                resolve_expr(&mut field.value, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut field.value,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
         }
         CoreExpr::FieldAccess { base, .. }
         | CoreExpr::RecordAccess { base, .. }
         | CoreExpr::UnaryOp { operand: base, .. }
         | CoreExpr::Cast { expr: base, .. } => {
-            resolve_expr(base, module, variables, functions, targets)?;
+            resolve_expr(base, module, variables, functions, targets, types)?;
         }
         CoreExpr::Lam {
             params,
@@ -344,17 +421,32 @@ fn resolve_expr(
                 parameter_types,
                 variables,
             );
-            resolve_expr(body, module, &locals, functions, targets)?;
+            resolve_expr(body, module, &locals, functions, targets, types)?;
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {
-                resolve_expr(&mut clause.condition, module, variables, functions, targets)?;
-                resolve_expr(&mut clause.body, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut clause.condition,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
+                resolve_expr(
+                    &mut clause.body,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
         }
         CoreExpr::Case { scrutinee, clauses } => {
-            resolve_expr(scrutinee, module, variables, functions, targets)?;
-            let scrutinee_type = infer_core_type(scrutinee, variables, functions);
+            resolve_expr(scrutinee, module, variables, functions, targets, types)?;
+            let scrutinee_type =
+                infer_core_type(scrutinee, variables, functions, targets, types, module);
             for clause in clauses {
                 let mut locals = variables.clone();
                 if let Some(scrutinee_type) = &scrutinee_type {
@@ -365,9 +457,9 @@ fn resolve_expr(
                     );
                 }
                 if let Some(guard) = &mut clause.guard {
-                    resolve_expr(guard, module, &locals, functions, targets)?;
+                    resolve_expr(guard, module, &locals, functions, targets, types)?;
                 }
-                resolve_expr(&mut clause.body, module, &locals, functions, targets)?;
+                resolve_expr(&mut clause.body, module, &locals, functions, targets, types)?;
             }
         }
         CoreExpr::Try {
@@ -376,23 +468,44 @@ fn resolve_expr(
             catch_clauses,
             after_clause,
         } => {
-            resolve_expr(body, module, variables, functions, targets)?;
+            resolve_expr(body, module, variables, functions, targets, types)?;
             for clause in of_clauses.iter_mut().chain(catch_clauses) {
                 if let Some(guard) = &mut clause.guard {
-                    resolve_expr(guard, module, variables, functions, targets)?;
+                    resolve_expr(guard, module, variables, functions, targets, types)?;
                 }
-                resolve_expr(&mut clause.body, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut clause.body,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
             if let Some(after) = after_clause {
-                resolve_expr(&mut after.trigger, module, variables, functions, targets)?;
-                resolve_expr(&mut after.body, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut after.trigger,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
+                resolve_expr(
+                    &mut after.body,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
         }
         CoreExpr::ConstructorChain { args, record, .. } => {
             for argument in args {
-                resolve_expr(argument, module, variables, functions, targets)?;
+                resolve_expr(argument, module, variables, functions, targets, types)?;
             }
-            resolve_expr(record, module, variables, functions, targets)?;
+            resolve_expr(record, module, variables, functions, targets, types)?;
         }
         CoreExpr::ListComprehension {
             expr,
@@ -400,22 +513,29 @@ fn resolve_expr(
             guards,
             ..
         } => {
-            resolve_expr(expr, module, variables, functions, targets)?;
+            resolve_expr(expr, module, variables, functions, targets, types)?;
             for generator in generators {
-                resolve_expr(&mut generator.source, module, variables, functions, targets)?;
+                resolve_expr(
+                    &mut generator.source,
+                    module,
+                    variables,
+                    functions,
+                    targets,
+                    types,
+                )?;
             }
             for guard in guards {
-                resolve_expr(guard, module, variables, functions, targets)?;
+                resolve_expr(guard, module, variables, functions, targets, types)?;
             }
         }
         CoreExpr::SqlQuery { parameters, .. } => {
             for parameter in parameters {
-                resolve_expr(parameter, module, variables, functions, targets)?;
+                resolve_expr(parameter, module, variables, functions, targets, types)?;
             }
         }
         CoreExpr::Index { base, index } => {
-            resolve_expr(base, module, variables, functions, targets)?;
-            resolve_expr(index, module, variables, functions, targets)?;
+            resolve_expr(base, module, variables, functions, targets, types)?;
+            resolve_expr(index, module, variables, functions, targets, types)?;
         }
         CoreExpr::Atom(_)
         | CoreExpr::Int(_)
@@ -540,6 +660,9 @@ fn infer_core_type(
     expr: &CoreExpr,
     variables: &HashMap<String, CoreType>,
     functions: &HashMap<(String, usize), CoreType>,
+    targets: &ReceiverTargets,
+    types: &NominalTypes,
+    module: &str,
 ) -> Option<CoreType> {
     match expr {
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
@@ -551,29 +674,42 @@ fn infer_core_type(
         CoreExpr::Binary(_) => Some(CoreType::String),
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
         CoreExpr::RecordConstruct { name, .. } => Some(CoreType::Named(name.clone())),
-        CoreExpr::RecordUpdate { base, .. } => infer_core_type(base, variables, functions),
+        CoreExpr::RecordUpdate { base, .. } => {
+            infer_core_type(base, variables, functions, targets, types, module)
+        }
+        CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
+            let base = infer_core_type(base, variables, functions, targets, types, module)?;
+            nominal_field_type(&base, field, types)
+        }
         CoreExpr::Call { function, args, .. } => {
-            functions.get(&(function.clone(), args.len())).cloned()
+            specialized_call_result(function, args, variables, functions, targets, types, module)
+                .or_else(|| functions.get(&(function.clone(), args.len())).cloned())
         }
         CoreExpr::RemoteCall {
-            module,
+            module: owner,
             function,
             args,
             ..
-        } => functions
-            .get(&(format!("{module}.{function}"), args.len()))
-            .cloned(),
+        } => {
+            let qualified = format!("{owner}.{function}");
+            specialized_call_result(
+                &qualified, args, variables, functions, targets, types, module,
+            )
+            .or_else(|| functions.get(&(qualified, args.len())).cloned())
+        }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
         CoreExpr::List(items) => items
             .first()
-            .and_then(|item| infer_core_type(item, variables, functions))
+            .and_then(|item| infer_core_type(item, variables, functions, targets, types, module))
             .map(|item| CoreType::List(Box::new(item))),
-        CoreExpr::ListCons { tail, .. } => infer_core_type(tail, variables, functions),
+        CoreExpr::ListCons { tail, .. } => {
+            infer_core_type(tail, variables, functions, targets, types, module)
+        }
         CoreExpr::Tuple(items) => Some(CoreType::Tuple(
             items
                 .iter()
                 .map(|item| {
-                    infer_core_type(item, variables, functions)
+                    infer_core_type(item, variables, functions, targets, types, module)
                         .map(crate::terlan_typeck::CoreTupleTypeElem::Type)
                 })
                 .collect::<Option<Vec<_>>>()?,
@@ -584,23 +720,91 @@ fn infer_core_type(
                 let CorePattern::Var(name) = &binding.pattern else {
                     return None;
                 };
-                let ty = infer_core_type(&binding.value, &locals, functions)?;
+                let ty =
+                    infer_core_type(&binding.value, &locals, functions, targets, types, module)?;
                 locals.insert(name.clone(), ty);
             }
-            infer_core_type(body, &locals, functions)
+            infer_core_type(body, &locals, functions, targets, types, module)
         }
-        CoreExpr::If { clauses } => common_branch_type(
-            clauses
-                .iter()
-                .map(|clause| infer_core_type(&clause.body, variables, functions)),
-        ),
-        CoreExpr::Case { clauses, .. } => common_branch_type(
-            clauses
-                .iter()
-                .map(|clause| infer_core_type(&clause.body, variables, functions)),
-        ),
+        CoreExpr::If { clauses } => common_branch_type(clauses.iter().map(|clause| {
+            infer_core_type(&clause.body, variables, functions, targets, types, module)
+        })),
+        CoreExpr::Case { clauses, .. } => common_branch_type(clauses.iter().map(|clause| {
+            infer_core_type(&clause.body, variables, functions, targets, types, module)
+        })),
         _ => None,
     }
+}
+
+fn nominal_field_type(base: &CoreType, field: &str, types: &NominalTypes) -> Option<CoreType> {
+    match base {
+        CoreType::Struct { fields, .. } => fields
+            .iter()
+            .find(|candidate| candidate.name == field)
+            .map(|candidate| candidate.ty.clone()),
+        CoreType::Map(fields) => fields
+            .iter()
+            .find(|candidate| candidate.key == field)
+            .map(|candidate| candidate.value.clone()),
+        CoreType::Tuple(elements) => elements.iter().find_map(|element| match element {
+            crate::terlan_typeck::CoreTupleTypeElem::Field { name, ty } if name == field => {
+                Some(ty.clone())
+            }
+            _ => None,
+        }),
+        CoreType::Named(name) => nominal_field_type(&types.get(name)?.body, field, types),
+        CoreType::Apply { constructor, args } => {
+            let declaration = types.get(constructor)?;
+            let substitution = declaration
+                .params
+                .iter()
+                .cloned()
+                .zip(args.iter().cloned())
+                .collect::<HashMap<_, _>>();
+            let body = super::super::generic_specialization::substitute(
+                &declaration.body,
+                &declaration.params,
+                &substitution,
+            );
+            nominal_field_type(&body, field, types)
+        }
+        _ => None,
+    }
+}
+
+/// Specializes a receiver method's result from its concrete receiver.
+fn specialized_call_result(
+    function: &str,
+    args: &[CoreExpr],
+    variables: &HashMap<String, CoreType>,
+    functions: &HashMap<(String, usize), CoreType>,
+    targets: &ReceiverTargets,
+    types: &NominalTypes,
+    module: &str,
+) -> Option<CoreType> {
+    let receiver = infer_core_type(args.first()?, variables, functions, targets, types, module)?;
+    let method = function.rsplit('.').next()?;
+    let target = receiver_target(method, args.len(), &receiver, module, targets)?;
+    if callable_identity(target, module) != function {
+        return None;
+    }
+    let result = target.result.as_ref()?;
+    if target.generic_params.is_empty() {
+        return Some(result.clone());
+    }
+    let mut substitution = HashMap::new();
+    super::super::generic_specialization::unify(
+        &target.receiver,
+        &receiver,
+        &target.generic_params,
+        &mut substitution,
+    )
+    .ok()?;
+    Some(super::super::generic_specialization::substitute(
+        result,
+        &target.generic_params,
+        &substitution,
+    ))
 }
 
 fn common_branch_type(types: impl Iterator<Item = Option<CoreType>>) -> Option<CoreType> {

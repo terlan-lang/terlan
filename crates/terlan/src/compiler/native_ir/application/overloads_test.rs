@@ -363,18 +363,27 @@ fn atom_literal_matches_a_transparent_union_member() {
     let aliases = HashMap::from([
         (
             "DataType".to_string(),
-            CoreType::Union(vec![
-                CoreType::Named("Int64".to_string()),
-                CoreType::Named("Float64".to_string()),
-            ]),
+            AliasBody {
+                params: Vec::new(),
+                body: CoreType::Union(vec![
+                    CoreType::Named("Int64".to_string()),
+                    CoreType::Named("Float64".to_string()),
+                ]),
+            },
         ),
         (
             "Int64".to_string(),
-            CoreType::AtomLiteral("int_64".to_string()),
+            AliasBody {
+                params: Vec::new(),
+                body: CoreType::AtomLiteral("int_64".to_string()),
+            },
         ),
         (
             "Float64".to_string(),
-            CoreType::AtomLiteral("float_64".to_string()),
+            AliasBody {
+                params: Vec::new(),
+                body: CoreType::AtomLiteral("float_64".to_string()),
+            },
         ),
     ]);
 

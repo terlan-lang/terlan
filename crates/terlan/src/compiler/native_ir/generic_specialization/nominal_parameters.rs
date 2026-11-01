@@ -10,9 +10,16 @@ pub(super) struct GenericConformance {
     pub(super) generic_params: Vec<String>,
 }
 
+#[derive(Clone)]
+struct ConformanceAlias {
+    params: Vec<String>,
+    body: CoreType,
+}
+
 pub(super) fn collect_conformances(
     cores: &[CoreModule],
 ) -> HashMap<String, Vec<GenericConformance>> {
+    let aliases = conformance_aliases(cores);
     let nominal_parameters = cores
         .iter()
         .flat_map(|core| {
@@ -46,6 +53,7 @@ pub(super) fn collect_conformances(
                     *name = format!("{}.{}", core.module, name);
                 }
             });
+            instance = expand_conformance_aliases(&instance, &aliases, &mut HashSet::new());
             let CoreType::Apply { constructor, .. } = &instance else {
                 continue;
             };
@@ -75,6 +83,97 @@ pub(super) fn collect_conformances(
         }
     }
     catalog
+}
+
+/// Collects transparent aliases without expanding nominal struct identity.
+fn conformance_aliases(cores: &[CoreModule]) -> HashMap<String, ConformanceAlias> {
+    let mut aliases = HashMap::new();
+    for core in cores {
+        for declaration in &core.types {
+            let Some(body) = &declaration.core_body else {
+                continue;
+            };
+            if matches!(body, CoreType::Struct { .. }) {
+                continue;
+            }
+            let alias = ConformanceAlias {
+                params: declaration.params.clone(),
+                body: body.clone(),
+            };
+            aliases.insert(declaration.name.clone(), alias.clone());
+            aliases.insert(
+                format!("{}.{}", core.module, declaration.name),
+                alias.clone(),
+            );
+            aliases.insert(
+                crate::terlan_hir::public_type_path(&core.module, &declaration.name),
+                alias,
+            );
+        }
+    }
+    aliases
+}
+
+/// Expands generic transparent aliases inside a conformance head.
+fn expand_conformance_aliases(
+    ty: &CoreType,
+    aliases: &HashMap<String, ConformanceAlias>,
+    active: &mut HashSet<String>,
+) -> CoreType {
+    let (name, args) = match ty {
+        CoreType::Named(name) => (Some(name.as_str()), &[][..]),
+        CoreType::Apply { constructor, args } => (Some(constructor.as_str()), args.as_slice()),
+        _ => (None, &[][..]),
+    };
+    if let Some(name) = name {
+        if let Some(alias) = aliases.get(name) {
+            if alias.params.len() == args.len() && active.insert(name.to_string()) {
+                let values = alias
+                    .params
+                    .iter()
+                    .cloned()
+                    .zip(args.iter().cloned())
+                    .collect();
+                let body = super::substitute(&alias.body, &alias.params, &values);
+                let expanded = expand_conformance_aliases(&body, aliases, active);
+                active.remove(name);
+                return expanded;
+            }
+        }
+    }
+    match ty {
+        CoreType::Apply { constructor, args } => CoreType::Apply {
+            constructor: constructor.clone(),
+            args: args
+                .iter()
+                .map(|arg| expand_conformance_aliases(arg, aliases, active))
+                .collect(),
+        },
+        CoreType::Union(items) => CoreType::Union(
+            items
+                .iter()
+                .map(|item| expand_conformance_aliases(item, aliases, active))
+                .collect(),
+        ),
+        CoreType::Tuple(items) => CoreType::Tuple(
+            items
+                .iter()
+                .map(|item| match item {
+                    CoreTupleTypeElem::Type(ty) => {
+                        CoreTupleTypeElem::Type(expand_conformance_aliases(ty, aliases, active))
+                    }
+                    CoreTupleTypeElem::Field { name, ty } => CoreTupleTypeElem::Field {
+                        name: name.clone(),
+                        ty: expand_conformance_aliases(ty, aliases, active),
+                    },
+                })
+                .collect(),
+        ),
+        CoreType::List(item) => {
+            CoreType::List(Box::new(expand_conformance_aliases(item, aliases, active)))
+        }
+        _ => ty.clone(),
+    }
 }
 
 /// Declaration parameters keyed by both public and internal nominal identity.

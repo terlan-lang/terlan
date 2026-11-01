@@ -5,6 +5,8 @@ use crate::terlan_typeck::{CoreExpr, CoreType};
 
 #[path = "receiver_defaults_test.rs"]
 mod receiver_defaults_test;
+#[path = "receiver_identity_regression_test.rs"]
+mod receiver_identity_regression_test;
 
 #[test]
 fn local_record_command_results_are_unit_and_preserve_snapshots() {
@@ -95,6 +97,7 @@ fn declared_receiver_precedes_trait_fallback_without_ignoring_ambiguity() {
         module: "app.Methods".into(),
         function: "score".into(),
         receiver: CoreType::Int,
+        result: None,
         public: true,
         generic_params: vec![],
         trait_fallback: false,
@@ -152,6 +155,7 @@ fn generic_receiver_dispatch_preserves_types_visibility_and_ambiguity() {
         module: "app.ListMethods".into(),
         function: "each".into(),
         receiver: CoreType::List(Box::new(CoreType::Named("T".into()))),
+        result: None,
         public: true,
         trait_fallback: false,
         mutable: false,
@@ -189,6 +193,7 @@ fn generic_receivers_do_not_merge_distinct_qualified_constructors() {
             constructor: "alpha.Box".into(),
             args: vec![CoreType::Named("T".into())],
         },
+        result: None,
         public: true,
         trait_fallback: false,
         mutable: false,
@@ -251,6 +256,7 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
                 module: "std.core.String".to_string(),
                 function: "join".to_string(),
                 receiver: CoreType::List(Box::new(CoreType::String)),
+                result: None,
                 public: true,
                 trait_fallback: false,
                 mutable: false,
@@ -261,6 +267,7 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
                 module: "std.io.Path".to_string(),
                 function: "join".to_string(),
                 receiver: CoreType::Named("std.io.Path.Path".to_string()),
+                result: None,
                 public: true,
                 trait_fallback: false,
                 mutable: false,
@@ -276,6 +283,7 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
         &variables,
         &HashMap::new(),
         &targets,
+        &HashMap::new(),
     )
     .expect("resolve typed receiver call");
 

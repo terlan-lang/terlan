@@ -26,7 +26,13 @@ struct OverloadCandidate {
     result: CoreType,
 }
 
-type AliasBodies = HashMap<String, CoreType>;
+#[derive(Clone)]
+struct AliasBody {
+    params: Vec<String>,
+    body: CoreType,
+}
+
+type AliasBodies = HashMap<String, AliasBody>;
 
 mod deferred;
 pub(super) use deferred::resolve_typed_overloads;
@@ -96,19 +102,18 @@ fn rewrite_application(
     Ok(())
 }
 
-/// Collects transparent, zero-parameter type aliases used during overload matching.
+/// Collects transparent type aliases used during overload matching.
 fn collect_alias_bodies(cores: &[CoreModule]) -> AliasBodies {
     let mut aliases = HashMap::new();
     for core in cores {
         for declaration in &core.types {
-            if declaration.params.is_empty() {
-                if let Some(body) = &declaration.core_body {
-                    aliases.insert(declaration.name.clone(), body.clone());
-                    aliases.insert(
-                        format!("{}.{}", core.module, declaration.name),
-                        body.clone(),
-                    );
-                }
+            if let Some(body) = &declaration.core_body {
+                let alias = AliasBody {
+                    params: declaration.params.clone(),
+                    body: body.clone(),
+                };
+                aliases.insert(declaration.name.clone(), alias.clone());
+                aliases.insert(format!("{}.{}", core.module, declaration.name), alias);
             }
         }
     }
@@ -877,3 +882,6 @@ fn parameter_contract(parameters: &[CoreType]) -> String {
 #[cfg(test)]
 #[path = "overloads_test.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "trait_bound_applied_union_test.rs"]
+mod trait_bound_applied_union_test;

@@ -245,6 +245,11 @@ impl NativeModule {
         )?;
         timings.mark("generic-specialization");
         deferred_overloads.resolve(&mut normalized_cores)?;
+        // The first specialization pass can make a receiver concrete through
+        // a generic result (including a trait-dispatched Result payload).
+        // Resolve those calls while generic receiver templates are still
+        // present so the closing pass can instantiate the selected method.
+        mutable_receivers::resolve_typed_mutable_receiver_calls(&mut normalized_cores)?;
         // Trait overloads inside a generic helper can select their concrete
         // implementation only after the helper itself is instantiated. Keep
         // templates through that selection, then close the newly qualified

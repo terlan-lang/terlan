@@ -303,7 +303,51 @@ fn expand_interface_global_aliases_inner(
             }
             expand_type_aliases(ty, global_aliases)
         }
-        Type::Named { .. } => expand_type_aliases(ty, global_aliases),
+        Type::Named {
+            module: Some(module),
+            name,
+            args,
+        } => {
+            let qualified_name = format!("{module}.{name}");
+            let default_name = format!("{qualified_name}.{name}");
+            let Some((alias_name, alias)) = global_aliases
+                .get_key_value(&qualified_name)
+                .or_else(|| global_aliases.get_key_value(&default_name))
+            else {
+                return expand_type_aliases(ty, global_aliases);
+            };
+            if alias.params.len() != args.len() {
+                return expand_type_aliases(ty, global_aliases);
+            }
+            if !active_aliases.insert(alias_name.clone()) {
+                return Type::Named {
+                    module: Some(module.clone()),
+                    name: name.clone(),
+                    args: args
+                        .iter()
+                        .map(|arg| {
+                            expand_interface_global_aliases_inner(
+                                arg,
+                                global_aliases,
+                                active_aliases,
+                            )
+                        })
+                        .collect(),
+                };
+            }
+            let scoped_aliases = module_scoped_global_aliases(alias_name, global_aliases);
+            let mapping = alias
+                .params
+                .iter()
+                .cloned()
+                .zip(args.iter().cloned())
+                .collect();
+            let body = substitute_type_vars(&alias.body, &mapping);
+            let expanded =
+                expand_interface_global_aliases_inner(&body, &scoped_aliases, active_aliases);
+            active_aliases.remove(alias_name);
+            expanded
+        }
         Type::List(inner) => Type::List(Box::new(expand_interface_global_aliases_inner(
             inner,
             global_aliases,
