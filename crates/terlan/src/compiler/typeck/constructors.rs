@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::terlan_syntax::{SyntaxExprKind, SyntaxExprOutput};
+use crate::terlan_syntax::{
+    SyntaxExprKind, SyntaxExprOutput, SyntaxPatternKind, SyntaxPatternOutput,
+};
 
 use crate::terlan_typeck::{
     apply_subst, call_has_named_args, complete_defaulted_call_arg_types,
@@ -423,7 +425,80 @@ pub(crate) fn alias_constructor_schemes(
         fixed_params,
         vararg: None,
         ret: body,
+        coverage_template: None,
     }])
+}
+
+/// Derives the structural pattern represented by a constructor body.
+///
+/// Inputs:
+/// - `body`: checked constructor source body.
+/// - `param_names`: fixed source parameters in declaration order.
+/// - `aliases`: visible transparent aliases for canonical atom values.
+///
+/// Output:
+/// - A tuple or atom pattern template whose parameter placeholders can be
+///   replaced by constructor-pattern arguments.
+///
+/// Transformation:
+/// - Preserves physical tuple structure, replaces parameter references with
+///   indexed placeholders, and canonicalizes constant atom aliases. This lets
+///   exhaustiveness use declared constructor identity even when the source
+///   constructor name differs from its runtime atom tag.
+pub(crate) fn constructor_coverage_template(
+    body: &SyntaxExprOutput,
+    param_names: &[String],
+    aliases: &HashMap<String, TypeAlias>,
+) -> Option<SyntaxPatternOutput> {
+    match body.kind {
+        SyntaxExprKind::Tuple => Some(coverage_pattern(
+            SyntaxPatternKind::Tuple,
+            None,
+            body.children
+                .iter()
+                .map(|child| constructor_coverage_template(child, param_names, aliases))
+                .collect::<Option<Vec<_>>>()?,
+        )),
+        SyntaxExprKind::Atom => Some(coverage_pattern(
+            SyntaxPatternKind::Atom,
+            body.text.clone(),
+            Vec::new(),
+        )),
+        SyntaxExprKind::Var => {
+            let name = body.text.as_deref()?;
+            if let Some(index) = param_names.iter().position(|param| param == name) {
+                return Some(coverage_pattern(
+                    SyntaxPatternKind::Placeholder,
+                    Some(format!("$constructor_param:{index}")),
+                    Vec::new(),
+                ));
+            }
+            let alias = aliases.get(name)?;
+            match expand_type_aliases(&alias.body, aliases) {
+                Type::LiteralAtom(atom) => Some(coverage_pattern(
+                    SyntaxPatternKind::Atom,
+                    Some(atom),
+                    Vec::new(),
+                )),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+fn coverage_pattern(
+    kind: SyntaxPatternKind,
+    text: Option<String>,
+    children: Vec<SyntaxPatternOutput>,
+) -> SyntaxPatternOutput {
+    SyntaxPatternOutput {
+        kind,
+        arity: children.len(),
+        text,
+        children,
+        fields: Vec::new(),
+    }
 }
 
 /// Derives callable constructor schemes from an eligible type alias.

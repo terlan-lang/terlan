@@ -58,3 +58,26 @@ fn multiword_atom_constructors_cover_closed_union() {
     );
     assert!(diagnostics.is_empty(), "{diagnostics:?}");
 }
+
+#[test]
+fn explicit_constructor_bodies_define_closed_union_coverage() {
+    let diagnostics = check_syntax_output(
+        r#"module fixture.SessionEvents.
+pub type PriceObservedTag.
+pub type SessionClosedTag.
+pub type EventUnit.
+pub type Event = {PriceObservedTag, Int} | {SessionClosedTag, EventUnit}.
+pub constructor PriceObserved {
+    (price: Int): Event -> {PriceObservedTag, price}
+}.
+pub constructor SessionClosed {
+    (): Event -> {SessionClosedTag, EventUnit}
+}.
+pub inspect(event: Event): Int -> case event {
+    PriceObserved(price) -> price;
+    SessionClosed() -> 0
+}.
+"#,
+    );
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

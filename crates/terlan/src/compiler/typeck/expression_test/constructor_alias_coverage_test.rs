@@ -105,3 +105,41 @@ fn imported_atom_constructor_coverage_agrees_locally_and_after_interface_roundtr
         interfaces.insert(name, interface);
     }
 }
+
+#[test]
+fn imported_constructor_bodies_preserve_physical_union_coverage() {
+    let provider = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"module fixture.SessionEvents.
+pub type PriceObservedTag.
+pub type SessionClosedTag.
+pub type EventUnit.
+pub type Event = {PriceObservedTag, Int} | {SessionClosedTag, EventUnit}.
+pub constructor PriceObserved {
+    (price: Int): Event -> {PriceObservedTag, price}
+}.
+pub constructor SessionClosed {
+    (): Event -> {SessionClosedTag, EventUnit}
+}.
+"#,
+    )
+    .expect("provider");
+    let interface_text = syntax_module_output_to_interface(&provider).to_terlan_interface_text();
+    let (module, interface) =
+        crate::terlan_hir::parse_interface_text(&interface_text).expect("provider interface");
+    let interfaces = HashMap::from([(module, interface)]);
+
+    let consumer = crate::terlan_syntax::parse_module_as_syntax_output(
+        r#"module fixture.SessionConsumer.
+import fixture.SessionEvents.{PriceObserved, SessionClosed}.
+import type fixture.SessionEvents.{Event}.
+pub inspect(event: Event): Int -> case event {
+    PriceObserved(price) -> price;
+    SessionClosed() -> 0
+}.
+"#,
+    )
+    .expect("consumer");
+    let resolved = resolve_syntax_module_output_with_interfaces(&consumer, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&consumer, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+}

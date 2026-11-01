@@ -144,11 +144,13 @@ const STRUCTURAL_IMPLICATION_BOUND: &str = "$structural_implication";
 /// - Constructor declarations and eligible constructor-like alias shapes.
 ///
 /// Output:
-/// - Fixed/vararg parameter types, minimum arity, and return type.
+/// - Fixed/vararg parameter types, minimum arity, return type, and optional
+///   physical coverage template.
 ///
 /// Transformation:
 /// - Represents constructor calls and patterns with the same overload matching
-///   data needed by ordinary call checking.
+///   data needed by ordinary call checking, while retaining structural union
+///   identity derived from explicit constructor bodies.
 #[derive(Debug, Clone)]
 pub(crate) struct ConstructorScheme {
     param_names: Vec<String>,
@@ -156,6 +158,7 @@ pub(crate) struct ConstructorScheme {
     min_arity: usize,
     vararg: Option<Type>,
     ret: Type,
+    coverage_template: Option<SyntaxPatternOutput>,
 }
 
 /// Template instantiation type scheme.

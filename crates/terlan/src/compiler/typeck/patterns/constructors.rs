@@ -3,8 +3,8 @@
 use super::{
     alias_constructor_schemes, apply_subst, check_syntax_pattern, expand_type_aliases,
     instantiate_constructor_scheme, next_constructor_type_var, parse_interface_constructor_schemes,
-    pretty_type, unify, ConstructorScheme, ExprInferContext, HashMap, SyntaxPatternOutput, Type,
-    TypeAlias, TypeVarId,
+    pretty_type, unify, ConstructorScheme, ExprInferContext, HashMap, SyntaxPatternKind,
+    SyntaxPatternOutput, Type, TypeAlias, TypeVarId,
 };
 use crate::terlan_typeck::type_system::expand_interface_global_aliases;
 
@@ -315,6 +315,50 @@ fn constructor_pattern_schemes(
         interface,
         ctx.aliases,
     )
+}
+
+/// Expands an explicit constructor pattern into its physical coverage shape.
+pub(super) fn explicit_constructor_coverage_pattern(
+    name: &str,
+    args: &[SyntaxPatternOutput],
+    ctx: &ExprInferContext<'_>,
+) -> Option<SyntaxPatternOutput> {
+    let schemes = constructor_pattern_schemes(name, ctx)?;
+    let matching = schemes
+        .into_iter()
+        .filter(|scheme| scheme.vararg.is_none() && scheme.fixed_params.len() == args.len())
+        .collect::<Vec<_>>();
+    let first = instantiate_coverage_template(matching.first()?.coverage_template.as_ref()?, args)?;
+    for scheme in matching.iter().skip(1) {
+        let candidate = instantiate_coverage_template(scheme.coverage_template.as_ref()?, args)?;
+        if candidate != first {
+            return None;
+        }
+    }
+    Some(first)
+}
+
+fn instantiate_coverage_template(
+    template: &SyntaxPatternOutput,
+    args: &[SyntaxPatternOutput],
+) -> Option<SyntaxPatternOutput> {
+    if template.kind == SyntaxPatternKind::Placeholder {
+        let index = template
+            .text
+            .as_deref()?
+            .strip_prefix("$constructor_param:")?
+            .parse::<usize>()
+            .ok()?;
+        return args.get(index).cloned();
+    }
+    let mut instantiated = template.clone();
+    instantiated.children = template
+        .children
+        .iter()
+        .map(|child| instantiate_coverage_template(child, args))
+        .collect::<Option<Vec<_>>>()?;
+    instantiated.arity = instantiated.children.len();
+    Some(instantiated)
 }
 
 /// Returns the opaque-import error for an imported constructor pattern.

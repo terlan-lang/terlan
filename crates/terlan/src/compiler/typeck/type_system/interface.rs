@@ -5,8 +5,9 @@ use super::*;
 #[path = "interface_alias_cache.rs"]
 mod alias_cache;
 use crate::terlan_typeck::{
-    normalize_type_param_name, parse_generic_bounds, parse_structural_implication_bounds,
-    primitive_type_names, type_param_variances, FunctionBound, FunctionScheme,
+    constructor_coverage_template, normalize_type_param_name, parse_generic_bounds,
+    parse_structural_implication_bounds, primitive_type_names, type_param_variances, FunctionBound,
+    FunctionScheme,
 };
 
 /// Parses a resolved function symbol into a callable type scheme.
@@ -501,12 +502,22 @@ pub(crate) fn parse_interface_constructor_schemes(
             let ret = qualify_type_names(&ret, &qualified_names);
             let ret = expand_interface_global_aliases(&ret, global_aliases);
 
+            let mut coverage_aliases = global_aliases.clone();
+            coverage_aliases.extend(interface_aliases.clone());
+            let coverage_template =
+                crate::terlan_syntax::parse_expr_as_syntax_output(&signature.body)
+                    .ok()
+                    .and_then(|body| {
+                        constructor_coverage_template(&body, &param_names, &coverage_aliases)
+                    });
+
             ConstructorScheme {
                 param_names,
                 min_arity: signature.min_arity,
                 fixed_params,
                 vararg,
                 ret,
+                coverage_template,
             }
         })
         .collect::<Vec<_>>();

@@ -533,6 +533,16 @@ pub(super) fn collect_syntax_constructor_signatures(
                     .count(),
                 vararg,
                 ret,
+                coverage_template: constructor_coverage_template(
+                    &clause.body,
+                    &clause
+                        .params
+                        .iter()
+                        .filter(|param| !param.is_varargs)
+                        .map(|param| param.name.clone())
+                        .collect::<Vec<_>>(),
+                    aliases,
+                ),
             });
         }
 

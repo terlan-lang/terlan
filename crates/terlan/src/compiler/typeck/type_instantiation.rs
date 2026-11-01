@@ -146,6 +146,7 @@ pub(super) fn instantiate_constructor_scheme(
             .as_ref()
             .map(|param| remap_type(param, &mut remap)),
         ret: remap_type(&scheme.ret, &mut remap),
+        coverage_template: scheme.coverage_template.clone(),
     }
 }
 
