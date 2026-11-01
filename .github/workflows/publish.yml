@@ -78,6 +78,14 @@ jobs:
           echo 'JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> "$GITHUB_ENV"
           echo '/usr/lib/jvm/java-21-openjdk-amd64/bin' >> "$GITHUB_PATH"
 
+      # workflow_dispatch retries load this workflow from main but still check
+      # out the immutable tag. Prewarming here lets an older failed tag reuse
+      # verified downloads even when its Makefile had a shorter preparation cap.
+      - name: Prewarm verified publication inputs
+        run: |
+          timeout --kill-after=10s 3600s \
+            bash scripts/download_validated_release_artifacts.sh "$(git rev-parse HEAD)"
+
       - name: Validate and publish the existing tag
         run: make release-tag VERSION="$VERSION"
 

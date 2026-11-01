@@ -69,6 +69,13 @@ echo 'Publication command regressions passed (10 scenarios).'
 # Exercise the hosted tag guard itself, including retries from a newer main.
 # Checkout must use the named tag: the implicit event SHA flattens annotations.
 grep -Fxq '          ref: refs/tags/${{ inputs.tag || github.ref_name }}' "$root/.github/workflows/publish.yml"
+grep -Fxq 'TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600' "$root/Makefile"
+grep -Fq 'timeout --kill-after=10s "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)s"' "$root/Makefile"
+prewarm_line=$(grep -n -F '      - name: Prewarm verified publication inputs' "$root/.github/workflows/publish.yml" | cut -d: -f1)
+publish_line=$(grep -n -F '      - name: Validate and publish the existing tag' "$root/.github/workflows/publish.yml" | cut -d: -f1)
+test -n "$prewarm_line" && test -n "$publish_line" && test "$prewarm_line" -lt "$publish_line"
+grep -Fq '          timeout --kill-after=10s 3600s \' "$root/.github/workflows/publish.yml"
+grep -Fq '            bash scripts/download_validated_release_artifacts.sh "$(git rev-parse HEAD)"' "$root/.github/workflows/publish.yml"
 awk '/^      - name: Require an annotated version tag$/ { guard=1; next }
   guard && /^        run: \|$/ { body=1; next }
   body && /^          / { sub(/^          /, ""); print; next }

@@ -409,6 +409,7 @@ VM_HTTP_BENCHMARK_COMPARABILITY_DEPS := vm-http-concurrency-investigation-check
 
 HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
+TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600
 
 ifneq ($(filter release release-wait release-tag release-status publish publish-local publish-upload publish-tag publish-preflight publish-prepare,$(MAKECMDGOALS)),)
 VERSION ?= $(RELEASE_VERSION)
@@ -5206,7 +5207,15 @@ publish-prepare-locked:
 		test -f target/quality/preparation.lock && test ! -L target/quality/preparation.lock && \
 		test /proc/self/fd/9 -ef target/quality/preparation.lock && \
 		timeout 120s flock -w 120 9
-	timeout 900s bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
+	@case "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)" in \
+		''|*[!0-9]*) echo 'TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS must be an integer' >&2; exit 2 ;; \
+	esac; \
+	test "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)" -ge 3600 || { \
+		echo 'TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS must be at least 3600' >&2; \
+		exit 2; \
+	}
+	timeout --kill-after=10s "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)s" \
+		bash scripts/download_validated_release_artifacts.sh "$$(git rev-parse HEAD)"
 	@if ! timeout 30s dist/terlc --version; then \
 		echo 'publication requires a host that can execute the verified Linux x86_64 artifact (Ubuntu 24.04-compatible userspace); use a compatible container if needed' >&2; \
 		exit 1; \
