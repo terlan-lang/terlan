@@ -42,6 +42,60 @@ fn required_terms_text_rejects_missing_vm_term() {
     );
 }
 
+/// Verifies release installer smoke accepts the public platform-field syntax.
+///
+/// Inputs:
+/// - A compact installer smoke fixture using `platform.lsp`.
+///
+/// Output:
+/// - Test passes when every release installer term is recognized.
+///
+/// Transformation:
+/// - Prevents release validation from retaining retired getter-call spellings
+///   after public struct fields replace accessor functions.
+#[test]
+fn release_installer_terms_accept_platform_field_access() {
+    let source = r#"
+install.sh
+install.ps1
+validate-package
+terlan-native-worker
+let lsp = ReleasePayload.child(install_bin, platform.lsp);
+ReleaseSmoke.lsp_help_matches(root, lsp)
+"#;
+
+    assert!(validate_required_terms_text(
+        RELEASE_INSTALLER_SMOKE_SOURCE,
+        source,
+        REQUIRED_RELEASE_INSTALLER_SMOKE_TERMS,
+    )
+    .is_empty());
+}
+
+/// Verifies release installer smoke cannot omit the LSP platform field.
+#[test]
+fn release_installer_terms_reject_missing_platform_lsp() {
+    let source = r#"
+install.sh
+install.ps1
+validate-package
+terlan-native-worker
+ReleaseSmoke.lsp_help_matches(root, lsp)
+"#;
+    let diagnostics = validate_required_terms_text(
+        RELEASE_INSTALLER_SMOKE_SOURCE,
+        source,
+        REQUIRED_RELEASE_INSTALLER_SMOKE_TERMS,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("platform.lsp")),
+        "diagnostics should report missing LSP platform field: {diagnostics:?}"
+    );
+}
+
 /// Verifies local upgrades install the VM beside the compiler.
 ///
 /// Inputs:

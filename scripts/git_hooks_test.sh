@@ -238,4 +238,15 @@ for scenario in failure success unrelated; do
     fi
   )
 done
+
+# Release-facing source changes must execute the concrete installer validator
+# before the broader repository contract. This would have caught stale getter
+# spellings during the struct-field migration rather than at publication time.
+release_install_line=$(rg -n -F 'make --no-print-directory vm-release-install-validation-check' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+repository_contract_line=$(rg -n -F 'make --no-print-directory repository-build-release-contract-check' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+test -n "$release_install_line"
+test -n "$repository_contract_line"
+test "$release_install_line" -lt "$repository_contract_line"
 echo 'Git hook regression tests passed (18 scenarios).'

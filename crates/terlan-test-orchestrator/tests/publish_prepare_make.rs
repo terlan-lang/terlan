@@ -206,6 +206,10 @@ fn fixture() -> Fixture {
     );
     let source =
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let publication_input_timeout = source
+        .lines()
+        .find(|line| line.starts_with("TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?="))
+        .expect("publication input timeout default is declared");
     let begin = source
         .find("\npublish-prepare: publish-source-preflight\n")
         .unwrap()
@@ -215,8 +219,8 @@ fn fixture() -> Fixture {
         .unwrap()
         + begin;
     let mut make = format!(
-        "SHELL := /bin/bash\nVERSION := fixture\n{}\n",
-        &source[begin..end]
+        "SHELL := /bin/bash\nVERSION := fixture\n{publication_input_timeout}\n{}\n",
+        &source[begin..end],
     );
     let recipe =
         "\t@TERLAN_PREPARE_STAGE=$@ \"$(FIXTURE_CHILD)\" --exact preparation_leaf --nocapture\n";
@@ -610,7 +614,10 @@ fn preparation_network_and_binary_probes_have_outer_deadlines() {
         + 1;
     let end = source[start..].find("\n# One Make process owns").unwrap() + start;
     let recipe = &source[start..end];
-    assert!(recipe.contains("timeout 900s bash scripts/download_validated_release_artifacts.sh"));
+    assert!(source.contains("TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600"));
+    assert!(recipe
+        .contains("timeout --kill-after=10s \"$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)s\""));
+    assert!(recipe.contains("bash scripts/download_validated_release_artifacts.sh"));
     assert!(recipe.contains("timeout 30s dist/terlc --version"));
     assert!(source.contains("timeout 900s $(TERLAN_RELEASE_PROMOTION) prepare-release-reports"));
     assert!(source.contains("timeout 900s $(TERLAN_TVM_PLATFORM_MATRIX) release-artifact-matrix"));

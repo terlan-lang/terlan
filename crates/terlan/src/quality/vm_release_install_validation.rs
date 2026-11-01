@@ -63,7 +63,7 @@ const REQUIRED_RELEASE_INSTALLER_SMOKE_TERMS: &[&str] = &[
     "install.ps1",
     "validate-package",
     "terlan-native-worker",
-    "ReleasePlatform.lsp",
+    "platform.lsp",
     "lsp_help_matches",
 ];
 
