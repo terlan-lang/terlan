@@ -113,6 +113,44 @@ fn unit_expression_alias_and_call_results_share_one_control_join_type() {
 }
 
 #[test]
+fn product_control_join_preserves_nested_option_identity() {
+    let joined = CoreExpr::If {
+        clauses: vec![
+            CoreIfClause {
+                condition: CoreExpr::Var("enabled".into()),
+                body: CoreExpr::Tuple(vec![
+                    CoreExpr::Int(3),
+                    CoreExpr::ConstructorCall {
+                        constructor: "Some".into(),
+                        constructor_identity: None,
+                        type_args: Vec::new(),
+                        args: vec![CoreExpr::Int(7)],
+                    },
+                ]),
+            },
+            CoreIfClause {
+                condition: CoreExpr::Atom("true".into()),
+                body: CoreExpr::Tuple(vec![CoreExpr::Int(0), CoreExpr::Atom("none".into())]),
+            },
+        ],
+    };
+    assert_eq!(
+        core_expr_type(
+            &joined,
+            &HashMap::from([("enabled".into(), CoreType::Bool)]),
+            &HashMap::new(),
+        ),
+        Some(CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::Int),
+            CoreTupleTypeElem::Type(CoreType::Union(vec![
+                tagged("some", CoreType::Int),
+                CoreType::AtomLiteral("none".into()),
+            ])),
+        ])),
+    );
+}
+
+#[test]
 fn structural_record_prefix_recovers_checked_fields_without_guessing_unknown_values() {
     use crate::terlan_typeck::{CoreMapExprField, CoreMapTypeField};
     let record = CoreExpr::Map(vec![

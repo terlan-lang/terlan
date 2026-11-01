@@ -58,6 +58,30 @@ pub answer(): Int ->
 }
 
 #[test]
+fn product_destructuring_after_if_retains_nested_option_type() {
+    let module = core(
+        r#"
+module control_prefix_product.
+pub type None = Atom["none"].
+pub type Some[T] = {Atom["some"], value: T}.
+pub type Option[T] = None | Some[T].
+pub select(enabled: Bool): Option[Int] ->
+    let {count, selected} =
+        if {
+            enabled -> {3, Some(7)};
+            true -> {0, None}
+        };
+    if {
+        count == 3 -> selected;
+        true -> None
+    }.
+"#,
+    );
+    NativeModule::lower_application(&[&module])
+        .expect("lower product destructuring after a control-flow join");
+}
+
+#[test]
 fn ordered_function_heads_specialize_patterns_and_keep_guard_scope() {
     let module = core(
         "module native_function_heads.\n\

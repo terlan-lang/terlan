@@ -15,8 +15,9 @@ mod download_scratch;
 #[path = "hosted_release_make/execution_policy.rs"]
 mod execution_policy;
 
-const GOALS: [&str; 8] = [
+const GOALS: [&str; 9] = [
     "release-hosted-validation-check",
+    "release-hosted-multicore-evidence-check",
     "tvm-aot-platform-aggregate-check",
     "release-artifact-set-check",
     "vm-multicore-release-contract-check",
@@ -26,7 +27,7 @@ const GOALS: [&str; 8] = [
     "terlan-compiler-bootstrap",
 ];
 
-const LEAVES: [&str; 9] = [
+const LEAVES: [&str; 11] = [
     "compiler-bootstrap",
     "matrix-bootstrap",
     "repository-bootstrap",
@@ -34,6 +35,8 @@ const LEAVES: [&str; 9] = [
     "aggregate",
     "release-artifact-set",
     "multicore-release-self-test",
+    "multicore-memory-model",
+    "multicore-release-record",
     "tsan-self-test",
     "release-self-test",
 ];
@@ -94,6 +97,11 @@ case "$role" in
   self-test|tsan-self-test|multicore-release-self-test)
     test -d passed/matrix-bootstrap
     ;;
+  multicore-memory-model) ;;
+  multicore-release-record)
+    test -d passed/multicore-memory-model
+    test -d passed/multicore-release-self-test
+    ;;
   *) exit 90 ;;
 esac
 test "${TERLAN_HOSTED_FAIL:-}" != "$role"
@@ -111,10 +119,12 @@ mkdir "passed/$role"
          TERLAN_REPOSITORY_VALIDATION := ./worker\n\
          TERLAN_TVM_PLATFORM_REPORT_ROOT := reports\n\
          RELEASE_ARTIFACT_SET_ROOT := archives\n\
-         .PHONY: terlan-tvm-platform-matrix-bootstrap terlan-repository-validation-bootstrap\n\
+         .PHONY: terlan-tvm-platform-matrix-bootstrap terlan-repository-validation-bootstrap vm-multicore-memory-model-check vm-multicore-release-record\n\
          terlan-compiler-bootstrap:\n\t./worker compiler-bootstrap\n\
          terlan-tvm-platform-matrix-bootstrap: terlan-compiler-bootstrap\n\t./worker matrix-bootstrap\n\
-         terlan-repository-validation-bootstrap: terlan-compiler-bootstrap\n\t./worker repository-bootstrap\n",
+         terlan-repository-validation-bootstrap: terlan-compiler-bootstrap\n\t./worker repository-bootstrap\n\
+         vm-multicore-memory-model-check:\n\t./worker multicore-memory-model\n\
+         vm-multicore-release-record:\n\t./worker multicore-release-record\n",
     );
     for goal in &GOALS[..GOALS.len() - 1] {
         make.push_str(&rule(&source, goal));

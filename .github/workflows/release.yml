@@ -302,6 +302,8 @@ jobs:
             target/quality/tvm-aot-thread-sanitizer-report.json
             target/quality/vm-multicore-thread-sanitizer-report.json
             target/quality/vm-multicore-memory-model-tsan.json
+            target/quality/vm-multicore-memory-model.json
+            target/quality/vm-multicore-release-closeout.json
           if-no-files-found: error
           retention-days: 90
 

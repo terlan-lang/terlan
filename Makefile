@@ -1315,8 +1315,11 @@ RELEASE_ARTIFACT_SET_ROOT ?= target/release-distribution
 RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD ?= 0
 # One hosted workspace and Make graph own the final compiler/validator bootstrap.
 # All underlying checks remain independently callable for local diagnosis.
-.PHONY: release-hosted-validation-check
-release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check
+.PHONY: release-hosted-multicore-evidence-check release-hosted-validation-check
+release-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check
+	$(MAKE) --no-print-directory vm-multicore-release-record
+
+release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check
 
 release-artifact-set-check: | terlan-repository-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
@@ -5229,7 +5232,13 @@ publish-prepare-locked:
 	$(MAKE) --no-print-directory publish-evidence-plan-check
 	$(MAKE) --no-print-directory publish-evidence-refresh-plan-check
 	@set -eu; \
-	if $(MAKE) --no-print-directory publish-evidence-check; then \
+	if test "$(TERLAN_TAG_PUBLICATION)" = 1; then \
+		$(MAKE) --no-print-directory publish-evidence-check || { \
+			echo '[publish] validated tag evidence is absent or stale; refusing to regenerate immutable publication inputs' >&2; \
+			exit 1; \
+		}; \
+		$(MAKE) --no-print-directory publish-preparation-warm VERSION="$(VERSION)"; \
+	elif $(MAKE) --no-print-directory publish-evidence-check; then \
 		$(MAKE) --no-print-directory publish-preparation-warm VERSION="$(VERSION)"; \
 	else \
 		echo '[publish] candidate evidence is absent or stale; refreshing its owners once'; \

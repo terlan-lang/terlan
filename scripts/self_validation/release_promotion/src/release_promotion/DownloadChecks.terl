@@ -63,6 +63,8 @@ prepare(root: String): Bool ->
             "tvm-aot-thread-sanitizer-report.json",
             "vm-multicore-thread-sanitizer-report.json",
             "vm-multicore-memory-model-tsan.json",
+            "vm-multicore-memory-model.json",
+            "vm-multicore-release-closeout.json",
         ];
     let {
         Ok(_scripts) <- Directory.create_all(child(root, "scripts"));

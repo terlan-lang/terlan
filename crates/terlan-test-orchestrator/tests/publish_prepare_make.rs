@@ -351,6 +351,51 @@ fn cold_preparation_does_not_replay_distribution_and_warm_repair_still_runs() {
 }
 
 #[test]
+fn tag_preparation_never_regenerates_candidate_evidence() {
+    for fault in ["", "post-verification"] {
+        let fixture = fixture();
+        let mut paths = vec![fixture.0.join("bin")];
+        paths.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap()));
+        let mut command = Command::new("make");
+        command
+            .current_dir(&fixture.0)
+            .args(["--no-print-directory", "-j8", "-k", "publish-prepare"])
+            .env_remove("MAKEFLAGS")
+            .env_remove("MAKEOVERRIDES")
+            .env_remove("MFLAGS")
+            .env_remove("JAVA_HOME")
+            .env("PATH", std::env::join_paths(paths).unwrap())
+            .env("FIXTURE_CHILD", std::env::current_exe().unwrap())
+            .env("TERLAN_PREPARE_FIXTURE", &fixture.0)
+            .env("TERLAN_PREPARE_MODE", "warm")
+            .env("TERLAN_PREPARE_FAULT", fault)
+            .env("TERLAN_TAG_PUBLICATION", "1");
+        let result = ProcessControl::new(Duration::from_secs(120))
+            .capture_stdout_result(&mut command, 256 * 1024, |_| Ok(()))
+            .unwrap();
+        assert_eq!(result.outcome.is_ok(), fault.is_empty());
+        let events = fs::read_to_string(fixture.0.join("events")).unwrap();
+        assert_eq!(
+            events
+                .lines()
+                .filter(|event| *event == "publish-evidence-check")
+                .count(),
+            1,
+            "{events}"
+        );
+        assert!(
+            !events
+                .lines()
+                .any(|event| event == "publish-evidence-refresh"),
+            "tag publication entered the cold evidence path: {events}"
+        );
+        if !fault.is_empty() {
+            assert!(!events.lines().any(|event| event == "release-preflight"));
+        }
+    }
+}
+
+#[test]
 fn preparation_rejects_competing_cold_and_warm_graphs_before_producers() {
     let fixture = fixture();
     let mut command = Command::new("/bin/sh");
@@ -1120,12 +1165,17 @@ fn preparation_branches_share_one_resource_admission() {
         .find("timeout 120s flock -w 120 9")
         .expect("preparation lease is acquired");
     let branch_position = prepare
-        .find("if $(MAKE) --no-print-directory publish-evidence-check")
-        .expect("preparation branch selection is declared");
+        .find("if test \"$(TERLAN_TAG_PUBLICATION)\" = 1")
+        .expect("tag preparation branch selection is declared");
+    let local_branch_position = prepare
+        .find("elif $(MAKE) --no-print-directory publish-evidence-check")
+        .expect("local preparation branch selection is declared");
     let final_preflight_position = prepare
         .find("$(MAKE) release-preflight RELEASE_VERSION=\"$(VERSION)\"")
         .expect("final preflight is declared");
     assert!(lock_position < branch_position);
+    assert!(branch_position < local_branch_position);
+    assert!(prepare.contains("refusing to regenerate immutable publication inputs"));
     assert!(branch_position < final_preflight_position);
     let checks = source
         .lines()

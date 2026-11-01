@@ -38,15 +38,15 @@ mod type_support_test;
 use binary::binary_plan;
 use constructor::{constructor_plan, option_constructor_plan};
 pub(super) use lowering::{
-    contains_case, lower_lexical_expr, lower_structured_case, structured_result_type,
-    StructuredCaseEnvironment,
+    contains_case, lower_lexical_expr, lower_lexical_expr_as, lower_structured_case,
+    structured_result_type, StructuredCaseEnvironment,
 };
 pub(super) use suspending::lower_suspending_case;
 use tagged_union::{
     tagged_union_by_atom, tagged_union_constructor, tagged_union_constructor_plan,
     TaggedUnionPattern,
 };
-pub(super) use type_support::{canonical_atom_union, merge_control_types};
+pub(super) use type_support::{canonical_atom_union, canonical_control_type, merge_control_types};
 use type_support::{
     list_element_type, list_variant_type, map_key, map_types, native_core_type,
     option_element_type, struct_field_type, tuple_element_type,

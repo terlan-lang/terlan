@@ -429,6 +429,34 @@ pub(in crate::compiler::native_ir) fn merge_control_types(
         return merge_control_types((**left).clone(), (**right).clone())
             .map(|element| CoreType::List(Box::new(element)));
     }
+    if let (CoreType::Tuple(left), CoreType::Tuple(right)) = (&expected, &found) {
+        let left_tag = left
+            .first()
+            .and_then(|element| match tuple_element_type(element) {
+                CoreType::AtomLiteral(tag) => Some(tag),
+                _ => None,
+            });
+        let right_tag = right
+            .first()
+            .and_then(|element| match tuple_element_type(element) {
+                CoreType::AtomLiteral(tag) => Some(tag),
+                _ => None,
+            });
+        // Products join field-by-field. Constructor variants only do so when
+        // their provider tag is identical; different tags remain alternatives
+        // of one closed union rather than becoming a product of unions.
+        if left.len() == right.len()
+            && ((left_tag.is_none() && right_tag.is_none()) || left_tag == right_tag)
+        {
+            let elements = left
+                .iter()
+                .cloned()
+                .zip(right.iter().cloned())
+                .map(|(left, right)| merge_control_tuple_elements(left, right))
+                .collect::<Option<Vec<_>>>()?;
+            return Some(CoreType::Tuple(elements));
+        }
+    }
     // Constructor expressions recover positional payloads, while checked
     // signatures retain payload labels. Prefer the covering signature's
     // layout instead of manufacturing duplicate variants with different IDs.
@@ -456,6 +484,111 @@ pub(in crate::compiler::native_ir) fn merge_control_types(
         }
     }
     Some(CoreType::Union(canonical_atom_union(variants)))
+}
+
+/// Restores the checked structural-union spelling retained by constructor layouts.
+///
+/// Control joins infer variants from executable tuples and atoms, which do not
+/// retain declaration order or payload labels. Those details participate in a
+/// managed semantic identity, so nested products must recover the canonical
+/// checked union before NativeIR assigns their ABI type.
+pub(in crate::compiler::native_ir) fn canonical_control_type(
+    ty: CoreType,
+    constructors: &NativeConstructorLayouts,
+) -> CoreType {
+    let ty = match ty {
+        CoreType::List(element) => {
+            CoreType::List(Box::new(canonical_control_type(*element, constructors)))
+        }
+        CoreType::Tuple(elements) => CoreType::Tuple(
+            elements
+                .into_iter()
+                .map(|element| match element {
+                    CoreTupleTypeElem::Type(ty) => {
+                        CoreTupleTypeElem::Type(canonical_control_type(ty, constructors))
+                    }
+                    CoreTupleTypeElem::Field { name, ty } => CoreTupleTypeElem::Field {
+                        name,
+                        ty: canonical_control_type(ty, constructors),
+                    },
+                })
+                .collect(),
+        ),
+        CoreType::Union(variants) => CoreType::Union(
+            variants
+                .into_iter()
+                .map(|variant| canonical_control_type(variant, constructors))
+                .collect(),
+        ),
+        other => other,
+    };
+    if !matches!(ty, CoreType::Union(_)) {
+        return ty;
+    }
+    constructors
+        .values()
+        .filter_map(|layout| layout.result_core_type.as_ref())
+        .filter(|candidate| matches!(candidate, CoreType::Union(_)))
+        .filter(|candidate| control_types_equivalent(&ty, candidate))
+        .max_by(|left, right| {
+            payload_labels(left)
+                .cmp(&payload_labels(right))
+                .then_with(|| right.contract_text().cmp(&left.contract_text()))
+        })
+        .cloned()
+        .unwrap_or(ty)
+}
+
+fn control_types_equivalent(left: &CoreType, right: &CoreType) -> bool {
+    match (left, right) {
+        (CoreType::Tuple(left), CoreType::Tuple(right)) => {
+            left.len() == right.len()
+                && left.iter().zip(right).all(|(left, right)| {
+                    control_types_equivalent(tuple_element_type(left), tuple_element_type(right))
+                })
+        }
+        (CoreType::Union(left), CoreType::Union(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|left| {
+                    right
+                        .iter()
+                        .any(|right| control_types_equivalent(left, right))
+                })
+        }
+        (CoreType::List(left), CoreType::List(right)) => control_types_equivalent(left, right),
+        _ => left == right,
+    }
+}
+
+fn merge_control_tuple_elements(
+    expected: CoreTupleTypeElem,
+    found: CoreTupleTypeElem,
+) -> Option<CoreTupleTypeElem> {
+    match (expected, found) {
+        (CoreTupleTypeElem::Type(expected), CoreTupleTypeElem::Type(found)) => {
+            merge_control_types(expected, found).map(CoreTupleTypeElem::Type)
+        }
+        (
+            CoreTupleTypeElem::Field {
+                name: expected_name,
+                ty: expected,
+            },
+            CoreTupleTypeElem::Field {
+                name: found_name,
+                ty: found,
+            },
+        ) if expected_name == found_name => {
+            merge_control_types(expected, found).map(|ty| CoreTupleTypeElem::Field {
+                name: expected_name,
+                ty,
+            })
+        }
+        (CoreTupleTypeElem::Field { name, ty: expected }, CoreTupleTypeElem::Type(found))
+        | (CoreTupleTypeElem::Type(found), CoreTupleTypeElem::Field { name, ty: expected }) => {
+            merge_control_types(expected, found).map(|ty| CoreTupleTypeElem::Field { name, ty })
+        }
+        _ => None,
+    }
 }
 
 /// Gives equivalent closed atom domains one order, without reordering payload layouts.

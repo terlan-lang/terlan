@@ -619,6 +619,64 @@ pub(in crate::compiler::native_ir) fn lower_lexical_expr(
     lower_child(expr, params, param_types, core_types, environment)
 }
 
+/// Lowers a checked lexical control value while retaining its joined result type.
+///
+/// Ordinary expression lowering has no contextual type for an `if` arm. A
+/// destructured product can therefore lose the nested Option/Result identity
+/// established by type checking. Control-prefix owners use this entry point
+/// after recovering that checked join so every selected arm constructs the
+/// same aggregate representation.
+pub(in crate::compiler::native_ir) fn lower_lexical_expr_as(
+    expr: &CoreExpr,
+    expected: &CoreType,
+    params: &HashMap<String, usize>,
+    param_types: &HashMap<String, NativeType>,
+    core_types: &HashMap<String, CoreType>,
+    environment: StructuredCaseEnvironment<'_>,
+) -> Result<NativeExpr, String> {
+    let CoreExpr::If { clauses } = expr else {
+        return lower_child(expr, params, param_types, core_types, environment);
+    };
+    if clauses.is_empty() {
+        return Err("error[native_ir.typed_control]: if has no clauses".into());
+    }
+    Ok(NativeExpr::If {
+        clauses: clauses
+            .iter()
+            .map(|clause| {
+                let condition = lower_child(
+                    &clause.condition,
+                    params,
+                    param_types,
+                    core_types,
+                    environment,
+                )?;
+                let body = if matches!(&clause.body, CoreExpr::If { .. }) {
+                    lower_lexical_expr_as(
+                        &clause.body,
+                        expected,
+                        params,
+                        param_types,
+                        core_types,
+                        environment,
+                    )?
+                } else {
+                    super::super::collection_values::lower_typed_value(
+                        &clause.body,
+                        expected,
+                        params,
+                        param_types,
+                        environment.functions,
+                        environment.function_types,
+                        environment.constructors,
+                    )?
+                };
+                Ok((condition, body))
+            })
+            .collect::<Result<Vec<_>, String>>()?,
+    })
+}
+
 fn contains_indirect_call(expr: &CoreExpr) -> bool {
     match expr {
         CoreExpr::FunctionCall { .. } => true,

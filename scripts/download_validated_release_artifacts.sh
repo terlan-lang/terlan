@@ -253,6 +253,8 @@ hosted_evidence_files=(
   tvm-aot-thread-sanitizer-report.json
   vm-multicore-thread-sanitizer-report.json
   vm-multicore-memory-model-tsan.json
+  vm-multicore-memory-model.json
+  vm-multicore-release-closeout.json
 )
 for evidence in "${hosted_evidence_files[@]}"; do
   if [[ "$cache_hit" == 0 ]]; then

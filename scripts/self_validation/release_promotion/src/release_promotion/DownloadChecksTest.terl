@@ -1,0 +1,10 @@
+/**
+ * Keeps hosted release evidence download and cache restoration independently testable.
+ */
+module release_promotion.DownloadChecksTest.
+
+import release_promotion.DownloadChecks.
+
+@test
+pub hosted_release_download_checkpoints_are_complete_and_retry_safe(): Bool ->
+    DownloadChecks.self_test().

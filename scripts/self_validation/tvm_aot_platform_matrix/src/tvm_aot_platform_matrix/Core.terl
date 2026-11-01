@@ -186,6 +186,8 @@ release_evidence(): List[String] ->
         "tvm-aot-thread-sanitizer-report.json",
         "vm-multicore-thread-sanitizer-report.json",
         "vm-multicore-memory-model-tsan.json",
+        "vm-multicore-memory-model.json",
+        "vm-multicore-release-closeout.json",
     ].
 
 pub string_array(values: List[String]): Json ->
@@ -775,7 +777,7 @@ pub workflow_contract(): Bool ->
         not release.contains("run: make release-hosted-validation-check") -> failure("workflow", "hosted release contract gate is missing");
         not makefile
     .contains(
-        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",
     ) -> failure("workflow", "hosted release graph is incomplete");
         release.contains("self-hosted") -> failure("workflow", "release validation must use hosted runners only");
         release.contains("run: make vm-multicore-performance-check") -> failure("workflow", "host-sensitive performance must remain diagnostic-only");

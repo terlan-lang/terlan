@@ -311,48 +311,61 @@ pub(super) fn lower_owned_expr_with_yields(
                          native control prefix requires variable bindings"
                         .to_string());
                 };
-                let value_type = super::infer_native_type_with_constructors(
+                let value_core_type = super::structured_case::core_expr_type(
                     &binding.value,
-                    &entry_types,
-                    function_types,
-                    constructors,
+                    &entry_core_types,
+                    function_core_types,
                 )
-                .or_else(|| {
-                    super::structured_case::core_expr_type(
-                        &binding.value,
-                        &entry_core_types,
-                        function_core_types,
-                    )
+                .map(|core_type| {
+                    super::structured_case::canonical_control_type(core_type, constructors)
+                });
+                let value_type = value_core_type
+                    .as_ref()
                     .and_then(|core_type| {
-                        super::native_type(Some(&core_type), &core_type.contract_text())
+                        super::native_type(Some(core_type), &core_type.contract_text())
                     })
-                })
-                .ok_or_else(|| {
-                    format!(
+                    .or_else(|| {
+                        super::infer_native_type_with_constructors(
+                            &binding.value,
+                            &entry_types,
+                            function_types,
+                            constructors,
+                        )
+                    })
+                    .ok_or_else(|| {
+                        format!(
                         "error[native_ir.control_prefix]: cannot infer native type for `{name}`"
                     )
-                })?;
-                let value = super::structured_case::lower_lexical_expr(
-                    &binding.value,
-                    &entry_vars,
-                    &entry_types,
-                    &entry_core_types,
-                    super::structured_case::StructuredCaseEnvironment {
-                        functions,
-                        function_types,
-                        function_core_types,
-                        constructors,
-                    },
-                )?;
+                    })?;
+                let structured_environment = super::structured_case::StructuredCaseEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types,
+                    constructors,
+                };
+                let value = if let Some(value_core_type) = value_core_type.as_ref() {
+                    super::structured_case::lower_lexical_expr_as(
+                        &binding.value,
+                        value_core_type,
+                        &entry_vars,
+                        &entry_types,
+                        &entry_core_types,
+                        structured_environment,
+                    )?
+                } else {
+                    super::structured_case::lower_lexical_expr(
+                        &binding.value,
+                        &entry_vars,
+                        &entry_types,
+                        &entry_core_types,
+                        structured_environment,
+                    )?
+                };
                 entry_names.retain(|entry| entry != name);
                 entry_names.push(name.clone());
                 entry_vars.insert(name.clone(), next_entry_local);
                 entry_types.insert(name.clone(), value_type);
-                if let Some(core_type) = super::structured_case::core_expr_type(
-                    &binding.value,
-                    &entry_core_types,
-                    function_core_types,
-                ) {
+                if let Some(core_type) = value_core_type {
                     entry_core_types.insert(name.clone(), core_type);
                 }
                 entry_bindings.push(value);
