@@ -501,6 +501,9 @@
   "license": "Apache-2.0",
   "main": "./src/extension.js",
   "name": "terlan-vscode",
+  "overrides": {
+    "minimatch": "11.0.1"
+  },
   "publisher": "terlan-lang",
   "repository": {
     "type": "git",

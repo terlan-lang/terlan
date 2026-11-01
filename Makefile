@@ -219,7 +219,7 @@ SHELL := bash
 
 .PHONY: tvm-native-image-format-check tvm-direct-aot-backend-check tvm-aot-application-closure-check tvm-aot-case-lowering-check tvm-aot-higher-order-specialization-check tvm-aot-lowering-coverage-check tvm-aot-managed-continuation-check tvm-aot-owned-closure-representation-check tvm-aot-static-callable-check tvm-aot-thread-neutral-continuation-check tvm-aot-typed-lifecycle-check tvm-aot-typed-mailbox-check tvm-managed-memory-check tvm-native-image-loader-check tvm-aot-consumer-check tvm-aot-test-consumer-check tvm-aot-repl-consumer-check tvm-aot-debugger-consumer-check tvm-aot-hot-reload-consumer-check tvm-aot-package-install-consumer-check tvm-aot-support-crash-metadata-check tvm-aot-platform-target-check tvm-aot-platform-matrix-check tvm-aot-http-managed-cycle-check tvm-aot-http-request-accessor-check tvm-aot-http-response-mutation-check tvm-aot-http-typed-metadata-check tvm-aot-http-router-callable-check tvm-aot-http-managed-error-check tvm-aot-http-template-check tvm-aot-http-template-render-plan-check tvm-aot-http-template-expression-check tvm-aot-http-body-json-check tvm-aot-http-session-check tvm-aot-http-managed-boundary-check tvm-aot-http-channel-plan-check tvm-aot-http-persistent-shard-check tvm-aot-http-native-invocation-check tvm-aot-http-websocket-invocation-check tvm-aot-http-sse-invocation-check tvm-aot-http-generation-lifetime-check tvm-aot-http-channel-transport-check tvm-aot-http-cleanup-check tvm-aot-http-lifecycle-inventory-check tvm-aot-http-checked-coreir-reference-record tvm-aot-http-performance-check tvm-single-image-artifact-check tvm-aot-runtime-transition-check tvm-aot-runtime-transition-focused-check tvm-aot-compilation-time-check tvm-aot-capability-worker-check
 
-.PHONY: docs-light-check rust-security-audit-check terlan-serve-runtime-bootstrap terlan-http-benchmark-release-bootstrap
+.PHONY: docs-light-check rust-security-audit-check node-security-audit-check terlan-serve-runtime-bootstrap terlan-http-benchmark-release-bootstrap
 
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 ifneq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)
@@ -314,6 +314,12 @@ docs-light-check: terlan-rust-quality-bootstrap
 rust-security-audit-check:
 	@cargo-audit --version | grep -Fx 'cargo-audit 0.22.2'
 	cargo-audit audit --deny warnings
+
+node-security-audit-check:
+	@for package_dir in editors/vscode tests/js sites/terlan.io tools/css tools/web-toolchain tree-sitter-terlan; do \
+		printf 'Auditing locked Node dependencies in %s\n' "$$package_dir"; \
+		npm audit --prefix "$$package_dir" --package-lock-only --audit-level=moderate; \
+	done
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
 .PHONY: std-vm-parity-matrix-check otp-stdlib-port-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
 .PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check tvm-aot-publish-evidence-check

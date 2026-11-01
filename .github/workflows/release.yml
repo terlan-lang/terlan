@@ -46,7 +46,7 @@ jobs:
             });
 
   dependency-audit:
-    name: release Rust dependency security audit
+    name: release locked dependency security audit
     runs-on: ubuntu-24.04
     needs: release-validation-identity
     timeout-minutes: 15

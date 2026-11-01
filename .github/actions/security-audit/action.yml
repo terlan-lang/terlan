@@ -1,9 +1,14 @@
-name: Audit Rust dependencies
-description: Run the exact supported cargo-audit version against Cargo.lock.
+name: Audit locked dependencies
+description: Audit the locked Rust and Node dependency graphs.
 
 runs:
   using: composite
   steps:
+    - name: Install Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+
     - name: Install exact cargo-audit
       shell: bash
       run: cargo install cargo-audit --version 0.22.2 --locked --force
@@ -13,3 +18,7 @@ runs:
       run: |
         cargo-audit --version | grep -Fx 'cargo-audit 0.22.2'
         cargo-audit audit --deny warnings
+
+    - name: Reject vulnerable Node dependencies
+      shell: bash
+      run: make --no-print-directory node-security-audit-check

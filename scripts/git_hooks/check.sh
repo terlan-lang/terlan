@@ -5,6 +5,8 @@ changes=$1
 base=$2
 echo 'pre-commit: Rust dependency security audit'
 make --no-print-directory rust-security-audit-check
+echo 'pre-commit: locked Node dependency security audit'
+make --no-print-directory node-security-audit-check
 echo 'pre-commit: editor release contracts'
 make --no-print-directory editor-release-contract-check
 bash scripts/build_artifact_bootstrap_test.sh

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   rustsec:
-    name: Rust dependency security audit
+    name: Locked dependency security audit
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 

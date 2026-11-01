@@ -851,6 +851,7 @@ build_release_contract(repository: String): Bool ->
             ".github/workflows/docs.yml",
             ".github/workflows/release.yml",
             ".github/workflows/security.yml",
+            ".github/actions/security-audit/action.yml",
             ".github/actions/setup-native-dependencies/action.yml",
             "scripts/self_validation/RepositoryValidation.terls",
             "scripts/build_typed_validator.sh",
@@ -871,6 +872,7 @@ build_release_contract(repository: String): Bool ->
         Some(docs) <- read(repository, ".github/workflows/docs.yml");
         Some(pages) <- read(repository, ".github/workflows/pages.yml");
         Some(security) <- read(repository, ".github/workflows/security.yml");
+        Some(dependency_audit) <- read(repository, ".github/actions/security-audit/action.yml");
         Some(native_setup) <- read(repository, ".github/actions/setup-native-dependencies/action.yml");
         Some(cleanup) <- read(repository, "scripts/clean_build_outputs.sh");
         Some(downloader) <- read(repository, "scripts/download_validated_release_artifacts.sh");
@@ -915,6 +917,8 @@ build_release_contract(repository: String): Bool ->
         "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify",
         "$(MAKE) --no-print-directory vm-multicore-publish-check",
         "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check vm-multicore-release-contract-check tvm-aot-release-closeout-contract-check",
+        "node-security-audit-check:",
+        "npm audit --prefix \"$$package_dir\" --package-lock-only --audit-level=moderate",
     ];
 let release_fragments =
     [
@@ -926,7 +930,7 @@ let release_fragments =
         "artifact-metadata: write",
         "attestations: write",
         "id-token: write",
-        "name: release Rust dependency security audit",
+        "name: release locked dependency security audit",
     ];
 let cleanup_fragments = ["-name 'terlan-file-*'", "-name 'terlan-directory-*'", "-name 'terlan-doc-format-*'"];
 let missing_make = first_missing(String.append(makefile, quality), make_fragments);
@@ -963,8 +967,20 @@ if {
         or not String.contains(editor, "NPM_PACK_CACHE ?= $(CURDIR)/target/tmp/npm-cache") -> failure("build_release.editor", "editor dependency/cache ownership drifted");
     String.contains(release, "tags:") -> failure("build_release.tag", "tag pushes must not replay validation");
     String.contains(release, "permissions:\n  actions: write") -> failure("build_release.permissions", "workflow-level actions write is forbidden");
-    not String.contains(ci, "name: Rust dependency security audit")
+    not String.contains(ci, "name: Locked dependency security audit")
         or not String.contains(security, "schedule:") -> failure("build_release.security", "locked dependency audits are incomplete");
+    not contains_all(
+    dependency_audit,
+    [
+        "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+        "node-version: 24",
+        "cargo-audit audit --deny warnings",
+        "make --no-print-directory node-security-audit-check",
+    ],
+) -> failure(
+        "build_release.dependency_audit",
+        "locked Rust and Node dependency audit ownership drifted",
+    );
     not contains_all(
     source_preflight,
     [

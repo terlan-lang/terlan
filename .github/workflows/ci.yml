@@ -82,7 +82,7 @@ jobs:
     uses: ./.github/workflows/source-preflight.yml
 
   dependency-audit:
-    name: Rust dependency security audit
+    name: Locked dependency security audit
     runs-on: ubuntu-24.04
     if: ${{ github.ref_name != 'main' && !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
     timeout-minutes: 15

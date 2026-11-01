@@ -103,6 +103,11 @@ Install the pinned auditor with `cargo install cargo-audit --version 0.22.2 --lo
 Missing tools, database download failures, and audit findings stop the commit
 before compiler builds begin.
 
+The same commit gate runs `make node-security-audit-check` against every
+repository `package-lock.json`. Moderate-or-higher npm advisories, registry
+failures, and lockfile drift therefore stop locally before the corresponding
+release and scheduled security workflows run the identical target.
+
 Every nonempty commit also generates fresh proof-lane and semantic-kernel reports
 and checks the proof release baseline with the staged compiler before Terlan
 formatting, browser tests, and the selected test lanes. The baseline binds
