@@ -1,0 +1,39 @@
+{
+  "schema": "terlan.semantic.multi-provider-selection-evidence.v1",
+  "status": "passed",
+  "compiler_digest": "a5ed38793804b55d8c81c3db36961d6d97fdb65d8f54021bca3522ead3971b9e",
+  "artifact_sha256": "76ac6e1093a54cfab3ebffbaab43c9c923696a08651a38971ed72e8e0ab42f0e",
+  "schema_sha256": "189d8ce63bc979d6c181f9022b8a4d611b376b2aa1df352667d5e64676c689e5",
+  "sources": [
+    {
+      "path": "one.terli",
+      "sha256": "95c81dc0d4e5e418835598cccff951efb2225c27752255d314a60b5bdd651dbe"
+    },
+    {
+      "path": "sample.terl",
+      "sha256": "9bf60456a59ff9a65612a74a7e67ab41152f60b91269e738cad5902158acb387"
+    },
+    {
+      "path": "two.terli",
+      "sha256": "139d1859d2fb691b589250bfcf9fbd8f3335552378f973bfb1b740b641ed96dc"
+    }
+  ],
+  "selected_targets": [
+    {
+      "module": "one",
+      "parameter_types": [
+        "Int"
+      ]
+    },
+    {
+      "module": "two",
+      "parameter_types": [
+        "Bool"
+      ]
+    }
+  ],
+  "validator": {
+    "jsonschema": "4.25.1"
+  },
+  "scope": "Two actual checked calls to the same imported local name from distinct providers. Only the accepted provider/signature is observed, agrees with its checked interface, and satisfies the public schema. No service or ABI proof."
+}

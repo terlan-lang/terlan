@@ -1,0 +1,215 @@
+/**
+ * Snapshot immutability, stable identity, publication, and tamper rejection.
+ */
+module semantic.SnapshotTest.
+
+import semantic.{Snapshot, SnapshotStore}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.data.Json.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> String.append(Environment.current_directory(), "/target/debug/terlc")
+    }.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+source(): String -> "module sample.\npub value(input: Int): Int -> let local = input + 1; local.\n".
+
+@test
+pub repeated_capture_is_stable_and_preserves_source(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-semantic-stability-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source());
+        Ok(first) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            );
+        Ok(second) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            )
+    } else {
+        _ -> false
+    };
+    (let id = text(first, "snapshot_id");
+let stable = id == text(second, "snapshot_id") and SnapshotStore.valid_id(id);
+let preserved = File.read_text(root + "/sample.terl") == Ok(source());
+let checked =
+    case SnapshotStore.compiler_artifact(root + "/store", id) {
+        Ok(artifact) ->
+            text(artifact, "status") == "checked"
+                and text(artifact, "source_name") == "src/sample.terl";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+stable and preserved and checked and cleaned).
+
+@test
+pub original_edits_do_not_change_an_existing_snapshot(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-semantic-immutable-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source());
+        Ok(first) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            );
+        Ok(_) <- File.write_text(root + "/sample.terl", source().replace("+ 1", "+ 2"));
+        Ok(second) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            )
+    } else {
+        _ -> false
+    };
+    (let changed = text(first, "snapshot_id") != text(second, "snapshot_id");
+let previous =
+    case SnapshotStore.load(root + "/store", text(first, "snapshot_id")) {
+        Ok(document) -> Json.to_string(document) == Json.to_string(first);
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+changed and previous and cleaned).
+
+@test
+pub modified_compiler_artifact_is_never_served(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-semantic-corruption-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source());
+        Ok(document) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            )
+    } else {
+        _ -> false
+    };
+    (let id = text(document, "snapshot_id");
+let corrupted = File.write_text(root + "/store/" + id.utf8_slice(2, 64) + "/compiler.json", "{}") == Ok(Unit);
+let rejected =
+    case SnapshotStore.compiler_artifact(root + "/store", id) {
+        Err(_) -> true;
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+corrupted and rejected and cleaned).
+
+@test
+pub invalid_source_retains_compiler_rejection(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-semantic-invalid-");
+        Ok(_) <- File.write_text(root + "/sample.terl", "module sample.\npub value(): Bool -> 1.\n");
+        Ok(document) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            );
+        Ok(analysis) <- document.get("analysis");
+        Ok(artifact) <- SnapshotStore.compiler_artifact(root + "/store", text(document, "snapshot_id"));
+        Ok(core) <- artifact.get("core")
+    } else {
+        _ -> false
+    };
+    (let invalid =
+    text(analysis, "status") == "invalid"
+        and text(artifact, "status") == "invalid"
+        and core.is_null();
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+invalid and cleaned).
+
+@test
+pub malformed_handles_and_escaping_paths_are_rejected(): Bool ->
+    not SnapshotStore.valid_id("s:../../outside")
+        and not SnapshotStore.valid_id("file:///tmp/source")
+        and not Snapshot.safe_logical_path("../outside.terl")
+        and not Snapshot.safe_logical_path("src/../outside.terl")
+        and not Snapshot.safe_logical_path("/absolute.terl")
+        and not Snapshot.safe_logical_path("C:\\source.terl")
+        and not Snapshot.safe_logical_path("src//sample.terl")
+        and Snapshot.safe_logical_path("src/sample.terl").
+
+@test
+pub unsaved_overlay_is_versioned_and_preserves_disk_source(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-semantic-overlay-test-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source());
+        Ok(disk) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            );
+        Ok(overlay) <-
+            Snapshot.capture_overlay(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                Hash.sha256(source()),
+                7,
+                source().replace("+ 1", "+ 2"),
+                root + "/store",
+            );
+        Ok(sources) <- overlay.get("sources");
+        Ok(first) <- sources.at(0);
+        Ok(version) <- first.get("document_version")
+    } else {
+        _ -> false
+    };
+    (let versioned = version.as_int() == Ok(7) and text(disk, "snapshot_id") != text(overlay, "snapshot_id"); let unchanged = File.read_text(root + "/sample.terl") == Ok(source()); let cleaned = Directory.remove_all(root) == Ok(Unit); versioned and unchanged and cleaned).
+
+@test
+pub stale_overlay_base_is_rejected_before_publication(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-semantic-stale-overlay-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source())
+    } else {
+        _ -> false
+    };
+    (let rejected =
+    case Snapshot.capture_overlay(
+        compiler(),
+        root + "/sample.terl",
+        "src/sample.terl",
+        Hash.sha256("old bytes"),
+        1,
+        source(),
+        root + "/store",
+    ) {
+        Err(reason) -> reason.code == "semantic.snapshot.stale_overlay";
+        _ -> false
+    };
+let unpublished = not File.exists(root + "/store");
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+rejected and unpublished and cleaned).

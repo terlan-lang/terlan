@@ -1,0 +1,150 @@
+/**
+ * Bounded selection of checker observations by complete lexical identity.
+ */
+module semantic.BindingTypes.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.
+import semantic.EntityLookup.{Selection}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    rows: Json,
+    code: String,
+    message: String,
+    work_used: Int,
+}.
+
+unknown(used: Int, code: String, message: String): Selected ->
+    Selected(rows = Json.array(), code = code, message = message, work_used = used).
+
+scan(
+    selection: Selection,
+    rows: Json,
+    index: Int,
+    count: Int,
+    selected: Json,
+    conflict: Bool,
+    used: Int,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> if {
+            conflict -> Ok(
+                unknown(
+                    used,
+                    "semantic.query.binding_type_conflict",
+                    "The checker observed different types for this exact binding. No single inferred type is claimed.",
+                ),
+            );
+            selected.is_null() -> Ok(
+                unknown(
+                    used,
+                    "semantic.query.local_type_not_exported",
+                    "This exact lexical binding has no checked type observation. Types are not inferred from source text or a matching name.",
+                ),
+            );
+            true -> Ok(
+                Selected(
+                    rows = Json.array().push(selected),
+                    code = "",
+                    message = "",
+                    work_used = used,
+                ),
+            )
+        };
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Binding type selection exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(binding) <- row.get("binding")
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked binding type inventory is malformed.",
+                    ),
+                )
+        };
+        if {
+            EntityLookup.text(row, "module") != EntityLookup.module_name(selection.artifact)
+                or Json.to_string(binding) != Json.to_string(selection.record) -> scan(selection, rows, index + 1, count, selected, conflict, used + 1, maximum);
+            true -> let {
+                true <- EntityLookup.text(row, "model") == "checked-binding-type.v1";
+                true <- EntityLookup.text(row, "type_encoding") == "terlan.typecheck.type.v1";
+                true <- EntityLookup.text(row, "scope") == "checked_binding_definition";
+                true <- EntityLookup.text(row, "type_variable_scope") == "observation_local";
+                true <- EntityLookup.text(row, "display_type") != "";
+                Ok(ty) <- row.get("compiler_type");
+                true <- not ty.is_null()
+            } else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.artifact",
+                            message = "Checked binding type observation is incomplete.",
+                        ),
+                    )
+            };
+            (let different =
+    case selected.get("compiler_type") {
+        Ok(previous) -> Json.to_string(previous) != Json.to_string(ty);
+        _ -> false
+    };
+scan(selection, rows, index + 1, count, row, conflict or different, used + 1, maximum))
+        }
+    }.
+
+pub select(selection: Selection, used: Int, maximum: Int): Result[Selected, Failure] ->
+    let true <- used < maximum else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.work_limit",
+                    message = "Binding type selection exhausted its compiler-record inspection budget.",
+                ),
+            )
+    };
+    (let Ok(capture) <- selection.artifact.get("binding_type_observations") else {
+    _ ->
+        Ok(
+            unknown(
+                used + 1,
+                "semantic.query.local_type_not_exported",
+                "This producer does not export checked lexical binding types.",
+            ),
+        )
+};
+(let {
+    Ok(truncated) <- capture.get("truncated");
+    Ok(incomplete) <- truncated.as_bool();
+    Ok(rows) <- capture.get("bindings");
+    Ok(count) <- rows.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked binding type capture is malformed.",
+            ),
+        )
+};
+if {
+    incomplete -> Ok(
+        unknown(
+            used + 1,
+            "semantic.query.binding_types_incomplete",
+            "The compiler capture reached its bound. Missing or conflicting observations may have been omitted, so no inferred type is claimed.",
+        ),
+    );
+    true -> scan(selection, rows, 0, count, Json.null(), false, used + 1, maximum)
+})).

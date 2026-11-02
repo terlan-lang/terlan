@@ -1,0 +1,455 @@
+/**
+ * Roadmap gate orchestration in Terlan. Unimplemented milestones fail and
+ * retain a report instead of pretending that passing schema tests closes them.
+ */
+module llm_native.Gate.
+
+import llm_native.{Baseline, Evidence, QueryGate, SnapshotGate}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.{Environment, Process}.
+import std.time.Clock.
+
+import type std.core.Option.
+import type std.data.Json.
+
+/**
+ * Exact harness acceptance inventory; each name is checked in compiler results.
+ */
+pub test_names(): List[String] ->
+    [
+        "existing_output_is_preserved",
+        "unknown_selector_creates_no_output",
+        "missing_compiler_creates_no_output",
+        "schema_evidence_rejects_stale_missing_duplicate_and_failed_cases",
+        "test_evidence_rejects_empty_skipped_and_incomplete_results",
+        "unimplemented_milestone_cannot_pass",
+        "missing_or_malformed_peer_report_cannot_pass",
+        "subprocess_timeout_and_output_limit_fail",
+        "wire_evidence_rejects_missing_and_unknown_cases",
+        "baseline_manifest_evidence_rejects_partial_and_malformed_sets",
+        "property_inventory_rejects_empty_and_duplicate_registration",
+        "baseline_preserves_timeout_diagnostic",
+        "snapshot_gate_rejects_empty_peer_and_stale_compiled_sources",
+    ].
+
+/**
+ * Registers implemented task modes and explicit milestone selectors.
+ */
+pub selectors(): List[String] ->
+    [
+        "LNC-001",
+        "LNC-002",
+        "LNC-003",
+        "LNC-004",
+        "LNC-005",
+        "M0",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "all",
+    ].
+
+save(path: String, value: Json): Bool ->
+    case Json.stringify_pretty(value) {
+        Ok(text) -> File.write_text(path, String.append(text, "\n")) == Ok(Unit);
+        Err(_) -> false
+    }.
+
+load(path: String): Option[Json] ->
+    let {
+        Ok(text) <- File.read_text(path);
+        Ok(value) <- Json.parse(text)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+own_output(path: String): Bool ->
+    let Ok(empty) <- Directory.create_temporary("terlan-llm-native-gate-") else {
+        _ -> false
+    };
+    (let copied = Directory.copy_tree_excluding(empty, path, []); let removed = Directory.remove_all(empty); copied == Ok(Unit) and removed == Ok(Unit)).
+
+/**
+ * Runs a bounded test peer; timeout, spawn failure, and output overflow fail.
+ */
+pub capture(program: String, arguments: List[String], timeout: Int): Option[Process.Output] ->
+    let command = Process.with_arguments(Process.command(program), arguments);
+    let bounded = Process.with_timeout_ms(command, timeout);
+    case Process.run(Process.with_output_limit_bytes(bounded, 2_097_152)) {
+        Ok(output) -> Some(output);
+        Err(_) -> None
+    }.
+
+/**
+ * Requires an actual report even when an independent process exits successfully.
+ */
+pub schema_completion(output: String, digest: String, expected_ids: List[String]): Bool ->
+    case load(String.append(output, "/contract-evidence.json")) {
+        Some(report) -> Evidence.schema_report(report, digest, expected_ids);
+        None -> false
+    }.
+
+wire_completion(output: String, expected_ids: List[String]): Bool ->
+    case load(String.append(output, "/contract-evidence.json")) {
+        Some(report) -> Evidence.wire_report(report, expected_ids);
+        None -> false
+    }.
+
+schema_case(root: String, output: String): Bool ->
+    let {
+        Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
+        Some(inventory) <- load(String.append(root, "/tests/fixtures/llm_native/contracts/cases.json"));
+        Ok(cases) <- inventory.get("cases");
+        Some(expected_ids) <- Evidence.ids(cases, "id");
+        Some(wire_inventory) <- load(String.append(root, "/tests/fixtures/llm_native/mcp/wire-cases.json"));
+        Ok(wire_cases) <- wire_inventory.get("cases");
+        Some(wire_ids) <- Evidence.ids(wire_cases, "id");
+        Some(digest) <- Evidence.source_digest(root, Evidence.peer_paths())
+    } else {
+        _ -> false
+    };
+    (let report_path = String.append(output, "/contract-evidence.json");
+let result =
+    capture(
+        python,
+        [
+            "-I",
+            String.append(root, "/scripts/llm_native/peers/schema_peer.py"),
+            "--root",
+            root,
+            "--output",
+            report_path,
+        ],
+        60_000,
+    );
+case result {
+    Some(completion) ->
+        let logs =
+            File.write_text(String.append(output, "/peer.stdout"), completion.stdout) == Ok(Unit)
+                and File.write_text(String.append(output, "/peer.stderr"), completion.stderr) == Ok(Unit);
+        completion.status == 0
+            and logs
+            and schema_completion(output, digest, expected_ids)
+            and wire_completion(output, wire_ids);
+    None -> false
+}).
+
+harness_case(compiler: String, root: String, output: String): Bool ->
+    let path = output + "/harness-test-results.json";
+    let source = root + "/scripts/llm_native/src/llm_native/GateTest.terl";
+    let completion =
+        Baseline.capture_configured(
+            compiler,
+            [
+                "test",
+                source,
+                "--cache-dir",
+                output + "/harness-cache",
+                "--emit-test-result-manifest",
+                path,
+            ],
+            output,
+            "harness",
+            180_000,
+            [
+                Process.environment_entry("TERLAN_BUILD_JOBS", "1"),
+                Process.environment_entry("TERLAN_LLM_NATIVE_TEST_COMPILER", compiler),
+                Process.environment_entry("TERLAN_SEMANTIC_TEST_COMPILER", compiler),
+            ],
+            2_097_152,
+        );
+    Evidence.text(completion, "status") == "passed"
+        and case load(path) {
+    Some(report) ->
+        Evidence.test_report(report, test_names()) and Evidence.compiled_sources(report, source);
+    _ -> false
+}.
+
+row(id: String, status: String, reason: String): Json ->
+    Json.object()
+        .put("case_id", Json.string(id))
+        .put("status", Json.string(status))
+        .put("reason", Json.string(reason)).
+
+/**
+ * Returns the registered milestone cases, including explicit unimplemented cases.
+ */
+pub planned_cases(selector: String): Json ->
+    let rows = Json.array();
+    let _rows =
+        if {
+            selector == "all" -> append_planned(rows, ["M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8"]);
+            true -> append_planned(rows, [selector])
+        };
+    rows.
+
+append_planned(mut rows: Json, milestones: List[String]): Bool ->
+    case milestones {
+        [] -> true;
+        [milestone | rest] ->
+            let id =
+                if {
+                    milestone == "M0" -> "baseline.compiler";
+                    true -> String.append(milestone, ".acceptance")
+                };
+            let _row =
+                rows
+                    .push(
+                        row(
+                            id,
+                            "not_implemented",
+                            "The milestone acceptance suite is not implemented.",
+                        ),
+                    );
+            append_planned(rows, rest)
+    }.
+
+artifact_rows(output: String, paths: List[String], mut rows: Json): Bool ->
+    case paths {
+        [] -> true;
+        [name | rest] ->
+            let path = String.concat([output, "/", name]);
+            if {
+                not File.exists(path) -> artifact_rows(output, rest, rows);
+                true -> let Ok(digest) <- Hash.sha256_file(path) else {
+                    _ -> false
+                };
+                (let _row = rows.push(Json.object().put("path", Json.string(name)).put("digest", Json.string(digest))); artifact_rows(output, rest, rows))
+            }
+    }.
+
+/**
+ * Runs selected checks and returns success only for complete, current evidence.
+ */
+pub run(compiler: String, selector: String, output: String): Bool ->
+    let root = Environment.current_directory();
+    let {
+        true <- Evidence.contains(selectors(), selector);
+        Ok(true) <- File.is_executable(compiler);
+        true <- not File.exists(output);
+        Some(peer_digest) <- Evidence.source_digest(root, Evidence.peer_paths());
+        Some(gate_digest) <- Evidence.source_digest(root, Evidence.gate_paths());
+        Ok(compiler_digest) <- Hash.sha256_file(compiler);
+        Ok(stdlib_digest) <- Hash.sha256_tree(String.append(root, "/std"));
+        Some(toolchain_output) <- capture(compiler, ["build", "--print-toolchain-identity"], 10_000);
+        true <- toolchain_output.status == 0;
+        Ok(toolchain) <- Json.parse(toolchain_output.stdout);
+        true <- Evidence.text(toolchain, "schema") == "terlan.native-toolchain-identity.v1";
+        true <- own_output(output)
+    } else {
+        _ -> false
+    };
+    (let started = Clock.monotonic_time_ns();
+let cases = Json.array();
+let contracts_required = selector == "LNC-001" or selector == "LNC-005" or selector == "M0" or selector == "all";
+let harness_required = selector == "LNC-002" or selector == "LNC-005" or selector == "M0" or selector == "all";
+let baseline_required = selector == "LNC-003" or selector == "M0" or selector == "all";
+let snapshots_required = selector == "LNC-004" or selector == "all";
+let queries_required = selector == "LNC-005" or selector == "all";
+let contracts_passed = not contracts_required or schema_case(root, output);
+let harness_passed = not harness_required or harness_case(compiler, root, output);
+let baseline_passed = not baseline_required or contracts_passed and harness_passed and Baseline.run(compiler, output);
+let snapshots_passed = not snapshots_required or SnapshotGate.run(compiler, root, output);
+let queries_passed =
+    not queries_required
+        or contracts_passed and harness_passed and QueryGate.run(compiler, root, output);
+let _queries =
+    if {
+        queries_required -> cases
+            .push(
+                row(
+                    "queries.semantic-and-mcp",
+                    if {
+                        queries_passed -> "passed";
+                        true -> "failed"
+                    },
+                    "Exact semantic suites, current compiled sources, snapshot regression and independent standard MCP checks with live resource continuation after reconnect.",
+                ),
+            );
+        true -> cases
+    };
+let _snapshots =
+    if {
+        snapshots_required -> cases
+            .push(
+                row(
+                    "snapshots.identity",
+                    if {
+                        snapshots_passed -> "passed";
+                        true -> "failed"
+                    },
+                    "Immutable scoped snapshots, entity identities, overlays, source-bound authored tests and independent live schema/source evidence.",
+                ),
+            );
+        true -> cases
+    };
+let _contracts =
+    if {
+        contracts_required -> cases
+            .push(
+                row(
+                    "contracts.schema",
+                    if {
+                        contracts_passed -> "passed";
+                        true -> "failed"
+                    },
+                    "Independent schema peer; not runtime verification.",
+                ),
+            );
+        true -> cases
+    };
+let _harness =
+    if {
+        harness_required -> cases
+            .push(
+                row(
+                    "harness.failure-injection",
+                    if {
+                        harness_passed -> "passed";
+                        true -> "failed"
+                    },
+                    "Exact test inventory and compiler result manifest.",
+                ),
+            );
+        true -> cases
+    };
+let _baseline =
+    if {
+        baseline_required -> cases
+            .push(
+                row(
+                    "baseline.compiler",
+                    if {
+                        baseline_passed -> "passed";
+                        true -> "failed"
+                    },
+                    "Cold/warm/reference compiler checks and existing LSP navigation; future properties registered only.",
+                ),
+            );
+        true -> cases
+    };
+let implemented =
+    selector == "LNC-001"
+        or selector == "LNC-002"
+        or selector == "LNC-003"
+        or selector == "LNC-004"
+        or selector == "LNC-005"
+        or selector == "M0";
+let _planned =
+    if {
+        implemented -> cases;
+        true -> cases.extend(planned_cases(selector))
+    };
+let fresh =
+    Evidence.source_digest(root, Evidence.peer_paths()) == Some(peer_digest)
+        and Evidence.source_digest(root, Evidence.gate_paths()) == Some(gate_digest)
+        and Hash.sha256_tree(String.append(root, "/std")) == Ok(stdlib_digest)
+        and Hash.sha256_file(compiler) == Ok(compiler_digest);
+let artifacts = Json.array();
+let hashed =
+    artifact_rows(
+        output,
+        [
+            "contract-evidence.json",
+            "peer.stdout",
+            "peer.stderr",
+            "harness-test-results.json",
+            "harness.stdout",
+            "harness.stderr",
+            "baseline.json",
+            "semantic-snapshots.json",
+            "semantic-queries.json",
+            "query-progress.json",
+        ],
+        artifacts,
+    );
+let passed =
+    implemented
+        and contracts_passed
+        and harness_passed
+        and baseline_passed
+        and snapshots_passed
+        and queries_passed
+        and fresh
+        and hashed;
+let status =
+    if {
+        passed -> "passed";
+        contracts_passed
+            and harness_passed
+            and baseline_passed
+            and snapshots_passed
+            and queries_passed
+            and fresh
+            and hashed
+            and not implemented -> "not_implemented";
+        true -> "failed"
+    };
+let _freshness =
+    if {
+        fresh -> cases;
+        true -> cases
+            .push(
+                row(
+                    "gate.inputs_changed",
+                    "failed",
+                    "Compiler or gate inputs changed during verification; rerun on a stable candidate.",
+                ),
+            )
+    };
+let inputs =
+    Json.object()
+        .put("compiler_digest", Json.string(compiler_digest))
+        .put("contract_source_digest", Json.string(peer_digest))
+        .put("gate_source_digest", Json.string(gate_digest));
+let _stdlib = inputs.put("stdlib_tree_digest", Json.string(stdlib_digest));
+let _toolchain = inputs.put("toolchain", toolchain);
+let _policy =
+    inputs
+        .put(
+            "execution_policy",
+            Json.string("authored-gate-tests-and-independent-peers; candidate execution disabled"),
+        );
+let _flags = inputs.put("compiler_arguments", Json.array());
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.llm-native.gate.v1"))
+        .put("selector", Json.string(selector))
+        .put("status", Json.string(status))
+        .put("inputs", inputs)
+        .put("cases", cases);
+let timings =
+    Json.object()
+        .put("wall_time_ns", Json.int(Clock.monotonic_time_ns() - started))
+        .put(
+            "scope",
+            Json.string(
+                "Gate checks after initial input hashing; excludes compiler process startup.",
+            ),
+        );
+let saved =
+    save(String.append(output, "/inputs.json"), inputs)
+        and save(String.append(output, "/cases.json"), cases)
+        and save(
+    String.append(output, "/diagnostics.json"),
+    if {
+        passed -> Json.array();
+        true -> cases
+    },
+)
+        and save(String.append(output, "/artifacts.json"), artifacts)
+        and save(String.append(output, "/timings.json"), timings)
+        and save(String.append(output, "/report.json"), report);
+passed and saved and hashed).

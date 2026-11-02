@@ -1,0 +1,5 @@
+module sample.
+import one.{pick}.
+import two.{pick}.
+pub integer(): Int -> pick(1).
+pub flag(): Bool -> pick(true).

@@ -32,6 +32,7 @@ pub(crate) fn core_const_function_termination_evidence(
                 patterns: params
                     .iter()
                     .map(|param| crate::terlan_syntax::SyntaxPatternOutput {
+                        expanded_from: Vec::new(),
                         kind: crate::terlan_syntax::SyntaxPatternKind::Var,
                         arity: 0,
                         text: Some(param.name.clone()),

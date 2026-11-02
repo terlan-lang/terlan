@@ -1,0 +1,29 @@
+#!/usr/bin/env -S terlc run
+import semantic.Snapshot.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 4;
+        Some(compiler) <- get(0);
+        Some(source) <- get(1);
+        Some(logical) <- get(2);
+        Some(store) <- get(3)
+    } else {
+        _ -> false
+    };
+    case Snapshot.capture_file(compiler, source, logical, store) {
+        Ok(document) ->
+            let _printed = println(Json.to_string(document));
+            true;
+        Err(reason) ->
+            let _printed = eprintln(reason.code + ": " + reason.message);
+            false
+    }.
+
+assert(entry());
+Unit.

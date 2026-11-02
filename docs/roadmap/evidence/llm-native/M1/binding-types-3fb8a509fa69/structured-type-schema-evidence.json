@@ -1,0 +1,56 @@
+{
+  "schema": "terlan.semantic.binding-type-schema-evidence.v1",
+  "status": "passed",
+  "cases": [
+    {
+      "name": "tuple_local",
+      "status": "passed",
+      "type_constructor": "Tuple",
+      "binding_id": 5299582605036073157
+    },
+    {
+      "name": "list_local",
+      "status": "passed",
+      "type_constructor": "List",
+      "binding_id": 7093286813274607317
+    },
+    {
+      "name": "map_local",
+      "status": "passed",
+      "type_constructor": "Map",
+      "binding_id": 5910972809645042365
+    },
+    {
+      "name": "named_local",
+      "status": "passed",
+      "type_constructor": "Named",
+      "binding_id": 1652311404324834918
+    },
+    {
+      "name": "array_local",
+      "status": "passed",
+      "type_constructor": "Array",
+      "binding_id": 60658791237424746
+    },
+    {
+      "name": "generic_local",
+      "status": "passed",
+      "type_constructor": "Var",
+      "binding_id": 17946294987514272974
+    },
+    {
+      "name": "function_local",
+      "status": "passed",
+      "type_constructor": "Function",
+      "binding_id": 3245647613812267447
+    }
+  ],
+  "source_sha256": "0e2a43135ddc702c228d4a80f02b4fec3c7497aa1d66b9188d9957ff01040730",
+  "artifact_sha256": "40347f197016625f1e43b844d346c9e025d409c6e5716b250caa0aa9a0ab8ab6",
+  "schema_sha256": "1cb346b712f7e40b3e2bf0a31e88b9042c488e15f03eeed9345e866169dea3f7",
+  "compiler_digest": "41e03b9c880f998668044335298867f3dad94a3a176bc8a437e2dfd2f91992de",
+  "validator": {
+    "jsonschema": "4.25.1"
+  },
+  "scope": "Seven real checked inferred binding type constructors, exact Core lexical joins and independent recursive public-schema validation. No service or ownership proof."
+}

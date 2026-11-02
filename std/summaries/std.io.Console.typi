@@ -4,6 +4,9 @@
 //! the concrete runtime calls needed to implement these operations.
 
 module std.io.Console.
+import std.core.Error.{*}.
+import std.core.Option.{*}.
+import std.core.Result.{*}.
 import std.core.Unit.{*}.
 
 /// Writes a diagnostic string followed by one line terminator to standard error.
@@ -33,3 +36,13 @@ pub eprintln(value: String): Unit.
 /// ```
 
 pub println(value: String): Unit.
+
+/// Reads one bounded UTF-8 line from the application's standard input.
+///
+/// Returns `Ok(Some(line))` without the LF or CRLF terminator, `Ok(None)` at
+/// EOF, or a typed error. `max_bytes` bounds content bytes and must be between
+/// 1 and 1 MiB. A final unterminated line is returned before EOF. After an
+/// input/encoding/limit error, callers should close the stream. This operation
+/// can wait for input and is VM-owned; it never reads a helper's RPC channel.
+
+pub read_line(max_bytes: Int): Result[Option[String], std.core.Error].

@@ -167,12 +167,18 @@ fn extend_receiver_method_dispatch_with_imported_receiver_methods(
     methods: &mut HashMap<(String, usize), Vec<ReceiverMethodDispatchSignature>>,
 ) {
     let global_aliases = imported_type_aliases(resolved);
-    let imported_modules = source_imported_module_names(module, &resolved.interface_map);
+    let mut imported_modules = source_imported_module_names(module, &resolved.interface_map);
+    let dependency_modules = imported_modules
+        .iter()
+        .filter_map(|module| resolved.interface_map.get(module))
+        .flat_map(|interface| interface.dependency_modules.iter())
+        .filter(|dependency| resolved.interface_map.contains_key(*dependency))
+        .cloned()
+        .collect::<Vec<_>>();
+    imported_modules.extend(dependency_modules);
     let imported = resolved
         .interface_map
         .values()
-        // Core interfaces are the implicit prelude, just as for trait lookup.
-        // Their callable signatures, not a primitive-method table, own dispatch.
         .filter(|interface| {
             imported_modules.contains(&interface.module)
                 || interface.module.starts_with("std.core.")

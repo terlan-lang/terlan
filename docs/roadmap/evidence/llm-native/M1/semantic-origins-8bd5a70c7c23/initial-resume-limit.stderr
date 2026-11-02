@@ -1,0 +1,1 @@
+error[pure_native_resume_budget]: native call exceeded 1048576 continuation resumes at 7054469171892516190; error[native_helper_resume]: operation `std.data.json.get` returned an incompatible value

@@ -1,0 +1,276 @@
+/**
+ * Failure injection for gate freshness, inventory, and filesystem ownership.
+ */
+module llm_native.GateTest.
+
+import llm_native.{Baseline, Evidence, Gate, SnapshotGate}.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.data.Json.
+
+compiler(): String ->
+    case Environment.get("TERLAN_LLM_NATIVE_TEST_COMPILER") {
+        Some(path) -> path;
+        _ -> String.append(Environment.current_directory(), "/target/release/terlc")
+    }.
+
+json(source: String): Json ->
+    case Json.parse(source) {
+        Ok(value) -> value;
+        _ -> Json.null()
+    }.
+
+peer(cases: String, digest: String): Json ->
+    json(
+        String.concat(
+            [
+                "{\"schema\":\"terlan.semantic.contract-evidence.v1\",\"status\":\"passed\",\"kind\":\"schema_validation\",",
+                "\"mcp_protocol_version\":\"2025-11-25\",\"peer_versions\":{\"jsonschema\":\"4.25.1\",\"mcp\":\"1.26.0\"},",
+                "\"source_closure_digest\":\"",
+                digest,
+                "\",\"case_count\":1,\"cases\":",
+                cases,
+                "}",
+            ],
+        ),
+    ).
+
+@test
+pub existing_output_is_preserved(): Bool ->
+    let {
+        Ok(directory) <- Directory.create_temporary("terlan-llm-native-existing-");
+        Ok(_) <- File.write_text(String.append(directory, "/sentinel"), "preserve")
+    } else {
+        _ -> false
+    };
+    (let refused = not Gate.run(compiler(), "LNC-001", directory); let preserved = File.read_text(String.append(directory, "/sentinel")) == Ok("preserve"); let cleaned = Directory.remove_all(directory) == Ok(Unit); refused and preserved and cleaned).
+
+@test
+pub unknown_selector_creates_no_output(): Bool ->
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-selector-") else {
+        _ -> false
+    };
+    (let path = String.append(directory, "/output"); let refused = not Gate.run("missing-compiler", "M999", path); let absent = not File.exists(path); let cleaned = Directory.remove_all(directory) == Ok(Unit); refused and absent and cleaned).
+
+@test
+pub missing_compiler_creates_no_output(): Bool ->
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-compiler-") else {
+        _ -> false
+    };
+    (let path = String.append(directory, "/output"); let refused = not Gate.run("missing-compiler", "LNC-001", path); let absent = not File.exists(path); let cleaned = Directory.remove_all(directory) == Ok(Unit); refused and absent and cleaned).
+
+@test
+pub schema_evidence_rejects_stale_missing_duplicate_and_failed_cases(): Bool ->
+    let valid_rows = "[{\"case_id\":\"one\",\"status\":\"passed\"}]";
+    let valid = Evidence.schema_report(peer(valid_rows, "expected"), "expected", ["one"]);
+    let stale = not Evidence.schema_report(peer(valid_rows, "stale"), "expected", ["one"]);
+    let missing = not Evidence.schema_report(peer("[]", "expected"), "expected", ["one"]);
+    let duplicate =
+        not Evidence.schema_report(
+    peer(
+        "[{\"case_id\":\"one\",\"status\":\"passed\"},{\"case_id\":\"one\",\"status\":\"passed\"}]",
+        "expected",
+    ),
+    "expected",
+    ["one"],
+);
+    let failed =
+        not Evidence.schema_report(
+    peer("[{\"case_id\":\"one\",\"status\":\"failed\"}]", "expected"),
+    "expected",
+    ["one"],
+);
+    let wrong_case = not Evidence.schema_report(peer(valid_rows, "expected"), "expected", ["other"]);
+    valid and stale and missing and duplicate and failed and wrong_case.
+
+@test
+pub test_evidence_rejects_empty_skipped_and_incomplete_results(): Bool ->
+    let valid =
+        Evidence.test_report(
+            json(
+                "{\"passed\":1,\"failed\":0,\"not_executed\":0,\"tests\":[{\"name\":\"one\",\"status\":\"passed\"}]}",
+            ),
+            ["one"],
+        );
+    let empty = not Evidence.test_report(json("{\"passed\":0,\"failed\":0,\"not_executed\":0,\"tests\":[]}"), []);
+    let skipped =
+        not Evidence.test_report(
+    json(
+        "{\"passed\":1,\"failed\":0,\"not_executed\":1,\"tests\":[{\"name\":\"one\",\"status\":\"not_executed\"}]}",
+    ),
+    ["one"],
+);
+    let incomplete =
+        not Evidence.test_report(
+    json(
+        "{\"passed\":1,\"failed\":0,\"not_executed\":0,\"tests\":[{\"name\":\"one\",\"status\":\"passed\"}]}",
+    ),
+    ["one", "two"],
+);
+    valid and empty and skipped and incomplete.
+
+@test
+pub unimplemented_milestone_cannot_pass(): Bool ->
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-unimplemented-") else {
+        _ -> false
+    };
+    (let output = String.append(directory, "/output");
+let refused = not Gate.run(compiler(), "M1", output);
+let recorded =
+    case File.read_text(String.append(output, "/report.json")) {
+        Ok(text) -> Evidence.text(json(text), "status") == "not_implemented";
+        _ -> false
+    };
+let expanded = Gate.planned_cases("all").length() == Ok(8);
+let cleaned = Directory.remove_all(directory) == Ok(Unit);
+refused and recorded and expanded and cleaned).
+
+@test
+pub missing_or_malformed_peer_report_cannot_pass(): Bool ->
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-report-") else {
+        _ -> false
+    };
+    (let missing = not Gate.schema_completion(directory, "expected", ["one"]); let written = File.write_text(String.append(directory, "/contract-evidence.json"), "truncated{") == Ok(Unit); let malformed = not Gate.schema_completion(directory, "expected", ["one"]); let cleaned = Directory.remove_all(directory) == Ok(Unit); missing and written and malformed and cleaned).
+
+@test
+pub subprocess_timeout_and_output_limit_fail(): Bool ->
+    let Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON") else {
+        _ -> false
+    };
+    (let timed_out =
+    case Gate.capture(python, ["-I", "-c", "import time; time.sleep(5)"], 20) {
+        Some(_) -> false;
+        _ -> true
+    };
+let excessive =
+    case Gate.capture(python, ["-I", "-c", "print('x' * 3000000)"], 2_000) {
+        Some(_) -> false;
+        _ -> true
+    };
+timed_out and excessive).
+
+@test
+pub wire_evidence_rejects_missing_and_unknown_cases(): Bool ->
+    let report =
+        json(
+            "{\"wire_case_count\":1,\"wire_cases\":[{\"case_id\":\"mcp.one\",\"status\":\"passed\"}]}",
+        );
+    Evidence.wire_report(report, ["mcp.one"])
+        and not Evidence.wire_report(report, [])
+        and not Evidence.wire_report(report, ["mcp.other"])
+        and not Evidence.wire_report(report, ["mcp.one", "mcp.two"])
+        and not Evidence.wire_report(Json.object(), ["mcp.one"]).
+
+@test
+pub baseline_manifest_evidence_rejects_partial_and_malformed_sets(): Bool ->
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-phases-") else {
+        _ -> false
+    };
+    (let empty = Baseline.phase_digest(directory, 1) == None;
+let written =
+    File.write_text(
+    String.append(directory, "/one.json"),
+    "{\"schema\":\"terlan-phase-manifest-v1\",\"module\":\"one\",\"source_hash\":1,\"interface_hash\":2}",
+) == Ok(Unit);
+let accepted = Baseline.phase_digest(directory, 1) != None;
+let partial = Baseline.phase_digest(directory, 2) == None;
+let poisoned = File.write_text(String.append(directory, "/one.json"), "truncated{") == Ok(Unit);
+let malformed = Baseline.phase_digest(directory, 1) == None;
+let cleaned = Directory.remove_all(directory) == Ok(Unit);
+empty and written and accepted and partial and poisoned and malformed and cleaned).
+
+@test
+pub property_inventory_rejects_empty_and_duplicate_registration(): Bool ->
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-properties-") else {
+        _ -> false
+    };
+    (let folder = String.append(directory, "/tests/fixtures/llm_native");
+let created = Directory.create_all(folder) == Ok(Unit);
+let path = String.append(folder, "/property-cases.json");
+let empty_written = File.write_text(path, "{\"schema\":\"terlan.llm-native.property-cases.v1\",\"properties\":[]}") == Ok(Unit);
+let empty = not Baseline.property_inventory(directory);
+let duplicate_written =
+    File.write_text(
+    path,
+    "{\"schema\":\"terlan.llm-native.property-cases.v1\",\"properties\":[{\"property\":\"provenance\",\"case_id\":\"one\"},{\"property\":\"provenance\",\"case_id\":\"two\"}]}",
+) == Ok(Unit);
+let duplicate = not Baseline.property_inventory(directory);
+let actual = Baseline.property_inventory(Environment.current_directory());
+let cleaned = Directory.remove_all(directory) == Ok(Unit);
+created and empty_written and empty and duplicate_written and duplicate and actual and cleaned).
+
+@test
+pub baseline_preserves_timeout_diagnostic(): Bool ->
+    let {
+        Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
+        Ok(directory) <- Directory.create_temporary("terlan-llm-native-timeout-")
+    } else {
+        _ -> false
+    };
+    (let row =
+    Baseline.capture_bounded(
+        python,
+        ["-I", "-c", "import time; time.sleep(5)"],
+        directory,
+        "timeout",
+        20,
+    );
+let correct =
+    Evidence.text(row, "status") == "failed"
+        and Evidence.text(row, "failure_kind") == "timed_out"
+        and Evidence.number(row, "timeout_ms") == 20
+        and Evidence.text(row, "reason") != "";
+let cleaned = Directory.remove_all(directory) == Ok(Unit);
+correct and cleaned).
+
+@test
+pub snapshot_gate_rejects_empty_peer_and_stale_compiled_sources(): Bool ->
+    let kinds = json("[\"binding\",\"function\",\"module\",\"pattern\",\"trait\",\"type\"]");
+    let peer =
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.live-schema-evidence.v1"))
+            .put("status", Json.string("passed"))
+            .put("snapshot_digest", Json.string("snapshot"))
+            .put("catalog_digest", Json.string("catalog"))
+            .put("fixture_digest", Json.string("fixture"))
+            .put("validator", Json.object().put("jsonschema", Json.string("4.25.1")))
+            .put("source_count", Json.int(2))
+            .put("entity_count", Json.int(12))
+            .put("entity_kinds", kinds);
+    let valid_peer = SnapshotGate.admit_peer(peer, "snapshot", "catalog", "fixture");
+    let stale_peer = not SnapshotGate.admit_peer(peer, "changed", "catalog", "fixture");
+    let _empty = peer.put("entity_count", Json.int(0));
+    let empty_peer = not SnapshotGate.admit_peer(peer, "snapshot", "catalog", "fixture");
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-snapshot-gate-source-");
+        Ok(_) <- Directory.create_all(root + "/compiler/semantic");
+        Ok(_) <- File.write_text(root + "/compiler/semantic/source.terl", "initial")
+    } else {
+        _ -> false
+    };
+    (let rows =
+    Json.array()
+        .push(
+            Json.object()
+                .put("source_file", Json.string(root + "/compiler/semantic/source.terl"))
+                .put("source_sha256", Json.string(Hash.sha256("initial"))),
+        );
+let report =
+    Json.object()
+        .put(
+            "native_callable_evidence",
+            Json.object()
+                .put("schema", Json.string("terlan.native-callable-evidence/v1"))
+                .put("declarations", rows),
+        );
+let fresh = SnapshotGate.current_sources(report, root);
+let changed = File.write_text(root + "/compiler/semantic/source.terl", "edited") == Ok(Unit);
+let stale_sources = not SnapshotGate.current_sources(report, root);
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+valid_peer and stale_peer and empty_peer and fresh and changed and stale_sources and cleaned).

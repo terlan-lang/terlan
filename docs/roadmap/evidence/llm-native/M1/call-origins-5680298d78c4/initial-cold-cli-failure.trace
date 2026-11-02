@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 385, in main
+    report = asyncio.run(validate(args))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 314, in validate
+    cli = await asyncio.to_thread(
+  File "/usr/lib/python3.10/asyncio/threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+  File "/usr/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/usr/lib/python3.10/subprocess.py", line 505, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1154, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 2022, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.10/subprocess.py", line 1198, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/tmp/terlan-call-origins-tools-1/terlc', 'semantic', 'query', '/tmp/terlan-call-origins-mcp-store-1', '/tmp/terlan-call-origins-mcp-peer-1.query-request.json', '--cache-dir', '/tmp/terlan-call-origins-mcp-cache-1', '--out-dir', '/tmp/terlan-call-origins-mcp-cache-1/build']' timed out after 120 seconds
+{"status": "failed", "cases": 29}

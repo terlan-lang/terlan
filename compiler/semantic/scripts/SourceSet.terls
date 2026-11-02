@@ -1,0 +1,57 @@
+#!/usr/bin/env -S terlc run
+import semantic.SourceSet.
+import semantic.SourceSet.{Input}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.{Console, File}.
+import std.system.Arguments.{count, get}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+inputs(rows: Json, index: Int, count: Int): Result[List[Input], Bool] ->
+    if {
+        index == count -> Ok([]);
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(path_value) <- row.get("path");
+            Ok(path) <- path_value.as_string();
+            Ok(contents_value) <- row.get("contents");
+            Ok(contents) <- contents_value.as_string();
+            Ok(version_value) <- row.get("document_version");
+            Ok(version) <- version_value.as_int();
+            Ok(rest) <- inputs(rows, index + 1, count)
+        } else {
+            _ -> Err(false)
+        };
+        Ok([Input(path = path, contents = contents, document_version = version) | rest])
+    }.
+
+entry(): Bool ->
+    let {
+        true <- count() == 3;
+        Some(compiler) <- get(0);
+        Some(manifest) <- get(1);
+        Some(store) <- get(2);
+        Ok(size) <- File.size(manifest);
+        true <- size <= 67_108_864;
+        Ok(source) <- File.read_text(manifest);
+        Ok(rows) <- Json.parse(source);
+        Ok(length) <- rows.length();
+        true <- length > 0 and length <= 1_024;
+        Ok(values) <- inputs(rows, 0, length)
+    } else {
+        _ -> false
+    };
+    case SourceSet.capture(compiler, values, store) {
+        Ok(document) ->
+            let _printed = Console.println(Json.to_string(document));
+            true;
+        Err(reason) ->
+            let _printed = Console.eprintln(reason.code + ": " + reason.message);
+            false
+    }.
+
+assert(entry());
+Unit.

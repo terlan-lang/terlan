@@ -1,0 +1,4 @@
+{
+  "scope": "Gate checks after initial input hashing; excludes compiler process startup.",
+  "wall_time_ns": 1540249075
+}

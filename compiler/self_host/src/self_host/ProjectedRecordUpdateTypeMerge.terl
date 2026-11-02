@@ -10,6 +10,7 @@ import self_host.ProjectedLocalSemanticSyntax.LocalSemanticResult.
 import self_host.ProjectedRecordAccessTypeMerge.
 import self_host.ProjectedRecordAccessTypeMerge.{RecordFieldType, RecordLayoutType}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import self_host.ProjectedTypeEquivalence.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.String.
@@ -137,14 +138,22 @@ scan_node(value: ProjectedExpressionNode, node_id: Int): UpdateScan ->
         true -> nested
     }.
 
-body_sites(values: List[ProjectedBody]): List[RecordUpdateSite] ->
+body_scan(values: List[ProjectedBody], next_id: Int): UpdateScan ->
     case values {
-        [] -> [];
+        [] -> UpdateScan(next_id, []);
         [value | rest] -> case value.expression.node {
-            None -> body_sites(rest);
-            Some(node) -> append(scan_node(node, 0).sites, body_sites(rest))
+            None -> body_scan(rest, next_id);
+            Some(node) -> let current = scan_node(node, next_id);
+                let remaining = body_scan(rest, current.next_id);
+                UpdateScan(
+                    remaining.next_id,
+                    append(current.sites, remaining.sites),
+                )
         }
     }.
+
+body_sites(values: List[ProjectedBody]): List[RecordUpdateSite] ->
+    body_scan(values, 0).sites.
 
 layout_at(name: String, values: List[RecordLayoutType]): Option[RecordLayoutType] ->
     case values {
@@ -214,9 +223,7 @@ merge_facts(
     }.
 
 type_matches(expected: String, actual: String): Bool ->
-    expected == actual
-        or String.starts_with(expected, String.append(actual, "["))
-        or String.starts_with(actual, String.append(expected, "[")).
+    ProjectedTypeEquivalence.matches(expected, actual).
 
 record_type_matches(
     declared: String,

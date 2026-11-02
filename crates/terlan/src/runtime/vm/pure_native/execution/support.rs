@@ -250,6 +250,7 @@ pub(super) fn capability_identity(tag: i64) -> VmRuntimeResult<(String, String)>
     match tag {
         1 => Ok(("stdio".to_string(), "std.io.console.println".to_string())),
         35 => Ok(("stdio".to_string(), "std.io.console.eprintln".to_string())),
+        62 => Ok(("stdio".to_string(), "std.io.console.read_line".to_string())),
         2 => Ok(("filesystem".to_string(), "std.io.file.exists".to_string())),
         3 => Ok((
             "filesystem".to_string(),

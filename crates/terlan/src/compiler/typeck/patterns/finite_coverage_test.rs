@@ -4,6 +4,7 @@ use super::*;
 
 fn true_pattern() -> SyntaxPatternOutput {
     SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::Atom,
         arity: 0,
         text: Some("true".into()),
@@ -32,6 +33,7 @@ fn excessive_pattern_nesting_reports_the_nesting_budget() {
     let mut pattern = true_pattern();
     for _ in 0..=MAX_DEPTH {
         pattern = SyntaxPatternOutput {
+            expanded_from: Vec::new(),
             kind: SyntaxPatternKind::Alias,
             arity: 1,
             text: Some("alias".into()),

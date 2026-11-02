@@ -1,0 +1,284 @@
+/**
+ * Versioned handles for checked source declarations, including overloads.
+ */
+module semantic.DeclarationEntities.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.SnapshotStore.
+import std.collections.Set.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.collections.Set.
+import type std.core.Result.
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+module_name(artifact: Json): String ->
+    if {
+        text(artifact, "module_name") != "" -> text(artifact, "module_name");
+        true -> case artifact.get("core") {
+            Ok(core) -> text(core, "module");
+            _ -> ""
+        }
+    }.
+
+strip_object(value: Json, mut output: Json, keys: List[String]): Bool ->
+    case keys {
+        [] -> true;
+        [key | rest] ->
+            if {
+                key == "span" -> strip_object(value, output, rest);
+                true -> let {
+                    Ok(field) <- value.get(key);
+                    Ok(clean) <- without_spans(field)
+                } else {
+                    _ -> false
+                };
+                (let _field = output.put(key, clean); strip_object(value, output, rest))
+            }
+    }.
+
+strip_array(value: Json, mut output: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(field) <- value.at(index);
+            Ok(clean) <- without_spans(field)
+        } else {
+            _ -> false
+        };
+        (let _field = output.push(clean); strip_array(value, output, index + 1, count))
+    }.
+
+/**
+ * Remove only syntax-origin metadata, preserving all semantic payload fields.
+ */
+without_spans(value: Json): Result[Json, Failure] ->
+    case value.keys() {
+        Ok(keys) ->
+            let output = Json.object();
+            if {
+                strip_object(value, output, keys) -> Ok(output);
+                true -> Err(
+                    Failure(
+                        code = "semantic.declaration.payload",
+                        message = "Cannot normalize checked declaration origins.",
+                    ),
+                )
+            };
+        _ ->
+            case value.length() {
+                Ok(count) ->
+                    let output = Json.array();
+                    if {
+                        strip_array(value, output, 0, count) -> Ok(output);
+                        true -> Err(
+                            Failure(
+                                code = "semantic.declaration.payload",
+                                message = "Cannot normalize checked declaration origins.",
+                            ),
+                        )
+                    };
+                _ -> Ok(value)
+            }
+    }.
+
+pub kind(payload: Json): String ->
+    case text(payload, "kind") {
+        "function" -> "function";
+        "const_function" -> "function";
+        "method" -> "function";
+        "type" -> "type";
+        "struct" -> "type";
+        "trait" -> "trait";
+        "raw" ->
+            if {
+                text(payload, "raw_kind") == "shape" and text(payload, "name") != "" -> "shape";
+                true -> ""
+            };
+        _ -> ""
+    }.
+
+/**
+ * The same declaration identity is used by catalogs and owned pattern nodes.
+ */
+pub identity(artifact: Json, module_name: String, payload: Json): Result[String, Failure] ->
+    let entity_kind = kind(payload);
+    let true <- entity_kind != "" else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.declaration.kind",
+                    message = "This declaration category has no semantic entity identity yet.",
+                ),
+            )
+    };
+    (let Ok(clean) <- without_spans(payload) else {
+    Err(reason) -> Err(reason)
+};
+Ok(
+    "e:" + Hash.sha256_domain_framed(
+    "terlan.semantic.declaration-entity.v1",
+    [text(artifact, "source_name"), module_name, entity_kind, Json.to_string(clean)],
+),
+)).
+
+/**
+ * Projects one checked declaration using the catalog's identity and digest.
+ */
+pub entity(
+    artifact: Json,
+    module_name: String,
+    snapshot: String,
+    artifact_digest: String,
+    row: Json,
+): Result[Json, Failure] ->
+    let {
+        Ok(payload) <- row.get("payload");
+        Ok(id) <- identity(artifact, module_name, payload);
+        Ok(span) <- row.get("span");
+        Ok(start) <- span.get("start");
+        Ok(end) <- span.get("end")
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.declarations.artifact",
+                    message = "Compiler declaration origin is incomplete.",
+                ),
+            )
+    };
+    (let origin =
+    Json.object()
+        .put("path", Json.string(text(artifact, "source_name")))
+        .put("start_byte", start)
+        .put("end_byte", end);
+let digest =
+    Hash.sha256_domain_framed(
+        "terlan.semantic.declaration-content.v1",
+        [artifact_digest, Json.to_string(row)],
+    );
+Ok(
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put("entity_id", Json.string(id))
+        .put("kind", Json.string(kind(payload)))
+        .put("name", Json.string(text(payload, "name")))
+        .put("owner", Json.string(module_name))
+        .put("digest", Json.string(digest))
+        .put("origin", origin)
+        .put("expanded_from", Json.array()),
+)).
+
+project(
+    mut output: Json,
+    seen: Set[String],
+    artifact: Json,
+    module_name: String,
+    snapshot: String,
+    artifact_digest: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(payload) <- row.get("payload")
+        } else {
+            _ -> false
+        };
+        if {
+            kind(payload) == "" -> project(
+                output,
+                seen,
+                artifact,
+                module_name,
+                snapshot,
+                artifact_digest,
+                rows,
+                index + 1,
+                count,
+            );
+            true -> let Ok(projected) <- entity(artifact, module_name, snapshot, artifact_digest, row) else {
+                _ -> false
+            };
+            (let true <- text(projected, "name") != "" and not seen.contains(text(projected, "entity_id")) else {
+    _ -> false
+};
+(let _remembered = seen.add(text(projected, "entity_id")); let _entity = output.push(projected); project(output, seen, artifact, module_name, snapshot, artifact_digest, rows, index + 1, count)))
+        }
+    }.
+
+/**
+ * Declaration identity conservatively binds the complete checked payload,
+ * excluding spans. Unrelated insertion preserves it; any semantic payload edit
+ * invalidates it. This does not claim an ABI identity or generated-origin map.
+ */
+pub declarations(store: String, snapshot: String): Result[Json, Failure] ->
+    let Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot) else {
+        Err(reason) -> Err(reason)
+    };
+    from_artifact(artifact, snapshot).
+
+/**
+ * Projects one already admitted compiler unit without rereading the store.
+ */
+pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    let true <-
+        module_name(artifact) != ""
+            and (text(artifact, "status") == "checked" or text(artifact, "status") == "interface_only") else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.declarations.unavailable",
+                    message = "Checked implementation declarations are unavailable for this source.",
+                ),
+            )
+    };
+    (let {
+    Ok(rows) <- artifact.get("source_declarations");
+    Ok(count) <- rows.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.declarations.artifact",
+                message = "Compiler declaration inventory is incomplete.",
+            ),
+        )
+};
+(let output = Json.array();
+(let true <-
+    project(
+        output,
+        Set.new(),
+        artifact,
+        module_name(artifact),
+        snapshot,
+        Hash.sha256(Json.to_string(artifact)),
+        rows,
+        0,
+        count,
+    ) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.declarations.ambiguous",
+                message = "Compiler declaration inventory is incomplete or has indistinguishable identities.",
+            ),
+        )
+};
+Ok(output)))).

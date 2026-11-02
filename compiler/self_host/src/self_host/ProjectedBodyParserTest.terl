@@ -1,0 +1,29 @@
+/** Declaration-only native body projection contracts. */
+module self_host.ProjectedBodyParserTest.
+
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import std.core.Option.{None}.
+
+
+@pure
+native_declaration_has_valid_empty_body(): Bool ->
+    let source = "module demo.Native.\n@compiler.native\npub digest(value: String): String.\n";
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    case frontend.bodies.values {
+        [body] -> frontend.bodies.valid
+            and body.expression.valid
+            and body.expression.node == None;
+        _ -> false
+    }.
+
+@pure
+ordinary_declaration_without_body_is_rejected(): Bool ->
+    let source = "module demo.Invalid.\npub value(): Int.\n";
+    let lexed = CanonicalLexer.lex(source);
+    not ProjectedFrontend.compile(source, lexed.tokens).bodies.valid.
+
+pub self_test(): Bool ->
+    native_declaration_has_valid_empty_body()
+        and ordinary_declaration_without_body_is_rejected().

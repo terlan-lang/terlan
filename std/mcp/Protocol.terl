@@ -1,0 +1,336 @@
+/**
+ * MCP JSON-RPC lifecycle and routing for the 2025-11-25 compatibility profile.
+ * Domain handlers and transport I/O remain separate Terlan services.
+ */
+module std.mcp.Protocol.
+
+import std.collections.Set.
+import std.core.Result.{Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.collections.Set.
+import type std.data.Json.
+
+pub struct Session {
+    phase: String,
+    server_name: String,
+    server_version: String,
+    tools: Bool,
+    resources: Bool,
+    used_ids: Set[String],
+    request_count: Int,
+}.
+
+/**
+ * Internal routing outcome, never an additional wire envelope.
+ */
+pub struct Event {
+    session: Session,
+    action: String,
+    response: Json,
+    method: String,
+    params: Json,
+    request_id: Json,
+}.
+
+pub protocol_version(): String -> "2025-11-25".
+
+pub start(name: String, version: String, tools: Bool, resources: Bool): Session ->
+    Session(
+        phase = "new",
+        server_name = name,
+        server_version = version,
+        tools = tools,
+        resources = resources,
+        used_ids = Set.new(),
+        request_count = 0,
+    ).
+
+with_phase(session: Session, phase: String): Session ->
+    Session(
+        phase = phase,
+        server_name = session.server_name,
+        server_version = session.server_version,
+        tools = session.tools,
+        resources = session.resources,
+        used_ids = session.used_ids,
+        request_count = session.request_count,
+    ).
+
+record_request(session: Session, key: String): Session ->
+    let ids = session.used_ids;
+    let _added = ids.add(key);
+    Session(
+        phase = session.phase,
+        server_name = session.server_name,
+        server_version = session.server_version,
+        tools = session.tools,
+        resources = session.resources,
+        used_ids = ids,
+        request_count = session.request_count + 1,
+    ).
+
+pub reply(id: Json, result: Json): Json ->
+    Json.object().put("jsonrpc", Json.string("2.0")).put("id", id).put("result", result).
+
+pub error(id: Json, code: Int, message: String): Json ->
+    let response =
+        Json.object()
+            .put("jsonrpc", Json.string("2.0"))
+            .put(
+                "error",
+                Json.object().put("code", Json.int(code)).put("message", Json.string(message)),
+            );
+    if {
+        id.is_null() -> response;
+        true -> response.put("id", id)
+    }.
+
+event(
+    session: Session,
+    action: String,
+    response: Json,
+    method: String,
+    params: Json,
+    id: Json,
+): Event ->
+    Event(
+        session = session,
+        action = action,
+        response = response,
+        method = method,
+        params = params,
+        request_id = id,
+    ).
+
+respond(session: Session, id: Json, response: Json): Event ->
+    event(session, "reply", response, "", Json.null(), id).
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+has(value: Json, key: String): Bool ->
+    case value.get(key) {
+        Ok(_) -> true;
+        _ -> false
+    }.
+
+digits(values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [first | rest] -> "0123456789".contains(first) and digits(rest)
+    }.
+
+/**
+ * Request IDs retain their original JSON node; unsigned IDs are not narrowed.
+ */
+valid_id(value: Json): Bool ->
+    case value.as_string() {
+        Ok(_) -> true;
+        _ ->
+            let encoded = Json.to_string(value);
+            let numeric =
+                if {
+                    encoded.starts_with("-") -> encoded.utf8_slice(1, encoded.byte_size() - 1);
+                    true -> encoded
+                };
+            numeric != "" and digits(numeric.characters())
+    }.
+
+readable_id(message: Json): Json ->
+    case message.get("id") {
+        Ok(id) ->
+            if {
+                valid_id(id) -> id;
+                true -> Json.null()
+            };
+        _ -> Json.null()
+    }.
+
+params_object(value: Json): Bool ->
+    case value.keys() {
+        Ok(_) -> true;
+        _ -> false
+    }.
+
+initialization_valid(params: Json): Bool ->
+    let {
+        Ok(version) <- params.get("protocolVersion");
+        Ok(capabilities) <- params.get("capabilities");
+        Ok(info) <- params.get("clientInfo");
+        Ok(name) <- info.get("name");
+        Ok(client_version) <- info.get("version")
+    } else {
+        _ -> false
+    };
+    (let version_valid =
+    case version.as_string() {
+        Ok(_) -> true;
+        _ ->
+            case version.as_int() {
+                Ok(_) -> true;
+                _ -> false
+            }
+    };
+let name_valid =
+    case name.as_string() {
+        Ok(_) -> true;
+        _ -> false
+    };
+let client_version_valid =
+    case client_version.as_string() {
+        Ok(_) -> true;
+        _ -> false
+    };
+version_valid and params_object(capabilities) and name_valid and client_version_valid).
+
+initialize_result(session: Session): Json ->
+    let capabilities = Json.object();
+    let _tools =
+        if {
+            session.tools -> capabilities.put("tools", Json.object());
+            true -> capabilities
+        };
+    let _resources =
+        if {
+            session.resources -> capabilities.put("resources", Json.object());
+            true -> capabilities
+        };
+    Json.object()
+        .put("protocolVersion", Json.string(protocol_version()))
+        .put("capabilities", capabilities)
+        .put(
+            "serverInfo",
+            Json.object()
+                .put("name", Json.string(session.server_name))
+                .put("version", Json.string(session.server_version)),
+        ).
+
+route(session: Session, id: Json, method: String, params: Json): Event ->
+    if {
+        method == "ping" -> respond(session, id, reply(id, Json.object()));
+        method == "initialize" and session.phase == "new" -> if {
+            initialization_valid(params) -> respond(
+                with_phase(session, "await_initialized"),
+                id,
+                reply(id, initialize_result(session)),
+            );
+            true -> respond(session, id, error(id, -32_602, "Invalid initialize parameters."))
+        };
+        method == "initialize" -> respond(session, id, error(id, -32_600, "Connection has already been initialized."));
+        session.phase != "ready" -> respond(
+            session,
+            id,
+            error(id, -32_002, "Initialize the connection before calling server methods."),
+        );
+        session.tools and (method == "tools/list" or method == "tools/call") -> event(session, "dispatch", Json.null(), method, params, id);
+        session.resources
+            and (method == "resources/list" or method == "resources/templates/list" or method == "resources/read") -> event(session, "dispatch", Json.null(), method, params, id);
+        true -> respond(session, id, error(id, -32_601, "Method not found."))
+    }.
+
+notification(session: Session, method: String, params: Json): Event ->
+    if {
+        method == "notifications/initialized" and session.phase == "await_initialized" -> event(
+            with_phase(session, "ready"),
+            "notification",
+            Json.null(),
+            method,
+            params,
+            Json.null(),
+        );
+        method == "notifications/cancelled" and session.phase == "ready" -> case params.get("requestId") {
+            Ok(id) ->
+                if {
+                    valid_id(id) -> event(session, "notification", Json.null(), method, params, Json.null());
+                    true -> event(session, "ignore", Json.null(), method, params, Json.null())
+                };
+            _ -> event(session, "ignore", Json.null(), method, params, Json.null())
+        };
+        true -> event(session, "ignore", Json.null(), method, params, Json.null())
+    }.
+
+/**
+ * Handles one parsed MCP message. Requests may be dispatched only after the
+ * standard initialization exchange; notifications never receive responses.
+ */
+pub handle(session: Session, message: Json): Event ->
+    if {
+        not params_object(message) or text(message, "jsonrpc") != "2.0" -> let id = readable_id(message);
+        respond(session, id, error(id, -32_600, "Invalid JSON-RPC message."));
+        not has(message, "method") and (has(message, "result") or has(message, "error")) -> event(session, "response", Json.null(), "", message, Json.null());
+        true -> let method = text(message, "method");
+        let params =
+            case message.get("params") {
+                Ok(value) ->
+                    if {
+                        value.is_null() -> Json.object();
+                        true -> value
+                    };
+                _ -> Json.object()
+            };
+        if {
+            method == "" -> let id = readable_id(message);
+            respond(session, id, error(id, -32_600, "JSON-RPC method must be a nonempty string."));
+            not has(message, "id") -> if {
+                params_object(params) -> notification(session, method, params);
+                true -> event(session, "ignore", Json.null(), method, params, Json.null())
+            };
+            true -> let Ok(id) <- message.get("id") else {
+                _ ->
+                    respond(
+                        session,
+                        Json.null(),
+                        error(Json.null(), -32_600, "Request identity is missing."),
+                    )
+            };
+            if {
+                not valid_id(id) -> respond(
+                    session,
+                    Json.null(),
+                    error(Json.null(), -32_600, "Invalid request identity."),
+                );
+                session.request_count >= 16_384 -> event(
+                    with_phase(session, "closed"),
+                    "close",
+                    error(id, -32_000, "Connection request budget exhausted."),
+                    method,
+                    params,
+                    id,
+                );
+                true -> let key = Hash.sha256_domain_framed("std.mcp.request-id.v1", [Json.to_string(id)]);
+                if {
+                    session.used_ids.contains(key) -> respond(
+                        session,
+                        id,
+                        error(id, -32_600, "Request identity was already used on this connection."),
+                    );
+                    true -> let next = record_request(session, key);
+                    if {
+                        not params_object(params) -> respond(
+                            next,
+                            id,
+                            error(id, -32_602, "MCP method parameters must be an object."),
+                        );
+                        true -> route(next, id, method, params)
+                    }
+                }
+            }
+        }
+    }.
+
+/**
+ * Invalid JSON produces the standard parse error, without reflecting payloads.
+ */
+pub parse(session: Session, source: String): Event ->
+    case Json.parse(source) {
+        Ok(message) -> handle(session, message);
+        _ -> respond(session, Json.null(), error(Json.null(), -32_700, "Invalid JSON."))
+    }.

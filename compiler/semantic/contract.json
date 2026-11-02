@@ -1,0 +1,128 @@
+{
+  "schema": "terlan.semantic.service-contract.v1",
+  "contract_version": 1,
+  "mcp_protocol_version": "2025-11-25",
+  "json_schema_dialect": "https://json-schema.org/draft/2020-12/schema",
+  "transports": [
+    "stdio"
+  ],
+  "initial_server_capabilities": {
+    "tools": {},
+    "resources": {}
+  },
+  "optional_capabilities": [],
+  "documents": [
+    {
+      "name": "snapshot",
+      "path": "schemas/snapshot.schema.json",
+      "schema_id": "urn:terlan:semantic:snapshot:v1"
+    },
+    {
+      "name": "entity",
+      "path": "schemas/entity.schema.json",
+      "schema_id": "urn:terlan:semantic:entity:v1"
+    },
+    {
+      "name": "query",
+      "path": "schemas/query.schema.json",
+      "schema_id": "urn:terlan:semantic:query:v1"
+    },
+    {
+      "name": "query-result",
+      "path": "schemas/query-result.schema.json",
+      "schema_id": "urn:terlan:semantic:query-result:v1"
+    },
+    {
+      "name": "query-error",
+      "path": "schemas/query-error.schema.json",
+      "schema_id": "urn:terlan:semantic:query-error:v1"
+    },
+    {
+      "name": "proposal",
+      "path": "schemas/proposal.schema.json",
+      "schema_id": "urn:terlan:semantic:proposal:v1"
+    },
+    {
+      "name": "diagnostic",
+      "path": "schemas/diagnostic.schema.json",
+      "schema_id": "urn:terlan:semantic:diagnostic:v1"
+    },
+    {
+      "name": "verification",
+      "path": "schemas/verification.schema.json",
+      "schema_id": "urn:terlan:semantic:verification:v1"
+    },
+    {
+      "name": "transaction",
+      "path": "schemas/transaction.schema.json",
+      "schema_id": "urn:terlan:semantic:transaction:v1"
+    },
+    {
+      "name": "provenance",
+      "path": "schemas/provenance.schema.json",
+      "schema_id": "urn:terlan:semantic:provenance:v1"
+    }
+  ],
+  "operations": [
+    {
+      "name": "rename_symbol",
+      "availability": "planned",
+      "entity_kinds": [
+        "binding",
+        "function",
+        "type"
+      ]
+    },
+    {
+      "name": "add_function",
+      "availability": "planned",
+      "entity_kinds": [
+        "module"
+      ]
+    },
+    {
+      "name": "replace_body",
+      "availability": "planned",
+      "entity_kinds": [
+        "function"
+      ]
+    },
+    {
+      "name": "implement_trait",
+      "availability": "planned",
+      "entity_kinds": [
+        "trait",
+        "type"
+      ]
+    },
+    {
+      "name": "resolve_exhaustiveness",
+      "availability": "planned",
+      "entity_kinds": [
+        "pattern"
+      ]
+    },
+    {
+      "name": "add_actor_message",
+      "availability": "planned",
+      "entity_kinds": [
+        "actor",
+        "protocol"
+      ]
+    },
+    {
+      "name": "edit_actor_transition",
+      "availability": "planned",
+      "entity_kinds": [
+        "actor",
+        "protocol"
+      ]
+    }
+  ],
+  "execution_policy": "static_only_until_M6",
+  "implementation": {
+    "protocol": "Terlan",
+    "services": "Terlan",
+    "native_boundary": "Existing JSON, hashing, filesystem, process and compiler-analysis mechanisms only."
+  }
+}

@@ -1,0 +1,25 @@
+/**
+ * Durable content-addressed semantic continuations, independent of connections.
+ */
+module semantic.QueryCursor.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.QueryRequest.{Request}.
+import semantic.{CursorStore, QueryRequest}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub scope(request: Request): String ->
+    Hash.sha256_domain_framed(
+        "terlan.semantic.query-scope.v1",
+        [Json.to_string(QueryRequest.scope_json(request))],
+    ).
+
+pub save(store: String, request: Request, projection: String, offset: Int): Result[String, Failure] ->
+    CursorStore.save(store, scope(request), projection, offset).
+
+pub load(store: String, request: Request, projection: String): Result[Int, Failure] ->
+    CursorStore.load(store, scope(request), projection, request.cursor).

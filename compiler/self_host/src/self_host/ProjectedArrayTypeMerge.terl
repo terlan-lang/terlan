@@ -88,14 +88,22 @@ scan_node(value: ProjectedExpressionNode, node_id: Int): ArrayScan ->
         true -> nested
     }.
 
-body_sites(values: List[ProjectedBody]): List[ArraySite] ->
+body_scan(values: List[ProjectedBody], next_id: Int): ArrayScan ->
     case values {
-        [] -> [];
+        [] -> ArrayScan(next_id, []);
         [value | rest] -> case value.expression.node {
-            None -> body_sites(rest);
-            Some(node) -> append(scan_node(node, 0).sites, body_sites(rest))
+            None -> body_scan(rest, next_id);
+            Some(node) -> let current = scan_node(node, next_id);
+                let remaining = body_scan(rest, current.next_id);
+                ArrayScan(
+                    remaining.next_id,
+                    append(current.sites, remaining.sites),
+                )
         }
     }.
+
+body_sites(values: List[ProjectedBody]): List[ArraySite] ->
+    body_scan(values, 0).sites.
 
 fact_type(
     node_id: Int,

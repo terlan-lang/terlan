@@ -47,6 +47,25 @@ pub field_type_replaces_only_the_record_access_fact(): Bool ->
     }.
 
 @test
+pub field_type_is_created_when_the_generic_solver_has_no_access_fact(): Bool ->
+    let merged = ProjectedRecordAccessTypeMerge.merge_expression(
+        TypeConstraintResolution(
+            [InferredTypeFact(1, Some("Point"), 10)],
+            [],
+        ),
+        record_access("x"),
+        layouts(),
+    );
+    case merged.facts {
+        [receiver, access] -> receiver.node_id == 1
+            and receiver.type_name == Some("Point")
+            and access.node_id == 0
+            and access.type_name == Some("Int")
+            and merged.diagnostics == [];
+        _ -> false
+    }.
+
+@test
 pub unknown_field_is_a_type_diagnostic(): Bool ->
     let merged = ProjectedRecordAccessTypeMerge.merge_expression(
         TypeConstraintResolution([InferredTypeFact(0, None, 10)], []),

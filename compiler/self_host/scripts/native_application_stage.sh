@@ -44,14 +44,18 @@ done
 interfaces_manifest="$temporary_directory/interfaces.manifest"
 interface_commands="$temporary_directory/interface-commands"
 backend_commands="$temporary_directory/backend-commands"
-default_actor_profiles="$temporary_directory/actor-profiles.json"
-default_actor_dynamic_evidence="$temporary_directory/actor-dynamic-evidence.json"
+default_actor_profiles_catalog="$temporary_directory/actor-profiles.json"
+default_actor_profiles="$temporary_directory/actor-profiles.manifest"
+default_actor_dynamic_evidence_catalog="$temporary_directory/actor-dynamic-evidence.json"
+default_actor_dynamic_evidence="$temporary_directory/actor-dynamic-evidence.manifest"
 printf '%s\n' \
     '{"schema":"terlan.self-host.actor-ir/v2","profiles":[],"continuations":[]}' \
-    > "$default_actor_profiles"
+    > "$default_actor_profiles_catalog"
 printf '%s\n' \
     '{"schema":"terlan.self-host.actor-dynamic-evidence/v1","functions":[]}' \
-    > "$default_actor_dynamic_evidence"
+    > "$default_actor_dynamic_evidence_catalog"
+printf '%s\n' "$default_actor_profiles_catalog" > "$default_actor_profiles"
+printf '%s\n' "$default_actor_dynamic_evidence_catalog" > "$default_actor_dynamic_evidence"
 actor_profiles=${TERLAN_SELF_HOST_ACTOR_PROFILES:-$default_actor_profiles}
 actor_dynamic_evidence=${TERLAN_SELF_HOST_ACTOR_DYNAMIC_EVIDENCE:-$default_actor_dynamic_evidence}
 

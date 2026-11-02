@@ -1,0 +1,858 @@
+{
+  "artifacts": {
+    "entities": [
+      {
+        "digest": "cdb64238f831d2136081611b40e4671a32a32282289bc01798b4185e38cc4051",
+        "entity_id": "e:b9b26dcbcdbd08505660880bb41f582df3f3a7a33b5e571419bd704e825864b9",
+        "expanded_from": [],
+        "kind": "module",
+        "name": "mcp_query",
+        "origin": {
+          "end_byte": 0,
+          "path": "query.terl",
+          "start_byte": 0
+        },
+        "owner": null,
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "6d8cfd1fc3f012784bad6a4a6b61bae10c10cb86940abacb2ee4014ff5f9721b",
+        "entity_id": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "decide",
+        "origin": {
+          "end_byte": 91,
+          "path": "query.terl",
+          "start_byte": 23
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "ca09c9e2aec8456e2c3536b6cb4fa80c2f0875b7a12d74f2313b91add4b41316",
+        "entity_id": "e:2a89a8077d3857077f0eb856ae8e40c7c74c916bcf5820ab8b07eb1a0bd22dbb",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "choose",
+        "origin": {
+          "end_byte": 130,
+          "path": "query.terl",
+          "start_byte": 98
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "e774a588ebc8de0101a16b576729205bb7a690f20fe956a95cd3731c789fbc3f",
+        "entity_id": "e:b9d61b92eebb266b418307d00ab66ffbe518167a4fc1d70e4bae843c2393bdc4",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "choose",
+        "origin": {
+          "end_byte": 174,
+          "path": "query.terl",
+          "start_byte": 136
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "b752df0f8241043446385fadfdcf49ca5f9ff217992c9b75cdcdcb81c7067f55",
+        "entity_id": "e:8e0aa6d6c941e0239622ce58b6dc59897cf2f1a9565c228b61adf7ffd407a549",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "flag",
+        "origin": {
+          "end_byte": 91,
+          "path": "query.terl",
+          "start_byte": 23
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "469e05f927359868989e29c363e05a58aa789d2abc402bf7def9e7b2f362556e",
+        "entity_id": "e:6c44a57ae3ebed9f6c8ce8dfb7b5205250c2aea3934c017b1c61e60a85afd7ed",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "local",
+        "origin": {
+          "end_byte": 91,
+          "path": "query.terl",
+          "start_byte": 23
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "86cf0b17eeb5424d6464e0105b132f9564a21f880139d136e7539fb79311945e",
+        "entity_id": "e:87acb2e8e4d29bf55161492559438b05f9debbf702cc2a907b9f7175c9da67d3",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 130,
+          "path": "query.terl",
+          "start_byte": 98
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "1b7035e56d1ce122ab1125ecd1bb851b34a8c81e211011b1162e8d67c4cc7089",
+        "entity_id": "e:41ad352fe9392179f2c88f0a027d7ff6d8af17a8abdc9e4a304473a6555aaf1f",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 174,
+          "path": "query.terl",
+          "start_byte": 136
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "e26ecb26dc47141816f7a1101f8740187b5e8d69a9f8f85c9b7ec60a5eb1df1c",
+        "entity_id": "e:d98ced2c1b62f587852b659ef011be7e47c658079b1de8809d759aae7fd045d2",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "decide /clauses/0/body/patterns/0 (var)",
+        "origin": {
+          "end_byte": 91,
+          "path": "query.terl",
+          "start_byte": 23
+        },
+        "owner": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "3f5afa140cc71703a0eb4f565bc3aac132063ca31571f14b2b4ee0fd9df0709a",
+        "entity_id": "e:c5248c9f9c70e3ac1e67b187265a0899a3aa2bcd03a52066c695a72cf1d1bf3a",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "decide /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 91,
+          "path": "query.terl",
+          "start_byte": 23
+        },
+        "owner": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "db3b0a3023ae15e991185e17269d6619be7ed1bb7c4535de3941d1bee25a7472",
+        "entity_id": "e:61faec77a13d03c9a535176bd36abcfbf5c1ddd164c0b2993215da526cdfe00f",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "choose /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 130,
+          "path": "query.terl",
+          "start_byte": 98
+        },
+        "owner": "e:2a89a8077d3857077f0eb856ae8e40c7c74c916bcf5820ab8b07eb1a0bd22dbb",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      },
+      {
+        "digest": "cccddc3451be4ae0e90bbe3d1cff4922f3dbdd97badd310b79ba7dcbd654c328",
+        "entity_id": "e:d2c48feeaddb771d94ead005b6fc9896306cdb8ee33fbca727bc2a0b0add6f64",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "choose /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 174,
+          "path": "query.terl",
+          "start_byte": 136
+        },
+        "owner": "e:b9d61b92eebb266b418307d00ab66ffbe518167a4fc1d70e4bae843c2393bdc4",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132"
+      }
+    ],
+    "query": {
+      "facts": [
+        {
+          "kind": "function_type",
+          "origin_entity_ids": [
+            "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7"
+          ],
+          "value": {
+            "display_return_type": "Bool",
+            "evidence": "checked_core_function",
+            "origin": {
+              "arity": 1,
+              "declaration_span": {
+                "end": 91,
+                "start": 23
+              },
+              "function": "decide",
+              "module": "mcp_query"
+            },
+            "parameters": [
+              {
+                "core_ty": "Bool",
+                "name": "flag",
+                "ty": "Bool"
+              }
+            ],
+            "return_type": "Bool"
+          }
+        }
+      ],
+      "limitations": [],
+      "next_cursor": null,
+      "result_bytes": 795,
+      "schema": "terlan.semantic.query-result.v1",
+      "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132",
+      "status": "complete",
+      "target": {
+        "entity_id": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+        "expected_digest": "6d8cfd1fc3f012784bad6a4a6b61bae10c10cb86940abacb2ee4014ff5f9721b",
+        "kind": "function"
+      },
+      "work_used": 6
+    },
+    "tool": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "description": "Query checked compiler facts in the admitted snapshot. Discover exact entity handles in snapshot resources. Partial and unavailable facts carry limitations; candidates still require verification.",
+      "execution": null,
+      "icons": null,
+      "inputSchema": {
+        "$defs": {
+          "digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "entity_id": {
+            "pattern": "^e:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "limits": {
+            "additionalProperties": false,
+            "properties": {
+              "max_bytes": {
+                "maximum": 1048576,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_work": {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "max_bytes",
+              "max_work"
+            ],
+            "type": "object"
+          },
+          "snapshot_id": {
+            "pattern": "^s:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "target": {
+            "additionalProperties": false,
+            "properties": {
+              "entity_id": {
+                "$ref": "#/$defs/entity_id"
+              },
+              "expected_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "kind": {
+                "enum": [
+                  "module",
+                  "binding",
+                  "function",
+                  "type",
+                  "trait",
+                  "shape",
+                  "implication",
+                  "pattern",
+                  "actor",
+                  "protocol",
+                  "message"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "entity_id",
+              "kind",
+              "expected_digest"
+            ],
+            "type": "object"
+          }
+        },
+        "$id": "urn:terlan:semantic:query:v1",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fact": {
+            "enum": [
+              "declaration",
+              "definition",
+              "references",
+              "type",
+              "interface",
+              "conformance",
+              "effects",
+              "ownership",
+              "pattern_coverage",
+              "core",
+              "expected_values",
+              "legal_transformations",
+              "impact"
+            ],
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/$defs/limits"
+          },
+          "schema": {
+            "const": "terlan.semantic.query.v1"
+          },
+          "snapshot_id": {
+            "$ref": "#/$defs/snapshot_id"
+          },
+          "target": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "required": [
+          "schema",
+          "snapshot_id",
+          "target",
+          "fact",
+          "limits",
+          "cursor"
+        ],
+        "title": "Terlan semantic query v1",
+        "type": "object"
+      },
+      "meta": null,
+      "name": "terlan_query",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "$defs": {
+              "digest": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "entity_id": {
+                "pattern": "^e:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "fact": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "origin_entity_ids": {
+                    "items": {
+                      "$ref": "#/$defs/entity_id"
+                    },
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "value": {}
+                },
+                "required": [
+                  "kind",
+                  "value",
+                  "origin_entity_ids"
+                ],
+                "type": "object"
+              },
+              "limitation": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "message": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "snapshot_id": {
+                "pattern": "^s:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "target": {
+                "additionalProperties": false,
+                "properties": {
+                  "entity_id": {
+                    "$ref": "#/$defs/entity_id"
+                  },
+                  "expected_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "kind": {
+                    "enum": [
+                      "module",
+                      "binding",
+                      "function",
+                      "type",
+                      "trait",
+                      "shape",
+                      "implication",
+                      "pattern",
+                      "actor",
+                      "protocol",
+                      "message"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "entity_id",
+                  "kind",
+                  "expected_digest"
+                ],
+                "type": "object"
+              }
+            },
+            "$id": "urn:terlan:semantic:query-result:v1",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "else": {
+                  "properties": {
+                    "limitations": {
+                      "minItems": 1
+                    }
+                  }
+                },
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "complete"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "limitations": {
+                      "maxItems": 0
+                    },
+                    "next_cursor": {
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unavailable"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "facts": {
+                      "maxItems": 0
+                    },
+                    "next_cursor": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "facts": {
+                "items": {
+                  "$ref": "#/$defs/fact"
+                },
+                "minItems": 0,
+                "type": "array"
+              },
+              "limitations": {
+                "items": {
+                  "$ref": "#/$defs/limitation"
+                },
+                "minItems": 0,
+                "type": "array"
+              },
+              "next_cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "result_bytes": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "schema": {
+                "const": "terlan.semantic.query-result.v1"
+              },
+              "snapshot_id": {
+                "$ref": "#/$defs/snapshot_id"
+              },
+              "status": {
+                "enum": [
+                  "complete",
+                  "partial",
+                  "unavailable"
+                ],
+                "type": "string"
+              },
+              "target": {
+                "$ref": "#/$defs/target"
+              },
+              "work_used": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "schema",
+              "snapshot_id",
+              "target",
+              "status",
+              "facts",
+              "limitations",
+              "next_cursor",
+              "work_used",
+              "result_bytes"
+            ],
+            "title": "Terlan semantic query-result v1",
+            "type": "object"
+          },
+          {
+            "$id": "urn:terlan:semantic:query-error:v1",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "message": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "schema": {
+                "const": "terlan.semantic.query-error.v1"
+              }
+            },
+            "required": [
+              "schema",
+              "code",
+              "message"
+            ],
+            "title": "Terlan semantic query execution error v1",
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "title": null
+    }
+  },
+  "cases": [
+    {
+      "case_id": "mcp.initialize",
+      "evidence": {
+        "capabilities": {
+          "completions": null,
+          "experimental": null,
+          "logging": null,
+          "prompts": null,
+          "resources": {
+            "listChanged": null,
+            "subscribe": null
+          },
+          "tasks": null,
+          "tools": {
+            "listChanged": null
+          }
+        },
+        "instructions": null,
+        "meta": null,
+        "protocolVersion": "2025-11-25",
+        "serverInfo": {
+          "icons": null,
+          "name": "terlan-semantic",
+          "title": null,
+          "version": "0.1.0",
+          "websiteUrl": null
+        }
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.ping",
+      "evidence": {},
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.tool-discovery-and-schemas",
+      "evidence": {
+        "tool": "terlan_query"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.resource-discovery",
+      "evidence": {
+        "continuations": 0,
+        "count": 2
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.bounded-schema-valid-resources",
+      "evidence": {
+        "entities": 12
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.empty-template-discovery",
+      "evidence": {},
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.compiler-type-query",
+      "evidence": {
+        "facts": [
+          {
+            "kind": "function_type",
+            "origin_entity_ids": [
+              "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7"
+            ],
+            "value": {
+              "display_return_type": "Bool",
+              "evidence": "checked_core_function",
+              "origin": {
+                "arity": 1,
+                "declaration_span": {
+                  "end": 91,
+                  "start": 23
+                },
+                "function": "decide",
+                "module": "mcp_query"
+              },
+              "parameters": [
+                {
+                  "core_ty": "Bool",
+                  "name": "flag",
+                  "ty": "Bool"
+                }
+              ],
+              "return_type": "Bool"
+            }
+          }
+        ],
+        "limitations": [],
+        "next_cursor": null,
+        "result_bytes": 795,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132",
+        "status": "complete",
+        "target": {
+          "entity_id": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+          "expected_digest": "6d8cfd1fc3f012784bad6a4a6b61bae10c10cb86940abacb2ee4014ff5f9721b",
+          "kind": "function"
+        },
+        "work_used": 6
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.expected-values-constraints",
+      "evidence": {
+        "facts": [
+          {
+            "kind": "expected_values",
+            "origin_entity_ids": [
+              "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7"
+            ],
+            "value": {
+              "compiler_type": "Bool",
+              "exhaustive_for_program_location": false,
+              "exhaustive_for_type": true,
+              "literal_candidates": [
+                false,
+                true
+              ],
+              "scope": "type_inhabitants",
+              "verification_required": [
+                "ownership_effect_and_actor_context"
+              ]
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.expected_context_incomplete",
+            "message": "Boolean literals exhaust this compiler type; ownership, effects, guards and actor-state constraints at a specific program location are not exported here."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 981,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+          "expected_digest": "6d8cfd1fc3f012784bad6a4a6b61bae10c10cb86940abacb2ee4014ff5f9721b",
+          "kind": "function"
+        },
+        "work_used": 6
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.same-arity-overload-identity",
+      "evidence": {
+        "entities": [
+          "e:2a89a8077d3857077f0eb856ae8e40c7c74c916bcf5820ab8b07eb1a0bd22dbb",
+          "e:b9d61b92eebb266b418307d00ab66ffbe518167a4fc1d70e4bae843c2393bdc4"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.explicit-unknown",
+      "evidence": {
+        "facts": [],
+        "limitations": [
+          {
+            "code": "semantic.query.ownership_not_exported",
+            "message": "No authoritative ownership fact is exported for this entity."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 546,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132",
+        "status": "unavailable",
+        "target": {
+          "entity_id": "e:4a50c8d0297f02ce0a3bf686a600417dc631d009fb8826cea78ff6fb2749b1b7",
+          "expected_digest": "6d8cfd1fc3f012784bad6a4a6b61bae10c10cb86940abacb2ee4014ff5f9721b",
+          "kind": "function"
+        },
+        "work_used": 2
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.stale-entity-rejection",
+      "evidence": {
+        "code": "semantic.entity.stale",
+        "message": "Entity content changed; refresh selection from the requested snapshot.",
+        "schema": "terlan.semantic.query-error.v1"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.snapshot-scope-rejection",
+      "evidence": {
+        "code": "semantic.mcp.snapshot_scope",
+        "message": "Query selects a snapshot outside this connection's admitted scope.",
+        "schema": "terlan.semantic.query-error.v1"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.invalid-budget-tool-error",
+      "evidence": {
+        "code": "semantic.query.constraints",
+        "message": "Query has an invalid identity, fact, kind, cursor, or work/byte budget.",
+        "schema": "terlan.semantic.query-error.v1"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.unknown-tool-protocol-error",
+      "evidence": {
+        "code": -32602
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.forged-resource-cursor",
+      "evidence": {
+        "code": -32602
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.resource-uri-confinement",
+      "evidence": {
+        "code": -32002
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.cli-query-parity",
+      "evidence": {
+        "request_digest": "a82ca6925302400f77be9611606484a8357dade8e50663670a115683eaf7f0b2"
+      },
+      "status": "passed"
+    }
+  ],
+  "command": [
+    "/home/anatoly/Applications/terlan/terlan/target/debug/terlc",
+    "semantic",
+    "mcp",
+    "/tmp/terlan-mcp-live-store-1",
+    "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132",
+    "--cache-dir",
+    "/tmp/terlan-mcp-live-cache-3"
+  ],
+  "compiler_digest": "a2b9ac29430f68e5a73cc65d54a9e2aa2d07adb3d982f55d3357cf2a58d41ce2",
+  "peer_versions": {
+    "jsonschema": "4.25.1",
+    "mcp": "1.26.0"
+  },
+  "protocol_version": "2025-11-25",
+  "schema": "terlan.semantic.mcp-peer-evidence.v1",
+  "scope": "Live independent SDK initialization, discovery, resources, compiler queries and rejection paths; not the full LNC-005 gate.",
+  "snapshot_id": "s:da2c3235fd4551f7b05ee4c93b83d4e4d5ff7e7a7252b44ae1102b070822f132",
+  "status": "passed"
+}

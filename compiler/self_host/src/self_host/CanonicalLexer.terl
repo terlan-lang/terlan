@@ -95,12 +95,15 @@ identifier_end(source: String, index: Int): Int ->
 digits_end(source: String, index: Int): Int ->
     if {
         index == source.byte_size() -> index;
-        not is_digit(source.utf8_byte_at(index)) -> index;
-        true -> digits_end(source, index + 1)
+        is_digit(source.utf8_byte_at(index)) -> digits_end(source, index + 1);
+        source.utf8_byte_at(index) == 95
+            and index + 1 < source.byte_size()
+            and is_digit(source.utf8_byte_at(index + 1)) -> digits_end(source, index + 1);
+        true -> index
     }.
 
 @pure
-is_alphanumeric(byte: Int): Bool -> is_alpha(byte) or is_digit(byte).
+is_alphanumeric(byte: Int): Bool -> is_alpha(byte) or is_digit(byte) or byte == 95.
 
 @pure
 alphanumeric_end(source: String, index: Int): Int ->

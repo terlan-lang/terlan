@@ -558,7 +558,7 @@ pub(crate) fn infer_trait_method_call_from_current_bounds(
             trait_subst.insert(var_id, arg_type.clone());
         }
 
-        let bounds =
+        let bounds: Vec<FunctionBound> =
             parse_generic_bounds(&method_sig.generic_bounds, &method_vars, ctx.alias_names)
                 .into_iter()
                 .map(|method_bound| FunctionBound {
@@ -573,17 +573,37 @@ pub(crate) fn infer_trait_method_call_from_current_bounds(
         let scheme = FunctionScheme {
             params: parsed_params
                 .into_iter()
-                .map(|param| substitute_type_vars(&param, &trait_subst))
+                .map(|param| {
+                    qualify_imported_named_heads(&substitute_type_vars(&param, &trait_subst), ctx)
+                })
                 .collect(),
-            ret: substitute_type_vars(&parsed_return, &trait_subst),
+            ret: qualify_imported_named_heads(
+                &substitute_type_vars(&parsed_return, &trait_subst),
+                ctx,
+            ),
             generic_params: Vec::new(),
-            bounds,
+            bounds: bounds
+                .into_iter()
+                .map(|bound| FunctionBound {
+                    trait_name: bound.trait_name,
+                    trait_args: bound
+                        .trait_args
+                        .iter()
+                        .map(|arg| qualify_imported_named_heads(arg, ctx))
+                        .collect(),
+                })
+                .collect(),
         };
 
         let mut trial_subst = subst.clone();
-        if let Ok(return_type) =
-            infer_function_with_bounds(&scheme, Some(method_name), arg_types, ctx, &mut trial_subst)
-        {
+        if let Ok(return_type) = infer_instantiated_function_with_bounds_from(
+            &scheme,
+            Some(method_name),
+            arg_types,
+            ctx,
+            &mut trial_subst,
+            None,
+        ) {
             *subst = trial_subst;
             return Some(return_type);
         }

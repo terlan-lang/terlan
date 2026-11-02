@@ -42,15 +42,19 @@ pub constructor RecordLayoutType {
 struct RecordAccessSite {
     node_id: Int,
     byte_offset: Int,
+    source_node_id: Int,
+    source_offset: Int,
     type_name: String,
     field_name: String,
 }.
 
 constructor RecordAccessSite {
-    (node_id: Int, byte_offset: Int, type_name: String, field_name: String): RecordAccessSite ->
+    (node_id: Int, byte_offset: Int, source_node_id: Int, source_offset: Int, type_name: String, field_name: String): RecordAccessSite ->
         RecordAccessSite {
             node_id: node_id,
             byte_offset: byte_offset,
+            source_node_id: source_node_id,
+            source_offset: source_offset,
             type_name: type_name,
             field_name: field_name,
         }
@@ -146,13 +150,29 @@ scan_node(value: ProjectedExpressionNode, node_id: Int): NodeScan ->
     let nested = scan_children(value.children, node_id + 1);
     if {
         value.kind == "record-access" -> case value.children {
-            [_source, type_name, field] -> NodeScan(
+            [source, type_name, field] -> NodeScan(
                 nested.next_id,
                 [RecordAccessSite(
                     node_id,
                     value.start_byte,
+                    node_id + 1,
+                    source.start_byte,
                     type_name.text,
                     field.text,
+                ) | nested.sites],
+            );
+            _ -> nested
+        };
+        value.kind == "field" -> case value.children {
+            [source] -> NodeScan(
+                nested.next_id,
+                [RecordAccessSite(
+                    node_id,
+                    value.start_byte,
+                    node_id + 1,
+                    source.start_byte,
+                    "",
+                    value.text,
                 ) | nested.sites],
             );
             _ -> nested
@@ -160,14 +180,22 @@ scan_node(value: ProjectedExpressionNode, node_id: Int): NodeScan ->
         true -> nested
     }.
 
-body_sites(values: List[ProjectedBody]): List[RecordAccessSite] ->
+body_scan(values: List[ProjectedBody], next_id: Int): NodeScan ->
     case values {
-        [] -> [];
+        [] -> NodeScan(next_id, []);
         [value | rest] -> case value.expression.node {
-            Some(node) -> append(scan_node(node, 0).sites, body_sites(rest));
-            None -> body_sites(rest)
+            Some(node) -> let current = scan_node(node, next_id);
+                let remaining = body_scan(rest, current.next_id);
+                NodeScan(
+                    remaining.next_id,
+                    append(current.sites, remaining.sites),
+                );
+            None -> body_scan(rest, next_id)
         }
     }.
+
+body_sites(values: List[ProjectedBody]): List[RecordAccessSite] ->
+    body_scan(values, 0).sites.
 
 layout_at(name: String, values: List[RecordLayoutType]): Option[RecordLayoutType] ->
     case values {
@@ -214,12 +242,34 @@ site_at(
 resolved_field_type(
     site: RecordAccessSite,
     record_layouts: List[RecordLayoutType],
+    facts: List[InferredTypeFact],
 ): Option[String] ->
-    case layout_at(site.type_name, record_layouts) {
+    let type_name = if {
+        site.type_name != "" -> Some(site.type_name);
+        true -> fact_type(site.source_node_id, site.source_offset, facts)
+    };
+    case type_name {
         None -> None;
-        Some(layout) -> case field_at(site.field_name, layout.fields) {
+        Some(name) -> case layout_at(name, record_layouts) {
             None -> None;
-            Some(field) -> if { field_visible(site.field_name, field) -> field.type_name; true -> None }
+            Some(layout) -> case field_at(site.field_name, layout.fields) {
+                None -> None;
+                Some(field) -> if { field_visible(site.field_name, field) -> field.type_name; true -> None }
+            }
+        }
+    }.
+
+fact_type(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[InferredTypeFact],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.byte_offset == byte_offset and value.type_name != None ->
+                value.type_name;
+            true -> fact_type(node_id, byte_offset, rest)
         }
     }.
 
@@ -227,10 +277,11 @@ merge_fact(
     value: InferredTypeFact,
     sites: List[RecordAccessSite],
     record_layouts: List[RecordLayoutType],
+    facts: List[InferredTypeFact],
 ): InferredTypeFact ->
     case site_at(value.node_id, value.byte_offset, sites) {
         None -> value;
-        Some(site) -> case resolved_field_type(site, record_layouts) {
+        Some(site) -> case resolved_field_type(site, record_layouts, facts) {
             None -> value;
             Some(type_name) -> InferredTypeFact(value.node_id, Some(type_name), value.byte_offset)
         }
@@ -240,18 +291,66 @@ merge_facts(
     values: List[InferredTypeFact],
     sites: List[RecordAccessSite],
     record_layouts: List[RecordLayoutType],
+    all: List[InferredTypeFact],
 ): List[InferredTypeFact] ->
     case values {
         [] -> [];
-        [value | rest] -> [merge_fact(value, sites, record_layouts)
-            | merge_facts(rest, sites, record_layouts)]
+        [value | rest] -> [merge_fact(value, sites, record_layouts, all)
+            | merge_facts(rest, sites, record_layouts, all)]
+    }.
+
+has_site_fact(site: RecordAccessSite, values: List[InferredTypeFact]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> if {
+            value.node_id == site.node_id and value.byte_offset == site.byte_offset -> true;
+            true -> has_site_fact(site, rest)
+        }
+    }.
+
+missing_site_facts(
+    values: List[RecordAccessSite],
+    record_layouts: List[RecordLayoutType],
+    facts: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [site | rest] -> case resolved_field_type(site, record_layouts, facts) {
+            None -> missing_site_facts(rest, record_layouts, facts);
+            Some(type_name) -> if {
+                has_site_fact(site, facts) -> missing_site_facts(rest, record_layouts, facts);
+                true -> [InferredTypeFact(site.node_id, Some(type_name), site.byte_offset)
+                    | missing_site_facts(rest, record_layouts, facts)]
+            }
+        }
+    }.
+
+site_count(values: List[RecordAccessSite]): Int ->
+    case values { [] -> 0; [_value | rest] -> 1 + site_count(rest) }.
+
+resolve_field_chains(
+    facts: List[InferredTypeFact],
+    sites: List[RecordAccessSite],
+    record_layouts: List[RecordLayoutType],
+    remaining: Int,
+): List[InferredTypeFact] ->
+    if {
+        remaining <= 0 -> facts;
+        true -> let replaced = merge_facts(facts, sites, record_layouts, facts);
+            let merged = append(
+                replaced,
+                missing_site_facts(sites, record_layouts, replaced),
+            );
+            resolve_field_chains(merged, sites, record_layouts, remaining - 1)
     }.
 
 site_diagnostic(
     value: RecordAccessSite,
     record_layouts: List[RecordLayoutType],
 ): Option[TypeConstraintDiagnostic] ->
-    case layout_at(value.type_name, record_layouts) {
+    if {
+        value.type_name == "" -> None;
+        true -> case layout_at(value.type_name, record_layouts) {
         None -> Some(TypeConstraintDiagnostic(
             "unknown-record-type",
             String.concat(["record type is not declared: ", value.type_name]),
@@ -281,6 +380,7 @@ site_diagnostic(
                     Some(_) -> None
                 }
             }
+        }
         }
     }.
 
@@ -319,13 +419,20 @@ merge_sites(
     value: TypeConstraintResolution,
     sites: List[RecordAccessSite],
     record_layouts: List[RecordLayoutType],
-): TypeConstraintResolution -> TypeConstraintResolution(
-    merge_facts(value.facts, sites, record_layouts),
-    append(
-        without_deferred_diagnostics(value.diagnostics, sites),
-        site_diagnostics(sites, record_layouts),
-    ),
-).
+): TypeConstraintResolution ->
+    let facts = resolve_field_chains(
+        value.facts,
+        sites,
+        record_layouts,
+        site_count(sites),
+    );
+    TypeConstraintResolution(
+        facts,
+        append(
+            without_deferred_diagnostics(value.diagnostics, sites),
+            site_diagnostics(sites, record_layouts),
+        ),
+    ).
 
 /** Test boundary for one expression and an explicit layout catalog. */
 pub merge_expression(

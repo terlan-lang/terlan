@@ -201,3 +201,53 @@ pub array_literals_use_array_kind(): Bool ->
             and not unclosed.valid;
         None -> false
     }.
+
+@test
+pub parenthesized_semicolon_sequence_is_preserved(): Bool ->
+    let parsed = ProjectedExpressionParser.parse([
+        token("(", "(", 0, 1),
+        token("var", "first", 1, 6),
+        token("(", "(", 6, 7),
+        token(")", ")", 7, 8),
+        token("if-clause-semicolon", ";", 8, 9),
+        token("var", "second", 10, 16),
+        token("(", "(", 16, 17),
+        token(")", ")", 17, 18),
+        token(")", ")", 18, 19),
+    ]);
+    case parsed.node {
+        Some(group) -> case group.children {
+            [sequence] -> case sequence.children {
+                [first, second] -> parsed.valid
+                    and parsed.rest == []
+                    and group.kind == "tuple-or-group"
+                    and sequence.kind == "sequence"
+                    and sequence.text == ";"
+                    and first.kind == "call"
+                    and second.kind == "call";
+                _ -> false
+            };
+            _ -> false
+        };
+        None -> false
+    }.
+
+@test
+pub private_postfix_field_preserves_marker(): Bool ->
+    let parsed = ProjectedExpressionParser.parse([
+        token("var", "timeout", 0, 7),
+        token(".", ".", 7, 8),
+        token("#", "#", 8, 9),
+        token("var", "milliseconds", 9, 21),
+    ]);
+    case parsed.node {
+        Some(field) -> case field.children {
+            [source] -> parsed.valid
+                and parsed.rest == []
+                and field.kind == "field"
+                and field.text == "#milliseconds"
+                and source.text == "timeout";
+            _ -> false
+        };
+        None -> false
+    }.

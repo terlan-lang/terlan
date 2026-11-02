@@ -1,0 +1,46 @@
+#!/usr/bin/env -S terlc run
+import semantic.CompilerBridge.{Failure}.
+import semantic.{Catalog, DeclarationEntities, Entities}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 2 or count() == 3;
+        Some(store) <- get(0);
+        Some(snapshot) <- get(1)
+    } else {
+        _ -> false
+    };
+    (let mode =
+    case get(2) {
+        Some(value) -> value;
+        _ -> "bindings"
+    };
+let result =
+    case mode {
+        "bindings" -> Entities.bindings(store, snapshot);
+        "declarations" -> DeclarationEntities.declarations(store, snapshot);
+        "catalog" -> Catalog.index(store, snapshot);
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entities.mode",
+                    message = "Expected bindings, declarations, or catalog.",
+                ),
+            )
+    };
+case result {
+    Ok(document) ->
+        let _printed = println(Json.to_string(document));
+        true;
+    Err(reason) ->
+        let _printed = eprintln(reason.code + ": " + reason.message);
+        false
+}).
+
+assert(entry());
+Unit.

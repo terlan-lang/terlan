@@ -1,0 +1,552 @@
+/**
+ * Captures current compiler latency and clean/incremental evidence in Terlan.
+ */
+module llm_native.Baseline.
+
+import llm_native.{Evidence, LegacyLsp}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Process.{Cancelled, OutputLimitExceeded, TimedOut}.
+import std.system.{Environment, Platform, Process}.
+import std.time.Clock.
+
+import type std.core.Option.
+import type std.data.Json.
+
+save(path: String, value: Json): Bool ->
+    File.write_text(path, String.append(Json.to_string(value), "\n")) == Ok(Unit).
+
+capture(compiler: String, arguments: List[String], directory: String, name: String): Json ->
+    capture_bounded(compiler, arguments, directory, name, 180_000).
+
+/**
+ * Records resource failures distinctly from compiler diagnostics or missing files.
+ */
+pub capture_bounded(
+    compiler: String,
+    arguments: List[String],
+    directory: String,
+    name: String,
+    timeout_ms: Int,
+): Json ->
+    capture_configured(
+        compiler,
+        arguments,
+        directory,
+        name,
+        timeout_ms,
+        [Process.environment_entry("TERLAN_BUILD_JOBS", "1")],
+        4_194_304,
+    ).
+
+pub capture_configured(
+    compiler: String,
+    arguments: List[String],
+    directory: String,
+    name: String,
+    timeout_ms: Int,
+    environment: List[Process.EnvironmentEntry],
+    output_limit: Int,
+): Json ->
+    let command = Process.with_arguments(Process.command(compiler), arguments);
+    let configured = Process.with_environment(command, environment);
+    let started = Clock.monotonic_time_ns();
+    let completed =
+        Process.run(
+            Process.with_output_limit_bytes(
+                Process.with_timeout_ms(configured, timeout_ms),
+                output_limit,
+            ),
+        );
+    let row =
+        Json.object()
+            .put("case_id", Json.string(name))
+            .put("wall_time_ns", Json.int(Clock.monotonic_time_ns() - started));
+    let _arguments = row.put("arguments", strings(arguments));
+    let _budget = row.put("timeout_ms", Json.int(timeout_ms));
+    case completed {
+        Ok(output) ->
+            let saved =
+                File.write_text(String.concat([directory, "/", name, ".stdout"]), output.stdout) == Ok(Unit)
+                    and File.write_text(String.concat([directory, "/", name, ".stderr"]), output.stderr) == Ok(Unit);
+            row
+                .put("exit_status", Json.int(output.status))
+                .put(
+                    "status",
+                    Json.string(
+                        if {
+                            output.status == 0 and saved -> "passed";
+                            true -> "failed"
+                        },
+                    ),
+                )
+                .put("stdout_digest", Json.string(Hash.sha256(output.stdout)))
+                .put("stderr_digest", Json.string(Hash.sha256(output.stderr)))
+                .put(
+                    "diagnostic_digest",
+                    Json.string(Hash.sha256_framed([output.stdout, output.stderr])),
+                );
+        Err(reason) ->
+            row
+                .put("status", Json.string("failed"))
+                .put(
+                    "failure_kind",
+                    Json.string(
+                        if {
+                            reason.code == TimedOut -> "timed_out";
+                            reason.code == OutputLimitExceeded -> "output_limit";
+                            reason.code == Cancelled -> "cancelled";
+                            true -> "process_error"
+                        },
+                    ),
+                )
+                .put("reason", Json.string(reason.message))
+    }.
+
+strings(values: List[String]): Json ->
+    let output = Json.array();
+    let _filled = append_strings(output, values);
+    output.
+
+append_strings(mut output: Json, values: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let _value = output.push(Json.string(value));
+            append_strings(output, rest)
+    }.
+
+manifest_fields(files: List[File.TextFile], fields: List[String]): Option[List[String]] ->
+    case files {
+        [] -> Some(fields);
+        [file | rest] ->
+            let {
+                Ok(value) <- Json.parse(file.contents);
+                Ok(source) <- value.get("source_hash");
+                Ok(interface_hash) <- value.get("interface_hash");
+                true <- Evidence.text(value, "schema") == "terlan-phase-manifest-v1"
+            } else {
+                _ -> None
+            };
+            (let name = Evidence.text(value, "module");
+if {
+    name == "" or Evidence.contains(fields, name) -> None;
+    true -> manifest_fields(
+        rest,
+        [name | [Json.to_string(source) | [Json.to_string(interface_hash) | fields]]],
+    )
+})
+    }.
+
+source_bytes(files: List[File.TextFile]): Int ->
+    case files {
+        [] -> 0;
+        [file | rest] -> file.contents.byte_size() + source_bytes(rest)
+    }.
+
+/**
+ * Registers future acceptance cases without claiming those cases have passed.
+ */
+pub property_inventory(root: String): Bool ->
+    let {
+        Ok(source) <- File.read_text(String.append(root, "/tests/fixtures/llm_native/property-cases.json"));
+        Ok(value) <- Json.parse(source);
+        true <- Evidence.text(value, "schema") == "terlan.llm-native.property-cases.v1";
+        Ok(rows) <- value.get("properties");
+        Some(ids) <- Evidence.ids(rows, "property");
+        Some(case_ids) <- Evidence.ids(rows, "case_id")
+    } else {
+        _ -> false
+    };
+    (let expected =
+    [
+        "semantic_observability",
+        "structured_actions",
+        "deterministic_verification",
+        "repair_oriented_diagnostics",
+        "bounded_context",
+        "transactional_changes",
+        "incremental_feedback",
+        "canonical_output",
+        "safe_execution",
+        "provenance",
+    ];
+List.length(ids) == 10
+    and List.length(case_ids) == 10
+    and List.is_empty(List.subtract(ids, expected))).
+
+/**
+ * Requires a complete fresh manifest set before comparing public contracts.
+ */
+pub phase_digest(directory: String, expected_count: Int): Option[String] ->
+    let {
+        Ok(files) <- File.read_text_directory(directory);
+        true <- std.collections.List.length(files) == expected_count;
+        Some(fields) <- manifest_fields(files, [])
+    } else {
+        _ -> None
+    };
+    if {
+        std.collections.List.is_empty(fields) -> None;
+        true -> Some(Hash.sha256_framed(fields))
+    }.
+
+empty_phases(directory: String): Bool ->
+    case File.read_text_directory(directory) {
+        Ok(files) -> List.is_empty(files);
+        _ -> not File.exists(directory)
+    }.
+
+sample(compiler: String, directory: String, name: String, fresh: Bool, modules: Int): Json ->
+    let cache =
+        String.append(
+            directory,
+            if {
+                fresh -> "/cache-reference";
+                true -> "/cache"
+            },
+        );
+    let phases = String.concat([directory, "/phases-", name]);
+    let row =
+        capture_bounded(
+            compiler,
+            [
+                "check",
+                "--incremental",
+                "--cache-dir",
+                cache,
+                String.append(directory, "/project/src"),
+                "--emit-phase-manifest",
+                phases,
+                "--diagnostic-format",
+                "json",
+            ],
+            directory,
+            name,
+            if {
+                modules > 512 and not name.starts_with("warm-") -> 420_000;
+                true -> 180_000
+            },
+        );
+    case phase_digest(phases, modules) {
+        Some(digest) ->
+            row
+                .put("public_contract_digest", Json.string(digest))
+                .put("phase_status", Json.string("available"));
+        None ->
+            if {
+                Evidence.text(row, "status") != "passed" -> row;
+                name.starts_with("warm-") and empty_phases(phases) -> row.put("phase_status", Json.string("not_emitted_for_cached_check"));
+                true -> row
+                    .put("status", Json.string("failed"))
+                    .put("reason", Json.string("Missing or malformed fresh phase evidence."))
+            }
+    }.
+
+warm_samples(
+    compiler: String,
+    directory: String,
+    index: Int,
+    mut rows: Json,
+    expected: String,
+    contract: String,
+    modules: Int,
+): Bool ->
+    if {
+        index == 3 -> true;
+        true -> let row =
+            sample(
+                compiler,
+                directory,
+                String.append("warm-", Int.to_string(index)),
+                false,
+                modules,
+            );
+        let _row = rows.push(row);
+        let public_contract = Evidence.text(row, "public_contract_digest");
+        Evidence.text(row, "status") == "passed"
+            and Evidence.text(row, "diagnostic_digest") == expected
+            and (public_contract == "" or public_contract == contract)
+            and warm_samples(compiler, directory, index + 1, rows, expected, contract, modules)
+    }.
+
+workload(
+    compiler: String,
+    root: String,
+    output: String,
+    name: String,
+    leaves: Int,
+    width: Int,
+): Json ->
+    let directory = String.concat([output, "/", name]);
+    let report =
+        Json.object()
+            .put("name", Json.string(name))
+            .put("leaf_modules", Json.int(leaves))
+            .put("functions_per_leaf", Json.int(width))
+            .put("feature_mix", Json.string("records, generics, shared call graph"));
+    let Ok(_) <- Directory.create_all(directory) else {
+        _ -> report.put("status", Json.string("failed"))
+    };
+    (let generated =
+    capture(
+        compiler,
+        [
+            "run",
+            String.append(root, "/scripts/benchmarks/compilation/scripts/Generate.terls"),
+            "--",
+            String.append(directory, "/project"),
+            Int.to_string(leaves),
+            Int.to_string(width),
+            "records",
+        ],
+        directory,
+        "generate",
+    );
+let rows = Json.array().push(generated);
+let cold = sample(compiler, directory, "cold", false, leaves + 2);
+let _cold = rows.push(cold);
+let expected = Evidence.text(cold, "public_contract_digest");
+let warm =
+    expected != ""
+        and warm_samples(
+    compiler,
+    directory,
+    0,
+    rows,
+    Evidence.text(cold, "diagnostic_digest"),
+    expected,
+    leaves + 2,
+);
+let reference =
+    if {
+        Evidence.text(cold, "status") == "passed" -> sample(compiler, directory, "reference", true, leaves + 2);
+        true -> Json.object()
+            .put("case_id", Json.string("reference"))
+            .put("status", Json.string("skipped"))
+            .put("reason", Json.string("Cold check failed; independent reference was not run."))
+    };
+let _reference = rows.push(reference);
+let source_digest =
+    case Hash.sha256_tree(String.append(directory, "/project/src")) {
+        Ok(digest) -> digest;
+        _ -> ""
+    };
+let diagnostics =
+    if {
+        name == "small" -> diagnostic_cycle(compiler, root, directory, Evidence.text(cold, "diagnostic_digest"));
+        true -> Json.object().put("status", Json.string("not_selected"))
+    };
+let passed =
+    Evidence.text(generated, "status") == "passed"
+        and Evidence.text(cold, "status") == "passed"
+        and warm
+        and Evidence.text(reference, "status") == "passed"
+        and Evidence.text(reference, "public_contract_digest") == expected
+        and source_digest != "";
+(let Ok(source_files) <- File.read_text_tree_excluding(String.append(directory, "/project/src"), []) else {
+    _ -> report.put("status", Json.string("failed"))
+};
+(let unchanged = Hash.sha256_tree(String.append(directory, "/project/src")) == Ok(source_digest);
+report
+    .put(
+        "status",
+        Json.string(
+            if {
+                passed
+                    and unchanged
+                    and (name != "small" or Evidence.text(diagnostics, "status") == "passed") -> "passed";
+                true -> "failed"
+            },
+        ),
+    )
+    .put("source_digest", Json.string(source_digest))
+    .put("source_bytes", Json.int(source_bytes(source_files)))
+    .put("samples", rows)
+    .put("diagnostics", diagnostics)))).
+
+diagnostic_cycle(compiler: String, root: String, directory: String, expected: String): Json ->
+    let project = String.append(directory, "/project");
+    let edit_script = String.append(root, "/scripts/benchmarks/compilation/scripts/Edit.terls");
+    let edited =
+        capture(
+            compiler,
+            ["run", edit_script, "--", project, "break"],
+            directory,
+            "diagnostic-edit",
+        );
+    let cached =
+        capture(
+            compiler,
+            [
+                "check",
+                "--incremental",
+                "--cache-dir",
+                String.append(directory, "/cache"),
+                String.append(project, "/src"),
+                "--diagnostic-format",
+                "json",
+            ],
+            directory,
+            "diagnostic-cached",
+        );
+    let fresh =
+        capture(
+            compiler,
+            [
+                "check",
+                "--incremental",
+                "--cache-dir",
+                String.append(directory, "/cache-negative-reference"),
+                String.append(project, "/src"),
+                "--diagnostic-format",
+                "json",
+            ],
+            directory,
+            "diagnostic-fresh",
+        );
+    let repaired =
+        capture(
+            compiler,
+            ["run", edit_script, "--", project, "repair"],
+            directory,
+            "diagnostic-repair",
+        );
+    let checked =
+        capture(
+            compiler,
+            [
+                "check",
+                "--incremental",
+                "--cache-dir",
+                String.append(directory, "/cache"),
+                String.append(project, "/src"),
+                "--diagnostic-format",
+                "json",
+            ],
+            directory,
+            "diagnostic-rechecked",
+        );
+    let rejected = Evidence.number(cached, "exit_status") > 0 and Evidence.number(fresh, "exit_status") > 0;
+    let same =
+        Evidence.text(cached, "diagnostic_digest") != ""
+            and Evidence.text(cached, "diagnostic_digest") == Evidence.text(fresh, "diagnostic_digest");
+    let valid =
+        Evidence.text(edited, "status") == "passed"
+            and rejected
+            and same
+            and Evidence.text(repaired, "status") == "passed"
+            and Evidence.text(checked, "status") == "passed"
+            and Evidence.text(checked, "diagnostic_digest") == expected;
+    Json.object()
+        .put(
+            "status",
+            Json.string(
+                if {
+                    valid -> "passed";
+                    true -> "failed"
+                },
+            ),
+        )
+        .put("cached_rejection", cached)
+        .put("fresh_rejection", fresh)
+        .put("repair", checked).
+
+/**
+ * Current unsupported agent capabilities are observations, never passing claims.
+ */
+pub unsupported(): Json ->
+    Json.array()
+        .push(
+            Json.object()
+                .put("capability", Json.string("semantic_mcp_queries"))
+                .put("status", Json.string("not_implemented")),
+        )
+        .push(
+            Json.object()
+                .put("capability", Json.string("semantic_transactions"))
+                .put("status", Json.string("not_implemented")),
+        )
+        .push(
+            Json.object()
+                .put("capability", Json.string("cached_phase_manifest_emission"))
+                .put(
+                    "status",
+                    Json.string(
+                        "not_emitted; warm diagnostics and independent fresh public contracts are compared",
+                    ),
+                ),
+        )
+        .push(
+            Json.object()
+                .put("capability", Json.string("phase_work_counts_and_peak_rss"))
+                .put("status", Json.string("not_reported_by_current_process_api")),
+        ).
+
+/**
+ * Runs authored baseline tooling only; generated applications are never executed.
+ */
+pub run(compiler: String, output: String): Bool ->
+    let root = Environment.current_directory();
+    let host = Platform.current_metrics();
+    let rows = Json.array();
+    let small = workload(compiler, root, output, "small", 10, 4);
+    let _small = rows.push(small);
+    let medium = workload(compiler, root, output, "medium", 128, 64);
+    let _medium = rows.push(medium);
+    let large = workload(compiler, root, output, "large", 1_024, 4);
+    let _large = rows.push(large);
+    let navigation =
+        LegacyLsp.run(
+            String.append(root, "/target/release/terlan-lsp"),
+            String.append(output, "/navigation"),
+        );
+    let registered = property_inventory(root);
+    let passed =
+        Evidence.text(small, "status") == "passed"
+            and Evidence.text(medium, "status") == "passed"
+            and Evidence.text(large, "status") == "passed"
+            and Evidence.text(navigation, "status") == "passed"
+            and registered;
+    let report =
+        Json.object()
+            .put("schema", Json.string("terlan.llm-native.baseline.v1"))
+            .put(
+                "status",
+                Json.string(
+                    if {
+                        passed -> "passed";
+                        true -> "failed"
+                    },
+                ),
+            )
+            .put("workloads", rows)
+            .put("navigation", navigation)
+            .put("unsupported", unsupported())
+            .put("host_cpu", Json.string(host.cpu_model))
+            .put("host_memory_bytes", Json.int(host.memory_bytes))
+            .put("host_metrics_available", Json.bool(host.available))
+            .put("requested_build_jobs", Json.int(1))
+            .put("warm_sample_count", Json.int(3))
+            .put(
+                "p95_status",
+                Json.string(
+                    "Not estimated from three samples; M5 requires at least 30 warm interaction samples.",
+                ),
+            );
+    let _registry = report.put("future_property_cases_registered", Json.bool(registered));
+    let _scope =
+        report
+            .put(
+                "measurement_scope",
+                Json.string(
+                    "Exploratory development-host baseline; no isolated reference-host or p95 claim.",
+                ),
+            );
+    let saved = save(String.append(output, "/baseline.json"), report);
+    passed and saved.

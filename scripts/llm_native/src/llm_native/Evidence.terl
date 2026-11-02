@@ -1,0 +1,395 @@
+/**
+ * Validates independent schema and compiler test evidence without accepting
+ * an empty inventory or a stale input closure as a successful gate.
+ */
+module llm_native.Evidence.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Option.
+import type std.data.Json.
+
+/**
+ * Exact string membership for fixed evidence inventories.
+ */
+pub contains(values: List[String], value: String): Bool ->
+    case values {
+        [] -> false;
+        [head | tail] -> head == value or contains(tail, value)
+    }.
+
+/**
+ * Returns a required JSON string or a sentinel that cannot satisfy a contract.
+ */
+pub text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+/**
+ * Returns a required JSON integer, with -1 for missing or incorrectly typed data.
+ */
+pub number(value: Json, key: String): Int ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_int()
+    } else {
+        _ -> -1
+    };
+    result.
+
+/**
+ * Explicit independent-peer inputs, in bytewise label order.
+ */
+pub peer_paths(): List[String] ->
+    [
+        "compiler/semantic/contract.json",
+        "compiler/semantic/schemas/diagnostic.schema.json",
+        "compiler/semantic/schemas/entity.schema.json",
+        "compiler/semantic/schemas/proposal.schema.json",
+        "compiler/semantic/schemas/provenance.schema.json",
+        "compiler/semantic/schemas/query-error.schema.json",
+        "compiler/semantic/schemas/query-result.schema.json",
+        "compiler/semantic/schemas/query.schema.json",
+        "compiler/semantic/schemas/snapshot.schema.json",
+        "compiler/semantic/schemas/transaction.schema.json",
+        "compiler/semantic/schemas/verification.schema.json",
+        "scripts/llm_native/peers/requirements.txt",
+        "scripts/llm_native/peers/schema_peer.py",
+        "tests/fixtures/llm_native/contracts/cases.json",
+        "tests/fixtures/llm_native/mcp/spec.LICENSE",
+        "tests/fixtures/llm_native/mcp/spec.provenance.json",
+        "tests/fixtures/llm_native/mcp/spec.schema.json",
+        "tests/fixtures/llm_native/mcp/wire-cases.json",
+    ].
+
+/**
+ * Gate implementation inputs are distinct from the independent schema closure.
+ */
+pub gate_paths(): List[String] ->
+    List.concat(
+        List.concat(
+            peer_paths(),
+            [
+                "docs/compiler/LLM_NATIVE_COMPILER_CONTRACT.md",
+                "scripts/llm_native/terlan.toml",
+                "scripts/llm_native/scripts/Gate.terls",
+                "scripts/llm_native/src/llm_native/Evidence.terl",
+                "scripts/llm_native/src/llm_native/Gate.terl",
+                "scripts/llm_native/src/llm_native/GateTest.terl",
+                "scripts/llm_native/src/llm_native/Baseline.terl",
+                "scripts/llm_native/src/llm_native/LegacyLsp.terl",
+                "scripts/llm_native/src/llm_native/SnapshotGate.terl",
+                "scripts/llm_native/src/llm_native/QueryGate.terl",
+                "scripts/llm_native/src/llm_native/QueryGateTest.terl",
+                "scripts/llm_native/src/llm_native/QueryInventory.terl",
+                "tests/fixtures/llm_native/semantic/query-gate.json",
+                "scripts/llm_native/README.md",
+                "scripts/llm_native/scripts/Baseline.terls",
+                "scripts/benchmarks/compilation/scripts/Generate.terls",
+                "scripts/benchmarks/compilation/scripts/Edit.terls",
+                "scripts/benchmarks/compilation/src/compilation_benchmark/Corpus.terl",
+                "tests/fixtures/llm_native/property-cases.json",
+            ],
+        ),
+        semantic_paths(),
+    ).
+
+digest_fields(root: String, paths: List[String]): Option[List[String]] ->
+    case paths {
+        [] -> Some([]);
+        [path | rest] ->
+            let {
+                Ok(digest) <- Hash.sha256_file(String.concat([root, "/", path]));
+                Some(tail) <- digest_fields(root, rest)
+            } else {
+                _ -> None
+            };
+            Some([path | [digest | tail]])
+    }.
+
+/**
+ * Hashes labels and streaming file digests with the peer's length framing.
+ */
+pub source_digest(root: String, paths: List[String]): Option[String] ->
+    case digest_fields(root, paths) {
+        Some(fields) -> Some(Hash.sha256_framed(fields));
+        None -> None
+    }.
+
+/**
+ * Reads a nonempty, duplicate-free inventory of object IDs.
+ */
+pub ids(rows: Json, key: String): Option[List[String]] ->
+    case rows.length() {
+        Ok(count) ->
+            if {
+                count > 0 -> collect_ids(rows, key, 0, count, []);
+                true -> None
+            };
+        Err(_) -> None
+    }.
+
+collect_ids(
+    rows: Json,
+    key: String,
+    index: Int,
+    count: Int,
+    seen: List[String],
+): Option[List[String]] ->
+    if {
+        index == count -> Some(seen);
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> None
+        };
+        (let id = text(row, key);
+if {
+    id == "" or contains(seen, id) -> None;
+    true -> collect_ids(rows, key, index + 1, count, [id | seen])
+})
+    }.
+
+all_passed(rows: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> case rows.at(index) {
+            Ok(row) -> text(row, "status") == "passed" and all_passed(rows, index + 1, count);
+            Err(_) -> false
+        }
+    }.
+
+/**
+ * Requires the exact registered cases and input digest from the schema peer.
+ */
+pub schema_report(report: Json, expected_digest: String, expected_ids: List[String]): Bool ->
+    let {
+        Ok(rows) <- report.get("cases");
+        Some(actual_ids) <- ids(rows, "case_id");
+        Ok(peers) <- report.get("peer_versions")
+    } else {
+        _ -> false
+    };
+    text(report, "schema") == "terlan.semantic.contract-evidence.v1"
+        and text(report, "status") == "passed"
+        and text(report, "kind") == "schema_validation"
+        and text(report, "source_closure_digest") == expected_digest
+        and text(report, "mcp_protocol_version") == "2025-11-25"
+        and text(peers, "jsonschema") == "4.25.1"
+        and text(peers, "mcp") == "1.26.0"
+        and not List.is_empty(expected_ids)
+        and List.length(actual_ids) == List.length(expected_ids)
+        and List.is_empty(List.subtract(actual_ids, expected_ids))
+        and number(report, "case_count") == List.length(expected_ids)
+        and all_passed(rows, 0, List.length(expected_ids)).
+
+/**
+ * Rejects empty test selections, missing cases, and skipped or failed tests.
+ */
+pub test_report(report: Json, expected_names: List[String]): Bool ->
+    let {
+        Ok(rows) <- report.get("tests");
+        Some(actual_names) <- ids(rows, "name")
+    } else {
+        _ -> false
+    };
+    not List.is_empty(expected_names)
+        and number(report, "failed") == 0
+        and number(report, "not_executed") == 0
+        and number(report, "passed") == List.length(expected_names)
+        and List.length(actual_names) == List.length(expected_names)
+        and List.is_empty(List.subtract(actual_names, expected_names))
+        and all_passed(rows, 0, List.length(expected_names)).
+
+compiled_rows(rows: Json, expected_source: String, index: Int, count: Int, seen: Bool): Bool ->
+    if {
+        index == count -> seen;
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> false
+        };
+        (let source = text(row, "source_file");
+if {
+    source == "" -> compiled_rows(rows, expected_source, index + 1, count, seen);
+    true -> let digest = text(row, "source_sha256");
+    digest != ""
+        and Hash.sha256_file(source) == Ok(digest)
+        and compiled_rows(rows, expected_source, index + 1, count, seen or source == expected_source)
+})
+    }.
+
+/**
+ * All retained source hashes must be current, including the authored suite.
+ */
+pub compiled_sources(report: Json, expected_source: String): Bool ->
+    let {
+        Ok(evidence) <- report.get("native_callable_evidence");
+        Ok(rows) <- evidence.get("declarations");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> false
+    };
+    text(evidence, "schema") == "terlan.native-callable-evidence/v1"
+        and count > 0
+        and count <= 65_536
+        and compiled_rows(rows, expected_source, 0, count, false).
+
+pub matching_cases(rows: Json, expected_ids: List[String], key: String): Bool ->
+    let Some(actual) <- ids(rows, key) else {
+        _ -> false
+    };
+    not List.is_empty(expected_ids)
+        and List.length(actual) == List.length(expected_ids)
+        and List.is_empty(List.subtract(actual, expected_ids))
+        and all_passed(rows, 0, List.length(actual)).
+
+/**
+ * Validates the independently SDK-checked wire/model fixture inventory.
+ */
+pub wire_report(report: Json, expected_ids: List[String]): Bool ->
+    let {
+        Ok(rows) <- report.get("wire_cases");
+        Some(actual_ids) <- ids(rows, "case_id")
+    } else {
+        _ -> false
+    };
+    not List.is_empty(expected_ids)
+        and List.length(actual_ids) == List.length(expected_ids)
+        and List.is_empty(List.subtract(actual_ids, expected_ids))
+        and number(report, "wire_case_count") == List.length(expected_ids)
+        and all_passed(rows, 0, List.length(expected_ids)).
+
+/**
+ * Semantic service and bootstrap export sources bound by LNC-004 evidence.
+ */
+pub semantic_paths(): List[String] ->
+    [
+        "compiler/semantic/src/semantic/CallOrigins.terl",
+        "compiler/semantic/src/semantic/CallReferences.terl",
+        "compiler/semantic/src/semantic/CallReferencesTest.terl",
+        "crates/terlan/src/compiler/typeck/call_observations.rs",
+        "crates/terlan/src/compiler/typeck/binding_identity.rs",
+        "crates/terlan/src/compiler/typeck/signature_loading.rs",
+        "crates/terlan/src/compiler/typeck/expression.rs",
+        "crates/terlan/src/compiler/typeck/expression/overloads.rs",
+        "crates/terlan/src/compiler/typeck/expression/calls/local.rs",
+        "crates/terlan/src/compiler/typeck/expression/calls/imported.rs",
+        "crates/terlan/src/compiler/typeck/expression/calls/remote.rs",
+        "compiler/semantic/src/semantic/BindingTypes.terl",
+        "compiler/semantic/src/semantic/BindingTypesTest.terl",
+        "crates/terlan/src/compiler/typeck/binding_type_observations.rs",
+        "crates/terlan/src/compiler/typeck/binding_identity/patterns.rs",
+        "crates/terlan/src/compiler/typeck/expression/control_flow/comprehension.rs",
+        "crates/terlan/src/compiler/typeck/expression/control_flow/function.rs",
+        "crates/terlan/src/compiler/typeck/type_system/substitution.rs",
+        "crates/terlan/src/compiler/typeck/type_system.rs",
+        "compiler/semantic/src/semantic/BoundOrigins.terl",
+        "compiler/semantic/src/semantic/ShapeOrigins.terl",
+        "crates/terlan/src/compiler/syntax/syntax_output/patterns.rs",
+        "crates/terlan/src/compiler/syntax/syntax_output/shapes/declarations.rs",
+        "crates/terlan/src/compiler/typeck/core_const_termination.rs",
+        "crates/terlan/src/compiler/typeck/constructors.rs",
+        "crates/terlan/src/compiler/typeck/declarations.rs",
+        "crates/terlan/src/compiler/typeck/core_lowering/constructor_functions.rs",
+        "crates/terlan/src/compiler/typeck/core_lowering/receiver_defaults.rs",
+        "crates/terlan/src/compiler/typeck/core_lowering_test/interface_and_effects.rs",
+        "crates/terlan/src/compiler/typeck/core_lowering_test/pattern_coverage.rs",
+        "crates/terlan/src/compiler/typeck/patterns/finite_coverage_test.rs",
+        "crates/terlan/src/compiler/value_lifecycle/substitution.rs",
+        "crates/terlan/src/compiler/value_lifecycle/checked_conversion.rs",
+        "compiler/semantic/README.md",
+        "compiler/semantic/scripts/Entities.terls",
+        "compiler/semantic/scripts/Mcp.terls",
+        "compiler/semantic/scripts/Query.terls",
+        "compiler/semantic/scripts/Snapshot.terls",
+        "compiler/semantic/scripts/SourceSet.terls",
+        "compiler/semantic/src/semantic/Catalog.terl",
+        "compiler/semantic/src/semantic/CatalogTest.terl",
+        "compiler/semantic/src/semantic/CompilerBridge.terl",
+        "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "compiler/semantic/src/semantic/CursorStore.terl",
+        "compiler/semantic/src/semantic/CoverageQuery.terl",
+        "compiler/semantic/src/semantic/DeclarationEntities.terl",
+        "compiler/semantic/src/semantic/DeclarationEntitiesTest.terl",
+        "compiler/semantic/src/semantic/Entities.terl",
+        "compiler/semantic/src/semantic/EntitiesTest.terl",
+        "compiler/semantic/src/semantic/EntityLookup.terl",
+        "compiler/semantic/src/semantic/EffectsQuery.terl",
+        "compiler/semantic/src/semantic/GeneratedOriginsTest.terl",
+        "compiler/semantic/src/semantic/ImportOrigins.terl",
+        "compiler/semantic/src/semantic/JsonRules.terl",
+        "compiler/semantic/src/semantic/McpService.terl",
+        "compiler/semantic/src/semantic/PatternEntities.terl",
+        "compiler/semantic/src/semantic/PatternLookup.terl",
+        "compiler/semantic/src/semantic/Query.terl",
+        "compiler/semantic/src/semantic/QueryCursor.terl",
+        "compiler/semantic/src/semantic/QueryProjection.terl",
+        "compiler/semantic/src/semantic/QueryRequest.terl",
+        "compiler/semantic/src/semantic/QueryTest.terl",
+        "compiler/semantic/src/semantic/RelationsQuery.terl",
+        "compiler/semantic/src/semantic/RelationsQueryTest.terl",
+        "compiler/semantic/src/semantic/Snapshot.terl",
+        "compiler/semantic/src/semantic/SnapshotStore.terl",
+        "compiler/semantic/src/semantic/SnapshotTest.terl",
+        "compiler/semantic/src/semantic/SourceSet.terl",
+        "compiler/semantic/src/semantic/SourceSetTest.terl",
+        "compiler/semantic/src/semantic/TypeQuery.terl",
+        "compiler/semantic/terlan.toml",
+        "crates/terlan/src/cli_dispatch.rs",
+        "crates/terlan/src/cli_usage.rs",
+        "crates/terlan/src/commands/check/command.rs",
+        "crates/terlan/src/commands/check/mod.rs",
+        "crates/terlan/src/commands/emit_core.rs",
+        "crates/terlan/src/commands/mod.rs",
+        "crates/terlan/src/commands/run/mod.rs",
+        "crates/terlan/src/commands/semantic.rs",
+        "crates/terlan/src/compiler/native_ir/cranelift/suspension.rs",
+        "crates/terlan/src/compiler/native_ir/cranelift/suspension_test.rs",
+        "crates/terlan/src/compiler/native_ir/lowering_coverage.rs",
+        "crates/terlan/src/compiler/native_ir/transitions.rs",
+        "crates/terlan/src/compiler/syntax/mod.rs",
+        "crates/terlan/src/compiler/syntax/syntax_output.rs",
+        "crates/terlan/src/compiler/syntax/syntax_output/shapes.rs",
+        "crates/terlan/src/compiler/syntax/formatter/grouped_cases.rs",
+        "crates/terlan/src/compiler/syntax/formatter_let_else_test.rs",
+        "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/registry.rs",
+        "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/return_types.rs",
+        "crates/terlan/src/compiler/typeck/core_ir/intrinsics.rs",
+        "crates/terlan/src/compiler/typeck/core_lowering.rs",
+        "crates/terlan/src/compiler/typeck/coverage_observations.rs",
+        "crates/terlan/src/compiler/typeck/requirement_observations.rs",
+        "crates/terlan/src/compiler/typeck/types.rs",
+        "crates/terlan/src/compiler/typeck/declarations/callable_checks.rs",
+        "crates/terlan/src/compiler/typeck/declarations/alias_implications.rs",
+        "crates/terlan/src/compiler/typeck/declarations/exhaustiveness.rs",
+        "crates/terlan/src/compiler/typeck/expression/control_flow.rs",
+        "crates/terlan/src/compiler/typeck/expression/control_flow/let_else.rs",
+        "crates/terlan/src/compiler/typeck/mod.rs",
+        "crates/terlan/src/formal_pipeline.rs",
+        "crates/terlan/src/formal_pipeline/resolution_metadata.rs",
+        "crates/terlan/src/lib.rs",
+        "crates/terlan/src/runtime/native_image/control.rs",
+        "crates/terlan/src/runtime/vm/package_native_helper/capability.rs",
+        "crates/terlan/src/runtime/vm/package_native_helper/capability/console_input.rs",
+        "crates/terlan/src/runtime/vm/pure_native/execution.rs",
+        "crates/terlan/src/runtime/vm/pure_native/execution/capability_arguments_test.rs",
+        "crates/terlan/src/runtime/vm/pure_native/execution/support.rs",
+        "scripts/llm_native/peers/mcp_peer.py",
+        "scripts/llm_native/peers/semantic_peer.py",
+        "std/io/Console.terl",
+        "std/mcp/Protocol.terl",
+        "std/mcp/ProtocolTest.terl",
+        "std/mcp/Stdio.terl",
+        "std/summaries/std.io.Console.typi",
+        "std/summaries/std.mcp.Protocol.typi",
+        "std/summaries/std.mcp.Stdio.typi",
+        "tests/fixtures/llm_native/mcp/query.terl",
+        "tests/fixtures/llm_native/semantic/sources.json",
+    ].

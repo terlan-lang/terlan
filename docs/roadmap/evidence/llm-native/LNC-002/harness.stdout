@@ -1,0 +1,10 @@
+running 8 tests
+test existing_output_is_preserved ... ok
+test unknown_selector_creates_no_output ... ok
+test missing_compiler_creates_no_output ... ok
+test schema_evidence_rejects_stale_missing_duplicate_and_failed_cases ... ok
+test test_evidence_rejects_empty_skipped_and_incomplete_results ... ok
+test unimplemented_milestone_cannot_pass ... ok
+test missing_or_malformed_peer_report_cannot_pass ... ok
+test subprocess_timeout_and_output_limit_fail ... ok
+test result: ok. 8 passed; 0 failed

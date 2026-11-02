@@ -43,6 +43,10 @@ pub(super) fn collect_shapes(module: &Module) -> EbnfCompileResult<BTreeMap<Stri
             .insert(
                 shape.name.clone(),
                 ShapePattern {
+                    origins: vec![super::SyntaxShapeOrigin {
+                        source_module: module.name.clone(),
+                        source_name: shape.name.clone(),
+                    }],
                     params: shape.params.clone(),
                     body,
                     guard,

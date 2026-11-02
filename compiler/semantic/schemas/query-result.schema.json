@@ -1,0 +1,1710 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:query-result:v1",
+  "title": "Terlan semantic query-result v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.query-result.v1"
+    },
+    "snapshot_id": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "unavailable"
+      ]
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fact"
+      },
+      "minItems": 0
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/limitation"
+      },
+      "minItems": 0
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "work_used": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "result_bytes": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "schema",
+    "snapshot_id",
+    "target",
+    "status",
+    "facts",
+    "limitations",
+    "next_cursor",
+    "work_used",
+    "result_bytes"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "maxItems": 0
+          },
+          "next_cursor": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "facts": {
+            "maxItems": 0
+          },
+          "next_cursor": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^s:[0-9a-f]{64}$"
+    },
+    "entity_id": {
+      "type": "string",
+      "pattern": "^e:[0-9a-f]{64}$"
+    },
+    "limitation": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "module",
+            "binding",
+            "function",
+            "type",
+            "trait",
+            "shape",
+            "implication",
+            "pattern",
+            "actor",
+            "protocol",
+            "message"
+          ]
+        },
+        "expected_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "entity_id",
+        "kind",
+        "expected_digest"
+      ],
+      "additionalProperties": false
+    },
+    "fact": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {},
+        "origin_entity_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entity_id"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "kind",
+        "value",
+        "origin_entity_ids"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "checked_semantic_relation"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "$ref": "#/$defs/semantic_relation"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "inferred_binding_type"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "$ref": "#/$defs/inferred_binding_type"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "checked_call_reference"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "$ref": "#/$defs/checked_call_reference"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "requirement_bound": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "trait"
+            },
+            "trait_name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arguments": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "trait_name",
+            "arguments"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "structural_implication"
+            },
+            "subject": {
+              "type": "object"
+            },
+            "required_shape": {
+              "type": "object",
+              "properties": {
+                "Map": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "value": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "required": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "value",
+                      "required"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "Map"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "kind",
+            "subject",
+            "required_shape"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "declaration_requirements": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "const": "checked-declaration-requirements.v1"
+        },
+        "kind": {
+          "enum": [
+            "function",
+            "type"
+          ]
+        },
+        "module": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "span_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "span_end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "type_variables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "declaration": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "declaration"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "parameter_types": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "return_type": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "bounds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement_bound"
+          }
+        }
+      },
+      "required": [
+        "model",
+        "kind",
+        "module",
+        "name",
+        "arity",
+        "span_start",
+        "span_end",
+        "type_variables",
+        "parameter_types",
+        "return_type",
+        "bounds"
+      ],
+      "additionalProperties": false
+    },
+    "trait_conformance": {
+      "type": "object",
+      "properties": {
+        "module": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trait_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "for_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generic_params": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "is_negative": {
+          "type": "boolean"
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "source": {
+          "enum": [
+            "implements",
+            "explicit_impl"
+          ]
+        }
+      },
+      "required": [
+        "module",
+        "trait_ref",
+        "for_type",
+        "generic_params",
+        "is_negative",
+        "public",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "shape_definition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "pattern": {
+          "type": "object"
+        },
+        "guard": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "public": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "params",
+        "pattern",
+        "guard",
+        "public"
+      ],
+      "additionalProperties": false
+    },
+    "semantic_relation": {
+      "type": "object",
+      "properties": {
+        "relation_kind": {
+          "enum": [
+            "trait_definition",
+            "shape_definition",
+            "declaration_requirements",
+            "trait_conformance",
+            "shape_expansion"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "selected_declaration",
+            "containing_module",
+            "selected_pattern"
+          ]
+        },
+        "evidence": {
+          "type": "object"
+        },
+        "resolver_bindings": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "satisfaction_at_call_site": {
+          "const": "requires_verification"
+        },
+        "candidate_set_exhaustive": {
+          "const": false
+        },
+        "bound_origins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bound_origin"
+          }
+        }
+      },
+      "required": [
+        "relation_kind",
+        "scope",
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "relation_kind": {
+                "const": "trait_conformance"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "scope": {
+                "const": "containing_module"
+              },
+              "evidence": {
+                "$ref": "#/$defs/trait_conformance"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "resolver_bindings",
+              "satisfaction_at_call_site",
+              "candidate_set_exhaustive"
+            ],
+            "if": {
+              "properties": {
+                "relation_kind": {
+                  "const": "shape_expansion"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scope": {
+                  "const": "selected_pattern"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/shape_expansion_origin"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "scope": {
+                  "const": "selected_declaration"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_kind": {
+                "const": "shape_definition"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "$ref": "#/$defs/shape_definition"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_kind": {
+                "const": "declaration_requirements"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "$ref": "#/$defs/declaration_requirements"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation_kind": {
+                "const": "trait_definition"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "trait"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "methods": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "super_traits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "constants": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "is_public": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "methods",
+                  "params",
+                  "super_traits",
+                  "constants",
+                  "is_public"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "bound_origin": {
+      "type": "object",
+      "properties": {
+        "bound_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trait_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "entity": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "resolved",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bound_index",
+        "trait_name",
+        "binding",
+        "entity",
+        "status",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "resolved"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "entity": {
+                "type": "object"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "entity": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "shape_expansion_origin": {
+      "type": "object",
+      "properties": {
+        "source_reference": {
+          "type": "object",
+          "properties": {
+            "source_module": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_name": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "source_module",
+            "source_name"
+          ],
+          "additionalProperties": false
+        },
+        "entity": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "resolved",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "source_reference",
+        "entity",
+        "status",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "resolved"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "entity": {
+                "type": "object"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "entity": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "checked_inference_type": {
+      "oneOf": [
+        {
+          "enum": [
+            "Int",
+            "Float",
+            "Number",
+            "Binary",
+            "Atom",
+            "Bool",
+            "Term",
+            "Dynamic",
+            "Never",
+            "Placeholder"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "LiteralAtom": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "LiteralAtom"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "LiteralInt": {
+              "type": "integer",
+              "minimum": -9223372036854775808,
+              "maximum": 9223372036854775807
+            }
+          },
+          "required": [
+            "LiteralInt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "LiteralBool": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "LiteralBool"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Var": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            }
+          },
+          "required": [
+            "Var"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Apply": {
+              "type": "object",
+              "properties": {
+                "constructor": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/checked_inference_type"
+                  }
+                }
+              },
+              "required": [
+                "constructor",
+                "args"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "Apply"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Existential": {
+              "type": "object",
+              "properties": {
+                "params": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 18446744073709551615
+                  }
+                },
+                "body": {
+                  "$ref": "#/$defs/checked_inference_type"
+                }
+              },
+              "required": [
+                "params",
+                "body"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "Existential"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "List": {
+              "$ref": "#/$defs/checked_inference_type"
+            }
+          },
+          "required": [
+            "List"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Tuple": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/checked_inference_type"
+              }
+            }
+          },
+          "required": [
+            "Tuple"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Union": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/checked_inference_type"
+              }
+            }
+          },
+          "required": [
+            "Union"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Map": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/checked_inference_type"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "key",
+                  "value",
+                  "required"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "Map"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Array": {
+              "type": "object",
+              "properties": {
+                "size": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "Known": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 18446744073709551615
+                        }
+                      },
+                      "required": [
+                        "Known"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "Param": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 18446744073709551615
+                        }
+                      },
+                      "required": [
+                        "Param"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "elem": {
+                  "$ref": "#/$defs/checked_inference_type"
+                }
+              },
+              "required": [
+                "size",
+                "elem"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "Array"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Named": {
+              "type": "object",
+              "properties": {
+                "module": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/checked_inference_type"
+                  }
+                }
+              },
+              "required": [
+                "module",
+                "name",
+                "args"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "Named"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "Function": {
+              "type": "object",
+              "properties": {
+                "params": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/checked_inference_type"
+                  }
+                },
+                "ret": {
+                  "$ref": "#/$defs/checked_inference_type"
+                }
+              },
+              "required": [
+                "params",
+                "ret"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "Function"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "checked_binding_identity": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "region": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "parameter",
+            "pattern",
+            "alias",
+            "string_capture"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "span_start": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "span_end": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        }
+      },
+      "required": [
+        "id",
+        "region",
+        "name",
+        "kind",
+        "path",
+        "span_start",
+        "span_end"
+      ],
+      "additionalProperties": false
+    },
+    "inferred_binding_type": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "const": "checked-binding-type.v1"
+        },
+        "module": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding": {
+          "$ref": "#/$defs/checked_binding_identity"
+        },
+        "compiler_type": {
+          "$ref": "#/$defs/checked_inference_type"
+        },
+        "display_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type_encoding": {
+          "const": "terlan.typecheck.type.v1"
+        },
+        "type_variable_scope": {
+          "const": "observation_local"
+        },
+        "scope": {
+          "const": "checked_binding_definition"
+        }
+      },
+      "required": [
+        "model",
+        "module",
+        "binding",
+        "compiler_type",
+        "display_type",
+        "type_encoding",
+        "type_variable_scope",
+        "scope"
+      ],
+      "additionalProperties": false
+    },
+    "call_origin_entity": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "terlan.semantic.entity.v1"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/snapshot_id"
+        },
+        "entity_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "module",
+            "binding",
+            "function",
+            "type",
+            "trait",
+            "shape",
+            "implication",
+            "pattern",
+            "actor",
+            "protocol",
+            "message"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "origin": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "start_byte": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end_byte": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "path",
+            "start_byte",
+            "end_byte"
+          ],
+          "additionalProperties": false
+        },
+        "expanded_from": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entity_id"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "schema",
+        "snapshot_id",
+        "entity_id",
+        "kind",
+        "name",
+        "owner",
+        "digest",
+        "origin",
+        "expanded_from"
+      ],
+      "additionalProperties": false
+    },
+    "checked_call_target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "identity_kind": {
+              "const": "checked_source_declaration"
+            },
+            "module": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arity": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "span_start": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "span_end": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            }
+          },
+          "required": [
+            "identity_kind",
+            "module",
+            "name",
+            "arity",
+            "span_start",
+            "span_end"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "identity_kind": {
+              "const": "checked_interface_signature"
+            },
+            "signature": {
+              "type": "object",
+              "properties": {
+                "module": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arity": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "parameter_types": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "return_type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "generic_params": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "generic_bounds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "receiver_method": {
+                  "type": "boolean"
+                },
+                "receiver_mutable": {
+                  "type": "boolean"
+                },
+                "public": {
+                  "type": "boolean"
+                },
+                "compiler_proven_pure": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "module",
+                "name",
+                "arity",
+                "parameter_types",
+                "return_type",
+                "generic_params",
+                "generic_bounds",
+                "receiver_method",
+                "receiver_mutable",
+                "public",
+                "compiler_proven_pure"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "identity_kind",
+            "signature"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "checked_call_observation": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "const": "checked-call-resolution.v1"
+        },
+        "site": {
+          "type": "object",
+          "properties": {
+            "module": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "span_start": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "span_end": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "span_precision": {
+              "const": "enclosing_syntax"
+            }
+          },
+          "required": [
+            "module",
+            "path",
+            "span_start",
+            "span_end",
+            "span_precision"
+          ],
+          "additionalProperties": false
+        },
+        "status": {
+          "enum": [
+            "resolved",
+            "unavailable"
+          ]
+        },
+        "target": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/checked_call_target"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "model",
+        "site",
+        "status",
+        "target",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "resolved"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "target": {
+                "$ref": "#/$defs/checked_call_target"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "target": {
+                "type": "null"
+              },
+              "reason": {
+                "enum": [
+                  "no_unique_exported_static_target",
+                  "conflicting_resolution_visits"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "checked_call_reference": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "enum": [
+            "checked_calls_in_snapshot",
+            "selected_module_calls"
+          ]
+        },
+        "source_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "observation": {
+          "$ref": "#/$defs/checked_call_observation"
+        },
+        "target_origin": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "const": "resolved"
+                },
+                "entity": {
+                  "$ref": "#/$defs/call_origin_entity"
+                },
+                "reason": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "status",
+                "entity",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "const": "unavailable"
+                },
+                "entity": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "status",
+                "entity",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "scope",
+        "source_path",
+        "source_digest",
+        "observation",
+        "target_origin"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "observation": {
+                "properties": {
+                  "status": {
+                    "const": "unavailable"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "target_origin": {
+                "properties": {
+                  "status": {
+                    "const": "unavailable"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

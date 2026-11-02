@@ -1,0 +1,43 @@
+/** Explicit generic call targets remain callable names rather than runtime indexes. */
+module self_host.ProjectedGenericCallableUseTest.
+
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedSemanticEventAdapter.
+import self_host.ProjectedCallableSyntax.{CallableUse}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.String.
+
+uses(): List[CallableUse] ->
+    let source = String.concat([
+        "module demo.GenericCalls.\n",
+        "single(): List[String] -> List.new[String]().\n",
+        "multiple(): Map[String, Int] -> Map.new[String, Int]().\n",
+        "structural(): List[{Int, String}] -> List.new[{Int, String}]().\n",
+        "runtime(values: List[(Int) -> Int], index: Int): Int -> values[index](1).\n",
+    ]);
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticEventAdapter.adapt_callable_uses(
+        ProjectedFrontend.compile(source, lexed.tokens).bodies,
+    ).
+
+generic_call(value: CallableUse, module_name: String): Bool ->
+    value.module_name == Some(module_name)
+        and value.name == "new"
+        and value.arity == 0.
+
+@test
+pub explicit_type_arguments_preserve_the_static_callable_target(): Bool ->
+    case uses() {
+        [single, multiple, structural, runtime] ->
+            generic_call(single, "List")
+                and generic_call(multiple, "Map")
+                and generic_call(structural, "List")
+                and runtime.module_name == None
+                and runtime.name == "["
+                and runtime.arity == 1;
+        _ -> false
+    }.
+
+pub self_test(): Bool -> explicit_type_arguments_preserve_the_static_callable_target().

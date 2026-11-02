@@ -1,0 +1,346 @@
+/**
+ * Shared semantic query execution with exact selection and bounded result pages.
+ */
+module semantic.Query.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.QueryProjection.{Stream}.
+import semantic.QueryRequest.{Request}.
+import semantic.{EntityLookup, QueryCursor, QueryProjection, QueryRequest, SnapshotStore}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+struct Page {
+    facts: Json,
+    offset: Int,
+    work_used: Int,
+    truncated: Bool,
+}.
+
+/**
+ * Canonical JSON byte size includes this field itself, excluding a wire newline.
+ */
+size(mut document: Json, remaining: Int): Result[Json, Failure] ->
+    let {
+        Ok(field) <- document.get("result_bytes");
+        Ok(recorded) <- field.as_int()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.result",
+                    message = "Result byte accounting is missing.",
+                ),
+            )
+    };
+    (let actual = Json.to_string(document).byte_size();
+if {
+    actual == recorded -> Ok(document);
+    remaining > 0 -> let _size = document.put("result_bytes", Json.int(actual));
+    size(document, remaining - 1);
+    true -> Err(
+        Failure(
+            code = "semantic.query.result",
+            message = "Canonical byte accounting did not converge.",
+        ),
+    )
+}).
+
+result(
+    request: Request,
+    facts: Json,
+    status: String,
+    limits: Json,
+    cursor: Json,
+    used: Int,
+): Result[Json, Failure] ->
+    size(
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.query-result.v1"))
+            .put("snapshot_id", Json.string(request.snapshot_id))
+            .put("target", QueryRequest.target_json(request.target))
+            .put("status", Json.string(status))
+            .put("facts", facts)
+            .put("limitations", limits)
+            .put("next_cursor", cursor)
+            .put("work_used", Json.int(used))
+            .put("result_bytes", Json.int(0)),
+        8,
+    ).
+
+page_limit(): Json ->
+    QueryProjection.limitation(
+        "semantic.query.page_limit",
+        "Result is incomplete because this page reached a work or byte budget. Continue with the returned cursor; page limits may be increased.",
+    ).
+
+/**
+ * Reserve a continuation envelope before adding payload, with no silent overrun.
+ */
+payload_budget(request: Request, limits: Json): Result[Int, Failure] ->
+    let Ok(copy) <- Json.parse(Json.to_string(limits)) else {
+        _ ->
+            Err(
+                Failure(code = "semantic.query.result", message = "Cannot copy result limitations."),
+            )
+    };
+    (let _limit = copy.push(page_limit());
+(let Ok(envelope) <-
+    result(
+        request,
+        Json.array(),
+        "partial",
+        copy,
+        Json.string("c:0000000000000000000000000000000000000000000000000000000000000000"),
+        request.limits.max_work,
+    ) else {
+    Err(reason) -> Err(reason)
+};
+(let bytes = Json.to_string(envelope).byte_size();
+if {
+    bytes < request.limits.max_bytes -> Ok(request.limits.max_bytes - bytes);
+    true -> Err(
+        Failure(
+            code = "semantic.query.byte_limit",
+            message = "Byte budget is smaller than the required result metadata and continuation envelope.",
+        ),
+    )
+}))).
+
+scan(
+    selection: Selection,
+    prepared: Stream,
+    request: Request,
+    mut facts: Json,
+    index: Int,
+    count: Int,
+    used: Int,
+    payload_bytes: Int,
+    maximum_payload: Int,
+): Result[Page, Failure] ->
+    if {
+        index == count -> Ok(Page(facts = facts, offset = index, work_used = used, truncated = false));
+        used == request.limits.max_work -> Ok(Page(facts = facts, offset = index, work_used = used, truncated = true));
+        true -> let {
+            Ok(row) <- prepared.rows.at(index);
+            Ok(projected) <- QueryProjection.project(selection, prepared, row)
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.projection",
+                        message = "Cannot project the selected compiler record.",
+                    ),
+                )
+        };
+        if {
+            projected.is_null() -> scan(
+                selection,
+                prepared,
+                request,
+                facts,
+                index + 1,
+                count,
+                used + 1,
+                payload_bytes,
+                maximum_payload,
+            );
+            true -> let Ok(length) <- facts.length() else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.result",
+                            message = "Query page inventory is malformed.",
+                        ),
+                    )
+            };
+            (let next_bytes =
+    payload_bytes + Json.to_string(projected).byte_size() + if {
+    length > 0 -> 1;
+    true -> 0
+};
+if {
+    next_bytes > maximum_payload and length == 0 -> Err(
+        Failure(
+            code = "semantic.query.byte_limit",
+            message = "A selected fact exceeds this page's byte budget. Increase the budget or select a narrower semantic entity.",
+        ),
+    );
+    next_bytes > maximum_payload -> Ok(Page(facts = facts, offset = index, work_used = used + 1, truncated = true));
+    true -> let _fact = facts.push(projected);
+    scan(
+        selection,
+        prepared,
+        request,
+        facts,
+        index + 1,
+        count,
+        used + 1,
+        next_bytes,
+        maximum_payload,
+    )
+})
+        }
+    }.
+
+continuation(
+    store: String,
+    request: Request,
+    projection: String,
+    page: Page,
+    mut limits: Json,
+): Result[Json, Failure] ->
+    if {
+        page.truncated -> let Ok(id) <- QueryCursor.save(store, request, projection, page.offset) else {
+            Err(reason) -> Err(reason)
+        };
+        (let _limit = limits.push(page_limit()); Ok(Json.string(id)));
+        true -> Ok(Json.null())
+    }.
+
+/**
+ * Typed callers receive the same validation as JSON/MCP/CLI callers.
+ */
+pub execute(store: String, request: Request): Result[Json, Failure] ->
+    let true <- QueryRequest.valid(request) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.constraints",
+                    message = "Invalid semantic query request.",
+                ),
+            )
+    };
+    (let {
+    Ok(snapshot) <- SnapshotStore.load(store, request.snapshot_id);
+    Ok(artifact) <- SnapshotStore.compiler_artifact(store, request.snapshot_id)
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.snapshot",
+                message = "Snapshot is missing, corrupt, or incomplete.",
+            ),
+        )
+};
+(let Ok(selection) <- EntityLookup.resolve(artifact, request) else {
+    Err(reason) -> Err(reason)
+};
+(let Ok(prepared) <- QueryProjection.prepare(selection, request.fact, request.limits.max_work) else {
+    Err(reason) -> Err(reason)
+};
+(let projection =
+    Hash.sha256_domain_framed(
+        "terlan.semantic.query-projection.v1",
+        [
+            prepared.format,
+            prepared.status,
+            Json.to_string(prepared.rows),
+            Json.to_string(prepared.limitations),
+        ],
+    );
+(let Ok(offset) <- QueryCursor.load(store, request, projection) else {
+    Err(reason) -> Err(reason)
+};
+(let Ok(count) <- prepared.rows.length() else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Compiler record stream is malformed.",
+            ),
+        )
+};
+(let true <- offset <= count else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.cursor.offset",
+                message = "Continuation is outside the selected compiler record stream.",
+            ),
+        )
+};
+(let Ok(limits) <- Json.parse(Json.to_string(prepared.limitations)) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.result",
+                message = "Cannot preserve query analysis limits.",
+            ),
+        )
+};
+(let invalid_context =
+    case snapshot.get("analysis") {
+        Ok(analysis) -> EntityLookup.text(analysis, "status") == "invalid";
+        _ -> true
+    };
+let _invalid =
+    if {
+        invalid_context -> limits
+            .push(
+                QueryProjection.limitation(
+                    "semantic.query.invalid_context",
+                    "Some snapshot sources were rejected; available facts are conditional on the declared interface context.",
+                ),
+            );
+        true -> limits
+    };
+(let Ok(maximum_payload) <- payload_budget(request, limits) else {
+    Err(reason) -> Err(reason)
+};
+(let Ok(page) <-
+    scan(
+        selection,
+        prepared,
+        request,
+        Json.array(),
+        offset,
+        count,
+        prepared.work_used,
+        0,
+        maximum_payload,
+    ) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- not page.truncated or page.offset > offset else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Work budget was exhausted by selection and preparation. Increase it to make page progress.",
+            ),
+        )
+};
+(let Ok(cursor) <- continuation(store, request, projection, page, limits) else {
+    Err(reason) -> Err(reason)
+};
+(let status =
+    if {
+        prepared.status == "unavailable" -> "unavailable";
+        page.truncated or invalid_context -> "partial";
+        true -> prepared.status
+    };
+(let Ok(document) <- result(request, page.facts, status, limits, cursor, page.work_used) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- Json.to_string(document).byte_size() <= request.limits.max_bytes else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.byte_limit",
+                message = "Canonical result exceeds the requested byte budget.",
+            ),
+        )
+};
+Ok(document))))))))))))))))).
+
+pub run(store: String, value: Json): Result[Json, Failure] ->
+    let Ok(request) <- QueryRequest.parse(value) else {
+        Err(reason) -> Err(reason)
+    };
+    execute(store, request).

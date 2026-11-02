@@ -1,0 +1,344 @@
+/**
+ * Snapshot-bound catalog and exact entity selection shared by service clients.
+ */
+module semantic.Catalog.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{DeclarationEntities, Entities, PatternEntities, SnapshotStore}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+pub module_entity(artifact: Json, module_name: String, snapshot: String): Json ->
+    let id =
+        "e:" + Hash.sha256_domain_framed(
+    "terlan.semantic.module-entity.v1",
+    [text(artifact, "source_name"), module_name],
+);
+    let origin =
+        Json.object()
+            .put("path", Json.string(text(artifact, "source_name")))
+            .put("start_byte", Json.int(0))
+            .put("end_byte", Json.int(0));
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put("entity_id", Json.string(id))
+        .put("kind", Json.string("module"))
+        .put("name", Json.string(module_name))
+        .put("owner", Json.null())
+        .put("digest", Json.string(Hash.sha256(Json.to_string(artifact))))
+        .put("origin", origin)
+        .put("expanded_from", Json.array()).
+
+/**
+ * A partial catalog names its unsupported origin precision and semantic scope.
+ * Invalid source never substitutes a guessed module or stale typed entities.
+ */
+pub index(store: String, snapshot: String): Result[Json, Failure] ->
+    let Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot) else {
+        Err(reason) -> Err(reason)
+    };
+    from_artifact(artifact, snapshot).
+
+implementation_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    let checked = text(artifact, "status") == "checked";
+    let rows = Json.array();
+    let limits = Json.array();
+    let collected =
+        if {
+            checked -> let {
+                Ok(core) <- artifact.get("core");
+                Ok(declarations) <- DeclarationEntities.from_artifact(artifact, snapshot);
+                Ok(lexical) <- Entities.from_artifact(artifact, snapshot);
+                Ok(bindings) <- lexical.get("entities");
+                Ok(patterns) <- PatternEntities.from_artifact(artifact, snapshot)
+            } else {
+                _ -> false
+            };
+            (let _module = rows.push(module_entity(artifact, text(core, "module"), snapshot));
+let _declarations = rows.extend(declarations);
+let _bindings = rows.extend(bindings);
+let _patterns = rows.extend(patterns);
+let _scope =
+    limits
+        .push(
+            Json.object()
+                .put("code", Json.string("semantic.catalog.partial_scope"))
+                .put(
+                    "message",
+                    Json.string(
+                        "Catalog covers one checked source, lexical bindings, supported declarations and their patterns; dependency implementations and other entity categories are unavailable.",
+                    ),
+                ),
+        );
+let _origins =
+    limits
+        .push(
+            Json.object()
+                .put("code", Json.string("semantic.catalog.origin_precision"))
+                .put(
+                    "message",
+                    Json.string(
+                        "Module has a file anchor; other ranges are enclosing compiler syntax. Expanded origin chains and exact identifier token ranges are not exported.",
+                    ),
+                ),
+        );
+true);
+            true -> let _unavailable =
+                limits
+                    .push(
+                        Json.object()
+                            .put("code", Json.string("semantic.catalog.unavailable"))
+                            .put(
+                                "message",
+                                Json.string(
+                                    "Checked implementation entities are unavailable for this source.",
+                                ),
+                            ),
+                    );
+            true
+        };
+    let true <- collected else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.catalog.incomplete",
+                    message = "Cannot construct a consistent compiler entity catalog.",
+                ),
+            )
+    };
+    Ok(
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.entity-index.v1"))
+            .put("snapshot_id", Json.string(snapshot))
+            .put(
+                "status",
+                Json.string(
+                    if {
+                        checked -> "partial";
+                        true -> "unavailable"
+                    },
+                ),
+            )
+            .put("span_precision", Json.string("enclosing_syntax_or_file_anchor"))
+            .put("entities", rows)
+            .put("limitations", limits),
+    ).
+
+interface_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    let name = text(artifact, "module_name");
+    let true <- name != "" else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.catalog.interface_origin",
+                    message = "This bootstrap export does not expose the checked interface module identity.",
+                ),
+            )
+    };
+    (let Ok(declarations) <- DeclarationEntities.from_artifact(artifact, snapshot) else {
+    Err(reason) -> Err(reason)
+};
+(let rows = Json.array().push(module_entity(artifact, name, snapshot)).extend(declarations);
+let limits =
+    Json.array()
+        .push(
+            Json.object()
+                .put("code", Json.string("semantic.catalog.interface_only"))
+                .put(
+                    "message",
+                    Json.string(
+                        "Checked interface declarations are available; implementation bindings, inferred bodies, exact token origins, and expanded origin chains are unavailable.",
+                    ),
+                ),
+        );
+Ok(
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity-index.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put("status", Json.string("partial"))
+        .put("span_precision", Json.string("enclosing_syntax_or_file_anchor"))
+        .put("entities", rows)
+        .put("limitations", limits),
+))).
+
+bundle_rows(mut output: Json, units: Json, snapshot: String, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(source_row) <- units.at(index);
+            Ok(artifact) <- source_row.get("export");
+            Ok(catalog) <- from_artifact(artifact, snapshot);
+            Ok(rows) <- catalog.get("entities")
+        } else {
+            _ -> false
+        };
+        (let _entities = output.extend(rows); bundle_rows(output, units, snapshot, index + 1, count))
+    }.
+
+bundle_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    let {
+        Ok(units) <- artifact.get("units");
+        Ok(count) <- units.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.catalog.incomplete",
+                    message = "Compiler source-set inventory is missing.",
+                ),
+            )
+    };
+    (let rows = Json.array();
+(let true <- count > 0 and bundle_rows(rows, units, snapshot, 0, count) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.catalog.incomplete",
+                message = "Cannot index the complete frozen source set.",
+            ),
+        )
+};
+(let Ok(entity_count) <- rows.length() else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.catalog.incomplete",
+                message = "Cannot count source-set entities.",
+            ),
+        )
+};
+(let limits =
+    Json.array()
+        .push(
+            Json.object()
+                .put("code", Json.string("semantic.catalog.source_set"))
+                .put(
+                    "message",
+                    Json.string(
+                        "Catalog covers the supplied frozen sources and checked interfaces. External implementations, exact identifier token ranges, expanded origin chains and other entity categories remain unavailable.",
+                    ),
+                ),
+        );
+let _invalid =
+    if {
+        text(artifact, "status") == "invalid" -> limits
+            .push(
+                Json.object()
+                    .put("code", Json.string("semantic.catalog.rejected_unit"))
+                    .put(
+                        "message",
+                        Json.string(
+                            "Some sources were rejected; available facts are conditional on the declared interface context and do not establish whole-program validity.",
+                        ),
+                    ),
+            );
+        true -> limits
+    };
+Ok(
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity-index.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put(
+            "status",
+            Json.string(
+                if {
+                    entity_count > 0 -> "partial";
+                    true -> "unavailable"
+                },
+            ),
+        )
+        .put("span_precision", Json.string("enclosing_syntax_or_file_anchor"))
+        .put("entities", rows)
+        .put("limitations", limits),
+))))).
+
+/**
+ * Projects admitted unit or source-set artifacts into one snapshot catalog.
+ */
+pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    if {
+        text(artifact, "schema") == "terlan.semantic.core-bundle.v1" -> bundle_catalog(artifact, snapshot);
+        text(artifact, "status") == "interface_only" -> interface_catalog(artifact, snapshot);
+        true -> implementation_catalog(artifact, snapshot)
+    }.
+
+find(rows: Json, id: String, index: Int, count: Int): Result[Json, Failure] ->
+    let true <- index < count else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entity.absent",
+                    message = "Entity is absent from this snapshot; no name or position fallback is permitted.",
+                ),
+            )
+    };
+    (let Ok(row) <- rows.at(index) else {
+    _ ->
+        Err(
+            Failure(code = "semantic.catalog.incomplete", message = "Entity catalog is incomplete."),
+        )
+};
+if {
+    text(row, "entity_id") == id -> Ok(row);
+    true -> find(rows, id, index + 1, count)
+}).
+
+/**
+ * Entity selection always requires snapshot, identity, kind, and content.
+ */
+pub resolve(
+    store: String,
+    snapshot: String,
+    id: String,
+    expected_kind: String,
+    expected_digest: String,
+): Result[Json, Failure] ->
+    let {
+        Ok(catalog) <- index(store, snapshot);
+        Ok(rows) <- catalog.get("entities");
+        Ok(count) <- rows.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entity.snapshot",
+                    message = "Cannot resolve against an unavailable snapshot.",
+                ),
+            )
+    };
+    (let Ok(entity) <- find(rows, id, 0, count) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- text(entity, "kind") == expected_kind else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.entity.kind",
+                message = "Selected entity has a different semantic kind.",
+            ),
+        )
+};
+(let true <- text(entity, "digest") == expected_digest else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.entity.stale",
+                message = "Entity content changed; refresh selection from the requested snapshot.",
+            ),
+        )
+};
+Ok(entity)))).

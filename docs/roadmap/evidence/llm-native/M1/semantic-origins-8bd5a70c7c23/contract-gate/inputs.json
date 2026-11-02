@@ -1,0 +1,22 @@
+{
+  "compiler_arguments": [],
+  "compiler_digest": "aba5d5189b0e9b64ce8b9c3cad334b0a0c9c752f8949199854fb3a931ba493c2",
+  "contract_source_digest": "93c7a5ef567c7cc0aa7d6c4a8998065e335351b261da9f692806e6aec37bc29e",
+  "execution_policy": "authored-gate-tests-and-independent-peers; candidate execution disabled",
+  "gate_source_digest": "8bd5a70c7c2338f265f8f596151b7865bf4e46aaba4082ce1701a802cfd5de3a",
+  "stdlib_tree_digest": "b9fc62766a610541c29a2b68b8a8af2c34e03bf0de88ce7358d3171e9ce87df5",
+  "toolchain": {
+    "adapter_abi": "public-adapter-abi-1:x86_64-unknown-linux-gnu:system_v:1048576:16777216:opaque-handles:explicit-context:explicit-capabilities:scoped-resources:status-values:callbacks-forbidden:single-shot",
+    "architecture": "x86_64",
+    "backend": "cranelift-0.134.4",
+    "build_policy": "39d1d27f1563bd791b4e5d7853e3257e6c8545a75ce2adb515b0bada8e3aafaa",
+    "cache_schema": "terlan-native-codegen-v5",
+    "calling_convention": "system_v",
+    "codegen_revision": "6914ed8010b500d08d733a01be66bc4e2fae22dd68c4602d87ff361c3df7141d",
+    "compiler_version": "0.10.0",
+    "linker_identity": "05689f838e9fb264f42177ebff1f733288d4426d1dd0d7f9e1598dd413083904",
+    "operating_system": "linux",
+    "schema": "terlan.native-toolchain-identity.v1",
+    "target": "x86_64-unknown-linux-gnu"
+  }
+}

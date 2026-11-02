@@ -340,7 +340,7 @@ pub(super) fn native_function(
     NativeFunction {
         export_id: stable_export_id(module_name, &function.name, function.arity),
         name: function.name.clone(),
-        public: true,
+        public: function.capture_count == 0,
         arity: function.arity,
         source_module: module_name.to_owned(),
         source_function: function.name.clone(),

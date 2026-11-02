@@ -52,6 +52,8 @@ pub struct CallableUse {
     arity: Int,
     argument_offsets: List[Int],
     byte_offset: Int,
+    node_id: Int,
+    argument_node_ids: List[Int],
 }.
 
 pub constructor CallableUse {
@@ -62,6 +64,18 @@ pub constructor CallableUse {
             arity: arity,
             argument_offsets: argument_offsets,
             byte_offset: byte_offset,
+            node_id: -1,
+            argument_node_ids: List.new[Int](),
+        };
+    (module_name: Option[String], name: String, arity: Int, argument_offsets: List[Int], byte_offset: Int, node_id: Int, argument_node_ids: List[Int]): CallableUse ->
+        CallableUse {
+            module_name: module_name,
+            name: name,
+            arity: arity,
+            argument_offsets: argument_offsets,
+            byte_offset: byte_offset,
+            node_id: node_id,
+            argument_node_ids: argument_node_ids,
         }
 }.
 

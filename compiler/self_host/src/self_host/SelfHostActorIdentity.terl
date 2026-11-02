@@ -7,7 +7,6 @@ import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.{Int, String}.
 import std.crypto.Hash.
-import std.vm.BitString.
 import std.vm.Bytes.
 
 
@@ -25,7 +24,14 @@ utf8_bytes(value: String): Bytes -> Bytes.from_list(utf8_bytes_at(value, 0)).
 zero(): Bytes -> Bytes.from_list([0]).
 
 @pure
-uint64_le(value: Int): Bytes -> BitString.from_uint_le(value, 64).to_bytes().
+uint64_le_bytes(value: Int, remaining: Int): List[Int] ->
+    if {
+        remaining == 0 -> List.new[Int]();
+        true -> [value rem 256 | uint64_le_bytes(value div 256, remaining - 1)]
+    }.
+
+@pure
+uint64_le(value: Int): Bytes -> Bytes.from_list(uint64_le_bytes(value, 8)).
 
 @pure
 append(left: Bytes, right: Bytes): Bytes -> Bytes.concat(left, right).

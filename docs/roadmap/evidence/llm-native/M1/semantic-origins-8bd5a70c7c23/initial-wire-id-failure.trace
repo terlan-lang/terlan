@@ -1,0 +1,39 @@
+Traceback (most recent call last):
+  File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 281, in main
+    report = asyncio.run(validate(args))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 251, in validate
+    types.JSONRPCMessage.model_validate(reply, strict=True)
+  File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/pydantic/main.py", line 792, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 9 validation errors for JSONRPCMessage
+JSONRPCRequest.method
+  Field required [type=missing, input_value={'error': {'code': -32700... None, 'jsonrpc': '2.0'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.14/v/missing
+JSONRPCRequest.id.int
+  Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.14/v/int_type
+JSONRPCRequest.id.str
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.14/v/string_type
+JSONRPCNotification.method
+  Field required [type=missing, input_value={'error': {'code': -32700... None, 'jsonrpc': '2.0'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.14/v/missing
+JSONRPCResponse.id.int
+  Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.14/v/int_type
+JSONRPCResponse.id.str
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.14/v/string_type
+JSONRPCResponse.result
+  Field required [type=missing, input_value={'error': {'code': -32700... None, 'jsonrpc': '2.0'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.14/v/missing
+JSONRPCError.id.str
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.14/v/string_type
+JSONRPCError.id.int
+  Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.14/v/int_type

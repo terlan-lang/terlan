@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:query:v1",
+  "title": "Terlan semantic query v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.query.v1"
+    },
+    "snapshot_id": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "fact": {
+      "type": "string",
+      "enum": [
+        "declaration",
+        "definition",
+        "references",
+        "type",
+        "interface",
+        "conformance",
+        "effects",
+        "ownership",
+        "pattern_coverage",
+        "core",
+        "expected_values",
+        "legal_transformations",
+        "impact"
+      ]
+    },
+    "limits": {
+      "$ref": "#/$defs/limits"
+    },
+    "cursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "snapshot_id",
+    "target",
+    "fact",
+    "limits",
+    "cursor"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^s:[0-9a-f]{64}$"
+    },
+    "entity_id": {
+      "type": "string",
+      "pattern": "^e:[0-9a-f]{64}$"
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "module",
+            "binding",
+            "function",
+            "type",
+            "trait",
+            "shape",
+            "implication",
+            "pattern",
+            "actor",
+            "protocol",
+            "message"
+          ]
+        },
+        "expected_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "entity_id",
+        "kind",
+        "expected_digest"
+      ],
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "max_work": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        }
+      },
+      "required": [
+        "max_bytes",
+        "max_work"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

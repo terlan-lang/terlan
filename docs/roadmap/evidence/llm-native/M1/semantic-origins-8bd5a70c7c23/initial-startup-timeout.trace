@@ -1,0 +1,74 @@
+  + Exception Group Traceback (most recent call last):
+  |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 273, in main
+  |     report = asyncio.run(validate(args))
+  |   File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+  |     return loop.run_until_complete(main)
+  |   File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+  |     return future.result()
+  |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 41, in validate
+  |     async with stdio_client(parameters, errlog=errlog) as (incoming, outgoing):
+  |   File "/usr/lib/python3.10/contextlib.py", line 217, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/client/stdio/__init__.py", line 182, in stdio_client
+  |     async with (
+  |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | exceptiongroup.ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/client/stdio/__init__.py", line 189, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 42, in validate
+    |     async with ClientSession(incoming, outgoing, read_timeout_seconds=timedelta(seconds=120)) as client:
+    |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | exceptiongroup.ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/streams/memory.py", line 119, in receive
+      |     return self.receive_nowait()
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/streams/memory.py", line 114, in receive_nowait
+      |     raise WouldBlock
+      | anyio._core._exceptions.WouldBlock
+      |
+      | During handling of the above exception, another exception occurred:
+      |
+      | Traceback (most recent call last):
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_core/_tasks.py", line 152, in fail_at
+      |     yield cancel_scope
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_core/_tasks.py", line 179, in fail_after
+      |     yield scope
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/shared/session.py", line 292, in send_request
+      |     response_or_error = await response_stream_reader.receive()
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/streams/memory.py", line 131, in receive
+      |     await receive_event.wait()
+      |   File "/usr/lib/python3.10/asyncio/locks.py", line 214, in wait
+      |     await fut
+      | asyncio.exceptions.CancelledError: Cancelled via cancel scope 72f383263ce0; reason: deadline exceeded
+      |
+      | During handling of the above exception, another exception occurred:
+      |
+      | Traceback (most recent call last):
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/shared/session.py", line 291, in send_request
+      |     with anyio.fail_after(timeout):
+      |   File "/usr/lib/python3.10/contextlib.py", line 153, in __exit__
+      |     self.gen.throw(typ, value, traceback)
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_core/_tasks.py", line 178, in fail_after
+      |     with fail_at(deadline, shield=shield, reason=reason) as scope:
+      |   File "/usr/lib/python3.10/contextlib.py", line 153, in __exit__
+      |     self.gen.throw(typ, value, traceback)
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_core/_tasks.py", line 155, in fail_at
+      |     raise TimeoutError(reason) if reason else TimeoutError
+      | TimeoutError
+      |
+      | During handling of the above exception, another exception occurred:
+      |
+      | Traceback (most recent call last):
+      |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 43, in validate
+      |     initialized = await client.initialize()
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/client/session.py", line 171, in initialize
+      |     result = await self.send_request(
+      |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/shared/session.py", line 294, in send_request
+      |     raise McpError(
+      | mcp.shared.exceptions.McpError: Timed out while waiting for response to ClientRequest. Waited 120.0 seconds.
+      +------------------------------------

@@ -1,0 +1,165 @@
+/**
+ * Exact authored query and independent-client acceptance membership.
+ */
+module llm_native.QueryInventory.
+
+import llm_native.Evidence.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.File.
+
+import type std.core.{Option, Result}.
+import type std.data.Json.
+
+pub suites(): List[String] ->
+    [
+        "QueryTest",
+        "RelationsQueryTest",
+        "BindingTypesTest",
+        "CallReferencesTest",
+        "GeneratedOriginsTest",
+        "QueryGateTest",
+        "ProtocolTest",
+    ].
+
+pub source(name: String): String ->
+    if {
+        name == "QueryGateTest" -> "scripts/llm_native/src/llm_native/QueryGateTest.terl";
+        name == "ProtocolTest" -> "std/mcp/ProtocolTest.terl";
+        true -> "compiler/semantic/src/semantic/" + name + ".terl"
+    }.
+
+pub names_json(names: List[String]): Json ->
+    case names {
+        [] -> Json.array();
+        [name | rest] ->
+            let result = Json.array().push(Json.string(name));
+            result.extend(names_json(rest))
+    }.
+
+find(rows: Json, name: String, index: Int, count: Int): Option[Json] ->
+    if {
+        index == count -> None;
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> None
+        };
+        if {
+            Evidence.text(row, "suite") == name -> Some(row);
+            true -> find(rows, name, index + 1, count)
+        }
+    }.
+
+pub suite(inventory: Json, name: String): Option[Json] ->
+    let {
+        Ok(rows) <- inventory.get("suites");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> None
+    };
+    find(rows, name, 0, count).
+
+pub tests(inventory: Json, name: String): Option[List[String]] ->
+    let {
+        Some(row) <- suite(inventory, name);
+        Ok(rows) <- row.get("tests")
+    } else {
+        _ -> None
+    };
+    Evidence.ids(rows, "name").
+
+pub mcp_names(inventory: Json, large: Bool): Option[List[String]] ->
+    let Ok(rows) <-
+        inventory
+            .get(
+                if {
+                    large -> "large_mcp_cases";
+                    true -> "mcp_cases"
+                },
+            ) else {
+        _ -> None
+    };
+    Evidence.ids(rows, "id").
+
+valid_suites(inventory: Json, names: List[String]): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let {
+                Some(row) <- suite(inventory, name);
+                Some(expected) <- tests(inventory, name)
+            } else {
+                _ -> false
+            };
+            Evidence.text(row, "source") == source(name)
+                and not List.is_empty(expected)
+                and valid_suites(inventory, rest)
+    }.
+
+pub valid(inventory: Json): Bool ->
+    let {
+        Ok(rows) <- inventory.get("suites");
+        Some(actual) <- Evidence.ids(rows, "suite");
+        Some(base) <- mcp_names(inventory, false);
+        Some(large) <- mcp_names(inventory, true);
+        Ok(facts) <- inventory.get("query_facts")
+    } else {
+        _ -> false
+    };
+    Evidence.text(inventory, "schema") == "terlan.semantic.query-gate-cases.v1"
+        and List.length(actual) == List.length(suites())
+        and List.is_empty(List.subtract(actual, suites()))
+        and valid_suites(inventory, suites())
+        and List.length(base) >= 34
+        and List.length(large) == List.length(base) + 1
+        and List.is_empty(List.subtract(base, large))
+        and Evidence.contains(large, "mcp.resource-continuation-survives-reconnect")
+        and Json.to_string(facts) == Json.to_string(
+    names_json(
+        [
+            "declaration",
+            "definition",
+            "references",
+            "type",
+            "interface",
+            "conformance",
+            "effects",
+            "ownership",
+            "pattern_coverage",
+            "core",
+            "expected_values",
+            "legal_transformations",
+        ],
+    ),
+)
+        and Evidence.number(inventory, "large_constant_functions") == 1_500.
+
+pub load(root: String): Result[Json, Bool] ->
+    let {
+        Ok(contents) <- File.read_text(root + "/tests/fixtures/llm_native/semantic/query-gate.json");
+        Ok(inventory) <- Json.parse(contents);
+        true <- valid(inventory)
+    } else {
+        _ -> Err(false)
+    };
+    Ok(inventory).
+
+test_count(inventory: Json, names: List[String]): Int ->
+    case names {
+        [] -> 0;
+        [name | rest] ->
+            case tests(inventory, name) {
+                Some(expected) -> List.length(expected) + test_count(inventory, rest);
+                _ -> 0
+            }
+    }.
+
+pub expected_test_count(inventory: Json): Int ->
+    test_count(inventory, suites()).
+
+pub mcp_count(inventory: Json, large: Bool): Int ->
+    case mcp_names(inventory, large) {
+        Some(names) -> List.length(names);
+        _ -> 0
+    }.

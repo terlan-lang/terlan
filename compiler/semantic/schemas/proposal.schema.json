@@ -1,0 +1,264 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:proposal:v1",
+  "title": "Terlan semantic proposal v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.proposal.v1"
+    },
+    "intent_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "base_snapshot": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "rename_symbol",
+        "add_function",
+        "replace_body",
+        "implement_trait",
+        "resolve_exhaustiveness",
+        "add_actor_message",
+        "edit_actor_transition"
+      ]
+    },
+    "target": {
+      "$ref": "#/$defs/target"
+    },
+    "arguments": {
+      "type": "object"
+    },
+    "preconditions": {
+      "$ref": "#/$defs/preconditions"
+    },
+    "compatibility": {
+      "$ref": "#/$defs/compatibility"
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/obligation"
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema",
+    "intent_digest",
+    "base_snapshot",
+    "operation",
+    "target",
+    "arguments",
+    "preconditions",
+    "compatibility",
+    "obligations"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "rename_symbol"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "arguments": {
+            "type": "object",
+            "properties": {
+              "new_name": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "new_name"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "replace_body"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "arguments": {
+            "type": "object",
+            "properties": {
+              "body_source": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "body_source"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "add_function"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "arguments": {
+            "type": "object",
+            "properties": {
+              "declaration_source": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "declaration_source"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^s:[0-9a-f]{64}$"
+    },
+    "entity_id": {
+      "type": "string",
+      "pattern": "^e:[0-9a-f]{64}$"
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "$ref": "#/$defs/entity_id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "module",
+            "binding",
+            "function",
+            "type",
+            "trait",
+            "shape",
+            "implication",
+            "pattern",
+            "actor",
+            "protocol",
+            "message"
+          ]
+        },
+        "expected_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "entity_id",
+        "kind",
+        "expected_digest"
+      ],
+      "additionalProperties": false
+    },
+    "preconditions": {
+      "type": "object",
+      "properties": {
+        "source_closure_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "entity_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "dependency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "policy_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "source_closure_digest",
+        "entity_digest",
+        "dependency_digest",
+        "policy_digest"
+      ],
+      "additionalProperties": false
+    },
+    "obligation": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/entity_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "code",
+        "entity_id",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "compatibility": {
+      "type": "object",
+      "properties": {
+        "public_api": {
+          "type": "string",
+          "enum": [
+            "preserve",
+            "allow_breaking"
+          ]
+        },
+        "abi": {
+          "type": "string",
+          "enum": [
+            "preserve",
+            "allow_breaking"
+          ]
+        }
+      },
+      "required": [
+        "public_api",
+        "abi"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

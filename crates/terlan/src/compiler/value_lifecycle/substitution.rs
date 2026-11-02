@@ -628,6 +628,7 @@ pub(super) fn value_to_pattern(value: &ConstValue) -> Option<SyntaxPatternOutput
             representation,
         } => {
             return Some(SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::Constructor,
                 arity: 1,
                 text: Some(format!("$const:{name}.{arm}")),
@@ -638,6 +639,7 @@ pub(super) fn value_to_pattern(value: &ConstValue) -> Option<SyntaxPatternOutput
         ConstValue::Array(_) => return None,
     };
     Some(SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind,
         arity: children.len(),
         text,

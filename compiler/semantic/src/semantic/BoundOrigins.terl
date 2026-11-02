@@ -1,0 +1,159 @@
+/**
+ * Bound provider links from checked trait identities and resolver bindings.
+ */
+module semantic.BoundOrigins.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.ImportOrigins.{Found}.
+import semantic.{DeclarationEntities, EntityLookup, ImportOrigins}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    origins: Json,
+    work_used: Int,
+}.
+
+local(
+    selection: Selection,
+    name: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    if {
+        index == count -> Ok(Found(found = false, entity = Json.null(), binding = Json.null(), used = used));
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Local bound origin selection exhausted its checked-record inspection budget.",
+            ),
+        );
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(payload) <- row.get("payload")
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked local trait declaration is missing.",
+                    ),
+                )
+        };
+        if {
+            EntityLookup.text(payload, "kind") == "trait"
+                and EntityLookup.text(payload, "name") == name -> let Ok(entity) <-
+                DeclarationEntities.entity(
+                    selection.artifact,
+                    EntityLookup.module_name(selection.artifact),
+                    EntityLookup.text(selection.entity, "snapshot_id"),
+                    Hash.sha256(Json.to_string(selection.artifact)),
+                    row,
+                ) else {
+                Err(reason) -> Err(reason)
+            };
+            Ok(Found(found = true, entity = entity, binding = Json.null(), used = used + 1));
+            true -> local(selection, name, rows, index + 1, count, used + 1, maximum)
+        }
+    }.
+
+origin(selection: Selection, name: String, used: Int, maximum: Int): Result[Found, Failure] ->
+    let Ok(imported) <- ImportOrigins.resolve_kind(selection, name, "trait", "trait", used, maximum) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        imported.found or not imported.binding.is_null() -> Ok(imported);
+        true -> let {
+            Ok(rows) <- selection.artifact.get("source_declarations");
+            Ok(count) <- rows.length()
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked local declarations are missing.",
+                    ),
+                )
+        };
+        local(selection, name, rows, 0, count, imported.used, maximum)
+    }.
+
+scan(
+    selection: Selection,
+    bounds: Json,
+    index: Int,
+    count: Int,
+    output: Json,
+    used: Int,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(Selected(origins = output, work_used = used));
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Bound origin traversal exhausted its checked-record inspection budget.",
+            ),
+        );
+        true -> let Ok(bound) <- bounds.at(index) else {
+            _ ->
+                Err(
+                    Failure(code = "semantic.query.artifact", message = "Checked bound is missing."),
+                )
+        };
+        if {
+            EntityLookup.text(bound, "kind") != "trait" -> scan(selection, bounds, index + 1, count, output, used + 1, maximum);
+            true -> let name = EntityLookup.text(bound, "trait_name");
+            let Ok(found) <- origin(selection, name, used + 1, maximum) else {
+                Err(reason) -> Err(reason)
+            };
+            (let status =
+    if {
+        found.found -> "resolved";
+        true -> "unavailable"
+    };
+let reason =
+    if {
+        found.found -> Json.null();
+        not found.binding.is_null() -> Json.string("provider_outside_snapshot_or_unavailable");
+        true -> Json.string("no_exact_checked_trait_origin")
+    };
+let link =
+    Json.object()
+        .put("bound_index", Json.int(index))
+        .put("trait_name", Json.string(name))
+        .put("binding", found.binding)
+        .put("entity", found.entity)
+        .put("status", Json.string(status))
+        .put("reason", reason);
+scan(selection, bounds, index + 1, count, output.push(link), found.used, maximum))
+        }
+    }.
+
+pub resolve(
+    selection: Selection,
+    requirement: Json,
+    used: Int,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    let {
+        Ok(bounds) <- requirement.get("bounds");
+        Ok(count) <- bounds.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Checked requirement bounds are missing.",
+                ),
+            )
+    };
+    scan(selection, bounds, 0, count, Json.array(), used, maximum).

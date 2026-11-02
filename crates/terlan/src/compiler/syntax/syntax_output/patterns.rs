@@ -5,7 +5,7 @@ use crate::terlan_syntax::parse_tree::{
     BinaryLayoutField, MapField, Pattern, StringPatternSegment,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// Serializable pattern node emitted by syntax output.
 ///
 /// Inputs:
@@ -24,7 +24,29 @@ pub struct SyntaxPatternOutput {
     pub text: Option<String>,
     pub children: Vec<SyntaxPatternOutput>,
     pub fields: Vec<SyntaxPatternFieldOutput>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expanded_from: Vec<SyntaxShapeOrigin>,
 }
+
+/// Canonical declaration identity supplied by the actual shape expander.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SyntaxShapeOrigin {
+    pub source_module: String,
+    pub source_name: String,
+}
+
+// Provenance is observational. It must not change overlap checks, matching,
+// constant folding or other comparisons of pattern meaning.
+impl PartialEq for SyntaxPatternOutput {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind
+            && self.arity == other.arity
+            && self.text == other.text
+            && self.children == other.children
+            && self.fields == other.fields
+    }
+}
+impl Eq for SyntaxPatternOutput {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// Keyed pattern field emitted for map and record patterns.
@@ -269,6 +291,7 @@ fn pattern_node(
     fields: Vec<SyntaxPatternFieldOutput>,
 ) -> SyntaxPatternOutput {
     SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind,
         arity: if fields.is_empty() {
             children.len()
@@ -328,4 +351,28 @@ fn is_constructor_pattern_tuple(items: &[Pattern]) -> bool {
         items.first(),
         Some(Pattern::Atom(name)) if name.chars().next().is_some_and(|ch| ch.is_ascii_uppercase())
     )
+}
+
+#[cfg(test)]
+mod provenance_tests {
+    use super::*;
+
+    #[test]
+    fn shape_provenance_does_not_change_pattern_meaning_or_legacy_decoding() {
+        let original = pattern_leaf(SyntaxPatternKind::Var, Some("value".into()));
+        let mut annotated = original.clone();
+        annotated.expanded_from.push(SyntaxShapeOrigin {
+            source_module: "provider".into(),
+            source_name: "Wrapped".into(),
+        });
+        assert_eq!(original, annotated);
+        let legacy = serde_json::to_value(&original).unwrap();
+        assert!(legacy.get("expanded_from").is_none());
+        let decoded: SyntaxPatternOutput = serde_json::from_value(legacy).unwrap();
+        assert!(decoded.expanded_from.is_empty());
+        assert_eq!(
+            serde_json::to_value(&annotated).unwrap()["expanded_from"][0]["source_module"],
+            "provider"
+        );
+    }
 }

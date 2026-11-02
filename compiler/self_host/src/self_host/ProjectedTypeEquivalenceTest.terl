@@ -1,0 +1,27 @@
+/** Qualification-aware projected type equivalence regressions. */
+module self_host.ProjectedTypeEquivalenceTest.
+
+import self_host.ProjectedTypeEquivalence.
+
+@test
+pub nested_unqualified_type_matches_its_canonical_identity(): Bool ->
+    ProjectedTypeEquivalence.matches(
+        "List[BackendDeclaration]",
+        "List[self_host.BackendSyntax.BackendDeclaration]",
+    ).
+
+@test
+pub distinct_canonical_identities_do_not_match(): Bool ->
+    not ProjectedTypeEquivalence.matches(
+        "left.Model.Value",
+        "right.Model.Value",
+    ).
+
+@test
+pub unapplied_base_remains_compatible_with_application(): Bool ->
+    ProjectedTypeEquivalence.matches("List", "List[String]").
+
+pub self_test(): Bool ->
+    nested_unqualified_type_matches_its_canonical_identity()
+        and distinct_canonical_identities_do_not_match()
+        and unapplied_base_remains_compatible_with_application().

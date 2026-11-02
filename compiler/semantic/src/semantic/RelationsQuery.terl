@@ -1,0 +1,221 @@
+/**
+ * Checked requirements and module-scoped positive/negative relation evidence.
+ */
+module semantic.RelationsQuery.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.{BoundOrigins, EntityLookup, JsonRules, ShapeOrigins}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    rows: Json,
+    work_used: Int,
+    truncated: Bool,
+}.
+
+value(kind: String, scope: String, evidence: Json): Json ->
+    Json.object()
+        .put("relation_kind", Json.string(kind))
+        .put("scope", Json.string(scope))
+        .put("evidence", evidence).
+
+definition_value(selection: Selection, kind: String, evidence: Json): Json ->
+    let imports =
+        case selection.artifact.get("resolved_imports") {
+            Ok(bindings) -> bindings;
+            _ -> Json.array()
+        };
+    value(kind, "selected_declaration", evidence)
+        .put("resolver_bindings", imports)
+        .put("satisfaction_at_call_site", Json.string("requires_verification"))
+        .put("candidate_set_exhaustive", Json.bool(false)).
+
+matches(selection: Selection, row: Json): Bool ->
+    let {
+        Ok(origin) <- selection.entity.get("origin");
+        Ok(start) <- origin.get("start_byte");
+        Ok(end) <- origin.get("end_byte");
+        Ok(row_start) <- row.get("span_start");
+        Ok(row_end) <- row.get("span_end")
+    } else {
+        _ -> false
+    };
+    EntityLookup.text(row, "model") == "checked-declaration-requirements.v1"
+        and EntityLookup.text(row, "kind") == EntityLookup.text(selection.entity, "kind")
+        and EntityLookup.text(row, "module") == EntityLookup.module_name(selection.artifact)
+        and EntityLookup.text(row, "name") == EntityLookup.text(selection.entity, "name")
+        and Json.to_string(start) == Json.to_string(row_start)
+        and Json.to_string(end) == Json.to_string(row_end).
+
+requirements(
+    selection: Selection,
+    rows: Json,
+    index: Int,
+    count: Int,
+    found: Selected,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(found);
+        found.work_used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Requirement selection exhausted its checked-record inspection budget.",
+            ),
+        );
+        true -> let Ok(row) <- rows.at(index) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked requirement record is missing.",
+                    ),
+                )
+        };
+        if {
+            matches(selection, row) -> let Ok(origins) <- BoundOrigins.resolve(selection, row, found.work_used + 1, maximum) else {
+                Err(reason) -> Err(reason)
+            };
+            (let projected =
+    definition_value(selection, "declaration_requirements", row)
+        .put("bound_origins", origins.origins);
+requirements(
+    selection,
+    rows,
+    index + 1,
+    count,
+    Selected(
+        rows = found.rows.push(projected),
+        work_used = origins.work_used,
+        truncated = found.truncated,
+    ),
+    maximum,
+));
+            true -> requirements(
+                selection,
+                rows,
+                index + 1,
+                count,
+                Selected(
+                    rows = found.rows,
+                    work_used = found.work_used + 1,
+                    truncated = found.truncated,
+                ),
+                maximum,
+            )
+        }
+    }.
+
+contracts(selection: Selection, maximum: Int): Result[Selected, Failure] ->
+    let empty = Selected(rows = Json.array(), work_used = selection.work_used, truncated = false);
+    let kind = EntityLookup.text(selection.entity, "kind");
+    if {
+        kind == "trait" or kind == "shape" -> let Ok(payload) <- selection.record.get("payload") else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked requirement declaration is missing.",
+                    ),
+                )
+        };
+        (let evidence =
+    if {
+        kind == "shape" -> case payload.get("shape_contract") {
+            Ok(contract) -> contract;
+            _ -> Json.null()
+        };
+        true -> payload
+    };
+if {
+    evidence.is_null() -> Ok(empty);
+    true -> Ok(
+        Selected(
+            rows = Json.array().push(definition_value(selection, kind + "_definition", evidence)),
+            work_used = selection.work_used,
+            truncated = false,
+        ),
+    )
+});
+        kind == "function" or kind == "type" -> let {
+            Ok(metadata) <- selection.artifact.get("requirement_observations");
+            Ok(rows) <- metadata.get("requirements");
+            Ok(count) <- rows.length();
+            Ok(capped) <- metadata.get("truncated");
+            Ok(truncated) <- capped.as_bool()
+        } else {
+            _ -> Ok(empty)
+        };
+        requirements(
+            selection,
+            rows,
+            0,
+            count,
+            Selected(rows = Json.array(), work_used = selection.work_used, truncated = truncated),
+            maximum,
+        );
+        true -> Ok(empty)
+    }.
+
+relations(
+    rows: Json,
+    index: Int,
+    count: Int,
+    found: Selected,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(found);
+        found.work_used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Relation selection exhausted its checked-record inspection budget.",
+            ),
+        );
+        true -> let Ok(row) <- rows.at(index) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked conformance record is missing.",
+                    ),
+                )
+        };
+        relations(
+            rows,
+            index + 1,
+            count,
+            Selected(
+                rows = found.rows.push(value("trait_conformance", "containing_module", row)),
+                work_used = found.work_used + 1,
+                truncated = found.truncated,
+            ),
+            maximum,
+        )
+    }.
+
+pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
+    if {
+        EntityLookup.text(selection.entity, "kind") == "pattern" -> let Ok(origins) <- ShapeOrigins.select(selection, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        Ok(Selected(rows = origins.rows, work_used = origins.work_used, truncated = false));
+        true -> select_declaration(selection, maximum)
+    }.
+
+select_declaration(selection: Selection, maximum: Int): Result[Selected, Failure] ->
+    let Ok(found) <- contracts(selection, maximum) else {
+        Err(reason) -> Err(reason)
+    };
+    (let {
+    Ok(rows) <- selection.artifact.get("conformance_contracts");
+    Ok(count) <- rows.length()
+} else {
+    _ -> Ok(found)
+};
+relations(rows, 0, count, found, maximum)).

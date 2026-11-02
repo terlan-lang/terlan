@@ -1,0 +1,8 @@
+running 6 tests
+test nested_patterns_and_unbound_wildcards_have_owned_identities ... ok
+test unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection ... ok
+test edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes ... ok
+test moving_a_binding_into_a_branch_invalidates_its_old_handle ... ok
+test entity_selection_rejects_wrong_kind_and_content ... ok
+test rejected_source_returns_unavailable_catalog_without_typed_entities ... ok
+test result: ok. 6 passed; 0 failed

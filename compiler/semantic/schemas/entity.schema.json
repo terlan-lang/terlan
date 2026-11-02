@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:entity:v1",
+  "title": "Terlan semantic entity v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.entity.v1"
+    },
+    "snapshot_id": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "entity_id": {
+      "$ref": "#/$defs/entity_id"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "module",
+        "binding",
+        "function",
+        "type",
+        "trait",
+        "shape",
+        "implication",
+        "pattern",
+        "actor",
+        "protocol",
+        "message"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "origin": {
+      "$ref": "#/$defs/span"
+    },
+    "expanded_from": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entity_id"
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema",
+    "snapshot_id",
+    "entity_id",
+    "kind",
+    "name",
+    "owner",
+    "digest",
+    "origin",
+    "expanded_from"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^s:[0-9a-f]{64}$"
+    },
+    "entity_id": {
+      "type": "string",
+      "pattern": "^e:[0-9a-f]{64}$"
+    },
+    "span": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_byte": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_byte": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "path",
+        "start_byte",
+        "end_byte"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

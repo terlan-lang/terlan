@@ -71,6 +71,11 @@ pub(crate) fn infer_syntax_fun_expr(
             }
             let inferred =
                 infer_syntax_expr(&clause.body, &clause_locals, ctx, &mut clause_subst, errors);
+            super::super::super::binding_type_observations::record(
+                &clause.patterns,
+                &clause_locals,
+                &clause_subst,
+            );
             Type::Function {
                 params: parameters
                     .iter()

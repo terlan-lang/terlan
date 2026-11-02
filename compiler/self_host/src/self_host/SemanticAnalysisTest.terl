@@ -61,6 +61,45 @@ valid_inherited_trait_impl(): Bool ->
     ).valid.
 
 @pure
+valid_higher_kinded_trait_impl(): Bool ->
+    CompilerPipeline.analyze(
+        String.concat([
+            "module demo.Semantic.\n",
+            "struct Box[A] { value: A }.\n",
+            "trait Convert[R, F[_]] { into(value: R): F[Bool]. }.\n",
+            "impl Convert[Box[Bool], Box] for Box[Bool] { ",
+            "into(value: Box[Bool]): Box[Bool] -> value. ",
+            "}.\n",
+        ]),
+    ).valid.
+
+@pure
+valid_direct_imported_higher_kinded_trait_impl(): Bool ->
+    CompilerPipeline.analyze(
+        String.concat([
+            "module demo.Semantic.\n",
+            "import std.core.Effect.\n",
+            "trait Convert[R, F[_]] { into(value: R): F[Bool]. }.\n",
+            "impl Convert[Effect[Bool], std.core.Effect] for Effect[Bool] { ",
+            "into(value: Effect[Bool]): Effect[Bool] -> value. ",
+            "}.\n",
+        ]),
+    ).valid.
+
+@pure
+valid_selected_imported_trait_impl(): Bool ->
+    CompilerPipeline.analyze(
+        String.concat([
+            "module demo.Semantic.\n",
+            "import std.collections.{List}.\n",
+            "trait Identity[C] { identity(value: C): C. }.\n",
+            "impl Identity[std.collections.List[T]] for std.collections.List[T] { ",
+            "identity(value: List[T]): List[T] -> value. ",
+            "}.\n",
+        ]),
+    ).valid.
+
+@pure
 missing_inherited_trait_method(): Bool ->
     not CompilerPipeline.analyze(
         String.concat([
@@ -130,6 +169,9 @@ pub self_test(): Bool ->
         and distinct_callable_returns()
         and valid_local_trait_impl()
         and valid_inherited_trait_impl()
+        and valid_higher_kinded_trait_impl()
+        and valid_direct_imported_higher_kinded_trait_impl()
+        and valid_selected_imported_trait_impl()
         and missing_inherited_trait_method()
         and missing_trait_method()
         and incompatible_trait_method()

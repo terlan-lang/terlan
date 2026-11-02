@@ -486,6 +486,7 @@ impl Analyzer<'_> {
         let Some(expression) = expression else {
             return;
         };
+        super::call_observations::index_expression(expression, path);
         if expression.kind == SyntaxExprKind::Var {
             if let Some(name) = expression.text.as_deref() {
                 self.reference(name, expression.span, path, environment);

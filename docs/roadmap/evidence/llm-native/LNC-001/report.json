@@ -1,0 +1,17 @@
+{
+  "cases": [
+    {
+      "case_id": "contracts.schema",
+      "reason": "Independent schema peer; not runtime verification.",
+      "status": "passed"
+    }
+  ],
+  "inputs": {
+    "compiler_digest": "a321901950ccb7467d7b3451022424b9f37062ff6c3ceab2119deaccbe8467e4",
+    "contract_source_digest": "0723df6f2e9f15b6a744be385445ef688a12c0626d8867387ae7cab80743943d",
+    "gate_source_digest": "e5c6890209259c4e033e405e3f2456c6b0c27e7320327133c4e4ca0ecf414cea"
+  },
+  "schema": "terlan.llm-native.gate.v1",
+  "selector": "LNC-001",
+  "status": "passed"
+}

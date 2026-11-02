@@ -1,0 +1,338 @@
+{
+  "checks": {
+    "binding_regressions": {
+      "passed": 21,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "runtime::vm::package_native_helper::storage_transport::tests::storage_binding_identity_is_explicit_canonical_and_nonzero",
+        "commands::bind::c_abi_binding_generator::c_abi_binding_generator_test::validation_and_distribution::structured_c_metadata_rejects_binding_identity_collisions",
+        "compiler::typeck::binding_identity_test::closure_capture_reference_targets_outer_binding_identity",
+        "compiler::typeck::binding_identity_test::binary_layout_keys_bind_while_repeated_descriptors_remain_metadata",
+        "compiler::typeck::binding_identity_test::nested_branches_lambdas_comprehensions_and_handlers_get_distinct_identities",
+        "compiler::typeck::binding_identity_test::long_sequential_chain_rejects_every_rebinding_without_overwriting_identity",
+        "compiler::typeck::binding_identity_test::same_name_and_arity_overloads_receive_distinct_binding_regions",
+        "compiler::typeck::binding_identity_test::forged_or_stale_binding_evidence_fails_closed",
+        "compiler::typeck::binding_identity_test::grouped_fallible_let_success_chain_is_one_transactional_region",
+        "compiler::typeck::binding_identity_test::equals_never_changes_from_update_syntax_into_bind_or_match",
+        "compiler::typeck::binding_identity_test::macro_hygiene_and_post_expansion_collision_analysis_share_one_contract",
+        "compiler::typeck::binding_identity_test::core_ir_carries_valid_binding_references_and_debugger_locals",
+        "compiler::typeck::binding_identity_test::repeated_let_migration_keeps_distinct_bindings_distinct",
+        "compiler::typeck::binding_identity_test::binding_ids_survive_unrelated_declaration_insertion_for_incremental_caches",
+        "compiler::typeck::binding_identity_test::parameter_and_sequential_let_share_one_binding_region",
+        "compiler::typeck::binding_identity_test::formatter_preserves_nested_shadowing_without_creating_same_region_collisions",
+        "compiler::typeck::binding_identity_test::every_structural_pattern_family_rejects_duplicate_names",
+        "compiler::native_ir::binding_identity_source_test::native_lowering_preserves_outer_and_nested_binding_identities",
+        "formal_pipeline::formal_pipeline_test::checked_evidence::formal_pipeline_exposes_validated_binding_identity_evidence",
+        "commands::emit_js::binding_identity_emit_test::javascript_preserves_outer_and_nested_binding_identities",
+        "commands::emit_core::tests::unrelated_declaration_preserves_exported_binding_identity"
+      ]
+    },
+    "binding_selection": {
+      "compiled_sources_verified": 5,
+      "passed": 6,
+      "test_names": [
+        "complete_unsigned_binding_identity_prevents_neighbor_aliasing",
+        "same_id_with_a_different_region_path_or_module_is_not_a_join",
+        "conflicting_checker_visits_never_select_the_first_type",
+        "truncated_capture_never_claims_a_unique_observation",
+        "scan_budget_must_include_every_possible_conflicting_visit",
+        "repeated_equal_visits_converge_to_one_fact"
+      ]
+    },
+    "bootstrap_export": {
+      "passed": 20,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "commands::emit_core::tests::rejected_case_observations_are_not_successful_core",
+        "commands::emit_core::tests::invalid_source_never_exports_successful_core",
+        "commands::emit_core::tests::same_arity_overloads_retain_distinct_declaration_origins",
+        "commands::emit_core::tests::incomplete_function_head_exports_its_actual_missing_variants",
+        "commands::emit_core::tests::exports_checked_core_and_exact_source_identity",
+        "commands::emit_core::tests::inferred_binding_types_preserve_shadowed_names",
+        "commands::emit_core::tests::inferred_binding_types_cover_lambda_generator_and_handler_scopes",
+        "commands::emit_core::tests::requirements_serialize_the_actual_checked_implication_types",
+        "commands::emit_core::tests::checked_conformances_preserve_explicit_negative_evidence",
+        "commands::emit_core::tests::inferred_binding_types_follow_destructuring_and_case_constraints",
+        "commands::emit_core::tests::inferred_binding_types_distinguish_overloads_and_keep_generics_scoped",
+        "commands::emit_core::tests::purity_contracts_are_checked_and_distinguish_overloads",
+        "commands::emit_core::tests::checked_shapes_export_canonical_patterns_guards_and_origins",
+        "commands::emit_core::tests::unrelated_declaration_preserves_exported_binding_identity",
+        "commands::emit_core::tests::inferred_binding_types_join_exact_lexical_identities",
+        "commands::emit_core::tests::local_nested_shape_expansion_retains_canonical_declaration_origins",
+        "commands::emit_core::tests::coverage_observations_share_the_checked_finite_verdict",
+        "commands::emit_core::tests::a_rejected_source_prevents_successful_bundle_status",
+        "commands::emit_core::tests::source_set_checks_imports_with_the_shared_interface_graph",
+        "commands::emit_core::tests::imported_nested_shape_aliases_retain_provider_origins"
+      ]
+    },
+    "capture": {
+      "passed": 4,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "compiler::typeck::binding_type_observations::tests::index_bound_reports_incomplete_capture_without_adding_pointer_keys",
+        "compiler::typeck::binding_type_observations::tests::abandoned_clause_and_nested_capture_do_not_leak_observations",
+        "compiler::typeck::binding_type_observations::tests::final_clause_substitution_precedes_observation_variable_canonicalization",
+        "compiler::typeck::binding_type_observations::tests::canonical_variables_preserve_array_and_existential_relationships"
+      ]
+    },
+    "contract": {
+      "official_schema_cases": 4,
+      "sdk_model_cases": 10,
+      "semantic_cases": 64
+    },
+    "harness": {
+      "compiled_sources_verified": 11,
+      "passed": 13,
+      "test_names": [
+        "existing_output_is_preserved",
+        "unknown_selector_creates_no_output",
+        "missing_compiler_creates_no_output",
+        "schema_evidence_rejects_stale_missing_duplicate_and_failed_cases",
+        "test_evidence_rejects_empty_skipped_and_incomplete_results",
+        "unimplemented_milestone_cannot_pass",
+        "missing_or_malformed_peer_report_cannot_pass",
+        "subprocess_timeout_and_output_limit_fail",
+        "wire_evidence_rejects_missing_and_unknown_cases",
+        "baseline_manifest_evidence_rejects_partial_and_malformed_sets",
+        "property_inventory_rejects_empty_and_duplicate_registration",
+        "baseline_preserves_timeout_diagnostic",
+        "snapshot_gate_rejects_empty_peer_and_stale_compiled_sources"
+      ]
+    },
+    "live_mcp": {
+      "case_ids": [
+        "mcp.initialize",
+        "mcp.ping",
+        "mcp.tool-discovery-and-schemas",
+        "mcp.resource-discovery",
+        "mcp.bounded-schema-valid-resources",
+        "mcp.empty-template-discovery",
+        "mcp.compiler-type-query",
+        "mcp.checked-inferred-local-type",
+        "mcp.checked-purity-contract",
+        "mcp.checked-pattern-coverage",
+        "mcp.expected-values-constraints",
+        "mcp.same-arity-overload-identity",
+        "mcp.included-type-origin",
+        "mcp.pattern-owner-core-origin",
+        "mcp.checked-shape-definition",
+        "mcp.negative-trait-conformance",
+        "mcp.positive-trait-conformance",
+        "mcp.checked-implication-requirement",
+        "mcp.checked-bound-provider-origin",
+        "mcp.checked-shape-expansion-origin",
+        "mcp.explicit-unknown",
+        "mcp.stale-entity-rejection",
+        "mcp.snapshot-scope-rejection",
+        "mcp.invalid-budget-tool-error",
+        "mcp.unknown-tool-protocol-error",
+        "mcp.forged-resource-cursor",
+        "mcp.resource-uri-confinement",
+        "mcp.cli-query-parity",
+        "mcp.raw-wire-framing-and-errors"
+      ],
+      "fixture_digest": "b77810451d4788955ab7cbae1481ec7b7ec494720ac79b54ea6ec4957f0048bf",
+      "passed": 29,
+      "scope": "Standard SDK and raw-wire checks; unchanged 120-second SDK initialization deadline; single-page resource fixture; no release latency claim."
+    },
+    "query": {
+      "compiled_sources_verified": 29,
+      "passed": 23,
+      "test_names": [
+        "typed_queries_distinguish_same_name_and_arity_overloads",
+        "reference_queries_keep_shadowed_bindings_distinct",
+        "work_limited_pages_continue_without_omitting_references",
+        "cursor_is_bound_to_question_and_detects_storage_tampering",
+        "byte_accounting_is_exact_and_tiny_budgets_fail_explicitly",
+        "stale_selection_and_insufficient_work_never_return_successful_facts",
+        "inferred_local_types_are_checked_and_ownership_remains_unavailable",
+        "inferred_types_keep_nested_shadowed_bindings_distinct",
+        "expected_values_separate_type_inhabitants_from_program_legality",
+        "schema_integer_limits_accept_whole_numbers_and_reject_extra_fields",
+        "nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog",
+        "pattern_selection_enforces_work_budget_and_rejects_stale_handles",
+        "pattern_core_queries_link_the_owner_by_compiler_declaration_origin",
+        "type_queries_retain_struct_include_edges_and_original_field_metadata",
+        "type_queries_expose_core_alias_payload_without_inventing_constructor_inhabitants",
+        "imported_include_aliases_resolve_to_exact_provider_snapshot_entities",
+        "include_origins_outside_snapshot_remain_partial_with_resolved_alias_evidence",
+        "effect_queries_expose_checked_purity_without_claiming_a_complete_effect_set",
+        "effect_queries_match_overloads_by_exact_checked_signature",
+        "effect_contract_scans_count_against_the_query_work_budget",
+        "coverage_queries_return_checked_case_verdicts_and_guard_assumptions",
+        "coverage_queries_preserve_missing_function_head_alternatives",
+        "coverage_queries_keep_overloaded_origins_separate_and_charge_scans"
+      ]
+    },
+    "relations": {
+      "compiled_sources_verified": 29,
+      "passed": 12,
+      "test_names": [
+        "shape_queries_expose_canonical_patterns_guards_and_exact_entities",
+        "trait_queries_keep_negative_evidence_distinct_from_missing_implementations",
+        "implication_queries_return_checked_nested_field_types_and_variable_scope",
+        "constrained_alias_queries_use_the_compilers_alias_contract",
+        "overloaded_requirement_queries_join_exact_origins_and_charge_scans",
+        "shape_identity_survives_unrelated_insertion_and_invalidates_changed_guards",
+        "imported_bound_origins_follow_resolver_aliases_despite_same_named_providers",
+        "local_bound_origins_link_the_exact_checked_trait_entity",
+        "bound_providers_outside_the_snapshot_remain_explicitly_unavailable",
+        "local_nested_shape_expansions_link_both_checked_shape_entities",
+        "imported_shape_alias_origins_follow_provider_identity_among_same_named_shapes",
+        "unexpanded_patterns_do_not_borrow_equivalent_shape_origins"
+      ]
+    },
+    "snapshot_gate": {
+      "bootstrap_fresh": true,
+      "live_schema_status": "passed",
+      "passed": 33,
+      "suites": {
+        "CatalogTest": {
+          "compiled_sources_verified": 12,
+          "passed": 6,
+          "test_names": [
+            "nested_patterns_and_unbound_wildcards_have_owned_identities",
+            "unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection",
+            "edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes",
+            "moving_a_binding_into_a_branch_invalidates_its_old_handle",
+            "entity_selection_rejects_wrong_kind_and_content",
+            "rejected_source_returns_unavailable_catalog_without_typed_entities"
+          ]
+        },
+        "CompilerBridgeTest": {
+          "compiled_sources_verified": 5,
+          "passed": 6,
+          "test_names": [
+            "malformed_and_unversioned_artifacts_are_rejected",
+            "stale_source_identity_is_rejected",
+            "successful_exit_cannot_replace_checked_core",
+            "invalid_program_keeps_diagnostics_without_core",
+            "duplicate_or_missing_units_cannot_satisfy_source_set_inventory",
+            "rejected_unit_cannot_be_reported_as_a_checked_source_set"
+          ]
+        },
+        "DeclarationEntitiesTest": {
+          "compiled_sources_verified": 9,
+          "passed": 5,
+          "test_names": [
+            "checked_types_traits_and_functions_have_distinct_handles",
+            "unrelated_insertion_preserves_declaration_identity",
+            "same_name_and_arity_overloads_have_distinct_handles",
+            "semantic_payload_change_invalidates_declaration_handle",
+            "duplicate_checked_rows_are_rejected_before_catalog_publication"
+          ]
+        },
+        "EntitiesTest": {
+          "compiled_sources_verified": 9,
+          "passed": 3,
+          "test_names": [
+            "unrelated_insertion_preserves_identity_but_requires_fresh_content",
+            "renamed_binding_invalidates_old_handle_without_name_fallback",
+            "invalid_source_cannot_produce_binding_facts"
+          ]
+        },
+        "SnapshotTest": {
+          "compiled_sources_verified": 8,
+          "passed": 7,
+          "test_names": [
+            "repeated_capture_is_stable_and_preserves_source",
+            "original_edits_do_not_change_an_existing_snapshot",
+            "modified_compiler_artifact_is_never_served",
+            "invalid_source_retains_compiler_rejection",
+            "malformed_handles_and_escaping_paths_are_rejected",
+            "unsaved_overlay_is_versioned_and_preserves_disk_source",
+            "stale_overlay_base_is_rejected_before_publication"
+          ]
+        },
+        "SourceSetTest": {
+          "compiled_sources_verified": 13,
+          "passed": 6,
+          "test_names": [
+            "source_order_is_canonical_and_imported_declarations_remain_available",
+            "changed_dependency_interface_rejects_stale_entity_content",
+            "overlay_versions_change_snapshot_identity_without_mutating_prior_capture",
+            "rejected_source_marks_the_set_invalid_and_keeps_other_facts_partial",
+            "changing_any_frozen_source_makes_the_set_unreadable",
+            "duplicate_escaping_and_negative_version_inputs_fail_before_compilation"
+          ]
+        }
+      }
+    },
+    "structured_type_schema": {
+      "artifact_sha256": "40347f197016625f1e43b844d346c9e025d409c6e5716b250caa0aa9a0ab8ab6",
+      "cases": [
+        {
+          "binding_id": 5299582605036073157,
+          "name": "tuple_local",
+          "status": "passed",
+          "type_constructor": "Tuple"
+        },
+        {
+          "binding_id": 7093286813274607317,
+          "name": "list_local",
+          "status": "passed",
+          "type_constructor": "List"
+        },
+        {
+          "binding_id": 5910972809645042365,
+          "name": "map_local",
+          "status": "passed",
+          "type_constructor": "Map"
+        },
+        {
+          "binding_id": 1652311404324834918,
+          "name": "named_local",
+          "status": "passed",
+          "type_constructor": "Named"
+        },
+        {
+          "binding_id": 60658791237424746,
+          "name": "array_local",
+          "status": "passed",
+          "type_constructor": "Array"
+        },
+        {
+          "binding_id": 17946294987514272974,
+          "name": "generic_local",
+          "status": "passed",
+          "type_constructor": "Var"
+        },
+        {
+          "binding_id": 3245647613812267447,
+          "name": "function_local",
+          "status": "passed",
+          "type_constructor": "Function"
+        }
+      ],
+      "compiler_digest": "41e03b9c880f998668044335298867f3dad94a3a176bc8a437e2dfd2f91992de",
+      "schema": "terlan.semantic.binding-type-schema-evidence.v1",
+      "schema_sha256": "1cb346b712f7e40b3e2bf0a31e88b9042c488e15f03eeed9345e866169dea3f7",
+      "scope": "Seven real checked inferred binding type constructors, exact Core lexical joins and independent recursive public-schema validation. No service or ownership proof.",
+      "source_sha256": "0e2a43135ddc702c228d4a80f02b4fec3c7497aa1d66b9188d9957ff01040730",
+      "status": "passed",
+      "validator": {
+        "jsonschema": "4.25.1"
+      }
+    }
+  },
+  "compiler_digest": "41e03b9c880f998668044335298867f3dad94a3a176bc8a437e2dfd2f91992de",
+  "gate_source_digest": "3fb8a509fa69cd7f05c6c02c1192a3f8b03601430ad987d9961a919c24f6be37",
+  "limitations": [
+    "Component checkpoint, not full LNC-005 or M1 acceptance.",
+    "Observations join only complete compiler lexical identity plus module; absent mappings are unknown.",
+    "Generic IDs are canonical within each observation and cannot be correlated with declaration generics or other observations.",
+    "Incomplete bounded capture and conflicting checker visits produce no claimed inferred type.",
+    "Types describe the checked binding definition, not ownership or arbitrary use-site expectations.",
+    "Single-page MCP resource fixture here; prior multi-page/reconnect evidence is historical.",
+    "Filtered Rust suites overlap and are not additive.",
+    "Initial extra handler fixture had invalid try/catch syntax; corrected fixture passes. Initial harness invocation omitted pinned Python environment and failed two checks; explicit environment rerun required.",
+    "Remaining symbol references and origin cases, the full LNC-005 gate, transactions and later roadmap milestones remain open.",
+    "Archive records declared component inputs, not a verified complete compiler build closure; compiler and VM are trusted binary anchors. Final added cfg(test) observer tests and Rust formatting followed the producer build."
+  ],
+  "schema": "terlan.semantic.component-checkpoint.v1",
+  "source_archive_sha256": "1613b9ba639e5c3080b8fd16fb38ed0c3c17b328c5366cacdac24d51b2006bc9",
+  "status": "passed",
+  "task": "LNC-005",
+  "task_complete": false,
+  "vm_digest": "f6a702f86d63c714c5d97d7303b49785ab937f5ac195fe5651d857e39d77b59a"
+}

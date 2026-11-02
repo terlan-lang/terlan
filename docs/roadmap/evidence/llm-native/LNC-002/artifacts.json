@@ -1,0 +1,14 @@
+[
+  {
+    "digest": "3b1e5a50a877a9a67747ace5f1091c517736e866c5262a326ce29737113e0ff7",
+    "path": "harness-test-results.json"
+  },
+  {
+    "digest": "5f50cf9d69594cb2d29066141a075fe695f49569809c76c6edad823a92e4a14a",
+    "path": "harness.stdout"
+  },
+  {
+    "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "harness.stderr"
+  }
+]

@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:transaction:v1",
+  "title": "Terlan semantic transaction v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.transaction.v1"
+    },
+    "transaction_id": {
+      "$ref": "#/$defs/transaction_id"
+    },
+    "base_snapshot": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "candidate_id": {
+      "$ref": "#/$defs/candidate_id"
+    },
+    "candidate_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "prepared",
+        "verified",
+        "applied",
+        "aborted",
+        "conflicted"
+      ]
+    },
+    "verification_digest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/digest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "published_snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/snapshot_id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "journal_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "identity_map": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "$ref": "#/$defs/entity_id"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/entity_id"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "before",
+          "after"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema",
+    "transaction_id",
+    "base_snapshot",
+    "candidate_id",
+    "candidate_digest",
+    "state",
+    "verification_digest",
+    "published_snapshot",
+    "journal_digest",
+    "identity_map"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "verified",
+              "applied"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verification_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "applied"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "published_snapshot": {
+            "$ref": "#/$defs/snapshot_id"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "published_snapshot": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^s:[0-9a-f]{64}$"
+    },
+    "entity_id": {
+      "type": "string",
+      "pattern": "^e:[0-9a-f]{64}$"
+    },
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^c:[0-9a-f]{64}$"
+    },
+    "transaction_id": {
+      "type": "string",
+      "pattern": "^t:[0-9a-f]{64}$"
+    }
+  }
+}

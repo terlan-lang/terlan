@@ -1015,6 +1015,62 @@ parse_following_element(
     }.
 
 @pure
+parse_sequence_elements(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    case values {
+        [] -> ProjectedExpressionResult(true, None, List.new[ProjectedCanonicalToken](), "");
+        [first | rest] -> parse_sequence_item([first | rest])
+    }.
+
+@pure
+parse_sequence_item(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
+    let item = partition(values, ";");
+    let first = parse(item.left);
+    case first.node {
+        Some(first_node) -> continue_sequence_elements(item, first, first_node);
+        None -> first
+    }.
+
+@pure
+continue_sequence_elements(
+    item: TokenPartition,
+    first: ProjectedExpressionResult,
+    first_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    if {
+        item.found -> continue_found_sequence_elements(item, first, first_node);
+        true -> first
+    }.
+
+@pure
+continue_found_sequence_elements(
+    item: TokenPartition,
+    first: ProjectedExpressionResult,
+    first_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    if {
+        item.right == [] -> ProjectedExpressionResult(false, Some(first_node), first.rest, "semicolon is missing its following expression");
+        true -> parse_following_sequence_element(item, first, first_node)
+    }.
+
+@pure
+parse_following_sequence_element(
+    item: TokenPartition,
+    first: ProjectedExpressionResult,
+    first_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let following = parse_sequence_elements(item.right);
+    case following.node {
+        Some(next_node) -> ProjectedExpressionResult(first.valid and following.valid, Some(node(
+                "sequence",
+                ";",
+                first_node.start_byte,
+                next_node.end_byte,
+                [first_node, next_node],
+            )), following.rest, following.message);
+        None -> ProjectedExpressionResult(false, Some(first_node), following.rest, "semicolon is missing its following expression")
+    }.
+
+@pure
 parse_list_cons_group(
     opening: ProjectedCanonicalToken,
     slice: GroupSlice,
@@ -1289,6 +1345,7 @@ parse_group_inner(
 ): ProjectedExpressionResult ->
     if {
         opening.text == "{" and has_top_level(values, ":") -> parse_fields(values, ":");
+        opening.text == "(" and has_top_level(values, ";") -> parse_sequence_elements(values);
         true -> parse_elements(values)
     }.
 
@@ -1635,12 +1692,39 @@ parse_postfix_dot_target(
 ): ProjectedExpressionResult ->
     if {
         next.text == "(" -> parse_dynamic_call(base, next, rest);
+        next.text == "#" -> parse_private_postfix_field(base, rest);
         true -> parse_postfix_at(ProjectedExpressionResult(
             valid = true,
             node = Some(node("field", next.text, base.start_byte, next.end_byte, [base])),
             rest = rest,
             message = "",
         ))
+    }.
+
+@pure
+parse_private_postfix_field(
+    base: ProjectedExpressionNode,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    case values {
+        [field | rest] -> parse_postfix_at(ProjectedExpressionResult(
+            valid = true,
+            node = Some(node(
+                "field",
+                String.concat(["#", field.text]),
+                base.start_byte,
+                field.end_byte,
+                [base],
+            )),
+            rest = rest,
+            message = "",
+        ));
+        [] -> ProjectedExpressionResult(
+            false,
+            Some(base),
+            List.new[ProjectedCanonicalToken](),
+            "private field marker is missing its field name",
+        )
     }.
 
 @pure

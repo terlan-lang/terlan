@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:verification:v1",
+  "title": "Terlan semantic verification v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.verification.v1"
+    },
+    "candidate_id": {
+      "$ref": "#/$defs/candidate_id"
+    },
+    "candidate_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_closure_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "compiler_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "gate_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete"
+      ]
+    },
+    "exit_status": {
+      "type": "integer"
+    },
+    "required_case_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/check"
+      },
+      "minItems": 0
+    },
+    "diagnostic_digests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/digest"
+      },
+      "minItems": 0
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schema",
+    "candidate_id",
+    "candidate_digest",
+    "source_closure_digest",
+    "compiler_digest",
+    "target",
+    "policy_digest",
+    "gate_digest",
+    "status",
+    "exit_status",
+    "required_case_ids",
+    "checks",
+    "diagnostic_digests",
+    "artifacts"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exit_status": {
+            "const": 0
+          },
+          "checks": {
+            "minItems": 1,
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "passed"
+                },
+                "evidence_digest": {
+                  "$ref": "#/$defs/digest"
+                }
+              }
+            }
+          },
+          "diagnostic_digests": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "candidate_id": {
+      "type": "string",
+      "pattern": "^c:[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "source",
+            "interface",
+            "core",
+            "executable",
+            "patch",
+            "report"
+          ]
+        },
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "kind",
+        "uri",
+        "digest"
+      ],
+      "additionalProperties": false
+    },
+    "check": {
+      "type": "object",
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "compiler",
+            "test",
+            "proof",
+            "bounded_model"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "skipped",
+            "unavailable"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "case_id",
+        "kind",
+        "status",
+        "scope",
+        "evidence_digest"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

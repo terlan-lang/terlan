@@ -1,0 +1,29 @@
+/** Named call arguments use the wrapped value node for type authority. */
+module self_host.ProjectedNamedArgumentTypecheckTest.
+
+import self_host.CanonicalLexer.
+import self_host.ProjectedFrontend.
+import self_host.ProjectedSemanticAnalysis.
+import std.collections.List.
+import std.core.String.
+
+@test
+pub record_fields_retain_their_types_in_named_arguments(): Bool ->
+    let source = String.concat([
+        "module demo.NamedArguments.\n",
+        "struct Sample { first: Bool, second: Bool }.\n",
+        "constructor Sample {\n",
+        "    (first: Bool, second: Bool): Sample -> Sample { first: first, second: second }\n",
+        "}.\n",
+        "pub rebuild(value: Sample): Sample -> Sample(\n",
+        "    first = value.first,\n",
+        "    second = value.second,\n",
+        ").\n",
+    ]);
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze(
+        ProjectedFrontend.compile(source, lexed.tokens),
+        List.new[String](),
+    ).expression_typecheck.valid.
+
+pub self_test(): Bool -> record_fields_retain_their_types_in_named_arguments().

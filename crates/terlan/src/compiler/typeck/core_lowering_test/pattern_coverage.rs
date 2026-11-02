@@ -3,11 +3,13 @@ use super::*;
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_list_cons_payload() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::ListCons,
         arity: 2,
         text: None,
         children: vec![
             SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::Int,
                 arity: 1,
                 text: Some("1".to_string()),
@@ -15,6 +17,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_list_cons
                 fields: Vec::new(),
             },
             SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::Var,
                 arity: 1,
                 text: Some("rest".to_string()),
@@ -55,10 +58,12 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_list_cons
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_covered_tuple_children() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::Tuple,
         arity: 1,
         text: None,
         children: vec![SyntaxPatternOutput {
+            expanded_from: Vec::new(),
             kind: SyntaxPatternKind::Float,
             arity: 1,
             text: Some("1.0".to_string()),
@@ -97,10 +102,12 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_covered_t
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_covered_list_children() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::List,
         arity: 1,
         text: None,
         children: vec![SyntaxPatternOutput {
+            expanded_from: Vec::new(),
             kind: SyntaxPatternKind::Float,
             arity: 1,
             text: Some("1.0".to_string()),
@@ -140,10 +147,12 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_covered_l
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_covered_constructor_args() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::Constructor,
         arity: 1,
         text: Some("Some".to_string()),
         children: vec![SyntaxPatternOutput {
+            expanded_from: Vec::new(),
             kind: SyntaxPatternKind::Float,
             arity: 1,
             text: Some("1.0".to_string()),
@@ -171,6 +180,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_covered_c
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_map_field_payload() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::MapField,
         arity: 1,
         text: Some("a".to_string()),
@@ -179,6 +189,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_map_field
             key: "a".to_string(),
             required: true,
             value: Box::new(SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::Int,
                 arity: 1,
                 text: Some("1".to_string()),
@@ -200,6 +211,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_requires_map_field
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_compat_wildcards() {
     for kind in [SyntaxPatternKind::Ignore, SyntaxPatternKind::Placeholder] {
         let pattern = SyntaxPatternOutput {
+            expanded_from: Vec::new(),
             kind,
             arity: 0,
             text: None,

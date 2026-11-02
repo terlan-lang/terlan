@@ -154,6 +154,7 @@ pub(super) fn core_runtime_capability(
     match (module, function, arity) {
         ("std.io.Console", "println", 1) => Some(CoreRuntimeCapability::ConsolePrintln),
         ("std.io.Console", "eprintln", 1) => Some(CoreRuntimeCapability::ConsoleEprintln),
+        ("std.io.Console", "read_line", 1) => Some(CoreRuntimeCapability::ConsoleReadLine),
         ("std.io.File", "exists", 1) => Some(CoreRuntimeCapability::FileExists),
         ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
         ("std.io.File", "read_bytes", 1) => Some(CoreRuntimeCapability::FileReadBytes),

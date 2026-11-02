@@ -4,6 +4,7 @@ module self_host.ProjectedTypeConstraintResolution.
 import std.core.String.
 
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintEvent, TypeConstraintResolution}.
+import self_host.ProjectedTypeEquivalence.
 import std.collections.List.
 import std.collections.Map.
 import type std.collections.Map.
@@ -55,9 +56,7 @@ reverse_diagnostics(values: List[TypeConstraintDiagnostic], result: List[TypeCon
 
 @pure
 type_matches(left: String, right: String): Bool ->
-    left == right
-        or String.starts_with(left, String.append(right, "["))
-        or String.starts_with(right, String.append(left, "[")).
+    ProjectedTypeEquivalence.matches(left, right).
 
 @pure
 types_compatible(left: Option[String], right: Option[String]): Bool ->
@@ -284,7 +283,20 @@ prepend_type_fact(
     byte_offset: Int,
     state: ConstraintState,
 ): ConstraintState ->
-    prepend_fact(InferredTypeFact(node_id, type_name, byte_offset), state).
+    prepend_fact(InferredTypeFact(
+        node_id,
+        merged_type(find_type(node_id, state.index), type_name),
+        byte_offset,
+    ), state).
+
+seed_index(
+    values: List[InferredTypeFact],
+    index: Map[Int, Option[String]],
+): Map[Int, Option[String]] ->
+    case values {
+        [] -> index;
+        [value | rest] -> seed_index(rest, put_type(index, value.node_id, value.type_name))
+    }.
 
 step_unknown_event(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     prepend_type_fact(event.node_id, None, event.byte_offset, ConstraintState(
@@ -320,6 +332,33 @@ step_call_result(event: TypeConstraintEvent, state: ConstraintState): Constraint
                     ) | state.diagnostics],
                     index = state.index,
                 ),
+            )
+        }
+    }.
+
+step_function(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
+    case find_type(event.left_node, state.index) {
+        None -> prepend_type_fact(event.node_id, None, event.byte_offset, state);
+        Some(return_type) -> if {
+            event.type_name == "" -> prepend_type_fact(
+                event.node_id,
+                None,
+                event.byte_offset,
+                ConstraintState(
+                    facts = state.facts,
+                    diagnostics = [TypeConstraintDiagnostic(
+                        code = "invalid-lambda-parameter-types",
+                        message = "lambda parameters require concrete types",
+                        byte_offset = event.byte_offset,
+                    ) | state.diagnostics],
+                    index = state.index,
+                ),
+            );
+            true -> prepend_type_fact(
+                event.node_id,
+                Some(String.concat([event.type_name, " -> ", return_type])),
+                event.byte_offset,
+                state,
             )
         }
     }.
@@ -404,6 +443,7 @@ step_after_known(event: TypeConstraintEvent, state: ConstraintState): Constraint
     if {
         event.kind == "unknown" -> prepend_type_fact(event.node_id, None, event.byte_offset, state);
         event.kind == "call-result" -> step_call_result(event, state);
+        event.kind == "function" -> step_function(event, state);
         true -> step_after_unknown(event, state)
     }.
 
@@ -429,6 +469,21 @@ pub resolve(events: List[TypeConstraintEvent]): TypeConstraintResolution ->
         facts = List.new[InferredTypeFact](),
         diagnostics = List.new[TypeConstraintDiagnostic](),
         index = Map.new[Int, Option[String]](),
+    ));
+    TypeConstraintResolution(
+        facts = reverse_facts(state.facts, List.new[InferredTypeFact]()),
+        diagnostics = reverse_diagnostics(state.diagnostics, List.new[TypeConstraintDiagnostic]()),
+    ).
+
+/** Re-runs parent constraints after callable and lexical facts become available. */
+pub refine(
+    events: List[TypeConstraintEvent],
+    seed: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    let state = walk(events, ConstraintState(
+        facts = List.new[InferredTypeFact](),
+        diagnostics = List.new[TypeConstraintDiagnostic](),
+        index = seed_index(seed.facts, Map.new[Int, Option[String]]()),
     ));
     TypeConstraintResolution(
         facts = reverse_facts(state.facts, List.new[InferredTypeFact]()),

@@ -1,0 +1,413 @@
+/**
+ * Frozen, versioned source sets checked through the shared compiler graph.
+ */
+module semantic.SourceSet.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{CompilerBridge, Snapshot, SnapshotStore}.
+import std.collections.List.
+import std.core.Ordering.{Gt, Lt}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Paths are relative to the supplied compiler source root, not host paths.
+ */
+pub struct Input {
+    path: String,
+    contents: String,
+    document_version: Int,
+}.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+insert(input: Input, values: List[Input]): List[Input] ->
+    case values {
+        [] -> [input];
+        [first | rest] ->
+            if {
+                input.path.compare(first.path) == Lt -> [input | values];
+                true -> [first | insert(input, rest)]
+            }
+    }.
+
+sort(values: List[Input], output: List[Input]): List[Input] ->
+    case values {
+        [] -> output;
+        [first | rest] -> sort(rest, insert(first, output))
+    }.
+
+allowed_segments(parts: List[String]): Bool ->
+    case parts {
+        [] -> true;
+        [part | rest] ->
+            part != ".git"
+                and part != ".terlan"
+                and part != "target"
+                and part != "_build"
+                and allowed_segments(rest)
+    }.
+
+valid(values: List[Input], previous: String, remaining_bytes: Int): Bool ->
+    case values {
+        [] -> true;
+        [input | rest] ->
+            Snapshot.safe_logical_path(input.path)
+                and allowed_segments(input.path.split("/"))
+                and (input.path.ends_with(".terl") or input.path.ends_with(".terli"))
+                and input.path.compare(previous) == Gt
+                and input.document_version >= 0
+                and input.contents.byte_size() <= remaining_bytes
+                and valid(rest, input.path, remaining_bytes - input.contents.byte_size())
+    }.
+
+parents(parts: List[String]): List[String] ->
+    case parts {
+        [] -> [];
+        [_] -> [];
+        [first | rest] -> [first | parents(rest)]
+    }.
+
+freeze(values: List[Input], stage: String, mut sources: Json, mut files: Json, index: Int): Bool ->
+    case values {
+        [] -> true;
+        [input | rest] ->
+            let directory = stage + "/context/" + String.join(parents(input.path.split("/")), "/");
+            let filename = SnapshotStore.source_filename(input.path, index);
+            let source =
+                Json.object()
+                    .put("path", Json.string(input.path))
+                    .put("digest", Json.string(Hash.sha256(input.contents)))
+                    .put("document_version", Json.int(input.document_version));
+            let {
+                Ok(_) <- Directory.create_all(directory);
+                Ok(_) <- File.write_text(stage + "/context/" + input.path, input.contents);
+                Ok(_) <- File.write_text(stage + "/" + filename, input.contents)
+            } else {
+                _ -> false
+            };
+            (let _source = sources.push(source); let _file = files.push(Json.object().put("file_name", Json.string(filename)).put("source", source)); freeze(rest, stage, sources, files, index + 1))
+    }.
+
+collect_dependencies(rows: Json, mut dependencies: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> false
+        };
+        (let name = text(row, "module");
+let digest = text(row, "interface_digest");
+let agrees =
+    case dependencies.get(name) {
+        Ok(previous) -> previous.as_string() == Ok(digest);
+        _ -> name != "" and digest.byte_size() == 64
+    };
+let _dependency = dependencies.put(name, Json.string(digest));
+agrees and collect_dependencies(rows, dependencies, index + 1, count))
+    }.
+
+normalize_diagnostic_paths(mut diagnostics: Json, root: String, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(row) <- diagnostics.at(index);
+            Ok(diagnostic) <- row.get("diagnostic")
+        } else {
+            _ -> false
+        };
+        (let path = text(diagnostic, "path");
+let prefix = root + "/";
+let _path =
+    if {
+        path.starts_with(prefix) -> diagnostic
+            .put(
+                "path",
+                Json.string(
+                    path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()),
+                ),
+            );
+        true -> diagnostic
+    };
+let _diagnostic = row.put("diagnostic", diagnostic);
+let _row = diagnostics.set(index, row);
+normalize_diagnostic_paths(diagnostics, root, index + 1, count))
+    }.
+
+normalize_units(
+    mut units: Json,
+    root: String,
+    target: String,
+    policy: String,
+    mut dependencies: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(row) <- units.at(index);
+            Ok(exported) <- row.get("export");
+            Ok(normalized) <-
+                Snapshot.normalize_export(
+                    exported,
+                    root + "/" + text(row, "path"),
+                    text(row, "path"),
+                );
+            Ok(rows) <- normalized.get("dependencies");
+            Ok(dep_count) <- rows.length();
+            Ok(diagnostics) <- normalized.get("diagnostics");
+            Ok(diag_count) <- diagnostics.length()
+        } else {
+            _ -> false
+        };
+        (let true <- text(exported, "target_profile") == target and text(exported, "native_policy") == policy else {
+    _ -> false
+};
+(let true <- normalize_diagnostic_paths(diagnostics, root, 0, diag_count) else {
+    _ -> false
+};
+(let _diagnostics = normalized.put("diagnostics", diagnostics);
+let _export = row.put("export", normalized);
+let _unit = units.set(index, row);
+collect_dependencies(rows, dependencies, 0, dep_count)
+    and normalize_units(units, root, target, policy, dependencies, index + 1, count))))
+    }.
+
+dependency_rows(names: List[String], dependencies: Json, mut output: Json): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let Ok(digest) <- dependencies.get(name) else {
+                _ -> false
+            };
+            (let _row = output.push(Json.object().put("module", Json.string(name)).put("interface_digest", digest)); dependency_rows(rest, dependencies, output))
+    }.
+
+capture_staged(
+    compiler: String,
+    values: List[Input],
+    store: String,
+    stage: String,
+): Result[Json, Failure] ->
+    let sources = Json.array();
+    let files = Json.array();
+    let true <- freeze(values, stage, sources, files, 0) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.freeze",
+                    message = "Cannot freeze the explicit source set.",
+                ),
+            )
+    };
+    (let Ok(compiler_digest) <- Hash.sha256_file(compiler) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.compiler",
+                message = "Configured compiler is unavailable.",
+            ),
+        )
+};
+(let Ok(bundle) <- CompilerBridge.export_sources(compiler, stage + "/context", sources) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.inputs_changed",
+                message = "Compiler changed during source-set capture.",
+            ),
+        )
+};
+(let {
+    Ok(units) <- bundle.get("units");
+    Ok(count) <- units.length();
+    Ok(first) <- units.at(0);
+    Ok(first_export) <- first.get("export");
+    Ok(syntax) <- bundle.get("syntax_contract")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.artifact",
+                message = "Compiler source-set artifact is incomplete.",
+            ),
+        )
+};
+(let target = text(first_export, "target_profile");
+let policy = text(first_export, "native_policy");
+let dependencies = Json.object();
+(let true <- normalize_units(units, stage + "/context", target, policy, dependencies, 0, count) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.context_conflict",
+                message = "Source units disagree on compiler context, target, policy, or dependency interfaces.",
+            ),
+        )
+};
+(let _units = bundle.put("units", units);
+let deps = Json.array();
+(let Ok(names) <- dependencies.keys() else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.dependencies",
+                message = "Cannot enumerate dependency interfaces.",
+            ),
+        )
+};
+(let true <- dependency_rows(names, dependencies, deps) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.dependencies",
+                message = "Dependency context is incomplete.",
+            ),
+        )
+};
+(let limits =
+    Json.array()
+        .push(
+            Json.object()
+                .put("code", Json.string("semantic.analysis.source_set"))
+                .put(
+                    "message",
+                    Json.string(
+                        "Snapshot checks the explicit frozen source set. Package configuration and dependency implementation sources outside that set are unavailable.",
+                    ),
+                ),
+        );
+let invalid = text(bundle, "status") == "invalid";
+let _invalid =
+    if {
+        invalid -> limits
+            .push(
+                Json.object()
+                    .put("code", Json.string("semantic.analysis.compiler_rejected"))
+                    .put(
+                        "message",
+                        Json.string(
+                            "At least one source was rejected; successful unit facts remain conditional on the declared interface context.",
+                        ),
+                    ),
+            );
+        true -> limits
+    };
+let compiler_identity =
+    Json.object()
+        .put("version", Json.string(text(bundle, "compiler_version")))
+        .put("binary_digest", Json.string(compiler_digest))
+        .put(
+            "ancestry_digest",
+            Json.string(
+                Hash.sha256_domain_framed("terlan.semantic.bootstrap-root.v1", [compiler_digest]),
+            ),
+        );
+let document =
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.snapshot.v1"))
+        .put(
+            "source_closure_digest",
+            Json.string(
+                Hash.sha256_domain_framed(
+                    "terlan.semantic.source-closure.v1",
+                    [Json.to_string(sources), Json.to_string(deps)],
+                ),
+            ),
+        )
+        .put("sources", sources)
+        .put("dependencies", deps)
+        .put("compiler", compiler_identity)
+        .put("syntax_digest", Json.string(Hash.sha256(Json.to_string(syntax))))
+        .put("target", Json.string(target))
+        .put("flags", Json.array())
+        .put(
+            "policy_digest",
+            Json.string(
+                Hash.sha256_domain_framed(
+                    "terlan.semantic.static-policy.v1",
+                    [policy, "candidate execution disabled"],
+                ),
+            ),
+        )
+        .put(
+            "analysis",
+            Json.object()
+                .put(
+                    "status",
+                    Json.string(
+                        if {
+                            invalid -> "invalid";
+                            true -> "partial"
+                        },
+                    ),
+                )
+                .put("limitations", limits),
+        );
+(let Ok(id) <- SnapshotStore.identity(document, bundle) else {
+    Err(reason) -> Err(reason)
+};
+(let _id = document.put("snapshot_id", Json.string(id)); SnapshotStore.publish_sources(stage, store, document, bundle, files))))))))))))).
+
+/**
+ * Captures supplied source and editor-overlay bytes without touching a working
+ * tree. Source order is canonical; duplicate paths, escapes, and excess input
+ * fail before compilation. Scope is explicit and cannot silently omit a file.
+ */
+pub capture(compiler: String, inputs: List[Input], store: String): Result[Json, Failure] ->
+    let count = List.length(inputs);
+    let true <- count > 0 and count <= 1_024 else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.source_limit",
+                    message = "Source set must contain between 1 and 1024 files.",
+                ),
+            )
+    };
+    (let values = sort(inputs, []);
+(let true <- valid(values, "", 8_388_608) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.source_set",
+                message = "Sources require unique safe paths, nonnegative document versions, and at most 8 MiB of UTF-8 source.",
+            ),
+        )
+};
+(let Ok(stage) <- Directory.create_temporary("terlan-semantic-source-set-") else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.staging",
+                message = "Cannot create an owned source-set stage.",
+            ),
+        )
+};
+(let result = capture_staged(compiler, values, store, stage);
+let cleaned = Directory.remove_all(stage) == Ok(Unit);
+if {
+    cleaned -> result;
+    true -> Err(
+        Failure(
+            code = "semantic.snapshot.cleanup",
+            message = "Cannot release owned source-set staging files.",
+        ),
+    )
+})))).

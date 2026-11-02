@@ -1,0 +1,26 @@
+#!/usr/bin/env -S terlc run
+import compilation_benchmark.Corpus.
+import std.core.Int.
+import std.core.Option.{Some}.
+import std.io.File.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 4;
+        Some(directory) <- get(0);
+        Some(leaves_text) <- get(1);
+        Some(width_text) <- get(2);
+        Some(workload) <- get(3);
+        Some(leaves) <- Int.from_string(leaves_text);
+        Some(width) <- Int.from_string(width_text);
+        true <- leaves > 0 and leaves <= 1_024 and width > 0 and width <= 64;
+        true <- workload == "scalar" or workload == "records";
+        true <- not File.exists(directory)
+    } else {
+        _ -> false
+    };
+    Corpus.generate(directory, leaves, width, workload == "records").
+
+assert(entry());
+Unit.

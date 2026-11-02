@@ -1,0 +1,31 @@
+  + Exception Group Traceback (most recent call last):
+  |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 185, in main
+  |     report = asyncio.run(validate(args))
+  |   File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+  |     return loop.run_until_complete(main)
+  |   File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+  |     return future.result()
+  |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 38, in validate
+  |     async with stdio_client(parameters, errlog=errlog) as (incoming, outgoing):
+  |   File "/usr/lib/python3.10/contextlib.py", line 217, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/client/stdio/__init__.py", line 182, in stdio_client
+  |     async with (
+  |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | exceptiongroup.ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/mcp/client/stdio/__init__.py", line 189, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 39, in validate
+    |     async with ClientSession(incoming, outgoing, read_timeout_seconds=timedelta(seconds=120)) as client:
+    |   File "/tmp/terlan-llm-native-tools/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | exceptiongroup.ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/home/anatoly/Applications/terlan/terlan/scripts/llm_native/peers/mcp_peer.py", line 143, in validate
+      |     assert rejected["code"] == "semantic.entity.stale"
+      | AssertionError
+      +------------------------------------

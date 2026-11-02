@@ -1,0 +1,125 @@
+/**
+ * Generated receiver defaults retain their exact checked source declaration.
+ */
+module semantic.GeneratedOriginsTest.
+
+import semantic.{Catalog, JsonRules, Query, Snapshot}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    case JsonRules.text(value, key) {
+        Ok(result) -> result;
+        _ -> ""
+    }.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+find(rows: Json, kind: String, name: String, index: Int, count: Int): Result[Json, Bool] ->
+    let true <- index < count else {
+        _ -> Err(false)
+    };
+    (let Ok(row) <- rows.at(index) else {
+    _ -> Err(false)
+};
+if {
+    text(row, "kind") == kind and (name == "" or text(row, "name") == name) -> Ok(row);
+    true -> find(rows, kind, name, index + 1, count)
+}).
+
+check_functions(
+    rows: Json,
+    origin: Json,
+    index: Int,
+    count: Int,
+    observed: Int,
+    arity_sum: Int,
+): Bool ->
+    if {
+        index == count -> observed == 2 and arity_sum == 3;
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> false
+        };
+        if {
+            text(row, "name") != "add" -> check_functions(rows, origin, index + 1, count, observed, arity_sum);
+            true -> let {
+                Ok(source) <- row.get("source");
+                Ok(span) <- source.get("declaration_span");
+                Ok(start) <- span.get("start");
+                Ok(end) <- span.get("end");
+                Ok(original_start) <- origin.get("start_byte");
+                Ok(original_end) <- origin.get("end_byte");
+                Ok(source_arity) <- source.get("arity");
+                Ok(actual_arity) <- JsonRules.number(row, "arity");
+                true <- Json.to_string(start) == Json.to_string(original_start);
+                true <- Json.to_string(end) == Json.to_string(original_end);
+                true <- source_arity.as_int() == Ok(2);
+                true <- text(source, "module") == "sample";
+                true <- text(source, "function") == "add"
+            } else {
+                _ -> false
+            };
+            check_functions(rows, origin, index + 1, count, observed + 1, arity_sum + actual_arity)
+        }
+    }.
+
+@test
+pub core_query_preserves_generated_default_adapter_source_origins(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-generated-origin-");
+        Ok(_) <-
+            File.write_text(
+                root + "/sample.terl",
+                "module sample.\npub struct Counter { value: Int }.\npub (counter: Counter) add(amount: Int = 1): Int -> counter.value + amount.\n",
+            );
+        Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(entities) <- catalog.get("entities");
+        Ok(count) <- entities.length();
+        Ok(module_entity) <- find(entities, "module", "", 0, count);
+        Ok(declaration) <- find(entities, "function", "add", 0, count);
+        Ok(origin) <- declaration.get("origin")
+    } else {
+        _ -> false
+    };
+    (let request =
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.query.v1"))
+        .put("snapshot_id", Json.string(text(snapshot, "snapshot_id")))
+        .put(
+            "target",
+            Json.object()
+                .put("entity_id", Json.string(text(module_entity, "entity_id")))
+                .put("kind", Json.string("module"))
+                .put("expected_digest", Json.string(text(module_entity, "digest"))),
+        )
+        .put("fact", Json.string("core"))
+        .put(
+            "limits",
+            Json.object().put("max_bytes", Json.int(100_000)).put("max_work", Json.int(10_000)),
+        )
+        .put("cursor", Json.null());
+(let {
+    Ok(result) <- Query.run(root + "/store", request);
+    Ok(facts) <- result.get("facts");
+    Ok(first) <- facts.at(0);
+    Ok(value) <- first.get("value");
+    Ok(encoded) <- JsonRules.text(value, "text");
+    Ok(core) <- Json.parse(encoded);
+    Ok(functions) <- core.get("functions");
+    Ok(function_count) <- functions.length()
+} else {
+    _ -> false
+};
+(let preserved = check_functions(functions, origin, 0, function_count, 0, 0); let cleaned = Directory.remove_all(root) == Ok(Unit); preserved and cleaned))).

@@ -262,6 +262,13 @@ parameter_annotation(value: ParameterSyntax): String ->
     if { value.has_annotation -> value.annotation.syntax.text; true -> "" }.
 
 @pure
+type_parameter_name(value: String): String ->
+    case String.split(value, "[") {
+        [] -> String.trim(value);
+        [name | _rest] -> String.trim(name)
+    }.
+
+@pure
 type_argument(
     parameters: List[String],
     arguments: List[String],
@@ -269,7 +276,7 @@ type_argument(
 ): Option[String] ->
     case {parameters, arguments} {
         {[parameter | parameter_rest], [argument | argument_rest]} -> if {
-            parameter == name -> Some(argument);
+            type_parameter_name(parameter) == name -> Some(argument);
             true -> type_argument(parameter_rest, argument_rest, name)
         };
         _ -> None
@@ -356,8 +363,8 @@ item_local_name(value: ImportItemSyntax): String ->
 selected_type_identity(module_name: String, item: ImportItemSyntax): String ->
     let selected_module = String.concat([module_name, ".", item.name]);
     if {
-        String.ends_with(module_name, String.concat([".", item.name])) -> selected_module;
-        true -> String.concat([selected_module, ".", item.name])
+        String.ends_with(module_name, String.concat([".", item.name])) -> module_name;
+        true -> selected_module
     }.
 
 @pure
@@ -375,7 +382,10 @@ direct_imported_type(value: ImportSyntax, name: String): String ->
     let imported_name = last_path_component(value.module_name);
     let local_name = if { value.has_alias -> value.alias; true -> imported_name };
     if {
-        local_name == name -> String.concat([value.module_name, ".", imported_name]);
+        local_name == name -> if {
+            String.ends_with(value.module_name, String.concat([".", imported_name])) -> value.module_name;
+            true -> String.concat([value.module_name, ".", imported_name])
+        };
         true -> ""
     }.
 

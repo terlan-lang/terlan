@@ -1,0 +1,21 @@
+#!/usr/bin/env -S terlc run
+import llm_native.Baseline.
+import std.core.Option.{Some}.
+import std.core.Result.{Ok}.
+import std.io.{Directory, File}.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 2;
+        Some(compiler) <- get(0);
+        Some(output) <- get(1);
+        true <- not File.exists(output);
+        Ok(_) <- Directory.create_all(output)
+    } else {
+        _ -> false
+    };
+    Baseline.run(compiler, output).
+
+assert(entry());
+Unit.

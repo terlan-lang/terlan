@@ -1,0 +1,19 @@
+#!/usr/bin/env -S terlc run
+import llm_native.Gate.
+import std.core.Option.{Some}.
+import std.core.Unit.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 3;
+        Some(compiler) <- get(0);
+        Some(selector) <- get(1);
+        Some(output) <- get(2)
+    } else {
+        _ -> false
+    };
+    Gate.run(compiler, selector, output).
+
+assert(entry());
+Unit.

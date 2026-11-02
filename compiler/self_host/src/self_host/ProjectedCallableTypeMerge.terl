@@ -22,14 +22,17 @@ declaration_return_type(value: ResolvedCallableUse): Option[String] ->
 
 @pure
 return_type_at(
+    node_id: Int,
     byte_offset: Int,
     values: List[ResolvedCallableUse],
 ): Option[String] ->
     case values {
         [] -> None;
         [value | rest] -> if {
-            value.source.byte_offset == byte_offset -> declaration_return_type(value);
-            true -> return_type_at(byte_offset, rest)
+            node_id >= 0 and value.source.node_id == node_id -> declaration_return_type(value);
+            node_id < 0 and value.source.node_id < 0 and value.source.byte_offset == byte_offset ->
+                declaration_return_type(value);
+            true -> return_type_at(node_id, byte_offset, rest)
         }
     }.
 
@@ -37,7 +40,7 @@ return_type_at(
 merged_type(value: InferredTypeFact, uses: List[ResolvedCallableUse]): Option[String] ->
     case value.type_name {
         Some(name) -> Some(name);
-        None -> return_type_at(value.byte_offset, uses)
+        None -> return_type_at(value.node_id, value.byte_offset, uses)
     }.
 
 @pure

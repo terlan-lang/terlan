@@ -21,6 +21,12 @@ facts(left: String, right: String): TypeConstraintResolution ->
     ], []).
 
 @pure
+identified_resolution(): CallableResolution ->
+    let declaration = CallableDeclaration("test", "call", 2, "function", List.new[String](), [Some("String"), Some("Int")], Some("Unit"), 0);
+    let use_site = CallableUse(None, "call", 2, [10, 10], 5, 9, [2, 3]);
+    CallableResolution([ResolvedCallableUse(use_site, Some(declaration))], []).
+
+@pure
 concrete_mismatch_is_rejected(): Bool ->
     ProjectedCallableArgumentTypecheck.check(
         resolution(List.new[String](), [Some("String"), Some("Bool")]),
@@ -41,7 +47,31 @@ matching_arguments_pass(): Bool ->
         facts("String", "Int"),
     ).diagnostics == [].
 
+@pure
+outer_expression_fact_wins_shared_byte_offset(): Bool ->
+    ProjectedCallableArgumentTypecheck.check(
+        resolution(List.new[String](), [Some("String"), Some("Int")]),
+        TypeConstraintResolution([
+            InferredTypeFact(1, Some("String"), 10),
+            InferredTypeFact(2, Some("Int"), 10),
+            InferredTypeFact(3, Some("Int"), 20),
+        ], []),
+    ).diagnostics == [].
+
+@pure
+node_identity_disambiguates_shared_byte_offsets(): Bool ->
+    ProjectedCallableArgumentTypecheck.check(
+        identified_resolution(),
+        TypeConstraintResolution([
+            InferredTypeFact(1, Some("Bool"), 10),
+            InferredTypeFact(2, Some("String"), 10),
+            InferredTypeFact(3, Some("Int"), 10),
+        ], []),
+    ).diagnostics == [].
+
 pub self_test(): Bool ->
     concrete_mismatch_is_rejected()
         and repeated_generic_must_unify()
-        and matching_arguments_pass().
+        and matching_arguments_pass()
+        and outer_expression_fact_wins_shared_byte_offset()
+        and node_identity_disambiguates_shared_byte_offsets().

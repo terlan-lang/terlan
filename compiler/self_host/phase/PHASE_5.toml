@@ -15,7 +15,7 @@ target_independent_validation = true
 [lowering]
 typed_syntax_desugaring = "implemented-comprehension-normalization-and-complete-semantic-binder-identities-validation-pending"
 pattern_decision_trees = "implemented-complete-projected-pattern-surface-validation-pending"
-closure_and_capture = "implemented-validation-pending"
+closure_and_capture = "validated-zero-and-one-capture-core-publication-and-runtime"
 actor_continuations = "implemented-validation-pending"
 native_capabilities = "implemented-complete-projected-surface-with-unsupported-opcode-admission-validation-pending"
 managed_layouts = "partial-list-tuple-array-record-map-and-pattern-environment-implemented-unverified"
@@ -29,10 +29,12 @@ sealed_native_image_publication = true
 native_image_validation = true
 
 [validation]
-retained_image = "target/quality/self-host-phase5-core-catalog-fast-v7/bin/terlan-self-host"
+retained_image = "target/quality/self-host-phase5-core-catalog-fast-v15/bin/terlan-self-host"
 runtime_evidence_image = "target/quality/self-host-phase5-core-catalog-fast-v6/bin/terlan-self-host"
 evidence_root = "target/quality/self-host-phase5-optimizer-runtime-v2"
-backend_equivalent_fixtures = 8
+closure_evidence_root = "target/quality/self-host-phase5-closure-capture-v15"
+core_ir_evidence_root = "target/quality/self-host-phase5-core-ir-v15-closure"
+backend_equivalent_fixtures = 9
 backend_rejection_fixtures = 1
 duplicate_run_byte_determinism = true
 rust_abi_1_6_admission = true
@@ -41,18 +43,20 @@ optimizer_idempotence = true
 optimizer_deterministic_regeneration = true
 optimizer_runtime_equivalence = true
 cross_target_equivalence = true
+closure_abi_publication = true
+closure_runtime_execution = true
 
 [[gate]]
 id = "self-host-core-ir-differential-check"
-status = "maintained-corpus-contract-pass-v3-reference-regeneration-pending"
+status = "maintained-corpus-contract-pass-v15-reference-regeneration-pending"
 
 [[gate]]
 id = "self-host-pattern-lowering-check"
-status = "control-flow-regression-corpus-pass-full-pattern-corpus-pending"
+status = "control-flow-regression-corpus-pass-v15-full-pattern-corpus-pending"
 
 [[gate]]
 id = "self-host-closure-lowering-check"
-status = "pending-validation"
+status = "pass-zero-and-one-capture-runtime-surface"
 
 [[gate]]
 id = "self-host-actor-lowering-check"
@@ -64,11 +68,11 @@ status = "pending"
 
 [[gate]]
 id = "self-host-core-ir-determinism-check"
-status = "maintained-backend-corpus-pass-release-corpus-pending"
+status = "maintained-backend-corpus-pass-v15-release-corpus-pending"
 
 [next]
 implementation = "close-remaining-typed-core-ir-and-release-corpus-validation"
-reason = "the complete current optimizer transformation surface has Terlan-owned structural, runtime, and cross-target authority evidence; unrelated Core IR validation remains pending"
+reason = "the current optimizer surface and zero/one-capture closure surface have Terlan-owned Core and runtime authority evidence; actor, native-operation, managed-layout, structured-try, pattern-corpus, and release-corpus validation remain pending"
 
 [[gate]]
 id = "self-host-core-optimization-equivalence-check"

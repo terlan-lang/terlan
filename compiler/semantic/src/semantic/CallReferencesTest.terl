@@ -1,0 +1,423 @@
+module semantic.CallReferencesTest.
+
+import semantic.EntityLookup.{Selection}.
+import semantic.SourceSet.{Input}.
+import semantic.{CallReferences, Catalog, EntityLookup, Query, SourceSet}.
+import std.collections.Set.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.Directory.
+import std.system.Environment.
+
+import type std.collections.Set.
+import type std.core.Result.
+import type std.data.Json.
+
+struct Fixture {
+    root: String,
+    snapshot: Json,
+    entities: Json,
+}.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(path) -> path;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+text(value: Json, key: String): String ->
+    EntityLookup.text(value, key).
+
+fixture(inputs: List[Input]): Result[Fixture, Bool] ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-call-query-");
+        Ok(snapshot) <- SourceSet.capture(compiler(), inputs, root + "/store");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(entities) <- catalog.get("entities")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(Fixture(root = root, snapshot = snapshot, entities = entities)).
+
+find(
+    rows: Json,
+    kind: String,
+    name: String,
+    path: String,
+    occurrence: Int,
+    index: Int,
+    count: Int,
+): Result[Json, Bool] ->
+    let true <- index < count else {
+        _ -> Err(false)
+    };
+    (let {
+    Ok(row) <- rows.at(index);
+    Ok(origin) <- row.get("origin")
+} else {
+    _ -> Err(false)
+};
+(let actual_kind = text(row, "kind");
+let actual_name = text(row, "name");
+let actual_path = text(origin, "path");
+let name_matches = name == "" or actual_name == name;
+let path_matches = path == "" or actual_path == path;
+if {
+    actual_kind == kind and name_matches and path_matches -> if {
+        occurrence == 0 -> Ok(row);
+        true -> find(rows, kind, name, path, occurrence - 1, index + 1, count)
+    };
+    true -> find(rows, kind, name, path, occurrence, index + 1, count)
+})).
+
+selected(
+    context: Fixture,
+    kind: String,
+    name: String,
+    path: String,
+    occurrence: Int,
+): Result[Json, Bool] ->
+    let Ok(count) <- context.entities.length() else {
+        _ -> Err(false)
+    };
+    find(context.entities, kind, name, path, occurrence, 0, count).
+
+query(context: Fixture, entity: Json, bytes: Int, work: Int, cursor: Json): Result[Json, Bool] ->
+    let request =
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.query.v1"))
+            .put("snapshot_id", Json.string(text(context.snapshot, "snapshot_id")))
+            .put(
+                "target",
+                Json.object()
+                    .put("entity_id", Json.string(text(entity, "entity_id")))
+                    .put("kind", Json.string(text(entity, "kind")))
+                    .put("expected_digest", Json.string(text(entity, "digest"))),
+            )
+            .put("fact", Json.string("references"))
+            .put(
+                "limits",
+                Json.object().put("max_bytes", Json.int(bytes)).put("max_work", Json.int(work)),
+            )
+            .put("cursor", cursor);
+    case Query.run(context.root + "/store", request) {
+        Ok(result) -> Ok(result);
+        _ -> Err(false)
+    }.
+
+value(result: Json): Result[Json, Bool] ->
+    let {
+        Ok(rows) <- result.get("facts");
+        Ok(row) <- rows.at(0);
+        Ok(value) <- row.get("value")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(value).
+
+count(result: Json): Int ->
+    let {
+        Ok(rows) <- result.get("facts");
+        Ok(n) <- rows.length()
+    } else {
+        _ -> -1
+    };
+    n.
+
+clean(context: Fixture): Bool ->
+    Directory.remove_all(context.root) == Ok(Unit).
+
+@test
+pub local_overload_references_link_only_the_exact_selected_declaration(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                [
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\npub pick(input: Int): Int -> input.\npub pick(input: Bool): Bool -> input.\npub number(): Int -> pick(1).\npub flag(): Bool -> pick(true).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(first) <- selected(context, "function", "pick", "sample.terl", 0);
+        Ok(second) <- selected(context, "function", "pick", "sample.terl", 1);
+        Ok(left) <- query(context, first, 65_536, 10_000, Json.null());
+        Ok(right) <- query(context, second, 65_536, 10_000, Json.null());
+        Ok(left_value) <- value(left);
+        Ok(right_value) <- value(right);
+        Ok(left_origin) <- left_value.get("target_origin");
+        Ok(right_origin) <- right_value.get("target_origin");
+        Ok(left_target) <- left_origin.get("entity");
+        Ok(right_target) <- right_origin.get("entity")
+    } else {
+        _ -> false
+    };
+    (let valid =
+    count(left) == 1
+        and count(right) == 1
+        and text(left_target, "entity_id") == text(first, "entity_id")
+        and text(right_target, "entity_id") == text(second, "entity_id")
+        and text(left_target, "entity_id") != text(right_target, "entity_id")
+        and text(left, "status") == "partial"
+        and text(right, "status") == "partial";
+let cleaned = clean(context);
+valid and cleaned).
+
+@test
+pub imported_aliases_and_module_calls_retain_provider_and_overload_among_decoys(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                [
+                    Input(
+                        path = "fixture/Provider.terli",
+                        contents = "module fixture.Provider.\npub pick(input: Int): Int.\npub pick(input: Bool): Bool.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "fixture/Decoy.terli",
+                        contents = "module fixture.Decoy.\npub pick(input: Int): Int.\npub pick(input: Bool): Bool.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\nimport fixture.Provider.{pick as alias}.\nimport fixture.Provider as Other.\npub number(): Int -> alias(1).\npub flag(): Bool -> Other.pick(true).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(first) <- selected(context, "function", "pick", "fixture/Provider.terli", 0);
+        Ok(second) <- selected(context, "function", "pick", "fixture/Provider.terli", 1);
+        Ok(decoy) <- selected(context, "function", "pick", "fixture/Decoy.terli", 0);
+        Ok(left) <- query(context, first, 65_536, 10_000, Json.null());
+        Ok(right) <- query(context, second, 65_536, 10_000, Json.null());
+        Ok(unused) <- query(context, decoy, 65_536, 10_000, Json.null());
+        Ok(left_value) <- value(left);
+        Ok(right_value) <- value(right);
+        Ok(left_origin) <- left_value.get("target_origin");
+        Ok(right_origin) <- right_value.get("target_origin");
+        Ok(left_target) <- left_origin.get("entity");
+        Ok(right_target) <- right_origin.get("entity")
+    } else {
+        _ -> false
+    };
+    (let valid =
+    count(left) == 1
+        and count(right) == 1
+        and count(unused) == 0
+        and text(left_value, "source_path") == "sample.terl"
+        and text(right_value, "source_path") == "sample.terl"
+        and text(left_target, "entity_id") == text(first, "entity_id")
+        and text(right_target, "entity_id") == text(second, "entity_id");
+let cleaned = clean(context);
+valid and cleaned).
+
+@test
+pub rejected_import_provider_trials_never_publish_references(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                [
+                    Input(
+                        path = "one.terli",
+                        contents = "module one.\npub pick(input: Int): Int.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "two.terli",
+                        contents = "module two.\npub pick(input: Bool): Bool.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\nimport one.{pick}.\nimport two.{pick}.\npub number(): Int -> pick(1).\npub flag(): Bool -> pick(true).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(first) <- selected(context, "function", "pick", "one.terli", 0);
+        Ok(second) <- selected(context, "function", "pick", "two.terli", 0);
+        Ok(left) <- query(context, first, 65_536, 10_000, Json.null());
+        Ok(right) <- query(context, second, 65_536, 10_000, Json.null());
+        Ok(left_value) <- value(left);
+        Ok(right_value) <- value(right);
+        Ok(left_observation) <- left_value.get("observation");
+        Ok(right_observation) <- right_value.get("observation");
+        Ok(left_target) <- left_observation.get("target");
+        Ok(right_target) <- right_observation.get("target");
+        Ok(left_signature) <- left_target.get("signature");
+        Ok(right_signature) <- right_target.get("signature")
+    } else {
+        _ -> false
+    };
+    (let valid =
+    count(left) == 1
+        and count(right) == 1
+        and text(left_signature, "module") == "one"
+        and text(right_signature, "module") == "two";
+let cleaned = clean(context);
+valid and cleaned).
+
+@test
+pub indirect_shadowed_calls_are_unknown_without_inventing_a_same_named_target(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                [
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\npub pick(input: Int): Int -> input.\npub invoke(pick: (Int) -> Int): Int -> pick(1).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(module_entity) <- selected(context, "module", "", "sample.terl", 0);
+        Ok(target) <- selected(context, "function", "pick", "sample.terl", 0);
+        Ok(inventory) <- query(context, module_entity, 65_536, 10_000, Json.null());
+        Ok(references) <- query(context, target, 65_536, 10_000, Json.null());
+        Ok(row) <- value(inventory);
+        Ok(observation) <- row.get("observation");
+        Ok(origin) <- row.get("target_origin");
+        Ok(entity) <- origin.get("entity")
+    } else {
+        _ -> false
+    };
+    (let valid =
+    count(inventory) == 1
+        and count(references) == 0
+        and text(observation, "status") == "unavailable"
+        and text(origin, "status") == "unavailable"
+        and entity.is_null()
+        and text(references, "status") == "partial";
+let cleaned = clean(context);
+valid and cleaned).
+
+@test
+pub providers_outside_the_snapshot_keep_canonical_signature_without_a_fabricated_link(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                [
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\nimport std.collections.List.{length as size}.\npub run(items: List[Int]): Int -> size(items).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(module_entity) <- selected(context, "module", "", "sample.terl", 0);
+        Ok(inventory) <- query(context, module_entity, 65_536, 10_000, Json.null());
+        Ok(row) <- value(inventory);
+        Ok(observation) <- row.get("observation");
+        Ok(target) <- observation.get("target");
+        Ok(signature) <- target.get("signature");
+        Ok(origin) <- row.get("target_origin");
+        Ok(entity) <- origin.get("entity")
+    } else {
+        _ -> false
+    };
+    (let valid =
+    count(inventory) == 1
+        and text(observation, "status") == "resolved"
+        and text(signature, "module") == "std.collections.List"
+        and text(signature, "name") == "length"
+        and text(origin, "status") == "unavailable"
+        and entity.is_null();
+let cleaned = clean(context);
+valid and cleaned).
+
+collect(rows: Json, index: Int, count: Int, mut paths: Set[String]): Result[Set[String], Bool] ->
+    if {
+        index == count -> Ok(paths);
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(value) <- row.get("value");
+            Ok(observation) <- value.get("observation");
+            Ok(site) <- observation.get("site")
+        } else {
+            _ -> Err(false)
+        };
+        (let path = text(site, "path");
+(let false <- Set.contains(paths, path) else {
+    _ -> Err(false)
+};
+(let _added = paths.add(path); collect(rows, index + 1, count, paths))))
+    }.
+
+pages(
+    context: Fixture,
+    entity: Json,
+    cursor: Json,
+    paths: Set[String],
+    remaining: Int,
+): Result[Int, Bool] ->
+    let true <- remaining > 0 else {
+        _ -> Err(false)
+    };
+    (let {
+    Ok(result) <- query(context, entity, 4_096, 10_000, cursor);
+    Ok(rows) <- result.get("facts");
+    Ok(length) <- rows.length();
+    Ok(next) <- result.get("next_cursor");
+    Ok(found) <- collect(rows, 0, length, paths)
+} else {
+    _ -> Err(false)
+};
+if {
+    next.is_null() -> Ok(Set.size(found));
+    true -> pages(context, entity, next, found, remaining - 1)
+}).
+
+@test
+pub call_reference_pages_preserve_every_unique_site(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                [
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\npub pick(input: Int): Int -> input.\npub run(): Int -> pick(1) + pick(2) + pick(3) + pick(4) + pick(5) + pick(6).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(target) <- selected(context, "function", "pick", "sample.terl", 0);
+        Ok(first) <- query(context, target, 4_096, 10_000, Json.null());
+        Ok(cursor) <- first.get("next_cursor");
+        true <- not cursor.is_null();
+        Ok(total) <- pages(context, target, Json.null(), Set.new[String](), 10)
+    } else {
+        _ -> false
+    };
+    (let valid = total == 6 and text(first, "status") == "partial"; let cleaned = clean(context); valid and cleaned).
+
+@test
+pub truncated_capture_cannot_publish_a_previously_selected_target(): Bool ->
+    let artifact =
+        Json.object()
+            .put("module_name", Json.string("sample"))
+            .put("status", Json.string("checked"))
+            .put(
+                "call_resolution_observations",
+                Json.object()
+                    .put("truncated", Json.bool(true))
+                    .put(
+                        "calls",
+                        Json.array().push(Json.object().put("status", Json.string("resolved"))),
+                    ),
+            );
+    let selection =
+        Selection(
+            entity = Json.object().put("kind", Json.string("module")),
+            artifact = artifact,
+            context = Json.null(),
+            record = Json.null(),
+            work_used = 0,
+        );
+    case CallReferences.select(selection, 10) {
+        Ok(found) -> found.rows.length() == Ok(0) and found.incomplete;
+        _ -> false
+    }.

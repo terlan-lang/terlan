@@ -236,7 +236,7 @@ pub(super) fn infer_syntax_remote_call(
         } else {
             arg_types.to_vec()
         };
-        match infer_interface_function_overload_with_explicit_type_args(
+        match infer_interface_function_overload_with_selection(
             interface,
             function_name,
             &format!("{}.{}", resolved_module_name, function_name),
@@ -245,7 +245,13 @@ pub(super) fn infer_syntax_remote_call(
             ctx,
             subst,
         ) {
-            Ok(Some(ty)) => return ty,
+            Ok(Some((ty, signature))) => {
+                call_observations::accepted(call_observations::interface_target(
+                    resolved_module_name,
+                    signature,
+                ));
+                return ty;
+            }
             Ok(None) => {}
             Err(message) => {
                 errors.push(message);
@@ -630,7 +636,7 @@ fn named_type_heads_match(left: &Type, right: &Type) -> bool {
 ///   higher-kinded applications so imported opaque types such as
 ///   `List[Int]` compare with provider conformances recorded as
 ///   `std.collections.List.List[Int]`.
-pub(super) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>) -> Type {
+pub(crate) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>) -> Type {
     match ty {
         Type::Named { module, name, args } => {
             let args = args

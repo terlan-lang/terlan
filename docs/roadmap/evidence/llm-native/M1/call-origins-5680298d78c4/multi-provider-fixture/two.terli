@@ -1,0 +1,2 @@
+module two.
+pub pick(input: Bool): Bool.

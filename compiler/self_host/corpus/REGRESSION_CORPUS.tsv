@@ -17,6 +17,7 @@ frontend	reject	rejected/UnterminatedDeclaration.terl
 semantic	accept	semantic/Bindings.terl
 semantic	reject	semantic/UnknownName.terl
 backend	equivalent	backend/Arithmetic.terl
+backend	equivalent	backend/ClosureCapture.terl
 backend	equivalent	backend/MethodRootCase.terl
 backend	equivalent	backend/NestedLeafIf.terl
 backend	reject	backend_rejected/NestedLeafIfMismatch.terl

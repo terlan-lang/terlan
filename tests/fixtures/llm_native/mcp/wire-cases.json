@@ -1,0 +1,181 @@
+{
+  "schema": "terlan.mcp.wire-cases.v1",
+  "protocol_version": "2025-11-25",
+  "cases": [
+    {
+      "id": "mcp.initialize-request",
+      "model": "JSONRPCMessage",
+      "accept": true,
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "fixture",
+            "version": "1"
+          }
+        }
+      }
+    },
+    {
+      "id": "mcp.initialized-notification",
+      "model": "JSONRPCMessage",
+      "accept": true,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+      }
+    },
+    {
+      "id": "mcp.tools-list-request",
+      "model": "JSONRPCMessage",
+      "accept": true,
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list",
+        "params": {}
+      }
+    },
+    {
+      "id": "mcp.tools-call-request",
+      "model": "JSONRPCMessage",
+      "accept": true,
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "terlan_query",
+          "arguments": {}
+        }
+      }
+    },
+    {
+      "id": "mcp.invalid-jsonrpc-version",
+      "model": "JSONRPCMessage",
+      "accept": false,
+      "message": {
+        "jsonrpc": "1.0",
+        "id": 1,
+        "method": "tools/list"
+      }
+    },
+    {
+      "id": "mcp.tool-schema",
+      "model": "Tool",
+      "accept": true,
+      "message": {
+        "name": "terlan_query",
+        "description": "Fixture descriptor.",
+        "inputSchema": {
+          "type": "object"
+        },
+        "outputSchema": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "id": "mcp.tool-missing-input-schema",
+      "model": "Tool",
+      "accept": false,
+      "message": {
+        "name": "terlan_query"
+      }
+    },
+    {
+      "id": "mcp.structured-tool-result",
+      "model": "CallToolResult",
+      "accept": true,
+      "message": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"status\":\"partial\"}"
+          }
+        ],
+        "structuredContent": {
+          "status": "partial"
+        },
+        "isError": false
+      }
+    },
+    {
+      "id": "mcp.resource-result",
+      "model": "ReadResourceResult",
+      "accept": true,
+      "message": {
+        "contents": [
+          {
+            "uri": "terlan://snapshots/fixture/context",
+            "mimeType": "application/json",
+            "text": "{}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mcp.invalid-result-content",
+      "model": "CallToolResult",
+      "accept": false,
+      "message": {
+        "content": [
+          {
+            "type": "invented"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mcp.spec.anonymous-parse-error",
+      "model": "McpSpecMessage",
+      "accept": true,
+      "message": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32700,
+          "message": "Invalid JSON."
+        }
+      }
+    },
+    {
+      "id": "mcp.spec.null-error-id-rejected",
+      "model": "McpSpecMessage",
+      "accept": false,
+      "message": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32700,
+          "message": "Invalid JSON."
+        },
+        "id": null
+      }
+    },
+    {
+      "id": "mcp.spec.identified-error",
+      "model": "McpSpecMessage",
+      "accept": true,
+      "message": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32700,
+          "message": "Invalid JSON."
+        },
+        "id": 1
+      }
+    },
+    {
+      "id": "mcp.spec.result-requires-id",
+      "model": "McpSpecMessage",
+      "accept": false,
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {}
+      }
+    }
+  ]
+}

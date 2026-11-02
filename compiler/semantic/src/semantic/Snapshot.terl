@@ -1,0 +1,419 @@
+/**
+ * Captures one frozen source and authoritative compiler facts in Terlan.
+ */
+module semantic.Snapshot.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{CompilerBridge, SnapshotStore}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+components_safe(parts: List[String]): Bool ->
+    case parts {
+        [] -> true;
+        [part | rest] -> part != "" and part != "." and part != ".." and components_safe(rest)
+    }.
+
+/**
+ * Logical paths are workspace-relative labels, never caller-controlled URIs.
+ */
+pub safe_logical_path(path: String): Bool ->
+    path != ""
+        and not path.starts_with("/")
+        and not path.contains("\\")
+        and not path.contains(":")
+        and components_safe(path.split("/")).
+
+normalize_diagnostics(
+    mut rows: Json,
+    index: Int,
+    count: Int,
+    physical: String,
+    logical: String,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(diagnostic) <- row.get("diagnostic")
+        } else {
+            _ -> false
+        };
+        (let _path =
+    if {
+        text(diagnostic, "path") == physical -> diagnostic.put("path", Json.string(logical));
+        true -> diagnostic
+    };
+let _diagnostic = row.put("diagnostic", diagnostic);
+let _row = rows.set(index, row);
+normalize_diagnostics(rows, index + 1, count, physical, logical))
+    }.
+
+pub normalize_export(exported: Json, physical: String, logical: String): Result[Json, Failure] ->
+    let Ok(copy) <- Json.parse(Json.to_string(exported)) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.artifact",
+                    message = "Cannot copy compiler artifact.",
+                ),
+            )
+    };
+    (let _name = copy.put("source_name", Json.string(logical));
+(let {
+    Ok(core) <- copy.get("core");
+    Ok(diagnostics) <- copy.get("diagnostics");
+    Ok(count) <- diagnostics.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.artifact",
+                message = "Compiler artifact is incomplete.",
+            ),
+        )
+};
+(let _core =
+    if {
+        core.is_null() -> copy;
+        true -> let Ok(source) <- core.get("source") else {
+            _ -> copy
+        };
+        (let _source_path = source.put("source_path", Json.string(logical)); let _source = core.put("source", source); copy.put("core", core))
+    };
+(let true <- normalize_diagnostics(diagnostics, 0, count, physical, logical) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.artifact",
+                message = "Compiler diagnostic origins are incomplete.",
+            ),
+        )
+};
+(let _diagnostics = copy.put("diagnostics", diagnostics); Ok(copy)))))).
+
+dependencies(exported: Json): Result[Json, Failure] ->
+    let {
+        Ok(rows) <- exported.get("dependencies");
+        Ok(count) <- rows.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.dependencies",
+                    message = "Compiler dependency inventory is missing.",
+                ),
+            )
+    };
+    (let result = Json.array();
+(let true <- copy_dependencies(rows, result, 0, count) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.dependencies",
+                message = "Compiler dependency inventory is malformed.",
+            ),
+        )
+};
+Ok(result))).
+
+copy_dependencies(rows: Json, mut output: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> false
+        };
+        (let name = text(row, "module");
+let digest = text(row, "interface_digest");
+let _row =
+    output
+        .push(
+            Json.object()
+                .put("module", Json.string(name))
+                .put("interface_digest", Json.string(digest)),
+        );
+name != "" and digest.byte_size() == 64 and copy_dependencies(rows, output, index + 1, count))
+    }.
+
+manifest(
+    compiler_digest: String,
+    logical: String,
+    source_digest: String,
+    document_version: Int,
+    exported: Json,
+): Result[Json, Failure] ->
+    let {
+        Ok(deps) <- dependencies(exported);
+        Ok(syntax) <- exported.get("syntax_contract")
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.context",
+                    message = "Compiler context is incomplete.",
+                ),
+            )
+    };
+    (let sources =
+    Json.array()
+        .push(
+            Json.object()
+                .put("path", Json.string(logical))
+                .put("digest", Json.string(source_digest))
+                .put("document_version", Json.int(document_version)),
+        );
+let limits =
+    Json.array()
+        .push(
+            Json.object()
+                .put("code", Json.string("semantic.analysis.single_file"))
+                .put(
+                    "message",
+                    Json.string("Snapshot scopes one frozen source file and dependency interfaces."),
+                ),
+        );
+let invalid = text(exported, "status") == "invalid";
+let _invalid =
+    if {
+        invalid -> limits
+            .push(
+                Json.object()
+                    .put("code", Json.string("semantic.analysis.compiler_rejected"))
+                    .put(
+                        "message",
+                        Json.string("Compiler rejected the source; typed facts are unavailable."),
+                    ),
+            );
+        true -> limits
+    };
+let analysis =
+    Json.object()
+        .put(
+            "status",
+            Json.string(
+                if {
+                    invalid -> "invalid";
+                    true -> "partial"
+                },
+            ),
+        )
+        .put("limitations", limits);
+let compiler =
+    Json.object()
+        .put("version", Json.string(text(exported, "compiler_version")))
+        .put("binary_digest", Json.string(compiler_digest))
+        .put(
+            "ancestry_digest",
+            Json.string(
+                Hash.sha256_domain_framed("terlan.semantic.bootstrap-root.v1", [compiler_digest]),
+            ),
+        );
+Ok(
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.snapshot.v1"))
+        .put(
+            "source_closure_digest",
+            Json.string(
+                Hash.sha256_domain_framed(
+                    "terlan.semantic.source-closure.v1",
+                    [Json.to_string(sources), Json.to_string(deps)],
+                ),
+            ),
+        )
+        .put("sources", sources)
+        .put("dependencies", deps)
+        .put("compiler", compiler)
+        .put("syntax_digest", Json.string(Hash.sha256(Json.to_string(syntax))))
+        .put("target", Json.string(text(exported, "target_profile")))
+        .put("flags", Json.array())
+        .put(
+            "policy_digest",
+            Json.string(
+                Hash.sha256_domain_framed(
+                    "terlan.semantic.static-policy.v1",
+                    [text(exported, "native_policy"), "candidate execution disabled"],
+                ),
+            ),
+        )
+        .put("analysis", analysis),
+)).
+
+capture_staged(
+    compiler: String,
+    original: String,
+    original_digest: String,
+    logical: String,
+    store: String,
+    stage: String,
+    source: String,
+    document_version: Int,
+): Result[Json, Failure] ->
+    let source_filename =
+        if {
+            original.ends_with(".terli") -> "source.terli";
+            original.ends_with(".terls") -> "source.terls";
+            true -> "source.terl"
+        };
+    let physical = String.concat([stage, "/", source_filename]);
+    let source_digest = Hash.sha256(source);
+    let {
+        Ok(_) <- File.write_text(physical, source);
+        Ok(compiler_digest) <- Hash.sha256_file(compiler)
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.compile",
+                    message = "Cannot freeze compiler inputs.",
+                ),
+            )
+    };
+    (let Ok(exported) <- CompilerBridge.export_file(compiler, physical) else {
+    Err(reason) -> Err(reason)
+};
+(let true <-
+    Hash.sha256_file(original) == Ok(original_digest)
+        and Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.inputs_changed",
+                message = "Source or compiler changed during capture.",
+            ),
+        )
+};
+(let {
+    Ok(normalized) <- normalize_export(exported, physical, logical);
+    Ok(document) <- manifest(compiler_digest, logical, source_digest, document_version, normalized);
+    Ok(id) <- SnapshotStore.identity(document, normalized)
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.identity",
+                message = "Cannot construct the immutable snapshot identity.",
+            ),
+        )
+};
+(let _id = document.put("snapshot_id", Json.string(id)); SnapshotStore.publish(stage, store, source_filename, document, normalized))))).
+
+/**
+ * Initial single-file capture. Source is frozen before compilation; unavailable
+ * workspace analyses remain explicit limitations rather than complete claims.
+ */
+pub capture_file(
+    compiler: String,
+    path: String,
+    logical: String,
+    store: String,
+): Result[Json, Failure] ->
+    let true <- safe_logical_path(logical) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.path",
+                    message = "Logical source path must remain inside the workspace.",
+                ),
+            )
+    };
+    (let {
+    Ok(source) <- File.read_text(path);
+    Ok(stage) <- Directory.create_temporary("terlan-semantic-capture-")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.input",
+                message = "Cannot freeze the requested source.",
+            ),
+        )
+};
+(let result = capture_staged(compiler, path, Hash.sha256(source), logical, store, stage, source, 0);
+let cleaned = Directory.remove_all(stage) == Ok(Unit);
+if {
+    cleaned -> result;
+    true -> Err(
+        Failure(
+            code = "semantic.snapshot.cleanup",
+            message = "Cannot release owned capture staging files.",
+        ),
+    )
+})).
+
+/**
+ * Captures an unsaved editor document without writing the workspace. The caller
+ * must supply the disk digest on which its overlay is based; a stale base is
+ * rejected before compilation and checked again before publication.
+ */
+pub capture_overlay(
+    compiler: String,
+    path: String,
+    logical: String,
+    expected_disk_digest: String,
+    document_version: Int,
+    source: String,
+    store: String,
+): Result[Json, Failure] ->
+    let true <- safe_logical_path(logical) and document_version > 0 else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.overlay",
+                    message = "Overlay requires a safe logical path and a positive document version.",
+                ),
+            )
+    };
+    (let true <- Hash.sha256_file(path) == Ok(expected_disk_digest) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.stale_overlay",
+                message = "Overlay base no longer matches workspace bytes.",
+            ),
+        )
+};
+(let Ok(stage) <- Directory.create_temporary("terlan-semantic-overlay-") else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.input",
+                message = "Cannot freeze the requested document overlay.",
+            ),
+        )
+};
+(let result =
+    capture_staged(
+        compiler,
+        path,
+        expected_disk_digest,
+        logical,
+        store,
+        stage,
+        source,
+        document_version,
+    );
+let cleaned = Directory.remove_all(stage) == Ok(Unit);
+if {
+    cleaned -> result;
+    true -> Err(
+        Failure(
+            code = "semantic.snapshot.cleanup",
+            message = "Cannot release owned overlay staging files.",
+        ),
+    )
+}))).

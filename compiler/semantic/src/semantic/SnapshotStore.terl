@@ -1,0 +1,306 @@
+/**
+ * Immutable, content-addressed snapshot artifacts with checked publication.
+ */
+module semantic.SnapshotStore.
+
+import semantic.CompilerBridge.{Failure}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+hex(characters: List[String]): Bool ->
+    case characters {
+        [] -> true;
+        [character | rest] -> "0123456789abcdef".contains(character) and hex(rest)
+    }.
+
+/**
+ * Snapshot handles never become unchecked filesystem paths.
+ */
+pub valid_id(id: String): Bool ->
+    id.byte_size() == 66 and id.starts_with("s:") and hex(id.utf8_slice(2, 64).characters()).
+
+/**
+ * Identity binds the exact source manifest and normalized compiler artifact.
+ */
+pub identity(document: Json, exported: Json): Result[String, Failure] ->
+    let Ok(copy) <- Json.parse(Json.to_string(document)) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.document",
+                    message = "Cannot copy the snapshot manifest.",
+                ),
+            )
+    };
+    (let _removed =
+    case copy.get("snapshot_id") {
+        Ok(_) -> copy.remove("snapshot_id");
+        _ -> copy
+    };
+Ok(
+    String.append(
+        "s:",
+        Hash.sha256_domain_framed(
+            "terlan.semantic.snapshot.v1",
+            [Json.to_string(copy), Hash.sha256(Json.to_string(exported))],
+        ),
+    ),
+)).
+
+load_json(path: String): Result[Json, Failure] ->
+    let {
+        Ok(source) <- File.read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.incomplete",
+                    message = "Snapshot artifact is missing or incomplete.",
+                ),
+            )
+    };
+    Ok(value).
+
+directory(store: String, id: String): String ->
+    String.concat([store, "/", id.utf8_slice(2, 64)]).
+
+/**
+ * Storage names are generated from inventory positions, never source paths.
+ */
+pub source_filename(path: String, index: Int): String ->
+    "input_" + Json.to_string(Json.int(index)) + if {
+    path.ends_with(".terli") -> ".terli";
+    true -> ".terl"
+}.
+
+source_set_rows_valid(
+    folder: String,
+    sources: Json,
+    files: Json,
+    units: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(source) <- sources.at(index);
+            Ok(file) <- files.at(index);
+            Ok(recorded) <- file.get("source");
+            Ok(source_row) <- units.at(index);
+            Ok(exported) <- source_row.get("export")
+        } else {
+            _ -> false
+        };
+        (let filename = source_filename(text(source, "path"), index);
+text(file, "file_name") == filename
+    and Json.to_string(recorded) == Json.to_string(source)
+    and text(source_row, "path") == text(source, "path")
+    and text(exported, "source_digest") == text(source, "digest")
+    and Hash.sha256_file(folder + "/" + filename) == Ok(text(source, "digest"))
+    and source_set_rows_valid(folder, sources, files, units, index + 1, count))
+    }.
+
+sources_valid(folder: String, marker: Json, document: Json, exported: Json): Bool ->
+    if {
+        text(marker, "schema") == "terlan.semantic.snapshot-store.v1" -> let name = text(marker, "source_filename");
+        (name == "source.terl" or name == "source.terli" or name == "source.terls")
+            and Hash.sha256_file(folder + "/" + name) == Ok(text(marker, "source_digest"))
+            and text(exported, "source_digest") == text(marker, "source_digest");
+        text(marker, "schema") == "terlan.semantic.snapshot-store.v2" -> let {
+            Ok(sources) <- document.get("sources");
+            Ok(count) <- sources.length();
+            Ok(files) <- marker.get("files");
+            Ok(file_count) <- files.length();
+            Ok(units) <- exported.get("units");
+            Ok(unit_count) <- units.length()
+        } else {
+            _ -> false
+        };
+        text(exported, "schema") == "terlan.semantic.core-bundle.v1"
+            and count > 0
+            and count == file_count
+            and count == unit_count
+            and source_set_rows_valid(folder, sources, files, units, 0, count);
+        true -> false
+    }.
+
+/**
+ * Reads only snapshots with a complete publication marker and matching files.
+ * An interrupted copy is unavailable; it cannot expose partial compiler facts.
+ */
+pub load(store: String, id: String): Result[Json, Failure] ->
+    let true <- valid_id(id) else {
+        _ -> Err(Failure(code = "semantic.snapshot.id", message = "Malformed snapshot identity."))
+    };
+    (let folder = directory(store, id);
+(let {
+    Ok(marker) <- load_json(String.append(folder, "/published.json"));
+    Ok(document) <- load_json(String.append(folder, "/snapshot.json"));
+    Ok(exported) <- load_json(String.append(folder, "/compiler.json"));
+    Ok(computed) <- identity(document, exported)
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.incomplete",
+                message = "Snapshot has not completed publication.",
+            ),
+        )
+};
+(let valid =
+    computed == id
+        and text(document, "snapshot_id") == id
+        and text(marker, "snapshot_id") == id
+        and text(marker, "document_digest") == Hash.sha256(Json.to_string(document))
+        and text(marker, "export_digest") == Hash.sha256(Json.to_string(exported))
+        and sources_valid(folder, marker, document, exported);
+if {
+    valid -> Ok(document);
+    true -> Err(
+        Failure(
+            code = "semantic.snapshot.corrupt",
+            message = "Snapshot files do not match their content identities.",
+        ),
+    )
+}))).
+
+/**
+ * Returns the compiler artifact only after the complete snapshot validates.
+ */
+pub compiler_artifact(store: String, id: String): Result[Json, Failure] ->
+    let Ok(document) <- load(store, id) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.corrupt",
+                    message = "Cannot read facts from an unverified snapshot.",
+                ),
+            )
+    };
+    (let Ok(exported) <- load_json(String.append(directory(store, id), "/compiler.json")) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- identity(document, exported) == Ok(id) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.snapshot.corrupt",
+                message = "Compiler artifact changed while reading the snapshot.",
+            ),
+        )
+};
+Ok(exported))).
+
+/**
+ * Publishes caller-owned staged files once; existing snapshots are verified.
+ */
+pub publish(
+    stage: String,
+    store: String,
+    source_filename: String,
+    document: Json,
+    exported: Json,
+): Result[Json, Failure] ->
+    let id = text(document, "snapshot_id");
+    let true <- valid_id(id) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.id",
+                    message = "Cannot publish an invalid identity.",
+                ),
+            )
+    };
+    (let folder = directory(store, id);
+if {
+    File.exists(folder) -> load(store, id);
+    true -> let marker =
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.snapshot-store.v1"))
+            .put("snapshot_id", Json.string(id))
+            .put("document_digest", Json.string(Hash.sha256(Json.to_string(document))))
+            .put("export_digest", Json.string(Hash.sha256(Json.to_string(exported))))
+            .put("source_filename", Json.string(source_filename))
+            .put("source_digest", Json.string(text(exported, "source_digest")));
+    let {
+        Ok(_) <- File.write_text(String.append(stage, "/snapshot.json"), Json.to_string(document));
+        Ok(_) <- File.write_text(String.append(stage, "/compiler.json"), Json.to_string(exported));
+        Ok(_) <- Directory.create_all(store);
+        Ok(_) <- Directory.copy_tree_excluding(stage, folder, []);
+        Ok(_) <- File.write_text(String.append(folder, "/published.json"), Json.to_string(marker))
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.publication",
+                    message = "Snapshot publication failed; partial artifacts are not readable.",
+                ),
+            )
+    };
+    load(store, id)
+}).
+
+/**
+ * Publishes a frozen source-set inventory with the same checked marker rule.
+ */
+pub publish_sources(
+    stage: String,
+    store: String,
+    document: Json,
+    exported: Json,
+    files: Json,
+): Result[Json, Failure] ->
+    let id = text(document, "snapshot_id");
+    let true <- valid_id(id) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.id",
+                    message = "Cannot publish an invalid identity.",
+                ),
+            )
+    };
+    (let folder = directory(store, id);
+if {
+    File.exists(folder) -> load(store, id);
+    true -> let marker =
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.snapshot-store.v2"))
+            .put("snapshot_id", Json.string(id))
+            .put("document_digest", Json.string(Hash.sha256(Json.to_string(document))))
+            .put("export_digest", Json.string(Hash.sha256(Json.to_string(exported))))
+            .put("files", files);
+    let {
+        Ok(_) <- File.write_text(stage + "/snapshot.json", Json.to_string(document));
+        Ok(_) <- File.write_text(stage + "/compiler.json", Json.to_string(exported));
+        Ok(_) <- Directory.create_all(store);
+        Ok(_) <- Directory.copy_tree_excluding(stage, folder, ["context"]);
+        Ok(_) <- File.write_text(folder + "/published.json", Json.to_string(marker))
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.snapshot.publication",
+                    message = "Source-set publication failed; incomplete artifacts are unreadable.",
+                ),
+            )
+    };
+    load(store, id)
+}).

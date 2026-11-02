@@ -1,0 +1,346 @@
+/**
+ * Identities for checked pattern nodes, including wildcards and nested fields.
+ */
+module semantic.PatternEntities.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{DeclarationEntities, SnapshotStore}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+struct Context {
+    snapshot: String,
+    owner: String,
+    owner_name: String,
+    artifact_digest: String,
+}.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+pub position(origin: Json, value: Json): Json ->
+    let {
+        Ok(span) <- value.get("span");
+        {Ok(start), Ok(end)} <- {span.get("start"), span.get("end")}
+    } else {
+        _ -> origin
+    };
+    Json.object()
+        .put("path", Json.string(text(origin, "path")))
+        .put("start_byte", start)
+        .put("end_byte", end).
+
+pattern_fields(
+    mut output: Json,
+    context: Context,
+    origin: Json,
+    path: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(field) <- rows.at(index);
+            Ok(value) <- field.get("value")
+        } else {
+            _ -> false
+        };
+        (let child_path = path + "/fields/" + Json.to_string(Json.int(index)) + "/value";
+pattern(output, context, origin, child_path, value)
+    and pattern_fields(output, context, origin, path, rows, index + 1, count))
+    }.
+
+patterns(
+    mut output: Json,
+    context: Context,
+    origin: Json,
+    path: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let Ok(value) <- rows.at(index) else {
+            _ -> false
+        };
+        pattern(output, context, origin, path + "/" + Json.to_string(Json.int(index)), value)
+            and patterns(output, context, origin, path, rows, index + 1, count)
+    }.
+
+/**
+ * The catalog and bounded query lookup share this exact pattern identity.
+ */
+pub entity(
+    snapshot: String,
+    owner: String,
+    owner_name: String,
+    artifact_digest: String,
+    origin: Json,
+    path: String,
+    value: Json,
+): Json ->
+    let kind = text(value, "kind");
+    let id = "e:" + Hash.sha256_domain_framed("terlan.semantic.pattern-entity.v1", [owner, path, Json.to_string(value)]);
+    let digest =
+        Hash.sha256_domain_framed(
+            "terlan.semantic.pattern-content.v1",
+            [artifact_digest, path, Json.to_string(value), Json.to_string(origin)],
+        );
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put("entity_id", Json.string(id))
+        .put("kind", Json.string("pattern"))
+        .put("name", Json.string(owner_name + " " + path + " (" + kind + ")"))
+        .put("owner", Json.string(owner))
+        .put("digest", Json.string(digest))
+        .put("origin", origin)
+        .put("expanded_from", Json.array()).
+
+pattern(mut output: Json, context: Context, origin: Json, path: String, value: Json): Bool ->
+    let {
+        Ok(children) <- value.get("children");
+        Ok(child_count) <- children.length();
+        Ok(fields) <- value.get("fields");
+        Ok(field_count) <- fields.length()
+    } else {
+        _ -> false
+    };
+    (let kind = text(value, "kind");
+(let true <- kind != "" else {
+    _ -> false
+};
+(let _pattern =
+    output
+        .push(
+            Json.object().put("origin", origin).put("path", Json.string(path)).put("value", value),
+        );
+patterns(output, context, origin, path + "/children", children, 0, child_count)
+    and pattern_fields(output, context, origin, path, fields, 0, field_count)))).
+
+walk_array(
+    mut output: Json,
+    context: Context,
+    origin: Json,
+    path: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let Ok(value) <- rows.at(index) else {
+            _ -> false
+        };
+        walk(output, context, origin, path + "/" + Json.to_string(Json.int(index)), value)
+            and walk_array(output, context, origin, path, rows, index + 1, count)
+    }.
+
+walk_object(
+    mut output: Json,
+    context: Context,
+    origin: Json,
+    path: String,
+    value: Json,
+    keys: List[String],
+): Bool ->
+    case keys {
+        [] -> true;
+        [key | rest] ->
+            let Ok(field) <- value.get(key) else {
+                _ -> false
+            };
+            (let child_path = path + "/" + key;
+let visited =
+    if {
+        key == "patterns" -> case field.length() {
+            Ok(count) -> patterns(output, context, origin, child_path, field, 0, count);
+            _ -> false
+        };
+        key == "span" -> true;
+        true -> walk(output, context, origin, child_path, field)
+    };
+visited and walk_object(output, context, origin, path, value, rest))
+    }.
+
+walk(mut output: Json, context: Context, origin: Json, path: String, value: Json): Bool ->
+    case value.keys() {
+        Ok(keys) -> walk_object(output, context, position(origin, value), path, value, keys);
+        _ ->
+            case value.length() {
+                Ok(count) -> walk_array(output, context, origin, path, value, 0, count);
+                _ -> true
+            }
+    }.
+
+materialize(mut output: Json, context: Context, rows: Json, index: Int, count: Int): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(origin) <- row.get("origin");
+            Ok(value) <- row.get("value");
+            Ok(path_value) <- row.get("path");
+            Ok(path) <- path_value.as_string()
+        } else {
+            _ -> false
+        };
+        (let _entity =
+    output
+        .push(
+            entity(
+                context.snapshot,
+                context.owner,
+                context.owner_name,
+                context.artifact_digest,
+                origin,
+                path,
+                value,
+            ),
+        );
+materialize(output, context, rows, index + 1, count))
+    }.
+
+collect_declaration(
+    mut output: Json,
+    artifact: Json,
+    module_name: String,
+    snapshot: String,
+    artifact_digest: String,
+    row: Json,
+    payload: Json,
+): Bool ->
+    if {
+        DeclarationEntities.kind(payload) == "" -> true;
+        true -> let raw = Json.array();
+        let context =
+            Context(
+                snapshot = snapshot,
+                owner = "",
+                owner_name = text(payload, "name"),
+                artifact_digest = artifact_digest,
+            );
+        let origin =
+            Json.object()
+                .put("path", Json.string(text(artifact, "source_name")))
+                .put("start_byte", Json.int(0))
+                .put("end_byte", Json.int(0));
+        let {
+            true <- walk(raw, context, position(origin, row), "", payload);
+            Ok(count) <- raw.length()
+        } else {
+            _ -> false
+        };
+        if {
+            count == 0 -> true;
+            true -> let Ok(owner) <- DeclarationEntities.identity(artifact, module_name, payload) else {
+                _ -> false
+            };
+            materialize(
+                output,
+                Context(
+                    snapshot = snapshot,
+                    owner = owner,
+                    owner_name = text(payload, "name"),
+                    artifact_digest = artifact_digest,
+                ),
+                raw,
+                0,
+                count,
+            )
+        }
+    }.
+
+declarations(
+    mut output: Json,
+    artifact: Json,
+    module_name: String,
+    snapshot: String,
+    artifact_digest: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(payload) <- row.get("payload")
+        } else {
+            _ -> false
+        };
+        (let visited = collect_declaration(output, artifact, module_name, snapshot, artifact_digest, row, payload);
+visited
+    and declarations(output, artifact, module_name, snapshot, artifact_digest, rows, index + 1, count))
+    }.
+
+/**
+ * Indexes compiler-checked syntax patterns with declaration ownership. Ranges
+ * retain the nearest compiler span; no token precision or coverage is inferred.
+ */
+pub index(store: String, snapshot: String): Result[Json, Failure] ->
+    let Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot) else {
+        Err(reason) -> Err(reason)
+    };
+    from_artifact(artifact, snapshot).
+
+/**
+ * Projects one already admitted compiler unit without rereading the store.
+ */
+pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    let true <- text(artifact, "status") == "checked" else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.patterns.unavailable",
+                    message = "Checked pattern evidence is unavailable for this source.",
+                ),
+            )
+    };
+    (let {
+    Ok(core) <- artifact.get("core");
+    Ok(rows) <- artifact.get("source_declarations");
+    Ok(count) <- rows.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.patterns.artifact",
+                message = "Compiler pattern owners are incomplete.",
+            ),
+        )
+};
+(let output = Json.array();
+(let true <-
+    declarations(
+        output,
+        artifact,
+        text(core, "module"),
+        snapshot,
+        Hash.sha256(Json.to_string(artifact)),
+        rows,
+        0,
+        count,
+    ) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.patterns.artifact",
+                message = "Compiler pattern inventory is incomplete.",
+            ),
+        )
+};
+Ok(output)))).

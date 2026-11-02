@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:provenance:v1",
+  "title": "Terlan semantic provenance v1",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "terlan.semantic.provenance.v1"
+    },
+    "intent_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "context_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "proposal_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "base_snapshot": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "result_snapshot": {
+      "$ref": "#/$defs/snapshot_id"
+    },
+    "candidate_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "verification_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "patch_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      },
+      "minItems": 1
+    },
+    "attribution": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "schema",
+    "intent_digest",
+    "context_digest",
+    "proposal_digest",
+    "base_snapshot",
+    "result_snapshot",
+    "candidate_digest",
+    "verification_digest",
+    "patch_digest",
+    "artifacts",
+    "attribution"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^s:[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "source",
+            "interface",
+            "core",
+            "executable",
+            "patch",
+            "report"
+          ]
+        },
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "kind",
+        "uri",
+        "digest"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

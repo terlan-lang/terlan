@@ -1,0 +1,7 @@
+[
+  {
+    "case_id": "snapshots.identity",
+    "reason": "Immutable scoped snapshots, entity identities, overlays, source-bound authored tests and independent live schema/source evidence.",
+    "status": "passed"
+  }
+]

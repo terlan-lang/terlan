@@ -20,16 +20,20 @@ actor_file="$temporary_directory/module.actors.json"
 diagnostics_file="$temporary_directory/module.diagnostics"
 completion_marker="$temporary_directory/module.complete"
 interfaces_manifest="$temporary_directory/interfaces.manifest"
-actor_profiles="$temporary_directory/actor-profiles.json"
-actor_dynamic_evidence="$temporary_directory/actor-dynamic-evidence.json"
+actor_profiles_catalog="$temporary_directory/actor-profiles.json"
+actor_profiles="$temporary_directory/actor-profiles.manifest"
+actor_dynamic_evidence_catalog="$temporary_directory/actor-dynamic-evidence.json"
+actor_dynamic_evidence="$temporary_directory/actor-dynamic-evidence.manifest"
 
 : > "$interfaces_manifest"
 printf '%s\n' \
     '{"schema":"terlan.self-host.actor-ir/v2","profiles":[],"continuations":[]}' \
-    > "$actor_profiles"
+    > "$actor_profiles_catalog"
 printf '%s\n' \
     '{"schema":"terlan.self-host.actor-dynamic-evidence/v1","functions":[]}' \
-    > "$actor_dynamic_evidence"
+    > "$actor_dynamic_evidence_catalog"
+printf '%s\n' "$actor_profiles_catalog" > "$actor_profiles"
+printf '%s\n' "$actor_dynamic_evidence_catalog" > "$actor_dynamic_evidence"
 
 "$self_host" actor-backend-unit \
     "$source_file" \

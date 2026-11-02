@@ -1,0 +1,83 @@
+/**
+ * Strict scalar and object checks for versioned semantic domain documents.
+ */
+module semantic.JsonRules.
+
+import semantic.CompilerBridge.{Failure}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Float, Int}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub text(value: Json, key: String): Result[String, Failure] ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.request.string",
+                    message = "Expected a string field: " + key,
+                ),
+            )
+    };
+    Ok(result).
+
+pub number(value: Json, key: String): Result[Int, Failure] ->
+    let Ok(field) <- value.get(key) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.request.integer",
+                    message = "Expected an integer field: " + key,
+                ),
+            )
+    };
+    case field.as_int() {
+        Ok(result) -> Ok(result);
+        _ ->
+            let {
+                Ok(number) <- field.as_float();
+                Some(result) <- Int.from_string(Float.to_string(number))
+            } else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.request.integer",
+                            message = "Expected an integer field: " + key,
+                        ),
+                    )
+            };
+            Ok(result)
+    }.
+
+pub exact_keys(value: Json, expected: List[String]): Bool ->
+    case value.keys() {
+        Ok(keys) ->
+            List.length(keys) == List.length(expected)
+                and List.is_empty(List.subtract(keys, expected));
+        _ -> false
+    }.
+
+pub contains(values: List[String], value: String): Bool ->
+    case values {
+        [] -> false;
+        [first | rest] -> first == value or contains(rest, value)
+    }.
+
+hex(characters: List[String]): Bool ->
+    case characters {
+        [] -> true;
+        [character | rest] -> "0123456789abcdef".contains(character) and hex(rest)
+    }.
+
+pub digest(value: String): Bool ->
+    value.byte_size() == 64 and hex(value.characters()).
+
+pub id(value: String, prefix: String): Bool ->
+    value.byte_size() == 66 and value.starts_with(prefix) and digest(value.utf8_slice(2, 64)).

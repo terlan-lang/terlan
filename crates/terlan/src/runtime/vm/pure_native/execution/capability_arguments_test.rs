@@ -53,6 +53,13 @@ fn binary_file_write_has_a_fixed_typed_capability_frame() {
 }
 
 #[test]
+fn console_input_is_a_vm_owned_fixed_capability_not_an_external_worker_operation() {
+    assert_eq!(crate::runtime::native_image::control::tvm_fixed_capability_frame_words(62), Some(5));
+    assert_eq!(capability_identity(62).unwrap(), ("stdio".to_string(), "std.io.console.read_line".to_string()));
+    assert_eq!(crate::terlan_native_boundary::dispatch::operation_arity("std.io.console.read_line"), None);
+}
+
+#[test]
 fn wire_conversion_uses_typed_package_values_not_stale_wire_fields() {
     let mut request = package(vec![ReplValue::Tuple(vec![
         ReplValue::Int(7),

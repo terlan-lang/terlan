@@ -1,0 +1,454 @@
+{
+  "schema": "terlan.semantic.query-gate-cases.v1",
+  "suites": [
+    {
+      "suite": "QueryTest",
+      "source": "compiler/semantic/src/semantic/QueryTest.terl",
+      "tests": [
+        {
+          "name": "typed_queries_distinguish_same_name_and_arity_overloads"
+        },
+        {
+          "name": "reference_queries_keep_shadowed_bindings_distinct"
+        },
+        {
+          "name": "work_limited_pages_continue_without_omitting_references"
+        },
+        {
+          "name": "cursor_is_bound_to_question_and_detects_storage_tampering"
+        },
+        {
+          "name": "byte_accounting_is_exact_and_tiny_budgets_fail_explicitly"
+        },
+        {
+          "name": "stale_selection_and_insufficient_work_never_return_successful_facts"
+        },
+        {
+          "name": "inferred_local_types_are_checked_and_ownership_remains_unavailable"
+        },
+        {
+          "name": "inferred_types_keep_nested_shadowed_bindings_distinct"
+        },
+        {
+          "name": "expected_values_separate_type_inhabitants_from_program_legality"
+        },
+        {
+          "name": "schema_integer_limits_accept_whole_numbers_and_reject_extra_fields"
+        },
+        {
+          "name": "nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog"
+        },
+        {
+          "name": "pattern_selection_enforces_work_budget_and_rejects_stale_handles"
+        },
+        {
+          "name": "pattern_core_queries_link_the_owner_by_compiler_declaration_origin"
+        },
+        {
+          "name": "type_queries_retain_struct_include_edges_and_original_field_metadata"
+        },
+        {
+          "name": "type_queries_expose_core_alias_payload_without_inventing_constructor_inhabitants"
+        },
+        {
+          "name": "imported_include_aliases_resolve_to_exact_provider_snapshot_entities"
+        },
+        {
+          "name": "include_origins_outside_snapshot_remain_partial_with_resolved_alias_evidence"
+        },
+        {
+          "name": "effect_queries_expose_checked_purity_without_claiming_a_complete_effect_set"
+        },
+        {
+          "name": "effect_queries_match_overloads_by_exact_checked_signature"
+        },
+        {
+          "name": "effect_contract_scans_count_against_the_query_work_budget"
+        },
+        {
+          "name": "coverage_queries_return_checked_case_verdicts_and_guard_assumptions"
+        },
+        {
+          "name": "coverage_queries_preserve_missing_function_head_alternatives"
+        },
+        {
+          "name": "coverage_queries_keep_overloaded_origins_separate_and_charge_scans"
+        }
+      ]
+    },
+    {
+      "suite": "RelationsQueryTest",
+      "source": "compiler/semantic/src/semantic/RelationsQueryTest.terl",
+      "tests": [
+        {
+          "name": "shape_queries_expose_canonical_patterns_guards_and_exact_entities"
+        },
+        {
+          "name": "trait_queries_keep_negative_evidence_distinct_from_missing_implementations"
+        },
+        {
+          "name": "implication_queries_return_checked_nested_field_types_and_variable_scope"
+        },
+        {
+          "name": "constrained_alias_queries_use_the_compilers_alias_contract"
+        },
+        {
+          "name": "overloaded_requirement_queries_join_exact_origins_and_charge_scans"
+        },
+        {
+          "name": "shape_identity_survives_unrelated_insertion_and_invalidates_changed_guards"
+        },
+        {
+          "name": "imported_bound_origins_follow_resolver_aliases_despite_same_named_providers"
+        },
+        {
+          "name": "local_bound_origins_link_the_exact_checked_trait_entity"
+        },
+        {
+          "name": "bound_providers_outside_the_snapshot_remain_explicitly_unavailable"
+        },
+        {
+          "name": "local_nested_shape_expansions_link_both_checked_shape_entities"
+        },
+        {
+          "name": "imported_shape_alias_origins_follow_provider_identity_among_same_named_shapes"
+        },
+        {
+          "name": "unexpanded_patterns_do_not_borrow_equivalent_shape_origins"
+        }
+      ]
+    },
+    {
+      "suite": "BindingTypesTest",
+      "source": "compiler/semantic/src/semantic/BindingTypesTest.terl",
+      "tests": [
+        {
+          "name": "complete_unsigned_binding_identity_prevents_neighbor_aliasing"
+        },
+        {
+          "name": "same_id_with_a_different_region_path_or_module_is_not_a_join"
+        },
+        {
+          "name": "conflicting_checker_visits_never_select_the_first_type"
+        },
+        {
+          "name": "truncated_capture_never_claims_a_unique_observation"
+        },
+        {
+          "name": "scan_budget_must_include_every_possible_conflicting_visit"
+        },
+        {
+          "name": "repeated_equal_visits_converge_to_one_fact"
+        }
+      ]
+    },
+    {
+      "suite": "CallReferencesTest",
+      "source": "compiler/semantic/src/semantic/CallReferencesTest.terl",
+      "tests": [
+        {
+          "name": "local_overload_references_link_only_the_exact_selected_declaration"
+        },
+        {
+          "name": "imported_aliases_and_module_calls_retain_provider_and_overload_among_decoys"
+        },
+        {
+          "name": "rejected_import_provider_trials_never_publish_references"
+        },
+        {
+          "name": "indirect_shadowed_calls_are_unknown_without_inventing_a_same_named_target"
+        },
+        {
+          "name": "providers_outside_the_snapshot_keep_canonical_signature_without_a_fabricated_link"
+        },
+        {
+          "name": "call_reference_pages_preserve_every_unique_site"
+        },
+        {
+          "name": "truncated_capture_cannot_publish_a_previously_selected_target"
+        }
+      ]
+    },
+    {
+      "suite": "GeneratedOriginsTest",
+      "source": "compiler/semantic/src/semantic/GeneratedOriginsTest.terl",
+      "tests": [
+        {
+          "name": "core_query_preserves_generated_default_adapter_source_origins"
+        }
+      ]
+    },
+    {
+      "suite": "QueryGateTest",
+      "source": "scripts/llm_native/src/llm_native/QueryGateTest.terl",
+      "tests": [
+        {
+          "name": "inventory_rejects_empty_missing_duplicate_and_unknown_suites"
+        },
+        {
+          "name": "peer_rejects_missing_duplicate_failed_and_stale_cases"
+        },
+        {
+          "name": "resource_reconnect_is_required_for_large_fixture"
+        },
+        {
+          "name": "compiled_source_evidence_requires_the_authored_test_source"
+        }
+      ]
+    },
+    {
+      "suite": "ProtocolTest",
+      "source": "std/mcp/ProtocolTest.terl",
+      "tests": [
+        {
+          "name": "initialize_and_initialized_enable_standard_method_dispatch"
+        },
+        {
+          "name": "unsupported_requested_version_negotiates_the_supported_revision"
+        },
+        {
+          "name": "malformed_messages_use_standard_errors_without_reflecting_payloads"
+        },
+        {
+          "name": "ping_works_before_initialization_and_unadvertised_methods_are_rejected"
+        },
+        {
+          "name": "notifications_and_peer_responses_never_create_response_loops"
+        },
+        {
+          "name": "duplicate_request_ids_are_rejected_and_unsigned_ids_remain_exact"
+        },
+        {
+          "name": "malformed_requests_preserve_readable_ids_and_anonymous_errors_omit_them"
+        }
+      ]
+    }
+  ],
+  "mcp_cases": [
+    {
+      "id": "mcp.initialize"
+    },
+    {
+      "id": "mcp.ping"
+    },
+    {
+      "id": "mcp.tool-discovery-and-schemas"
+    },
+    {
+      "id": "mcp.resource-discovery"
+    },
+    {
+      "id": "mcp.bounded-schema-valid-resources"
+    },
+    {
+      "id": "mcp.empty-template-discovery"
+    },
+    {
+      "id": "mcp.compiler-type-query"
+    },
+    {
+      "id": "mcp.checked-inferred-local-type"
+    },
+    {
+      "id": "mcp.checked-purity-contract"
+    },
+    {
+      "id": "mcp.checked-pattern-coverage"
+    },
+    {
+      "id": "mcp.expected-values-constraints"
+    },
+    {
+      "id": "mcp.same-arity-overload-identity"
+    },
+    {
+      "id": "mcp.checked-overload-call-references"
+    },
+    {
+      "id": "mcp.explicit-indirect-call-target"
+    },
+    {
+      "id": "mcp.included-type-origin"
+    },
+    {
+      "id": "mcp.pattern-owner-core-origin"
+    },
+    {
+      "id": "mcp.checked-shape-definition"
+    },
+    {
+      "id": "mcp.negative-trait-conformance"
+    },
+    {
+      "id": "mcp.positive-trait-conformance"
+    },
+    {
+      "id": "mcp.checked-implication-requirement"
+    },
+    {
+      "id": "mcp.checked-bound-provider-origin"
+    },
+    {
+      "id": "mcp.checked-shape-expansion-origin"
+    },
+    {
+      "id": "mcp.explicit-unknown"
+    },
+    {
+      "id": "mcp.stale-entity-rejection"
+    },
+    {
+      "id": "mcp.snapshot-scope-rejection"
+    },
+    {
+      "id": "mcp.invalid-budget-tool-error"
+    },
+    {
+      "id": "mcp.unknown-tool-protocol-error"
+    },
+    {
+      "id": "mcp.forged-resource-cursor"
+    },
+    {
+      "id": "mcp.resource-uri-confinement"
+    },
+    {
+      "id": "mcp.cli-query-parity"
+    },
+    {
+      "id": "mcp.raw-wire-framing-and-errors"
+    },
+    {
+      "id": "mcp.declaration-definition-interface-core"
+    },
+    {
+      "id": "mcp.lexical-binding-references"
+    },
+    {
+      "id": "mcp.transformation-candidates-require-verification"
+    }
+  ],
+  "large_mcp_cases": [
+    {
+      "id": "mcp.initialize"
+    },
+    {
+      "id": "mcp.ping"
+    },
+    {
+      "id": "mcp.tool-discovery-and-schemas"
+    },
+    {
+      "id": "mcp.resource-discovery"
+    },
+    {
+      "id": "mcp.bounded-schema-valid-resources"
+    },
+    {
+      "id": "mcp.empty-template-discovery"
+    },
+    {
+      "id": "mcp.compiler-type-query"
+    },
+    {
+      "id": "mcp.checked-inferred-local-type"
+    },
+    {
+      "id": "mcp.checked-purity-contract"
+    },
+    {
+      "id": "mcp.checked-pattern-coverage"
+    },
+    {
+      "id": "mcp.expected-values-constraints"
+    },
+    {
+      "id": "mcp.same-arity-overload-identity"
+    },
+    {
+      "id": "mcp.checked-overload-call-references"
+    },
+    {
+      "id": "mcp.explicit-indirect-call-target"
+    },
+    {
+      "id": "mcp.included-type-origin"
+    },
+    {
+      "id": "mcp.pattern-owner-core-origin"
+    },
+    {
+      "id": "mcp.checked-shape-definition"
+    },
+    {
+      "id": "mcp.negative-trait-conformance"
+    },
+    {
+      "id": "mcp.positive-trait-conformance"
+    },
+    {
+      "id": "mcp.checked-implication-requirement"
+    },
+    {
+      "id": "mcp.checked-bound-provider-origin"
+    },
+    {
+      "id": "mcp.checked-shape-expansion-origin"
+    },
+    {
+      "id": "mcp.explicit-unknown"
+    },
+    {
+      "id": "mcp.stale-entity-rejection"
+    },
+    {
+      "id": "mcp.snapshot-scope-rejection"
+    },
+    {
+      "id": "mcp.invalid-budget-tool-error"
+    },
+    {
+      "id": "mcp.unknown-tool-protocol-error"
+    },
+    {
+      "id": "mcp.forged-resource-cursor"
+    },
+    {
+      "id": "mcp.resource-uri-confinement"
+    },
+    {
+      "id": "mcp.cli-query-parity"
+    },
+    {
+      "id": "mcp.raw-wire-framing-and-errors"
+    },
+    {
+      "id": "mcp.declaration-definition-interface-core"
+    },
+    {
+      "id": "mcp.lexical-binding-references"
+    },
+    {
+      "id": "mcp.transformation-candidates-require-verification"
+    },
+    {
+      "id": "mcp.resource-continuation-survives-reconnect"
+    }
+  ],
+  "query_facts": [
+    "declaration",
+    "definition",
+    "references",
+    "type",
+    "interface",
+    "conformance",
+    "effects",
+    "ownership",
+    "pattern_coverage",
+    "core",
+    "expected_values",
+    "legal_transformations"
+  ],
+  "large_constant_functions": 1500,
+  "scope": "LNC-005 supported scoped semantic queries and independent standard MCP interoperability; no transactional edits, complete effect sets, general function-value flow, or release latency qualification."
+}

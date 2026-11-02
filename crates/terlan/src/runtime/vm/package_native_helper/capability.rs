@@ -3,6 +3,9 @@ use crate::runtime::vm::VmRuntimeResult;
 use crate::terlan_native_boundary::dispatch::{dispatch, NativeBoundaryValue};
 use crate::terlan_native_boundary::term::{NativeBoundaryReplyTerm, NativeBoundaryTerm};
 
+#[path = "capability/console_input.rs"]
+mod console_input;
+
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) fn dispatch_vm_capability(
     request: &PureNativeCapabilityRequest,
@@ -24,6 +27,15 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
     }
     let boundary_arguments = request.boundary_arguments()?;
     match request.operation.as_str() {
+        "std.io.console.read_line" => {
+            let [NativeBoundaryTerm::Int(maximum)] = boundary_arguments.as_ref() else {
+                return Err("error[console.arguments]: read_line requires one Int bound".into());
+            };
+            // Only this VM-owned route may access application stdin. The
+            // external NativeBoundary worker dispatcher deliberately has no
+            // read_line operation: its stdin is the worker RPC channel.
+            return Ok(NativeBoundaryReplyTerm::Ok(console_input::read_stdin(*maximum)));
+        }
         "std.system.arguments.count" => {
             let count = i64::try_from(program_arguments.len()).map_err(|_| {
                 "error[system.arguments.overflow]: argument count exceeds Terlan Int".to_string()

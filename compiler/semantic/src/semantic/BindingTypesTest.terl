@@ -1,0 +1,173 @@
+module semantic.BindingTypesTest.
+
+import semantic.BindingTypes.
+import semantic.EntityLookup.{Selection}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+binding(id: String): Result[Json, Bool] ->
+    case Json.parse(
+        "{\"id\":" + id + ",\"region\":18446744073709551615,\"name\":\"local\",\"kind\":\"pattern\",\"path\":\"function:value/0:binding:0\",\"span_start\":1,\"span_end\":2}",
+    ) {
+        Ok(value) -> Ok(value);
+        _ -> Err(false)
+    }.
+
+observation(identity: Json, ty: String): Json ->
+    Json.object()
+        .put("model", Json.string("checked-binding-type.v1"))
+        .put("module", Json.string("sample"))
+        .put("binding", identity)
+        .put("compiler_type", Json.string(ty))
+        .put("display_type", Json.string(ty))
+        .put("type_encoding", Json.string("terlan.typecheck.type.v1"))
+        .put("type_variable_scope", Json.string("observation_local"))
+        .put("scope", Json.string("checked_binding_definition")).
+
+selection(identity: Json, rows: Json, truncated: Bool): Selection ->
+    Selection(
+        entity = Json.null(),
+        artifact = Json.object()
+            .put("module_name", Json.string("sample"))
+            .put(
+                "binding_type_observations",
+                Json.object().put("bindings", rows).put("truncated", Json.bool(truncated)),
+            ),
+        context = Json.null(),
+        record = identity,
+        work_used = 7,
+    ).
+
+@test
+pub complete_unsigned_binding_identity_prevents_neighbor_aliasing(): Bool ->
+    let {
+        Ok(identity) <- binding("18446744073709551615");
+        Ok(neighbor) <- binding("18446744073709551614");
+        Ok(found) <-
+            BindingTypes.select(
+                selection(
+                    identity,
+                    Json.array()
+                        .push(observation(neighbor, "Bool"))
+                        .push(observation(identity, "Int")),
+                    false,
+                ),
+                7,
+                10,
+            );
+        Ok(row) <- found.rows.at(0);
+        Ok(ty) <- row.get("compiler_type")
+    } else {
+        _ -> false
+    };
+    found.code == "" and found.work_used == 10 and ty.as_string() == Ok("Int").
+
+@test
+pub same_id_with_a_different_region_path_or_module_is_not_a_join(): Bool ->
+    let {
+        Ok(identity) <- binding("18446744073709551615");
+        Ok(other_region) <- binding("18446744073709551615");
+        Ok(other_path) <- binding("18446744073709551615");
+        Ok(foreign_identity) <- binding("18446744073709551615")
+    } else {
+        _ -> false
+    };
+    (let changed_region = other_region.put("region", Json.int(1));
+let changed_path = other_path.put("path", Json.string("another:binding:0"));
+let foreign = observation(foreign_identity, "Bool").put("module", Json.string("decoy"));
+(let Ok(found) <-
+    BindingTypes.select(
+        selection(
+            identity,
+            Json.array()
+                .push(observation(changed_region, "Bool"))
+                .push(observation(changed_path, "Bool"))
+                .push(foreign),
+            false,
+        ),
+        7,
+        11,
+    ) else {
+    _ -> false
+};
+found.code == "semantic.query.local_type_not_exported" and found.rows.length() == Ok(0))).
+
+@test
+pub conflicting_checker_visits_never_select_the_first_type(): Bool ->
+    let {
+        Ok(identity) <- binding("18446744073709551615");
+        Ok(found) <-
+            BindingTypes.select(
+                selection(
+                    identity,
+                    Json.array()
+                        .push(observation(identity, "Int"))
+                        .push(observation(identity, "Bool")),
+                    false,
+                ),
+                7,
+                10,
+            )
+    } else {
+        _ -> false
+    };
+    found.code == "semantic.query.binding_type_conflict"
+        and found.rows.length() == Ok(0)
+        and found.work_used == 10.
+
+@test
+pub truncated_capture_never_claims_a_unique_observation(): Bool ->
+    let {
+        Ok(identity) <- binding("18446744073709551615");
+        Ok(found) <-
+            BindingTypes.select(
+                selection(identity, Json.array().push(observation(identity, "Int")), true),
+                7,
+                8,
+            )
+    } else {
+        _ -> false
+    };
+    found.code == "semantic.query.binding_types_incomplete" and found.rows.length() == Ok(0).
+
+@test
+pub scan_budget_must_include_every_possible_conflicting_visit(): Bool ->
+    let Ok(identity) <- binding("18446744073709551615") else {
+        _ -> false
+    };
+    case BindingTypes.select(
+        selection(
+            identity,
+            Json.array().push(observation(identity, "Int")).push(observation(identity, "Bool")),
+            false,
+        ),
+        7,
+        9,
+    ) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    }.
+
+@test
+pub repeated_equal_visits_converge_to_one_fact(): Bool ->
+    let {
+        Ok(identity) <- binding("18446744073709551615");
+        Ok(found) <-
+            BindingTypes.select(
+                selection(
+                    identity,
+                    Json.array()
+                        .push(observation(identity, "Int"))
+                        .push(observation(identity, "Int")),
+                    false,
+                ),
+                7,
+                10,
+            )
+    } else {
+        _ -> false
+    };
+    found.code == "" and found.rows.length() == Ok(1) and found.work_used == 10.

@@ -203,6 +203,7 @@ fn callable(
     let patterns = params
         .iter()
         .map(|parameter| SyntaxPatternOutput {
+            expanded_from: Vec::new(),
             kind: SyntaxPatternKind::Var,
             arity: 0,
             text: Some(parameter.name.clone()),

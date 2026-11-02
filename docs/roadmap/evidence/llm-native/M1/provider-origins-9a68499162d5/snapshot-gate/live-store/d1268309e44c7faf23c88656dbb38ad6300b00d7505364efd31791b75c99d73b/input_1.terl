@@ -1,0 +1,3 @@
+module main.
+import type library.{Item}.
+pub echo(input: Item): Item -> let local = input; case true { true -> local; false -> input }.

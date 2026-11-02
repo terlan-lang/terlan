@@ -1,0 +1,2 @@
+module sample.
+pub value(input: Int): Int -> let local = input + 1; local.

@@ -469,3 +469,60 @@ fn substitute_type_constructor_application(
         _ => Type::Apply { constructor, args },
     }
 }
+
+/// Stable, observation-local variable names; never used to change inference.
+pub(crate) fn canonical_observation_type(ty: &Type) -> Type {
+    fn variable(id: TypeVarId, map: &mut HashMap<TypeVarId, TypeVarId>) {
+        let next = map.len();
+        map.entry(id).or_insert(next);
+    }
+    fn collect(ty: &Type, map: &mut HashMap<TypeVarId, TypeVarId>) {
+        match ty {
+            Type::Var(id) => variable(*id, map),
+            Type::Apply { constructor, args } => {
+                variable(*constructor, map);
+                for arg in args {
+                    collect(arg, map);
+                }
+            }
+            Type::Existential { params, body } => {
+                for id in params {
+                    variable(*id, map);
+                }
+                collect(body, map);
+            }
+            Type::List(inner) => collect(inner, map),
+            Type::Tuple(items) | Type::Union(items) => {
+                for item in items {
+                    collect(item, map);
+                }
+            }
+            Type::Map(fields) => {
+                for field in fields {
+                    collect(&field.value, map);
+                }
+            }
+            Type::Named { args, .. } => {
+                for arg in args {
+                    collect(arg, map);
+                }
+            }
+            Type::Function { params, ret } => {
+                for param in params {
+                    collect(param, map);
+                }
+                collect(ret, map);
+            }
+            Type::Array { size, elem } => {
+                if let crate::terlan_typeck::types::ArraySize::Param(id) = size {
+                    variable(*id, map);
+                }
+                collect(elem, map);
+            }
+            _ => {}
+        }
+    }
+    let mut map = HashMap::new();
+    collect(ty, &mut map);
+    rename_type_vars(ty, &map)
+}

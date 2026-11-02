@@ -1,0 +1,456 @@
+/**
+ * LNC-005: one source-bound semantic-query and standard MCP acceptance gate.
+ */
+module llm_native.QueryGate.
+
+import llm_native.{Baseline, Evidence, QueryInventory}.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.{Environment, Process}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+load(path: String): Result[Json, Bool] ->
+    let {
+        Ok(contents) <- File.read_text(path);
+        Ok(document) <- Json.parse(contents)
+    } else {
+        _ -> Err(false)
+    };
+    Ok(document).
+
+save(path: String, document: Json): Bool ->
+    File.write_text(path, Json.to_string(document) + "\n") == Ok(Unit).
+
+capture(
+    host: String,
+    program: String,
+    arguments: List[String],
+    output: String,
+    name: String,
+    timeout: Int,
+): Json ->
+    Baseline.capture_configured(
+        program,
+        arguments,
+        output,
+        name,
+        timeout,
+        [
+            Process.environment_entry("TERLAN_BUILD_JOBS", "1"),
+            Process.environment_entry("TERLAN_SEMANTIC_TEST_COMPILER", host),
+            Process.environment_entry("TERLAN_LLM_NATIVE_TEST_COMPILER", host),
+        ],
+        4_194_304,
+    ).
+
+record(output: String, mut cases: Json, row: Json): Bool ->
+    let _case = cases.push(row);
+    save(output + "/query-progress.json", cases).
+
+suite_cases(
+    host: String,
+    root: String,
+    output: String,
+    inventory: Json,
+    names: List[String],
+    mut cases: Json,
+): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let source = root + "/" + QueryInventory.source(name);
+            let manifest = output + "/query-" + name + ".json";
+            let completion =
+                capture(
+                    host,
+                    host,
+                    [
+                        "test",
+                        source,
+                        "--cache-dir",
+                        output + "/query-cache/" + name,
+                        "--emit-test-result-manifest",
+                        manifest,
+                    ],
+                    output,
+                    "query-" + name,
+                    600_000,
+                );
+            let passed =
+                Evidence.text(completion, "status") == "passed"
+                    and case {load(manifest), QueryInventory.tests(inventory, name)} {
+    {Ok(report), Some(expected)} ->
+        Evidence.test_report(report, expected) and Evidence.compiled_sources(report, source);
+    _ -> false
+};
+            let _suite =
+                completion
+                    .put("suite", Json.string(name))
+                    .put("result_manifest", Json.string("query-" + name + ".json"))
+                    .put(
+                        "status",
+                        Json.string(
+                            if {
+                                passed -> "passed";
+                                true -> "failed"
+                            },
+                        ),
+                    );
+            let written = record(output, cases, completion);
+            let remaining = suite_cases(host, root, output, inventory, rest, cases);
+            passed and written and remaining
+    }.
+
+/**
+ * Admission binds identities and exact SDK case membership, not a success flag.
+ */
+pub admit_peer(
+    report: Json,
+    inventory: Json,
+    compiler_digest: String,
+    fixture_digest: String,
+    snapshot_id: String,
+    spec_digest: String,
+    large: Bool,
+): Bool ->
+    let {
+        Ok(versions) <- report.get("peer_versions");
+        Ok(rows) <- report.get("cases");
+        Some(expected) <- QueryInventory.mcp_names(inventory, large)
+    } else {
+        _ -> false
+    };
+    QueryInventory.valid(inventory)
+        and Evidence.text(report, "schema") == "terlan.semantic.mcp-peer-evidence.v1"
+        and Evidence.text(report, "status") == "passed"
+        and Evidence.text(report, "protocol_version") == "2025-11-25"
+        and Evidence.text(versions, "mcp") == "1.26.0"
+        and Evidence.text(versions, "jsonschema") == "4.25.1"
+        and Evidence.text(report, "compiler_digest") == compiler_digest
+        and Evidence.text(report, "fixture_digest") == fixture_digest
+        and Evidence.text(report, "snapshot_id") == snapshot_id
+        and Evidence.text(report, "protocol_schema_digest") == spec_digest
+        and Evidence.matching_cases(rows, expected, "case_id").
+
+append_constants(path: String, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> true;
+        true -> let line = "\npub resource_constant_" + Json.to_string(Json.int(remaining)) + "(): Int -> 0.\n";
+        File.append_text(path, line) == Ok(Unit) and append_constants(path, remaining - 1)
+    }.
+
+prepare_host(host: String, root: String, output: String, kind: String, mut cases: Json): Bool ->
+    let script =
+        if {
+            kind == "mcp" -> "Mcp";
+            true -> "Query"
+        };
+    let completion =
+        capture(
+            host,
+            host,
+            [
+                "build",
+                root + "/compiler/semantic/scripts/" + script + ".terls",
+                "--out-dir",
+                output + "/mcp-cache/build/semantic/" + kind,
+                "--cache-dir",
+                output + "/mcp-cache",
+                "--diagnostic-format",
+                "text",
+                "--color",
+                "never",
+            ],
+            output,
+            "prepare-" + kind,
+            600_000,
+        );
+    let written = record(output, cases, completion);
+    Evidence.text(completion, "status") == "passed" and written.
+
+snapshot(
+    host: String,
+    root: String,
+    output: String,
+    fixture: String,
+    label: String,
+    mut cases: Json,
+): Result[Json, Bool] ->
+    let completion =
+        capture(
+            host,
+            host,
+            [
+                "run",
+                root + "/compiler/semantic/scripts/Snapshot.terls",
+                "--cache-dir",
+                output + "/capture-cache",
+                "--",
+                host,
+                fixture,
+                "query.terl",
+                output + "/" + label + "-store",
+            ],
+            output,
+            label + "-snapshot",
+            600_000,
+        );
+    let written = record(output, cases, completion);
+    let {
+        true <- written and Evidence.text(completion, "status") == "passed";
+        Ok(document) <- load(output + "/" + label + "-snapshot.stdout");
+        Ok(compiler) <- document.get("compiler");
+        Ok(digest) <- Hash.sha256_file(host);
+        true <- Evidence.text(compiler, "binary_digest") == digest;
+        Ok(sources) <- document.get("sources");
+        true <- sources.length() == Ok(1);
+        Ok(source) <- sources.at(0);
+        Ok(source_digest) <- Hash.sha256_file(fixture);
+        true <- Evidence.text(source, "digest") == source_digest
+    } else {
+        _ -> Err(false)
+    };
+    Ok(document).
+
+sdk_case(
+    host: String,
+    root: String,
+    output: String,
+    inventory: Json,
+    fixture: String,
+    label: String,
+    large: Bool,
+    mut cases: Json,
+): Bool ->
+    let {
+        Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
+        Ok(document) <- snapshot(host, root, output, fixture, label, cases);
+        Ok(compiler_digest) <- Hash.sha256_file(host);
+        Ok(fixture_digest) <- Hash.sha256_file(fixture);
+        Ok(spec_digest) <- Hash.sha256_file(root + "/tests/fixtures/llm_native/mcp/spec.schema.json")
+    } else {
+        _ -> false
+    };
+    (let arguments =
+    [
+        "-I",
+        root + "/scripts/llm_native/peers/mcp_peer.py",
+        "--root",
+        root,
+        "--compiler",
+        host,
+        "--store",
+        output + "/" + label + "-store",
+        "--snapshot",
+        Evidence.text(document, "snapshot_id"),
+        "--cache",
+        output + "/mcp-cache",
+        "--source-fixture",
+        fixture,
+        "--output",
+        output + "/" + label + "-mcp.json",
+        "--stderr",
+        output + "/" + label + "-mcp-server.stderr",
+    ];
+let configured =
+    if {
+        large -> List.concat(arguments, ["--require-resource-pagination"]);
+        true -> arguments
+    };
+let completion = capture(host, python, configured, output, label + "-mcp", 300_000);
+let passed =
+    Evidence.text(completion, "status") == "passed"
+        and case load(output + "/" + label + "-mcp.json") {
+    Ok(peer) ->
+        admit_peer(
+            peer,
+            inventory,
+            compiler_digest,
+            fixture_digest,
+            Evidence.text(document, "snapshot_id"),
+            spec_digest,
+            large,
+        );
+    _ -> false
+};
+let _status =
+    completion
+        .put(
+            "status",
+            Json.string(
+                if {
+                    passed -> "passed";
+                    true -> "failed"
+                },
+            ),
+        );
+let written = record(output, cases, completion);
+passed and written).
+
+prerequisite(host: String, root: String, output: String, mut cases: Json): Bool ->
+    let completion =
+        capture(
+            host,
+            host,
+            [
+                "run",
+                root + "/scripts/llm_native/scripts/Gate.terls",
+                "--cache-dir",
+                output + "/prerequisite-cache",
+                "--",
+                host,
+                "LNC-004",
+                output + "/prerequisite-snapshots",
+            ],
+            output,
+            "query-snapshot-prerequisite",
+            600_000,
+        );
+    let passed =
+        Evidence.text(completion, "status") == "passed"
+            and case load(output + "/prerequisite-snapshots/report.json") {
+    Ok(report) -> Evidence.text(report, "status") == "passed";
+    _ -> false
+};
+    let _status =
+        completion
+            .put(
+                "status",
+                Json.string(
+                    if {
+                        passed -> "passed";
+                        true -> "failed"
+                    },
+                ),
+            );
+    let written = record(output, cases, completion);
+    passed and written.
+
+artifact_rows(paths: List[String], prefix: String, mut rows: Json): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let Ok(digest) <- Hash.sha256_file(path) else {
+                _ -> false
+            };
+            (let _row =
+    rows
+        .push(
+            Json.object()
+                .put(
+                    "path",
+                    Json.string(
+                        path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()),
+                    ),
+                )
+                .put("digest", Json.string(digest)),
+        );
+artifact_rows(rest, prefix, rows))
+    }.
+
+pub run(host: String, root: String, output: String): Bool ->
+    let {
+        Ok(inventory) <- QueryInventory.load(root);
+        Ok(base) <- File.read_text(root + "/tests/fixtures/llm_native/mcp/query.terl");
+        Ok(_) <- Directory.create_all(output + "/large");
+        Ok(_) <- File.write_text(output + "/large/query.terl", base);
+        true <-
+            append_constants(
+                output + "/large/query.terl",
+                Evidence.number(inventory, "large_constant_functions"),
+            )
+    } else {
+        _ ->
+            let _failure =
+                save(
+                    output + "/semantic-queries.json",
+                    Json.object()
+                        .put("status", Json.string("failed"))
+                        .put(
+                            "reason",
+                            Json.string("Invalid query inventory or fixture preparation."),
+                        ),
+                );
+            false
+    };
+    (let cases = Json.array();
+let begun = save(output + "/query-progress.json", cases);
+let suites_passed = begun and suite_cases(host, root, output, inventory, QueryInventory.suites(), cases);
+let snapshots_passed = suites_passed and prerequisite(host, root, output, cases);
+let prepared =
+    snapshots_passed
+        and prepare_host(host, root, output, "mcp", cases)
+        and prepare_host(host, root, output, "query", cases);
+let base_passed =
+    prepared
+        and sdk_case(
+    host,
+    root,
+    output,
+    inventory,
+    root + "/tests/fixtures/llm_native/mcp/query.terl",
+    "base",
+    false,
+    cases,
+);
+let large_passed =
+    base_passed
+        and sdk_case(host, root, output, inventory, output + "/large/query.terl", "large", true, cases);
+let artifacts = Json.array();
+let hashed =
+    case Directory.files_recursive_excluding(
+        output,
+        [
+            "query-cache",
+            "mcp-cache",
+            "capture-cache",
+            "prerequisite-cache",
+            "snapshot-cache",
+            "live-cache",
+        ],
+    ) {
+        Ok(paths) -> artifact_rows(paths, output + "/", artifacts);
+        _ -> false
+    };
+let passed = suites_passed and snapshots_passed and prepared and base_passed and large_passed and hashed;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.query-gate.v1"))
+        .put(
+            "status",
+            Json.string(
+                if {
+                    passed -> "passed";
+                    true -> "failed"
+                },
+            ),
+        )
+        .put("expected_suite_count", Json.int(List.length(QueryInventory.suites())))
+        .put("expected_test_count", Json.int(QueryInventory.expected_test_count(inventory)))
+        .put("expected_base_mcp_cases", Json.int(QueryInventory.mcp_count(inventory, false)))
+        .put("expected_large_mcp_cases", Json.int(QueryInventory.mcp_count(inventory, true)))
+        .put("cases", cases)
+        .put("artifacts", artifacts)
+        .put(
+            "budgets",
+            Json.object()
+                .put("authored_build_and_test_ms", Json.int(600_000))
+                .put("host_preparation_ms", Json.int(600_000))
+                .put("sdk_process_ms", Json.int(300_000))
+                .put("sdk_rpc_and_cli_ms", Json.int(120_000)),
+        )
+        .put(
+            "scope",
+            Json.string(
+                "LNC-005 supported scoped semantic queries and MCP interoperability. Host compilation is measured separately; no transactional editing, complete effects or general function-value flow, or release latency qualification.",
+            ),
+        );
+let saved = save(output + "/semantic-queries.json", report);
+passed and saved).

@@ -6,6 +6,7 @@ mod macro_call;
 mod pipe;
 mod receiver;
 mod remote;
+pub(super) use remote::qualify_imported_named_heads;
 
 /// Enforces concrete type metadata for parameterized AOT process operations.
 fn require_explicit_process_value_type(

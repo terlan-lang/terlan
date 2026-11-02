@@ -1,0 +1,115 @@
+{
+  "schema": "terlan.semantic.component-checkpoint.v1",
+  "roadmap_task": "LNC-004",
+  "status": "partial",
+  "task_complete": false,
+  "milestone_complete": false,
+  "source_inventory_digest": "c64a5dab1ec04030acefe47ac169e476a3f98d7e48e5aaa08fd750611a8462d7",
+  "inputs": "inputs.json",
+  "terlan_component_tests": [
+    {
+      "suite": "CompilerBridgeTest",
+      "passed": 4,
+      "failed": 0,
+      "not_executed": 0,
+      "exact_test_inventory": [
+        "invalid_program_keeps_diagnostics_without_core",
+        "malformed_and_unversioned_artifacts_are_rejected",
+        "stale_source_identity_is_rejected",
+        "successful_exit_cannot_replace_checked_core"
+      ],
+      "native_callable_source_hashes_verified": [
+        "compiler/semantic/src/semantic/CompilerBridge.terl"
+      ],
+      "raw_report": "bridge-tests.json",
+      "raw_log": "bridge-tests.log"
+    },
+    {
+      "suite": "SnapshotTest",
+      "passed": 7,
+      "failed": 0,
+      "not_executed": 0,
+      "exact_test_inventory": [
+        "invalid_source_retains_compiler_rejection",
+        "malformed_handles_and_escaping_paths_are_rejected",
+        "modified_compiler_artifact_is_never_served",
+        "original_edits_do_not_change_an_existing_snapshot",
+        "repeated_capture_is_stable_and_preserves_source",
+        "stale_overlay_base_is_rejected_before_publication",
+        "unsaved_overlay_is_versioned_and_preserves_disk_source"
+      ],
+      "native_callable_source_hashes_verified": [
+        "compiler/semantic/src/semantic/CompilerBridge.terl",
+        "compiler/semantic/src/semantic/Snapshot.terl",
+        "compiler/semantic/src/semantic/SnapshotStore.terl"
+      ],
+      "raw_report": "snapshot-tests.json",
+      "raw_log": "snapshot-tests.log"
+    },
+    {
+      "suite": "EntitiesTest",
+      "passed": 3,
+      "failed": 0,
+      "not_executed": 0,
+      "exact_test_inventory": [
+        "invalid_source_cannot_produce_binding_facts",
+        "renamed_binding_invalidates_old_handle_without_name_fallback",
+        "unrelated_insertion_preserves_identity_but_requires_fresh_content"
+      ],
+      "native_callable_source_hashes_verified": [
+        "compiler/semantic/src/semantic/CompilerBridge.terl",
+        "compiler/semantic/src/semantic/Entities.terl",
+        "compiler/semantic/src/semantic/Snapshot.terl",
+        "compiler/semantic/src/semantic/SnapshotStore.terl"
+      ],
+      "raw_report": "entity-tests.json",
+      "raw_log": "entity-tests.log"
+    },
+    {
+      "suite": "DeclarationEntitiesTest",
+      "passed": 4,
+      "failed": 0,
+      "not_executed": 0,
+      "exact_test_inventory": [
+        "checked_types_traits_and_functions_have_distinct_handles",
+        "same_name_and_arity_overloads_have_distinct_handles",
+        "semantic_payload_change_invalidates_declaration_handle",
+        "unrelated_insertion_preserves_declaration_identity"
+      ],
+      "native_callable_source_hashes_verified": [
+        "compiler/semantic/src/semantic/CompilerBridge.terl",
+        "compiler/semantic/src/semantic/DeclarationEntities.terl",
+        "compiler/semantic/src/semantic/Snapshot.terl",
+        "compiler/semantic/src/semantic/SnapshotStore.terl"
+      ],
+      "raw_report": "declaration-tests.json",
+      "raw_log": "declaration-tests.log"
+    }
+  ],
+  "total_terlan_tests_passed": 18,
+  "bootstrap_unit_tests_passed": 3,
+  "live_bootstrap_export_cases": 3,
+  "independent_schema_validation": {
+    "snapshot_documents": 1,
+    "binding_entities": 2,
+    "declaration_entities": 1,
+    "validator": "jsonschema 4.25.1",
+    "result": "passed"
+  },
+  "example_snapshot_compiler_identity": "Historical snapshot from earlier debug compiler; its own manifest and immutable artifacts retain that compiler digest. This is not a claim it was captured by the final bootstrap binary.",
+  "retained_failure": {
+    "file": "failed-shared-cache-declaration.log",
+    "phase": "project interface preparation",
+    "successful_replay": "declaration-tests.json",
+    "replay_cache": "/tmp/terlan-semantic-declaration-final-cache",
+    "conclusion": "Isolated replay passed; shared-cache concurrency remains unverified."
+  },
+  "limitations": [
+    "single frozen source plus loaded dependency interfaces; project implementation closure not yet captured",
+    "lexical origins are enclosing syntax, not precise identifier edit ranges",
+    "pattern and other entity identities remain to implement",
+    "expanded/generated origin chains not yet exported",
+    "no live MCP server or semantic transaction API",
+    "compiler build ancestry is a trusted binary anchor, not an independently verified chain"
+  ]
+}

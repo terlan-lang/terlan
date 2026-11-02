@@ -1,0 +1,122 @@
+/**
+ * Rejection tests for source freshness and forged compiler success.
+ */
+module semantic.CompilerBridgeTest.
+
+import semantic.CompilerBridge.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.data.Json.
+
+@test
+pub malformed_and_unversioned_artifacts_are_rejected(): Bool ->
+    let malformed =
+        case CompilerBridge.admit("truncated{", "digest", 0) {
+            Err(reason) -> reason.code == "semantic.bridge.invalid_json";
+            _ -> false
+        };
+    let unknown =
+        case CompilerBridge.admit("{\"schema\":\"invented\"}", "digest", 0) {
+            Err(reason) -> reason.code == "semantic.bridge.schema";
+            _ -> false
+        };
+    malformed and unknown.
+
+@test
+pub stale_source_identity_is_rejected(): Bool ->
+    case CompilerBridge.admit(
+        "{\"schema\":\"terlan.semantic.core-export.v1\",\"source_digest\":\"other\"}",
+        "expected",
+        0,
+    ) {
+        Err(reason) -> reason.code == "semantic.bridge.stale_source";
+        _ -> false
+    }.
+
+@test
+pub successful_exit_cannot_replace_checked_core(): Bool ->
+    case CompilerBridge.admit(
+        "{\"schema\":\"terlan.semantic.core-export.v1\",\"source_digest\":\"expected\",\"status\":\"checked\",\"core\":null,\"diagnostics\":[]}",
+        "expected",
+        0,
+    ) {
+        Err(reason) -> reason.code == "semantic.bridge.status";
+        _ -> false
+    }.
+
+@test
+pub invalid_program_keeps_diagnostics_without_core(): Bool ->
+    let source = "{\"schema\":\"terlan.semantic.core-export.v1\",\"source_digest\":\"expected\",\"status\":\"invalid\",\"core\":null,\"diagnostics\":[{\"phase\":\"typecheck\"}]}";
+    let accepted =
+        case CompilerBridge.admit(source, "expected", 1) {
+            Ok(_) -> true;
+            _ -> false
+        };
+    let forged =
+        case CompilerBridge.admit(source, "expected", 0) {
+            Err(reason) -> reason.code == "semantic.bridge.status";
+            _ -> false
+        };
+    accepted and forged.
+
+rejected_unit(path: String): Json ->
+    Json.object()
+        .put("path", Json.string(path))
+        .put(
+            "export",
+            Json.object()
+                .put("schema", Json.string("terlan.semantic.core-export.v1"))
+                .put("compiler_version", Json.string("fixture"))
+                .put("syntax_contract", Json.object())
+                .put("source_digest", Json.string(Hash.sha256(path)))
+                .put("status", Json.string("invalid"))
+                .put("core", Json.null())
+                .put(
+                    "diagnostics",
+                    Json.array().push(Json.object().put("phase", Json.string("typecheck"))),
+                ),
+        ).
+
+source_row(path: String): Json ->
+    Json.object()
+        .put("path", Json.string(path))
+        .put("digest", Json.string(Hash.sha256(path)))
+        .put("document_version", Json.int(0)).
+
+bundle(rows: Json, status: String): String ->
+    Json.to_string(
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.core-bundle.v1"))
+            .put("compiler_version", Json.string("fixture"))
+            .put("syntax_contract", Json.object())
+            .put("status", Json.string(status))
+            .put("units", rows),
+    ).
+
+@test
+pub duplicate_or_missing_units_cannot_satisfy_source_set_inventory(): Bool ->
+    let sources = Json.array().push(source_row("a.terl")).push(source_row("b.terl"));
+    let duplicate_rows = Json.array().push(rejected_unit("a.terl")).push(rejected_unit("a.terl"));
+    let duplicate =
+        case CompilerBridge.admit_sources(bundle(duplicate_rows, "invalid"), sources, 1) {
+            Err(reason) -> reason.code == "semantic.bridge.bundle_inventory";
+            _ -> false
+        };
+    let missing_rows = Json.array().push(rejected_unit("a.terl"));
+    let missing =
+        case CompilerBridge.admit_sources(bundle(missing_rows, "invalid"), sources, 1) {
+            Err(reason) -> reason.code == "semantic.bridge.bundle_inventory";
+            _ -> false
+        };
+    duplicate and missing.
+
+@test
+pub rejected_unit_cannot_be_reported_as_a_checked_source_set(): Bool ->
+    let sources = Json.array().push(source_row("a.terl"));
+    let rows = Json.array().push(rejected_unit("a.terl"));
+    case CompilerBridge.admit_sources(bundle(rows, "checked"), sources, 0) {
+        Err(reason) -> reason.code == "semantic.bridge.status";
+        _ -> false
+    }.

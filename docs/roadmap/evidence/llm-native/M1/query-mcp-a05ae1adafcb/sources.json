@@ -1,0 +1,386 @@
+{
+  "scope": "Declared gate and component inputs, not the complete compiler build source closure.",
+  "gate_source_digest": "a05ae1adafcb13df58edfcaa2466cfb3ac0b129221f62e8edf2842c2f5575f52",
+  "files": [
+    {
+      "path": "compiler/semantic/contract.json",
+      "sha256": "69f56939da174eea42bfe5b303d17b21e478ff6e8b6c43923ecc0f7a9849ea83"
+    },
+    {
+      "path": "compiler/semantic/schemas/diagnostic.schema.json",
+      "sha256": "041d75f83f20eb024a43e53442c9677cd81a08cc4771b72bdbb40fc5c96536df"
+    },
+    {
+      "path": "compiler/semantic/schemas/entity.schema.json",
+      "sha256": "f4a23722d013e45b19c36bef74d2eeec5c769abae70455b0a635d1850c8f52be"
+    },
+    {
+      "path": "compiler/semantic/schemas/proposal.schema.json",
+      "sha256": "d164ace06833b34d9e128a0aab67c2245accbdb601b16d2f9768d3057d7d2450"
+    },
+    {
+      "path": "compiler/semantic/schemas/provenance.schema.json",
+      "sha256": "9bfc85a0e6f0fab4e744e0d7ed7ca6dd567759d57b6d697a215c8388f2559780"
+    },
+    {
+      "path": "compiler/semantic/schemas/query-error.schema.json",
+      "sha256": "a44327904a696da1eac00410525725ccd90307e6bc94661b60ef6e6efc3b4fcc"
+    },
+    {
+      "path": "compiler/semantic/schemas/query-result.schema.json",
+      "sha256": "69d05a315274cda453066b92f5314973a75fbdd608242d2271d203e2d50d52cb"
+    },
+    {
+      "path": "compiler/semantic/schemas/query.schema.json",
+      "sha256": "0c478367a5a24e169c95b3b1c4f59d3f4737be296c415a0c105146b51049aefd"
+    },
+    {
+      "path": "compiler/semantic/schemas/snapshot.schema.json",
+      "sha256": "f9f9661b711fc10f60ed88039bd7a94cc2f139e6b5b2cbec691fd7ad6193da96"
+    },
+    {
+      "path": "compiler/semantic/schemas/transaction.schema.json",
+      "sha256": "f046df967c9c6aa7f105e5f0b5667c8004a64e9d2b61dfda55585708f7df71fe"
+    },
+    {
+      "path": "compiler/semantic/schemas/verification.schema.json",
+      "sha256": "078d936e9943bd56183233a1b4455fdcc8d65baae0c1dc3611f0b69c95173e3e"
+    },
+    {
+      "path": "scripts/llm_native/peers/requirements.txt",
+      "sha256": "a91f3f9b4baea27918654015b2282f346dae22fe2a3dbf8f57a860a7b81fae58"
+    },
+    {
+      "path": "scripts/llm_native/peers/schema_peer.py",
+      "sha256": "846de8dce5233714c691c788b8fd12652c980c602b886c44301bc1c3df72becf"
+    },
+    {
+      "path": "tests/fixtures/llm_native/contracts/cases.json",
+      "sha256": "2493780dbbec1d76338202657f805aa81d59ccc42c1face765015c028adf8ad5"
+    },
+    {
+      "path": "tests/fixtures/llm_native/mcp/wire-cases.json",
+      "sha256": "3cbb476a1753125af3ad01ec8da8f4668fed4823229a086e5a63f1b8a63ef4ef"
+    },
+    {
+      "path": "docs/compiler/LLM_NATIVE_COMPILER_CONTRACT.md",
+      "sha256": "65f8e705b437c68db20ec6762f290f4b08def8332d5879ba6ced1dd3131f7c84"
+    },
+    {
+      "path": "scripts/llm_native/terlan.toml",
+      "sha256": "786a2af9ddaa2f1f0174b57e4b37154d701b9f9179f49ec01480d3444ec6db6a"
+    },
+    {
+      "path": "scripts/llm_native/scripts/Gate.terls",
+      "sha256": "b8b755857e834d215fadd6a3a01cd404a8665ecd968617a239c60c8d0f912f03"
+    },
+    {
+      "path": "scripts/llm_native/src/llm_native/Evidence.terl",
+      "sha256": "91b7032829d493dba60566436b13313b33392a3efd5d87cc716d06a067953411"
+    },
+    {
+      "path": "scripts/llm_native/src/llm_native/Gate.terl",
+      "sha256": "cc3336cad216fe3501e4c754cd9b28e23608c4a86fead382ca26d0c2e9b16ae1"
+    },
+    {
+      "path": "scripts/llm_native/src/llm_native/GateTest.terl",
+      "sha256": "1d5e7ac283319b39ed6640f006d2e4846425252e70da9c658c7effe80fd4d059"
+    },
+    {
+      "path": "scripts/llm_native/src/llm_native/Baseline.terl",
+      "sha256": "a46467c9f1502a2be114d22b50dd6c59ea9bda9c4169bbba1c7a7e3b13658a74"
+    },
+    {
+      "path": "scripts/llm_native/src/llm_native/LegacyLsp.terl",
+      "sha256": "5e07497cfd7757f600c64dc2c00eb63ea17e95104c7dd3d4015d109358c90e73"
+    },
+    {
+      "path": "scripts/llm_native/src/llm_native/SnapshotGate.terl",
+      "sha256": "cb5bc458e59cdd6cc82ec0a5cf37dc50f2a5aa89e460fb67dbc14703f2f73d4a"
+    },
+    {
+      "path": "scripts/llm_native/scripts/Baseline.terls",
+      "sha256": "439e0568c772f6bcfe83c9639abc9c23eb0eec3f4f90f7ba45b3cde8d32ba156"
+    },
+    {
+      "path": "scripts/benchmarks/compilation/scripts/Generate.terls",
+      "sha256": "6eba6ed75c0bdc9318904fa4d4c91e7b038f2edc564fd34dcac7640e3c81d44f"
+    },
+    {
+      "path": "scripts/benchmarks/compilation/scripts/Edit.terls",
+      "sha256": "38b8031d10b2712bd0a97cb4923148b0965d01e9774a46446452cb447f940e88"
+    },
+    {
+      "path": "scripts/benchmarks/compilation/src/compilation_benchmark/Corpus.terl",
+      "sha256": "96cccde57c8964b56cd01e37b6f3d79f616f4658ed9357734c2a8751e15d289c"
+    },
+    {
+      "path": "tests/fixtures/llm_native/property-cases.json",
+      "sha256": "d083d9ad25d25e8e3f3508a6bbe8a45ce717706456c5755887481f6d5e94e99a"
+    },
+    {
+      "path": "compiler/semantic/README.md",
+      "sha256": "4af25175c1c965b50148e9ae9a784e0e33296e167719efa60730b9e3a917c820"
+    },
+    {
+      "path": "compiler/semantic/scripts/Entities.terls",
+      "sha256": "ceaa1230020cdadc8bdf7f1d7d0a9883b99adfa8c94335e313c448238852c9a4"
+    },
+    {
+      "path": "compiler/semantic/scripts/Mcp.terls",
+      "sha256": "aa20196470d2f68c7c9095e55f4a9f152027b3c467f07b2d6aaff707d7121e76"
+    },
+    {
+      "path": "compiler/semantic/scripts/Query.terls",
+      "sha256": "751d59126ebcf636d364ee24ba5f61f897eca05c5c564697f6b9643b4d33c909"
+    },
+    {
+      "path": "compiler/semantic/scripts/Snapshot.terls",
+      "sha256": "0f3825f494b74d6a0f8fdb8f75bbfc0f2a54d207fbe803b29287d37ca3807fd5"
+    },
+    {
+      "path": "compiler/semantic/scripts/SourceSet.terls",
+      "sha256": "65bb9c0e9997d736f6fe7f603e069cdf138a44d9c27946c175ce1553b605db1a"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/Catalog.terl",
+      "sha256": "240d76046d734b7764d83dc150af65e0240ab07016f882a5f4f935409d0c8351"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/CatalogTest.terl",
+      "sha256": "8abcfdd1ade39349a6804c94e46b1bd7374c7a067bfea017de3d39fb1ac407dd"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/CompilerBridge.terl",
+      "sha256": "da1b4145ed7af1a75787d428045bd4071db7dce82a4a85138aa7cbf4080e990a"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+      "sha256": "cada45fb51486d526bfe52f1daa6e3deb84f886cbc8c58d26c2b4ae3a58e0fe3"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/CursorStore.terl",
+      "sha256": "b8bd36171899676577b464e544392c5cc09d01c1014c7c733ee590723b56789d"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/DeclarationEntities.terl",
+      "sha256": "59fd879de2296673dcd614a4bd8325d7c4e045a65c671261cf5e7662fdfd62b6"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/DeclarationEntitiesTest.terl",
+      "sha256": "3c30fa5b17798ffc59a553e1e7d3525fefe0708804ce221ef842849b8d0032f5"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/Entities.terl",
+      "sha256": "e9d3d2f29daf64ce57147b6bb608199dd5700182aa532dc0b10dff08068e412a"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/EntitiesTest.terl",
+      "sha256": "d0f77caa99ee63fe80e7bc49fb89817e0aa7c4a372965b373f78e219c276b3b4"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/EntityLookup.terl",
+      "sha256": "8681668de67b4da9677390dff81d8b6d3be5251f35dcb221ac364892906163e7"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/JsonRules.terl",
+      "sha256": "bef68293ecc235e40f32bc2f2637d7f4cde45917a21941eec16cadc96277d40f"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/McpService.terl",
+      "sha256": "ddfc4247817b96126460a808a96bebbd78f1d9639ce1c1994e775e3a1711822b"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/PatternEntities.terl",
+      "sha256": "1b1227b54f96678e63448f520f135385ee11f5dbc69d0d5ee89d9f7ea947091e"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/Query.terl",
+      "sha256": "10397b58e87ec16ca55b1f3a8f1cbcd7e2c71bba46f690cbd2f9f9a26ccfa91e"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/QueryCursor.terl",
+      "sha256": "b439d252fa15ec2f12ee3a4b60fd3bbbee8fad9f8ea548bf04da266ccda42aaa"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/QueryProjection.terl",
+      "sha256": "54027500949d60b30ad694b3c2abc5305b6bb92c17d0a51795242ef3c99adbed"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/QueryRequest.terl",
+      "sha256": "b8f90c58aa9e96e3d179a1796c3cfdc07f6a5f299920c0124f549cb8069dabc5"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/QueryTest.terl",
+      "sha256": "37b825a570f40ff0e0700c79e3abe1c8e666b131f914a59e32be15618517f37a"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/Snapshot.terl",
+      "sha256": "a96c5e9e10befbc21c2a90ca29135b9b90eb2d253ae9b2884ddfdf6812f827af"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/SnapshotStore.terl",
+      "sha256": "f995ceff8c802a53ae6257c4af4b4d72b3d6e2c2dad4de7c1480d0b31753231a"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/SnapshotTest.terl",
+      "sha256": "8d3edf6628f15a1315e93c5da71f93344a1ea726333808228b64eccb53e98600"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/SourceSet.terl",
+      "sha256": "561c80847131d3c62678ace86ddb2592d42cf64e46ee932dc946564dd7864d23"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/SourceSetTest.terl",
+      "sha256": "cd34f118811f400334cf790e03861eeac1eba0b14bb3f59d87e30c532c487102"
+    },
+    {
+      "path": "compiler/semantic/terlan.toml",
+      "sha256": "d966c97f0d43781c0732a70e6e468ecae44fd34cf622d8d7dfead8a909523223"
+    },
+    {
+      "path": "crates/terlan/src/cli_dispatch.rs",
+      "sha256": "d38dcb468c5599defad48a0eeec5bb7b2e99623e030324207ca7e358aba75873"
+    },
+    {
+      "path": "crates/terlan/src/cli_usage.rs",
+      "sha256": "99f70bc7768862ab5c08c13adb2dc7ba5af81bc437c5c67ecae5219d1731ea68"
+    },
+    {
+      "path": "crates/terlan/src/commands/check/command.rs",
+      "sha256": "e1e04f33cc44c7c732549649f6a7dfd57112d96b04dec51a31aad7699d045e50"
+    },
+    {
+      "path": "crates/terlan/src/commands/check/mod.rs",
+      "sha256": "32f067ab15e7dd020115dfe51789a7d05154c500f9f7541d893f6b9b7c886e60"
+    },
+    {
+      "path": "crates/terlan/src/commands/emit_core.rs",
+      "sha256": "bc0cc71bae435c165ebfcc09d36b4d489c9bd24b8f0734106046b419ad0d4ef5"
+    },
+    {
+      "path": "crates/terlan/src/commands/mod.rs",
+      "sha256": "ee43aa7603213207d2c13c8a5a156de7258d0a9f01f7ad0e98f11dfcf3792b54"
+    },
+    {
+      "path": "crates/terlan/src/commands/run/mod.rs",
+      "sha256": "92107deaa7d5400465862e0576131069b0e779707d798f1ee668a4db52cba850"
+    },
+    {
+      "path": "crates/terlan/src/commands/semantic.rs",
+      "sha256": "3f8cac7a7f0aab2769f5cf54d24e17ce31d2b77ffa954b378df6be33f328a9fa"
+    },
+    {
+      "path": "crates/terlan/src/compiler/native_ir/cranelift/suspension.rs",
+      "sha256": "316745835edbafa64c1ae0c6d9a1aaff4a1c02575b20a6d602c6e0b68255f526"
+    },
+    {
+      "path": "crates/terlan/src/compiler/native_ir/cranelift/suspension_test.rs",
+      "sha256": "ed53bafb124e2429ffb176b88e4a34f1fe389ad9123e23ac57237bf791d9ccb9"
+    },
+    {
+      "path": "crates/terlan/src/compiler/native_ir/lowering_coverage.rs",
+      "sha256": "911f9bffe8004fea2e95e47fa00f7f10182aadfbae1eae221af20b26c1ba67d5"
+    },
+    {
+      "path": "crates/terlan/src/compiler/native_ir/transitions.rs",
+      "sha256": "620c3c909d95c56286cac9c296da752e65185a59e8b83d41147f31238ed863c8"
+    },
+    {
+      "path": "crates/terlan/src/compiler/syntax/formatter/grouped_cases.rs",
+      "sha256": "15d7b767f7b0633b8db21b16507800d1590f9cc2ff0bc3b2aba5a2669e85eb91"
+    },
+    {
+      "path": "crates/terlan/src/compiler/syntax/formatter_let_else_test.rs",
+      "sha256": "8a42196f761980f9880eab8ff131341a0866ff2c104e09132855087a4dfa72c7"
+    },
+    {
+      "path": "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/registry.rs",
+      "sha256": "292741b58e622c618b973a035b0eae87e9b7daaf3793ab0065fe0b74b8f0b71f"
+    },
+    {
+      "path": "crates/terlan/src/compiler/typeck/core_intrinsic_lowering/return_types.rs",
+      "sha256": "57820409581cdbce8e0d40dee7094d8de52421fef1189d91a7f6cbe2f786cef5"
+    },
+    {
+      "path": "crates/terlan/src/compiler/typeck/core_ir/intrinsics.rs",
+      "sha256": "215b14f8e611640fcb277c6d3222316fa142c12213dc4c73d6cfffd5263fc474"
+    },
+    {
+      "path": "crates/terlan/src/compiler/typeck/core_lowering.rs",
+      "sha256": "91571033a9112201b1fd2d5bcce02e5a40781a84ff3a0ab6274c4ffa8706a8fd"
+    },
+    {
+      "path": "crates/terlan/src/lib.rs",
+      "sha256": "cc1f57ea204d734d1e55380e2d1103c28dcf2faaf90e294475a6ac3de6d957c3"
+    },
+    {
+      "path": "crates/terlan/src/runtime/native_image/control.rs",
+      "sha256": "fbd9cb25bc3a90ff735ca2cc56947a29c141397e27f49b309ac216eed4f51d28"
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/package_native_helper/capability.rs",
+      "sha256": "6a80a7748c0881d87fae6c557cabf7d019840b380a8f0c72df8ef268a9dcdff1"
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/package_native_helper/capability/console_input.rs",
+      "sha256": "4af25f3dcb95742aee05afe88f4c82a6c683437bf5196938b7735849a1b53b37"
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/pure_native/execution.rs",
+      "sha256": "940dee305550ef8da8ee8530d5f9ab23677226855b0eb9578015e31e7aeef71d"
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/pure_native/execution/capability_arguments_test.rs",
+      "sha256": "cb4e25cb3b72078ee5da8294983fcdf22d2bbad82a3faa7d0ca85efa7cd1832b"
+    },
+    {
+      "path": "crates/terlan/src/runtime/vm/pure_native/execution/support.rs",
+      "sha256": "e26bff5e92b136326fe7fe1ab06a965667b39ac5708ad7ff1df5c0e2dc073647"
+    },
+    {
+      "path": "scripts/llm_native/peers/mcp_peer.py",
+      "sha256": "d529b8974ff37e5c964dd7503c5218853d9a56485234f94874ee532232840883"
+    },
+    {
+      "path": "scripts/llm_native/peers/semantic_peer.py",
+      "sha256": "8a904b10ca0ec20cdd634697f3dce1857069161dd1de35a11059acb150327892"
+    },
+    {
+      "path": "std/io/Console.terl",
+      "sha256": "05fefd0cef5a45a9970234a30fe1b0307f5d7f877b00c8c93f7fabacbf8c22cb"
+    },
+    {
+      "path": "std/mcp/Protocol.terl",
+      "sha256": "c7cb933a8d8e631ec2726580218a70aec9eee6d19f35f169644907151e88c2cc"
+    },
+    {
+      "path": "std/mcp/ProtocolTest.terl",
+      "sha256": "de57c2c6e41546eaba83129d17d5a40bf4678c77864a372667b9414874e45fb7"
+    },
+    {
+      "path": "std/mcp/Stdio.terl",
+      "sha256": "c71b982524b91d64b2c76d4e08b11078588c79b9a1a14887c94b07120280b3bc"
+    },
+    {
+      "path": "std/summaries/std.io.Console.typi",
+      "sha256": "0cf5d592dc2dcaebd1b2d3bed89ca1041c4d392980ac5d0a5a38b62950d395a0"
+    },
+    {
+      "path": "std/summaries/std.mcp.Protocol.typi",
+      "sha256": "165e6659df96dcd06ea7de7176a9cac7bc63fdda67bd32e02b61eacc8d66994f"
+    },
+    {
+      "path": "std/summaries/std.mcp.Stdio.typi",
+      "sha256": "dbf3499427eef161981fb7950c01e7f6382a20c76d369dbdce32e1bf2f882795"
+    },
+    {
+      "path": "tests/fixtures/llm_native/mcp/query.terl",
+      "sha256": "74f1f3e3d39763670f3a8741efbe69d0f72dca62f122a6122dd8bf7640ca43dd"
+    },
+    {
+      "path": "tests/fixtures/llm_native/semantic/sources.json",
+      "sha256": "3aec9471cf48cce4c4fc1da9eb93c9565d2cc3c85d3555abf62dd78639918d08"
+    }
+  ]
+}

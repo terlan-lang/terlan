@@ -1,0 +1,31 @@
+{
+  "compiler_digest": "7efc6a4004149e8eb5ba1fd2611c201b8f19675e32310a460f19d4734290b84f",
+  "cases": [
+    {
+      "source": "/tmp/terlan-llm-native-export-sample.terl",
+      "source_digest": "101e31ecf7fba37735d8af188340b66d7a4b046d682de789c6ddb04c78542e0d",
+      "exit_status": 0,
+      "status": "checked",
+      "single_json_stdout": true,
+      "diagnostic_count": 0
+    },
+    {
+      "source": "/tmp/terlan-semantic-invalid-live.terl",
+      "source_digest": "cb31a786864cdb0d614c5ecdb67c69f1e558beb2f0db65691655a8a44b2cf6ad",
+      "exit_status": 1,
+      "status": "invalid",
+      "single_json_stdout": true,
+      "diagnostic_count": 1
+    },
+    {
+      "source": "/tmp/terlan-semantic-interface-live.terli",
+      "source_digest": "7edde5c38fb9fc637f9eb4903917ff13899e5a0d142887bdfbce236ce851a7c4",
+      "exit_status": 0,
+      "status": "interface_only",
+      "single_json_stdout": true,
+      "diagnostic_count": 0,
+      "dependency_count": 23,
+      "dependency_digests_verified": true
+    }
+  ]
+}

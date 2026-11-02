@@ -24,7 +24,20 @@ pub(super) fn check_syntax_callable_clauses(
         effectful_local_calls,
         imported_effects,
     } = environment;
-    let mut clause_patterns: Vec<(Vec<SyntaxPatternOutput>, Span)> = Vec::new();
+    requirement_observations::record(
+        expr_ctx.current_module,
+        callable_name,
+        params.len(),
+        fallback_span,
+        scheme,
+    );
+    let _coverage_owner = coverage_observations::owner(
+        expr_ctx.current_module,
+        callable_name,
+        params.len(),
+        fallback_span,
+    );
+    let mut clause_patterns: Vec<(Vec<SyntaxPatternOutput>, Span, bool)> = Vec::new();
 
     if clauses.is_empty() {
         diagnostics.push(Diagnostic {
@@ -51,6 +64,7 @@ pub(super) fn check_syntax_callable_clauses(
             continue;
         }
 
+        let binding_types = binding_type_observations::clause();
         let instantiated = instantiate_function_scheme(scheme);
         let mut subst = HashMap::new();
         let mut locals: HashMap<String, Type> = HashMap::new();
@@ -182,7 +196,9 @@ pub(super) fn check_syntax_callable_clauses(
             let expected_substituted = apply_subst(&instantiated.ret, &subst);
             let inferred_substituted = apply_subst(&inferred, &subst);
             if is_subtype_with_aliases(&inferred_substituted, &expected_substituted, aliases) {
-                clause_patterns.push((clause.patterns.clone(), span));
+                binding_type_observations::record(&clause.patterns, &locals, &subst);
+                binding_types.finish(&subst);
+                clause_patterns.push((clause.patterns.clone(), span, clause.guard.is_some()));
                 continue;
             }
             let revealed_expected =
@@ -190,7 +206,9 @@ pub(super) fn check_syntax_callable_clauses(
             let revealed_inferred =
                 reveal_opaque_aliases(&inferred_expanded, aliases, expr_ctx.current_module);
             if unify_return_type(&revealed_expected, &revealed_inferred, &mut subst).is_ok() {
-                clause_patterns.push((clause.patterns.clone(), span));
+                binding_type_observations::record(&clause.patterns, &locals, &subst);
+                binding_types.finish(&subst);
+                clause_patterns.push((clause.patterns.clone(), span, clause.guard.is_some()));
                 continue;
             }
             if expected_syntax_opaque_constructor_return_matches(
@@ -200,7 +218,9 @@ pub(super) fn check_syntax_callable_clauses(
                 expr_ctx,
                 &mut subst,
             ) {
-                clause_patterns.push((clause.patterns.clone(), span));
+                binding_type_observations::record(&clause.patterns, &locals, &subst);
+                binding_types.finish(&subst);
+                clause_patterns.push((clause.patterns.clone(), span, clause.guard.is_some()));
                 continue;
             }
             diagnostics.push(Diagnostic {
@@ -210,10 +230,12 @@ pub(super) fn check_syntax_callable_clauses(
             });
         }
 
-        clause_patterns.push((clause.patterns.clone(), span));
+        binding_type_observations::record(&clause.patterns, &locals, &subst);
+        binding_types.finish(&subst);
+        clause_patterns.push((clause.patterns.clone(), span, clause.guard.is_some()));
     }
 
-    for (patterns, _) in &mut clause_patterns {
+    for (patterns, _, _) in &mut clause_patterns {
         for pattern in patterns {
             resolve_coverage_pattern(pattern, expr_ctx);
         }

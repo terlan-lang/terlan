@@ -1,0 +1,428 @@
+/**
+ * LNC-004: authored semantic tests and independent live schema/source evidence.
+ */
+module llm_native.SnapshotGate.
+
+import llm_native.Evidence.
+import std.collections.List.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.{Environment, Process}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub suites(): List[String] ->
+    [
+        "CompilerBridgeTest",
+        "SnapshotTest",
+        "EntitiesTest",
+        "DeclarationEntitiesTest",
+        "CatalogTest",
+        "SourceSetTest",
+    ].
+
+/**
+ * Exact authored acceptance membership; adding/removing tests requires review.
+ */
+pub expected_names(suite: String): List[String] ->
+    case suite {
+        "CompilerBridgeTest" ->
+            [
+                "malformed_and_unversioned_artifacts_are_rejected",
+                "stale_source_identity_is_rejected",
+                "successful_exit_cannot_replace_checked_core",
+                "invalid_program_keeps_diagnostics_without_core",
+                "duplicate_or_missing_units_cannot_satisfy_source_set_inventory",
+                "rejected_unit_cannot_be_reported_as_a_checked_source_set",
+            ];
+        "SnapshotTest" ->
+            [
+                "repeated_capture_is_stable_and_preserves_source",
+                "original_edits_do_not_change_an_existing_snapshot",
+                "modified_compiler_artifact_is_never_served",
+                "invalid_source_retains_compiler_rejection",
+                "malformed_handles_and_escaping_paths_are_rejected",
+                "unsaved_overlay_is_versioned_and_preserves_disk_source",
+                "stale_overlay_base_is_rejected_before_publication",
+            ];
+        "EntitiesTest" ->
+            [
+                "unrelated_insertion_preserves_identity_but_requires_fresh_content",
+                "renamed_binding_invalidates_old_handle_without_name_fallback",
+                "invalid_source_cannot_produce_binding_facts",
+            ];
+        "DeclarationEntitiesTest" ->
+            [
+                "checked_types_traits_and_functions_have_distinct_handles",
+                "unrelated_insertion_preserves_declaration_identity",
+                "same_name_and_arity_overloads_have_distinct_handles",
+                "semantic_payload_change_invalidates_declaration_handle",
+                "duplicate_checked_rows_are_rejected_before_catalog_publication",
+            ];
+        "CatalogTest" ->
+            [
+                "nested_patterns_and_unbound_wildcards_have_owned_identities",
+                "unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection",
+                "edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes",
+                "moving_a_binding_into_a_branch_invalidates_its_old_handle",
+                "entity_selection_rejects_wrong_kind_and_content",
+                "rejected_source_returns_unavailable_catalog_without_typed_entities",
+            ];
+        "SourceSetTest" ->
+            [
+                "source_order_is_canonical_and_imported_declarations_remain_available",
+                "changed_dependency_interface_rejects_stale_entity_content",
+                "overlay_versions_change_snapshot_identity_without_mutating_prior_capture",
+                "rejected_source_marks_the_set_invalid_and_keeps_other_facts_partial",
+                "changing_any_frozen_source_makes_the_set_unreadable",
+                "duplicate_escaping_and_negative_version_inputs_fail_before_compilation",
+            ];
+        _ -> []
+    }.
+
+expected_test_count(remaining: List[String]): Int ->
+    case remaining {
+        [] -> 0;
+        [suite | rest] -> List.length(expected_names(suite)) + expected_test_count(rest)
+    }.
+
+load(path: String): Result[Json, Bool] ->
+    let {
+        Ok(source) <- File.read_text(path);
+        Ok(value) <- Json.parse(source)
+    } else {
+        _ -> Err(false)
+    };
+    Ok(value).
+
+save(path: String, value: Json): Bool ->
+    File.write_text(path, Json.to_string(value) + "\n") == Ok(Unit).
+
+names_json(names: List[String], mut output: Json): Json ->
+    case names {
+        [] -> output;
+        [name | rest] ->
+            let _name = output.push(Json.string(name));
+            names_json(rest, output)
+    }.
+
+capture(
+    program: String,
+    arguments: List[String],
+    bootstrap: String,
+): Result[Process.Output, Bool] ->
+    let command = Process.with_arguments(Process.command(program), arguments);
+    let configured =
+        Process.with_environment(
+            command,
+            [Process.environment_entry("TERLAN_SEMANTIC_TEST_COMPILER", bootstrap)],
+        );
+    case Process.run(
+        Process.with_output_limit_bytes(Process.with_timeout_ms(configured, 180_000), 2_097_152),
+    ) {
+        Ok(output) -> Ok(output);
+        _ -> Err(false)
+    }.
+
+native_sources(rows: Json, prefix: String, index: Int, count: Int, seen: Int): Bool ->
+    if {
+        index == count -> seen > 0;
+        true -> let Ok(row) <- rows.at(index) else {
+            _ -> false
+        };
+        (let path = Evidence.text(row, "source_file");
+if {
+    path.starts_with(prefix) -> Hash.sha256_file(path) == Ok(Evidence.text(row, "source_sha256"))
+        and native_sources(rows, prefix, index + 1, count, seen + 1);
+    true -> native_sources(rows, prefix, index + 1, count, seen)
+})
+    }.
+
+/**
+ * Rejects stale compiled service sources even when all test names passed.
+ */
+pub current_sources(report: Json, root: String): Bool ->
+    let {
+        Ok(evidence) <- report.get("native_callable_evidence");
+        Ok(rows) <- evidence.get("declarations");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> false
+    };
+    Evidence.text(evidence, "schema") == "terlan.native-callable-evidence/v1"
+        and native_sources(rows, root + "/compiler/semantic/", 0, count, 0).
+
+run_suites(
+    host: String,
+    bootstrap: String,
+    root: String,
+    output: String,
+    names: List[String],
+    mut cases: Json,
+): Bool ->
+    case names {
+        [] -> true;
+        [name | rest] ->
+            let manifest = output + "/snapshot-" + name + ".json";
+            let result =
+                capture(
+                    host,
+                    [
+                        "test",
+                        root + "/compiler/semantic/src/semantic/" + name + ".terl",
+                        "--cache-dir",
+                        output + "/snapshot-cache/" + name,
+                        "--emit-test-result-manifest",
+                        manifest,
+                    ],
+                    bootstrap,
+                );
+            let passed =
+                case result {
+                    Ok(completion) ->
+                        let logs =
+                            File.write_text(output + "/snapshot-" + name + ".stdout", completion.stdout) == Ok(Unit)
+                                and File.write_text(output + "/snapshot-" + name + ".stderr", completion.stderr) == Ok(Unit);
+                        completion.status == 0
+                            and logs
+                            and case load(manifest) {
+    Ok(report) ->
+        Evidence.test_report(report, expected_names(name)) and current_sources(report, root);
+    _ -> false
+};
+                    _ -> false
+                };
+            let _case =
+                cases
+                    .push(
+                        Json.object()
+                            .put("suite", Json.string(name))
+                            .put(
+                                "status",
+                                Json.string(
+                                    if {
+                                        passed -> "passed";
+                                        true -> "failed"
+                                    },
+                                ),
+                            )
+                            .put("expected_names", names_json(expected_names(name), Json.array()))
+                            .put("result_manifest", Json.string("snapshot-" + name + ".json")),
+                    );
+            passed and run_suites(host, bootstrap, root, output, rest, cases)
+    }.
+
+/**
+ * Independent peer admission binds exact live outputs and the authored fixture.
+ */
+pub admit_peer(
+    report: Json,
+    snapshot_digest: String,
+    catalog_digest: String,
+    fixture_digest: String,
+): Bool ->
+    let {
+        Ok(validator) <- report.get("validator");
+        Ok(kinds) <- report.get("entity_kinds");
+        Ok(count) <- kinds.length()
+    } else {
+        _ -> false
+    };
+    Evidence.text(report, "schema") == "terlan.semantic.live-schema-evidence.v1"
+        and Evidence.text(report, "status") == "passed"
+        and Evidence.text(report, "snapshot_digest") == snapshot_digest
+        and Evidence.text(report, "catalog_digest") == catalog_digest
+        and Evidence.text(report, "fixture_digest") == fixture_digest
+        and Evidence.text(validator, "jsonschema") == "4.25.1"
+        and Evidence.number(report, "source_count") == 2
+        and Evidence.number(report, "entity_count") >= 6
+        and count == 6
+        and Json.to_string(kinds) == "[\"binding\",\"function\",\"module\",\"pattern\",\"trait\",\"type\"]".
+
+live_case(host: String, bootstrap: String, root: String, output: String): Bool ->
+    let fixture = root + "/tests/fixtures/llm_native/semantic/sources.json";
+    let snapshot_path = output + "/live-snapshot.json";
+    let catalog_path = output + "/live-catalog.json";
+    let {
+        Ok(capture_result) <-
+            capture(
+                host,
+                [
+                    "run",
+                    root + "/compiler/semantic/scripts/SourceSet.terls",
+                    "--cache-dir",
+                    output + "/live-cache",
+                    "--",
+                    bootstrap,
+                    fixture,
+                    output + "/live-store",
+                ],
+                bootstrap,
+            );
+        true <-
+            File.write_text(snapshot_path, capture_result.stdout) == Ok(Unit)
+                and File.write_text(output + "/live-snapshot.stderr", capture_result.stderr) == Ok(Unit);
+        true <- capture_result.status == 0;
+        Ok(snapshot) <- Json.parse(capture_result.stdout)
+    } else {
+        _ -> false
+    };
+    (let {
+    Ok(catalog_result) <-
+        capture(
+            host,
+            [
+                "run",
+                root + "/compiler/semantic/scripts/Entities.terls",
+                "--cache-dir",
+                output + "/live-cache",
+                "--",
+                output + "/live-store",
+                Evidence.text(snapshot, "snapshot_id"),
+                "catalog",
+            ],
+            bootstrap,
+        );
+    true <-
+        File.write_text(catalog_path, catalog_result.stdout) == Ok(Unit)
+            and File.write_text(output + "/live-catalog.stderr", catalog_result.stderr) == Ok(Unit);
+    true <- catalog_result.status == 0;
+    Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
+    Ok(completion) <-
+        capture(
+            python,
+            [
+                "-I",
+                root + "/scripts/llm_native/peers/semantic_peer.py",
+                "--root",
+                root,
+                "--snapshot",
+                snapshot_path,
+                "--catalog",
+                catalog_path,
+                "--output",
+                output + "/live-schema-evidence.json",
+            ],
+            bootstrap,
+        )
+} else {
+    _ -> false
+};
+(let logs =
+    File.write_text(output + "/live-peer.stdout", completion.stdout) == Ok(Unit)
+        and File.write_text(output + "/live-peer.stderr", completion.stderr) == Ok(Unit);
+(let {
+    Ok(peer) <- load(output + "/live-schema-evidence.json");
+    Ok(snapshot_digest) <- Hash.sha256_file(snapshot_path);
+    Ok(catalog_digest) <- Hash.sha256_file(catalog_path);
+    Ok(fixture_digest) <- Hash.sha256_file(fixture)
+} else {
+    _ -> false
+};
+completion.status == 0
+    and logs
+    and admit_peer(peer, snapshot_digest, catalog_digest, fixture_digest)))).
+
+artifact_rows(paths: List[String], prefix: String, mut output: Json): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            let Ok(digest) <- Hash.sha256_file(path) else {
+                _ -> false
+            };
+            (let _row =
+    output
+        .push(
+            Json.object()
+                .put(
+                    "path",
+                    Json.string(
+                        path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()),
+                    ),
+                )
+                .put("digest", Json.string(digest)),
+        );
+artifact_rows(rest, prefix, output))
+    }.
+
+/**
+ * Runs tests serially with isolated caches and retains the complete evidence.
+ */
+pub run(host: String, root: String, output: String): Bool ->
+    let bootstrap =
+        case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+            Some(value) -> value;
+            _ -> root + "/target/debug/terlc"
+        };
+    let {
+        Ok(true) <- File.is_executable(bootstrap);
+        Ok(bootstrap_digest) <- Hash.sha256_file(bootstrap)
+    } else {
+        _ ->
+            let _saved =
+                save(
+                    output + "/semantic-snapshots.json",
+                    Json.object()
+                        .put("schema", Json.string("terlan.semantic.snapshot-gate.v1"))
+                        .put("status", Json.string("failed"))
+                        .put("code", Json.string("semantic.gate.bootstrap_unavailable"))
+                        .put("bootstrap", Json.string(bootstrap)),
+                );
+            false
+    };
+    (let cases = Json.array();
+let suites_passed = run_suites(host, bootstrap, root, output, suites(), cases);
+let live_passed = suites_passed and live_case(host, bootstrap, root, output);
+let fresh = Hash.sha256_file(bootstrap) == Ok(bootstrap_digest);
+let artifacts = Json.array();
+let hashed =
+    case Directory.files_recursive_excluding(output, ["snapshot-cache", "live-cache"]) {
+        Ok(paths) -> artifact_rows(paths, output + "/", artifacts);
+        _ -> false
+    };
+let passed = suites_passed and live_passed and fresh and hashed;
+let report =
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.snapshot-gate.v1"))
+        .put(
+            "status",
+            Json.string(
+                if {
+                    passed -> "passed";
+                    true -> "failed"
+                },
+            ),
+        )
+        .put(
+            "bootstrap",
+            Json.object()
+                .put("path", Json.string(bootstrap))
+                .put("binary_digest", Json.string(bootstrap_digest))
+                .put("fresh", Json.bool(fresh)),
+        )
+        .put("cases", cases)
+        .put("expected_suite_count", Json.int(List.length(suites())))
+        .put("expected_test_count", Json.int(expected_test_count(suites())))
+        .put(
+            "live_schema_status",
+            Json.string(
+                if {
+                    live_passed -> "passed";
+                    true -> "failed_or_not_run"
+                },
+            ),
+        )
+        .put("artifacts", artifacts)
+        .put(
+            "scope",
+            Json.string(
+                "LNC-004 immutable scoped snapshots and entity identities; no M1, MCP, or transaction completion claim.",
+            ),
+        );
+let saved = save(output + "/semantic-snapshots.json", report);
+passed and saved).

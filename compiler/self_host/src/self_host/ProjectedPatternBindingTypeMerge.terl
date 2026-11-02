@@ -1,0 +1,245 @@
+/** Propagates case-subject types into refutable pattern bindings before IR lowering. */
+module self_host.ProjectedPatternBindingTypeMerge.
+
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+struct PatternTypeSeed {
+    node_id: Int,
+    byte_offset: Int,
+    type_name: String,
+}.
+
+constructor PatternTypeSeed {
+    (node_id: Int, byte_offset: Int, type_name: String): PatternTypeSeed ->
+        PatternTypeSeed { node_id: node_id, byte_offset: byte_offset, type_name: type_name }
+}.
+
+struct PatternScan {
+    next_id: Int,
+    seeds: List[PatternTypeSeed],
+}.
+
+constructor PatternScan {
+    (next_id: Int, seeds: List[PatternTypeSeed]): PatternScan ->
+        PatternScan { next_id: next_id, seeds: seeds }
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+
+node_size(value: ProjectedExpressionNode): Int -> 1 + nodes_size(value.children).
+
+nodes_size(values: List[ProjectedExpressionNode]): Int ->
+    case values { [] -> 0; [value | rest] -> node_size(value) + nodes_size(rest) }.
+
+fact_type(node_id: Int, values: List[InferredTypeFact]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.type_name != None -> value.type_name;
+            true -> fact_type(node_id, rest)
+        }
+    }.
+
+last(values: List[String], fallback: String): String ->
+    case values { [] -> fallback; [value | rest] -> last(rest, value) }.
+
+type_base(value: String): String ->
+    case String.split(value, "[") {
+        [base | _rest] -> last(String.split(String.trim(base), "."), "");
+        [] -> ""
+    }.
+
+list_element_type(value: String): Option[String] ->
+    if {
+        type_base(value) != "List" or not String.ends_with(value, "]") -> None;
+        true -> case String.split(value, "[") {
+            [_base, argument] -> Some(argument.utf8_slice(0, argument.byte_size() - 1));
+            _ -> None
+        }
+    }.
+
+pattern_seeds(
+    pattern: ProjectedExpressionNode,
+    node_id: Int,
+    source_type: String,
+): List[PatternTypeSeed] ->
+    if {
+        pattern.kind == "pattern" -> case pattern.children {
+            [child] -> pattern_seeds(child, node_id + 1, source_type);
+            _ -> []
+        };
+        pattern.kind == "binding-pattern" or pattern.kind == "typed-pattern" -> [
+            PatternTypeSeed(node_id, pattern.start_byte, source_type)
+        ];
+        pattern.kind == "list-cons-pattern" -> case {pattern.children, list_element_type(source_type)} {
+            {[head, tail], Some(element_type)} -> append(
+                pattern_seeds(head, node_id + 1, element_type),
+                pattern_seeds(tail, node_id + 1 + node_size(head), source_type),
+            );
+            _ -> []
+        };
+        pattern.kind == "list-pattern" -> case list_element_type(source_type) {
+            None -> [];
+            Some(element_type) -> pattern_children_seeds(
+                pattern.children,
+                node_id + 1,
+                element_type,
+            )
+        };
+        true -> []
+    }.
+
+pattern_children_seeds(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    source_type: String,
+): List[PatternTypeSeed] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            pattern_seeds(value, node_id, source_type),
+            pattern_children_seeds(rest, node_id + node_size(value), source_type),
+        )
+    }.
+
+clause_seeds(
+    clause: ProjectedExpressionNode,
+    node_id: Int,
+    source_type: String,
+): List[PatternTypeSeed] ->
+    case clause.children {
+        [pattern | _rest] -> pattern_seeds(pattern, node_id + 1, source_type);
+        [] -> []
+    }.
+
+clauses_seeds(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    source_type: String,
+): List[PatternTypeSeed] ->
+    case values {
+        [] -> [];
+        [value | rest] -> append(
+            clause_seeds(value, node_id, source_type),
+            clauses_seeds(rest, node_id + node_size(value), source_type),
+        )
+    }.
+
+case_seeds(
+    value: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+): List[PatternTypeSeed] ->
+    case value.children {
+        [subject | clauses] -> case fact_type(node_id + 1, facts) {
+            None -> [];
+            Some(source_type) -> clauses_seeds(
+                clauses,
+                node_id + 1 + node_size(subject),
+                source_type,
+            )
+        };
+        [] -> []
+    }.
+
+scan_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+): PatternScan ->
+    case values {
+        [] -> PatternScan(next_id, []);
+        [value | rest] -> let current = scan_node(value, next_id, facts);
+            let remaining = scan_children(rest, current.next_id, facts);
+            PatternScan(
+                remaining.next_id,
+                append(current.seeds, remaining.seeds),
+            )
+    }.
+
+scan_node(
+    value: ProjectedExpressionNode,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+): PatternScan ->
+    let nested = scan_children(value.children, node_id + 1, facts);
+    PatternScan(
+        nested.next_id,
+        append(
+            if { value.kind == "case" -> case_seeds(value, node_id, facts); true -> [] },
+            nested.seeds,
+        ),
+    ).
+
+scan_bodies(
+    values: List[ProjectedBody],
+    next_id: Int,
+    facts: List[InferredTypeFact],
+): PatternScan ->
+    case values {
+        [] -> PatternScan(next_id, []);
+        [value | rest] -> case value.expression.node {
+            None -> scan_bodies(rest, next_id, facts);
+            Some(node) -> let current = scan_node(node, next_id, facts);
+                let remaining = scan_bodies(rest, current.next_id, facts);
+                PatternScan(
+                    remaining.next_id,
+                    append(current.seeds, remaining.seeds),
+                )
+        }
+    }.
+
+seed_at(node_id: Int, values: List[PatternTypeSeed]): Option[PatternTypeSeed] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if { value.node_id == node_id -> Some(value); true -> seed_at(node_id, rest) }
+    }.
+
+merge_facts(
+    values: List[InferredTypeFact],
+    seeds: List[PatternTypeSeed],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] -> case seed_at(value.node_id, seeds) {
+            None -> [value | merge_facts(rest, seeds)];
+            Some(seed) -> [InferredTypeFact(value.node_id, Some(seed.type_name), value.byte_offset)
+                | merge_facts(rest, seeds)]
+        }
+    }.
+
+seed_offset(byte_offset: Int, values: List[PatternTypeSeed]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.byte_offset == byte_offset or seed_offset(byte_offset, rest)
+    }.
+
+merge_diagnostics(
+    values: List[TypeConstraintDiagnostic],
+    seeds: List[PatternTypeSeed],
+): List[TypeConstraintDiagnostic] ->
+    case values {
+        [] -> [];
+        [value | rest] -> if {
+            value.code == "unknown-type-constraint" and seed_offset(value.byte_offset, seeds) ->
+                merge_diagnostics(rest, seeds);
+            true -> [value | merge_diagnostics(rest, seeds)]
+        }
+    }.
+
+/** Adds subject-derived facts for list pattern declarations across all bodies. */
+pub merge(
+    bodies: ProjectedBodies,
+    value: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    let seeds = scan_bodies(bodies.values, 0, value.facts).seeds;
+    TypeConstraintResolution(
+        merge_facts(value.facts, seeds),
+        merge_diagnostics(value.diagnostics, seeds),
+    ).

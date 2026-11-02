@@ -1,0 +1,7 @@
+[
+  {
+    "case_id": "harness.failure-injection",
+    "reason": "Exact test inventory and compiler result manifest.",
+    "status": "passed"
+  }
+]

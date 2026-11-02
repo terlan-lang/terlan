@@ -1,0 +1,86 @@
+/**
+ * Bounded selection of authoritative finite-pattern checker observations.
+ */
+module semantic.CoverageQuery.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    rows: Json,
+    work_used: Int,
+    truncated: Bool,
+}.
+
+matches(row: Json, function: Json): Bool ->
+    let {
+        Ok(owner) <- row.get("owner");
+        Ok(source) <- function.get("source");
+        Ok(span) <- source.get("declaration_span");
+        Ok(start) <- span.get("start");
+        Ok(end) <- span.get("end");
+        Ok(owner_start) <- owner.get("span_start");
+        Ok(owner_end) <- owner.get("span_end");
+        Ok(arity) <- source.get("arity");
+        Ok(owner_arity) <- owner.get("arity")
+    } else {
+        _ -> false
+    };
+    EntityLookup.text(owner, "module") == EntityLookup.text(source, "module")
+        and EntityLookup.text(owner, "name") == EntityLookup.text(source, "function")
+        and Json.to_string(start) == Json.to_string(owner_start)
+        and Json.to_string(end) == Json.to_string(owner_end)
+        and Json.to_string(arity) == Json.to_string(owner_arity).
+
+scan(
+    rows: Json,
+    function: Json,
+    index: Int,
+    count: Int,
+    output: Json,
+    used: Int,
+    maximum: Int,
+    truncated: Bool,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(Selected(rows = output, work_used = used, truncated = truncated));
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Coverage selection exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let Ok(row) <- rows.at(index) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked coverage observation is missing.",
+                    ),
+                )
+        };
+        (let next =
+    if {
+        matches(row, function) -> output.push(row);
+        true -> output
+    };
+scan(rows, function, index + 1, count, next, used + 1, maximum, truncated))
+    }.
+
+pub select(artifact: Json, function: Json, used: Int, maximum: Int): Result[Selected, Failure] ->
+    let {
+        Ok(metadata) <- artifact.get("coverage_observations");
+        true <- EntityLookup.text(metadata, "model") == "finite-pattern-coverage.v1";
+        Ok(rows) <- metadata.get("observations");
+        Ok(count) <- rows.length();
+        Ok(capped) <- metadata.get("truncated");
+        Ok(truncated) <- capped.as_bool()
+    } else {
+        _ -> Ok(Selected(rows = Json.array(), work_used = used, truncated = false))
+    };
+    scan(rows, function, 0, count, Json.array(), used, maximum, truncated).

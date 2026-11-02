@@ -1,0 +1,6 @@
+running 4 tests
+test checked_types_traits_and_functions_have_distinct_handles ... ok
+test unrelated_insertion_preserves_declaration_identity ... ok
+test same_name_and_arity_overloads_have_distinct_handles ... ok
+test semantic_payload_change_invalidates_declaration_handle ... ok
+test result: ok. 4 passed; 0 failed

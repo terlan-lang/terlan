@@ -57,16 +57,23 @@ append[T](left: List[T], right: List[T]): List[T] ->
 
 fact_name_at(
     values: List[InferredTypeFact],
-    byte_offset: Int,
-    current: Option[String],
+    node_id: Int,
 ): Option[String] ->
     case values {
-        [] -> current;
+        [] -> None;
         [value | rest] -> if {
-            value.byte_offset == byte_offset and value.type_name != None ->
-                fact_name_at(rest, byte_offset, value.type_name);
-            true -> fact_name_at(rest, byte_offset, current)
+            value.node_id == node_id and value.type_name != None -> value.type_name;
+            true -> fact_name_at(rest, node_id)
         }
+    }.
+
+node_size(value: ProjectedExpressionNode): Int ->
+    1 + nodes_size(value.children).
+
+nodes_size(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> node_size(value) + nodes_size(rest)
     }.
 
 deferred_map_diagnostic(value: TypeConstraintDiagnostic, byte_offset: Int): Bool ->
@@ -110,31 +117,40 @@ merge_value_type(summary: MapValueSummary, value_type: Option[String]): MapValue
 
 summarize_field(
     field: ProjectedExpressionNode,
+    field_id: Int,
     facts: List[InferredTypeFact],
     summary: MapValueSummary,
 ): MapValueSummary ->
     case field_value(field) {
         None -> merge_value_type(summary, None);
-        Some(value) -> merge_value_type(summary, fact_name_at(facts, value.start_byte, None))
+        Some(_value) -> merge_value_type(summary, fact_name_at(facts, field_id + 1))
     }.
 
 summarize_fields(
     values: List[ProjectedExpressionNode],
+    node_id: Int,
     facts: List[InferredTypeFact],
     summary: MapValueSummary,
 ): MapValueSummary ->
     case values {
         [] -> summary;
-        [value | rest] -> summarize_fields(rest, facts, summarize_field(value, facts, summary))
+        [value | rest] -> summarize_fields(
+            rest,
+            node_id + node_size(value),
+            facts,
+            summarize_field(value, node_id, facts, summary),
+        )
     }.
 
 map_values(
     node: ProjectedExpressionNode,
+    node_id: Int,
     facts: List[InferredTypeFact],
 ): MapValueSummary ->
     case node.children {
         [fields] -> summarize_fields(
             fields.children,
+            node_id + 2,
             facts,
             MapValueSummary(0, true, true, ""),
         );
@@ -152,7 +168,7 @@ merge_empty_map(
     node_id: Int,
     state: MapMergeState,
 ): MapMergeState ->
-    case fact_name_at(state.facts, node.start_byte, None) {
+    case fact_name_at(state.facts, node_id) {
         Some(name) where String.starts_with(name, "Map[") -> MapMergeState(
             state.next_id,
             append(state.facts, [InferredTypeFact(node_id, Some(name), node.start_byte)]),
@@ -216,7 +232,7 @@ merge_map(
     node_id: Int,
     state: MapMergeState,
 ): MapMergeState ->
-    let values = map_values(node, state.facts);
+    let values = map_values(node, node_id, state.facts);
     if {
         values.count == 0 -> merge_empty_map(node, node_id, state);
         true -> merge_nonempty_map(node, node_id, values, state)
@@ -255,19 +271,27 @@ pub merge_expression(
     let state = merge_node(node, 0, resolution.facts, resolution.diagnostics);
     TypeConstraintResolution(state.facts, state.diagnostics).
 
-merge_body(value: ProjectedBody, resolution: TypeConstraintResolution): TypeConstraintResolution ->
+merge_body(
+    value: ProjectedBody,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+): MapMergeState ->
     case value.expression.node {
-        Some(node) -> merge_expression(node, resolution);
-        None -> resolution
+        Some(node) -> merge_node(node, node_id, facts, diagnostics);
+        None -> MapMergeState(node_id, facts, diagnostics)
     }.
 
 merge_bodies(
     values: List[ProjectedBody],
-    resolution: TypeConstraintResolution,
-): TypeConstraintResolution ->
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    diagnostics: List[TypeConstraintDiagnostic],
+): MapMergeState ->
     case values {
-        [] -> resolution;
-        [value | rest] -> merge_bodies(rest, merge_body(value, resolution))
+        [] -> MapMergeState(node_id, facts, diagnostics);
+        [value | rest] -> let current = merge_body(value, node_id, facts, diagnostics);
+            merge_bodies(rest, current.next_id, current.facts, current.diagnostics)
     }.
 
 /** Merges map facts across every projected callable body. */
@@ -275,4 +299,5 @@ pub merge(
     bodies: List[ProjectedBody],
     resolution: TypeConstraintResolution,
 ): TypeConstraintResolution ->
-    merge_bodies(bodies, resolution).
+    let state = merge_bodies(bodies, 0, resolution.facts, resolution.diagnostics);
+    TypeConstraintResolution(state.facts, state.diagnostics).

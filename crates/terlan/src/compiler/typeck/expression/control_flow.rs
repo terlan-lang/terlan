@@ -91,6 +91,11 @@ pub(super) fn infer_syntax_case_expr(
             apply_subst_to_locals(&mut clause_locals, &clause_subst);
             let branch_type =
                 infer_syntax_expr(&clause.body, &clause_locals, ctx, &mut clause_subst, errors);
+            super::super::binding_type_observations::record(
+                &clause.patterns,
+                &clause_locals,
+                &clause_subst,
+            );
             apply_subst(&branch_type, &clause_subst)
         })
         .collect::<Vec<_>>();
@@ -232,7 +237,7 @@ fn check_case_exhaustiveness(
     ctx: &ExprInferContext,
     errors: &mut Vec<String>,
 ) {
-    check_clauses_exhaustiveness(&expr.clauses, match_type, ctx, errors);
+    check_clauses_exhaustiveness(&expr.clauses, match_type, ctx, errors, expr, None);
 }
 
 fn check_clauses_exhaustiveness(
@@ -240,50 +245,41 @@ fn check_clauses_exhaustiveness(
     match_type: &Type,
     ctx: &ExprInferContext,
     errors: &mut Vec<String>,
+    expr: &SyntaxExprOutput,
+    binding_index: Option<usize>,
 ) {
-    let expanded = expand_interface_global_aliases(match_type, ctx.aliases);
-    let mut remaining = as_exhaustive_union_variants(&expanded);
-    if remaining.len() <= 1 && !has_finite_fields(&expanded) {
+    let patterns = clauses
+        .iter()
+        .filter_map(|clause| {
+            clause.patterns.first().map(|pattern| {
+                let mut resolved = pattern.clone();
+                resolve_coverage_pattern(&mut resolved, ctx);
+                (resolved, clause.guard.is_some())
+            })
+        })
+        .collect::<Vec<_>>();
+    let analysis = coverage_observations::analyze(match_type, &patterns, ctx.aliases);
+    coverage_observations::record(
+        if binding_index.is_some() {
+            "let_else"
+        } else {
+            "case"
+        },
+        expr.span.into(),
+        binding_index,
+        Some(expr),
+        match_type,
+        &analysis,
+    );
+    if let Some((_, message)) = &analysis.error {
+        errors.push(message.clone());
         return;
     }
-
-    for clause in clauses {
-        let Some(pattern) = clause.patterns.first() else {
-            continue;
-        };
-
-        if clause.guard.is_some() {
-            continue;
-        }
-
-        if matches!(
-            pattern.kind,
-            SyntaxPatternKind::Wildcard
-                | SyntaxPatternKind::Ignore
-                | SyntaxPatternKind::Placeholder
-                | SyntaxPatternKind::Var
-        ) {
-            return;
-        }
-
-        let mut coverage_pattern = pattern.clone();
-        resolve_coverage_pattern(&mut coverage_pattern, ctx);
-        remaining = match subtract_finite_pattern(remaining, &coverage_pattern, ctx.aliases) {
-            Ok(remaining) => remaining,
-            Err(message) => {
-                errors.push(message.to_string());
-                return;
-            }
-        };
-        if remaining.is_empty() {
-            return;
-        }
-    }
-
-    if !remaining.is_empty() {
+    if analysis.exhaustive == Some(false) {
         errors.push(format!(
             "non-exhaustive case expression\nmissing:\n  {}",
-            remaining
+            analysis
+                .remaining
                 .iter()
                 .map(|variant| pretty_case_missing_variant(variant, ctx.aliases))
                 .collect::<Vec<_>>()
@@ -603,6 +599,11 @@ pub(super) fn infer_syntax_try_expr(
 
             let branch_type =
                 infer_syntax_expr(&clause.body, &clause_locals, ctx, &mut clause_subst, errors);
+            super::super::binding_type_observations::record(
+                &clause.patterns,
+                &clause_locals,
+                &clause_subst,
+            );
             apply_subst(&branch_type, &clause_subst)
         }));
     }
@@ -637,6 +638,11 @@ pub(super) fn infer_syntax_try_expr(
 
         let branch_type =
             infer_syntax_expr(&clause.body, &clause_locals, ctx, &mut clause_subst, errors);
+        super::super::binding_type_observations::record(
+            &clause.patterns,
+            &clause_locals,
+            &clause_subst,
+        );
         apply_subst(&branch_type, &clause_subst)
     }));
 

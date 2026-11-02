@@ -1,0 +1,7 @@
+[
+  {
+    "case_id": "contracts.schema",
+    "reason": "Independent schema peer; not runtime verification.",
+    "status": "passed"
+  }
+]

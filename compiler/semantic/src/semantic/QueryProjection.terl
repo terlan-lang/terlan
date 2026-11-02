@@ -1,0 +1,773 @@
+/**
+ * Facts projected from admitted compiler data; unavailable evidence stays unknown.
+ */
+module semantic.QueryProjection.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.{BindingTypes, CallReferences, CoverageQuery, EffectsQuery, EntityLookup, JsonRules, RelationsQuery, TypeQuery}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Stream {
+    rows: Json,
+    format: String,
+    status: String,
+    limitations: Json,
+    work_used: Int,
+}.
+
+pub limitation(code: String, message: String): Json ->
+    Json.object().put("code", Json.string(code)).put("message", Json.string(message)).
+
+stream(rows: Json, format: String, status: String, limits: Json, used: Int): Stream ->
+    Stream(rows = rows, format = format, status = status, limitations = limits, work_used = used).
+
+unavailable(used: Int, code: String, message: String): Stream ->
+    stream(
+        Json.array(),
+        "unavailable",
+        "unavailable",
+        Json.array().push(limitation(code, message)),
+        used,
+    ).
+
+single(value: Json, kind: String, used: Int): Stream ->
+    stream(Json.array().push(value), kind, "complete", Json.array(), used).
+
+function_stream(selection: Selection, maximum: Int, kind: String): Result[Stream, Failure] ->
+    let Ok(matches) <- EntityLookup.core_functions(selection, maximum) else {
+        Err(reason) -> Err(reason)
+    };
+    (let Ok(count) <- matches.rows.length() else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Compiler function origins are malformed.",
+            ),
+        )
+};
+if {
+    count == 1 -> Ok(stream(matches.rows, kind, "complete", Json.array(), matches.work_used));
+    true -> Ok(
+        unavailable(
+            matches.work_used,
+            "semantic.query.source_link_unavailable",
+            "No unique compiler-owned source-to-Core function link is available. Names and argument counts are not used as a fallback.",
+        ),
+    )
+}).
+
+/**
+ * Only direct parameter heads have an exported typed correspondence so far.
+ */
+parameter(function: Json, binding: Json): Result[Json, Bool] ->
+    let suffix =
+        case EntityLookup.text(binding, "path").split(":head:") {
+            [_, tail] -> tail;
+            _ ->
+                case EntityLookup.text(binding, "path").split(":param:") {
+                    [_, tail] -> tail;
+                    _ -> ""
+                }
+        };
+    let {
+        Ok(value) <- Json.parse(suffix);
+        Ok(index) <- value.as_int();
+        true <- index >= 0;
+        Ok(params) <- function.get("params");
+        Ok(row) <- params.at(index);
+        true <- EntityLookup.text(row, "name") == EntityLookup.text(binding, "name");
+        Ok(core_type) <- row.get("core_ty");
+        true <- not core_type.is_null()
+    } else {
+        _ -> Err(false)
+    };
+    Ok(
+        Json.object()
+            .put("compiler_type", core_type)
+            .put("display_type", Json.string(EntityLookup.text(row, "ty")))
+            .put("evidence", Json.string("checked_core_parameter")),
+    ).
+
+type_stream(selection: Selection, maximum: Int): Result[Stream, Failure] ->
+    let kind = EntityLookup.text(selection.entity, "kind");
+    if {
+        kind == "type" -> let Ok(found) <- TypeQuery.prepare(selection, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        if {
+            found.matches != 1 -> Ok(
+                unavailable(
+                    found.used,
+                    "semantic.query.type_link_unavailable",
+                    "No unique containing-module Core type matches this checked declaration; interface-only sources retain their declared syntax through declaration queries.",
+                ),
+            );
+            true -> let Ok(payload) <- selection.record.get("payload") else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.artifact",
+                            message = "Checked type declaration is missing.",
+                        ),
+                    )
+            };
+            (let Ok(origins) <- TypeQuery.included_origins(selection, found.used, maximum) else {
+    Err(reason) -> Err(reason)
+};
+(let value =
+    Json.object()
+        .put("scope", Json.string("checked_type_declaration"))
+        .put("core_type", found.row)
+        .put("source_declaration", payload)
+        .put("join", Json.string("containing_module_and_unique_declaration_name"))
+        .put("included_origins", origins.links)
+        .put("resolved_include_imports", origins.bindings)
+        .put("unavailable_include_origins", origins.unavailable);
+let complete = origins.unavailable.length() == Ok(0);
+let limitations =
+    if {
+        complete -> Json.array();
+        true -> Json.array()
+            .push(
+                limitation(
+                    "semantic.query.include_origin_unavailable",
+                    "An included struct has no unique checked provider declaration in this snapshot; missing provider sources and alias maps are not guessed.",
+                ),
+            )
+    };
+Ok(
+    stream(
+        Json.array().push(value),
+        "type_declaration",
+        if {
+            complete -> "complete";
+            true -> "partial"
+        },
+        limitations,
+        origins.used,
+    ),
+)))
+        };
+        kind == "function" -> function_stream(selection, maximum, "function_type");
+        kind == "binding" -> let Ok(prepared) <- function_stream(selection, maximum, "binding_type") else {
+            Err(reason) -> Err(reason)
+        };
+        (let parameter_type =
+    case prepared.rows.at(0) {
+        Ok(function) -> parameter(function, selection.record);
+        _ -> Err(false)
+    };
+case parameter_type {
+    Ok(value) -> Ok(single(value, "binding_type", prepared.work_used));
+    _ ->
+        let Ok(observed) <- BindingTypes.select(selection, prepared.work_used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        if {
+            observed.code != "" -> Ok(unavailable(observed.work_used, observed.code, observed.message));
+            true -> Ok(
+                stream(
+                    observed.rows,
+                    "inferred_binding_type",
+                    "complete",
+                    Json.array(),
+                    observed.work_used,
+                ),
+            )
+        }
+});
+        true -> Ok(
+            unavailable(
+                selection.work_used,
+                "semantic.query.type_projection_unavailable",
+                "Typed projection for this declaration category is not implemented yet.",
+            ),
+        )
+    }.
+
+expected_values(selection: Selection, maximum: Int): Result[Stream, Failure] ->
+    let Ok(types) <- type_stream(selection, maximum) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        types.status == "unavailable" -> Ok(types);
+        true -> let Ok(row) <- types.rows.at(0) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Expected-type evidence is missing.",
+                    ),
+                )
+        };
+        (let core_type =
+    if {
+        types.format == "function_type" -> case row.get("core_return_type") {
+            Ok(value) -> value;
+            _ -> Json.null()
+        };
+        true -> case row.get("compiler_type") {
+            Ok(value) -> value;
+            _ -> Json.null()
+        }
+    };
+if {
+    core_type.as_string() == Ok("Bool") -> let value =
+        Json.object()
+            .put("scope", Json.string("type_inhabitants"))
+            .put("compiler_type", core_type)
+            .put("literal_candidates", Json.array().push(Json.bool(false)).push(Json.bool(true)))
+            .put("exhaustive_for_type", Json.bool(true))
+            .put("exhaustive_for_program_location", Json.bool(false))
+            .put(
+                "verification_required",
+                Json.array().push(Json.string("ownership_effect_and_actor_context")),
+            );
+    Ok(
+        stream(
+            Json.array().push(value),
+            "expected_values",
+            "partial",
+            Json.array()
+                .push(
+                    limitation(
+                        "semantic.query.expected_context_incomplete",
+                        "Boolean literals exhaust this compiler type; ownership, effects, guards and actor-state constraints at a specific program location are not exported here.",
+                    ),
+                ),
+            types.work_used,
+        ),
+    );
+    true -> Ok(
+        unavailable(
+            types.work_used,
+            "semantic.query.inhabitants_not_exported",
+            "No authoritative inhabitant enumeration is exported for this compiler type.",
+        ),
+    )
+})
+    }.
+
+/**
+ * The checked interface's purity classification is not a full effect set.
+ */
+effects(selection: Selection, maximum: Int): Result[Stream, Failure] ->
+    let Ok(functions) <- function_stream(selection, maximum, "function_type") else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        functions.status == "unavailable" -> Ok(functions);
+        true -> let Ok(function) <- functions.rows.at(0) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked function is missing.",
+                    ),
+                )
+        };
+        (let Ok(contracts) <- EffectsQuery.select(selection.artifact, function, functions.work_used, maximum) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    contracts.rows.length() != Ok(1) -> Ok(
+        unavailable(
+            contracts.work_used,
+            "semantic.query.purity_contract_unavailable",
+            "No unique checked interface purity contract matches this exact function signature; absent metadata is not proof of purity.",
+        ),
+    );
+    true -> let Ok(contract) <- contracts.rows.at(0) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Checked purity contract is missing.",
+                ),
+            )
+    };
+    (let value =
+    Json.object()
+        .put("scope", Json.string("checked_interface_purity"))
+        .put("contract", contract)
+        .put("effect_set_exhaustive", Json.bool(false))
+        .put("evidence", Json.string("authoritative_compiler_interface"));
+Ok(
+    stream(
+        Json.array().push(value),
+        "checked_purity_contract",
+        "partial",
+        Json.array()
+            .push(
+                limitation(
+                    "semantic.query.effect_set_not_exported",
+                    "This is the compiler's checked purity classification. A false value means not proven pure; individual effects, transitive effects and dynamic targets are not enumerated.",
+                ),
+            ),
+        contracts.work_used,
+    ),
+))
+})
+    }.
+
+coverage(selection: Selection, maximum: Int): Result[Stream, Failure] ->
+    let Ok(functions) <- function_stream(selection, maximum, "function_type") else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        functions.status == "unavailable" -> Ok(functions);
+        true -> let Ok(function) <- functions.rows.at(0) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked coverage owner is missing.",
+                    ),
+                )
+        };
+        (let Ok(found) <- CoverageQuery.select(selection.artifact, function, functions.work_used, maximum) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    found.rows.length() == Ok(0) -> Ok(
+        unavailable(
+            found.work_used,
+            "semantic.query.coverage_unavailable",
+            "No finite-pattern checker observations are available for this exact checked function; absence does not establish exhaustiveness.",
+        ),
+    );
+    true -> let limits =
+        Json.array()
+            .push(
+                limitation(
+                    "semantic.query.coverage_scope",
+                    "Observations describe the enclosing checked function's prepared syntax. Guards contribute no coverage; null verdicts and conflicting inference contexts remain unknown. This is not a proof of all control-flow paths or a source edit.",
+                ),
+            );
+    let bounded =
+        if {
+            found.truncated -> limits
+                .push(
+                    limitation(
+                        "semantic.query.coverage_capture_limit",
+                        "Compiler observation capture reached its 4096-record limit; the exported set is incomplete.",
+                    ),
+                );
+            true -> limits
+        };
+    Ok(stream(found.rows, "finite_pattern_coverage", "partial", bounded, found.work_used))
+})
+    }.
+
+call_reference_limits(incomplete: Bool): Json ->
+    let scope =
+        limitation(
+            "semantic.query.call_reference_scope",
+            "References cover checker-observed calls in this immutable snapshot. Unknown indirect targets, unavailable providers, unsupported forms and truncated captures cannot prove absence of a reference.",
+        );
+    if {
+        incomplete -> Json.array()
+            .push(scope)
+            .push(
+                limitation(
+                    "semantic.query.call_evidence_incomplete",
+                    "At least one source has an incomplete capture, unknown target, unavailable provider link or missing call observations.",
+                ),
+            );
+        true -> Json.array().push(scope)
+    }.
+
+/**
+ * Preparation reads only checked records and charges function-origin scans.
+ */
+pub prepare(selection: Selection, fact: String, maximum: Int): Result[Stream, Failure] ->
+    let kind = EntityLookup.text(selection.entity, "kind");
+    case fact {
+        "declaration" ->
+            Ok(
+                single(
+                    if {
+                        kind == "module" -> selection.entity;
+                        true -> selection.record
+                    },
+                    "checked_declaration",
+                    selection.work_used,
+                ),
+            );
+        "definition" ->
+            Ok(
+                stream(
+                    Json.array().push(selection.entity),
+                    "definition",
+                    "partial",
+                    Json.array()
+                        .push(
+                            limitation(
+                                "semantic.query.origin_precision",
+                                "Definition ranges cover enclosing compiler syntax or a file anchor, not an exact identifier token.",
+                            ),
+                        ),
+                    selection.work_used,
+                ),
+            );
+        "references" ->
+            if {
+                kind == "binding" -> let {
+                    Ok(core) <- selection.artifact.get("core");
+                    Ok(evidence) <- core.get("binding_identities");
+                    Ok(rows) <- evidence.get("references")
+                } else {
+                    _ ->
+                        Err(
+                            Failure(
+                                code = "semantic.query.artifact",
+                                message = "Resolved reference evidence is missing.",
+                            ),
+                        )
+                };
+                Ok(
+                    stream(
+                        rows,
+                        "binding_reference",
+                        "partial",
+                        Json.array()
+                            .push(
+                                limitation(
+                                    "semantic.query.reference_precision",
+                                    "Reference identities and semantic paths are compiler-resolved; byte ranges cover enclosing syntax.",
+                                ),
+                            ),
+                        selection.work_used,
+                    ),
+                );
+                kind == "function" or kind == "module" -> let Ok(found) <- CallReferences.select(selection, maximum) else {
+                    Err(reason) -> Err(reason)
+                };
+                Ok(
+                    stream(
+                        found.rows,
+                        "checked_call_reference",
+                        "partial",
+                        call_reference_limits(found.incomplete),
+                        found.used,
+                    ),
+                );
+                true -> Ok(
+                    unavailable(
+                        selection.work_used,
+                        "semantic.query.references_not_exported",
+                        "Workspace symbol reference edges for this entity category are not exported yet.",
+                    ),
+                )
+            };
+        "type" -> type_stream(selection, maximum);
+        "expected_values" -> expected_values(selection, maximum);
+        "interface" ->
+            case selection.artifact.get("interface_source") {
+                Ok(value) ->
+                    if {
+                        value.is_null() -> Ok(
+                            unavailable(
+                                selection.work_used,
+                                "semantic.query.interface_unavailable",
+                                "No checked public interface is available.",
+                            ),
+                        );
+                        true -> let contents =
+                            case value.as_string() {
+                                Ok(text) -> text;
+                                _ -> ""
+                            };
+                        let view =
+                            Json.object()
+                                .put("scope", Json.string("containing_module"))
+                                .put(
+                                    "module",
+                                    Json.string(EntityLookup.module_name(selection.artifact)),
+                                )
+                                .put("source", value)
+                                .put("digest", Json.string(Hash.sha256(contents)));
+                        Ok(single(view, "checked_interface", selection.work_used))
+                    };
+                _ ->
+                    Ok(
+                        unavailable(
+                            selection.work_used,
+                            "semantic.query.interface_unavailable",
+                            "No checked public interface is available.",
+                        ),
+                    )
+            };
+        "core" ->
+            if {
+                kind == "function" -> function_stream(selection, maximum, "typed_core");
+                kind == "pattern" -> function_stream(selection, maximum, "pattern_owner_core");
+                kind == "module" -> case selection.artifact.get("core") {
+                    Ok(core) ->
+                        if {
+                            core.is_null() -> Ok(
+                                unavailable(
+                                    selection.work_used,
+                                    "semantic.query.interface_only",
+                                    "Checked interfaces do not contain executable Core.",
+                                ),
+                            );
+                            true -> Ok(single(core, "typed_core", selection.work_used))
+                        };
+                    _ ->
+                        Ok(
+                            unavailable(
+                                selection.work_used,
+                                "semantic.query.core_unavailable",
+                                "No checked Core is available.",
+                            ),
+                        )
+                };
+                true -> Ok(
+                    unavailable(
+                        selection.work_used,
+                        "semantic.query.core_projection_unavailable",
+                        "A typed Core view for this entity category is not implemented yet.",
+                    ),
+                )
+            };
+        "conformance" ->
+            let Ok(selected) <- RelationsQuery.select(selection, maximum) else {
+                Err(reason) -> Err(reason)
+            };
+            if {
+                selected.rows.length() == Ok(0) -> Ok(
+                    unavailable(
+                        selected.work_used,
+                        "semantic.query.relations_unavailable",
+                        "No checked requirements or conformance contracts are available for this selection. Absence does not prove satisfaction or rejection.",
+                    ),
+                );
+                true -> let limits =
+                    Json.array()
+                        .push(
+                            limitation(
+                                "semantic.query.relations_scope",
+                                "Definitions and bounds belong to the selected declaration, shape expansion origins to the selected pattern, and explicit conformances to the containing module. Generic variables are local to each checked requirement record. These facts do not enumerate all satisfying values, prove applicability at a call site, or imply an implementation from absent negative evidence.",
+                            ),
+                        );
+                let bounded =
+                    if {
+                        selected.truncated -> limits
+                            .push(
+                                limitation(
+                                    "semantic.query.requirements_capture_limit",
+                                    "Checked requirement capture reached its 4096-record cap; the exported requirement set is incomplete.",
+                                ),
+                            );
+                        true -> limits
+                    };
+                Ok(
+                    stream(
+                        selected.rows,
+                        "checked_semantic_relation",
+                        "partial",
+                        bounded,
+                        selected.work_used,
+                    ),
+                )
+            };
+        "legal_transformations" ->
+            if {
+                kind == "binding" -> let candidate =
+                    Json.object()
+                        .put("operation", Json.string("rename_symbol"))
+                        .put("availability", Json.string("planned"))
+                        .put("applicability", Json.string("requires_verification"))
+                        .put("candidate_set_exhaustive", Json.bool(false))
+                        .put(
+                            "constraints",
+                            Json.array()
+                                .push(Json.string("same_snapshot_and_entity_digest"))
+                                .push(Json.string("valid_identifier_without_capture_or_collision")),
+                        )
+                        .put(
+                            "verification_required",
+                            Json.array()
+                                .push(Json.string("binding_identity"))
+                                .push(Json.string("typecheck"))
+                                .push(Json.string("affected_closure")),
+                        );
+                Ok(
+                    stream(
+                        Json.array().push(candidate),
+                        "transformation_candidate",
+                        "partial",
+                        Json.array()
+                            .push(
+                                limitation(
+                                    "semantic.query.transformations_unverified",
+                                    "This is a declared operation candidate, not a verified legal edit. Transactional rename implementation and its verifier remain gated by M2.",
+                                ),
+                            ),
+                        selection.work_used,
+                    ),
+                );
+                true -> Ok(
+                    unavailable(
+                        selection.work_used,
+                        "semantic.query.transformations_unavailable",
+                        "No legal transformation has been verified for this entity.",
+                    ),
+                )
+            };
+        "effects" -> effects(selection, maximum);
+        "ownership" ->
+            Ok(
+                unavailable(
+                    selection.work_used,
+                    "semantic.query.ownership_not_exported",
+                    "No authoritative ownership fact is exported for this entity.",
+                ),
+            );
+        "pattern_coverage" -> coverage(selection, maximum);
+        "impact" ->
+            Ok(
+                unavailable(
+                    selection.work_used,
+                    "semantic.query.impact_not_exported",
+                    "Resolved dependency and change-impact queries are delivered by later roadmap tasks.",
+                ),
+            );
+        _ -> Err(Failure(code = "semantic.query.fact", message = "Unsupported semantic fact."))
+    }.
+
+/**
+ * A null projection is a nonmatching reference, never an invented fact.
+ */
+project_value(selection: Selection, prepared: Stream, row: Json): Result[Json, Failure] ->
+    let kind = prepared.format;
+    case kind {
+        "binding_reference" ->
+            let {
+                Ok(target) <- row.get("binding");
+                Ok(binding) <- selection.record.get("id")
+            } else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.artifact",
+                            message = "Resolved reference identity is incomplete.",
+                        ),
+                    )
+            };
+            if {
+                Json.to_string(target) != Json.to_string(binding) -> Ok(Json.null());
+                true -> let {
+                    Ok(start) <- row.get("span_start");
+                    Ok(end) <- row.get("span_end")
+                } else {
+                    _ ->
+                        Err(
+                            Failure(
+                                code = "semantic.query.artifact",
+                                message = "Resolved reference origin is incomplete.",
+                            ),
+                        )
+                };
+                Ok(
+                    Json.object()
+                        .put("binding_id", Json.string(Json.to_string(binding)))
+                        .put("semantic_path", Json.string(EntityLookup.text(row, "path")))
+                        .put("name", Json.string(EntityLookup.text(row, "name")))
+                        .put(
+                            "origin",
+                            Json.object()
+                                .put(
+                                    "path",
+                                    Json.string(
+                                        EntityLookup.text(selection.artifact, "source_name"),
+                                    ),
+                                )
+                                .put("start_byte", start)
+                                .put("end_byte", end),
+                        )
+                        .put("range_precision", Json.string("enclosing_syntax")),
+                )
+            };
+        "definition" ->
+            Ok(
+                Json.object()
+                    .put("entity", row)
+                    .put(
+                        "range_precision",
+                        Json.string(
+                            if {
+                                EntityLookup.text(row, "kind") == "module" -> "file_anchor";
+                                true -> "enclosing_syntax"
+                            },
+                        ),
+                    ),
+            );
+        "function_type" ->
+            let {
+                Ok(params) <- row.get("params");
+                Ok(result_type) <- row.get("core_return_type");
+                Ok(origin) <- row.get("source")
+            } else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.artifact",
+                            message = "Typed Core signature is incomplete.",
+                        ),
+                    )
+            };
+            Ok(
+                Json.object()
+                    .put("parameters", params)
+                    .put("return_type", result_type)
+                    .put("display_return_type", Json.string(EntityLookup.text(row, "return_type")))
+                    .put("origin", origin)
+                    .put("evidence", Json.string("checked_core_function")),
+            );
+        "pattern_owner_core" ->
+            Ok(
+                Json.object()
+                    .put("scope", Json.string("enclosing_function"))
+                    .put(
+                        "owner_entity_id",
+                        Json.string(EntityLookup.text(selection.entity, "owner")),
+                    )
+                    .put("encoding", Json.string("application/json"))
+                    .put("text", Json.string(Json.to_string(row)))
+                    .put("digest", Json.string(Hash.sha256(Json.to_string(row)))),
+            );
+        "typed_core" ->
+            Ok(
+                Json.object()
+                    .put("encoding", Json.string("application/json"))
+                    .put("text", Json.string(Json.to_string(row)))
+                    .put("digest", Json.string(Hash.sha256(Json.to_string(row)))),
+            );
+        _ -> Ok(row)
+    }.
+
+pub project(selection: Selection, prepared: Stream, row: Json): Result[Json, Failure] ->
+    let Ok(value) <- project_value(selection, prepared, row) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        value.is_null() -> Ok(value);
+        true -> Ok(
+            Json.object()
+                .put("kind", Json.string(prepared.format))
+                .put("value", value)
+                .put(
+                    "origin_entity_ids",
+                    Json.array().push(Json.string(EntityLookup.text(selection.entity, "entity_id"))),
+                ),
+        )
+    }.

@@ -1,0 +1,75 @@
+{
+  "schema": "terlan.llm-native.property-cases.v1",
+  "properties": [
+    {
+      "property": "semantic_observability",
+      "case_id": "observability.query_matches_compiler",
+      "milestone": "M1",
+      "task": "LNC-005",
+      "availability": "planned"
+    },
+    {
+      "property": "structured_actions",
+      "case_id": "actions.rename_transaction",
+      "milestone": "M2",
+      "task": "LNC-008",
+      "availability": "planned"
+    },
+    {
+      "property": "deterministic_verification",
+      "case_id": "verification.forged_success_rejected",
+      "milestone": "M2",
+      "task": "LNC-009",
+      "availability": "planned"
+    },
+    {
+      "property": "repair_oriented_diagnostics",
+      "case_id": "diagnostics.exhaustiveness_repair",
+      "milestone": "M3",
+      "task": "LNC-012",
+      "availability": "planned"
+    },
+    {
+      "property": "bounded_context",
+      "case_id": "context.omitted_dependency_requires_expansion",
+      "milestone": "M3",
+      "task": "LNC-011",
+      "availability": "planned"
+    },
+    {
+      "property": "transactional_changes",
+      "case_id": "transactions.concurrent_edit_rejected",
+      "milestone": "M2",
+      "task": "LNC-007",
+      "availability": "planned"
+    },
+    {
+      "property": "incremental_feedback",
+      "case_id": "incremental.body_edit_matches_clean",
+      "milestone": "M5",
+      "task": "LNC-016",
+      "availability": "planned"
+    },
+    {
+      "property": "canonical_output",
+      "case_id": "canonical.replay_same_patch",
+      "milestone": "M2",
+      "task": "LNC-009",
+      "availability": "planned"
+    },
+    {
+      "property": "safe_execution",
+      "case_id": "execution.capability_denied",
+      "milestone": "M6",
+      "task": "LNC-021",
+      "availability": "planned"
+    },
+    {
+      "property": "provenance",
+      "case_id": "provenance.stale_evidence_rejected",
+      "milestone": "M8",
+      "task": "LNC-027",
+      "availability": "planned"
+    }
+  ]
+}

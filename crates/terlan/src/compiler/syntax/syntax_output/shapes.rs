@@ -8,6 +8,7 @@ use super::{
     SyntaxClauseOutput, SyntaxDeclarationOutput, SyntaxDeclarationPayload, SyntaxExprFieldOutput,
     SyntaxExprKind, SyntaxExprOutput, SyntaxFunctionClauseOutput, SyntaxHtmlAttrValueOutput,
     SyntaxHtmlNodeOutput, SyntaxParamOutput, SyntaxPatternKind, SyntaxPatternOutput,
+    SyntaxShapeOrigin,
 };
 use crate::terlan_syntax::{
     ebnf::{EbnfCompileError, EbnfCompileResult},
@@ -37,9 +38,44 @@ pub struct SyntaxShapeImport {
 
 #[derive(Debug, Clone)]
 struct ShapePattern {
+    origins: Vec<SyntaxShapeOrigin>,
     params: Vec<String>,
     body: SyntaxPatternOutput,
     guard: Option<SyntaxExprOutput>,
+}
+
+#[derive(serde::Serialize)]
+pub(crate) struct ShapeDescription {
+    pub(crate) name: String,
+    params: Vec<String>,
+    pattern: SyntaxPatternOutput,
+    guard: Option<SyntaxExprOutput>,
+    public: bool,
+}
+
+/// Reuses the canonical interface and pattern parsers for a checked raw shape.
+/// Nested nodes are declaration-relative metadata, not absolute source spans.
+pub(crate) fn describe_shape(text: &str) -> EbnfCompileResult<ShapeDescription> {
+    let module = parse_interface_module(&format!("module semantic_shape_export.\n{text}\n"))
+        .map_err(|error| EbnfCompileError::Parse(error.message, error.span))?;
+    let [crate::terlan_syntax::parse_tree::Decl::Shape(declaration)] =
+        module.declarations.as_slice()
+    else {
+        return Err(EbnfCompileError::Serialize(
+            "expected exactly one checked shape declaration".into(),
+        ));
+    };
+    let mut shapes = collect_shapes(&module)?;
+    let shape = shapes
+        .remove(&declaration.name)
+        .expect("collected checked shape");
+    Ok(ShapeDescription {
+        name: declaration.name.clone(),
+        params: shape.params,
+        pattern: shape.body,
+        guard: shape.guard,
+        public: declaration.is_public,
+    })
 }
 
 #[derive(Debug)]
@@ -185,6 +221,7 @@ fn normalize_imported_shape(
         next_hygiene_id,
     )?;
     Ok(ShapePattern {
+        origins: shape.origins.clone(),
         params: shape.params.clone(),
         body: expanded.pattern,
         guard: combine_guards(expanded.guards, shape.guard.clone()),
@@ -642,7 +679,13 @@ fn expand_pattern(
         let substituted = substitute_pattern(shape.body.clone(), &substitutions, &name)?;
         let expanded = expand_pattern(substituted, shapes, stack, next_hygiene_id);
         stack.pop();
-        let expanded = expanded?;
+        let mut expanded = expanded?;
+        expanded
+            .pattern
+            .expanded_from
+            .extend(shape.origins.iter().cloned());
+        expanded.pattern.expanded_from.sort();
+        expanded.pattern.expanded_from.dedup();
         validate_expanded_shape_bindings(&name, &expanded.pattern)?;
         guards.extend(expanded.guards);
         shape_origins.extend(expanded.shape_origins);
@@ -775,6 +818,7 @@ fn add_private_binding_substitutions(
         substitutions.insert(
             binding.clone(),
             SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::Var,
                 arity: 0,
                 text: Some(format!("#shape_{hygiene_id}_{binding}")),
@@ -824,7 +868,11 @@ fn substitute_pattern(
             .as_ref()
             .and_then(|name| substitutions.get(name))
         {
-            return Ok(replacement.clone());
+            let mut replacement = replacement.clone();
+            replacement.expanded_from.extend(pattern.expanded_from);
+            replacement.expanded_from.sort();
+            replacement.expanded_from.dedup();
+            return Ok(replacement);
         }
     }
     if pattern.kind == SyntaxPatternKind::Alias {

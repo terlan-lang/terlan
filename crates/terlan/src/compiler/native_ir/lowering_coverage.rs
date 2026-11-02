@@ -145,6 +145,9 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsoleEprintln) => {
             LoweringCoverage::native("Intrinsic.runtime.console.eprintln")
         }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::ConsoleReadLine) => {
+            LoweringCoverage::native("Intrinsic.runtime.console.read_line")
+        }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileExists) => {
             LoweringCoverage::native("Intrinsic.runtime.file.exists")
         }

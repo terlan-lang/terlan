@@ -1,0 +1,338 @@
+/**
+ * Admission of authoritative bootstrap compiler artifacts. This module does
+ * not infer types from source or accept model-supplied verification success.
+ */
+module semantic.CompilerBridge.
+
+import std.core.Ordering.{Gt}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.system.Process.
+import std.system.Process.{Cancelled, InvalidFrame, InvalidRequest, OutputLimitExceeded, SpawnFailed, TimedOut}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+/**
+ * Failure to obtain a trustworthy compiler artifact for the selected inputs.
+ */
+pub struct Failure {
+    code: String,
+    message: String,
+}.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+run_bounded(
+    command: Process.Command,
+    timeout_ms: Int,
+    output_bytes: Int,
+): Result[Process.Output, Failure] ->
+    let limits = Process.limits();
+    let timeout =
+        if {
+            timeout_ms < limits.maximum_timeout_ms -> timeout_ms;
+            true -> limits.maximum_timeout_ms
+        };
+    let output_limit =
+        if {
+            output_bytes < limits.maximum_output_bytes -> output_bytes;
+            true -> limits.maximum_output_bytes
+        };
+    case Process.run(
+        Process.with_output_limit_bytes(Process.with_timeout_ms(command, timeout), output_limit),
+    ) {
+        Ok(output) -> Ok(output);
+        Err(reason) ->
+            let code =
+                if {
+                    reason.code == TimedOut -> "semantic.bridge.timed_out";
+                    reason.code == OutputLimitExceeded -> "semantic.bridge.output_limit";
+                    reason.code == Cancelled -> "semantic.bridge.cancelled";
+                    reason.code == InvalidRequest -> "semantic.bridge.invalid_request";
+                    reason.code == SpawnFailed -> "semantic.bridge.spawn_failed";
+                    reason.code == InvalidFrame -> "semantic.bridge.invalid_frame";
+                    true -> "semantic.bridge.process"
+                };
+            Err(Failure(code = code, message = reason.message))
+    }.
+
+/**
+ * Checks the artifact version, source identity, compiler exit status, and Core
+ * availability together. Invalid programs retain actual compiler diagnostics.
+ */
+pub admit(source: String, expected_source_digest: String, exit_status: Int): Result[Json, Failure] ->
+    let Ok(value) <- Json.parse(source) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.bridge.invalid_json",
+                    message = "Compiler did not produce a single JSON artifact.",
+                ),
+            )
+    };
+    (let true <- text(value, "schema") == "terlan.semantic.core-export.v1" else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.schema",
+                message = "Unsupported compiler export schema.",
+            ),
+        )
+};
+(let true <- text(value, "source_digest") == expected_source_digest else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.stale_source",
+                message = "Compiler artifact does not match the frozen source bytes.",
+            ),
+        )
+};
+(let {
+    Ok(core) <- value.get("core");
+    Ok(diagnostics) <- value.get("diagnostics");
+    Ok(diagnostic_count) <- diagnostics.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.incomplete",
+                message = "Compiler artifact omitted CoreIR or diagnostics.",
+            ),
+        )
+};
+if {
+    text(value, "status") == "checked"
+        and exit_status == 0
+        and not core.is_null()
+        and text(core, "schema") == "terlan.core_ir.v1" -> Ok(value);
+    text(value, "status") == "interface_only" and exit_status == 0 and core.is_null() -> Ok(value);
+    text(value, "status") == "invalid"
+        and exit_status > 0
+        and core.is_null()
+        and diagnostic_count > 0 -> Ok(value);
+    true -> Err(
+        Failure(
+            code = "semantic.bridge.status",
+            message = "Compiler status, exit code, and typed artifact disagree.",
+        ),
+    )
+}))).
+
+/**
+ * Invokes only the compiler's read-only export, with bounded time and output.
+ */
+pub export_file(compiler: String, path: String): Result[Json, Failure] ->
+    let {
+        Ok(source_digest) <- Hash.sha256_file(path);
+        Ok(compiler_digest) <- Hash.sha256_file(compiler)
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.bridge.input",
+                    message = "Compiler or frozen source is unavailable.",
+                ),
+            )
+    };
+    (let command =
+    Process.with_arguments(
+        Process.command(compiler),
+        ["emit-core", path, "--diagnostic-format", "json"],
+    );
+(let Ok(output) <- run_bounded(command, 30_000, 8_388_608) else {
+    Err(reason) -> Err(reason)
+};
+(let true <-
+    Hash.sha256_file(path) == Ok(source_digest)
+        and Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.inputs_changed",
+                message = "Compiler or source changed during export.",
+            ),
+        )
+};
+admit(output.stdout, source_digest, output.status)))).
+
+source_digest(sources: Json, path: String, index: Int, count: Int): String ->
+    if {
+        index == count -> "";
+        true -> case sources.at(index) {
+            Ok(row) ->
+                if {
+                    text(row, "path") == path -> text(row, "digest");
+                    true -> source_digest(sources, path, index + 1, count)
+                };
+            _ -> ""
+        }
+    }.
+
+admit_units(
+    bundle: Json,
+    units: Json,
+    sources: Json,
+    previous_path: String,
+    index: Int,
+    count: Int,
+): Result[Bool, Failure] ->
+    if {
+        index == count -> Ok(true);
+        true -> let {
+            Ok(row) <- units.at(index);
+            Ok(exported) <- row.get("export");
+            Ok(syntax) <- exported.get("syntax_contract");
+            Ok(bundle_syntax) <- bundle.get("syntax_contract")
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.bridge.bundle",
+                        message = "Compiler source-set unit is incomplete.",
+                    ),
+                )
+        };
+        (let path = text(row, "path");
+(let true <- path.compare(previous_path) == Gt else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.bundle_inventory",
+                message = "Compiler source paths must be unique and sorted.",
+            ),
+        )
+};
+(let expected = source_digest(sources, path, 0, count);
+(let true <-
+    expected != ""
+        and text(exported, "compiler_version") == text(bundle, "compiler_version")
+        and Json.to_string(syntax) == Json.to_string(bundle_syntax) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.bundle_context",
+                message = "Compiler unit is outside the frozen source or compiler context.",
+            ),
+        )
+};
+(let unit_invalid = text(exported, "status") == "invalid";
+(let Ok(_) <-
+    admit(
+        Json.to_string(exported),
+        expected,
+        if {
+            unit_invalid -> 1;
+            true -> 0
+        },
+    ) else {
+    Err(reason) -> Err(reason)
+};
+(let Ok(rest_checked) <- admit_units(bundle, units, sources, path, index + 1, count) else {
+    Err(reason) -> Err(reason)
+};
+Ok(not unit_invalid and rest_checked))))))))
+    }.
+
+/**
+ * Checks every exported unit against the exact frozen source inventory.
+ */
+pub admit_sources(source: String, sources: Json, exit_status: Int): Result[Json, Failure] ->
+    let Ok(bundle) <- Json.parse(source) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.bridge.invalid_json",
+                    message = "Compiler did not produce one source-set artifact.",
+                ),
+            )
+    };
+    (let true <- text(bundle, "schema") == "terlan.semantic.core-bundle.v1" else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.schema",
+                message = "Unsupported compiler source-set schema.",
+            ),
+        )
+};
+(let {
+    Ok(units) <- bundle.get("units");
+    Ok(count) <- units.length();
+    Ok(source_count) <- sources.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.bundle",
+                message = "Compiler source inventory is missing.",
+            ),
+        )
+};
+(let true <- count > 0 and count == source_count else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.bundle_inventory",
+                message = "Compiler did not check the complete frozen source set.",
+            ),
+        )
+};
+(let Ok(checked) <- admit_units(bundle, units, sources, "", 0, count) else {
+    Err(reason) -> Err(reason)
+};
+(let valid_status =
+    if {
+        checked -> text(bundle, "status") == "checked" and exit_status == 0;
+        true -> text(bundle, "status") == "invalid" and exit_status > 0
+    };
+if {
+    valid_status -> Ok(bundle);
+    true -> Err(
+        Failure(
+            code = "semantic.bridge.status",
+            message = "Compiler source-set status disagrees with its checked units.",
+        ),
+    )
+}))))).
+
+/**
+ * Exports a frozen source root through the compiler's shared interface graph.
+ */
+pub export_sources(compiler: String, root: String, sources: Json): Result[Json, Failure] ->
+    let Ok(compiler_digest) <- Hash.sha256_file(compiler) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.bridge.input",
+                    message = "Configured compiler is unavailable.",
+                ),
+            )
+    };
+    (let command =
+    Process.with_arguments(
+        Process.command(compiler),
+        ["emit-core", root, "--diagnostic-format", "json"],
+    );
+(let Ok(output) <- run_bounded(command, 420_000, 16_777_216) else {
+    Err(reason) -> Err(reason)
+};
+(let true <- Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.bridge.inputs_changed",
+                message = "Compiler changed while exporting the source set.",
+            ),
+        )
+};
+admit_sources(output.stdout, sources, output.status)))).

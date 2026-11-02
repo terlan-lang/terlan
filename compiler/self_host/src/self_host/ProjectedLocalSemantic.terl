@@ -5,6 +5,7 @@ module self_host.ProjectedLocalSemantic.
 
 import self_host.ProjectedMapTypeMerge.
 import self_host.ProjectedTryTypeMerge.
+import self_host.ProjectedPatternBindingTypeMerge.
 
 import std.collections.List.
 import self_host.ProjectedBindingResolution.
@@ -40,9 +41,17 @@ pub analyze(input: LocalSemanticInput): LocalSemanticResult ->
         input.callable_uses,
         input.callable_declarations,
     );
-    let types = ProjectedCallableArgumentTypecheck.check(callables, ProjectedBindingTypeMerge.merge(
+    let initial_types = ProjectedBindingTypeMerge.merge(
         ProjectedCallableTypeMerge.merge(
             ProjectedTypeConstraintResolution.resolve(input.type_constraints),
+            callables,
+        ),
+        bindings,
+        input.binding_type_links,
+    );
+    let types = ProjectedCallableArgumentTypecheck.check(callables, ProjectedBindingTypeMerge.merge(
+        ProjectedCallableTypeMerge.merge(
+            ProjectedTypeConstraintResolution.refine(input.type_constraints, initial_types),
             callables,
         ),
         bindings,
@@ -61,16 +70,35 @@ pub analyze_bodies(
 ): LocalSemanticResult ->
     let bindings = resolve_body_bindings(bodies, signatures);
     let callables = resolve_body_callables(bodies, callable_declarations);
-    let checked_types = ProjectedCallableArgumentTypecheck.check(callables, merge_body_binding_types(
-        merge_body_callable_types(resolve_body_types(bodies), callables),
+    let initial_types = merge_body_binding_types(
+        merge_body_callable_types(resolve_body_types(bodies, signatures), callables),
         bindings,
         bodies,
-    ));
-    let types = ProjectedDynamicCallTypeMerge.merge(checked_types, bodies);
+        signatures,
+    );
+    let refined_types = ProjectedSemanticEventAdapter.seed_parameter_types(
+        ProjectedTypeConstraintResolution.refine(
+            ProjectedSemanticEventAdapter.adapt_type_constraints(bodies),
+            initial_types,
+        ),
+        signatures,
+    );
+    let types = merge_body_binding_types(
+        merge_body_callable_types(refined_types, callables),
+        bindings,
+        bodies,
+        signatures,
+    );
+    let pattern_types = ProjectedPatternBindingTypeMerge.merge(bodies, types);
     LocalSemanticResult(
         bindings = bindings,
         callables = callables,
-        types = types,
+        types = merge_body_binding_types(
+            pattern_types,
+            bindings,
+            bodies,
+            signatures,
+        ),
     ).
 
 resolve_body_bindings(
@@ -90,9 +118,15 @@ resolve_body_callables(
         callable_declarations,
     ).
 
-resolve_body_types(bodies: ProjectedBodies): TypeConstraintResolution ->
-    ProjectedTypeConstraintResolution.resolve(
-        ProjectedSemanticEventAdapter.adapt_type_constraints(bodies),
+resolve_body_types(
+    bodies: ProjectedBodies,
+    signatures: ProjectedSignatureDocument,
+): TypeConstraintResolution ->
+    ProjectedSemanticEventAdapter.seed_parameter_types(
+        ProjectedTypeConstraintResolution.resolve(
+            ProjectedSemanticEventAdapter.adapt_type_constraints(bodies),
+        ),
+        signatures,
     ).
 
 merge_body_callable_types(
@@ -105,11 +139,12 @@ merge_body_binding_types(
     types: TypeConstraintResolution,
     bindings: BindingResolution,
     bodies: ProjectedBodies,
+    signatures: ProjectedSignatureDocument,
 ): TypeConstraintResolution ->
     ProjectedBindingTypeMerge.merge(
         types,
         bindings,
-        ProjectedSemanticEventAdapter.adapt_binding_type_links(bodies),
+        ProjectedSemanticEventAdapter.adapt_binding_type_links_with_signatures(bodies, signatures),
     ).
 
 analyze_frontend_without_map(
@@ -155,8 +190,10 @@ pub analyze_frontend(
     imported_interfaces: List[ModuleInterface],
 ): LocalSemanticResult ->
     let local = analyze_frontend_without_try(frontend, imported_interfaces);
+    let completed = ProjectedTryTypeMerge.merge(frontend.bodies.values, local.types);
+    let checked = ProjectedCallableArgumentTypecheck.check(local.callables, completed);
     LocalSemanticResult(
         local.bindings,
         local.callables,
-        ProjectedTryTypeMerge.merge(frontend.bodies.values, local.types),
+        ProjectedDynamicCallTypeMerge.merge(checked, frontend.bodies),
     ).

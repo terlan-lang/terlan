@@ -25,6 +25,8 @@ pub(crate) mod doc;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod doctor;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod emit_core;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod emit_js;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod emit_native_metadata;
@@ -62,6 +64,8 @@ pub(crate) mod repl;
 pub(crate) mod run;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod scripts;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod semantic;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod self_update;
 pub(crate) mod serve;

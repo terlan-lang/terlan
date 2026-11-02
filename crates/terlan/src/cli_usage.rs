@@ -42,6 +42,8 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc db <init|new|validate|status|migrate|rebuild|reset>",
         "terlc debug <image.tvm> [--break <module.function|file:line>] [--script <file.terldbg>] [--json-events]",
         "terlc emit-self-hosted-actor-object <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>",
+        "terlc emit-core <file.terl|file.terli|source-root>",
+        "terlc semantic query <store> <request.json> | terlc semantic mcp <store> <snapshot-id>",
         "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
         FMT_USAGE,
         "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>...",
@@ -171,6 +173,8 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         "emit-native-metadata" => {
             println!("terlc emit-native-metadata <file.terl> [--out-dir <dir>]")
         }
+        "emit-core" => println!("terlc emit-core <file.terl|file.terli|source-root>"),
+        "semantic" => println!("terlc semantic query <store> <request.json>\nterlc semantic mcp <store> <snapshot-id>\nTERLAN_SEMANTIC_HOME selects the Terlan semantic service package."),
         "emit-self-hosted-actor-object" => println!(
             "terlc emit-self-hosted-actor-object <core-ir.json> <variant-ir.json> <actor-ir.json> <output.o>"
         ),

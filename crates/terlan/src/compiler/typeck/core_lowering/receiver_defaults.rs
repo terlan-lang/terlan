@@ -63,6 +63,7 @@ pub(super) fn materialize(module: &mut SyntaxModuleOutput) -> Vec<(usize, CoreFu
                 patterns: wrapper_params
                     .iter()
                     .map(|param| SyntaxPatternOutput {
+                        expanded_from: Vec::new(),
                         kind: SyntaxPatternKind::Var,
                         arity: 0,
                         text: Some(param.name.clone()),

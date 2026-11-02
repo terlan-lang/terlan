@@ -1,0 +1,12 @@
+[
+  {
+    "path": "library.terli",
+    "contents": "module library.\npub type Item = Int.\npub trait Equal[A] { equal(left: A, right: A): Bool. }.\npub value(input: Item): Item.\n",
+    "document_version": 0
+  },
+  {
+    "path": "main.terl",
+    "contents": "module main.\nimport type library.{Item}.\npub echo(input: Item): Item -> let local = input; case true { true -> local; false -> input }.\n",
+    "document_version": 7
+  }
+]

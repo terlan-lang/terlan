@@ -258,7 +258,7 @@ impl PureNativeBoundary {
             .enumerate()
             .map(|(index, value)| {
                 let boundary_type = match (arguments[0], index) {
-                    (9, 0) => TvmBoundaryType::Int,
+                    (9, 0) | (62, 0) => TvmBoundaryType::Int,
                     (41, 1) | (41, 2) => TvmBoundaryType::Int,
                     (50, 1) => TvmBoundaryType::Bool,
                     (21, 4) | (21, 5) => TvmBoundaryType::Int,

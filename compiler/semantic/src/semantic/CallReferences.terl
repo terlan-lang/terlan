@@ -1,0 +1,270 @@
+/**
+ * Snapshot-scoped references from accepted checker calls and exact provider links.
+ */
+module semantic.CallReferences.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.{CallOrigins, EntityLookup}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    rows: Json,
+    used: Int,
+    incomplete: Bool,
+}.
+
+row_value(artifact: Json, observation: Json, entity: Json, reason: String, scope: String): Json ->
+    Json.object()
+        .put("scope", Json.string(scope))
+        .put("source_path", Json.string(EntityLookup.text(artifact, "source_name")))
+        .put("source_digest", Json.string(EntityLookup.text(artifact, "source_digest")))
+        .put("observation", observation)
+        .put(
+            "target_origin",
+            Json.object()
+                .put(
+                    "status",
+                    Json.string(
+                        if {
+                            entity.is_null() -> "unavailable";
+                            true -> "resolved"
+                        },
+                    ),
+                )
+                .put("entity", entity)
+                .put(
+                    "reason",
+                    if {
+                        entity.is_null() -> Json.string(reason);
+                        true -> Json.null()
+                    },
+                ),
+        ).
+
+calls(
+    selection: Selection,
+    artifact: Json,
+    rows: Json,
+    index: Int,
+    count: Int,
+    output: Selected,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(output);
+        true -> let Ok(next) <- CallOrigins.step(output.used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(row) <- rows.at(index);
+    Ok(site) <- row.get("site");
+    Ok(target) <- row.get("target")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked call observation is incomplete.",
+            ),
+        )
+};
+(let true <-
+    EntityLookup.text(row, "model") == "checked-call-resolution.v1"
+        and EntityLookup.text(site, "module") == EntityLookup.module_name(artifact)
+        and EntityLookup.text(site, "path") != "" else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked call site has no exact containing-module origin.",
+            ),
+        )
+};
+(let module_view = EntityLookup.text(selection.entity, "kind") == "module";
+if {
+    EntityLookup.text(row, "status") != "resolved" -> calls(
+        selection,
+        artifact,
+        rows,
+        index + 1,
+        count,
+        Selected(
+            rows = if {
+                module_view -> output.rows
+                    .push(
+                        row_value(
+                            artifact,
+                            row,
+                            Json.null(),
+                            "no_unique_exported_static_target",
+                            "selected_module_calls",
+                        ),
+                    );
+                true -> output.rows
+            },
+            used = next,
+            incomplete = true,
+        ),
+        maximum,
+    );
+    true -> let Ok(origin) <- CallOrigins.resolve(selection, target, next, maximum) else {
+        Err(reason) -> Err(reason)
+    };
+    (let is_reference = EntityLookup.text(origin.entity, "entity_id") == EntityLookup.text(selection.entity, "entity_id");
+let included = module_view or not origin.entity.is_null() and is_reference;
+let projected =
+    if {
+        included -> output.rows
+            .push(
+                row_value(
+                    artifact,
+                    row,
+                    origin.entity,
+                    origin.reason,
+                    if {
+                        module_view -> "selected_module_calls";
+                        true -> "checked_calls_in_snapshot"
+                    },
+                ),
+            );
+        true -> output.rows
+    };
+calls(
+    selection,
+    artifact,
+    rows,
+    index + 1,
+    count,
+    Selected(
+        rows = projected,
+        used = origin.used,
+        incomplete = output.incomplete or origin.entity.is_null(),
+    ),
+    maximum,
+))
+})))
+    }.
+
+scan_units(
+    selection: Selection,
+    units: Json,
+    index: Int,
+    count: Int,
+    output: Selected,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(output);
+        true -> let Ok(next) <- CallOrigins.step(output.used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(source_row) <- units.at(index);
+    Ok(artifact) <- source_row.get("export")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked call source-set unit is missing.",
+            ),
+        )
+};
+if {
+    EntityLookup.text(artifact, "status") != "checked" -> scan_units(
+        selection,
+        units,
+        index + 1,
+        count,
+        Selected(
+            rows = output.rows,
+            used = next,
+            incomplete = output.incomplete or EntityLookup.text(artifact, "status") != "interface_only",
+        ),
+        maximum,
+    );
+    EntityLookup.text(selection.entity, "kind") == "module"
+        and EntityLookup.module_name(artifact) != EntityLookup.module_name(selection.artifact) -> scan_units(
+        selection,
+        units,
+        index + 1,
+        count,
+        Selected(rows = output.rows, used = next, incomplete = output.incomplete),
+        maximum,
+    );
+    true -> case artifact.get("call_resolution_observations") {
+        Ok(capture) ->
+            let {
+                Ok(flag) <- capture.get("truncated");
+                Ok(incomplete) <- flag.as_bool();
+                Ok(rows) <- capture.get("calls");
+                Ok(length) <- rows.length()
+            } else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.artifact",
+                            message = "Checked call capture is malformed.",
+                        ),
+                    )
+            };
+            if {
+                incomplete -> scan_units(
+                    selection,
+                    units,
+                    index + 1,
+                    count,
+                    Selected(rows = output.rows, used = next, incomplete = true),
+                    maximum,
+                );
+                true -> let Ok(found) <-
+                    calls(
+                        selection,
+                        artifact,
+                        rows,
+                        0,
+                        length,
+                        Selected(rows = output.rows, used = next, incomplete = output.incomplete),
+                        maximum,
+                    ) else {
+                    Err(reason) -> Err(reason)
+                };
+                scan_units(selection, units, index + 1, count, found, maximum)
+            };
+        _ ->
+            scan_units(
+                selection,
+                units,
+                index + 1,
+                count,
+                Selected(rows = output.rows, used = next, incomplete = true),
+                maximum,
+            )
+    }
+})
+    }.
+
+pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
+    let units = CallOrigins.units(selection);
+    let Ok(count) <- units.length() else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Checked call source-set inventory is malformed.",
+                ),
+            )
+    };
+    scan_units(
+        selection,
+        units,
+        0,
+        count,
+        Selected(rows = Json.array(), used = selection.work_used, incomplete = false),
+        maximum,
+    ).

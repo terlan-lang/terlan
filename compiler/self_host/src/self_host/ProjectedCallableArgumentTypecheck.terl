@@ -3,6 +3,7 @@ module self_host.ProjectedCallableArgumentTypecheck.
 
 import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableResolution, ResolvedCallableUse}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import self_host.ProjectedTypeEquivalence.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.String.
@@ -33,9 +34,7 @@ contains(values: List[String], target: String): Bool ->
 
 @pure
 type_matches(expected: String, actual: String): Bool ->
-    expected == actual
-        or String.starts_with(expected, String.append(actual, "["))
-        or String.starts_with(actual, String.append(expected, "[")).
+    ProjectedTypeEquivalence.matches(expected, actual).
 
 @pure
 base_type(value: String): String ->
@@ -55,10 +54,35 @@ fact_type_at(values: List[InferredTypeFact], byte_offset: Int, current: Option[S
     case values {
         [] -> current;
         [value | rest] -> if {
-            value.byte_offset == byte_offset and value.type_name != None -> fact_type_at(rest, byte_offset, value.type_name);
+            value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
             true -> fact_type_at(rest, byte_offset, current)
         }
     }.
+
+@pure
+fact_type_at_node(values: List[InferredTypeFact], node_id: Int): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] -> if {
+            value.node_id == node_id and value.type_name != None -> value.type_name;
+            true -> fact_type_at_node(rest, node_id)
+        }
+    }.
+
+@pure
+argument_type(
+    facts: List[InferredTypeFact],
+    node_ids: List[Int],
+    byte_offset: Int,
+): Option[String] ->
+    case node_ids {
+        [node_id | _rest] -> fact_type_at_node(facts, node_id);
+        [] -> fact_type_at(facts, byte_offset, None)
+    }.
+
+@pure
+remaining_node_ids(values: List[Int]): List[Int] ->
+    case values { [] -> List.new[Int](); [_value | rest] -> rest }.
 
 @pure
 binding_type(name: String, values: List[GenericBinding]): Option[String] ->
@@ -153,6 +177,7 @@ check_expected(
 check_arguments(
     expected: List[Option[String]],
     offsets: List[Int],
+    node_ids: List[Int],
     declaration: CallableDeclaration,
     facts: List[InferredTypeFact],
     state: ArgumentState,
@@ -163,9 +188,10 @@ check_arguments(
         {[expected_type | expected_rest], [offset | offset_rest]} -> check_arguments(
             expected_rest,
             offset_rest,
+            remaining_node_ids(node_ids),
             declaration,
             facts,
-            check_expected(expected_type, fact_type_at(facts, offset, None), offset, declaration, state),
+            check_expected(expected_type, argument_type(facts, node_ids, offset), offset, declaration, state),
         )
     }.
 
@@ -180,6 +206,7 @@ check_use(
         Some(declaration) -> check_arguments(
             declaration.parameter_types,
             value.source.argument_offsets,
+            value.source.argument_node_ids,
             declaration,
             facts,
             ArgumentState(List.new[GenericBinding](), output),

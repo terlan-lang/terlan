@@ -1,0 +1,8 @@
+running 6 tests
+test source_order_is_canonical_and_imported_declarations_remain_available ... ok
+test changed_dependency_interface_rejects_stale_entity_content ... ok
+test overlay_versions_change_snapshot_identity_without_mutating_prior_capture ... ok
+test rejected_source_marks_the_set_invalid_and_keeps_other_facts_partial ... ok
+test changing_any_frozen_source_makes_the_set_unreadable ... ok
+test duplicate_escaping_and_negative_version_inputs_fail_before_compilation ... ok
+test result: ok. 6 passed; 0 failed

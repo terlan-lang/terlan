@@ -1,0 +1,80 @@
+/** Renders complete projected type trees without changing type identities. */
+module self_host.ProjectedTypeRender.
+
+import self_host.ProjectedTypeSyntax.ProjectedTypeNode.
+import std.collections.List.
+import std.core.String.
+
+@pure
+join(values: List[String], separator: String): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, separator, join(rest, separator)])
+    }.
+
+@pure
+reverse_at[T](values: List[T], output: List[T]): List[T] ->
+    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+
+@pure
+render_nodes(values: List[ProjectedTypeNode]): List[String] ->
+    case values { [] -> []; [value | rest] -> [render(value) | render_nodes(rest)] }.
+
+@pure
+render_children(
+    value: ProjectedTypeNode,
+    opening: String,
+    separator: String,
+    closing: String,
+): String -> String.concat([
+    opening,
+    join(render_nodes(value.children), separator),
+    closing,
+]).
+
+@pure
+render_single(value: ProjectedTypeNode): String ->
+    case value.children { [child] -> render(child); _ -> value.text }.
+
+@pure
+render_field(value: ProjectedTypeNode): String ->
+    String.concat([value.text, ": ", render_single(value)]).
+
+@pure
+render_function_reversed(values: List[ProjectedTypeNode]): String ->
+    case values {
+        [] -> "";
+        [return_type | reversed_parameters] -> String.concat([
+            "(",
+            join(render_nodes(reverse_at(reversed_parameters, [])), ", "),
+            ") -> ",
+            render(return_type),
+        ])
+    }.
+
+/** Returns the complete source-level spelling represented by one type tree. */
+@pure
+pub render(value: ProjectedTypeNode): String ->
+    if {
+        value.kind == "named-type" or value.kind == "atom-type" -> value.text;
+        value.kind == "generic-type" -> String.concat([
+            value.text,
+            "[",
+            join(render_nodes(value.children), ", "),
+            "]",
+        ]);
+        value.kind == "union-type" -> render_children(value, "", " | ", "");
+        value.kind == "tuple-type" -> render_children(value, "(", ", ", ")");
+        value.kind == "record-or-tuple-type" -> render_children(value, "{", ", ", "}");
+        value.kind == "item" -> render_single(value);
+        value.kind == "field" -> render_field(value);
+        value.kind == "function-type" -> render_function_reversed(reverse_at(value.children, []));
+        value.kind == "existential-type" -> String.concat([
+            "exists ",
+            value.text,
+            ". ",
+            render_single(value),
+        ]);
+        true -> value.text
+    }.

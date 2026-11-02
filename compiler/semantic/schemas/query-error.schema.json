@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terlan:semantic:query-error:v1",
+  "title": "Terlan semantic query execution error v1",
+  "type": "object",
+  "properties": {
+    "schema": {"const": "terlan.semantic.query-error.v1"},
+    "code": {"type": "string", "minLength": 1},
+    "message": {"type": "string", "minLength": 1}
+  },
+  "required": ["schema", "code", "message"],
+  "additionalProperties": false
+}

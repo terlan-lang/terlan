@@ -1,0 +1,280 @@
+/**
+ * Checked type declarations, including compiler-expanded struct fields.
+ */
+module semantic.TypeQuery.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.{DeclarationEntities, EntityLookup, ImportOrigins}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Found {
+    row: Json,
+    matches: Int,
+    used: Int,
+}.
+
+pub struct Origins {
+    links: Json,
+    bindings: Json,
+    unavailable: Json,
+    used: Int,
+}.
+
+parent(
+    rows: Json,
+    name: String,
+    index: Int,
+    count: Int,
+    found: Found,
+    maximum: Int,
+): Result[Found, Failure] ->
+    if {
+        index == count -> Ok(found);
+        found.used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Included-member origin selection exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let {
+            Ok(row) <- rows.at(index);
+            Ok(payload) <- row.get("payload")
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked declaration inventory is incomplete.",
+                    ),
+                )
+        };
+        (let matching = EntityLookup.text(payload, "kind") == "struct" and EntityLookup.text(payload, "name") == name;
+let next =
+    Found(
+        row = if {
+            matching -> row;
+            true -> found.row
+        },
+        matches = found.matches + if {
+    matching -> 1;
+    true -> 0
+},
+        used = found.used + 1,
+    );
+parent(rows, name, index + 1, count, next, maximum))
+    }.
+
+origins(
+    selection: Selection,
+    parents: Json,
+    index: Int,
+    count: Int,
+    rows: Json,
+    row_count: Int,
+    digest: String,
+    found: Origins,
+    maximum: Int,
+): Result[Origins, Failure] ->
+    if {
+        index == count -> Ok(found);
+        found.used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Included-member origin traversal exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let {
+            Ok(item) <- parents.at(index);
+            Ok(name) <- item.as_string()
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked include spelling is missing.",
+                    ),
+                )
+        };
+        (let Ok(selected) <-
+    parent(
+        rows,
+        name,
+        0,
+        row_count,
+        Found(row = Json.null(), matches = 0, used = found.used + 1),
+        maximum,
+    ) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    selected.matches == 1 -> let Ok(entity) <-
+        DeclarationEntities.entity(
+            selection.artifact,
+            EntityLookup.module_name(selection.artifact),
+            EntityLookup.text(selection.entity, "snapshot_id"),
+            digest,
+            selected.row,
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    origins(
+        selection,
+        parents,
+        index + 1,
+        count,
+        rows,
+        row_count,
+        digest,
+        Origins(
+            links = found.links.push(entity),
+            bindings = found.bindings,
+            unavailable = found.unavailable,
+            used = selected.used,
+        ),
+        maximum,
+    );
+    true -> let Ok(imported) <- ImportOrigins.resolve(selection, name, selected.used, maximum) else {
+        Err(reason) -> Err(reason)
+    };
+    (let links =
+    if {
+        imported.found -> found.links.push(imported.entity);
+        true -> found.links
+    };
+let unavailable =
+    if {
+        imported.found -> found.unavailable;
+        true -> found.unavailable.push(item)
+    };
+let bindings =
+    if {
+        imported.binding.is_null() -> found.bindings;
+        true -> found.bindings.push(imported.binding)
+    };
+origins(
+    selection,
+    parents,
+    index + 1,
+    count,
+    rows,
+    row_count,
+    digest,
+    Origins(links = links, bindings = bindings, unavailable = unavailable, used = imported.used),
+    maximum,
+))
+})
+    }.
+
+/**
+ * Exact include edges, using resolver identities for imported aliases.
+ */
+pub included_origins(selection: Selection, used: Int, maximum: Int): Result[Origins, Failure] ->
+    let {
+        Ok(payload) <- selection.record.get("payload");
+        Ok(parents) <- payload.get("includes");
+        Ok(count) <- parents.length()
+    } else {
+        _ ->
+            Ok(
+                Origins(
+                    links = Json.array(),
+                    bindings = Json.array(),
+                    unavailable = Json.array(),
+                    used = used,
+                ),
+            )
+    };
+    (let {
+    Ok(rows) <- selection.artifact.get("source_declarations");
+    Ok(row_count) <- rows.length()
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked declaration inventory is incomplete.",
+            ),
+        )
+};
+origins(
+    selection,
+    parents,
+    0,
+    count,
+    rows,
+    row_count,
+    Hash.sha256(Json.to_string(selection.artifact)),
+    Origins(links = Json.array(), bindings = Json.array(), unavailable = Json.array(), used = used),
+    maximum,
+)).
+
+scan(
+    rows: Json,
+    name: String,
+    qualified: String,
+    index: Int,
+    count: Int,
+    found: Found,
+    maximum: Int,
+): Result[Found, Failure] ->
+    if {
+        index == count -> Ok(found);
+        found.used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Type selection exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let Ok(row) <- rows.at(index) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked Core type inventory is incomplete.",
+                    ),
+                )
+        };
+        (let matching = EntityLookup.text(row, "name") == name or EntityLookup.text(row, "name") == qualified;
+let next =
+    Found(
+        row = if {
+            matching -> row;
+            true -> found.row
+        },
+        matches = found.matches + if {
+    matching -> 1;
+    true -> 0
+},
+        used = found.used + 1,
+    );
+scan(rows, name, qualified, index + 1, count, next, maximum))
+    }.
+
+/**
+ * A null row means no unique checked Core type; this never guesses an alias.
+ */
+pub prepare(selection: Selection, maximum: Int): Result[Found, Failure] ->
+    let {
+        Ok(core) <- selection.artifact.get("core");
+        Ok(rows) <- core.get("types");
+        Ok(count) <- rows.length();
+        Ok(payload) <- selection.record.get("payload")
+    } else {
+        _ -> Ok(Found(row = Json.null(), matches = 0, used = selection.work_used))
+    };
+    (let name = EntityLookup.text(payload, "name");
+scan(
+    rows,
+    name,
+    EntityLookup.module_name(selection.artifact) + "." + name,
+    0,
+    count,
+    Found(row = Json.null(), matches = 0, used = selection.work_used),
+    maximum,
+)).

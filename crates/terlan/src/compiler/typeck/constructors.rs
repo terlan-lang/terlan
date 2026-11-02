@@ -493,6 +493,7 @@ fn coverage_pattern(
     children: Vec<SyntaxPatternOutput>,
 ) -> SyntaxPatternOutput {
     SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind,
         arity: children.len(),
         text,

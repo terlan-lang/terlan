@@ -51,8 +51,9 @@ pub(super) fn infer_syntax_imported_function_call(
 
         return Some(match matches.len() {
             1 => {
-                let (ty, selected_subst, _) = matches.remove(0);
+                let ((ty, identity), selected_subst, _) = matches.remove(0);
                 *subst = selected_subst;
+                call_observations::accepted(identity);
                 ty
             }
             0 => {
@@ -89,7 +90,10 @@ pub(super) fn infer_syntax_imported_function_call(
         ctx,
         subst,
     ) {
-        Ok(ty) => Some(ty),
+        Ok((ty, identity)) => {
+            call_observations::accepted(identity);
+            Some(ty)
+        }
         Err(message) => {
             errors.push(spanned_expression_error(target.span, message));
             Some(Type::Dynamic)
@@ -105,7 +109,7 @@ fn infer_one_selected_imported_function_call(
     arg_names: &[Option<String>],
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
-) -> Result<Type, String> {
+) -> Result<(Type, Option<serde_json::Value>), String> {
     let resolved_module = ctx
         .module_aliases
         .get(&target.module)
@@ -144,7 +148,7 @@ fn infer_one_selected_imported_function_call(
         arg_types.to_vec()
     };
 
-    match infer_interface_function_overload_with_explicit_type_args(
+    match infer_interface_function_overload_with_selection(
         interface,
         &target.function,
         function_name,
@@ -153,7 +157,12 @@ fn infer_one_selected_imported_function_call(
         ctx,
         subst,
     ) {
-        Ok(Some(ty)) => return Ok(ty),
+        Ok(Some((ty, signature))) => {
+            return Ok((
+                ty,
+                call_observations::interface_target(resolved_module, signature),
+            ))
+        }
         Ok(None) => {}
         Err(message) => return Err(message),
     }
@@ -172,7 +181,7 @@ fn infer_one_selected_imported_function_call(
         ));
     }
 
-    Ok(Type::Dynamic)
+    Ok((Type::Dynamic, None))
 }
 
 /// Infers an imported module-member function call.
@@ -238,7 +247,7 @@ pub(super) fn infer_syntax_imported_module_member_function_call(
         arg_types.to_vec()
     };
 
-    match infer_interface_function_overload_with_explicit_type_args(
+    match infer_interface_function_overload_with_selection(
         interface,
         member,
         display_name,
@@ -247,7 +256,13 @@ pub(super) fn infer_syntax_imported_module_member_function_call(
         ctx,
         subst,
     ) {
-        Ok(Some(ty)) => return Some(ty),
+        Ok(Some((ty, signature))) => {
+            call_observations::accepted(call_observations::interface_target(
+                resolved_module,
+                signature,
+            ));
+            return Some(ty);
+        }
         Ok(None) => {}
         Err(message) => {
             errors.push(message);

@@ -1,0 +1,13 @@
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.io.Console.{read_line, println, eprintln}.
+
+loop(): Bool ->
+    case read_line(128) {
+        Ok(Some(line)) -> let _printed = println(line); loop();
+        Ok(None) -> true;
+        Err(reason) -> let _printed = eprintln(reason.message); false
+    }.
+
+assert(loop());
+Unit.

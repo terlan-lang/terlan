@@ -2,11 +2,13 @@
 module self_host.ProjectedBodyParser.
 
 import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionResult}.
 import self_host.ProjectedParserSyntax.{ProjectedSurfaceDeclaration}.
 import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
 import self_host.Syntax.{ConstFunctionDeclaration, FunctionDeclaration, MethodDeclaration}.
 
 import std.collections.List.
+import std.core.Option.{None}.
 import std.core.String.
 import self_host.Parser.
 import self_host.StructuredExpressionParser.
@@ -153,13 +155,39 @@ before_clause_separator(values: List[ProjectedCanonicalToken]): List[ProjectedCa
     }.
 
 @pure
+declaration_only_native(declaration: ProjectedSurfaceDeclaration): Bool ->
+    String.contains(declaration.text, "@compiler.native").
+
+@pure
+declaration_only_body(declaration: ProjectedSurfaceDeclaration): ProjectedBody ->
+    ProjectedBody(
+        Parser.declaration_head(declaration.text),
+        declaration.span,
+        ProjectedExpressionResult(
+            true,
+            None,
+            List.new[ProjectedCanonicalToken](),
+            "",
+        ),
+    ).
+
+@pure
 body(
     tokens: List[ProjectedCanonicalToken],
     declaration: ProjectedSurfaceDeclaration,
 ): ProjectedBody ->
-    ProjectedBody(Parser.declaration_head(declaration.text), declaration.span, StructuredExpressionParser.parse(before_clause_separator(before_terminal_dot(after_body_arrow(
-            declaration_tokens(tokens, declaration),
-        ))))).
+    let selected = declaration_tokens(tokens, declaration);
+    if {
+        not has_top_level_arrow(selected) and declaration_only_native(declaration) ->
+            declaration_only_body(declaration);
+        true -> ProjectedBody(
+            Parser.declaration_head(declaration.text),
+            declaration.span,
+            StructuredExpressionParser.parse(before_clause_separator(before_terminal_dot(
+                after_body_arrow(selected),
+            ))),
+        )
+    }.
 
 @pure
 bodies_at(

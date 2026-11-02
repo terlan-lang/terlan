@@ -18,6 +18,16 @@ pub(super) fn core_runtime_capability_return_type(capability: &CoreRuntimeCapabi
             CoreType::Named("Unit".to_string())
         }
         CoreRuntimeCapability::FileExists => CoreType::Bool,
+        CoreRuntimeCapability::ConsoleReadLine => CoreType::Apply {
+            constructor: "Result".to_string(),
+            args: vec![
+                CoreType::Apply {
+                    constructor: "Option".to_string(),
+                    args: vec![CoreType::String],
+                },
+                CoreType::Named("std.core.Error.Error".to_string()),
+            ],
+        },
         CoreRuntimeCapability::FileReadText => CoreType::Apply {
             constructor: "Result".to_string(),
             args: vec![

@@ -1,0 +1,254 @@
+/**
+ * Compiler-owned lexical identities projected into snapshot-bound handles.
+ */
+module semantic.Entities.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{SnapshotStore}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+/**
+ * Do not narrow compiler u64 identities through Terlan's signed Int API.
+ */
+encoded(value: Json, key: String): String ->
+    case value.get(key) {
+        Ok(field) -> Json.to_string(field);
+        _ -> ""
+    }.
+
+pub identity(artifact: Json, core: Json, binding: Json): String ->
+    "e:" + Hash.sha256_domain_framed(
+    "terlan.semantic.lexical-entity.v1",
+    [
+        text(artifact, "source_name"),
+        text(core, "module"),
+        text(binding, "path"),
+        encoded(binding, "id"),
+        text(binding, "name"),
+    ],
+).
+
+/**
+ * Projects one exact compiler record; queries and catalogs use the same factory.
+ */
+pub entity(
+    artifact: Json,
+    core: Json,
+    binding: Json,
+    snapshot: String,
+    artifact_digest: String,
+): Result[Json, Failure] ->
+    let {
+        Ok(start) <- binding.get("span_start");
+        Ok(end) <- binding.get("span_end")
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entities.artifact",
+                    message = "Compiler binding origin is incomplete.",
+                ),
+            )
+    };
+    (let origin =
+    Json.object()
+        .put("path", Json.string(text(artifact, "source_name")))
+        .put("start_byte", start)
+        .put("end_byte", end);
+let digest =
+    Hash.sha256_domain_framed(
+        "terlan.semantic.lexical-entity-content.v1",
+        [artifact_digest, Json.to_string(binding)],
+    );
+Ok(
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put("entity_id", Json.string(identity(artifact, core, binding)))
+        .put("kind", Json.string("binding"))
+        .put("name", Json.string(text(binding, "name")))
+        .put("owner", Json.string(text(core, "module")))
+        .put("digest", Json.string(digest))
+        .put("origin", origin)
+        .put("expanded_from", Json.array()),
+)).
+
+project(
+    mut output: Json,
+    artifact: Json,
+    core: Json,
+    rows: Json,
+    snapshot: String,
+    artifact_digest: String,
+    index: Int,
+    count: Int,
+): Bool ->
+    if {
+        index == count -> true;
+        true -> let {
+            Ok(binding) <- rows.at(index);
+            Ok(projected) <- entity(artifact, core, binding, snapshot, artifact_digest)
+        } else {
+            _ -> false
+        };
+        (let _entity = output.push(projected); project(output, artifact, core, rows, snapshot, artifact_digest, index + 1, count))
+    }.
+
+/**
+ * Initial lexical catalog. Compiler spans currently cover enclosing syntax;
+ * they are never advertised as exact identifier token ranges. Generated
+ * origins and non-lexical entities remain unavailable in this initial view.
+ */
+pub bindings(store: String, snapshot: String): Result[Json, Failure] ->
+    let Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot) else {
+        Err(reason) -> Err(reason)
+    };
+    from_artifact(artifact, snapshot).
+
+/**
+ * Projects one already admitted compiler unit without rereading the store.
+ */
+pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
+    let output = Json.array();
+    let checked = text(artifact, "status") == "checked";
+    let reason =
+        if {
+            checked -> "Lexical bindings only; spans cover enclosing syntax and expansion origin chains are not yet exported.";
+            true -> "Checked binding facts are unavailable for this source."
+        };
+    let limits =
+        Json.array()
+            .push(
+                Json.object()
+                    .put(
+                        "code",
+                        Json.string(
+                            if {
+                                checked -> "semantic.entities.lexical_only";
+                                true -> "semantic.entities.unavailable"
+                            },
+                        ),
+                    )
+                    .put("message", Json.string(reason)),
+            );
+    let collected =
+        if {
+            checked -> let {
+                Ok(core) <- artifact.get("core");
+                Ok(evidence) <- core.get("binding_identities");
+                Ok(rows) <- evidence.get("bindings");
+                Ok(count) <- rows.length()
+            } else {
+                _ -> false
+            };
+            project(
+                output,
+                artifact,
+                core,
+                rows,
+                snapshot,
+                Hash.sha256(Json.to_string(artifact)),
+                0,
+                count,
+            );
+            true -> true
+        };
+    let true <- collected else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entities.artifact",
+                    message = "Compiler binding evidence is incomplete.",
+                ),
+            )
+    };
+    Ok(
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.entity-index.v1"))
+            .put("snapshot_id", Json.string(snapshot))
+            .put(
+                "status",
+                Json.string(
+                    if {
+                        checked -> "partial";
+                        true -> "unavailable"
+                    },
+                ),
+            )
+            .put("span_precision", Json.string("enclosing_syntax"))
+            .put("entities", output)
+            .put("limitations", limits),
+    ).
+
+find(rows: Json, id: String, index: Int, count: Int): Result[Json, Failure] ->
+    let true <- index < count else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entity.absent",
+                    message = "Entity is absent from the selected snapshot; no name fallback is permitted.",
+                ),
+            )
+    };
+    (let Ok(row) <- rows.at(index) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.entities.artifact",
+                message = "Entity inventory is incomplete.",
+            ),
+        )
+};
+if {
+    text(row, "entity_id") == id -> Ok(row);
+    true -> find(rows, id, index + 1, count)
+}).
+
+/**
+ * A cross-snapshot handle needs the exact entity digest from that snapshot.
+ */
+pub resolve_binding(
+    store: String,
+    snapshot: String,
+    id: String,
+    expected_digest: String,
+): Result[Json, Failure] ->
+    let {
+        Ok(catalog) <- bindings(store, snapshot);
+        Ok(rows) <- catalog.get("entities");
+        Ok(count) <- rows.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entity.snapshot",
+                    message = "Cannot resolve an entity against this snapshot.",
+                ),
+            )
+    };
+    (let Ok(entity) <- find(rows, id, 0, count) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    text(entity, "digest") == expected_digest -> Ok(entity);
+    true -> Err(
+        Failure(
+            code = "semantic.entity.stale",
+            message = "Entity content changed; refresh the selection from the requested snapshot.",
+        ),
+    )
+}).

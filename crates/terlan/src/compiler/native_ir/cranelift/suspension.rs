@@ -106,7 +106,12 @@ pub(super) fn suspension_value_count(body: &NativeExpr, function_counts: &[usize
             yield_continuation_id,
         } => yield_continuation_id.map_or_else(
             || function_counts.get(*function).copied().unwrap_or(0),
-            |_| args.len(),
+            // A reduction yield captures arguments, but the resumed callee
+            // still needs its own transition frame (including zero-arity loops).
+            |_| {
+                args.len()
+                    .max(function_counts.get(*function).copied().unwrap_or(0))
+            },
         ),
         NativeExpr::ContinuationTailCall { .. } => 0,
         NativeExpr::CallThen {

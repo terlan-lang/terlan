@@ -647,6 +647,19 @@ fact_type(byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
         [value | rest] -> select_fact_type(byte_offset, value, rest)
     }.
 
+result_fact_type(
+    byte_offset: Int,
+    values: List[InferredTypeFact],
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> if {
+            value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
+            true -> result_fact_type(byte_offset, rest, current)
+        }
+    }.
+
 select_fact_type(
     byte_offset: Int,
     value: InferredTypeFact,
@@ -703,6 +716,7 @@ pub expression_type(
             6,
             String.byte_size(node.text) - 6,
         ));
+        node.kind == "dynamic-call" -> result_fact_type(node.start_byte, facts, None);
         node.kind == "identifier" or node.kind == "atom" or node.kind == "binding" or node.kind == "primary" -> case parameter_type(node.text, parameters) {
             Some(name) -> Some(name);
             None -> case fact_type(node.start_byte, facts) {

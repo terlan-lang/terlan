@@ -11,11 +11,27 @@ impl Analyzer<'_> {
         environment: &mut LexicalEnvironment,
         region: &mut Region,
     ) {
+        let first_binding = self.bindings.len();
+        self.bind_pattern_inner(pattern, span, path, environment, region);
+        super::super::binding_type_observations::index_pattern(
+            pattern,
+            &self.bindings[first_binding..],
+        );
+    }
+
+    fn bind_pattern_inner(
+        &mut self,
+        pattern: &SyntaxPatternOutput,
+        span: EbnfSourceSpan,
+        path: &str,
+        environment: &mut LexicalEnvironment,
+        region: &mut Region,
+    ) {
         if let Some((name, kind)) = pattern_binding(pattern) {
             self.bind_name(&name, kind, span, path, environment, region);
         }
         for (index, child) in pattern.children.iter().enumerate() {
-            self.bind_pattern(
+            self.bind_pattern_inner(
                 child,
                 span,
                 &format!("{path}:child:{index}"),
@@ -40,7 +56,7 @@ impl Analyzer<'_> {
             return;
         }
         for (index, field) in pattern.fields.iter().enumerate() {
-            self.bind_pattern(
+            self.bind_pattern_inner(
                 &field.value,
                 span,
                 &format!("{path}:field:{index}:{}", field.key),

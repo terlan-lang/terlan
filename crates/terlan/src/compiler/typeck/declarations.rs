@@ -752,6 +752,7 @@ pub(super) fn receiver_method_clauses_with_bindings(
             let patterns = std::iter::once(receiver)
                 .chain(params.iter())
                 .map(|param| SyntaxPatternOutput {
+                    expanded_from: Vec::new(),
                     kind: SyntaxPatternKind::Var,
                     arity: 1,
                     text: Some(param.name.clone()),

@@ -5,6 +5,7 @@ import std.collections.List.
 import std.core.Option.{None}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
+import std.core.Int.
 import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
 import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedLocalSemantic.
@@ -18,6 +19,7 @@ import self_host.ProjectedSemanticIrPlan.
 import self_host.SelfHostBackendCompile.
 import self_host.SelfHostBackendCompile.{CoreOptimizationCompilation}.
 import self_host.SelfHostSemanticIrSyntax.{BackendCompilation}.
+import self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic.
 import self_host.ProjectedTypeConstraintSyntax.TypeConstraintDiagnostic.
 import self_host.ProjectedExpressionTypecheckSyntax.{ProjectedExpressionTypeDiagnostic}.
 import self_host.Syntax.{OpaqueTypeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
@@ -50,24 +52,49 @@ external_types(values: List[ModuleInterface]): List[String] ->
         [value | rest] -> append(interface_types(value, value.symbols), external_types(rest))
     }.
 
+resolution_diagnostic_messages(values: List[ProjectedTypeDiagnostic]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.concat([value.type_name, ": ", value.message])
+            | resolution_diagnostic_messages(rest)]
+    }.
+
 type_diagnostic_messages(values: List[TypeConstraintDiagnostic]): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> [String.concat([value.code, ": ", value.message])
+        [value | rest] -> [String.concat([
+            value.code,
+            "@",
+            Int.to_string(value.byte_offset),
+            ": ",
+            value.message,
+        ])
             | type_diagnostic_messages(rest)]
     }.
 
 expression_diagnostic_messages(values: List[ProjectedExpressionTypeDiagnostic]): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> [value.message | expression_diagnostic_messages(rest)]
+        [value | rest] -> [String.concat([
+            value.declaration_head,
+            ": ",
+            value.message,
+            " [expected=",
+            value.expected,
+            ", actual=",
+            value.actual,
+            "]",
+        ]) | expression_diagnostic_messages(rest)]
     }.
 
 semantic_messages(semantics: ProjectedSemanticModule): List[String] ->
     append(
         if {
             semantics.type_resolution.valid -> List.new[String]();
-            true -> ["projected-type-resolution-failed"]
+            true -> append(
+                ["projected-type-resolution-failed"],
+                resolution_diagnostic_messages(semantics.type_resolution.diagnostics),
+            )
         },
         append(
             if {

@@ -1,0 +1,104 @@
+{
+  "checks": {
+    "console-input-tests": {
+      "passed": 5
+    },
+    "formatter-tests": {
+      "passed": 9
+    },
+    "harness-tests": {
+      "compiled_sources_verified": 11,
+      "passed": 13,
+      "test_names": [
+        "existing_output_is_preserved",
+        "unknown_selector_creates_no_output",
+        "missing_compiler_creates_no_output",
+        "schema_evidence_rejects_stale_missing_duplicate_and_failed_cases",
+        "test_evidence_rejects_empty_skipped_and_incomplete_results",
+        "unimplemented_milestone_cannot_pass",
+        "missing_or_malformed_peer_report_cannot_pass",
+        "subprocess_timeout_and_output_limit_fail",
+        "wire_evidence_rejects_missing_and_unknown_cases",
+        "baseline_manifest_evidence_rejects_partial_and_malformed_sets",
+        "property_inventory_rejects_empty_and_duplicate_registration",
+        "baseline_preserves_timeout_diagnostic",
+        "snapshot_gate_rejects_empty_peer_and_stale_compiled_sources"
+      ]
+    },
+    "launcher-tests": {
+      "passed": 21
+    },
+    "mcp-peer": {
+      "case_ids": [
+        "mcp.initialize",
+        "mcp.ping",
+        "mcp.tool-discovery-and-schemas",
+        "mcp.resource-discovery",
+        "mcp.bounded-schema-valid-resources",
+        "mcp.empty-template-discovery",
+        "mcp.compiler-type-query",
+        "mcp.expected-values-constraints",
+        "mcp.same-arity-overload-identity",
+        "mcp.explicit-unknown",
+        "mcp.stale-entity-rejection",
+        "mcp.snapshot-scope-rejection",
+        "mcp.invalid-budget-tool-error",
+        "mcp.unknown-tool-protocol-error",
+        "mcp.forged-resource-cursor",
+        "mcp.resource-uri-confinement",
+        "mcp.cli-query-parity"
+      ],
+      "passed": 17
+    },
+    "protocol-tests": {
+      "compiled_sources_verified": 4,
+      "passed": 6,
+      "test_names": [
+        "initialize_and_initialized_enable_standard_method_dispatch",
+        "unsupported_requested_version_negotiates_the_supported_revision",
+        "malformed_messages_use_standard_errors_without_reflecting_payloads",
+        "ping_works_before_initialization_and_unadvertised_methods_are_rejected",
+        "notifications_and_peer_responses_never_create_response_loops",
+        "duplicate_request_ids_are_rejected_and_unsigned_ids_remain_exact"
+      ]
+    },
+    "query-tests": {
+      "compiled_sources_verified": 19,
+      "passed": 9,
+      "test_names": [
+        "typed_queries_distinguish_same_name_and_arity_overloads",
+        "reference_queries_keep_shadowed_bindings_distinct",
+        "work_limited_pages_continue_without_omitting_references",
+        "cursor_is_bound_to_question_and_detects_storage_tampering",
+        "byte_accounting_is_exact_and_tiny_budgets_fail_explicitly",
+        "stale_selection_and_insufficient_work_never_return_successful_facts",
+        "unexported_local_types_and_ownership_are_explicitly_unavailable",
+        "expected_values_separate_type_inhabitants_from_program_legality",
+        "schema_integer_limits_accept_whole_numbers_and_reject_extra_fields"
+      ]
+    },
+    "schema-peer": {
+      "schema_cases_passed": 46,
+      "sdk_model_cases_passed": 10
+    },
+    "tail-transition-tests": {
+      "passed": 1
+    }
+  },
+  "compiler_digest": "a2b9ac29430f68e5a73cc65d54a9e2aa2d07adb3d982f55d3357cf2a58d41ce2",
+  "gate_source_digest": "a05ae1adafcb13df58edfcaa2466cfb3ac0b129221f62e8edf2842c2f5575f52",
+  "limitations": [
+    "Component checkpoint; not the full LNC-005 or M1 acceptance gate.",
+    "Remaining semantic coverage and origin requirements are unchanged.",
+    "Initial resource pagination was exercised on a single entity page; multi-page continuation coverage remains outstanding.",
+    "Catalog materializes at admission; no incremental workspace index or scheduling/cancellation claim.",
+    "Archive identifies declared gate/component inputs; no reproducible full compiler build claim.",
+    "Exploratory failing runs are retained; the harness failure omitted its required peer environment."
+  ],
+  "schema": "terlan.semantic.component-checkpoint.v1",
+  "source_archive_sha256": "09e6ac6e387fc78b98926e1b396fe27e74b6e8db3c676b2b87dde7c758b858e7",
+  "status": "passed",
+  "task": "LNC-005",
+  "task_complete": false,
+  "vm_digest": "f1c30359a462ce682a80cfa23063a4a29c27f9e9a38e72161d2efb1bd10b2c8d"
+}

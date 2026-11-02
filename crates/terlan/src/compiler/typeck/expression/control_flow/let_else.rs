@@ -58,7 +58,7 @@ fn check_binding_exhaustiveness(
         let mut clauses = Vec::with_capacity(expr.clauses.len() + 1);
         clauses.push(success_clause);
         clauses.extend(expr.clauses.iter().cloned());
-        check_clauses_exhaustiveness(&clauses, binding_type, ctx, errors);
+        check_clauses_exhaustiveness(&clauses, binding_type, ctx, errors, expr, Some(index));
     }
 }
 
@@ -106,5 +106,10 @@ fn infer_fallback_clause(
     apply_subst_to_locals(&mut clause_locals, &clause_subst);
     let branch_type =
         infer_syntax_expr(&clause.body, &clause_locals, ctx, &mut clause_subst, errors);
+    super::super::super::binding_type_observations::record(
+        &clause.patterns,
+        &clause_locals,
+        &clause_subst,
+    );
     apply_subst(&branch_type, &clause_subst)
 }

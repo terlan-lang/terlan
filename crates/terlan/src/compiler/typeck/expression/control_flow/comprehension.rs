@@ -89,6 +89,11 @@ pub(crate) fn infer_syntax_list_comprehension(
         .map(|item| infer_syntax_expr(item, &item_locals, ctx, &mut item_subst, errors))
         .unwrap_or(Type::Dynamic);
 
+    super::super::super::binding_type_observations::record(
+        &expr.patterns,
+        &item_locals,
+        &item_subst,
+    );
     let list_type = Type::List(Box::new(apply_subst(&item_type, &item_subst)));
     match lift_constructor {
         Some(constructor) => apply_comprehension_lift_constructor(&constructor, list_type)
@@ -496,6 +501,7 @@ pub(crate) fn infer_syntax_let_expr(
         subst,
         errors,
     );
+    super::super::super::binding_type_observations::record(&expr.patterns, &scoped, subst);
     if expr.clauses.is_empty() {
         return success_type;
     }

@@ -1,0 +1,429 @@
+/**
+ * Bounded exact lookup over compiler records, without name/position fallback.
+ */
+module semantic.EntityLookup.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.QueryRequest.{Request}.
+import semantic.{Catalog, DeclarationEntities, Entities, JsonRules, PatternLookup, QueryRequest}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selection {
+    entity: Json,
+    artifact: Json,
+    context: Json,
+    record: Json,
+    work_used: Int,
+}.
+
+struct Search {
+    found: Bool,
+    entity: Json,
+    record: Json,
+    work_used: Int,
+}.
+
+pub struct Matches {
+    rows: Json,
+    work_used: Int,
+}.
+
+pub text(value: Json, key: String): String ->
+    case JsonRules.text(value, key) {
+        Ok(result) -> result;
+        _ -> ""
+    }.
+
+pub module_name(artifact: Json): String ->
+    if {
+        text(artifact, "module_name") != "" -> text(artifact, "module_name");
+        true -> case artifact.get("core") {
+            Ok(core) -> text(core, "module");
+            _ -> ""
+        }
+    }.
+
+missing(used: Int): Search ->
+    Search(found = false, entity = Json.null(), record = Json.null(), work_used = used).
+
+matched(entity: Json, record: Json, used: Int): Search ->
+    Search(found = true, entity = entity, record = record, work_used = used).
+
+budget(used: Int, maximum: Int): Result[Int, Failure] ->
+    if {
+        used < maximum -> Ok(used + 1);
+        true -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Query exhausted its semantic-record inspection budget before completing selection.",
+            ),
+        )
+    }.
+
+declarations(
+    artifact: Json,
+    rows: Json,
+    digest: String,
+    request: Request,
+    index: Int,
+    count: Int,
+    used: Int,
+): Result[Search, Failure] ->
+    if {
+        index == count -> Ok(missing(used));
+        true -> let Ok(next_work) <- budget(used, request.limits.max_work) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(row) <- rows.at(index);
+    Ok(payload) <- row.get("payload")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked declaration inventory is incomplete.",
+            ),
+        )
+};
+if {
+    DeclarationEntities.kind(payload) == "" -> declarations(artifact, rows, digest, request, index + 1, count, next_work);
+    true -> let Ok(entity) <-
+        DeclarationEntities.entity(
+            artifact,
+            module_name(artifact),
+            request.snapshot_id,
+            digest,
+            row,
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        text(entity, "entity_id") == request.target.entity_id -> Ok(matched(entity, row, next_work));
+        true -> declarations(artifact, rows, digest, request, index + 1, count, next_work)
+    }
+})
+    }.
+
+bindings(
+    artifact: Json,
+    core: Json,
+    rows: Json,
+    digest: String,
+    request: Request,
+    index: Int,
+    count: Int,
+    used: Int,
+): Result[Search, Failure] ->
+    if {
+        index == count -> Ok(missing(used));
+        true -> let Ok(next_work) <- budget(used, request.limits.max_work) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(row) <- rows.at(index);
+    Ok(entity) <- Entities.entity(artifact, core, row, request.snapshot_id, digest)
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked lexical identity inventory is incomplete.",
+            ),
+        )
+};
+if {
+    text(entity, "entity_id") == request.target.entity_id -> Ok(matched(entity, row, next_work));
+    true -> bindings(artifact, core, rows, digest, request, index + 1, count, next_work)
+})
+    }.
+
+in_unit(artifact: Json, request: Request, used: Int): Result[Search, Failure] ->
+    let Ok(next_work) <- budget(used, request.limits.max_work) else {
+        Err(reason) -> Err(reason)
+    };
+    if {
+        text(artifact, "status") != "checked" and text(artifact, "status") != "interface_only" -> Ok(missing(next_work));
+        request.target.kind == "pattern" and text(artifact, "status") == "checked" -> let Ok(found) <-
+            PatternLookup.find(
+                artifact,
+                request.snapshot_id,
+                Hash.sha256(Json.to_string(artifact)),
+                request.target.entity_id,
+                next_work,
+                request.limits.max_work,
+            ) else {
+            Err(reason) -> Err(reason)
+        };
+        Ok(
+            Search(
+                found = found.found,
+                entity = found.entity,
+                record = found.record,
+                work_used = found.work_used,
+            ),
+        );
+        true -> let module_entity = Catalog.module_entity(artifact, module_name(artifact), request.snapshot_id);
+        if {
+            text(module_entity, "entity_id") == request.target.entity_id -> Ok(matched(module_entity, artifact, next_work));
+            true -> let {
+                Ok(rows) <- artifact.get("source_declarations");
+                Ok(count) <- rows.length()
+            } else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.artifact",
+                            message = "Compiler source declarations are missing.",
+                        ),
+                    )
+            };
+            (let digest = Hash.sha256(Json.to_string(artifact));
+(let Ok(found) <- declarations(artifact, rows, digest, request, 0, count, next_work) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    found.found -> Ok(found);
+    text(artifact, "status") == "interface_only" -> Ok(found);
+    true -> let {
+        Ok(core) <- artifact.get("core");
+        Ok(evidence) <- core.get("binding_identities");
+        Ok(binding_rows) <- evidence.get("bindings");
+        Ok(binding_count) <- binding_rows.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Compiler lexical evidence is missing.",
+                ),
+            )
+    };
+    bindings(artifact, core, binding_rows, digest, request, 0, binding_count, found.work_used)
+}))
+        }
+    }.
+
+in_units(
+    units: Json,
+    context: Json,
+    request: Request,
+    index: Int,
+    count: Int,
+    used: Int,
+): Result[Selection, Failure] ->
+    let true <- index < count else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entity.absent",
+                    message = "Entity is absent from the selected immutable snapshot; no fallback is permitted.",
+                ),
+            )
+    };
+    (let {
+    Ok(row) <- units.at(index);
+    Ok(artifact) <- row.get("export")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Compiler source-set unit is incomplete.",
+            ),
+        )
+};
+(let Ok(found) <- in_unit(artifact, request, used) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    found.found -> let true <- text(found.entity, "kind") == request.target.kind else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.entity.kind",
+                    message = "Selected entity has a different semantic kind.",
+                ),
+            )
+    };
+    (let true <- text(found.entity, "digest") == request.target.expected_digest else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.entity.stale",
+                message = "Entity content changed; refresh selection from the requested snapshot.",
+            ),
+        )
+};
+Ok(
+    Selection(
+        entity = found.entity,
+        artifact = artifact,
+        context = context,
+        record = found.record,
+        work_used = found.work_used,
+    ),
+));
+    true -> in_units(units, context, request, index + 1, count, found.work_used)
+})).
+
+/**
+ * Work counts logical compiler records; snapshot authentication is separate.
+ */
+pub resolve(artifact: Json, request: Request): Result[Selection, Failure] ->
+    let true <- QueryRequest.valid(request) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.constraints",
+                    message = "Invalid typed query request.",
+                ),
+            )
+    };
+    (let true <-
+    JsonRules.contains(
+        ["module", "binding", "function", "type", "trait", "shape", "pattern"],
+        request.target.kind,
+    ) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.lookup_unavailable",
+                message = "Bounded lookup for this entity category is not exported by the query service yet.",
+            ),
+        )
+};
+(let units =
+    if {
+        text(artifact, "schema") == "terlan.semantic.core-bundle.v1" -> case artifact.get("units") {
+            Ok(rows) -> rows;
+            _ -> Json.array()
+        };
+        true -> Json.array().push(Json.object().put("export", artifact))
+    };
+(let Ok(count) <- units.length() else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Compiler source-set inventory is malformed.",
+            ),
+        )
+};
+in_units(units, artifact, request, 0, count, 0)))).
+
+source_function_matches(selection: Selection, row: Json): Bool ->
+    let {
+        Ok(source) <- row.get("source");
+        Ok(span) <- source.get("declaration_span");
+        Ok(origin) <- selection.entity.get("origin");
+        Ok(start) <- origin.get("start_byte");
+        Ok(end) <- origin.get("end_byte");
+        Ok(source_start) <- span.get("start");
+        Ok(source_end) <- span.get("end")
+    } else {
+        _ -> false
+    };
+    (let binding = text(selection.entity, "kind") == "binding";
+let same_span =
+    if {
+        binding -> case {start.as_int(), end.as_int(), source_start.as_int(), source_end.as_int()} {
+            {Ok(first), Ok(last), Ok(source_first), Ok(source_last)} ->
+                first >= source_first and last <= source_last;
+            _ -> false
+        };
+        true -> Json.to_string(start) == Json.to_string(source_start)
+            and Json.to_string(end) == Json.to_string(source_end)
+    };
+if {
+    not same_span or text(source, "module") != module_name(selection.artifact) -> false;
+    text(selection.entity, "kind") == "binding" -> let Ok(arity) <- row.get("arity") else {
+        _ -> false
+    };
+    (let path = text(selection.record, "path");
+let name = text(source, "function");
+path.starts_with("function:" + name + "/" + Json.to_string(arity) + ":")
+    or path.starts_with("method:" + name + "/" + Json.to_string(arity) + ":"));
+    true -> let {
+        Ok(payload) <- selection.record.get("payload");
+        Ok(params) <- payload.get("params");
+        Ok(count) <- params.length();
+        Ok(arity) <- row.get("arity")
+    } else {
+        _ -> false
+    };
+    (let expected =
+    count + if {
+    text(payload, "kind") == "method" -> 1;
+    true -> 0
+};
+text(source, "function") == text(payload, "name") and arity.as_int() == Ok(expected))
+}).
+
+functions(
+    selection: Selection,
+    rows: Json,
+    mut output: Json,
+    index: Int,
+    count: Int,
+    used: Int,
+    maximum: Int,
+): Result[Matches, Failure] ->
+    if {
+        index == count -> Ok(Matches(rows = output, work_used = used));
+        true -> let Ok(next_work) <- budget(used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let Ok(row) <- rows.at(index) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Typed Core function inventory is incomplete.",
+            ),
+        )
+};
+(let _matched =
+    if {
+        function_matches(selection, row) -> output.push(row);
+        true -> output
+    };
+functions(selection, rows, output, index + 1, count, next_work, maximum)))
+    }.
+
+/**
+ * Joins source declarations to typed functions using compiler-owned origins.
+ */
+function_matches(selection: Selection, row: Json): Bool ->
+    if {
+        text(selection.entity, "kind") != "pattern" -> source_function_matches(selection, row);
+        true -> let {
+            Ok(source) <- row.get("source");
+            Ok(span) <- source.get("declaration_span");
+            Ok(owner_span) <- selection.record.get("owner_span");
+            Ok(arity) <- source.get("arity");
+            Ok(owner_arity) <- selection.record.get("owner_arity")
+        } else {
+            _ -> false
+        };
+        Json.to_string(span) == Json.to_string(owner_span)
+            and Json.to_string(arity) == Json.to_string(owner_arity)
+            and text(source, "module") == module_name(selection.artifact)
+            and text(source, "function") == text(selection.record, "owner_name")
+            and JsonRules.contains(["function", "const_function", "method"], text(selection.record, "owner_kind"))
+    }.
+
+pub core_functions(selection: Selection, maximum: Int): Result[Matches, Failure] ->
+    let {
+        Ok(core) <- selection.artifact.get("core");
+        Ok(rows) <- core.get("functions");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> Ok(Matches(rows = Json.array(), work_used = selection.work_used))
+    };
+    functions(selection, rows, Json.array(), 0, count, selection.work_used, maximum).

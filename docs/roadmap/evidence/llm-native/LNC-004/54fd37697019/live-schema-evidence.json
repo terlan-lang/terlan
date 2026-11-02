@@ -1,0 +1,22 @@
+{
+  "catalog_digest": "fd4380891853bb251a15f1eacc7042044b44f9e7eb17555f2379dab03bf5ee65",
+  "entity_count": 12,
+  "entity_kinds": [
+    "binding",
+    "function",
+    "module",
+    "pattern",
+    "trait",
+    "type"
+  ],
+  "fixture_digest": "3aec9471cf48cce4c4fc1da9eb93c9565d2cc3c85d3555abf62dd78639918d08",
+  "schema": "terlan.semantic.live-schema-evidence.v1",
+  "scope": "Public schemas, exact fixture source/version inventory, entity membership and origin bounds; no MCP or edit verification claim.",
+  "snapshot_digest": "6e9b2e74abb7dd7e69ac5a3cdb1b6de7c630fb9c37cf9cdcd874adabe0741849",
+  "snapshot_id": "s:636bd17f626c821fabfc95be33b9111a0940e67cf4f8ed5bb3b79c247b491273",
+  "source_count": 2,
+  "status": "passed",
+  "validator": {
+    "jsonschema": "4.25.1"
+  }
+}

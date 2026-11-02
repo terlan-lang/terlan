@@ -481,6 +481,8 @@ fn command_has_usage(command: &str) -> bool {
             | "doctest"
             | "emit-native-metadata"
             | "emit-self-hosted-actor-object"
+            | "emit-core"
+            | "semantic"
             | "repl"
             | "fmt"
             | "lint"

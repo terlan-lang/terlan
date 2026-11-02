@@ -5,7 +5,7 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
     first_param: Option<&str>,
     arity: usize,
     alias_names: &HashSet<String>,
-    clauses: &[(Vec<SyntaxPatternOutput>, Span)],
+    clauses: &[(Vec<SyntaxPatternOutput>, Span, bool)],
     aliases: &HashMap<String, TypeAlias>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
@@ -24,51 +24,40 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
         &mut next_var,
     )
     .unwrap_or(Type::Dynamic);
-    let expanded = expand_interface_global_aliases(&expected, aliases);
-    let variants = as_exhaustive_union_variants(&expanded);
-    if variants.len() <= 1 && !has_finite_fields(&expanded) {
+    let patterns = clauses
+        .iter()
+        .filter_map(|(patterns, _, guarded)| {
+            patterns.first().map(|pattern| (pattern.clone(), *guarded))
+        })
+        .collect::<Vec<_>>();
+    let analysis = coverage_observations::analyze(&expected, &patterns, aliases);
+    coverage_observations::record(
+        "function_clauses",
+        clauses
+            .first()
+            .map(|clause| clause.1)
+            .unwrap_or(Span { start: 0, end: 0 }),
+        None,
+        None,
+        &expected,
+        &analysis,
+    );
+    if let Some((index, message)) = &analysis.error {
+        diagnostics.push(Diagnostic {
+            span: clauses[*index].1,
+            message: message.clone(),
+            severity: DiagSeverity::Error,
+        });
         return;
     }
-    let mut remaining = variants;
-    for (patterns, span) in clauses {
-        if patterns.is_empty() {
-            continue;
-        }
-        let pattern = &patterns[0];
-        if matches!(
-            pattern.kind,
-            SyntaxPatternKind::Wildcard
-                | SyntaxPatternKind::Ignore
-                | SyntaxPatternKind::Placeholder
-                | SyntaxPatternKind::Var
-        ) {
-            return;
-        }
-        remaining = match subtract_finite_pattern(remaining, pattern, aliases) {
-            Ok(remaining) => remaining,
-            Err(message) => {
-                diagnostics.push(Diagnostic {
-                    span: *span,
-                    message: message.to_string(),
-                    severity: DiagSeverity::Error,
-                });
-                return;
-            }
-        };
-        if remaining.is_empty() {
-            return;
-        }
-        if patterns.len() > 1 {
-            let _ = span;
-        }
-    }
-    if !remaining.is_empty() {
+    if analysis.exhaustive == Some(false) {
         diagnostics.push(Diagnostic {
             span: clauses[0].1,
             message: format!(
                 "non-exhaustive function {}\nmissing:\n  {}",
                 function_name,
-                remaining
+                analysis
+                    .remaining
                     .iter()
                     .map(pretty_type)
                     .collect::<Vec<_>>()
@@ -76,5 +65,39 @@ pub(super) fn check_syntax_function_clause_exhaustiveness(
             ),
             severity: DiagSeverity::Warning,
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn guarded_function_catchall_cannot_certify_finite_coverage() {
+        let pattern = SyntaxPatternOutput {
+            expanded_from: Vec::new(),
+            kind: SyntaxPatternKind::Wildcard,
+            arity: 0,
+            text: None,
+            children: Vec::new(),
+            fields: Vec::new(),
+        };
+        let span = Span { start: 0, end: 1 };
+        for (guarded, expected_count) in [(true, 1), (false, 0)] {
+            let mut diagnostics = Vec::new();
+            check_syntax_function_clause_exhaustiveness(
+                "value",
+                Some("Bool"),
+                1,
+                &HashSet::new(),
+                &[(vec![pattern.clone()], span, guarded)],
+                &HashMap::new(),
+                &mut diagnostics,
+            );
+            assert_eq!(diagnostics.len(), expected_count, "{diagnostics:?}");
+            if guarded {
+                assert!(diagnostics[0].message.contains("non-exhaustive function"));
+            }
+        }
     }
 }

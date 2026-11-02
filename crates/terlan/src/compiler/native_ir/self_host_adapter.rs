@@ -92,7 +92,99 @@ fn adapter_error(context: &str, message: impl AsRef<str>) -> String {
     )
 }
 
+fn top_level_function_arrow(source: &str) -> Option<usize> {
+    let bytes = source.as_bytes();
+    let (mut round, mut square, mut brace) = (0usize, 0usize, 0usize);
+    let mut index = 0usize;
+    while index + 1 < bytes.len() {
+        match bytes[index] {
+            b'(' => round += 1,
+            b')' => round = round.saturating_sub(1),
+            b'[' => square += 1,
+            b']' => square = square.saturating_sub(1),
+            b'{' => brace += 1,
+            b'}' => brace = brace.saturating_sub(1),
+            b'-' if bytes[index + 1] == b'>' && round == 0 && square == 0 && brace == 0 => {
+                return Some(index);
+            }
+            _ => {}
+        }
+        index += 1;
+    }
+    None
+}
+
+fn split_function_parameters(source: &str) -> Result<Vec<&str>, String> {
+    if source.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    let bytes = source.as_bytes();
+    let (mut round, mut square, mut brace) = (0usize, 0usize, 0usize);
+    let mut start = 0usize;
+    let mut values = Vec::new();
+    for (index, byte) in bytes.iter().copied().enumerate() {
+        match byte {
+            b'(' => round += 1,
+            b')' => round = round.saturating_sub(1),
+            b'[' => square += 1,
+            b']' => square = square.saturating_sub(1),
+            b'{' => brace += 1,
+            b'}' => brace = brace.saturating_sub(1),
+            b',' if round == 0 && square == 0 && brace == 0 => {
+                let value = source[start..index].trim();
+                if value.is_empty() {
+                    return Err(adapter_error(
+                        "function_type",
+                        "function parameter type is empty",
+                    ));
+                }
+                values.push(value);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    let value = source[start..].trim();
+    if value.is_empty() {
+        return Err(adapter_error(
+            "function_type",
+            "function parameter type is empty",
+        ));
+    }
+    values.push(value);
+    Ok(values)
+}
+
+fn native_function_type(type_name: &str) -> Result<Option<NativeType>, String> {
+    let source = type_name.trim();
+    let Some(arrow) = top_level_function_arrow(source) else {
+        return Ok(None);
+    };
+    let parameters = source[..arrow].trim();
+    let result = source[arrow + 2..].trim();
+    if parameters.len() < 2 || !parameters.starts_with('(') || !parameters.ends_with(')') {
+        return Err(adapter_error(
+            "function_type",
+            "function parameter types must be enclosed in parentheses",
+        ));
+    }
+    if result.is_empty() {
+        return Err(adapter_error(
+            "function_type",
+            "function result type is empty",
+        ));
+    }
+    let parameters = split_function_parameters(&parameters[1..parameters.len() - 1])?
+        .into_iter()
+        .map(native_type)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(Some(closure_type(&parameters, native_type(result)?)?))
+}
+
 fn native_type(type_name: &str) -> Result<NativeType, String> {
+    if let Some(native) = native_function_type(type_name)? {
+        return Ok(native);
+    }
     if let Some(native) = super::self_host_managed_layouts::native_type(type_name)? {
         return Ok(native);
     }

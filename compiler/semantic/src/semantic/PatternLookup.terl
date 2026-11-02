@@ -1,0 +1,332 @@
+/**
+ * Budgeted syntax traversal selecting the catalog's exact pattern handles.
+ */
+module semantic.PatternLookup.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{DeclarationEntities, JsonRules, PatternEntities}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Found {
+    found: Bool,
+    entity: Json,
+    record: Json,
+    work_used: Int,
+}.
+
+struct Frame {
+    value: Json,
+    origin: Json,
+    path: String,
+    mode: String,
+    index: Int,
+    keys: List[String],
+    owner: String,
+    declaration: Json,
+}.
+
+text(value: Json, key: String): String ->
+    case JsonRules.text(value, key) {
+        Ok(result) -> result;
+        _ -> ""
+    }.
+
+frame(
+    value: Json,
+    origin: Json,
+    path: String,
+    mode: String,
+    index: Int,
+    keys: List[String],
+    owner: String,
+    declaration: Json,
+): Frame ->
+    Frame(
+        value = value,
+        origin = origin,
+        path = path,
+        mode = mode,
+        index = index,
+        keys = keys,
+        owner = owner,
+        declaration = declaration,
+    ).
+
+missing(used: Int): Found ->
+    Found(found = false, entity = Json.null(), record = Json.null(), work_used = used).
+
+invalid(): Failure ->
+    Failure(
+        code = "semantic.query.artifact",
+        message = "Checked pattern traversal encountered an incomplete compiler record.",
+    ).
+
+/**
+ * Frames visit one key or array position at a time, including scalar nodes.
+ */
+search(
+    artifact: Json,
+    snapshot: String,
+    digest: String,
+    target: String,
+    pending: List[Frame],
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    case pending {
+        [] -> Ok(missing(used));
+        [current | rest] ->
+            let true <- used < maximum else {
+                _ ->
+                    Err(
+                        Failure(
+                            code = "semantic.query.work_limit",
+                            message = "Pattern selection exhausted its syntax-node inspection budget.",
+                        ),
+                    )
+            };
+            (let work = used + 1;
+case current.mode {
+    "object" ->
+        case current.keys {
+            [] -> search(artifact, snapshot, digest, target, rest, work, maximum);
+            [key | tail] ->
+                let continuation =
+                    frame(
+                        current.value,
+                        current.origin,
+                        current.path,
+                        "object",
+                        0,
+                        tail,
+                        current.owner,
+                        current.declaration,
+                    );
+                if {
+                    key == "span" -> search(artifact, snapshot, digest, target, [continuation | rest], work, maximum);
+                    true -> let Ok(value) <- current.value.get(key) else {
+                        _ -> Err(invalid())
+                    };
+                    (let mode =
+    if {
+        key == "patterns" -> "patterns";
+        true -> "walk"
+    };
+let child =
+    frame(
+        value,
+        current.origin,
+        current.path + "/" + key,
+        mode,
+        0,
+        [],
+        current.owner,
+        current.declaration,
+    );
+search(artifact, snapshot, digest, target, [child | [continuation | rest]], work, maximum))
+                }
+        };
+    "pattern" ->
+        let {
+            Ok(payload) <- current.declaration.get("payload");
+            Ok(span) <- current.declaration.get("span");
+            Ok(children) <- current.value.get("children");
+            Ok(fields) <- current.value.get("fields");
+            true <- text(current.value, "kind") != ""
+        } else {
+            _ -> Err(invalid())
+        };
+        (let entity =
+    PatternEntities.entity(
+        snapshot,
+        current.owner,
+        text(payload, "name"),
+        digest,
+        current.origin,
+        current.path,
+        current.value,
+    );
+if {
+    text(entity, "entity_id") == target -> let explicit_arity =
+        let {
+            Ok(params) <- payload.get("params");
+            Ok(count) <- params.length()
+        } else {
+            _ -> 0
+        };
+        count;
+    let arity =
+        explicit_arity + if {
+    text(payload, "kind") == "method" -> 1;
+    true -> 0
+};
+    let record =
+        Json.object()
+            .put("payload", current.value)
+            .put("semantic_path", Json.string(current.path))
+            .put("owner_kind", Json.string(text(payload, "kind")))
+            .put("owner_name", Json.string(text(payload, "name")))
+            .put("owner_arity", Json.int(arity))
+            .put("owner_span", span);
+    Ok(Found(found = true, entity = entity, record = record, work_used = work));
+    true -> let child_frame =
+        frame(
+            children,
+            current.origin,
+            current.path + "/children",
+            "patterns",
+            0,
+            [],
+            current.owner,
+            current.declaration,
+        );
+    let field_frame =
+        frame(
+            fields,
+            current.origin,
+            current.path + "/fields",
+            "fields",
+            0,
+            [],
+            current.owner,
+            current.declaration,
+        );
+    search(artifact, snapshot, digest, target, [child_frame | [field_frame | rest]], work, maximum)
+});
+    "walk" ->
+        case current.value.keys() {
+            Ok(keys) ->
+                let origin = PatternEntities.position(current.origin, current.value);
+                search(
+                    artifact,
+                    snapshot,
+                    digest,
+                    target,
+                    [frame(current.value, origin, current.path, "object", 0, keys, current.owner, current.declaration) | rest],
+                    work,
+                    maximum,
+                );
+            _ ->
+                case current.value.length() {
+                    Ok(_) ->
+                        search(
+                            artifact,
+                            snapshot,
+                            digest,
+                            target,
+                            [frame(
+    current.value,
+    current.origin,
+    current.path,
+    "array",
+    0,
+    [],
+    current.owner,
+    current.declaration,
+) | rest],
+                            work,
+                            maximum,
+                        );
+                    _ -> search(artifact, snapshot, digest, target, rest, work, maximum)
+                }
+        };
+    _ ->
+        let Ok(count) <- current.value.length() else {
+            _ -> Err(invalid())
+        };
+        if {
+            current.index == count -> search(artifact, snapshot, digest, target, rest, work, maximum);
+            true -> let Ok(value) <- current.value.at(current.index) else {
+                _ -> Err(invalid())
+            };
+            (let continuation =
+    frame(
+        current.value,
+        current.origin,
+        current.path,
+        current.mode,
+        current.index + 1,
+        [],
+        current.owner,
+        current.declaration,
+    );
+let path = current.path + "/" + Json.to_string(Json.int(current.index));
+if {
+    current.mode == "declarations" -> let Ok(payload) <- value.get("payload") else {
+        _ -> Err(invalid())
+    };
+    case DeclarationEntities.identity(artifact, text(artifact, "module_name"), payload) {
+        Ok(owner) ->
+            let origin = PatternEntities.position(current.origin, value);
+            let child = frame(payload, origin, "", "walk", 0, [], owner, value);
+            search(
+                artifact,
+                snapshot,
+                digest,
+                target,
+                [child | [continuation | rest]],
+                work,
+                maximum,
+            );
+        Err(reason) ->
+            if {
+                reason.code == "semantic.declaration.kind" -> search(artifact, snapshot, digest, target, [continuation | rest], work, maximum);
+                true -> Err(reason)
+            }
+    };
+    current.mode == "fields" -> let Ok(pattern) <- value.get("value") else {
+        _ -> Err(invalid())
+    };
+    (let child =
+    frame(
+        pattern,
+        current.origin,
+        path + "/value",
+        "pattern",
+        0,
+        [],
+        current.owner,
+        current.declaration,
+    );
+search(artifact, snapshot, digest, target, [child | [continuation | rest]], work, maximum));
+    true -> let mode =
+        if {
+            current.mode == "patterns" -> "pattern";
+            true -> "walk"
+        };
+    let child = frame(value, current.origin, path, mode, 0, [], current.owner, current.declaration);
+    search(artifact, snapshot, digest, target, [child | [continuation | rest]], work, maximum)
+})
+        }
+})
+    }.
+
+pub find(
+    artifact: Json,
+    snapshot: String,
+    digest: String,
+    target: String,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    let Ok(rows) <- artifact.get("source_declarations") else {
+        _ -> Err(invalid())
+    };
+    (let origin =
+    Json.object()
+        .put("path", Json.string(text(artifact, "source_name")))
+        .put("start_byte", Json.int(0))
+        .put("end_byte", Json.int(0));
+search(
+    artifact,
+    snapshot,
+    digest,
+    target,
+    [frame(rows, origin, "", "declarations", 0, [], "", Json.null())],
+    used,
+    maximum,
+)).

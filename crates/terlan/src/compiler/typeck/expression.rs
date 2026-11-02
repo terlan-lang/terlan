@@ -16,7 +16,7 @@ pub(crate) use calls::infer_syntax_expr_with_expected;
 pub(super) use calls::syntax_callee_name;
 use calls::{
     infer_syntax_call_expr, infer_syntax_function_value_call, infer_syntax_macro_call,
-    infer_syntax_pipe_forward, trait_method_candidate_matches_call,
+    infer_syntax_pipe_forward, qualify_imported_named_heads, trait_method_candidate_matches_call,
 };
 use casts::infer_syntax_cast_expr;
 use construction::{
@@ -40,12 +40,10 @@ pub(super) use guard_purity::{
 };
 use indexing::{infer_syntax_index, infer_syntax_index_assign};
 use operators::{infer_syntax_binary_op, infer_syntax_unary_op};
-pub(crate) use overloads::{
-    infer_function_scheme_overload, infer_function_scheme_overload_with_explicit_type_args,
-};
+pub(crate) use overloads::infer_function_scheme_overload;
 use overloads::{
-    infer_imported_function_candidate_matches,
-    infer_interface_function_overload_with_explicit_type_args,
+    infer_function_scheme_overload_with_selection, infer_imported_function_candidate_matches,
+    infer_interface_function_overload_with_selection,
 };
 use sql::{
     infer_sql_form_result_type, validate_sql_form_parameter_types, validate_sql_form_row_type,
@@ -332,6 +330,7 @@ pub(super) fn infer_syntax_expr(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Type {
+    let _call_observation = super::call_observations::expression(expr);
     // Unrelated live bindings still own their variable IDs. Callee generics
     // must not capture those IDs merely because they are absent from its args.
     let local_floor = locals

@@ -360,7 +360,7 @@ pub(super) fn finish_check(
 ///   profile when the global target is the default VM, and treats non-default
 ///   profiles as checked overrides. Parse failures keep the requested profile
 ///   so normal parser diagnostics remain the source-facing error.
-fn effective_check_target_profile(
+pub(crate) fn effective_check_target_profile(
     source: &str,
     requested: TargetProfile,
 ) -> Result<TargetProfile, String> {

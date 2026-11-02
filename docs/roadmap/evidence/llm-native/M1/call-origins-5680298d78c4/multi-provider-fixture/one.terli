@@ -1,0 +1,2 @@
+module one.
+pub pick(input: Int): Int.

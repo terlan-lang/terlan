@@ -6,7 +6,10 @@
  */
 module std.io.Console.
 
-import std.core.Unit.
+import std.core.Result.{Err}.
+import std.core.{Error, Unit}.
+
+import type std.core.{Error, Option, Result}.
 
 /**
  * Writes a string followed by one line terminator.
@@ -41,3 +44,16 @@ pub println(value: String): Unit ->
 @compiler.intrinsic
 pub eprintln(value: String): Unit ->
     Unit.
+
+/**
+ * Reads one bounded UTF-8 line from the application's standard input.
+ *
+ * Returns `Ok(Some(line))` without the LF or CRLF terminator, `Ok(None)` at
+ * EOF, or a typed error. `max_bytes` bounds content bytes and must be between
+ * 1 and 1 MiB. A final unterminated line is returned before EOF. After an
+ * input/encoding/limit error, callers should close the stream. This operation
+ * can wait for input and is VM-owned; it never reads a helper's RPC channel.
+ */
+@compiler.intrinsic
+pub read_line(max_bytes: Int): Result[Option[String], Error] ->
+    Err(Error.new(Atom["console.unavailable"], "Console input is unavailable on this target.")).

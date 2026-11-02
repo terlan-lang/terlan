@@ -1,0 +1,75 @@
+/** Qualification-aware structural comparison for projected type spellings. */
+module self_host.ProjectedTypeEquivalence.
+
+import std.collections.List.
+import std.core.String.
+
+@pure
+space(value: Int): Bool -> value == 32 or value == 9 or value == 10 or value == 13.
+
+@pure
+identifier_byte(value: Int): Bool ->
+    value >= 65 and value <= 90
+        or value >= 97 and value <= 122
+        or value >= 48 and value <= 57
+        or value == 95
+        or value == 46.
+
+@pure
+skip_space(value: String, index: Int): Int ->
+    if {
+        index < value.byte_size() and space(value.utf8_byte_at(index)) ->
+            skip_space(value, index + 1);
+        true -> index
+    }.
+
+@pure
+identifier_end(value: String, index: Int): Int ->
+    if {
+        index < value.byte_size() and identifier_byte(value.utf8_byte_at(index)) ->
+            identifier_end(value, index + 1);
+        true -> index
+    }.
+
+@pure
+last_part(values: List[String], current: String): String ->
+    case values { [] -> current; [value | rest] -> last_part(rest, value) }.
+
+@pure
+unqualified(value: String): String -> last_part(String.split(value, "."), value).
+
+@pure
+identifier_matches(left: String, right: String): Bool ->
+    left == right
+        or (not String.contains(left, ".") or not String.contains(right, "."))
+            and unqualified(left) == unqualified(right).
+
+@pure
+matches_at(left: String, left_index: Int, right: String, right_index: Int): Bool ->
+    let li = skip_space(left, left_index);
+    let ri = skip_space(right, right_index);
+    if {
+        li == left.byte_size() and ri == right.byte_size() -> true;
+        li == left.byte_size() or ri == right.byte_size() -> false;
+        identifier_byte(left.utf8_byte_at(li)) and identifier_byte(right.utf8_byte_at(ri)) ->
+            let le = identifier_end(left, li);
+            let re = identifier_end(right, ri);
+            identifier_matches(
+                left.utf8_slice(li, le - li),
+                right.utf8_slice(ri, re - ri),
+            ) and matches_at(left, le, right, re);
+        left.utf8_byte_at(li) == right.utf8_byte_at(ri) ->
+            matches_at(left, li + 1, right, ri + 1);
+        true -> false
+    }.
+
+@pure
+base(value: String): String ->
+    case String.split(value, "[") { [name | _rest] -> name; [] -> value }.
+
+/** Matches equal type structure while respecting distinct qualified identities. */
+@pure
+pub matches(left: String, right: String): Bool ->
+    matches_at(left, 0, right, 0)
+        or identifier_matches(String.trim(base(left)), String.trim(base(right)))
+            and (String.contains(left, "[") or String.contains(right, "[")).

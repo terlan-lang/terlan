@@ -1,0 +1,584 @@
+/**
+ * Compiler-checked structural definitions, bounds and negative trait facts.
+ */
+module semantic.RelationsQueryTest.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.SourceSet.{Input}.
+import semantic.{Catalog, JsonRules, Query, Snapshot, SourceSet}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+struct Fixture {
+    root: String,
+    store: String,
+    snapshot: Json,
+    entities: Json,
+}.
+
+text(value: Json, key: String): String ->
+    case JsonRules.text(value, key) {
+        Ok(result) -> result;
+        _ -> ""
+    }.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+fixture(source: String): Result[Fixture, Bool] ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-relations-test-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source);
+        Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(entities) <- catalog.get("entities")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(Fixture(root = root, store = root + "/store", snapshot = snapshot, entities = entities)).
+
+find(
+    rows: Json,
+    kind: String,
+    name: String,
+    occurrence: Int,
+    index: Int,
+    count: Int,
+): Result[Json, Bool] ->
+    let {
+        true <- index < count;
+        Ok(row) <- rows.at(index)
+    } else {
+        _ -> Err(false)
+    };
+    if {
+        text(row, "kind") == kind and text(row, "name") == name -> if {
+            occurrence == 0 -> Ok(row);
+            true -> find(rows, kind, name, occurrence - 1, index + 1, count)
+        };
+        true -> find(rows, kind, name, occurrence, index + 1, count)
+    }.
+
+selected(context: Fixture, kind: String, name: String, occurrence: Int): Result[Json, Bool] ->
+    let Ok(count) <- context.entities.length() else {
+        _ -> Err(false)
+    };
+    find(context.entities, kind, name, occurrence, 0, count).
+
+request(context: Fixture, entity: Json, work: Int): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.query.v1"))
+        .put("snapshot_id", Json.string(text(context.snapshot, "snapshot_id")))
+        .put(
+            "target",
+            Json.object()
+                .put("entity_id", Json.string(text(entity, "entity_id")))
+                .put("kind", Json.string(text(entity, "kind")))
+                .put("expected_digest", Json.string(text(entity, "digest"))),
+        )
+        .put("fact", Json.string("conformance"))
+        .put(
+            "limits",
+            Json.object().put("max_bytes", Json.int(65_536)).put("max_work", Json.int(work)),
+        )
+        .put("cursor", Json.null()).
+
+run(context: Fixture, entity: Json): Result[Json, Failure] ->
+    case Query.run(context.store, request(context, entity, 10_000)) {
+        Ok(value) -> Ok(value);
+        Err(reason) ->
+            let reported = eprintln(reason.code + ": " + reason.message);
+            Err(reason)
+    }.
+
+relation(rows: Json, kind: String, index: Int, count: Int): Result[Json, Bool] ->
+    let {
+        true <- index < count;
+        Ok(fact) <- rows.at(index);
+        Ok(value) <- fact.get("value")
+    } else {
+        _ -> Err(false)
+    };
+    if {
+        text(value, "relation_kind") == kind -> case value.get("evidence") {
+            Ok(found) -> Ok(found);
+            _ -> Err(false)
+        };
+        true -> relation(rows, kind, index + 1, count)
+    }.
+
+evidence(result: Json, kind: String): Result[Json, Bool] ->
+    let {
+        Ok(rows) <- result.get("facts");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> Err(false)
+    };
+    relation(rows, kind, 0, count).
+
+clean(context: Fixture): Bool ->
+    Directory.remove_all(context.root) == Ok(Unit).
+
+@test
+pub shape_queries_expose_canonical_patterns_guards_and_exact_entities(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub shape Positive(value) = value where value > 0.\npub identity(value: Int): Int -> value.\n",
+            );
+        Ok(entity) <- selected(context, "shape", "Positive", 0);
+        Ok(result) <- run(context, entity);
+        Ok(contract) <- evidence(result, "shape_definition");
+        Ok(params) <- contract.get("params");
+        Ok(pattern) <- contract.get("pattern");
+        Ok(guard) <- contract.get("guard");
+        Ok(origin) <- entity.get("origin")
+    } else {
+        _ -> false
+    };
+    (let checked =
+    params.length() == Ok(1)
+        and text(pattern, "kind") == "var"
+        and text(guard, "kind") == "binary_op"
+        and text(contract, "name") == "Positive"
+        and text(origin, "path") == "sample.terl"
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+checked and cleaned).
+
+@test
+pub trait_queries_keep_negative_evidence_distinct_from_missing_implementations(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub trait Encode[T] { encode(value: T): String. }.\npub opaque type Secret.\npub impl not Encode[Secret].\n",
+            );
+        Ok(entity) <- selected(context, "trait", "Encode", 0);
+        Ok(result) <- run(context, entity);
+        Ok(definition) <- evidence(result, "trait_definition");
+        Ok(methods) <- definition.get("methods");
+        Ok(method) <- methods.at(0);
+        Ok(negative) <- evidence(result, "trait_conformance");
+        Ok(denied) <- negative.get("is_negative")
+    } else {
+        _ -> false
+    };
+    (let checked =
+    text(method, "name") == "encode"
+        and denied.as_bool() == Ok(true)
+        and text(negative, "source") == "explicit_impl"
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+checked and cleaned).
+
+@test
+pub implication_queries_return_checked_nested_field_types_and_variable_scope(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub display[T => {name: String, nested: {code: Int}}](value: T): String -> value.name.\n",
+            );
+        Ok(entity) <- selected(context, "function", "display", 0);
+        Ok(result) <- run(context, entity);
+        Ok(contract) <- evidence(result, "declaration_requirements");
+        Ok(variables) <- contract.get("type_variables");
+        Ok(variable) <- variables.at(0);
+        Ok(bounds) <- contract.get("bounds");
+        Ok(bound) <- bounds.at(0);
+        Ok(shape) <- bound.get("required_shape");
+        Ok(fields) <- shape.get("Map");
+        Ok(first) <- fields.at(0);
+        Ok(first_type) <- first.get("value");
+        Ok(nested) <- fields.at(1);
+        Ok(nested_type) <- nested.get("value");
+        Ok(nested_fields) <- nested_type.get("Map");
+        Ok(code) <- nested_fields.at(0)
+    } else {
+        _ -> false
+    };
+    (let checked =
+    text(variable, "name") == "T"
+        and text(bound, "kind") == "structural_implication"
+        and text(first, "key") == "name"
+        and first_type.as_string() == Ok("Binary")
+        and text(code, "key") == "code"
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+checked and cleaned).
+
+@test
+pub constrained_alias_queries_use_the_compilers_alias_contract(): Bool ->
+    let {
+        Ok(context) <- fixture("module sample.\npub type Named[T => {name: String}] = T.\n");
+        Ok(entity) <- selected(context, "type", "Named", 0);
+        Ok(result) <- run(context, entity);
+        Ok(contract) <- evidence(result, "declaration_requirements");
+        Ok(bounds) <- contract.get("bounds");
+        Ok(bound) <- bounds.at(0)
+    } else {
+        _ -> false
+    };
+    (let checked = text(contract, "kind") == "type" and text(bound, "kind") == "structural_implication"; let cleaned = clean(context); checked and cleaned).
+
+@test
+pub overloaded_requirement_queries_join_exact_origins_and_charge_scans(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub name[T => {name: String}](value: T): String -> value.name.\npub name(number: Int): Int -> number.\n",
+            );
+        Ok(first) <- selected(context, "function", "name", 0);
+        Ok(second) <- selected(context, "function", "name", 1);
+        Ok(first_result) <- run(context, first);
+        Ok(second_result) <- run(context, second);
+        Ok(first_contract) <- evidence(first_result, "declaration_requirements");
+        Ok(second_contract) <- evidence(second_result, "declaration_requirements");
+        Ok(first_bounds) <- first_contract.get("bounds");
+        Ok(second_bounds) <- second_contract.get("bounds");
+        Ok(used) <- JsonRules.number(first_result, "work_used")
+    } else {
+        _ -> false
+    };
+    (let exact = first_bounds.length() == Ok(1) and second_bounds.length() == Ok(0);
+let bounded =
+    case Query.run(context.store, request(context, first, used - 1)) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+exact and bounded and cleaned).
+
+@test
+pub shape_identity_survives_unrelated_insertion_and_invalidates_changed_guards(): Bool ->
+    let {
+        Ok(before) <- fixture("module sample.\npub shape Positive(value) = value where value > 0.\n");
+        Ok(inserted) <-
+            fixture(
+                "module sample.\npub other(): Int -> 0.\npub shape Positive(value) = value where value > 0.\n",
+            );
+        Ok(changed) <- fixture("module sample.\npub shape Positive(value) = value where value > 1.\n");
+        Ok(first) <- selected(before, "shape", "Positive", 0);
+        Ok(second) <- selected(inserted, "shape", "Positive", 0);
+        Ok(third) <- selected(changed, "shape", "Positive", 0)
+    } else {
+        _ -> false
+    };
+    (let identity =
+    text(first, "entity_id") == text(second, "entity_id")
+        and text(first, "entity_id") != text(third, "entity_id");
+let first_cleaned = clean(before);
+let second_cleaned = clean(inserted);
+let third_cleaned = clean(changed);
+identity and first_cleaned and second_cleaned and third_cleaned).
+
+source_fixture(inputs: List[Input]): Result[Fixture, Bool] ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-bound-provider-test-");
+        Ok(snapshot) <- SourceSet.capture(compiler(), inputs, root + "/store");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(entities) <- catalog.get("entities")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(Fixture(root = root, store = root + "/store", snapshot = snapshot, entities = entities)).
+
+bound_links(result: Json, index: Int): Result[Json, Bool] ->
+    let {
+        Ok(facts) <- result.get("facts");
+        Ok(fact) <- facts.at(0);
+        Ok(value) <- fact.get("value");
+        Ok(origins) <- value.get("bound_origins");
+        Ok(origin) <- origins.at(index)
+    } else {
+        _ -> Err(false)
+    };
+    Ok(origin).
+
+@test
+pub imported_bound_origins_follow_resolver_aliases_despite_same_named_providers(): Bool ->
+    let {
+        Ok(context) <-
+            source_fixture(
+                [
+                    Input(
+                        path = "decoy.terli",
+                        contents = "module decoy.\npub trait Read[T] { read(value: T): String. }.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "provider.terli",
+                        contents = "module provider.\npub trait Read[T] { read(value: T): String. }.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\nimport provider.{Read as Alias}.\nimport decoy.{Read as Other}.\npub show[T](value: T)[Alias[T]]: String -> Alias.read(value).\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(entity) <- selected(context, "function", "show", 0);
+        Ok(provider) <- selected(context, "trait", "Read", 1);
+        Ok(result) <- run(context, entity);
+        Ok(link) <- bound_links(result, 0);
+        Ok(binding) <- link.get("binding");
+        Ok(origin) <- link.get("entity");
+        Ok(used) <- JsonRules.number(result, "work_used")
+    } else {
+        _ -> false
+    };
+    (let exact =
+    text(binding, "local_name") == "Alias"
+        and text(binding, "source_module") == "provider"
+        and text(binding, "source_name") == "Read"
+        and text(origin, "owner") == "provider"
+        and text(origin, "entity_id") == text(provider, "entity_id")
+        and text(origin, "digest") == text(provider, "digest")
+        and text(link, "status") == "resolved";
+let bounded =
+    case Query.run(context.store, request(context, entity, used - 1)) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+exact and bounded and cleaned).
+
+@test
+pub local_bound_origins_link_the_exact_checked_trait_entity(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub trait Read[T] { read(value: T): String. }.\npub show[T](value: T)[Read[T]]: String -> Read.read(value).\n",
+            );
+        Ok(entity) <- selected(context, "function", "show", 0);
+        Ok(provider) <- selected(context, "trait", "Read", 0);
+        Ok(result) <- run(context, entity);
+        Ok(link) <- bound_links(result, 0);
+        Ok(origin) <- link.get("entity");
+        Ok(binding) <- link.get("binding")
+    } else {
+        _ -> false
+    };
+    (let exact =
+    binding.is_null()
+        and text(link, "status") == "resolved"
+        and text(origin, "entity_id") == text(provider, "entity_id")
+        and text(origin, "digest") == text(provider, "digest");
+let cleaned = clean(context);
+exact and cleaned).
+
+@test
+pub bound_providers_outside_the_snapshot_remain_explicitly_unavailable(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\nimport std.core.String.{Show, show}.\npub display[T](value: T)[Show[T]]: String -> show(value).\n",
+            );
+        Ok(entity) <- selected(context, "function", "display", 0);
+        Ok(result) <- run(context, entity);
+        Ok(link) <- bound_links(result, 0);
+        Ok(binding) <- link.get("binding");
+        Ok(origin) <- link.get("entity")
+    } else {
+        _ -> false
+    };
+    (let explicit =
+    origin.is_null()
+        and text(link, "status") == "unavailable"
+        and text(binding, "source_module") == "std.core.String"
+        and text(binding, "source_name") == "Show"
+        and text(link, "reason") == "provider_outside_snapshot_or_unavailable"
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+explicit and cleaned).
+
+has_shape_origin(declaration: Json): Bool ->
+    let {
+        Ok(facts) <- declaration.get("facts");
+        Ok(fact) <- facts.at(0);
+        Ok(record) <- fact.get("value");
+        Ok(payload) <- record.get("payload");
+        Ok(references) <- payload.get("expanded_from");
+        Ok(count) <- references.length()
+    } else {
+        _ -> false
+    };
+    count > 0.
+
+pattern_for(
+    context: Fixture,
+    owner: String,
+    expanded: Bool,
+    index: Int,
+    count: Int,
+): Result[Json, Bool] ->
+    let {
+        true <- index < count;
+        Ok(entity) <- context.entities.at(index)
+    } else {
+        _ -> Err(false)
+    };
+    if {
+        text(entity, "kind") == "pattern" and text(entity, "owner") == owner -> if {
+            not expanded -> Ok(entity);
+            true -> let Ok(declaration) <-
+                Query.run(
+                    context.store,
+                    request(context, entity, 10_000).put("fact", Json.string("declaration")),
+                ) else {
+                _ -> Err(false)
+            };
+            if {
+                has_shape_origin(declaration) -> Ok(entity);
+                true -> pattern_for(context, owner, expanded, index + 1, count)
+            }
+        };
+        true -> pattern_for(context, owner, expanded, index + 1, count)
+    }.
+
+selected_pattern(context: Fixture, owner: Json, expanded: Bool): Result[Json, Bool] ->
+    let Ok(count) <- context.entities.length() else {
+        _ -> Err(false)
+    };
+    pattern_for(context, text(owner, "entity_id"), expanded, 0, count).
+
+shape_origin(result: Json, index: Int): Result[Json, Bool] ->
+    let {
+        Ok(facts) <- result.get("facts");
+        Ok(fact) <- facts.at(index);
+        Ok(value) <- fact.get("value");
+        Ok(evidence) <- value.get("evidence")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(evidence).
+
+@test
+pub local_nested_shape_expansions_link_both_checked_shape_entities(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub shape Wrapped(value) = {Atom[\"wrap\"], value}.\npub shape Nested(value) = Wrapped(value).\npub read(value: {Atom[\"wrap\"], Int}): Int -> case value { Nested(item) -> item }.\n",
+            );
+        Ok(owner) <- selected(context, "function", "read", 0);
+        Ok(pattern) <- selected_pattern(context, owner, true);
+        Ok(nested) <- selected(context, "shape", "Nested", 0);
+        Ok(wrapped) <- selected(context, "shape", "Wrapped", 0);
+        Ok(result) <- run(context, pattern);
+        Ok(first) <- shape_origin(result, 0);
+        Ok(second) <- shape_origin(result, 1);
+        Ok(first_entity) <- first.get("entity");
+        Ok(second_entity) <- second.get("entity")
+    } else {
+        _ -> false
+    };
+    (let linked =
+    text(first, "status") == "resolved"
+        and text(second, "status") == "resolved"
+        and text(first_entity, "entity_id") == text(nested, "entity_id")
+        and text(second_entity, "entity_id") == text(wrapped, "entity_id")
+        and text(first_entity, "digest") == text(nested, "digest")
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+linked and cleaned).
+
+@test
+pub imported_shape_alias_origins_follow_provider_identity_among_same_named_shapes(): Bool ->
+    let {
+        Ok(context) <-
+            source_fixture(
+                [
+                    Input(
+                        path = "decoy.terli",
+                        contents = "module decoy.\npub shape Wrapped(value) = {Atom[\"other\"], value}.\npub shape Nested(value) = Wrapped(value).\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "provider.terli",
+                        contents = "module provider.\npub shape Wrapped(value) = {Atom[\"wrap\"], value}.\npub shape Nested(value) = Wrapped(value).\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "sample.terl",
+                        contents = "module sample.\nimport provider.{Nested as Alias}.\npub read(value: {Atom[\"wrap\"], Int}): Int -> case value { Alias(item) -> item }.\n",
+                        document_version = 0,
+                    ),
+                ],
+            );
+        Ok(owner) <- selected(context, "function", "read", 0);
+        Ok(pattern) <- selected_pattern(context, owner, true);
+        Ok(provider) <- selected(context, "shape", "Nested", 1);
+        Ok(result) <- run(context, pattern);
+        Ok(origin) <- shape_origin(result, 0);
+        Ok(entity) <- origin.get("entity");
+        Ok(reference) <- origin.get("source_reference");
+        Ok(used) <- JsonRules.number(result, "work_used")
+    } else {
+        _ -> false
+    };
+    (let exact =
+    text(reference, "source_module") == "provider"
+        and text(reference, "source_name") == "Nested"
+        and text(entity, "entity_id") == text(provider, "entity_id")
+        and text(entity, "digest") == text(provider, "digest")
+        and text(entity, "owner") == "provider";
+let bounded =
+    case Query.run(context.store, request(context, pattern, used - 1)) {
+        Ok(page) ->
+            let {
+                Ok(cursor) <- page.get("next_cursor");
+                true <- not cursor.is_null();
+                Ok(first_facts) <- page.get("facts");
+                true <- first_facts.length() == Ok(1);
+                Ok(rest) <-
+                    Query.run(
+                        context.store,
+                        request(context, pattern, 10_000).put("cursor", cursor),
+                    );
+                Ok(last_cursor) <- rest.get("next_cursor");
+                Ok(rest_facts) <- rest.get("facts");
+                Ok(first_origin) <- shape_origin(page, 0);
+                Ok(first_entity) <- first_origin.get("entity");
+                Ok(second_origin) <- shape_origin(rest, 0);
+                Ok(second_entity) <- second_origin.get("entity");
+                Ok(expected_second_origin) <- shape_origin(result, 1);
+                Ok(expected_second) <- expected_second_origin.get("entity")
+            } else {
+                _ -> false
+            };
+            text(page, "status") == "partial"
+                and last_cursor.is_null()
+                and rest_facts.length() == Ok(1)
+                and text(first_entity, "entity_id") == text(entity, "entity_id")
+                and text(second_entity, "entity_id") == text(expected_second, "entity_id");
+        _ -> false
+    };
+let cleaned = clean(context);
+exact and bounded and cleaned).
+
+@test
+pub unexpanded_patterns_do_not_borrow_equivalent_shape_origins(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub shape Positive(value) = value where value > 0.\npub plain(value: Int): Int -> case value { item -> item }.\n",
+            );
+        Ok(owner) <- selected(context, "function", "plain", 0);
+        Ok(pattern) <- selected_pattern(context, owner, false);
+        Ok(result) <- run(context, pattern);
+        Ok(facts) <- result.get("facts")
+    } else {
+        _ -> false
+    };
+    (let unknown = text(result, "status") == "unavailable" and facts.length() == Ok(0); let cleaned = clean(context); unknown and cleaned).

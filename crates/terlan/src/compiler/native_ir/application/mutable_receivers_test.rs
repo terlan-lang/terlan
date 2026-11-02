@@ -210,6 +210,20 @@ fn generic_receivers_do_not_merge_distinct_qualified_constructors() {
 }
 
 #[test]
+fn applied_receiver_matches_public_and_internal_nominal_paths() {
+    let expected = CoreType::Apply {
+        constructor: "pkg.Transition.Transition".into(),
+        args: vec![CoreType::Named("pkg.Handler".into()), CoreType::Int],
+    };
+    let actual = CoreType::Apply {
+        constructor: "pkg.Transition".into(),
+        args: vec![CoreType::Named("pkg.Handler".into()), CoreType::Int],
+    };
+
+    assert!(receiver_types_match(&expected, &actual));
+}
+
+#[test]
 fn opaque_receiver_matches_its_expanded_struct_name() {
     let expected = CoreType::Named("Json".to_string());
     let actual = CoreType::Struct {

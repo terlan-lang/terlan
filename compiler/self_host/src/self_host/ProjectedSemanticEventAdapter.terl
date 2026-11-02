@@ -21,7 +21,8 @@ import self_host.ProjectedSemanticEventSyntax.{BindingTypeLink, ProjectedSemanti
 import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedSignatureDocument}.
 import self_host.ProjectedTypeConstraintSyntax.
 
-import self_host.ProjectedTypeConstraintSyntax.{TypeConstraintEvent}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintEvent, TypeConstraintResolution}.
+import self_host.ProjectedTypeRender.
 struct TypeWalk {
     next_id: Int,
     node_id: Int,
@@ -441,7 +442,7 @@ fixed_binding_offsets(values: List[BindingEvent], byte_offset: Int): List[Bindin
 parameter_pattern_output(node: ProjectedExpressionNode, byte_offset: Int, output: List[BindingEvent]): List[BindingEvent] ->
     let name = pattern_binding_name(node);
     if {
-        name != "" and name != "_" -> [BindingEvent(kind = "declare", name = name, binding_kind = "parameter", byte_offset = byte_offset) | output];
+        name != "" and name != "_" -> [BindingEvent(kind = "declare", name = name, binding_kind = "parameter", byte_offset = node.start_byte) | output];
         true -> output
     }.
 
@@ -501,7 +502,7 @@ callable_binding_events(
             concat(
                 guard_binding_events(guard, byte_offset),
                 concat(
-                    fixed_binding_offsets(binding_events(node), byte_offset),
+                    binding_events(node),
                     [BindingEvent(
                         kind = "leave-scope",
                         name = "",
@@ -517,7 +518,7 @@ callable_binding_events(
 guard_binding_events(value: Option[ProjectedExpressionNode], byte_offset: Int): List[BindingEvent] ->
     case value {
         None -> List.new[BindingEvent]();
-        Some(node) -> fixed_binding_offsets(binding_events(node), byte_offset)
+        Some(node) -> binding_events(node)
     }.
 
 @pure
@@ -586,9 +587,43 @@ call_module(callee: ProjectedExpressionNode): Option[String] ->
     if { callee.kind == "field" -> field_module(callee.children); true -> none_string() }.
 
 @pure
+type_arguments(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> false;
+        [value] -> type_argument(value);
+        [value | rest] -> type_argument(value) and type_arguments(rest)
+    }.
+
+@pure
+type_argument_children(value: ProjectedExpressionNode): Bool ->
+    case value.children {
+        [base, arguments] -> type_argument_base(base) and type_argument(arguments);
+        _ -> false
+    }.
+
+@pure
+type_argument_base(value: ProjectedExpressionNode): Bool ->
+    value.kind == "constructor"
+        or (value.kind == "field" and module_name(value.text))
+        or (value.kind == "index" and type_argument_children(value)).
+
+@pure
+type_argument(value: ProjectedExpressionNode): Bool ->
+    if {
+        value.kind == "constructor" -> true;
+        value.kind == "primary" and module_name(value.text) -> true;
+        value.kind == "field" -> module_name(value.text);
+        value.kind == "index" -> type_argument_children(value);
+        value.kind == "sequence"
+            or value.kind == "tuple"
+            or value.kind == "tuple-or-group" -> type_arguments(value.children);
+        true -> false
+    }.
+
+@pure
 call_target(callee: ProjectedExpressionNode): ProjectedExpressionNode ->
     case callee.children {
-        [base, argument] where callee.kind == "index" and argument.kind == "binding" -> base;
+        [base, argument] where callee.kind == "index" and type_argument(argument) -> base;
         _ -> callee
     }.
 
@@ -671,11 +706,146 @@ call_uses(node: ProjectedExpressionNode): List[CallableUse] ->
     call_uses_at([node], List.new[CallableUse]()).
 
 @pure
+numbered_children(value: NumberedExpressionNode): List[NumberedExpressionNode] ->
+    reverse(value.children_reversed).
+
+@pure
+numbered_call_target(callee: NumberedExpressionNode): NumberedExpressionNode ->
+    case numbered_children(callee) {
+        [base, argument] where callee.node.kind == "index" and type_argument(argument.node) -> base;
+        _ -> callee
+    }.
+
+@pure
+numbered_argument_nodes(values: List[NumberedExpressionNode]): List[NumberedExpressionNode] ->
+    case values {
+        [value] where value.node.kind == "sequence" or value.node.kind == "call-arguments" ->
+            numbered_children(value);
+        _ -> values
+    }.
+
+@pure
+numbered_argument_id(value: NumberedExpressionNode): Int ->
+    case numbered_children(value) {
+        [argument] where value.node.kind == "named-argument" -> argument.node_id;
+        _ -> value.node_id
+    }.
+
+@pure
+numbered_ids(values: List[NumberedExpressionNode]): List[Int] ->
+    case values {
+        [] -> List.new[Int]();
+        [value | rest] -> [numbered_argument_id(value) | numbered_ids(rest)]
+    }.
+
+@pure
+numbered_receiver_ids(callee: NumberedExpressionNode, arguments: List[Int]): List[Int] ->
+    case numbered_children(callee) {
+        [receiver | _rest] -> [receiver.node_id | arguments];
+        [] -> arguments
+    }.
+
+@pure
+call_argument_node_ids(
+    callee: NumberedExpressionNode,
+    arguments: List[NumberedExpressionNode],
+): List[Int] ->
+    let ids = numbered_ids(numbered_argument_nodes(arguments));
+    case call_module(callee.node) {
+        Some(_module) -> ids;
+        None -> if {
+            callee.node.kind == "field" -> numbered_receiver_ids(callee, ids);
+            true -> ids
+        }
+    }.
+
+@pure
+numbered_call_use_children(
+    value: NumberedExpressionNode,
+    output: List[CallableUse],
+): List[CallableUse] ->
+    case {value.node.children, numbered_children(value)} {
+        {[callee | arguments], [numbered_callee | numbered_arguments]} ->
+            let target = call_target(callee);
+            let numbered_target = numbered_call_target(numbered_callee);
+            [CallableUse(
+                module_name = call_module(target),
+                name = target.text,
+                arity = call_arity(target, arguments),
+                argument_offsets = call_argument_offsets(target, arguments),
+                byte_offset = value.node.start_byte,
+                node_id = value.node_id,
+                argument_node_ids = call_argument_node_ids(numbered_target, numbered_arguments),
+            ) | output];
+        _ -> output
+    }.
+
+@pure
+numbered_call_use_output(
+    value: NumberedExpressionNode,
+    output: List[CallableUse],
+): List[CallableUse] ->
+    if {
+        value.node.kind != "call" -> output;
+        true -> numbered_call_use_children(value, output)
+    }.
+
+@pure
+numbered_call_uses_at(
+    work: List[NumberedExpressionNode],
+    output: List[CallableUse],
+): List[CallableUse] ->
+    case work {
+        [] -> reverse(output);
+        [value | rest] -> numbered_call_uses_at(
+            concat(numbered_children(value), rest),
+            numbered_call_use_output(value, output),
+        )
+    }.
+
+@pure
+call_uses_numbered(value: NumberedExpressionNode): List[CallableUse] ->
+    numbered_call_uses_at([value], List.new[CallableUse]()).
+
+@pure
 binding_type_link_output(
     node: ProjectedExpressionNode,
     output: List[BindingTypeLink],
 ): List[BindingTypeLink] ->
-    if { node.kind == "let" or node.kind == "let-refutable" -> binding_type_link_children(node.children, output); true -> output }.
+    if {
+        node.kind == "let" or node.kind == "let-refutable" -> binding_type_link_children(node.children, output);
+        node.kind == "lambda" -> lambda_binding_type_links(node.children, output);
+        true -> output
+    }.
+
+@pure
+typed_pattern_type_links(
+    work: List[ProjectedExpressionNode],
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    case work {
+        [] -> output;
+        [node | rest] -> typed_pattern_type_links(
+            concat_nodes(node.children, rest),
+            if {
+                node.kind == "typed-pattern" -> [BindingTypeLink(
+                    declaration_offset = node.start_byte,
+                    source_offset = node.start_byte,
+                ) | output];
+                true -> output
+            },
+        )
+    }.
+
+@pure
+lambda_binding_type_links(
+    values: List[ProjectedExpressionNode],
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    case values {
+        [parameters | _] -> typed_pattern_type_links(parameters.children, output);
+        [] -> output
+    }.
 
 @pure
 binding_type_link_value(pattern: ProjectedExpressionNode, source: ProjectedExpressionNode, output: List[BindingTypeLink]): List[BindingTypeLink] ->
@@ -738,6 +908,63 @@ constraint_kind(node: ProjectedExpressionNode): String ->
     if { node.kind == "binary" and (node.text == "and" or node.text == "or") -> "logical"; true -> comparison_constraint_kind(node) }.
 
 @pure
+lambda_parameter_type(pattern: ProjectedExpressionNode): String ->
+    case String.split(pattern.text, ":") {
+        [_name, type_name] -> String.trim(type_name);
+        _ -> ""
+    }.
+
+@pure
+typed_pattern_constraint(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    child_ids: List[Int],
+): TypeConstraintEvent ->
+    let type_name = lambda_parameter_type(node);
+    if {
+        type_name == "" -> unknown_constraint(node, node_id, child_ids);
+        true -> known_constraint(node, node_id, type_name)
+    }.
+
+@pure
+lambda_parameter_types(values: List[ProjectedExpressionNode]): String ->
+    case values {
+        [] -> "";
+        [value] -> lambda_parameter_type(value);
+        [value | rest] -> String.concat([
+            lambda_parameter_type(value),
+            ", ",
+            lambda_parameter_types(rest),
+        ])
+    }.
+
+@pure
+lambda_type_prefix(node: ProjectedExpressionNode): String ->
+    case node.children {
+        [patterns, _body] -> String.concat([
+            "(",
+            lambda_parameter_types(patterns.children),
+            ")",
+        ]);
+        _ -> ""
+    }.
+
+@pure
+lambda_constraint(
+    node: ProjectedExpressionNode,
+    node_id: Int,
+    child_ids: List[Int],
+): TypeConstraintEvent ->
+    TypeConstraintEvent(
+        kind = "function",
+        node_id = node_id,
+        left_node = child_id(child_ids, 1),
+        right_node = -1,
+        type_name = lambda_type_prefix(node),
+        byte_offset = node.start_byte,
+    ).
+
+@pure
 comparison_constraint_kind(node: ProjectedExpressionNode): String ->
     if {
         node.kind == "binary" and (node.text == "==" or node.text == "!=" or node.text == "<" or node.text == ">" or node.text == "<=" or node.text == ">=" or node.text == "in") -> "compare-same";
@@ -751,7 +978,8 @@ binary_constraint_kind(node: ProjectedExpressionNode): String ->
 @pure
 propagation_constraint_kind(node: ProjectedExpressionNode): String ->
     if {
-        node.kind == "unary" or node.kind == "field" or node.kind == "index" or node.kind == "sequence" or node.kind == "let" or node.kind == "let-refutable" or node.kind == "call-arguments" or node.kind == "named-argument" or node.kind == "clause" or node.kind == "constructor-chain" -> "propagate";
+        (node.kind == "tuple-or-group" and node.children.length() == 1)
+            or node.kind == "unary" or node.kind == "field" or node.kind == "index" or node.kind == "sequence" or node.kind == "let" or node.kind == "let-refutable" or node.kind == "call-arguments" or node.kind == "named-argument" or node.kind == "clause" or node.kind == "constructor-chain" -> "propagate";
         true -> "unknown"
     }.
 
@@ -833,6 +1061,8 @@ node_constraint(node: ProjectedExpressionNode, node_id: Int, child_ids: List[Int
             type_name = "",
             byte_offset = node.start_byte,
         );
+        node.kind == "lambda" -> lambda_constraint(node, node_id, child_ids);
+        node.kind == "typed-pattern" -> typed_pattern_constraint(node, node_id, child_ids);
         node.kind == "integer" -> known_constraint(node, node_id, "Int");
         true -> float_constraint(node, node_id, child_ids)
     }.
@@ -996,12 +1226,13 @@ walk_type(node: ProjectedExpressionNode, node_id: Int): TypeWalk ->
 @pure
 body_node_events(body: ProjectedBody, rest: List[ProjectedBody], signatures: List[ProjectedCallableSignature], next_id: Int, node: ProjectedExpressionNode, bindings: List[BindingEvent], calls: List[CallableUse], constraints: List[TypeConstraintEvent], links: List[BindingTypeLink]): ProjectedSemanticEvents ->
     let typed = walk_type(node, next_id);
+    let numbered = number_node(node, next_id);
     body_events_at(
         rest,
         remaining_signatures(signatures),
         typed.next_id,
         prepend_reversed(callable_binding_events(body, head_parameters(signatures), head_guard(signatures), node), bindings),
-        prepend_reversed(call_uses(node), calls),
+        prepend_reversed(call_uses_numbered(numbered.value), calls),
         prepend_reversed(typed.events, constraints),
         prepend_reversed(binding_type_links(node), links),
     ).
@@ -1082,22 +1313,25 @@ pub adapt_binding_events(
 @pure
 callable_body_events_at(
     values: List[ProjectedBody],
+    next_id: Int,
     output: List[CallableUse],
 ): List[CallableUse] ->
     case values {
         [] -> reverse(output);
         [body | rest] -> case body.expression.node {
-            None -> callable_body_events_at(rest, output);
-            Some(node) -> callable_body_events_at(
+            None -> callable_body_events_at(rest, next_id, output);
+            Some(node) -> let numbered = number_node(node, next_id);
+                callable_body_events_at(
                 rest,
-                prepend_reversed(call_uses(node), output),
+                numbered.next_id,
+                prepend_reversed(call_uses_numbered(numbered.value), output),
             )
         }
     }.
 
 @pure
 pub adapt_callable_uses(bodies: ProjectedBodies): List[CallableUse] ->
-    callable_body_events_at(bodies.values, List.new[CallableUse]()).
+    callable_body_events_at(bodies.values, 0, List.new[CallableUse]()).
 
 @pure
 type_body_events_at(
@@ -1142,3 +1376,99 @@ binding_type_link_body_events_at(
 @pure
 pub adapt_binding_type_links(bodies: ProjectedBodies): List[BindingTypeLink] ->
     binding_type_link_body_events_at(bodies.values, List.new[BindingTypeLink]()).
+
+@pure
+parameter_type_fact(
+    value: ProjectedParameterTree,
+    output: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case {value.pattern, value.annotation} {
+        {Some(pattern), Some(annotation)} -> [InferredTypeFact(
+            0 - pattern.start_byte - 1,
+            Some(ProjectedTypeRender.render(annotation)),
+            pattern.start_byte,
+        ) | output];
+        _ -> output
+    }.
+
+@pure
+parameter_type_facts_at(
+    values: List[ProjectedParameterTree],
+    output: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> output;
+        [value | rest] -> parameter_type_facts_at(rest, parameter_type_fact(value, output))
+    }.
+
+@pure
+callable_parameter_type_facts_at(
+    values: List[ProjectedCallableSignature],
+    output: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> callable_parameter_type_facts_at(
+            rest,
+            parameter_type_facts_at(value.parameters, output),
+        )
+    }.
+
+/** Adds declaration-site facts for explicitly typed callable parameters. */
+pub seed_parameter_types(
+    types: TypeConstraintResolution,
+    signatures: ProjectedSignatureDocument,
+): TypeConstraintResolution ->
+    TypeConstraintResolution(
+        concat(types.facts, callable_parameter_type_facts_at(
+            signatures.callables,
+            List.new[InferredTypeFact](),
+        )),
+        types.diagnostics,
+    ).
+
+@pure
+parameter_type_link(
+    value: ProjectedParameterTree,
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    case {value.pattern, value.annotation} {
+        {Some(pattern), Some(_annotation)} -> [BindingTypeLink(
+            declaration_offset = pattern.start_byte,
+            source_offset = pattern.start_byte,
+        ) | output];
+        _ -> output
+    }.
+
+@pure
+parameter_type_links_at(
+    values: List[ProjectedParameterTree],
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    case values {
+        [] -> output;
+        [value | rest] -> parameter_type_links_at(rest, parameter_type_link(value, output))
+    }.
+
+@pure
+callable_parameter_type_links_at(
+    values: List[ProjectedCallableSignature],
+    output: List[BindingTypeLink],
+): List[BindingTypeLink] ->
+    case values {
+        [] -> reverse(output);
+        [value | rest] -> callable_parameter_type_links_at(
+            rest,
+            parameter_type_links_at(value.parameters, output),
+        )
+    }.
+
+/** Returns body and callable-parameter type links at real source offsets. */
+pub adapt_binding_type_links_with_signatures(
+    bodies: ProjectedBodies,
+    signatures: ProjectedSignatureDocument,
+): List[BindingTypeLink] ->
+    concat(
+        adapt_binding_type_links(bodies),
+        callable_parameter_type_links_at(signatures.callables, List.new[BindingTypeLink]()),
+    ).

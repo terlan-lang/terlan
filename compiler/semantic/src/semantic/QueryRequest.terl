@@ -1,0 +1,175 @@
+/**
+ * Typed admission of the public semantic query contract.
+ */
+module semantic.QueryRequest.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.JsonRules.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Target {
+    entity_id: String,
+    kind: String,
+    expected_digest: String,
+}.
+
+pub struct Limits {
+    max_bytes: Int,
+    max_work: Int,
+}.
+
+pub struct Request {
+    snapshot_id: String,
+    target: Target,
+    fact: String,
+    limits: Limits,
+    cursor: String,
+}.
+
+pub kinds(): List[String] ->
+    [
+        "module",
+        "binding",
+        "function",
+        "type",
+        "trait",
+        "shape",
+        "implication",
+        "pattern",
+        "actor",
+        "protocol",
+        "message",
+    ].
+
+pub facts(): List[String] ->
+    [
+        "declaration",
+        "definition",
+        "references",
+        "type",
+        "interface",
+        "conformance",
+        "effects",
+        "ownership",
+        "pattern_coverage",
+        "core",
+        "expected_values",
+        "legal_transformations",
+        "impact",
+    ].
+
+pub target_json(target: Target): Json ->
+    Json.object()
+        .put("entity_id", Json.string(target.entity_id))
+        .put("kind", Json.string(target.kind))
+        .put("expected_digest", Json.string(target.expected_digest)).
+
+/**
+ * Cursor scope excludes page limits, allowing a client to increase its budget.
+ */
+pub scope_json(request: Request): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.query-scope.v1"))
+        .put("snapshot_id", Json.string(request.snapshot_id))
+        .put("target", target_json(request.target))
+        .put("fact", Json.string(request.fact)).
+
+pub valid(request: Request): Bool ->
+    JsonRules.id(request.snapshot_id, "s:")
+        and JsonRules.id(request.target.entity_id, "e:")
+        and JsonRules.digest(request.target.expected_digest)
+        and JsonRules.contains(kinds(), request.target.kind)
+        and JsonRules.contains(facts(), request.fact)
+        and request.limits.max_bytes > 0
+        and request.limits.max_bytes <= 1_048_576
+        and request.limits.max_work > 0
+        and request.limits.max_work <= 1_000_000
+        and (request.cursor == "" or JsonRules.id(request.cursor, "c:")).
+
+pub parse(value: Json): Result[Request, Failure] ->
+    let true <- JsonRules.exact_keys(value, ["schema", "snapshot_id", "target", "fact", "limits", "cursor"]) else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.fields",
+                    message = "Query fields do not match the declared contract.",
+                ),
+            )
+    };
+    (let Ok(schema) <- JsonRules.text(value, "schema") else {
+    Err(reason) -> Err(reason)
+};
+(let true <- schema == "terlan.semantic.query.v1" else {
+    _ ->
+        Err(Failure(code = "semantic.query.schema", message = "Unsupported semantic query schema."))
+};
+(let {
+    Ok(snapshot) <- JsonRules.text(value, "snapshot_id");
+    Ok(fact) <- JsonRules.text(value, "fact");
+    Ok(target) <- value.get("target");
+    Ok(limits) <- value.get("limits");
+    Ok(cursor_value) <- value.get("cursor")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.fields",
+                message = "Query is missing required scalar or object fields.",
+            ),
+        )
+};
+(let true <-
+    JsonRules.exact_keys(target, ["entity_id", "kind", "expected_digest"])
+        and JsonRules.exact_keys(limits, ["max_bytes", "max_work"]) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.fields",
+                message = "Target or limit fields do not match the declared contract.",
+            ),
+        )
+};
+(let {
+    Ok(entity_id) <- JsonRules.text(target, "entity_id");
+    Ok(kind) <- JsonRules.text(target, "kind");
+    Ok(digest) <- JsonRules.text(target, "expected_digest");
+    Ok(max_bytes) <- JsonRules.number(limits, "max_bytes");
+    Ok(max_work) <- JsonRules.number(limits, "max_work")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.fields",
+                message = "Target and limits require their declared scalar types.",
+            ),
+        )
+};
+(let cursor =
+    if {
+        cursor_value.is_null() -> "";
+        true -> case cursor_value.as_string() {
+            Ok(text) -> text;
+            _ -> "invalid cursor"
+        }
+    };
+let request =
+    Request(
+        snapshot_id = snapshot,
+        target = Target(entity_id = entity_id, kind = kind, expected_digest = digest),
+        fact = fact,
+        limits = Limits(max_bytes = max_bytes, max_work = max_work),
+        cursor = cursor,
+    );
+if {
+    valid(request) -> Ok(request);
+    true -> Err(
+        Failure(
+            code = "semantic.query.constraints",
+            message = "Query has an invalid identity, fact, kind, cursor, or work/byte budget.",
+        ),
+    )
+})))))).

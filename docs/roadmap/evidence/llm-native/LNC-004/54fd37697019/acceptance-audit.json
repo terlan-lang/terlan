@@ -1,0 +1,71 @@
+{
+  "task": "LNC-004",
+  "status": "acceptance_passed",
+  "gate_report": "report.json",
+  "gate_report_sha256": "ff1574d50f6470314fa4a588c1b47ea435ef451c5eb5d76abbcb0522174b0261",
+  "requirements": [
+    {
+      "requirement": "Bind source bytes, dependency interfaces, compiler/syntax identities, target, flags, policy and document versions",
+      "evidence": [
+        "live-snapshot.json",
+        "live-schema-evidence.json",
+        "live-store",
+        "snapshot-SourceSetTest.json",
+        "inputs.json"
+      ],
+      "scope": "Frozen single-file or explicit source-set inputs; actual dependency interface context. Compiler ancestry is a declared trusted binary anchor."
+    },
+    {
+      "requirement": "Define IDs for bindings, declarations, overloads, types, traits and patterns",
+      "evidence": [
+        "live-catalog.json",
+        "snapshot-DeclarationEntitiesTest.json",
+        "snapshot-CatalogTest.json",
+        "source-archive.json"
+      ],
+      "scope": "Supported checked declarations and syntax patterns, including interface-only declarations. Unsupported categories and generated origin chains remain explicit limitations."
+    },
+    {
+      "requirement": "Unrelated declaration insertion preserves IDs where promised",
+      "evidence": [
+        "snapshot-EntitiesTest.json",
+        "snapshot-DeclarationEntitiesTest.json",
+        "snapshot-CatalogTest.json"
+      ]
+    },
+    {
+      "requirement": "Rename and lexical moves map or invalidate old IDs; no silent stale selection",
+      "evidence": [
+        "snapshot-EntitiesTest.json",
+        "snapshot-CatalogTest.json",
+        "snapshot-SourceSetTest.json"
+      ],
+      "scope": "Renamed/moved IDs are invalidated; selection requires snapshot, ID, kind and exact content digest. Changed dependency interfaces invalidate stale content."
+    },
+    {
+      "requirement": "Unsaved overlays and invalid sources return versioned partial results with analysis status",
+      "evidence": [
+        "snapshot-SnapshotTest.json",
+        "snapshot-SourceSetTest.json",
+        "live-snapshot.json"
+      ],
+      "scope": "Disk-based overlay capture checks base bytes; explicit source-set bytes and supplied document versions are immutable inputs, not an assertion of current editor state."
+    },
+    {
+      "requirement": "Checked publication and immutable retrieval reject corruption",
+      "evidence": [
+        "snapshot-SnapshotTest.json",
+        "snapshot-SourceSetTest.json"
+      ],
+      "scope": "Completed content-addressed publication marker and hash checks; no durable multi-file working-tree transaction claim."
+    }
+  ],
+  "not_claimed": [
+    "M1 completion",
+    "live MCP conformance",
+    "source transaction verification/publication",
+    "unsupported inferred local types, exact token ranges or expanded origins",
+    "automatic complete workspace discovery",
+    "independent compiler build ancestry verification"
+  ]
+}

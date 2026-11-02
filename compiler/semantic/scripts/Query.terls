@@ -1,0 +1,33 @@
+#!/usr/bin/env -S terlc run
+import semantic.Query.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.{Console, File}.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 2;
+        Some(store) <- get(0);
+        Some(path) <- get(1);
+        Ok(size) <- File.size(path);
+        true <- size <= 1_048_576;
+        Ok(contents) <- File.read_text(path);
+        Ok(request) <- Json.parse(contents)
+    } else {
+        _ ->
+            let _logged = Console.eprintln("Expected snapshot store and a bounded query JSON file.");
+            false
+    };
+    case Query.run(store, request) {
+        Ok(value) ->
+            let _sent = Console.println(Json.to_string(value));
+            true;
+        Err(reason) ->
+            let _logged = Console.eprintln(reason.code + ": " + reason.message);
+            false
+    }.
+
+assert(entry());
+Unit.

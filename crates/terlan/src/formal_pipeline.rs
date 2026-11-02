@@ -3,19 +3,20 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::terlan_hir::{
-    expand_syntax_shape_imports, resolve_syntax_module_output_with_interfaces, ModuleInterface,
+    ModuleInterface, expand_syntax_shape_imports, resolve_syntax_module_output_with_interfaces,
 };
 use crate::terlan_syntax::{
+    SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
-    parse_script_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
+    parse_script_as_syntax_output,
 };
 use crate::terlan_typeck::{expand_syntax_includes, expand_syntax_macros_with_interfaces};
 
 use crate::validation::config_contract::check_config_declarations_syntax_output;
-use crate::validation::native_policy::{validate_native_policy, NativePolicy};
+use crate::validation::native_policy::{NativePolicy, validate_native_policy};
 use crate::validation::phase_manifest::PhaseManifestDiagnostic;
 use crate::validation::target_profile::{
-    target_profile_checks_with_options, TargetProfile, TargetProfileCheckOptions,
+    TargetProfile, TargetProfileCheckOptions, target_profile_checks_with_options,
 };
 use crate::validation::template_contract::type_check_syntax_module_output_with_template_inputs;
 
@@ -32,6 +33,8 @@ pub(crate) mod interface_graph;
 mod interface_loading;
 #[path = "formal_pipeline/phase_timings.rs"]
 mod phase_timings;
+#[path = "formal_pipeline/resolution_metadata.rs"]
+pub(crate) mod resolution_metadata;
 #[path = "formal_pipeline/templates.rs"]
 mod templates;
 use crate::DiagnosticFormat;
@@ -74,6 +77,7 @@ pub(crate) struct CheckedSyntaxModuleArtifacts {
 /// - Preserves parse, resolve, and typecheck status so commands can emit phase
 ///   manifests without rerunning compilation.
 pub(crate) struct CompileSyntaxModuleThroughPhasesResult {
+    pub(crate) resolved_imports: Vec<resolution_metadata::ResolvedImportMetadata>,
     pub(crate) artifacts: Option<CheckedSyntaxModuleArtifacts>,
     pub(crate) checked_interface: Option<CheckedInterfaceArtifacts>,
     pub(crate) parse_diagnostics: Vec<PhaseManifestDiagnostic>,
@@ -363,6 +367,7 @@ pub(crate) fn compile_syntax_module_with_interfaces(
     } = interfaces;
     let mut timings = phase_timings::FormalPipelineTimings::new(path);
     let mut result = CompileSyntaxModuleThroughPhasesResult {
+        resolved_imports: Vec::new(),
         artifacts: None,
         checked_interface: None,
         parse_diagnostics: Vec::new(),
@@ -502,6 +507,7 @@ pub(crate) fn compile_syntax_module_with_interfaces(
     timings.mark("shapes");
 
     let resolved = resolve_syntax_module_output_with_interfaces(&syntax_output, &interfaces).module;
+    result.resolved_imports = resolution_metadata::imports(&resolved);
     timings.mark("resolve");
     for diag in resolved.diagnostics.iter() {
         crate::support::emit_diagnostic(

@@ -1,0 +1,428 @@
+/**
+ * MCP domain handlers over one explicitly admitted immutable snapshot.
+ */
+module semantic.McpService.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.{Catalog, CursorStore, JsonRules, Query, QueryRequest, SnapshotStore}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.File.
+import std.mcp.Protocol.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Context {
+    store: String,
+    snapshot_id: String,
+    input_schema: Json,
+    output_schema: Json,
+    resources: Json,
+    projection: String,
+}.
+
+text(value: Json, key: String): String ->
+    case JsonRules.text(value, key) {
+        Ok(result) -> result;
+        _ -> ""
+    }.
+
+schema(root: String, name: String): Result[Json, Failure] ->
+    let path = root + "/" + name + ".schema.json";
+    let {
+        Ok(size) <- File.size(path);
+        true <- size <= 65_536;
+        Ok(contents) <- File.read_text(path);
+        Ok(document) <- Json.parse(contents);
+        true <- text(document, "$id") == "urn:terlan:semantic:" + name + ":v1"
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.mcp.schema",
+                    message = "Cannot load the declared semantic schema.",
+                ),
+            )
+    };
+    Ok(document).
+
+base(snapshot: String): String ->
+    "terlan://snapshots/" + snapshot.
+
+catalog_uri(snapshot: String, page: Int): String ->
+    base(snapshot) + "/entities/" + Json.to_string(Json.int(page)).
+
+resource(uri: String, name: String, document: Json): Result[Json, Failure] ->
+    let contents = Json.to_string(document);
+    let true <- contents.byte_size() <= 65_536 else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.mcp.resource_limit",
+                    message = "Resource exceeds the 64 KiB admission limit.",
+                ),
+            )
+    };
+    Ok(
+        Json.object()
+            .put(
+                "descriptor",
+                Json.object()
+                    .put("uri", Json.string(uri))
+                    .put("name", Json.string(name))
+                    .put("mimeType", Json.string("application/json")),
+            )
+            .put("text", Json.string(contents)),
+    ).
+
+catalog_page(snapshot: String, catalog: Json, rows: Json, page: Int, more: Bool): Json ->
+    let limitations =
+        case catalog.get("limitations") {
+            Ok(value) -> value;
+            _ -> Json.array()
+        };
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.entity-page.v1"))
+        .put("snapshot_id", Json.string(snapshot))
+        .put("status", Json.string(text(catalog, "status")))
+        .put("limitations", limitations)
+        .put("entities", rows)
+        .put(
+            "next_resource",
+            if {
+                more -> Json.string(catalog_uri(snapshot, page + 1));
+                true -> Json.null()
+            },
+        ).
+
+/**
+ * Each entity page is bounded before publication; nothing is silently dropped.
+ */
+catalog_resources(
+    snapshot: String,
+    catalog: Json,
+    entities: Json,
+    index: Int,
+    count: Int,
+    rows: Json,
+    bytes: Int,
+    page: Int,
+    resources: Json,
+): Result[Json, Failure] ->
+    if {
+        page >= 1_024 -> Err(
+            Failure(
+                code = "semantic.mcp.resource_limit",
+                message = "Catalog exceeds the 1024-page admission limit.",
+            ),
+        );
+        index == count -> let Ok(last) <-
+            resource(
+                catalog_uri(snapshot, page),
+                "entities-" + Json.to_string(Json.int(page)),
+                catalog_page(snapshot, catalog, rows, page, false),
+            ) else {
+            Err(reason) -> Err(reason)
+        };
+        Ok(resources.push(last));
+        true -> let Ok(row) <- entities.at(index) else {
+            _ ->
+                Err(Failure(code = "semantic.mcp.catalog", message = "Catalog entity is missing."))
+        };
+        (let size = Json.to_string(row).byte_size();
+if {
+    size > 32_768 -> Err(
+        Failure(
+            code = "semantic.mcp.resource_limit",
+            message = "A catalog entity exceeds the page admission limit.",
+        ),
+    );
+    bytes + size > 32_768 -> let Ok(current) <-
+        resource(
+            catalog_uri(snapshot, page),
+            "entities-" + Json.to_string(Json.int(page)),
+            catalog_page(snapshot, catalog, rows, page, true),
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    catalog_resources(
+        snapshot,
+        catalog,
+        entities,
+        index,
+        count,
+        Json.array(),
+        0,
+        page + 1,
+        resources.push(current),
+    );
+    true -> catalog_resources(
+        snapshot,
+        catalog,
+        entities,
+        index + 1,
+        count,
+        rows.push(row),
+        bytes + size,
+        page,
+        resources,
+    )
+})
+    }.
+
+/**
+ * Host configuration, never client-supplied paths, selects store and schemas.
+ */
+pub open(store: String, snapshot: String, schema_root: String): Result[Context, Failure] ->
+    let {
+        Ok(manifest) <- SnapshotStore.load(store, snapshot);
+        Ok(catalog) <- Catalog.index(store, snapshot);
+        Ok(entities) <- catalog.get("entities");
+        Ok(count) <- entities.length();
+        true <- count <= 65_536;
+        true <- Json.to_string(catalog).byte_size() <= 16_777_216;
+        Ok(input) <- schema(schema_root, "query");
+        Ok(output) <- schema(schema_root, "query-result");
+        Ok(failure) <- schema(schema_root, "query-error");
+        Ok(manifest_resource) <- resource(base(snapshot) + "/manifest", "snapshot-manifest", manifest)
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.mcp.admission",
+                    message = "Snapshot or schemas failed MCP admission and resource bounds.",
+                ),
+            )
+    };
+    (let Ok(resources) <-
+    catalog_resources(
+        snapshot,
+        catalog,
+        entities,
+        0,
+        count,
+        Json.array(),
+        0,
+        0,
+        Json.array().push(manifest_resource),
+    ) else {
+    Err(reason) -> Err(reason)
+};
+(let union =
+    Json.object()
+        .put("$schema", Json.string("https://json-schema.org/draft/2020-12/schema"))
+        .put("type", Json.string("object"))
+        .put("oneOf", Json.array().push(output).push(failure));
+Ok(
+    Context(
+        store = store,
+        snapshot_id = snapshot,
+        input_schema = input,
+        output_schema = union,
+        resources = resources,
+        projection = Hash.sha256(Json.to_string(resources)),
+    ),
+))).
+
+tool(context: Context): Json ->
+    Json.object()
+        .put("name", Json.string("terlan_query"))
+        .put(
+            "description",
+            Json.string(
+                "Query checked compiler facts in the admitted snapshot. Discover exact entity handles in snapshot resources. Partial and unavailable facts carry limitations; candidates still require verification.",
+            ),
+        )
+        .put("inputSchema", context.input_schema)
+        .put("outputSchema", context.output_schema)
+        .put(
+            "annotations",
+            Json.object()
+                .put("readOnlyHint", Json.bool(true))
+                .put("destructiveHint", Json.bool(false))
+                .put("idempotentHint", Json.bool(true))
+                .put("openWorldHint", Json.bool(false)),
+        ).
+
+tool_result(value: Json, failed: Bool): Json ->
+    Json.object()
+        .put(
+            "content",
+            Json.array()
+                .push(
+                    Json.object()
+                        .put("type", Json.string("text"))
+                        .put("text", Json.string(Json.to_string(value))),
+                ),
+        )
+        .put("structuredContent", value)
+        .put("isError", Json.bool(failed)).
+
+failure_result(reason: Failure): Json ->
+    tool_result(
+        Json.object()
+            .put("schema", Json.string("terlan.semantic.query-error.v1"))
+            .put("code", Json.string(reason.code))
+            .put("message", Json.string(reason.message)),
+        true,
+    ).
+
+call(context: Context, id: Json, params: Json): Json ->
+    let Ok(name) <- JsonRules.text(params, "name") else {
+        _ -> Protocol.error(id, -32_602, "Tool call requires a name and arguments object.")
+    };
+    (let arguments =
+    case params.get("arguments") {
+        Ok(value) -> value;
+        _ -> Json.object()
+    };
+(let Ok(_) <- arguments.keys() else {
+    _ -> Protocol.error(id, -32_602, "Tool arguments must be an object.")
+};
+if {
+    name != "terlan_query" -> Protocol.error(id, -32_602, "Unknown tool.");
+    true -> let result =
+        case QueryRequest.parse(arguments) {
+            Err(reason) -> failure_result(reason);
+            Ok(request) ->
+                if {
+                    request.snapshot_id != context.snapshot_id -> failure_result(
+                        Failure(
+                            code = "semantic.mcp.snapshot_scope",
+                            message = "Query selects a snapshot outside this connection's admitted scope.",
+                        ),
+                    );
+                    true -> case Query.execute(context.store, request) {
+                        Ok(value) -> tool_result(value, false);
+                        Err(reason) -> failure_result(reason)
+                    }
+                }
+        };
+    Protocol.reply(id, result)
+})).
+
+cursor(params: Json): Result[String, Failure] ->
+    case params.get("cursor") {
+        Ok(value) ->
+            case value.as_string() {
+                Ok(value) -> Ok(value);
+                _ ->
+                    Err(Failure(code = "semantic.mcp.cursor", message = "Cursor must be a string."))
+            };
+        _ -> Ok("")
+    }.
+
+descriptors(resources: Json, index: Int, end: Int, rows: Json): Result[Json, Failure] ->
+    if {
+        index == end -> Ok(rows);
+        true -> let {
+            Ok(record) <- resources.at(index);
+            Ok(descriptor) <- record.get("descriptor")
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.mcp.resource",
+                        message = "Admitted resource is missing.",
+                    ),
+                )
+        };
+        descriptors(resources, index + 1, end, rows.push(descriptor))
+    }.
+
+list_resources(context: Context, id: Json, params: Json): Json ->
+    let scope = Hash.sha256_domain_framed("terlan.semantic.mcp-resources.v1", [context.snapshot_id]);
+    let {
+        Ok(token) <- cursor(params);
+        Ok(offset) <- CursorStore.load(context.store, scope, context.projection, token);
+        Ok(count) <- context.resources.length();
+        true <- offset < count
+    } else {
+        _ ->
+            Protocol.error(
+                id,
+                -32_602,
+                "Resource continuation is malformed, stale, or belongs to another scope.",
+            )
+    };
+    (let end =
+    if {
+        offset + 16 < count -> offset + 16;
+        true -> count
+    };
+(let Ok(rows) <- descriptors(context.resources, offset, end, Json.array()) else {
+    _ -> Protocol.error(id, -32_603, "Cannot read admitted resources.")
+};
+(let result = Json.object().put("resources", rows);
+if {
+    end < count -> case CursorStore.save(context.store, scope, context.projection, end) {
+        Ok(next) -> Protocol.reply(id, result.put("nextCursor", Json.string(next)));
+        _ -> Protocol.error(id, -32_603, "Cannot retain resource continuation.")
+    };
+    true -> Protocol.reply(id, result)
+}))).
+
+find_resource(resources: Json, uri: String, index: Int, count: Int): Result[Json, Failure] ->
+    let true <- index < count else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.mcp.resource",
+                    message = "Resource is outside the admitted snapshot.",
+                ),
+            )
+    };
+    (let {
+    Ok(record) <- resources.at(index);
+    Ok(descriptor) <- record.get("descriptor")
+} else {
+    _ -> Err(Failure(code = "semantic.mcp.resource", message = "Admitted resource is missing."))
+};
+if {
+    text(descriptor, "uri") == uri -> Ok(record);
+    true -> find_resource(resources, uri, index + 1, count)
+}).
+
+read_resource(context: Context, id: Json, params: Json): Json ->
+    let Ok(uri) <- JsonRules.text(params, "uri") else {
+        _ -> Protocol.error(id, -32_602, "Resource read requires a URI string.")
+    };
+    (let {
+    Ok(count) <- context.resources.length();
+    Ok(record) <- find_resource(context.resources, uri, 0, count)
+} else {
+    _ -> Protocol.error(id, -32_002, "Resource not found in the admitted snapshot.")
+};
+(let contents =
+    Json.object()
+        .put("uri", Json.string(uri))
+        .put("mimeType", Json.string("application/json"))
+        .put("text", Json.string(text(record, "text")));
+Protocol.reply(id, Json.object().put("contents", Json.array().push(contents))))).
+
+/**
+ * Called only for requests admitted by the shared MCP lifecycle.
+ */
+pub dispatch(context: Context, method: String, params: Json, id: Json): Json ->
+    let Ok(_) <- SnapshotStore.load(context.store, context.snapshot_id) else {
+        _ -> Protocol.error(id, -32_603, "Admitted snapshot no longer passes integrity checks.")
+    };
+    case method {
+        "tools/list" ->
+            case cursor(params) {
+                Ok("") ->
+                    Protocol.reply(id, Json.object().put("tools", Json.array().push(tool(context))));
+                _ -> Protocol.error(id, -32_602, "The single tool list has no continuation.")
+            };
+        "tools/call" -> call(context, id, params);
+        "resources/list" -> list_resources(context, id, params);
+        "resources/templates/list" ->
+            case cursor(params) {
+                Ok("") -> Protocol.reply(id, Json.object().put("resourceTemplates", Json.array()));
+                _ -> Protocol.error(id, -32_602, "The empty template list has no continuation.")
+            };
+        "resources/read" -> read_resource(context, id, params);
+        _ -> Protocol.error(id, -32_601, "Method not found.")
+    }.

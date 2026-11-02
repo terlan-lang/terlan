@@ -1,0 +1,153 @@
+/**
+ * Adversarial admission checks for the combined query gate.
+ */
+module llm_native.QueryGateTest.
+
+import llm_native.{Evidence, QueryGate, QueryInventory}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+inventory(): Result[Json, Bool] ->
+    QueryInventory.load(Environment.current_directory()).
+
+copy(value: Json): Json ->
+    case Json.parse(Json.to_string(value)) {
+        Ok(result) -> result;
+        _ -> Json.null()
+    }.
+
+case_rows(names: List[String]): Json ->
+    case names {
+        [] -> Json.array();
+        [name | rest] ->
+            Json.array()
+                .push(
+                    Json.object()
+                        .put("case_id", Json.string(name))
+                        .put("status", Json.string("passed")),
+                )
+                .extend(case_rows(rest))
+    }.
+
+peer(inventory: Json, large: Bool): Json ->
+    let Some(names) <- QueryInventory.mcp_names(inventory, large) else {
+        _ -> Json.null()
+    };
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.mcp-peer-evidence.v1"))
+        .put("status", Json.string("passed"))
+        .put("protocol_version", Json.string("2025-11-25"))
+        .put(
+            "peer_versions",
+            Json.object().put("mcp", Json.string("1.26.0")).put("jsonschema", Json.string("4.25.1")),
+        )
+        .put("compiler_digest", Json.string("compiler"))
+        .put("fixture_digest", Json.string("fixture"))
+        .put("snapshot_id", Json.string("snapshot"))
+        .put("protocol_schema_digest", Json.string("spec"))
+        .put("cases", case_rows(names)).
+
+admitted(report: Json, inventory: Json, large: Bool): Bool ->
+    QueryGate.admit_peer(report, inventory, "compiler", "fixture", "snapshot", "spec", large).
+
+@test
+pub inventory_rejects_empty_missing_duplicate_and_unknown_suites(): Bool ->
+    let {
+        Ok(valid) <- inventory();
+        Ok(rows) <- valid.get("suites");
+        Ok(first) <- rows.at(0)
+    } else {
+        _ -> false
+    };
+    (let empty = copy(valid).put("suites", Json.array());
+let missing = copy(valid).put("suites", Json.array().push(first));
+let duplicated_rows = copy(rows).push(first);
+let duplicate = copy(valid).put("suites", duplicated_rows);
+let extra = copy(rows).push(Json.object().put("suite", Json.string("UnknownTest")));
+let unknown = copy(valid).put("suites", extra);
+QueryInventory.valid(valid)
+    and not QueryInventory.valid(empty)
+    and not QueryInventory.valid(missing)
+    and not QueryInventory.valid(duplicate)
+    and not QueryInventory.valid(unknown)).
+
+@test
+pub peer_rejects_missing_duplicate_failed_and_stale_cases(): Bool ->
+    let {
+        Ok(registered) <- inventory();
+        Some(names) <- QueryInventory.mcp_names(registered, false)
+    } else {
+        _ -> false
+    };
+    (let valid = peer(registered, false);
+let missing = peer(registered, false).put("cases", Json.array());
+let rows = case_rows(names);
+(let Ok(first) <- rows.at(0) else {
+    _ -> false
+};
+(let duplicate = peer(registered, false).put("cases", copy(rows).push(first));
+let failed_first = copy(first).put("status", Json.string("failed"));
+let failed_rows = copy(rows).set(0, failed_first);
+let failed = peer(registered, false).put("cases", failed_rows);
+let stale = peer(registered, false).put("fixture_digest", Json.string("changed"));
+let wrong_compiler = peer(registered, false).put("compiler_digest", Json.string("other"));
+let wrong_snapshot = peer(registered, false).put("snapshot_id", Json.string("other"));
+admitted(valid, registered, false)
+    and not admitted(missing, registered, false)
+    and not admitted(duplicate, registered, false)
+    and not admitted(failed, registered, false)
+    and not admitted(stale, registered, false)
+    and not admitted(wrong_compiler, registered, false)
+    and not admitted(wrong_snapshot, registered, false)))).
+
+@test
+pub resource_reconnect_is_required_for_large_fixture(): Bool ->
+    let Ok(registered) <- inventory() else {
+        _ -> false
+    };
+    (let base = peer(registered, false);
+let large = peer(registered, true);
+admitted(base, registered, false)
+    and admitted(large, registered, true)
+    and not admitted(base, registered, true)
+    and not admitted(large, registered, false)).
+
+@test
+pub compiled_source_evidence_requires_the_authored_test_source(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-query-gate-proof-");
+        Ok(_) <- File.write_text(root + "/suite.terl", "source");
+        Ok(_) <- File.write_text(root + "/dependency.terl", "dependency")
+    } else {
+        _ -> false
+    };
+    (let authored =
+    Json.object()
+        .put("source_file", Json.string(root + "/suite.terl"))
+        .put("source_sha256", Json.string(Hash.sha256("source")));
+let dependency =
+    Json.object()
+        .put("source_file", Json.string(root + "/dependency.terl"))
+        .put("source_sha256", Json.string(Hash.sha256("dependency")));
+let report =
+    Json.object()
+        .put(
+            "native_callable_evidence",
+            Json.object()
+                .put("schema", Json.string("terlan.native-callable-evidence/v1"))
+                .put("declarations", Json.array().push(authored).push(dependency)),
+        );
+let fresh = Evidence.compiled_sources(report, root + "/suite.terl");
+let unrelated = not Evidence.compiled_sources(report, root + "/unrelated.terl");
+let changed = File.write_text(root + "/dependency.terl", "changed") == Ok(Unit);
+let stale = not Evidence.compiled_sources(report, root + "/suite.terl");
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+fresh and unrelated and changed and stale and cleaned).

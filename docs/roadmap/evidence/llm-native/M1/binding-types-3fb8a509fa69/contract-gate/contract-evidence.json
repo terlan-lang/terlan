@@ -1,0 +1,867 @@
+{
+  "case_count": 64,
+  "cases": [
+    {
+      "case_id": "snapshot.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "snapshot.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'snapshot_id' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "snapshot.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.snapshot.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "entity.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "entity.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'snapshot_id' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "entity.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.entity.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "query.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'snapshot_id' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "query.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.query.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'snapshot_id' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.query-result.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'intent_digest' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.proposal.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "diagnostic.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "diagnostic.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'code' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "diagnostic.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.diagnostic.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "verification.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "verification.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'candidate_id' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "verification.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.verification.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "transaction.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "transaction.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'transaction_id' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "transaction.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.transaction.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "provenance.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "provenance.missing-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'intent_digest' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "provenance.unsupported-version",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/schema",
+          "message": "'terlan.semantic.provenance.v1' was expected",
+          "schema_pointer": "/properties/schema/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.unknown-operation",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.enum",
+          "instance_pointer": "/operation",
+          "message": "'invent_success' is not one of ['rename_symbol', 'add_function', 'replace_body', 'implement_trait', 'resolve_exhaustiveness', 'add_actor_message', 'edit_actor_transition']",
+          "schema_pointer": "/properties/operation/enum"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.enum",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.ambiguous-target",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/target",
+          "message": "[{'entity_id': 'e:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'kind': 'binding', 'expected_digest': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}, {'entity_id': 'e:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'kind': 'binding', 'expected_digest': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}] is not of type 'object'",
+          "schema_pointer": "/properties/target/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.missing-preconditions",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "",
+          "message": "'preconditions' is a required property",
+          "schema_pointer": "/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.rename-extra-argument",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.additionalProperties",
+          "instance_pointer": "/arguments",
+          "message": "Additional properties are not allowed ('force' was unexpected)",
+          "schema_pointer": "/allOf/0/then/properties/arguments/additionalProperties"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.additionalProperties",
+      "status": "passed"
+    },
+    {
+      "case_id": "proposal.body-required",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "/arguments",
+          "message": "'body_source' is a required property",
+          "schema_pointer": "/allOf/1/then/properties/arguments/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "snapshot.false-completeness",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.maxItems",
+          "instance_pointer": "/analysis/limitations",
+          "message": "[{'code': 'unknown', 'message': 'Unresolved dynamic call.'}] is expected to be empty",
+          "schema_pointer": "/allOf/0/then/properties/analysis/properties/limitations/maxItems"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.maxItems",
+      "status": "passed"
+    },
+    {
+      "case_id": "snapshot.partial-needs-reason",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.minItems",
+          "instance_pointer": "/analysis/limitations",
+          "message": "[] should be non-empty",
+          "schema_pointer": "/allOf/0/else/properties/analysis/properties/limitations/minItems"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.minItems",
+      "status": "passed"
+    },
+    {
+      "case_id": "query.zero-budget",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.minimum",
+          "instance_pointer": "/limits/max_work",
+          "message": "0 is less than the minimum of 1",
+          "schema_pointer": "/properties/limits/properties/max_work/minimum"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.minimum",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.truncated-complete",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/next_cursor",
+          "message": "'next' is not of type 'null'",
+          "schema_pointer": "/allOf/0/then/properties/next_cursor/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "diagnostic.missing-repair-explanation",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/no_repair_reason",
+          "message": "None is not of type 'string'",
+          "schema_pointer": "/allOf/0/then/properties/no_repair_reason/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "verification.false-success",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/checks/0/status",
+          "message": "'passed' was expected",
+          "schema_pointer": "/allOf/0/then/properties/checks/items/properties/status/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "verification.no-checks",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.minItems",
+          "instance_pointer": "/checks",
+          "message": "[] should be non-empty",
+          "schema_pointer": "/allOf/0/then/properties/checks/minItems"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.minItems",
+      "status": "passed"
+    },
+    {
+      "case_id": "verification.nonzero-success",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/exit_status",
+          "message": "0 was expected",
+          "schema_pointer": "/allOf/0/then/properties/exit_status/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "transaction.unverified-publication",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/published_snapshot",
+          "message": "None is not of type 'string'",
+          "schema_pointer": "/allOf/1/then/properties/published_snapshot/type"
+        },
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/verification_digest",
+          "message": "None is not of type 'string'",
+          "schema_pointer": "/allOf/0/then/properties/verification_digest/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "transaction.early-publication",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/published_snapshot",
+          "message": "'s:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is not of type 'null'",
+          "schema_pointer": "/allOf/1/else/properties/published_snapshot/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "entity.invalid-digest",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.pattern",
+          "instance_pointer": "/digest",
+          "message": "'made-up' does not match '^[0-9a-f]{64}$'",
+          "schema_pointer": "/properties/digest/pattern"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.pattern",
+      "status": "passed"
+    },
+    {
+      "case_id": "query.valid.expected-values",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-error.valid",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-error.rejects-success-claim",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.additionalProperties",
+          "instance_pointer": "",
+          "message": "Additional properties are not allowed ('verified' was unexpected)",
+          "schema_pointer": "/additionalProperties"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.additionalProperties",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.checked-shape",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.negative-conformance",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.checked-implication",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-conformance-polarity",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/facts/0/value/evidence/is_negative",
+          "message": "'true' is not of type 'boolean'",
+          "schema_pointer": "/properties/facts/items/allOf/0/then/properties/value/allOf/0/then/properties/evidence/properties/is_negative/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-exhaustive-relation-candidates",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/facts/0/value/candidate_set_exhaustive",
+          "message": "False was expected",
+          "schema_pointer": "/properties/facts/items/allOf/0/then/properties/value/properties/candidate_set_exhaustive/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-implication-shape",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.oneOf",
+          "instance_pointer": "/facts/0/value/evidence/bounds/0",
+          "message": "{'kind': 'structural_implication', 'subject': {'Var': 0}, 'required_shape': {'Map': 'guessed'}} is not valid under any of the given schemas",
+          "schema_pointer": "/properties/facts/items/allOf/0/then/properties/value/allOf/2/then/properties/evidence/properties/bounds/items/oneOf"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.oneOf",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.resolved-bound-origin",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.unavailable-bound-origin",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.resolved-shape-expansion",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-resolved-bound-origin",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/facts/0/value/bound_origins/0/entity",
+          "message": "None is not of type 'object'",
+          "schema_pointer": "/properties/facts/items/allOf/0/then/properties/value/properties/bound_origins/items/allOf/0/then/properties/entity/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-resolved-shape-reason",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.type",
+          "instance_pointer": "/facts/0/value/evidence/reason",
+          "message": "'guessed' is not of type 'null'",
+          "schema_pointer": "/properties/facts/items/allOf/0/then/properties/value/allOf/0/else/then/properties/evidence/allOf/0/then/properties/reason/type"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.type",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-shape-expansion-scope",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/facts/0/value/scope",
+          "message": "'selected_pattern' was expected",
+          "schema_pointer": "/properties/facts/items/allOf/0/then/properties/value/allOf/0/else/then/properties/scope/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.checked-inferred-binding-type",
+      "diagnostics": [],
+      "expected_diagnostic": null,
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-inference-type-constructor",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.oneOf",
+          "instance_pointer": "/facts/0/value/compiler_type",
+          "message": "{'MadeUp': 'Int'} is not valid under any of the given schemas",
+          "schema_pointer": "/properties/facts/items/allOf/1/then/properties/value/properties/compiler_type/oneOf"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.oneOf",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-inference-binding-id",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.maximum",
+          "instance_pointer": "/facts/0/value/binding/id",
+          "message": "18446744073709551616 is greater than the maximum of 18446744073709551615",
+          "schema_pointer": "/properties/facts/items/allOf/1/then/properties/value/properties/binding/properties/id/maximum"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.maximum",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-inference-variable-scope",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.const",
+          "instance_pointer": "/facts/0/value/type_variable_scope",
+          "message": "'observation_local' was expected",
+          "schema_pointer": "/properties/facts/items/allOf/1/then/properties/value/properties/type_variable_scope/const"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.const",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.missing-inference-type-encoding",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.required",
+          "instance_pointer": "/facts/0/value",
+          "message": "'type_encoding' is a required property",
+          "schema_pointer": "/properties/facts/items/allOf/1/then/properties/value/required"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.required",
+      "status": "passed"
+    },
+    {
+      "case_id": "query-result.invalid-nested-inference-type",
+      "diagnostics": [
+        {
+          "code": "semantic.schema.oneOf",
+          "instance_pointer": "/facts/0/value/compiler_type",
+          "message": "{'Function': {'params': ['Int'], 'ret': {'LiteralBool': 'true'}}} is not valid under any of the given schemas",
+          "schema_pointer": "/properties/facts/items/allOf/1/then/properties/value/properties/compiler_type/oneOf"
+        }
+      ],
+      "expected_diagnostic": "semantic.schema.oneOf",
+      "status": "passed"
+    }
+  ],
+  "inputs": [
+    {
+      "digest": "69f56939da174eea42bfe5b303d17b21e478ff6e8b6c43923ecc0f7a9849ea83",
+      "path": "compiler/semantic/contract.json"
+    },
+    {
+      "digest": "041d75f83f20eb024a43e53442c9677cd81a08cc4771b72bdbb40fc5c96536df",
+      "path": "compiler/semantic/schemas/diagnostic.schema.json"
+    },
+    {
+      "digest": "f4a23722d013e45b19c36bef74d2eeec5c769abae70455b0a635d1850c8f52be",
+      "path": "compiler/semantic/schemas/entity.schema.json"
+    },
+    {
+      "digest": "d164ace06833b34d9e128a0aab67c2245accbdb601b16d2f9768d3057d7d2450",
+      "path": "compiler/semantic/schemas/proposal.schema.json"
+    },
+    {
+      "digest": "9bfc85a0e6f0fab4e744e0d7ed7ca6dd567759d57b6d697a215c8388f2559780",
+      "path": "compiler/semantic/schemas/provenance.schema.json"
+    },
+    {
+      "digest": "a44327904a696da1eac00410525725ccd90307e6bc94661b60ef6e6efc3b4fcc",
+      "path": "compiler/semantic/schemas/query-error.schema.json"
+    },
+    {
+      "digest": "1cb346b712f7e40b3e2bf0a31e88b9042c488e15f03eeed9345e866169dea3f7",
+      "path": "compiler/semantic/schemas/query-result.schema.json"
+    },
+    {
+      "digest": "0c478367a5a24e169c95b3b1c4f59d3f4737be296c415a0c105146b51049aefd",
+      "path": "compiler/semantic/schemas/query.schema.json"
+    },
+    {
+      "digest": "f9f9661b711fc10f60ed88039bd7a94cc2f139e6b5b2cbec691fd7ad6193da96",
+      "path": "compiler/semantic/schemas/snapshot.schema.json"
+    },
+    {
+      "digest": "f046df967c9c6aa7f105e5f0b5667c8004a64e9d2b61dfda55585708f7df71fe",
+      "path": "compiler/semantic/schemas/transaction.schema.json"
+    },
+    {
+      "digest": "078d936e9943bd56183233a1b4455fdcc8d65baae0c1dc3611f0b69c95173e3e",
+      "path": "compiler/semantic/schemas/verification.schema.json"
+    },
+    {
+      "digest": "a91f3f9b4baea27918654015b2282f346dae22fe2a3dbf8f57a860a7b81fae58",
+      "path": "scripts/llm_native/peers/requirements.txt"
+    },
+    {
+      "digest": "2c1c6b0d43cf011df094079475017101e8733baa43a6086e30e90504d8677934",
+      "path": "scripts/llm_native/peers/schema_peer.py"
+    },
+    {
+      "digest": "7a75b545cb946d2079002e3aa023cc2b16d0effb4d9ec2e83198390d7b221316",
+      "path": "tests/fixtures/llm_native/contracts/cases.json"
+    },
+    {
+      "digest": "346e57dc40801e3d58165e97f64d45b42c4571a68a76ecb10c3c12858acecb3f",
+      "path": "tests/fixtures/llm_native/mcp/spec.LICENSE"
+    },
+    {
+      "digest": "f1142351c63c90a46fabc0ada5a7db33419d299b1ad2a0b82a1449a3c3272f40",
+      "path": "tests/fixtures/llm_native/mcp/spec.provenance.json"
+    },
+    {
+      "digest": "1ffe4c5577974012f5fa02af14ea88df4b7146679df1abaaad497c8d9230ca8a",
+      "path": "tests/fixtures/llm_native/mcp/spec.schema.json"
+    },
+    {
+      "digest": "76b712f5fed9f5fcc1a9359f1b12cf15b66c9a8fd6fb013c2596c63011e6d7e9",
+      "path": "tests/fixtures/llm_native/mcp/wire-cases.json"
+    }
+  ],
+  "kind": "schema_validation",
+  "limitations": [
+    "Schema acceptance is not runtime/compiler verification.",
+    "Tool descriptors are SDK-validated fixtures, not server interoperability.",
+    "SDK 1.26.0 requires an error ID; the official schema validates anonymous errors permitted by MCP."
+  ],
+  "mcp_protocol_version": "2025-11-25",
+  "peer_versions": {
+    "jsonschema": "4.25.1",
+    "mcp": "1.26.0"
+  },
+  "schema": "terlan.semantic.contract-evidence.v1",
+  "source_closure_digest": "50c596f50f0b81582485e7d774ec3262a30ca042076da4ddf15fe47213e0fa80",
+  "status": "passed",
+  "task": "LNC-001",
+  "wire_case_count": 14,
+  "wire_cases": [
+    {
+      "case_id": "mcp.initialize-request",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.initialized-notification",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.tools-list-request",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.tools-call-request",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.invalid-jsonrpc-version",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.tool-schema",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.tool-missing-input-schema",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.structured-tool-result",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.resource-result",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.invalid-result-content",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.spec.anonymous-parse-error",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.spec.null-error-id-rejected",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.spec.identified-error",
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.spec.result-requires-id",
+      "status": "passed"
+    }
+  ],
+  "wire_sdk_case_count": 10,
+  "wire_spec_case_count": 4
+}

@@ -1,0 +1,6 @@
+{
+  "error": "unhandled errors in a TaskGroup (1 sub-exception)",
+  "error_type": "ExceptionGroup",
+  "schema": "terlan.semantic.mcp-peer-evidence.v1",
+  "status": "failed"
+}

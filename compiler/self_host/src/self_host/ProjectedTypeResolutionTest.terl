@@ -54,8 +54,18 @@ invalid_local_arity(): Bool ->
         "pub keep(value: Box[Int, String]): Box[Int, String] -> value.\n",
     ])).
 
+valid_declaration_only_atom_union_members(): Bool ->
+    valid_source(String.concat([
+        "module demo.ValidOpaqueTypes.\n",
+        "pub type Ready.\n",
+        "pub type Waiting.\n",
+        "pub type State = Ready | Waiting.\n",
+        "pub keep(value: State): State -> value.\n",
+    ])).
+
 pub self_test(): Bool ->
     valid_builtin_applications()
         and invalid_builtin_arity()
         and valid_local_application()
-        and invalid_local_arity().
+        and invalid_local_arity()
+        and valid_declaration_only_atom_union_members().

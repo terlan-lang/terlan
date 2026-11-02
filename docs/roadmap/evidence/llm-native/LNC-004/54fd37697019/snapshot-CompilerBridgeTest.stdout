@@ -1,0 +1,8 @@
+running 6 tests
+test malformed_and_unversioned_artifacts_are_rejected ... ok
+test stale_source_identity_is_rejected ... ok
+test successful_exit_cannot_replace_checked_core ... ok
+test invalid_program_keeps_diagnostics_without_core ... ok
+test duplicate_or_missing_units_cannot_satisfy_source_set_inventory ... ok
+test rejected_unit_cannot_be_reported_as_a_checked_source_set ... ok
+test result: ok. 6 passed; 0 failed

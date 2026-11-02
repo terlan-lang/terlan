@@ -7,6 +7,7 @@ import std.collections.List.
 import std.core.Option.{None}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
+import std.core.Int.
 import self_host.ModuleInterfaceSyntax.
 import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
 import self_host.ProjectedFrontendSyntax.
@@ -31,12 +32,26 @@ import self_host.TypedModuleLowering.
 import self_host.Syntax.{OpaqueTypeDeclaration, StructDeclaration, TraitDeclaration, TypeDeclaration}.
 
 import self_host.SelfHostSemanticIrSyntax.{BackendCompilation}.
+import self_host.ProjectedTypeResolutionSyntax.ProjectedTypeDiagnostic.
 import self_host.ProjectedTypeConstraintSyntax.TypeConstraintDiagnostic.
+
+resolution_diagnostic_messages(values: List[ProjectedTypeDiagnostic]): List[String] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [String.concat([value.type_name, ": ", value.message])
+            | resolution_diagnostic_messages(rest)]
+    }.
 
 type_diagnostic_messages(values: List[TypeConstraintDiagnostic]): List[String] ->
     case values {
         [] -> [];
-        [value | rest] -> [String.concat([value.code, ": ", value.message])
+        [value | rest] -> [String.concat([
+            value.code,
+            "@",
+            Int.to_string(value.byte_offset),
+            ": ",
+            value.message,
+        ])
             | type_diagnostic_messages(rest)]
     }.
 
@@ -45,7 +60,16 @@ expression_diagnostic_messages(
 ): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> [value.message | expression_diagnostic_messages(rest)]
+        [value | rest] -> [String.concat([
+            value.declaration_head,
+            ": ",
+            value.message,
+            " [expected=",
+            value.expected,
+            ", actual=",
+            value.actual,
+            "]",
+        ]) | expression_diagnostic_messages(rest)]
     }.
 
 type_symbol(value: ExportedSymbol): Bool ->
@@ -83,7 +107,10 @@ semantic_messages(semantics: ProjectedSemanticModule): List[String] ->
     append(
         if {
             semantics.type_resolution.valid -> List.new[String]();
-            true -> ["projected-type-resolution-failed"]
+            true -> append(
+                ["projected-type-resolution-failed"],
+                resolution_diagnostic_messages(semantics.type_resolution.diagnostics),
+            )
         },
         append(
             if {

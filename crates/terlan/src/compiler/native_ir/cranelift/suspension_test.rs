@@ -2,6 +2,22 @@ use super::*;
 use crate::compiler::native_ir::{NativeCallResume, NativeDynamicCallResume, NativeType};
 
 #[test]
+fn yielding_tail_call_preserves_the_resumed_callee_transition_capacity() {
+    let body = NativeExpr::TailCall {
+        function: 1,
+        args: Vec::new(),
+        yield_continuation_id: Some(7),
+    };
+    assert_eq!(suspension_value_count(&body, &[0, 5]), 5);
+    let wider_capture = NativeExpr::TailCall {
+        function: 1,
+        args: vec![NativeExpr::Unit; 7],
+        yield_continuation_id: Some(8),
+    };
+    assert_eq!(suspension_value_count(&wider_capture, &[0, 5]), 7);
+}
+
+#[test]
 fn call_then_reserves_the_direct_callee_transition_frame() {
     let body = NativeExpr::CallThen {
         function: 1,

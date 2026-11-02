@@ -1,0 +1,130 @@
+/**
+ * Exact selection of compiler purity contracts; no independent effect inference.
+ */
+module semantic.EffectsQuery.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    rows: Json,
+    work_used: Int,
+}.
+
+signature(
+    params: Json,
+    index: Int,
+    count: Int,
+    types: Json,
+    used: Int,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(Selected(rows = types, work_used = used));
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Purity signature selection exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let {
+            Ok(parameter) <- params.at(index);
+            Ok(annotation) <- parameter.get("ty")
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked parameter annotation is missing.",
+                    ),
+                )
+        };
+        signature(params, index + 1, count, types.push(annotation), used + 1, maximum)
+    }.
+
+matches(row: Json, function: Json, module_name: String, parameter_types: Json): Bool ->
+    let {
+        Ok(types) <- row.get("parameter_types");
+        Ok(arity) <- function.get("arity");
+        Ok(contract_arity) <- row.get("arity");
+        Ok(receiver) <- function.get("receiver_method");
+        Ok(contract_receiver) <- row.get("receiver_method");
+        Ok(generics) <- function.get("generic_params");
+        Ok(contract_generics) <- row.get("generic_params");
+        Ok(pure) <- row.get("compiler_proven_pure");
+        Ok(_) <- pure.as_bool()
+    } else {
+        _ -> false
+    };
+    EntityLookup.text(row, "module") == module_name
+        and EntityLookup.text(row, "name") == EntityLookup.text(function, "name")
+        and EntityLookup.text(row, "return_type") == EntityLookup.text(function, "return_type")
+        and Json.to_string(types) == Json.to_string(parameter_types)
+        and Json.to_string(arity) == Json.to_string(contract_arity)
+        and Json.to_string(receiver) == Json.to_string(contract_receiver)
+        and Json.to_string(generics) == Json.to_string(contract_generics).
+
+scan(
+    rows: Json,
+    function: Json,
+    module_name: String,
+    types: Json,
+    index: Int,
+    count: Int,
+    selected: Json,
+    used: Int,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(Selected(rows = selected, work_used = used));
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Purity contract selection exhausted its compiler-record inspection budget.",
+            ),
+        );
+        true -> let Ok(row) <- rows.at(index) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Checked purity contract is missing.",
+                    ),
+                )
+        };
+        (let next =
+    if {
+        matches(row, function, module_name, types) -> selected.push(row);
+        true -> selected
+    };
+scan(rows, function, module_name, types, index + 1, count, next, used + 1, maximum))
+    }.
+
+pub select(artifact: Json, function: Json, used: Int, maximum: Int): Result[Selected, Failure] ->
+    let {
+        Ok(rows) <- artifact.get("purity_contracts");
+        Ok(count) <- rows.length();
+        Ok(params) <- function.get("params");
+        Ok(arity) <- params.length()
+    } else {
+        _ -> Ok(Selected(rows = Json.array(), work_used = used))
+    };
+    (let Ok(types) <- signature(params, 0, arity, Json.array(), used, maximum) else {
+    Err(reason) -> Err(reason)
+};
+scan(
+    rows,
+    function,
+    EntityLookup.module_name(artifact),
+    types.rows,
+    0,
+    count,
+    Json.array(),
+    types.work_used,
+    maximum,
+)).

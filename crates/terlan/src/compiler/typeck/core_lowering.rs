@@ -776,7 +776,12 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                 receiver_mutable: false,
                 receiver_command: false,
                 trait_method: None,
-                source: None,
+                source: Some(CoreFunctionSource {
+                    module: module.module_name.clone(),
+                    function: name.clone(),
+                    arity: params.len(),
+                    declaration_span: Some(declaration.span.into()),
+                }),
                 name: name.clone(),
                 arity: params.len(),
                 public: *is_public,
@@ -814,7 +819,12 @@ fn core_syntax_functions(module: &SyntaxModuleOutput) -> Vec<CoreFunction> {
                     receiver_command: receiver.is_mutable
                         && super::declarations::is_unit_type_text(&return_type.text),
                     trait_method: None,
-                    source: None,
+                    source: Some(CoreFunctionSource {
+                        module: module.module_name.clone(),
+                        function: name.clone(),
+                        arity: core_params.len(),
+                        declaration_span: Some(declaration.span.into()),
+                    }),
                     name: name.clone(),
                     arity: core_params.len(),
                     public: *is_public,

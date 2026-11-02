@@ -108,6 +108,7 @@ pub(super) fn checked_parse_failure_clause(
         return None;
     };
     let invalid_pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::Var,
         arity: 0,
         text: Some("invalid_representation".to_string()),

@@ -1,0 +1,61 @@
+#!/usr/bin/env -S terlc run
+import semantic.McpService.
+import semantic.McpService.{Context}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.io.Console.{eprintln}.
+import std.mcp.Protocol.{Session}.
+import std.mcp.{Protocol, Stdio}.
+import std.system.Arguments.{count, get}.
+
+/**
+ * Serial stdio host. Scheduling/cancellation is tracked separately by LNC-018.
+ */
+serve(context: Context, session: Session): Bool ->
+    case Stdio.receive(session, 1_048_576) {
+        Ok(None) -> true;
+        Err(reason) ->
+            let _logged = eprintln(reason.message);
+            false;
+        Ok(Some(event)) ->
+            let _sent =
+                case event.action {
+                    "reply" -> Stdio.send(event.response);
+                    "dispatch" ->
+                        Stdio.send(
+                            McpService.dispatch(
+                                context,
+                                event.method,
+                                event.params,
+                                event.request_id,
+                            ),
+                        );
+                    "close" -> Stdio.send(event.response);
+                    _ -> Unit
+                };
+            if {
+                event.action == "close" -> true;
+                true -> serve(context, event.session)
+            }
+    }.
+
+entry(): Bool ->
+    let {
+        true <- count() == 3;
+        Some(store) <- get(0);
+        Some(snapshot) <- get(1);
+        Some(schemas) <- get(2)
+    } else {
+        _ ->
+            let _logged = eprintln("Expected snapshot store, snapshot ID, and schema directory.");
+            false
+    };
+    case McpService.open(store, snapshot, schemas) {
+        Ok(context) -> serve(context, Protocol.start("terlan-semantic", "0.1.0", true, true));
+        Err(reason) ->
+            let _logged = eprintln(reason.code + ": " + reason.message);
+            false
+    }.
+
+assert(entry());
+Unit.

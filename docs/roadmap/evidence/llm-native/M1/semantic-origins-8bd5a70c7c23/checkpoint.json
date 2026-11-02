@@ -1,0 +1,139 @@
+{
+  "checks": {
+    "bootstrap_export": {
+      "passed": 6
+    },
+    "catalog": {
+      "compiled_sources_verified": 12,
+      "passed": 6,
+      "test_names": [
+        "nested_patterns_and_unbound_wildcards_have_owned_identities",
+        "unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection",
+        "edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes",
+        "moving_a_binding_into_a_branch_invalidates_its_old_handle",
+        "entity_selection_rejects_wrong_kind_and_content",
+        "rejected_source_returns_unavailable_catalog_without_typed_entities"
+      ]
+    },
+    "declaration": {
+      "compiled_sources_verified": 9,
+      "passed": 5,
+      "test_names": [
+        "checked_types_traits_and_functions_have_distinct_handles",
+        "unrelated_insertion_preserves_declaration_identity",
+        "same_name_and_arity_overloads_have_distinct_handles",
+        "semantic_payload_change_invalidates_declaration_handle",
+        "duplicate_checked_rows_are_rejected_before_catalog_publication"
+      ]
+    },
+    "generated": {
+      "compiled_sources_verified": 22,
+      "passed": 1,
+      "test_names": [
+        "core_query_preserves_generated_default_adapter_source_origins"
+      ]
+    },
+    "harness": {
+      "compiled_sources_verified": 11,
+      "passed": 13,
+      "test_names": [
+        "existing_output_is_preserved",
+        "unknown_selector_creates_no_output",
+        "missing_compiler_creates_no_output",
+        "schema_evidence_rejects_stale_missing_duplicate_and_failed_cases",
+        "test_evidence_rejects_empty_skipped_and_incomplete_results",
+        "unimplemented_milestone_cannot_pass",
+        "missing_or_malformed_peer_report_cannot_pass",
+        "subprocess_timeout_and_output_limit_fail",
+        "wire_evidence_rejects_missing_and_unknown_cases",
+        "baseline_manifest_evidence_rejects_partial_and_malformed_sets",
+        "property_inventory_rejects_empty_and_duplicate_registration",
+        "baseline_preserves_timeout_diagnostic",
+        "snapshot_gate_rejects_empty_peer_and_stale_compiled_sources"
+      ]
+    },
+    "live_mcp": {
+      "case_ids": [
+        "mcp.initialize",
+        "mcp.ping",
+        "mcp.tool-discovery-and-schemas",
+        "mcp.resource-discovery",
+        "mcp.bounded-schema-valid-resources",
+        "mcp.empty-template-discovery",
+        "mcp.compiler-type-query",
+        "mcp.expected-values-constraints",
+        "mcp.same-arity-overload-identity",
+        "mcp.included-type-origin",
+        "mcp.pattern-owner-core-origin",
+        "mcp.explicit-unknown",
+        "mcp.stale-entity-rejection",
+        "mcp.snapshot-scope-rejection",
+        "mcp.invalid-budget-tool-error",
+        "mcp.unknown-tool-protocol-error",
+        "mcp.forged-resource-cursor",
+        "mcp.resource-uri-confinement",
+        "mcp.resource-continuation-survives-reconnect",
+        "mcp.cli-query-parity",
+        "mcp.raw-wire-framing-and-errors"
+      ],
+      "entity_count": 1514,
+      "passed": 21
+    },
+    "protocol": {
+      "compiled_sources_verified": 4,
+      "passed": 7,
+      "test_names": [
+        "initialize_and_initialized_enable_standard_method_dispatch",
+        "unsupported_requested_version_negotiates_the_supported_revision",
+        "malformed_messages_use_standard_errors_without_reflecting_payloads",
+        "ping_works_before_initialization_and_unadvertised_methods_are_rejected",
+        "notifications_and_peer_responses_never_create_response_loops",
+        "duplicate_request_ids_are_rejected_and_unsigned_ids_remain_exact",
+        "malformed_requests_preserve_readable_ids_and_anonymous_errors_omit_them"
+      ]
+    },
+    "query": {
+      "compiled_sources_verified": 23,
+      "passed": 16,
+      "test_names": [
+        "typed_queries_distinguish_same_name_and_arity_overloads",
+        "reference_queries_keep_shadowed_bindings_distinct",
+        "work_limited_pages_continue_without_omitting_references",
+        "cursor_is_bound_to_question_and_detects_storage_tampering",
+        "byte_accounting_is_exact_and_tiny_budgets_fail_explicitly",
+        "stale_selection_and_insufficient_work_never_return_successful_facts",
+        "unexported_local_types_and_ownership_are_explicitly_unavailable",
+        "expected_values_separate_type_inhabitants_from_program_legality",
+        "schema_integer_limits_accept_whole_numbers_and_reject_extra_fields",
+        "nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog",
+        "pattern_selection_enforces_work_budget_and_rejects_stale_handles",
+        "pattern_core_queries_link_the_owner_by_compiler_declaration_origin",
+        "type_queries_retain_struct_include_edges_and_original_field_metadata",
+        "type_queries_expose_core_alias_payload_without_inventing_constructor_inhabitants",
+        "imported_include_aliases_resolve_to_exact_provider_snapshot_entities",
+        "include_origins_outside_snapshot_remain_partial_with_resolved_alias_evidence"
+      ]
+    },
+    "schemas": {
+      "official_schema_cases": 4,
+      "sdk_model_cases": 10,
+      "semantic_cases": 46
+    }
+  },
+  "compiler_digest": "aba5d5189b0e9b64ce8b9c3cad334b0a0c9c752f8949199854fb3a931ba493c2",
+  "gate_source_digest": "8bd5a70c7c2338f265f8f596151b7865bf4e46aaba4082ce1701a802cfd5de3a",
+  "limitations": [
+    "Component evidence; not the complete LNC-005 or M1 gate.",
+    "Pattern exhaustiveness, full effect facts, shape/implication relation queries and further alias/origin categories remain unfinished.",
+    "Current development startup is slow: retained elapsed timings include prebuild/admission; no latency qualification is claimed.",
+    "Catalog remains materialized at admission; incremental context and scheduling are later tasks.",
+    "Pinned SDK cannot validate anonymous errors; raw replies are also checked against the unmodified official schema.",
+    "Archive contains declared component inputs, not all compiler build sources."
+  ],
+  "schema": "terlan.semantic.component-checkpoint.v1",
+  "source_archive_sha256": "968f2b313738487f4627cfebc65ff5c434a4aac4b13ecce5b8defa8d8a454d92",
+  "status": "passed",
+  "task": "LNC-005",
+  "task_complete": false,
+  "vm_digest": "d2d9a0a7c4425a78c345c943c69d253445c31d7917faaa331c28bf8ed9c2b28e"
+}

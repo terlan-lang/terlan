@@ -1,0 +1,150 @@
+{
+  "schema": "terlan.semantic.component-inputs.v1",
+  "git_head_at_checkpoint": "5b398a4f6962fd09ebb4f02ecedaebbdd2a685fc",
+  "source_inventory_digest": "c64a5dab1ec04030acefe47ac169e476a3f98d7e48e5aaa08fd750611a8462d7",
+  "source_inventory_digest_algorithm": "sha256 of compact sorted-key JSON source inventory",
+  "source_inventory": [
+    {
+      "path": "compiler/semantic/README.md",
+      "sha256": "cea14686fedecc15e8832a35f5ef68bd581082503092838c65f1cefe4bda0318"
+    },
+    {
+      "path": "compiler/semantic/contract.json",
+      "sha256": "d05737ebfe8b5f5fb67b52c9cfa64fc2ddbc98efadf0de0862de11fc2c3dae10"
+    },
+    {
+      "path": "compiler/semantic/schemas/diagnostic.schema.json",
+      "sha256": "041d75f83f20eb024a43e53442c9677cd81a08cc4771b72bdbb40fc5c96536df"
+    },
+    {
+      "path": "compiler/semantic/schemas/entity.schema.json",
+      "sha256": "f4a23722d013e45b19c36bef74d2eeec5c769abae70455b0a635d1850c8f52be"
+    },
+    {
+      "path": "compiler/semantic/schemas/proposal.schema.json",
+      "sha256": "d164ace06833b34d9e128a0aab67c2245accbdb601b16d2f9768d3057d7d2450"
+    },
+    {
+      "path": "compiler/semantic/schemas/provenance.schema.json",
+      "sha256": "9bfc85a0e6f0fab4e744e0d7ed7ca6dd567759d57b6d697a215c8388f2559780"
+    },
+    {
+      "path": "compiler/semantic/schemas/query-result.schema.json",
+      "sha256": "69d05a315274cda453066b92f5314973a75fbdd608242d2271d203e2d50d52cb"
+    },
+    {
+      "path": "compiler/semantic/schemas/query.schema.json",
+      "sha256": "dddd4409c43593a0e601e7b26ffcabae3e2e32c6ee08144a8c45c0d842a63cf3"
+    },
+    {
+      "path": "compiler/semantic/schemas/snapshot.schema.json",
+      "sha256": "f9f9661b711fc10f60ed88039bd7a94cc2f139e6b5b2cbec691fd7ad6193da96"
+    },
+    {
+      "path": "compiler/semantic/schemas/transaction.schema.json",
+      "sha256": "f046df967c9c6aa7f105e5f0b5667c8004a64e9d2b61dfda55585708f7df71fe"
+    },
+    {
+      "path": "compiler/semantic/schemas/verification.schema.json",
+      "sha256": "078d936e9943bd56183233a1b4455fdcc8d65baae0c1dc3611f0b69c95173e3e"
+    },
+    {
+      "path": "compiler/semantic/scripts/Entities.terls",
+      "sha256": "8e3fd9f9d690a0b08205449112a4da9e57ffbeb37c7749dd179283d9bb15d78b"
+    },
+    {
+      "path": "compiler/semantic/scripts/Snapshot.terls",
+      "sha256": "0f3825f494b74d6a0f8fdb8f75bbfc0f2a54d207fbe803b29287d37ca3807fd5"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/CompilerBridge.terl",
+      "sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+      "sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/DeclarationEntities.terl",
+      "sha256": "d7dc9003d16f4579cb6bde922d8f6328bb4db8e1e2fa7be5834a2c345b274bf9"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/DeclarationEntitiesTest.terl",
+      "sha256": "3c30fa5b17798ffc59a553e1e7d3525fefe0708804ce221ef842849b8d0032f5"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/Entities.terl",
+      "sha256": "fa7a57f2970ab165624779ecc8b318dce8853fc491cfc7ad2761bdc655733975"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/EntitiesTest.terl",
+      "sha256": "d0f77caa99ee63fe80e7bc49fb89817e0aa7c4a372965b373f78e219c276b3b4"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/Snapshot.terl",
+      "sha256": "48d11c173336b3b7f8a745ca16590efe5546182619727ff9223a8deae7ec3a4c"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/SnapshotStore.terl",
+      "sha256": "efd3cd720e2e30a874559030707154d1eedb95cbcfd07c3315f456d220a02374"
+    },
+    {
+      "path": "compiler/semantic/src/semantic/SnapshotTest.terl",
+      "sha256": "8d3edf6628f15a1315e93c5da71f93344a1ea726333808228b64eccb53e98600"
+    },
+    {
+      "path": "compiler/semantic/terlan.toml",
+      "sha256": "d966c97f0d43781c0732a70e6e468ecae44fd34cf622d8d7dfead8a909523223"
+    },
+    {
+      "path": "crates/terlan/src/cli_dispatch.rs",
+      "sha256": "4775ed06bbd5c79510395456cae8282f9144bb352859397faeb76840340acbd8"
+    },
+    {
+      "path": "crates/terlan/src/cli_usage.rs",
+      "sha256": "dbf1c3b8da14bde3f777fb2de5e85a6f535f55b3e88254d35e649d611ff7ef88"
+    },
+    {
+      "path": "crates/terlan/src/commands/check/command.rs",
+      "sha256": "e1e04f33cc44c7c732549649f6a7dfd57112d96b04dec51a31aad7699d045e50"
+    },
+    {
+      "path": "crates/terlan/src/commands/check/mod.rs",
+      "sha256": "32f067ab15e7dd020115dfe51789a7d05154c500f9f7541d893f6b9b7c886e60"
+    },
+    {
+      "path": "crates/terlan/src/commands/emit_core.rs",
+      "sha256": "fc0a130e9c40191adb93616a1291e309b87d885f7412c4991cf8c118754634a9"
+    },
+    {
+      "path": "crates/terlan/src/commands/mod.rs",
+      "sha256": "f824651ec54a9c679829f7cf0bb4cb58e6c03507ca60332a1272bb94bb383d18"
+    },
+    {
+      "path": "crates/terlan/src/lib.rs",
+      "sha256": "b2c31388a301936c3f07c47d9c29d6e6aab5edca9d3db3251805d1d6a90b816c"
+    }
+  ],
+  "source_archive": "sources-c64a5dab1ec04030acefe47ac169e476a3f98d7e48e5aaa08fd750611a8462d7.tar.gz",
+  "source_archive_digest": "f13265b396f9c419b2c8a3d2ccd17ba7d7ddea441f6e6c15d194890fab3eb0c4",
+  "binaries": [
+    {
+      "path": "target/release/terlc",
+      "sha256": "a321901950ccb7467d7b3451022424b9f37062ff6c3ceab2119deaccbe8467e4"
+    },
+    {
+      "path": "target/release/terlan-vm",
+      "sha256": "6eda8babd55bf03d02f5bf401b016c55548962a8ceb76ecf317d824f7f3d0b3d"
+    },
+    {
+      "path": "target/debug/terlc",
+      "sha256": "7efc6a4004149e8eb5ba1fd2611c201b8f19675e32310a460f19d4734290b84f"
+    },
+    {
+      "path": "target/debug/terlan-vm",
+      "sha256": "25a0a1fe9dd362a43023295fa886eaea8473ee14858e42e9ba07cdd93a58e8b8"
+    }
+  ],
+  "compiler_ancestry_claim": "trusted binary anchor only; full bootstrap build ancestry not verified",
+  "execution_policy": "static compiler checks and authored service tests; no generated application execution"
+}

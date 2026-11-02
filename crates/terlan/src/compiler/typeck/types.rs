@@ -14,7 +14,7 @@ use crate::terlan_syntax::span::Span;
 /// - Keeps type variables compact and comparable without storing source names.
 pub type TypeVarId = usize;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 /// Variants representing fixed array size.
 pub enum ArraySize {
     Known(usize),
@@ -56,7 +56,7 @@ impl ArraySize {
 /// Transformation:
 /// - Normalizes source-level type forms into a compact enum while preserving
 ///   enough structure for generics, unions, maps, functions, and literals.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
 pub enum Type {
     Int,
     Float,
@@ -114,7 +114,7 @@ pub enum Type {
 /// Transformation:
 /// - Records typed map field shape without depending on backend map
 ///   representation.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct MapFieldType {
     pub(crate) key: String,
     pub(crate) value: Type,

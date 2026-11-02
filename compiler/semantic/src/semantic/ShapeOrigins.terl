@@ -1,0 +1,84 @@
+/**
+ * Exact provider links for provenance retained by the actual shape expander.
+ */
+module semantic.ShapeOrigins.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.ImportOrigins.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Selected {
+    rows: Json,
+    work_used: Int,
+}.
+
+scan(
+    selection: Selection,
+    references: Json,
+    index: Int,
+    count: Int,
+    output: Json,
+    used: Int,
+    maximum: Int,
+): Result[Selected, Failure] ->
+    if {
+        index == count -> Ok(Selected(rows = output, work_used = used));
+        used >= maximum -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Shape origin selection exhausted its checked-record inspection budget.",
+            ),
+        );
+        true -> let Ok(reference) <- references.at(index) else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Shape expansion origin reference is missing.",
+                    ),
+                )
+        };
+        (let Ok(found) <- ImportOrigins.resolve_reference(selection, reference, "shape", used + 1, maximum) else {
+    Err(reason) -> Err(reason)
+};
+(let status =
+    if {
+        found.found -> "resolved";
+        true -> "unavailable"
+    };
+let reason =
+    if {
+        found.found -> Json.null();
+        true -> Json.string("provider_outside_snapshot_or_unavailable")
+    };
+let evidence =
+    Json.object()
+        .put("source_reference", reference)
+        .put("entity", found.entity)
+        .put("status", Json.string(status))
+        .put("reason", reason);
+let value =
+    Json.object()
+        .put("relation_kind", Json.string("shape_expansion"))
+        .put("scope", Json.string("selected_pattern"))
+        .put("evidence", evidence)
+        .put("resolver_bindings", Json.array())
+        .put("satisfaction_at_call_site", Json.string("requires_verification"))
+        .put("candidate_set_exhaustive", Json.bool(false));
+scan(selection, references, index + 1, count, output.push(value), found.used, maximum)))
+    }.
+
+pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
+    let {
+        Ok(payload) <- selection.record.get("payload");
+        Ok(references) <- payload.get("expanded_from");
+        Ok(count) <- references.length()
+    } else {
+        _ -> Ok(Selected(rows = Json.array(), work_used = selection.work_used))
+    };
+    scan(selection, references, 0, count, Json.array(), selection.work_used, maximum).

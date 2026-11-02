@@ -42,5 +42,19 @@ valid_semantics_reach_backend(): Bool ->
         None -> false
     }.
 
+record_field_call_argument_reaches_backend(): Bool ->
+    let backend = compile(String.concat([
+        "module demo.RecordArgument.\n",
+        "pub struct Box { value: Int }.\n",
+        "take(value: Int): Int -> value.\n",
+        "pub run(box: Box): Int -> take(box.value).\n",
+    ]));
+    case backend.envelope {
+        Some(_value) -> backend.diagnostics == [];
+        None -> false
+    }.
+
 pub self_test(): Bool ->
-    unknown_type_blocks_backend() and valid_semantics_reach_backend().
+    unknown_type_blocks_backend()
+        and valid_semantics_reach_backend()
+        and record_field_call_argument_reaches_backend().

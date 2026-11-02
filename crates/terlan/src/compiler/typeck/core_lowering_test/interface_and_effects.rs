@@ -910,6 +910,7 @@ pub bad(Point{x: 1}): Int ->\n\
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_float_payload() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::Float,
         arity: 1,
         text: Some("1.0".to_string()),
@@ -928,6 +929,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_float_pay
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_map_payload() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::Map,
         arity: 1,
         text: None,
@@ -936,6 +938,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_map_paylo
             key: "a".to_string(),
             required: true,
             value: Box::new(SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::Int,
                 arity: 1,
                 text: Some("1".to_string()),
@@ -963,11 +966,13 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_map_paylo
 #[test]
 pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_string_capture_payload() {
     let pattern = SyntaxPatternOutput {
+        expanded_from: Vec::new(),
         kind: SyntaxPatternKind::StringPattern,
         arity: 2,
         text: Some("file/${id: Int}/part/${name}.txt".to_string()),
         children: vec![
             SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::StringCapture,
                 arity: 0,
                 text: Some("id: Int".to_string()),
@@ -975,6 +980,7 @@ pub(super) fn syntax_output_lowering_to_core_pattern_coverage_includes_string_ca
                 fields: Vec::new(),
             },
             SyntaxPatternOutput {
+                expanded_from: Vec::new(),
                 kind: SyntaxPatternKind::StringCapture,
                 arity: 0,
                 text: Some("name".to_string()),

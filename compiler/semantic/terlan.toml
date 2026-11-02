@@ -1,0 +1,8 @@
+[package]
+name = "terlan-semantic-service"
+version = "0.0.1"
+namespace = "semantic"
+
+[build]
+source_roots = ["src"]
+artifact = "library"

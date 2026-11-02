@@ -367,6 +367,8 @@ Important design documents:
 - `docs/grammar/TERLAN_SYNTAX_SPEC.ebnf`
 - `docs/compiler/TERLAN_CORE_TYPING_SPEC.md`
 - `docs/compiler/TERLAN_TARGET_INFERENCE.md`
+- [LLM native compiler executable roadmap](docs/roadmap/ROADMAP_LLM_NATIVE_COMPILER.md)
+- [Protocol toolkit executable roadmap](docs/roadmap/ROADMAP_PROTOCOL_TOOLKIT.md)
 - `docs/runtime/TVM_EXECUTABLE_IMAGE_SPEC.md`
 - `docs/runtime/TVM_NATIVE_DATA_ABI_SPEC.md`
 - `docs/runtime/TERLAN_VM_OWNERSHIP.md`

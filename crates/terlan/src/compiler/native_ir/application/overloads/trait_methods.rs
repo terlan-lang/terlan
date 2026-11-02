@@ -136,7 +136,12 @@ fn collect_declaration_site_methods(
                     .params
                     .first()
                     .and_then(|param| param.core_ty.as_ref())
-                    != Some(&owner_type)
+                    .is_none_or(|receiver| {
+                        !super::super::mutable_receivers::receiver_types_match(
+                            receiver,
+                            &owner_type,
+                        )
+                    })
             {
                 continue;
             }
@@ -165,25 +170,33 @@ fn collect_declaration_site_methods(
                 parameters,
                 result,
             };
+            let method_name = declaration_site_method_name(&function.name);
             if !identity.type_args.is_empty() {
                 groups
-                    .entry((
-                        dispatch_owner.clone(),
-                        function.name.clone(),
-                        function.arity,
-                    ))
+                    .entry((dispatch_owner.clone(), method_name.clone(), function.arity))
                     .or_default()
                     .push(candidate.clone());
             }
             groups
-                .entry((
-                    identity.trait_name.clone(),
-                    function.name.clone(),
-                    function.arity,
-                ))
+                .entry((identity.trait_name.clone(), method_name, function.arity))
                 .or_default()
                 .push(candidate);
         }
+    }
+}
+
+fn declaration_site_method_name(internal_name: &str) -> String {
+    let Some((source_name, overload_index)) = internal_name.rsplit_once("__terlan_overload_")
+    else {
+        return internal_name.to_string();
+    };
+    if overload_index
+        .chars()
+        .all(|character| character.is_ascii_digit())
+    {
+        source_name.to_string()
+    } else {
+        internal_name.to_string()
     }
 }
 

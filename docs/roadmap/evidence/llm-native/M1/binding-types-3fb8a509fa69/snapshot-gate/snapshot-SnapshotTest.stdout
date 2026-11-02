@@ -1,0 +1,9 @@
+running 7 tests
+test repeated_capture_is_stable_and_preserves_source ... ok
+test original_edits_do_not_change_an_existing_snapshot ... ok
+test modified_compiler_artifact_is_never_served ... ok
+test invalid_source_retains_compiler_rejection ... ok
+test malformed_handles_and_escaping_paths_are_rejected ... ok
+test unsaved_overlay_is_versioned_and_preserves_disk_source ... ok
+test stale_overlay_base_is_rejected_before_publication ... ok
+test result: ok. 7 passed; 0 failed

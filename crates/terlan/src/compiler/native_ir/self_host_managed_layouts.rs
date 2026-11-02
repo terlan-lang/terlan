@@ -41,7 +41,7 @@ use crate::runtime::native_image::managed::{
     encode_list_prepend_operation, encode_list_rest_operation, encode_managed_variant_is_operation,
     encode_map_contains_operation, encode_map_get_operation, encode_string_equal_operation,
     encode_string_literal, encode_string_pattern_extract_operation,
-    encode_string_pattern_matches_operation, ManagedAggregateDescriptor,
+    encode_string_pattern_matches_operation, ManagedAggregateDescriptor, ManagedClosureDescriptor,
     ManagedCollectionDescriptor, ManagedFieldType, ManagedStringCaptureKind as StringCaptureKind,
     ManagedStringPatternSegment as StringPatternSegment, SemanticTypeId,
 };

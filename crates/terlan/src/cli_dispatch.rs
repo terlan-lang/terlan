@@ -80,6 +80,8 @@ where
         "emit-static" => commands::static_site::run_emit_static(cmd, state),
         "serve-static" => commands::static_site::run_serve_static(cmd, state),
         "emit-js" => commands::emit_js::run(&cmd.args, &state),
+        "emit-core" => commands::emit_core::run(cmd, state),
+        "semantic" => commands::semantic::run(cmd, state),
         "test" => commands::test::run(cmd, state),
         "interface" => commands::interface::run(&cmd.args, &state),
         "doc" => commands::doc::run(cmd, state),

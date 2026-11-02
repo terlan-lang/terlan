@@ -9,20 +9,46 @@ import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
 import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
 import self_host.ProjectedTypeConstraintResolution.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import self_host.ProjectedTypeEquivalence.
 
 struct DynamicCallSite {
+    call_node_id: Int,
     call_offset: Int,
+    callee_node_id: Int,
     callee_offset: Int,
+    argument_node_ids: List[Int],
     argument_offsets: List[Int],
 }.
 
 constructor DynamicCallSite {
     (call_offset: Int, callee_offset: Int, argument_offsets: List[Int]): DynamicCallSite ->
         DynamicCallSite {
+            call_node_id: -1,
             call_offset: call_offset,
+            callee_node_id: -1,
             callee_offset: callee_offset,
+            argument_node_ids: List.new[Int](),
+            argument_offsets: argument_offsets,
+        };
+    (call_node_id: Int, call_offset: Int, callee_node_id: Int, callee_offset: Int, argument_node_ids: List[Int], argument_offsets: List[Int]): DynamicCallSite ->
+        DynamicCallSite {
+            call_node_id: call_node_id,
+            call_offset: call_offset,
+            callee_node_id: callee_node_id,
+            callee_offset: callee_offset,
+            argument_node_ids: argument_node_ids,
             argument_offsets: argument_offsets,
         }
+}.
+
+struct DynamicScan {
+    next_id: Int,
+    sites: List[DynamicCallSite],
+}.
+
+constructor DynamicScan {
+    (next_id: Int, sites: List[DynamicCallSite]): DynamicScan ->
+        DynamicScan { next_id: next_id, sites: sites }
 }.
 
 append[T](left: List[T], right: List[T]): List[T] ->
@@ -49,53 +75,121 @@ call_argument_offsets(values: List[ProjectedExpressionNode]): List[Int] ->
         _ -> []
     }.
 
-node_sites(value: ProjectedExpressionNode): List[DynamicCallSite] ->
-    let nested = nodes_sites(value.children);
+node_size(value: ProjectedExpressionNode): Int ->
+    1 + nodes_size(value.children).
+
+nodes_size(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> node_size(value) + nodes_size(rest)
+    }.
+
+argument_node_id(value: ProjectedExpressionNode, node_id: Int): Int ->
+    if {
+        value.kind == "named-argument" and value.children != [] -> node_id + 1;
+        true -> node_id
+    }.
+
+argument_node_ids(values: List[ProjectedExpressionNode], node_id: Int): List[Int] ->
+    case values {
+        [] -> [];
+        [value | rest] -> [argument_node_id(value, node_id)
+            | argument_node_ids(rest, node_id + node_size(value))]
+    }.
+
+call_argument_node_ids(values: List[ProjectedExpressionNode], node_id: Int): List[Int] ->
+    case values {
+        [callee | [arguments | _rest]] -> argument_node_ids(
+            arguments.children,
+            node_id + 1 + node_size(callee) + 1,
+        );
+        _ -> []
+    }.
+
+scan_children(values: List[ProjectedExpressionNode], next_id: Int): DynamicScan ->
+    case values {
+        [] -> DynamicScan(next_id, []);
+        [value | rest] -> let current = scan_node(value, next_id);
+            let remaining = scan_children(rest, current.next_id);
+            DynamicScan(
+                remaining.next_id,
+                append(current.sites, remaining.sites),
+            )
+    }.
+
+scan_node(value: ProjectedExpressionNode, node_id: Int): DynamicScan ->
+    let nested = scan_children(value.children, node_id + 1);
     if {
         value.kind == "dynamic-call" -> case value.children {
-            [callee | _arguments] -> [DynamicCallSite(
+            [callee | _arguments] -> DynamicScan(nested.next_id, [DynamicCallSite(
+                node_id,
                 value.start_byte,
+                node_id + 1,
                 callee.start_byte,
+                call_argument_node_ids(value.children, node_id),
                 call_argument_offsets(value.children),
-            ) | nested];
+            ) | nested.sites]);
             _ -> nested
         };
         true -> nested
     }.
 
-nodes_sites(values: List[ProjectedExpressionNode]): List[DynamicCallSite] ->
+node_sites(value: ProjectedExpressionNode): List[DynamicCallSite] ->
+    scan_node(value, 0).sites.
+
+body_scan(values: List[ProjectedBody], next_id: Int): DynamicScan ->
     case values {
-        [] -> [];
-        [value | rest] -> append(node_sites(value), nodes_sites(rest))
+        [] -> DynamicScan(next_id, []);
+        [value | rest] -> case value.expression.node {
+            Some(node) -> let current = scan_node(node, next_id);
+                let remaining = body_scan(rest, current.next_id);
+                DynamicScan(
+                    remaining.next_id,
+                    append(current.sites, remaining.sites),
+                );
+            None -> body_scan(rest, next_id)
+        }
     }.
 
 body_sites(values: List[ProjectedBody]): List[DynamicCallSite] ->
-    case values {
-        [] -> [];
-        [value | rest] -> case value.expression.node {
-            Some(node) -> append(node_sites(node), body_sites(rest));
-            None -> body_sites(rest)
-        }
-    }.
+    body_scan(values, 0).sites.
 
-fact_type(byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
+fact_type(node_id: Int, byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
     case values {
         [] -> None;
         [value | rest] -> if {
-            value.byte_offset == byte_offset -> case value.type_name {
+            (node_id >= 0 and value.node_id == node_id)
+                or (node_id < 0 and value.byte_offset == byte_offset) -> case value.type_name {
                 Some(name) -> Some(name);
-                None -> fact_type(byte_offset, rest)
+                None -> fact_type(node_id, byte_offset, rest)
             };
-            true -> fact_type(byte_offset, rest)
+            true -> fact_type(node_id, byte_offset, rest)
         }
     }.
 
-site_at(byte_offset: Int, values: List[DynamicCallSite]): Option[DynamicCallSite] ->
+result_fact_type(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[InferredTypeFact],
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] -> if {
+            ((node_id >= 0 and value.node_id == node_id)
+                or (node_id < 0 and value.byte_offset == byte_offset))
+                and value.type_name != None -> value.type_name;
+            true -> result_fact_type(node_id, byte_offset, rest, current)
+        }
+    }.
+
+site_at(node_id: Int, byte_offset: Int, values: List[DynamicCallSite]): Option[DynamicCallSite] ->
     case values {
         [] -> None;
         [value | rest] -> if {
-            value.call_offset == byte_offset -> Some(value);
-            true -> site_at(byte_offset, rest)
+            (node_id >= 0 and value.call_node_id == node_id)
+                or (node_id < 0 and value.call_node_id < 0 and value.call_offset == byte_offset) -> Some(value);
+            true -> site_at(node_id, byte_offset, rest)
         }
     }.
 
@@ -104,9 +198,11 @@ merge_fact(
     sites: List[DynamicCallSite],
     all: List[InferredTypeFact],
 ): InferredTypeFact ->
-    case site_at(value.byte_offset, sites) {
+    case value.type_name {
+        Some(_known) -> value;
+        None -> case site_at(value.node_id, value.byte_offset, sites) {
         None -> value;
-        Some(site) -> case fact_type(site.callee_offset, all) {
+        Some(site) -> case fact_type(site.callee_node_id, site.callee_offset, all) {
             None -> value;
             Some(callable_type) -> case ProjectedTypeConstraintResolution.function_return(callable_type) {
                 None -> value;
@@ -116,6 +212,7 @@ merge_fact(
                     value.byte_offset,
                 )
             }
+        }
         }
     }.
 
@@ -145,12 +242,11 @@ size[T](values: List[T]): Int ->
     case values { [] -> 0; [_value | rest] -> 1 + size(rest) }.
 
 type_matches(expected: String, actual: String): Bool ->
-    expected == actual
-        or String.starts_with(expected, String.append(actual, "["))
-        or String.starts_with(actual, String.append(expected, "[")).
+    ProjectedTypeEquivalence.matches(expected, actual).
 
 argument_diagnostics(
     expected: List[String],
+    node_ids: List[Int],
     offsets: List[Int],
     facts: List[InferredTypeFact],
     existing: List[TypeConstraintDiagnostic],
@@ -159,8 +255,10 @@ argument_diagnostics(
         {[], _} -> [];
         {_, []} -> [];
         {[expected_type | expected_rest], [offset | offset_rest]} ->
-            let rest = argument_diagnostics(expected_rest, offset_rest, facts, existing);
-            case fact_type(offset, facts) {
+            let node_id = case node_ids { [value | _rest] -> value; [] -> -1 };
+            let remaining_ids = case node_ids { [_value | rest] -> rest; [] -> [] };
+            let rest = argument_diagnostics(expected_rest, remaining_ids, offset_rest, facts, existing);
+            case result_fact_type(node_id, offset, facts, None) {
                 None -> if {
                     diagnostic_exists("unresolved-call-argument-type", offset, existing) -> rest;
                     true -> [TypeConstraintDiagnostic(
@@ -210,7 +308,13 @@ callable_diagnostics(
                     site.call_offset,
                 )]
             };
-            true -> argument_diagnostics(expected, site.argument_offsets, facts, existing)
+            true -> argument_diagnostics(
+                expected,
+                site.argument_node_ids,
+                site.argument_offsets,
+                facts,
+                existing,
+            )
         }
     }.
 
@@ -221,7 +325,7 @@ site_diagnostics(
 ): List[TypeConstraintDiagnostic] ->
     case sites {
         [] -> [];
-        [value | rest] -> case fact_type(value.callee_offset, facts) {
+        [value | rest] -> case fact_type(value.callee_node_id, value.callee_offset, facts) {
             Some(callable_type) -> append(
                 callable_diagnostics(value, callable_type, facts, existing),
                 site_diagnostics(rest, facts, existing),

@@ -69,6 +69,7 @@ pub use syntax_contract::{
     SyntaxContractError, SyntaxContractIdentity, CANONICAL_TERLAN_EBNF,
     SYNTAX_CONTRACT_ARTIFACT_SCHEMA, SYNTAX_CONTRACT_FINGERPRINT_ALGORITHM,
 };
+pub(crate) use syntax_output::describe_shape;
 pub use syntax_output::{
     expand_shape_imports, parse_expr_as_syntax_output, parse_interface_module_as_syntax_output,
     parse_module_as_syntax_output, parse_script_as_syntax_output, syntax_module_import_identities,
@@ -79,7 +80,7 @@ pub use syntax_output::{
     SyntaxHtmlAttrValueOutput, SyntaxHtmlElementOutput, SyntaxHtmlNamedSlotOutput,
     SyntaxHtmlNodeOutput, SyntaxImplConstOutput, SyntaxImplMethodOutput, SyntaxImportItem,
     SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput, SyntaxPatternFieldOutput,
-    SyntaxPatternKind, SyntaxPatternOutput, SyntaxShapeImport, SyntaxSourceKind,
+    SyntaxPatternKind, SyntaxPatternOutput, SyntaxShapeOrigin, SyntaxShapeImport, SyntaxSourceKind,
     SyntaxStructFieldOutput, SyntaxTemplatePropOutput, SyntaxTraitConstOutput,
     SyntaxTraitMethodOutput, SyntaxTypeOutput, SyntaxValuedUnionArmOutput,
     SYNTAX_MODULE_OUTPUT_SCHEMA,

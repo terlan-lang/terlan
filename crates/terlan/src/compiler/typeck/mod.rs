@@ -73,6 +73,11 @@ mod struct_includes;
 mod html_typecheck;
 use html_typecheck::*;
 
+pub(crate) mod binding_type_observations;
+pub(crate) mod call_observations;
+pub(crate) mod coverage_observations;
+pub(crate) mod requirement_observations;
+
 mod patterns;
 use patterns::*;
 
@@ -458,6 +463,8 @@ pub(crate) fn type_check_syntax_module_output_with_database_schema(
     timings.mark("binding-analysis");
     binding_diagnostics.append(&mut diagnostics);
     diagnostics = binding_diagnostics;
+    let _binding_types = binding_type_observations::module(&prepared);
+    let _call_observations = call_observations::module(&prepared);
     diagnostics.extend(type_check_prepared_syntax_module_output(
         &prepared,
         resolved,

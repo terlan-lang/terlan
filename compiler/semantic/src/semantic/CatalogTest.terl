@@ -1,0 +1,235 @@
+/**
+ * Checked pattern ownership and exact selection under edits and lexical moves.
+ */
+module semantic.CatalogTest.
+
+import semantic.{Catalog, Snapshot}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+source(): String ->
+    "module sample.\npub head(input: List[Int]): Int -> case input { [value | rest] -> value; _ -> 0 }.\n".
+
+capture(root: String, source: String): Result[Json, Bool] ->
+    let {
+        Ok(_) <- File.write_text(root + "/sample.terl", source);
+        Ok(snapshot) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            );
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"))
+    } else {
+        _ -> Err(false)
+    };
+    Ok(catalog).
+
+find(rows: Json, kind: String, fragment: String, index: Int, count: Int): Result[Json, Bool] ->
+    let true <- index < count else {
+        _ -> Err(false)
+    };
+    (let Ok(row) <- rows.at(index) else {
+    _ -> Err(false)
+};
+if {
+    text(row, "kind") == kind and text(row, "name").contains(fragment) -> Ok(row);
+    true -> find(rows, kind, fragment, index + 1, count)
+}).
+
+selected(catalog: Json, kind: String, fragment: String): Result[Json, Bool] ->
+    let {
+        Ok(rows) <- catalog.get("entities");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> Err(false)
+    };
+    find(rows, kind, fragment, 0, count).
+
+count_kind(rows: Json, kind: String, index: Int, count: Int): Int ->
+    if {
+        index == count -> 0;
+        true -> case rows.at(index) {
+            Ok(row) ->
+                if {
+    text(row, "kind") == kind -> 1;
+    true -> 0
+} + count_kind(rows, kind, index + 1, count);
+            _ -> -1_000
+        }
+    }.
+
+@test
+pub nested_patterns_and_unbound_wildcards_have_owned_identities(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-catalog-patterns-");
+        Ok(catalog) <- capture(root, source());
+        Ok(rows) <- catalog.get("entities");
+        Ok(count) <- rows.length();
+        Ok(wildcard) <- selected(catalog, "pattern", "(wildcard)");
+        Ok(function_entity) <- selected(catalog, "function", "head")
+    } else {
+        _ -> false
+    };
+    (let covered = count_kind(rows, "pattern", 0, count) == 5 and count_kind(rows, "binding", 0, count) == 3;
+let owned = text(wildcard, "owner") == text(function_entity, "entity_id");
+let resolved =
+    case Catalog.resolve(
+        root + "/store",
+        text(catalog, "snapshot_id"),
+        text(wildcard, "entity_id"),
+        "pattern",
+        text(wildcard, "digest"),
+    ) {
+        Ok(_) -> true;
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+covered and owned and resolved and cleaned).
+
+@test
+pub unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-catalog-stability-");
+        Ok(first) <- capture(root, source());
+        Ok(second) <- capture(root, source().replace("pub head", "pub unrelated(): Int -> 0.\npub head"));
+        Ok(before_pattern) <- selected(first, "pattern", "(wildcard)");
+        Ok(later_pattern) <- selected(second, "pattern", "(wildcard)")
+    } else {
+        _ -> false
+    };
+    (let stable = text(before_pattern, "entity_id") == text(later_pattern, "entity_id");
+let stale =
+    case Catalog.resolve(
+        root + "/store",
+        text(second, "snapshot_id"),
+        text(before_pattern, "entity_id"),
+        "pattern",
+        text(before_pattern, "digest"),
+    ) {
+        Err(reason) -> reason.code == "semantic.entity.stale";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+stable and stale and cleaned).
+
+@test
+pub edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-catalog-pattern-edit-");
+        Ok(first) <- capture(root, source());
+        Ok(before_pattern) <- selected(first, "pattern", "(wildcard)");
+        Ok(second) <- capture(root, source().replace("_ -> 0", "[] -> 0"))
+    } else {
+        _ -> false
+    };
+    (let absent =
+    case Catalog.resolve(
+        root + "/store",
+        text(second, "snapshot_id"),
+        text(before_pattern, "entity_id"),
+        "pattern",
+        text(before_pattern, "digest"),
+    ) {
+        Err(reason) -> reason.code == "semantic.entity.absent";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+absent and cleaned).
+
+@test
+pub moving_a_binding_into_a_branch_invalidates_its_old_handle(): Bool ->
+    let initial = "module sample.\npub value(input: Int): Int -> let local = input + 1; local.\n";
+    let moved = "module sample.\npub value(input: Int): Int -> case true { true -> let local = input + 1; local; false -> input }.\n";
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-catalog-lexical-move-");
+        Ok(first) <- capture(root, initial);
+        Ok(before_binding) <- selected(first, "binding", "local");
+        Ok(second) <- capture(root, moved);
+        Ok(later_binding) <- selected(second, "binding", "local")
+    } else {
+        _ -> false
+    };
+    (let different = text(before_binding, "entity_id") != text(later_binding, "entity_id");
+let absent =
+    case Catalog.resolve(
+        root + "/store",
+        text(second, "snapshot_id"),
+        text(before_binding, "entity_id"),
+        "binding",
+        text(before_binding, "digest"),
+    ) {
+        Err(reason) -> reason.code == "semantic.entity.absent";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+different and absent and cleaned).
+
+@test
+pub entity_selection_rejects_wrong_kind_and_content(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-catalog-selection-");
+        Ok(catalog) <- capture(root, source());
+        Ok(entity) <- selected(catalog, "module", "sample")
+    } else {
+        _ -> false
+    };
+    (let wrong_kind =
+    case Catalog.resolve(
+        root + "/store",
+        text(catalog, "snapshot_id"),
+        text(entity, "entity_id"),
+        "type",
+        text(entity, "digest"),
+    ) {
+        Err(reason) -> reason.code == "semantic.entity.kind";
+        _ -> false
+    };
+let wrong_content =
+    case Catalog.resolve(
+        root + "/store",
+        text(catalog, "snapshot_id"),
+        text(entity, "entity_id"),
+        "module",
+        "stale",
+    ) {
+        Err(reason) -> reason.code == "semantic.entity.stale";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+wrong_kind and wrong_content and cleaned).
+
+@test
+pub rejected_source_returns_unavailable_catalog_without_typed_entities(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-catalog-invalid-");
+        Ok(catalog) <- capture(root, "module sample.\npub value(): Bool -> 1.\n");
+        Ok(rows) <- catalog.get("entities");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> false
+    };
+    (let unavailable = text(catalog, "status") == "unavailable" and count == 0; let cleaned = Directory.remove_all(root) == Ok(Unit); unavailable and cleaned).

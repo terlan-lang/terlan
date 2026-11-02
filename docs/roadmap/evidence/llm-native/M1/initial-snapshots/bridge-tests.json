@@ -1,0 +1,607 @@
+{
+  "source_path": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+  "module_name": "semantic.CompilerBridgeTest",
+  "target": "terlan-vm",
+  "target_profile": "vm",
+  "passed": 4,
+  "failed": 0,
+  "not_executed": 0,
+  "native_callable_evidence": {
+    "schema": "terlan.native-callable-evidence/v1",
+    "image_sha256": "77e52938cdb407217a770278500af891358163b29353457f265c22137ec3369d",
+    "declarations": [
+      {
+        "callable_id": "11334943443102455436",
+        "module": "std.data.Json",
+        "function": "get",
+        "arity": 2,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "source",
+        "span_start": 9698,
+        "span_end": 9780,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "12027501059403580885",
+        "module": "$terlan.continuations",
+        "function": "$continuation_13169647588292394574",
+        "arity": 2,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "generated:semantic.CompilerBridgeTest.invalid_program_keeps_diagnostics_without_core/0",
+        "span_start": 1359,
+        "span_end": 1937,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "12027501059403580885",
+        "module": "$terlan.continuations",
+        "function": "$continuation_7168160957607855230",
+        "arity": 2,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "generated:semantic.CompilerBridgeTest.invalid_program_keeps_diagnostics_without_core/0",
+        "span_start": 1359,
+        "span_end": 1937,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "12027501059403580885",
+        "module": "semantic.CompilerBridgeTest",
+        "function": "invalid_program_keeps_diagnostics_without_core",
+        "arity": 0,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "source",
+        "span_start": 1359,
+        "span_end": 1937,
+        "continuation_ids": [
+          "7168160957607855230",
+          "13169647588292394574"
+        ]
+      },
+      {
+        "callable_id": "12536003104086554147",
+        "module": "$terlan.continuations",
+        "function": "$continuation_26738431721447572",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.text/2",
+        "span_start": 511,
+        "span_end": 686,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "12536003104086554147",
+        "module": "$terlan.continuations",
+        "function": "$continuation_9548248090463721523",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.text/2",
+        "span_start": 511,
+        "span_end": 686,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "12536003104086554147",
+        "module": "semantic.CompilerBridge",
+        "function": "text",
+        "arity": 2,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "source",
+        "span_start": 511,
+        "span_end": 686,
+        "continuation_ids": [
+          "26738431721447572",
+          "9548248090463721523"
+        ]
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_10375134236214342455",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_11333942356135341661",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_11533232955348866275",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_12892950989609146589",
+        "arity": 3,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_12948182077384219789",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_1330195297045923835",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_14085684746747589004",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_16192751746753256800",
+        "arity": 3,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_18182830075573386981",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_3798905585148264380",
+        "arity": 4,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_5282505029854271049",
+        "arity": 5,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_5283197093951647182",
+        "arity": 4,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_608343134848444962",
+        "arity": 2,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_8552301661613187426",
+        "arity": 4,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_9760563150258533963",
+        "arity": 3,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "$terlan.continuations",
+        "function": "$continuation_9870645748552447519",
+        "arity": 4,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "generated:semantic.CompilerBridge.admit/3",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "1409690378736204821",
+        "module": "semantic.CompilerBridge",
+        "function": "admit",
+        "arity": 3,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/compiler/semantic/src/semantic/CompilerBridge.terl",
+        "source_sha256": "a978c2f8dc76d86f9f32b8ef3ab42d406710e9d05d26fb9f433db3ec1609f01a",
+        "source_origin": "source",
+        "span_start": 860,
+        "span_end": 2744,
+        "continuation_ids": [
+          "9760563150258533963",
+          "5283197093951647182",
+          "9870645748552447519",
+          "12892950989609146589",
+          "3798905585148264380",
+          "8552301661613187426",
+          "14085684746747589004",
+          "11333942356135341661",
+          "11533232955348866275",
+          "12948182077384219789",
+          "18182830075573386981",
+          "5282505029854271049",
+          "10375134236214342455",
+          "1330195297045923835",
+          "16192751746753256800",
+          "608343134848444962"
+        ]
+      },
+      {
+        "callable_id": "14576643926989415469",
+        "module": "$terlan.continuations",
+        "function": "$continuation_2989676636128947846",
+        "arity": 1,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "generated:semantic.CompilerBridgeTest.successful_exit_cannot_replace_checked_core/0",
+        "span_start": 987,
+        "span_end": 1346,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "14576643926989415469",
+        "module": "semantic.CompilerBridgeTest",
+        "function": "successful_exit_cannot_replace_checked_core",
+        "arity": 0,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "source",
+        "span_start": 987,
+        "span_end": 1346,
+        "continuation_ids": [
+          "2989676636128947846"
+        ]
+      },
+      {
+        "callable_id": "14664513342686639796",
+        "module": "$terlan.continuations",
+        "function": "$continuation_13133377771654745868",
+        "arity": 1,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "generated:semantic.CompilerBridgeTest.malformed_and_unversioned_artifacts_are_rejected/0",
+        "span_start": 191,
+        "span_end": 665,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "14664513342686639796",
+        "module": "$terlan.continuations",
+        "function": "$continuation_9220098663657420090",
+        "arity": 2,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "generated:semantic.CompilerBridgeTest.malformed_and_unversioned_artifacts_are_rejected/0",
+        "span_start": 191,
+        "span_end": 665,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "14664513342686639796",
+        "module": "semantic.CompilerBridgeTest",
+        "function": "malformed_and_unversioned_artifacts_are_rejected",
+        "arity": 0,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "source",
+        "span_start": 191,
+        "span_end": 665,
+        "continuation_ids": [
+          "13133377771654745868",
+          "9220098663657420090"
+        ]
+      },
+      {
+        "callable_id": "18157586027027184707",
+        "module": "$terlan.continuations",
+        "function": "$continuation_18076083224738818569",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "generated:std.data.Json.is_null/1",
+        "span_start": 17167,
+        "span_end": 17223,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "18157586027027184707",
+        "module": "std.data.Json",
+        "function": "is_null",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "source",
+        "span_start": 17167,
+        "span_end": 17223,
+        "continuation_ids": [
+          "18076083224738818569"
+        ]
+      },
+      {
+        "callable_id": "6388436902558100452",
+        "module": "$terlan.continuations",
+        "function": "$continuation_12256434545066677501",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "generated:std.data.Json.parse/1",
+        "span_start": 8157,
+        "span_end": 8201,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "6388436902558100452",
+        "module": "std.data.Json",
+        "function": "parse",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "source",
+        "span_start": 8157,
+        "span_end": 8201,
+        "continuation_ids": [
+          "12256434545066677501"
+        ]
+      },
+      {
+        "callable_id": "6649323629629587062",
+        "module": "$terlan.continuations",
+        "function": "$continuation_6388444570325342468",
+        "arity": 1,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "generated:semantic.CompilerBridgeTest.stale_source_identity_is_rejected/0",
+        "span_start": 678,
+        "span_end": 974,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "6649323629629587062",
+        "module": "semantic.CompilerBridgeTest",
+        "function": "stale_source_identity_is_rejected",
+        "arity": 0,
+        "source_file": "compiler/semantic/src/semantic/CompilerBridgeTest.terl",
+        "source_sha256": "99e58a9afcd5025cc3a7c9598d7e2474e1a3f3d1a40a3120c76437ed5584980d",
+        "source_origin": "source",
+        "span_start": 678,
+        "span_end": 974,
+        "continuation_ids": [
+          "6388444570325342468"
+        ]
+      },
+      {
+        "callable_id": "7385528840805045288",
+        "module": "$terlan.continuations",
+        "function": "$continuation_13810821614105113780",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "generated:std.data.Json.length/1",
+        "span_start": 15006,
+        "span_end": 15079,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "7385528840805045288",
+        "module": "std.data.Json",
+        "function": "length",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "source",
+        "span_start": 15006,
+        "span_end": 15079,
+        "continuation_ids": [
+          "13810821614105113780"
+        ]
+      },
+      {
+        "callable_id": "7857750205376440686",
+        "module": "$terlan.continuations",
+        "function": "$continuation_7054469171892516190",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "generated:std.data.Json.as_string/1",
+        "span_start": 15754,
+        "span_end": 15833,
+        "continuation_ids": []
+      },
+      {
+        "callable_id": "7857750205376440686",
+        "module": "std.data.Json",
+        "function": "as_string",
+        "arity": 1,
+        "source_file": "/home/anatoly/Applications/terlan/terlan/std/data/Json.terl",
+        "source_sha256": "b077d2a2a37928603be8c1c295dccb01be286836b0e5937a530bf7ed75512422",
+        "source_origin": "source",
+        "span_start": 15754,
+        "span_end": 15833,
+        "continuation_ids": [
+          "7054469171892516190"
+        ]
+      }
+    ]
+  },
+  "tests": [
+    {
+      "entered_native_callables": [
+        "1409690378736204821",
+        "6388436902558100452",
+        "7857750205376440686",
+        "11334943443102455436",
+        "12536003104086554147",
+        "14664513342686639796"
+      ],
+      "name": "malformed_and_unversioned_artifacts_are_rejected",
+      "kind": "test",
+      "status": "passed",
+      "message": null,
+      "execution_nanoseconds": 278943,
+      "benchmark_samples": null,
+      "benchmark_min_nanoseconds": null,
+      "benchmark_p95_nanoseconds": null,
+      "span_start": 191,
+      "span_end": 665
+    },
+    {
+      "entered_native_callables": [
+        "1409690378736204821",
+        "6388436902558100452",
+        "6649323629629587062",
+        "7857750205376440686",
+        "11334943443102455436",
+        "12536003104086554147"
+      ],
+      "name": "stale_source_identity_is_rejected",
+      "kind": "test",
+      "status": "passed",
+      "message": null,
+      "execution_nanoseconds": 121523,
+      "benchmark_samples": null,
+      "benchmark_min_nanoseconds": null,
+      "benchmark_p95_nanoseconds": null,
+      "span_start": 678,
+      "span_end": 974
+    },
+    {
+      "entered_native_callables": [
+        "1409690378736204821",
+        "6388436902558100452",
+        "7385528840805045288",
+        "7857750205376440686",
+        "11334943443102455436",
+        "12536003104086554147",
+        "14576643926989415469",
+        "18157586027027184707"
+      ],
+      "name": "successful_exit_cannot_replace_checked_core",
+      "kind": "test",
+      "status": "passed",
+      "message": null,
+      "execution_nanoseconds": 243299,
+      "benchmark_samples": null,
+      "benchmark_min_nanoseconds": null,
+      "benchmark_p95_nanoseconds": null,
+      "span_start": 987,
+      "span_end": 1346
+    },
+    {
+      "entered_native_callables": [
+        "1409690378736204821",
+        "6388436902558100452",
+        "7385528840805045288",
+        "7857750205376440686",
+        "11334943443102455436",
+        "12027501059403580885",
+        "12536003104086554147",
+        "18157586027027184707"
+      ],
+      "name": "invalid_program_keeps_diagnostics_without_core",
+      "kind": "test",
+      "status": "passed",
+      "message": null,
+      "execution_nanoseconds": 382168,
+      "benchmark_samples": null,
+      "benchmark_min_nanoseconds": null,
+      "benchmark_p95_nanoseconds": null,
+      "span_start": 1359,
+      "span_end": 1937
+    }
+  ]
+}

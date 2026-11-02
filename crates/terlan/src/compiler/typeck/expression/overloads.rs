@@ -59,6 +59,25 @@ pub(crate) fn infer_function_scheme_overload_with_explicit_type_args(
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Type, String> {
+    infer_function_scheme_overload_with_selection(
+        schemes,
+        function_name,
+        arg_types,
+        type_args,
+        ctx,
+        subst,
+    )
+    .map(|(ty, _)| ty)
+}
+
+pub(super) fn infer_function_scheme_overload_with_selection<'a>(
+    schemes: &'a [FunctionScheme],
+    function_name: &str,
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<(Type, &'a FunctionScheme), String> {
     if schemes.len() == 1 {
         return infer_function_with_explicit_type_args(
             &schemes[0],
@@ -67,7 +86,8 @@ pub(crate) fn infer_function_scheme_overload_with_explicit_type_args(
             type_args,
             ctx,
             subst,
-        );
+        )
+        .map(|ty| (ty, &schemes[0]));
     }
 
     let mut matches = Vec::new();
@@ -81,15 +101,15 @@ pub(crate) fn infer_function_scheme_overload_with_explicit_type_args(
             ctx,
             &mut trial_subst,
         ) {
-            matches.push((ty, trial_subst));
+            matches.push((ty, trial_subst, scheme));
         }
     }
 
     match matches.len() {
         1 => {
-            let (ty, selected_subst) = matches.remove(0);
+            let (ty, selected_subst, selected_scheme) = matches.remove(0);
             *subst = selected_subst;
-            Ok(ty)
+            Ok((ty, selected_scheme))
         }
         0 => Err(format!(
             "no overload of {} / {} accepts [{}]",
@@ -219,6 +239,27 @@ pub(super) fn infer_interface_function_overload_with_explicit_type_args(
     ctx: &ExprInferContext,
     subst: &mut HashMap<TypeVarId, Type>,
 ) -> Result<Option<Type>, String> {
+    infer_interface_function_overload_with_selection(
+        interface,
+        function_name,
+        display_name,
+        arg_types,
+        type_args,
+        ctx,
+        subst,
+    )
+    .map(|selected| selected.map(|(ty, _)| ty))
+}
+
+pub(super) fn infer_interface_function_overload_with_selection<'a>(
+    interface: &'a ModuleInterface,
+    function_name: &str,
+    display_name: &str,
+    arg_types: &[Type],
+    type_args: &[SyntaxTypeOutput],
+    ctx: &ExprInferContext,
+    subst: &mut HashMap<TypeVarId, Type>,
+) -> Result<Option<(Type, &'a crate::terlan_hir::FunctionSignature)>, String> {
     let key = (function_name.to_string(), arg_types.len());
     let candidates = interface
         .function_overloads
@@ -253,7 +294,7 @@ pub(super) fn infer_interface_function_overload_with_explicit_type_args(
             ctx,
             subst,
         )
-        .map(Some);
+        .map(|ty| Some((ty, signature)));
     }
 
     let mut matches = Vec::new();
@@ -272,15 +313,15 @@ pub(super) fn infer_interface_function_overload_with_explicit_type_args(
             ctx,
             &mut trial_subst,
         ) {
-            matches.push((ty, trial_subst));
+            matches.push((ty, trial_subst, signature));
         }
     }
 
     match matches.len() {
         1 => {
-            let (ty, selected_subst) = matches.remove(0);
+            let (ty, selected_subst, signature) = matches.remove(0);
             *subst = selected_subst;
-            Ok(Some(ty))
+            Ok(Some((ty, signature)))
         }
         0 if parse_failures > 0 => Err(format!(
             "cannot parse imported overload signature {} / {}",

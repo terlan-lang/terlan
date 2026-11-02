@@ -1,0 +1,5 @@
+running 3 tests
+test unrelated_insertion_preserves_identity_but_requires_fresh_content ... ok
+test renamed_binding_invalidates_old_handle_without_name_fallback ... ok
+test invalid_source_cannot_produce_binding_facts ... ok
+test result: ok. 3 passed; 0 failed

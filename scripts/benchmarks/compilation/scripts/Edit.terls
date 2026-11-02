@@ -1,0 +1,23 @@
+#!/usr/bin/env -S terlc run
+import compilation_benchmark.Corpus.
+import std.core.Option.{Some}.
+import std.io.File.
+import std.system.Arguments.{count, get}.
+
+entry(): Bool ->
+    let {
+        true <- count() == 2;
+        Some(directory) <- get(0);
+        Some(operation) <- get(1);
+        true <- File.exists(directory)
+    } else {
+        _ -> false
+    };
+    if {
+        operation == "break" -> Corpus.break_interface(directory);
+        operation == "repair" -> Corpus.edit(directory, false, false);
+        true -> false
+    }.
+
+assert(entry());
+Unit.

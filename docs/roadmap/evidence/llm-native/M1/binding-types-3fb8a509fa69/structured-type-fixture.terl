@@ -1,0 +1,10 @@
+module binding_types_structured.
+
+pub struct Box[T] { value: T }.
+pub tuple(input: {Int, Bool}): {Int, Bool} -> let tuple_local = input; tuple_local.
+pub list(input: List[Int]): List[Int] -> let list_local = input; list_local.
+pub map(input: {name: String}): {name: String} -> let map_local = input; map_local.
+pub named(input: Box[Int]): Box[Int] -> let named_local = input; named_local.
+pub array(input: Array[3, Int]): Array[3, Int] -> let array_local = input; array_local.
+pub generic[T](input: T): T -> let generic_local = input; generic_local.
+pub callable(): Term -> let function_local = ((item: Int) -> item); function_local.

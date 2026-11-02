@@ -1,0 +1,149 @@
+/**
+ * Stable declarations and distinct same-name overloads from checked syntax.
+ */
+module semantic.DeclarationEntitiesTest.
+
+import semantic.{DeclarationEntities, Snapshot, SnapshotStore}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+source(): String ->
+    "module sample.\npub type UserId = Int.\npub trait Equal[A] { equal(left: A, right: A): Bool. }.\npub value(input: Int): Int -> input.\n".
+
+capture(root: String, source: String): Result[Json, Bool] ->
+    let {
+        Ok(_) <- File.write_text(root + "/sample.terl", source);
+        Ok(snapshot) <-
+            Snapshot.capture_file(
+                compiler(),
+                root + "/sample.terl",
+                "src/sample.terl",
+                root + "/store",
+            );
+        Ok(rows) <- DeclarationEntities.declarations(root + "/store", text(snapshot, "snapshot_id"))
+    } else {
+        _ -> Err(false)
+    };
+    Ok(rows).
+
+@test
+pub checked_types_traits_and_functions_have_distinct_handles(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-declaration-kinds-");
+        Ok(rows) <- capture(root, source());
+        Ok(count) <- rows.length();
+        Ok(type_entity) <- rows.at(0);
+        Ok(trait_entity) <- rows.at(1);
+        Ok(function_entity) <- rows.at(2)
+    } else {
+        _ -> false
+    };
+    (let kinds =
+    count == 3
+        and text(type_entity, "kind") == "type"
+        and text(trait_entity, "kind") == "trait"
+        and text(function_entity, "kind") == "function";
+let distinct =
+    text(type_entity, "entity_id") != text(trait_entity, "entity_id")
+        and text(trait_entity, "entity_id") != text(function_entity, "entity_id");
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+kinds and distinct and cleaned).
+
+@test
+pub unrelated_insertion_preserves_declaration_identity(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-declaration-stability-");
+        Ok(first) <- capture(root, source());
+        Ok(second) <- capture(root, source().replace("pub type", "pub unrelated(): Int -> 0.\npub type"));
+        Ok(before_type) <- first.at(0);
+        Ok(later_type) <- second.at(1);
+        Ok(before_trait) <- first.at(1);
+        Ok(later_trait) <- second.at(2);
+        Ok(before_fn) <- first.at(2);
+        Ok(later_fn) <- second.at(3)
+    } else {
+        _ -> false
+    };
+    (let stable =
+    text(before_type, "entity_id") == text(later_type, "entity_id")
+        and text(before_trait, "entity_id") == text(later_trait, "entity_id")
+        and text(before_fn, "entity_id") == text(later_fn, "entity_id");
+let changed = text(before_fn, "digest") != text(later_fn, "digest");
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+stable and changed and cleaned).
+
+@test
+pub same_name_and_arity_overloads_have_distinct_handles(): Bool ->
+    let source = "module sample.\npub value(input: Int): Int -> input.\npub value(input: Float): Float -> input.\n";
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-declaration-overloads-");
+        Ok(rows) <- capture(root, source);
+        Ok(count) <- rows.length();
+        Ok(first) <- rows.at(0);
+        Ok(second) <- rows.at(1)
+    } else {
+        _ -> false
+    };
+    (let distinct =
+    count == 2
+        and text(first, "name") == text(second, "name")
+        and text(first, "entity_id") != text(second, "entity_id");
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+distinct and cleaned).
+
+@test
+pub semantic_payload_change_invalidates_declaration_handle(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-declaration-change-");
+        Ok(first) <- capture(root, "module sample.\npub value(): Int -> 1.\n");
+        Ok(second) <- capture(root, "module sample.\npub value(): Int -> 2.\n");
+        Ok(before_fn) <- first.at(0);
+        Ok(later_fn) <- second.at(0)
+    } else {
+        _ -> false
+    };
+    (let invalidated = text(before_fn, "entity_id") != text(later_fn, "entity_id"); let cleaned = Directory.remove_all(root) == Ok(Unit); invalidated and cleaned).
+
+@test
+pub duplicate_checked_rows_are_rejected_before_catalog_publication(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-declaration-duplicate-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source());
+        Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");
+        Ok(artifact) <- SnapshotStore.compiler_artifact(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(rows) <- artifact.get("source_declarations");
+        Ok(first) <- rows.at(0)
+    } else {
+        _ -> false
+    };
+    (let _duplicate = rows.push(first);
+let _replaced = artifact.put("source_declarations", rows);
+let refused =
+    case DeclarationEntities.from_artifact(artifact, text(snapshot, "snapshot_id")) {
+        Err(reason) -> reason.code == "semantic.declarations.ambiguous";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+refused and cleaned).

@@ -2,13 +2,13 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode, Output};
+use std::process::{Command, ExitCode, Output, Stdio};
 
 use serde::Deserialize;
 
 use crate::validation::target_profile::{
-    explicit_target_profile_override_error, infer_target_profile_from_typed_evidence,
-    TargetInferenceInput, TargetProfile,
+    TargetInferenceInput, TargetProfile, explicit_target_profile_override_error,
+    infer_target_profile_from_typed_evidence,
 };
 use crate::{CliCommand, CliState};
 
@@ -460,11 +460,7 @@ fn run_built_executable(
         std::env::current_exe().map_err(|err| format!("failed to resolve current terlc: {err}"))?,
     );
     apply_native_helper_envs(&mut command, &metadata)?;
-    let output = command
-        .output()
-        .map_err(|err| format!("failed to run `{}`: {err}", executable.display()))?;
-    mirror_child_output(&output).map_err(|err| format!("failed to write child output: {err}"))?;
-    Ok(exit_code_from_output(&output))
+    run_application(command, &executable)
 }
 
 /// Runs the native image emitted by `terlc build --target terlan-vm`.
@@ -497,6 +493,32 @@ fn run_built_native_image_with_runner(
     source_path: &Path,
     program_arguments: &[String],
 ) -> Result<ExitCode, String> {
+    run_built_native_image_with_runner_mode(
+        state,
+        runner,
+        source_path,
+        program_arguments,
+        std::env::var("TERLAN_RUN_STDIO").as_deref() == Ok("1"),
+    )
+}
+
+/// Launches a previously built source with application-owned standard streams.
+pub(crate) fn run_prebuilt_source_stdio(
+    state: &CliState,
+    source_path: &Path,
+    program_arguments: &[String],
+) -> Result<ExitCode, String> {
+    let runner = terlan_vm_runner_path()?;
+    run_built_native_image_with_runner_mode(state, &runner, source_path, program_arguments, true)
+}
+
+fn run_built_native_image_with_runner_mode(
+    state: &CliState,
+    runner: &Path,
+    source_path: &Path,
+    program_arguments: &[String],
+    streaming: bool,
+) -> Result<ExitCode, String> {
     let artifact = find_native_image_for_source(&state.out_dir, source_path)?;
     let mut command = Command::new(runner);
     command.arg("run").arg(&artifact);
@@ -513,10 +535,45 @@ fn run_built_native_image_with_runner(
         let metadata = load_run_metadata(&state.out_dir)?;
         apply_native_helper_envs(&mut command, &metadata)?;
     }
+    run_application_with_stdio(command, runner, streaming)
+}
+
+/// Generic streaming application mode for interactive subprocess protocols.
+/// This only changes OS stream ownership; it does not inspect application data.
+fn run_application(command: Command, executable: &Path) -> Result<ExitCode, String> {
+    run_application_with_stdio(
+        command,
+        executable,
+        std::env::var("TERLAN_RUN_STDIO").as_deref() == Ok("1"),
+    )
+}
+
+fn run_application_with_stdio(
+    mut command: Command,
+    executable: &Path,
+    streaming: bool,
+) -> Result<ExitCode, String> {
+    if streaming {
+        let status = command
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()
+            .map_err(|error| format!("failed to run `{}`: {error}", executable.display()))?;
+        return Ok(if status.success() {
+            ExitCode::SUCCESS
+        } else {
+            status
+                .code()
+                .and_then(|code| u8::try_from(code).ok())
+                .map_or_else(|| ExitCode::from(1), ExitCode::from)
+        });
+    }
     let output = command
         .output()
-        .map_err(|err| format!("failed to run `{}`: {err}", runner.display()))?;
-    mirror_child_output(&output).map_err(|err| format!("failed to write child output: {err}"))?;
+        .map_err(|error| format!("failed to run `{}`: {error}", executable.display()))?;
+    mirror_child_output(&output)
+        .map_err(|error| format!("failed to write child output: {error}"))?;
     Ok(exit_code_from_output(&output))
 }
 

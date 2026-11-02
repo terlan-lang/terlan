@@ -1,0 +1,4 @@
+module library.
+pub type Item = Int.
+pub trait Equal[A] { equal(left: A, right: A): Bool. }.
+pub value(input: Item): Item.

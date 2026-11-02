@@ -1,0 +1,14 @@
+running 12 tests
+test existing_output_is_preserved ... ok
+test unknown_selector_creates_no_output ... ok
+test missing_compiler_creates_no_output ... ok
+test schema_evidence_rejects_stale_missing_duplicate_and_failed_cases ... ok
+test test_evidence_rejects_empty_skipped_and_incomplete_results ... ok
+test unimplemented_milestone_cannot_pass ... ok
+test missing_or_malformed_peer_report_cannot_pass ... ok
+test subprocess_timeout_and_output_limit_fail ... ok
+test wire_evidence_rejects_missing_and_unknown_cases ... ok
+test baseline_manifest_evidence_rejects_partial_and_malformed_sets ... ok
+test property_inventory_rejects_empty_and_duplicate_registration ... ok
+test baseline_preserves_timeout_diagnostic ... ok
+test result: ok. 12 passed; 0 failed

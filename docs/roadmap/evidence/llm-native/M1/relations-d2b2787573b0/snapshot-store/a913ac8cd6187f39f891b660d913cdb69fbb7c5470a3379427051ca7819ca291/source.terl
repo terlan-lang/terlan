@@ -1,0 +1,37 @@
+module mcp_query.
+
+@pure
+pub decide(flag: Bool): Bool ->
+    let local = flag;
+    local and flag.
+
+pub choose(value: Int): Int ->
+    value.
+
+pub choose(value: String): String ->
+    value.
+
+pub struct Base {
+    code: Int = 7,
+}.
+
+pub struct Leaf includes Base {
+    label: String,
+}.
+
+pub shape Positive(value) = value where value > 0.
+
+pub trait Encode[T] {
+    encode(value: T): String.
+}.
+
+pub opaque type Secret.
+
+pub impl not Encode[Secret].
+
+pub display[T => {name: String}](value: T): String ->
+    value.name.
+
+pub impl Encode[Int] for Int {
+    encode(value: Int): String -> "integer".
+}.

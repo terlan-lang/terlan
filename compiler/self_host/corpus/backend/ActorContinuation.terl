@@ -1,0 +1,7 @@
+/** Actor continuation probe using a compiler-owned native suspension boundary. */
+module self_host_probe.ActorContinuation.
+
+@compiler.intrinsic
+suspend(value: Bool): Bool -> false.
+
+pub main(): Bool -> suspend(true).

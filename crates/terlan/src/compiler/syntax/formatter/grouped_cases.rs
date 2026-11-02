@@ -79,10 +79,44 @@ fn split_case_clauses<'a>(
     }
     for failure_index in 0..2 {
         if format_expr(&clauses[failure_index].body, 0) == fallback_text {
+            // Refutable lets try their continuing pattern first. Moving a
+            // later overlapping pattern ahead of the original failure arm
+            // changes which branch runs (notably `Ok(_)` followed by `_`).
+            if failure_index == 0 && !patterns_disjoint(&clauses[0].pattern, &clauses[1].pattern) {
+                return None;
+            }
             return Some((&clauses[1 - failure_index], &clauses[failure_index]));
         }
     }
     None
+}
+
+/// Proves disjointness structurally; uncertainty keeps the original case order.
+fn patterns_disjoint(left: &Pattern, right: &Pattern) -> bool {
+    match (left, right) {
+        (Pattern::Int(left), Pattern::Int(right)) => left != right,
+        (Pattern::String(left), Pattern::String(right)) => left != right,
+        (Pattern::Tuple(left), Pattern::Tuple(right)) => {
+            left.len() != right.len()
+                || left
+                    .iter()
+                    .zip(right)
+                    .any(|(left, right)| patterns_disjoint(left, right))
+        }
+        _ => constructor_head(left)
+            .zip(constructor_head(right))
+            .is_some_and(|(left, right)| left != right),
+    }
+}
+
+fn constructor_head(pattern: &Pattern) -> Option<&str> {
+    match pattern {
+        Pattern::Record { name, .. } | Pattern::NullaryConstructorCall(name) => Some(name),
+        Pattern::Atom(name) | Pattern::AtomLiteral(name) => Some(name),
+        Pattern::Var(name) if name.chars().next().is_some_and(char::is_uppercase) => Some(name),
+        Pattern::Alias { pattern, .. } => constructor_head(pattern),
+        _ => None,
+    }
 }
 
 /// Returns whether a nested case contains the shared failure body.

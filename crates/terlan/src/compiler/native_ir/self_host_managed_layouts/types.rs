@@ -88,6 +88,34 @@ pub(in crate::compiler::native_ir) fn native_type(
 }
 
 pub(super) fn native_type_of(ty: &AbiType) -> Result<Option<NativeType>, NativeIrError> {
+    if ty.constructor == "$Function" {
+        let Some((result, parameters)) = ty.arguments.split_last() else {
+            return Err("function type has no result contract".into());
+        };
+        let parameters = parameters
+            .iter()
+            .map(native_type_of)
+            .map(|value| {
+                value.and_then(|value| {
+                    value.ok_or_else(|| "function parameter type is not closed".into())
+                })
+            })
+            .collect::<Result<Vec<_>, NativeIrError>>()?;
+        let result = native_type_of(result)?
+            .ok_or_else(|| NativeIrError::from("function result type is not closed"))?;
+        let parameter_boundaries = parameters
+            .iter()
+            .copied()
+            .map(NativeType::boundary_type)
+            .collect::<Vec<_>>();
+        return Ok(Some(NativeType::ManagedRef(
+            ManagedClosureDescriptor::semantic_id_for_signature(
+                &parameter_boundaries,
+                &[result.boundary_type()],
+            )
+            .map_err(|error| error.to_string())?,
+        )));
+    }
     if ty.constructor == "$Tuple" {
         return Ok(Some(NativeType::ManagedRef(
             SemanticTypeId::from_canonical(&type_contract(ty, "")?)
@@ -129,6 +157,7 @@ pub(super) fn native_type_of(ty: &AbiType) -> Result<Option<NativeType>, NativeI
 pub(super) fn context_free_closed(ty: &AbiType) -> bool {
     let short = ty.constructor.rsplit('.').next().unwrap_or(&ty.constructor);
     let constructor_is_closed = ty.constructor == "$Tuple"
+        || ty.constructor == "$Function"
         || ty.constructor.contains('.')
         || matches!(
             short,
@@ -194,6 +223,20 @@ pub(super) fn parse_type(source: &str) -> Result<AbiType, NativeIrError> {
 }
 
 pub(super) fn abi_type_source(value: &AbiType) -> String {
+    if value.constructor == "$Function" {
+        let Some((result, parameters)) = value.arguments.split_last() else {
+            return "() -> Dynamic".into();
+        };
+        return format!(
+            "({}) -> {}",
+            parameters
+                .iter()
+                .map(abi_type_source)
+                .collect::<Vec<_>>()
+                .join(", "),
+            abi_type_source(result),
+        );
+    }
     if value.constructor == "$Tuple" {
         return format!(
             "({})",
@@ -226,6 +269,30 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Nativ
     }
     if source.is_empty() {
         return Err("empty type contract".into());
+    }
+    if let Some(arrow) = top_level_type_arrow(source) {
+        let parameters = source[..arrow].trim();
+        let result = source[arrow + 2..].trim();
+        if parameters.len() < 2 || !parameters.starts_with('(') || !parameters.ends_with(')') {
+            return Err("function parameter types must be enclosed in parentheses".into());
+        }
+        if result.is_empty() {
+            return Err("function result type is empty".into());
+        }
+        let inner = parameters[1..parameters.len() - 1].trim();
+        let mut arguments = if inner.is_empty() {
+            Vec::new()
+        } else {
+            split_type_arguments(inner)?
+                .into_iter()
+                .map(|argument| parse_type_at(argument, depth + 1))
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        arguments.push(parse_type_at(result, depth + 1)?);
+        return Ok(AbiType {
+            constructor: "$Function".into(),
+            arguments,
+        });
     }
     if source.starts_with('(') && source.ends_with(')') {
         let inner = source[1..source.len() - 1].trim();
@@ -280,6 +347,28 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Nativ
         constructor: constructor.into(),
         arguments,
     })
+}
+
+fn top_level_type_arrow(source: &str) -> Option<usize> {
+    let bytes = source.as_bytes();
+    let (mut round, mut square, mut brace) = (0usize, 0usize, 0usize);
+    let mut index = 0usize;
+    while index + 1 < bytes.len() {
+        match bytes[index] {
+            b'(' => round += 1,
+            b')' => round = round.saturating_sub(1),
+            b'[' => square += 1,
+            b']' => square = square.saturating_sub(1),
+            b'{' => brace += 1,
+            b'}' => brace = brace.saturating_sub(1),
+            b'-' if bytes[index + 1] == b'>' && round == 0 && square == 0 && brace == 0 => {
+                return Some(index);
+            }
+            _ => {}
+        }
+        index += 1;
+    }
+    None
 }
 
 pub(super) fn split_type_arguments(source: &str) -> Result<Vec<&str>, NativeIrError> {

@@ -107,13 +107,16 @@ resolve_reference(
 ): Option[String] ->
     case value {
         None -> none_string();
-        Some(declaration_offset) -> resolve_link(
-            link_offset(declaration_offset, links),
-            remaining,
-            facts,
-            references,
-            links,
-        )
+        Some(declaration_offset) -> case fact_type(declaration_offset, facts) {
+            Some(type_name) -> Some(type_name);
+            None -> resolve_link(
+                link_offset(declaration_offset, links),
+                remaining,
+                facts,
+                references,
+                links,
+            )
+        }
     }.
 
 resolve_fact(

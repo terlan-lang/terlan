@@ -82,7 +82,10 @@ pub(super) fn infer_syntax_local_call(
                     ctx,
                     subst,
                 ) {
-                    Ok(ty) => return ty,
+                    Ok(ty) => {
+                        call_observations::local(ctx.current_module, function_name, &scheme);
+                        return ty;
+                    }
                     Err(message) => {
                         errors.push(message);
                         return Type::Dynamic;
@@ -110,7 +113,7 @@ pub(super) fn infer_syntax_local_call(
         .signatures
         .get(&(function_name.to_string(), effective_arg_types.len()))
     {
-        match infer_function_scheme_overload_with_explicit_type_args(
+        match infer_function_scheme_overload_with_selection(
             schemes,
             function_name,
             &effective_arg_types,
@@ -118,7 +121,10 @@ pub(super) fn infer_syntax_local_call(
             ctx,
             subst,
         ) {
-            Ok(ty) => return ty,
+            Ok((ty, scheme)) => {
+                call_observations::local(ctx.current_module, function_name, scheme);
+                return ty;
+            }
             Err(message) => {
                 errors.push(message);
                 return Type::Dynamic;
@@ -139,7 +145,10 @@ pub(super) fn infer_syntax_local_call(
                 ctx,
                 subst,
             ) {
-                Ok(ty) => return ty,
+                Ok(ty) => {
+                    call_observations::local(ctx.current_module, function_name, &scheme);
+                    return ty;
+                }
                 Err(message) => {
                     errors.push(message);
                     return Type::Dynamic;

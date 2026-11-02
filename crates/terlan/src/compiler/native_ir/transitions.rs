@@ -297,6 +297,7 @@ fn capability_transition(
     let (tag, arity) = match capability {
         CoreRuntimeCapability::ConsolePrintln => (1, 1),
         CoreRuntimeCapability::ConsoleEprintln => (35, 1),
+        CoreRuntimeCapability::ConsoleReadLine => (62, 1),
         CoreRuntimeCapability::FileExists => (2, 1),
         CoreRuntimeCapability::FileReadText => (3, 1),
         CoreRuntimeCapability::FileReadBytes => (30, 1),

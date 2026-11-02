@@ -1,0 +1,379 @@
+{
+  "checks": {
+    "binding_selection": {
+      "compiled_sources_verified": 5,
+      "passed": 6,
+      "test_names": [
+        "complete_unsigned_binding_identity_prevents_neighbor_aliasing",
+        "same_id_with_a_different_region_path_or_module_is_not_a_join",
+        "conflicting_checker_visits_never_select_the_first_type",
+        "truncated_capture_never_claims_a_unique_observation",
+        "scan_budget_must_include_every_possible_conflicting_visit",
+        "repeated_equal_visits_converge_to_one_fact"
+      ]
+    },
+    "bootstrap_export": {
+      "passed": 24,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "commands::emit_core::tests::rejected_case_observations_are_not_successful_core",
+        "commands::emit_core::tests::invalid_source_never_exports_successful_core",
+        "commands::emit_core::tests::pipe_selection_records_the_selected_target_without_inventing_a_call_site",
+        "commands::emit_core::tests::requirements_serialize_the_actual_checked_implication_types",
+        "commands::emit_core::tests::exports_checked_core_and_exact_source_identity",
+        "commands::emit_core::tests::inferred_binding_types_distinguish_overloads_and_keep_generics_scoped",
+        "commands::emit_core::tests::same_arity_overloads_retain_distinct_declaration_origins",
+        "commands::emit_core::tests::checked_conformances_preserve_explicit_negative_evidence",
+        "commands::emit_core::tests::inferred_binding_types_follow_destructuring_and_case_constraints",
+        "commands::emit_core::tests::incomplete_function_head_exports_its_actual_missing_variants",
+        "commands::emit_core::tests::a_function_value_shadowing_a_function_name_stays_explicitly_unresolved",
+        "commands::emit_core::tests::inferred_binding_types_preserve_shadowed_names",
+        "commands::emit_core::tests::inferred_binding_types_cover_lambda_generator_and_handler_scopes",
+        "commands::emit_core::tests::checked_shapes_export_canonical_patterns_guards_and_origins",
+        "commands::emit_core::tests::accepted_local_overloads_retain_exact_selected_declaration_spans",
+        "commands::emit_core::tests::purity_contracts_are_checked_and_distinguish_overloads",
+        "commands::emit_core::tests::coverage_observations_share_the_checked_finite_verdict",
+        "commands::emit_core::tests::local_nested_shape_expansion_retains_canonical_declaration_origins",
+        "commands::emit_core::tests::unrelated_declaration_preserves_exported_binding_identity",
+        "commands::emit_core::tests::inferred_binding_types_join_exact_lexical_identities",
+        "commands::emit_core::tests::a_rejected_source_prevents_successful_bundle_status",
+        "commands::emit_core::tests::source_set_checks_imports_with_the_shared_interface_graph",
+        "commands::emit_core::tests::selected_alias_and_module_calls_keep_the_accepted_interface_overload",
+        "commands::emit_core::tests::imported_nested_shape_aliases_retain_provider_origins"
+      ]
+    },
+    "call_references": {
+      "compiled_sources_verified": 31,
+      "passed": 6,
+      "test_names": [
+        "local_overload_references_link_only_the_exact_selected_declaration",
+        "imported_aliases_and_module_calls_retain_provider_and_overload_among_decoys",
+        "indirect_shadowed_calls_are_unknown_without_inventing_a_same_named_target",
+        "providers_outside_the_snapshot_keep_canonical_signature_without_a_fabricated_link",
+        "call_reference_pages_preserve_every_unique_site",
+        "truncated_capture_cannot_publish_a_previously_selected_target"
+      ]
+    },
+    "call_regressions": {
+      "passed": 29,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_accepts_range_source_in_list_comprehension_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_list_comprehension_non_list_source_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_infers_local_calls_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_infers_index_read_through_index_get_trait",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_accepts_string_concat_with_int_operand_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_accepts_iterable_list_comprehension_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_explicit_hkt_call_accepts_covariant_constructor_slot",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_explicit_hkt_call_accepts_contravariant_constructor_slot",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_explicit_hkt_call_rejects_invariant_constructor_for_covariant_slot",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_explicit_hkt_call_rejects_covariant_constructor_for_contravariant_slot",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_non_bool_list_comprehension_filter_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_infers_standalone_expression_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_invariant_alias_argument_widening_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_accepts_covariant_alias_argument_widening_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_accepts_pure_helper_list_comprehension_filter_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_explicit_hkt_call_type_arg_binds_constructor_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_selects_local_overloads_by_argument_type_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_transitively_effectful_list_comprehension_filter",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_selects_imported_overloads_by_argument_type_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_selects_imported_receiver_overloads_by_receiver_type_on_formal_path",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_scalar_process_lifecycle_arguments",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_rejects_effectful_imported_list_comprehension_filter",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_accepts_explicit_typed_process_lifecycle_operations",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_empty_portable_collection_constructors_use_return_context",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_json_keys_compose_with_portable_list_length",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_remote_generic_call_type_args_constrain_return_type",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_typed_process_operations_require_explicit_specialization",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_empty_vector_constructor_uses_return_context",
+        "compiler::typeck::expression_test::comprehensions_calls_and_collections::syntax_output_vector_constructor_shorthand_infers_element_type"
+      ]
+    },
+    "capture": {
+      "passed": 4,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "compiler::typeck::call_observations::tests::unindexed_nested_expressions_cannot_assign_a_target_to_the_parent",
+        "compiler::typeck::call_observations::tests::conflicting_visits_cannot_publish_a_selected_target",
+        "compiler::typeck::call_observations::tests::equal_visits_converge_and_interrupted_nested_capture_restores_state",
+        "compiler::typeck::call_observations::tests::same_signature_declaration_origins_share_the_total_capture_bound"
+      ]
+    },
+    "contract": {
+      "official_schema_cases": 4,
+      "sdk_model_cases": 10,
+      "semantic_cases": 70
+    },
+    "generated_origins": {
+      "compiled_sources_verified": 30,
+      "passed": 1,
+      "test_names": [
+        "core_query_preserves_generated_default_adapter_source_origins"
+      ]
+    },
+    "harness": {
+      "compiled_sources_verified": 11,
+      "passed": 13,
+      "test_names": [
+        "existing_output_is_preserved",
+        "unknown_selector_creates_no_output",
+        "missing_compiler_creates_no_output",
+        "schema_evidence_rejects_stale_missing_duplicate_and_failed_cases",
+        "test_evidence_rejects_empty_skipped_and_incomplete_results",
+        "unimplemented_milestone_cannot_pass",
+        "missing_or_malformed_peer_report_cannot_pass",
+        "subprocess_timeout_and_output_limit_fail",
+        "wire_evidence_rejects_missing_and_unknown_cases",
+        "baseline_manifest_evidence_rejects_partial_and_malformed_sets",
+        "property_inventory_rejects_empty_and_duplicate_registration",
+        "baseline_preserves_timeout_diagnostic",
+        "snapshot_gate_rejects_empty_peer_and_stale_compiled_sources"
+      ]
+    },
+    "import_regressions": {
+      "passed": 19,
+      "scope": "Filtered Rust suites overlap; counts are not assumed additive.",
+      "test_names": [
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_dotted_remote_calls_are_checked_against_interfaces_on_formal_path",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_dotted_remote_calls_report_argument_mismatches_on_formal_path",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_selected_function_imports_report_argument_mismatches",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_collapsed_uppercase_imports_typecheck_module_alias_calls",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_selected_function_imports_suggest_loaded_provider_module",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_list_aliases_do_not_generate_constructor_calls_on_formal_path",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_hkt_generic_function_uses_explicit_type_args",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_hkt_generic_function_rejects_invariant_type_arg",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_collapsed_uppercase_trait_imports_keep_trait_calls",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_selected_function_imports_reject_omitted_required_argument",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_wildcard_function_imports_typecheck_local_calls",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_valued_union_default_preserves_nominal_identity",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_selected_function_imports_accept_omitted_defaults",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_hkt_generic_function_accepts_covariant_type_arg",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_singletons_satisfy_nested_transparent_unions",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_remote_comparator_signature_preserves_qualified_alias_return_type",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_constructor_alias_calls_are_valid_on_formal_path",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_imported_constructor_overloads_resolve_global_option_alias",
+        "compiler::typeck::import_test::signatures_and_function_imports::syntax_output_std_option_compare_summary_preserves_comparison_return_type"
+      ]
+    },
+    "live_mcp": {
+      "case_ids": [
+        "mcp.initialize",
+        "mcp.ping",
+        "mcp.tool-discovery-and-schemas",
+        "mcp.resource-discovery",
+        "mcp.bounded-schema-valid-resources",
+        "mcp.empty-template-discovery",
+        "mcp.compiler-type-query",
+        "mcp.checked-inferred-local-type",
+        "mcp.checked-purity-contract",
+        "mcp.checked-pattern-coverage",
+        "mcp.expected-values-constraints",
+        "mcp.same-arity-overload-identity",
+        "mcp.checked-overload-call-references",
+        "mcp.explicit-indirect-call-target",
+        "mcp.included-type-origin",
+        "mcp.pattern-owner-core-origin",
+        "mcp.checked-shape-definition",
+        "mcp.negative-trait-conformance",
+        "mcp.positive-trait-conformance",
+        "mcp.checked-implication-requirement",
+        "mcp.checked-bound-provider-origin",
+        "mcp.checked-shape-expansion-origin",
+        "mcp.explicit-unknown",
+        "mcp.stale-entity-rejection",
+        "mcp.snapshot-scope-rejection",
+        "mcp.invalid-budget-tool-error",
+        "mcp.unknown-tool-protocol-error",
+        "mcp.forged-resource-cursor",
+        "mcp.resource-uri-confinement",
+        "mcp.cli-query-parity",
+        "mcp.raw-wire-framing-and-errors"
+      ],
+      "fixture_digest": "98bd63d691d3bb937368c0ba0291a577a848c6d947d9f4442ec5a47b285340db",
+      "passed": 31,
+      "scope": "Standard SDK and raw-wire checks; unchanged 120-second SDK initialization deadline; single-page resource fixture; no release latency claim."
+    },
+    "multi_provider_trials": {
+      "artifact_sha256": "76ac6e1093a54cfab3ebffbaab43c9c923696a08651a38971ed72e8e0ab42f0e",
+      "compiler_digest": "a5ed38793804b55d8c81c3db36961d6d97fdb65d8f54021bca3522ead3971b9e",
+      "schema": "terlan.semantic.multi-provider-selection-evidence.v1",
+      "schema_sha256": "189d8ce63bc979d6c181f9022b8a4d611b376b2aa1df352667d5e64676c689e5",
+      "scope": "Two actual checked calls to the same imported local name from distinct providers. Only the accepted provider/signature is observed, agrees with its checked interface, and satisfies the public schema. No service or ABI proof.",
+      "selected_targets": [
+        {
+          "module": "one",
+          "parameter_types": [
+            "Int"
+          ]
+        },
+        {
+          "module": "two",
+          "parameter_types": [
+            "Bool"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "path": "one.terli",
+          "sha256": "95c81dc0d4e5e418835598cccff951efb2225c27752255d314a60b5bdd651dbe"
+        },
+        {
+          "path": "sample.terl",
+          "sha256": "9bf60456a59ff9a65612a74a7e67ab41152f60b91269e738cad5902158acb387"
+        },
+        {
+          "path": "two.terli",
+          "sha256": "139d1859d2fb691b589250bfcf9fbd8f3335552378f973bfb1b740b641ed96dc"
+        }
+      ],
+      "status": "passed",
+      "validator": {
+        "jsonschema": "4.25.1"
+      }
+    },
+    "query": {
+      "compiled_sources_verified": 31,
+      "passed": 23,
+      "test_names": [
+        "typed_queries_distinguish_same_name_and_arity_overloads",
+        "reference_queries_keep_shadowed_bindings_distinct",
+        "work_limited_pages_continue_without_omitting_references",
+        "cursor_is_bound_to_question_and_detects_storage_tampering",
+        "byte_accounting_is_exact_and_tiny_budgets_fail_explicitly",
+        "stale_selection_and_insufficient_work_never_return_successful_facts",
+        "inferred_local_types_are_checked_and_ownership_remains_unavailable",
+        "inferred_types_keep_nested_shadowed_bindings_distinct",
+        "expected_values_separate_type_inhabitants_from_program_legality",
+        "schema_integer_limits_accept_whole_numbers_and_reject_extra_fields",
+        "nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog",
+        "pattern_selection_enforces_work_budget_and_rejects_stale_handles",
+        "pattern_core_queries_link_the_owner_by_compiler_declaration_origin",
+        "type_queries_retain_struct_include_edges_and_original_field_metadata",
+        "type_queries_expose_core_alias_payload_without_inventing_constructor_inhabitants",
+        "imported_include_aliases_resolve_to_exact_provider_snapshot_entities",
+        "include_origins_outside_snapshot_remain_partial_with_resolved_alias_evidence",
+        "effect_queries_expose_checked_purity_without_claiming_a_complete_effect_set",
+        "effect_queries_match_overloads_by_exact_checked_signature",
+        "effect_contract_scans_count_against_the_query_work_budget",
+        "coverage_queries_return_checked_case_verdicts_and_guard_assumptions",
+        "coverage_queries_preserve_missing_function_head_alternatives",
+        "coverage_queries_keep_overloaded_origins_separate_and_charge_scans"
+      ]
+    },
+    "relations": {
+      "compiled_sources_verified": 31,
+      "passed": 12,
+      "test_names": [
+        "shape_queries_expose_canonical_patterns_guards_and_exact_entities",
+        "trait_queries_keep_negative_evidence_distinct_from_missing_implementations",
+        "implication_queries_return_checked_nested_field_types_and_variable_scope",
+        "constrained_alias_queries_use_the_compilers_alias_contract",
+        "overloaded_requirement_queries_join_exact_origins_and_charge_scans",
+        "shape_identity_survives_unrelated_insertion_and_invalidates_changed_guards",
+        "imported_bound_origins_follow_resolver_aliases_despite_same_named_providers",
+        "local_bound_origins_link_the_exact_checked_trait_entity",
+        "bound_providers_outside_the_snapshot_remain_explicitly_unavailable",
+        "local_nested_shape_expansions_link_both_checked_shape_entities",
+        "imported_shape_alias_origins_follow_provider_identity_among_same_named_shapes",
+        "unexpanded_patterns_do_not_borrow_equivalent_shape_origins"
+      ]
+    },
+    "snapshot_gate": {
+      "bootstrap_fresh": true,
+      "live_schema_status": "passed",
+      "passed": 33,
+      "suites": {
+        "CatalogTest": {
+          "compiled_sources_verified": 12,
+          "passed": 6,
+          "test_names": [
+            "nested_patterns_and_unbound_wildcards_have_owned_identities",
+            "unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection",
+            "edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes",
+            "moving_a_binding_into_a_branch_invalidates_its_old_handle",
+            "entity_selection_rejects_wrong_kind_and_content",
+            "rejected_source_returns_unavailable_catalog_without_typed_entities"
+          ]
+        },
+        "CompilerBridgeTest": {
+          "compiled_sources_verified": 5,
+          "passed": 6,
+          "test_names": [
+            "malformed_and_unversioned_artifacts_are_rejected",
+            "stale_source_identity_is_rejected",
+            "successful_exit_cannot_replace_checked_core",
+            "invalid_program_keeps_diagnostics_without_core",
+            "duplicate_or_missing_units_cannot_satisfy_source_set_inventory",
+            "rejected_unit_cannot_be_reported_as_a_checked_source_set"
+          ]
+        },
+        "DeclarationEntitiesTest": {
+          "compiled_sources_verified": 9,
+          "passed": 5,
+          "test_names": [
+            "checked_types_traits_and_functions_have_distinct_handles",
+            "unrelated_insertion_preserves_declaration_identity",
+            "same_name_and_arity_overloads_have_distinct_handles",
+            "semantic_payload_change_invalidates_declaration_handle",
+            "duplicate_checked_rows_are_rejected_before_catalog_publication"
+          ]
+        },
+        "EntitiesTest": {
+          "compiled_sources_verified": 9,
+          "passed": 3,
+          "test_names": [
+            "unrelated_insertion_preserves_identity_but_requires_fresh_content",
+            "renamed_binding_invalidates_old_handle_without_name_fallback",
+            "invalid_source_cannot_produce_binding_facts"
+          ]
+        },
+        "SnapshotTest": {
+          "compiled_sources_verified": 8,
+          "passed": 7,
+          "test_names": [
+            "repeated_capture_is_stable_and_preserves_source",
+            "original_edits_do_not_change_an_existing_snapshot",
+            "modified_compiler_artifact_is_never_served",
+            "invalid_source_retains_compiler_rejection",
+            "malformed_handles_and_escaping_paths_are_rejected",
+            "unsaved_overlay_is_versioned_and_preserves_disk_source",
+            "stale_overlay_base_is_rejected_before_publication"
+          ]
+        },
+        "SourceSetTest": {
+          "compiled_sources_verified": 13,
+          "passed": 6,
+          "test_names": [
+            "source_order_is_canonical_and_imported_declarations_remain_available",
+            "changed_dependency_interface_rejects_stale_entity_content",
+            "overlay_versions_change_snapshot_identity_without_mutating_prior_capture",
+            "rejected_source_marks_the_set_invalid_and_keeps_other_facts_partial",
+            "changing_any_frozen_source_makes_the_set_unreadable",
+            "duplicate_escaping_and_negative_version_inputs_fail_before_compilation"
+          ]
+        }
+      }
+    }
+  },
+  "compiler_digest": "a5ed38793804b55d8c81c3db36961d6d97fdb65d8f54021bca3522ead3971b9e",
+  "gate_source_digest": "5680298d78c4f25679942fd7ac0a7a2f9f32f2a4f077b27cb9437cae58fac3f7",
+  "limitations": [
+    "Component checkpoint, not full LNC-005 or M1 acceptance.",
+    "Accepted local schemes link to exact registered declaration spans; imported signatures require canonical provider, exact checked contract and unique complete source signature agreement.",
+    "Call-site paths describe checked prepared syntax and enclosing ranges, not exact identifier tokens.",
+    "Unknown indirect or unsupported dispatch and conflicting visits cannot certify a target. A truncated source capture contributes no claimed references.",
+    "Reference inventories cover calls observed in this snapshot and remain partial; empty results are not proof of absence. Incremental call graphs and general function-value flow remain later work.",
+    "Single-page MCP fixture here; prior multi-page/reconnect evidence is historical. Initial SDK checks passed29 but cold CLI parity compilation exceeded120s; retry uses the same deadline after explicit host preparation in the same cache. No cold-start or release latency qualification.",
+    "Filtered Rust suites overlap and are not additive.",
+    "Explorations retain helper-import/visibility failures, invalid import/path fixtures, source-lowering failures, the JSON wrapper comparison bug and its corrected passing test, and a schema diagnostic expectation correction.",
+    "The full LNC-005 acceptance gate and subsequent roadmap milestones remain open.",
+    "Archive records declared component inputs, not a verified complete compiler build closure; compiler and VM are trusted binary anchors including existing unrelated work."
+  ],
+  "schema": "terlan.semantic.component-checkpoint.v1",
+  "source_archive_sha256": "4845e519d3fe3ff7e40ec7cbce6b8a8242a5dd645440f245e570851e9544bbe1",
+  "status": "passed",
+  "task": "LNC-005",
+  "task_complete": false,
+  "vm_digest": "4cf5d9fabea48ac57119c904833d28bb3f88540f0018347a340bf0cfcd6001eb"
+}

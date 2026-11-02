@@ -1,0 +1,47 @@
+//! MCP JSON-RPC lifecycle and routing for the 2025-11-25 compatibility profile.
+//! Domain handlers and transport I/O remain separate Terlan services.
+
+module std.mcp.Protocol.
+import std.collections.Set.{*}.
+import std.core.Result.{*}.
+import std.crypto.Hash.{*}.
+import std.data.Json.{*}.
+
+/// Internal routing outcome, never an additional wire envelope.
+
+pub struct Event {
+    session: Session,
+    action: String,
+    response: std.data.Json,
+    method: String,
+    params: std.data.Json,
+    request_id: std.data.Json
+}.
+
+pub struct Session {
+    phase: String,
+    server_name: String,
+    server_version: String,
+    tools: Bool,
+    resources: Bool,
+    used_ids: Set[String],
+    request_count: Int
+}.
+
+pub error(id: std.data.Json, code: Int, message: String): std.data.Json.
+
+/// Handles one parsed MCP message. Requests may be dispatched only after the
+/// standard initialization exchange; notifications never receive responses.
+
+pub handle(session: Session, message: std.data.Json): Event.
+
+/// Invalid JSON produces the standard parse error, without reflecting payloads.
+
+pub parse(session: Session, source: String): Event.
+
+@pure
+pub protocol_version(): String.
+
+pub reply(id: std.data.Json, result: std.data.Json): std.data.Json.
+
+pub start(name: String, version: String, tools: Bool, resources: Bool): Session.

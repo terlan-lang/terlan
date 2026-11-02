@@ -1,0 +1,182 @@
+/**
+ * MCP lifecycle, standard error envelopes and capability-gated dispatch.
+ */
+module std.mcp.ProtocolTest.
+
+import std.core.Result.{Ok}.
+import std.data.Json.
+import std.mcp.Protocol.
+import std.mcp.Protocol.{Session}.
+
+import type std.data.Json.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+code(response: Json): Int ->
+    let {
+        Ok(error) <- response.get("error");
+        Ok(field) <- error.get("code");
+        Ok(value) <- field.as_int()
+    } else {
+        _ -> 0
+    };
+    value.
+
+initialize(): String ->
+    "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"independent-test\",\"version\":\"1\"}}}".
+
+ready(tools: Bool, resources: Bool): Session ->
+    let first = Protocol.parse(Protocol.start("terlan-test", "1", tools, resources), initialize());
+    Protocol.parse(first.session, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}").session.
+
+@test
+pub initialize_and_initialized_enable_standard_method_dispatch(): Bool ->
+    let initial = Protocol.start("terlan-test", "1", true, true);
+    let early = Protocol.parse(initial, "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"tools/list\"}");
+    let handshake = Protocol.parse(early.session, initialize());
+    let connected =
+        Protocol.parse(
+            handshake.session,
+            "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",
+        );
+    let tools =
+        Protocol.parse(
+            connected.session,
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}",
+        );
+    let {
+        Ok(result) <- handshake.response.get("result");
+        Ok(capabilities) <- result.get("capabilities");
+        Ok(_) <- capabilities.get("tools");
+        Ok(_) <- capabilities.get("resources")
+    } else {
+        _ -> false
+    };
+    code(early.response) == -32_002
+        and text(result, "protocolVersion") == "2025-11-25"
+        and connected.response.is_null()
+        and tools.action == "dispatch"
+        and tools.method == "tools/list".
+
+@test
+pub unsupported_requested_version_negotiates_the_supported_revision(): Bool ->
+    let event =
+        Protocol.parse(
+            Protocol.start("terlan-test", "1", true, false),
+            initialize().replace("2025-11-25", "1900-01-01"),
+        );
+    let Ok(result) <- event.response.get("result") else {
+        _ -> false
+    };
+    text(result, "protocolVersion") == "2025-11-25" and event.session.phase == "await_initialized".
+
+@test
+pub malformed_messages_use_standard_errors_without_reflecting_payloads(): Bool ->
+    let session = Protocol.start("terlan-test", "1", true, true);
+    let parse_error = Protocol.parse(session, "secret-invalid{");
+    let invalid = Protocol.parse(session, "[]");
+    let parameters =
+        Protocol.parse(
+            session,
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"initialize\",\"params\":{}}",
+        );
+    let bad_id = Protocol.parse(session, "{\"jsonrpc\":\"2.0\",\"id\":null,\"method\":\"ping\"}");
+    code(parse_error.response) == -32_700
+        and code(invalid.response) == -32_600
+        and code(parameters.response) == -32_602
+        and code(bad_id.response) == -32_600
+        and not has_identity(parse_error.response)
+        and not has_identity(invalid.response)
+        and not has_identity(bad_id.response)
+        and has_identity(parameters.response)
+        and not Json.to_string(parse_error.response).contains("secret-invalid").
+
+has_identity(message: Json): Bool ->
+    case message.get("id") {
+        Ok(_) -> true;
+        _ -> false
+    }.
+
+@test
+pub ping_works_before_initialization_and_unadvertised_methods_are_rejected(): Bool ->
+    let ping =
+        Protocol.parse(
+            Protocol.start("terlan-test", "1", false, false),
+            "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"ping\"}",
+        );
+    let denied =
+        Protocol.parse(
+            ready(false, false),
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}",
+        );
+    let {
+        Ok(result) <- ping.response.get("result");
+        Ok(count) <- result.object_length()
+    } else {
+        _ -> false
+    };
+    count == 0 and code(denied.response) == -32_601.
+
+@test
+pub notifications_and_peer_responses_never_create_response_loops(): Bool ->
+    let session = ready(true, true);
+    let cancel =
+        Protocol.parse(
+            session,
+            "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/cancelled\",\"params\":{\"requestId\":2,\"reason\":\"cancel\"}}",
+        );
+    let unknown = Protocol.parse(session, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/unknown\"}");
+    let response = Protocol.parse(session, "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{}}");
+    let anonymous =
+        Protocol.parse(
+            session,
+            "{\"jsonrpc\":\"2.0\",\"error\":{\"code\":-32700,\"message\":\"Invalid JSON.\"}}",
+        );
+    cancel.action == "notification"
+        and cancel.response.is_null()
+        and unknown.response.is_null()
+        and response.action == "response"
+        and response.response.is_null()
+        and anonymous.action == "response"
+        and anonymous.response.is_null().
+
+@test
+pub duplicate_request_ids_are_rejected_and_unsigned_ids_remain_exact(): Bool ->
+    let session = ready(true, true);
+    let first =
+        Protocol.parse(
+            session,
+            "{\"jsonrpc\":\"2.0\",\"id\":18446744073709551615,\"method\":\"ping\"}",
+        );
+    let duplicate =
+        Protocol.parse(
+            first.session,
+            "{\"jsonrpc\":\"2.0\",\"id\":18446744073709551615,\"method\":\"ping\"}",
+        );
+    let Ok(id) <- first.response.get("id") else {
+        _ -> false
+    };
+    Json.to_string(id) == "18446744073709551615" and code(duplicate.response) == -32_600.
+
+@test
+pub malformed_requests_preserve_readable_ids_and_anonymous_errors_omit_them(): Bool ->
+    let session = Protocol.start("terlan-test", "1", true, true);
+    let version = Protocol.parse(session, "{\"jsonrpc\":\"1.0\",\"id\":17,\"method\":\"ping\"}");
+    let method = Protocol.parse(session, "{\"jsonrpc\":\"2.0\",\"id\":\"probe\",\"method\":42}");
+    let {
+        Ok(version_id) <- version.response.get("id");
+        Ok(method_id) <- method.response.get("id")
+    } else {
+        _ -> false
+    };
+    code(version.response) == -32_600
+        and version_id.as_int() == Ok(17)
+        and code(method.response) == -32_600
+        and method_id.as_string() == Ok("probe").

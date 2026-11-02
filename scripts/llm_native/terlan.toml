@@ -1,0 +1,8 @@
+[package]
+name = "llm-native-gates"
+version = "0.0.1"
+namespace = "llm_native"
+
+[build]
+source_roots = ["src"]
+artifact = "library"

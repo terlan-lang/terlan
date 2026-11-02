@@ -1,0 +1,272 @@
+/**
+ * Cross-unit origins selected only through the compiler's resolved import map.
+ */
+module semantic.ImportOrigins.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.{DeclarationEntities, EntityLookup}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Found {
+    found: Bool,
+    entity: Json,
+    binding: Json,
+    used: Int,
+}.
+
+missing(binding: Json, used: Int): Found ->
+    Found(found = false, entity = Json.null(), binding = binding, used = used).
+
+budget(used: Int, maximum: Int): Result[Int, Failure] ->
+    if {
+        used < maximum -> Ok(used + 1);
+        true -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Resolved import origin traversal exhausted its compiler-record inspection budget.",
+            ),
+        )
+    }.
+
+declarations(
+    artifact: Json,
+    snapshot: String,
+    binding: Json,
+    declaration_kind: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    if {
+        index == count -> Ok(missing(binding, used));
+        true -> let Ok(work) <- budget(used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(row) <- rows.at(index);
+    Ok(payload) <- row.get("payload")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Provider declaration inventory is incomplete.",
+            ),
+        )
+};
+if {
+    (EntityLookup.text(payload, "kind") == "struct" and declaration_kind == "struct"
+    or DeclarationEntities.kind(payload) == declaration_kind)
+        and EntityLookup.text(payload, "name") == EntityLookup.text(binding, "source_name") -> let Ok(entity) <-
+        DeclarationEntities.entity(
+            artifact,
+            EntityLookup.module_name(artifact),
+            snapshot,
+            Hash.sha256(Json.to_string(artifact)),
+            row,
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    Ok(Found(found = true, entity = entity, binding = binding, used = work));
+    true -> declarations(
+        artifact,
+        snapshot,
+        binding,
+        declaration_kind,
+        rows,
+        index + 1,
+        count,
+        work,
+        maximum,
+    )
+})
+    }.
+
+provider(
+    units: Json,
+    snapshot: String,
+    binding: Json,
+    declaration_kind: String,
+    index: Int,
+    count: Int,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    if {
+        index == count -> Ok(missing(binding, used));
+        true -> let Ok(work) <- budget(used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(source_row) <- units.at(index);
+    Ok(artifact) <- source_row.get("export")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Provider source-set inventory is incomplete.",
+            ),
+        )
+};
+if {
+    EntityLookup.module_name(artifact) == EntityLookup.text(binding, "source_module")
+        and (EntityLookup.text(artifact, "status") == "checked"
+    or EntityLookup.text(artifact, "status") == "interface_only") -> let {
+        Ok(rows) <- artifact.get("source_declarations");
+        Ok(row_count) <- rows.length()
+    } else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Provider declarations are missing.",
+                ),
+            )
+    };
+    declarations(artifact, snapshot, binding, declaration_kind, rows, 0, row_count, work, maximum);
+    true -> provider(units, snapshot, binding, declaration_kind, index + 1, count, work, maximum)
+})
+    }.
+
+imports(
+    selection: Selection,
+    name: String,
+    import_kind: String,
+    declaration_kind: String,
+    rows: Json,
+    index: Int,
+    count: Int,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    if {
+        index == count -> Ok(missing(Json.null(), used));
+        true -> let Ok(work) <- budget(used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let Ok(binding) <- rows.at(index) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Resolved import inventory is incomplete.",
+            ),
+        )
+};
+if {
+    EntityLookup.text(binding, "kind") == import_kind
+        and EntityLookup.text(binding, "local_name") == name -> let {
+        Ok(units) <- selection.context.get("units");
+        Ok(unit_count) <- units.length()
+    } else {
+        _ -> Ok(missing(binding, work))
+    };
+    provider(
+        units,
+        EntityLookup.text(selection.entity, "snapshot_id"),
+        binding,
+        declaration_kind,
+        0,
+        unit_count,
+        work,
+        maximum,
+    );
+    true -> imports(selection, name, import_kind, declaration_kind, rows, index + 1, count, work, maximum)
+})
+    }.
+
+pub resolve_kind(
+    selection: Selection,
+    local_name: String,
+    import_kind: String,
+    declaration_kind: String,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    let {
+        Ok(rows) <- selection.artifact.get("resolved_imports");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> Ok(missing(Json.null(), used))
+    };
+    imports(selection, local_name, import_kind, declaration_kind, rows, 0, count, used, maximum).
+
+pub resolve(
+    selection: Selection,
+    local_name: String,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    resolve_kind(selection, local_name, "type", "struct", used, maximum).
+
+/**
+ * Resolves a compiler-owned canonical reference, without parsing source names.
+ */
+pub resolve_reference(
+    selection: Selection,
+    reference: Json,
+    declaration_kind: String,
+    used: Int,
+    maximum: Int,
+): Result[Found, Failure] ->
+    let module_name = EntityLookup.text(reference, "source_module");
+    let source_name = EntityLookup.text(reference, "source_name");
+    let true <- module_name != "" and source_name != "" else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Canonical declaration origin is incomplete.",
+                ),
+            )
+    };
+    if {
+        module_name == EntityLookup.module_name(selection.artifact) -> let {
+            Ok(rows) <- selection.artifact.get("source_declarations");
+            Ok(count) <- rows.length()
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Local origin declarations are missing.",
+                    ),
+                )
+        };
+        declarations(
+            selection.artifact,
+            EntityLookup.text(selection.entity, "snapshot_id"),
+            reference,
+            declaration_kind,
+            rows,
+            0,
+            count,
+            used,
+            maximum,
+        );
+        true -> let {
+            Ok(units) <- selection.context.get("units");
+            Ok(count) <- units.length()
+        } else {
+            _ -> Ok(missing(reference, used))
+        };
+        provider(
+            units,
+            EntityLookup.text(selection.entity, "snapshot_id"),
+            reference,
+            declaration_kind,
+            0,
+            count,
+            used,
+            maximum,
+        )
+    }.

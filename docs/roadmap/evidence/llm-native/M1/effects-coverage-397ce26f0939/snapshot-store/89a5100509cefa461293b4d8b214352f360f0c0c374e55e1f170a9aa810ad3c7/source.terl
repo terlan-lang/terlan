@@ -1,0 +1,20 @@
+module mcp_query.
+
+@pure
+pub decide(flag: Bool): Bool ->
+    let local = flag;
+    local and flag.
+
+pub choose(value: Int): Int ->
+    value.
+
+pub choose(value: String): String ->
+    value.
+
+pub struct Base {
+    code: Int = 7,
+}.
+
+pub struct Leaf includes Base {
+    label: String,
+}.

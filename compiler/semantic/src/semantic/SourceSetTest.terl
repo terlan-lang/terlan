@@ -1,0 +1,210 @@
+/**
+ * Shared-graph snapshots, canonical source order, and dependency freshness.
+ */
+module semantic.SourceSetTest.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.SourceSet.{Input}.
+import semantic.{Catalog, SnapshotStore, SourceSet}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+text(value: Json, key: String): String ->
+    let {
+        Ok(field) <- value.get(key);
+        Ok(result) <- field.as_string()
+    } else {
+        _ -> ""
+    };
+    result.
+
+library(scalar: String): Input ->
+    Input(
+        path = "library.terli",
+        contents = "module library.\npub type Item = " + scalar + ".\n",
+        document_version = 0,
+    ).
+
+client(version: Int): Input ->
+    Input(
+        path = "main.terl",
+        contents = "module main.\nimport type library.{Item}.\npub echo(input: Item): Item -> input.\n",
+        document_version = version,
+    ).
+
+capture(program: String, inputs: List[Input], store: String): Result[Json, Failure] ->
+    case SourceSet.capture(program, inputs, store) {
+        Ok(document) -> Ok(document);
+        Err(reason) ->
+            let _reported = eprintln(reason.code + ": " + reason.message);
+            Err(reason)
+    }.
+
+find(rows: Json, kind: String, name: String, index: Int, count: Int): Result[Json, Bool] ->
+    let true <- index < count else {
+        _ -> Err(false)
+    };
+    (let Ok(row) <- rows.at(index) else {
+    _ -> Err(false)
+};
+if {
+    text(row, "kind") == kind and text(row, "name") == name -> Ok(row);
+    true -> find(rows, kind, name, index + 1, count)
+}).
+
+selected(store: String, snapshot: Json, kind: String, name: String): Result[Json, Bool] ->
+    let {
+        Ok(catalog) <- Catalog.index(store, text(snapshot, "snapshot_id"));
+        Ok(rows) <- catalog.get("entities");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> Err(false)
+    };
+    find(rows, kind, name, 0, count).
+
+@test
+pub source_order_is_canonical_and_imported_declarations_remain_available(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-source-set-order-");
+        Ok(first) <- capture(compiler(), [client(0), library("Int")], root + "/store");
+        Ok(second) <- capture(compiler(), [library("Int"), client(0)], root + "/store");
+        Ok(imported) <- selected(root + "/store", first, "type", "Item");
+        Ok(binding) <- selected(root + "/store", first, "binding", "input");
+        Ok(origin) <- imported.get("origin")
+    } else {
+        _ -> false
+    };
+    (let stable = text(first, "snapshot_id") == text(second, "snapshot_id"); let origins = text(origin, "path") == "library.terli" and text(binding, "owner") == "main"; let cleaned = Directory.remove_all(root) == Ok(Unit); stable and origins and cleaned).
+
+@test
+pub changed_dependency_interface_rejects_stale_entity_content(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-source-set-dependency-");
+        Ok(first) <- capture(compiler(), [library("Int"), client(0)], root + "/store");
+        Ok(before_binding) <- selected(root + "/store", first, "binding", "input");
+        Ok(second) <- capture(compiler(), [library("Float"), client(0)], root + "/store");
+        Ok(later_binding) <- selected(root + "/store", second, "binding", "input")
+    } else {
+        _ -> false
+    };
+    (let same_id = text(before_binding, "entity_id") == text(later_binding, "entity_id");
+let changed =
+    text(first, "snapshot_id") != text(second, "snapshot_id")
+        and text(first, "source_closure_digest") != text(second, "source_closure_digest");
+let rejected =
+    case Catalog.resolve(
+        root + "/store",
+        text(second, "snapshot_id"),
+        text(before_binding, "entity_id"),
+        "binding",
+        text(before_binding, "digest"),
+    ) {
+        Err(reason) -> reason.code == "semantic.entity.stale";
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+same_id and changed and rejected and cleaned).
+
+@test
+pub overlay_versions_change_snapshot_identity_without_mutating_prior_capture(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-source-set-versions-");
+        Ok(first) <- capture(compiler(), [library("Int"), client(0)], root + "/store");
+        Ok(second) <- capture(compiler(), [library("Int"), client(9)], root + "/store");
+        Ok(sources) <- second.get("sources");
+        Ok(overlay) <- sources.at(1);
+        Ok(version) <- overlay.get("document_version");
+        Ok(previous) <- SnapshotStore.load(root + "/store", text(first, "snapshot_id"))
+    } else {
+        _ -> false
+    };
+    (let versioned = text(first, "snapshot_id") != text(second, "snapshot_id") and version.as_int() == Ok(9); let immutable = Json.to_string(previous) == Json.to_string(first); let cleaned = Directory.remove_all(root) == Ok(Unit); versioned and immutable and cleaned).
+
+@test
+pub rejected_source_marks_the_set_invalid_and_keeps_other_facts_partial(): Bool ->
+    let broken =
+        Input(
+            path = "broken.terl",
+            contents = "module broken.\npub bad(): Bool -> 1.\n",
+            document_version = 5,
+        );
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-source-set-invalid-");
+        Ok(snapshot) <- capture(compiler(), [broken, library("Int"), client(0)], root + "/store");
+        Ok(analysis) <- snapshot.get("analysis");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(artifact) <- SnapshotStore.compiler_artifact(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(units) <- artifact.get("units");
+        Ok(first) <- units.at(0);
+        Ok(exported) <- first.get("export");
+        Ok(core) <- exported.get("core")
+    } else {
+        _ -> false
+    };
+    (let invalid =
+    text(analysis, "status") == "invalid"
+        and text(catalog, "status") == "partial"
+        and text(exported, "status") == "invalid"
+        and core.is_null();
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+invalid and cleaned).
+
+@test
+pub changing_any_frozen_source_makes_the_set_unreadable(): Bool ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-source-set-tamper-");
+        Ok(snapshot) <- capture(compiler(), [library("Int"), client(0)], root + "/store")
+    } else {
+        _ -> false
+    };
+    (let id = text(snapshot, "snapshot_id");
+let corrupted = File.write_text(root + "/store/" + id.utf8_slice(2, 64) + "/input_0.terli", "changed") == Ok(Unit);
+let rejected =
+    case Catalog.index(root + "/store", id) {
+        Err(_) -> true;
+        _ -> false
+    };
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+corrupted and rejected and cleaned).
+
+@test
+pub duplicate_escaping_and_negative_version_inputs_fail_before_compilation(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-source-set-preconditions-") else {
+        _ -> false
+    };
+    (let duplicate =
+    case capture("/missing/compiler", [client(0), client(0)], root + "/store") {
+        Err(reason) -> reason.code == "semantic.snapshot.source_set";
+        _ -> false
+    };
+let escaping =
+    case capture(
+        "/missing/compiler",
+        [Input(path = "../main.terl", contents = "", document_version = 0)],
+        root + "/store",
+    ) {
+        Err(reason) -> reason.code == "semantic.snapshot.source_set";
+        _ -> false
+    };
+let negative =
+    case capture("/missing/compiler", [client(-1)], root + "/store") {
+        Err(reason) -> reason.code == "semantic.snapshot.source_set";
+        _ -> false
+    };
+let unpublished = not File.exists(root + "/store");
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+duplicate and escaping and negative and unpublished and cleaned).

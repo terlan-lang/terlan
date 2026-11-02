@@ -63,6 +63,12 @@ pub(super) fn collect_syntax_function_signatures(
                         local_aliases,
                     },
                 );
+                call_observations::register_local(
+                    &module.module_name,
+                    name,
+                    declaration.span.into(),
+                    &scheme,
+                );
                 map.entry((name.clone(), params.len()))
                     .or_insert_with(Vec::new)
                     .push(scheme);

@@ -14,6 +14,8 @@ import self_host.ProjectedImportedTraitConformance.
 import self_host.ProjectedBindingSyntax.{BindingDiagnostic}.
 import self_host.ProjectedCallableSyntax.{CallableDiagnostic}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic}.
+import self_host.ProjectedTypeEquivalence.
+import self_host.ProjectedTypeRender.
 import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
 import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree}.
 import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
@@ -41,7 +43,7 @@ constructor LocalTypeBinding {
 
 @pure
 type_name(value: Option[ProjectedTypeNode]): String ->
-    case value { Some(node) -> node.text; None -> "" }.
+    case value { Some(node) -> ProjectedTypeRender.render(node); None -> "" }.
 
 @pure
 last_inferred(values: List[ProjectedExpressionNode]): InferredProjectedType ->
@@ -217,8 +219,7 @@ fact_type_at(
     case values {
         [] -> current;
         [value | rest] -> if {
-            value.byte_offset == byte_offset and value.type_name != None ->
-                fact_type_at(rest, byte_offset, value.type_name);
+            value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
             true -> fact_type_at(rest, byte_offset, current)
         }
     }.
@@ -314,7 +315,7 @@ parameter_type(name: String, values: List[ProjectedParameterTree]): Option[Strin
         [] -> None;
         [value | rest] -> if {
             parameter_pattern_name(value) == name -> case value.annotation {
-                Some(annotation) -> Some(annotation.text);
+                Some(annotation) -> Some(ProjectedTypeRender.render(annotation));
                 None -> None
             };
             true -> parameter_type(name, rest)
@@ -451,9 +452,7 @@ resolved_node(
 
 @pure
 type_matches(expected: String, actual: String): Bool ->
-    expected == actual
-        or String.starts_with(expected, String.append(actual, "["))
-        or String.starts_with(actual, String.append(expected, "[")).
+    ProjectedTypeEquivalence.matches(expected, actual).
 
 @pure
 next_diagnostics(expected: String, actual: InferredProjectedType, body: ProjectedBody, require_resolved: Bool, output: List[ProjectedExpressionTypeDiagnostic]): List[ProjectedExpressionTypeDiagnostic] ->

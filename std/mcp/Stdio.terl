@@ -1,0 +1,30 @@
+/**
+ * Standard newline-delimited UTF-8 MCP transport over application stdio.
+ */
+module std.mcp.Stdio.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.data.Json.
+import std.io.Console.
+import std.mcp.Protocol.
+import std.mcp.Protocol.{Event, Session}.
+
+import type std.core.{Error, Option, Result}.
+import type std.data.Json.
+
+/**
+ * EOF ends the transport; encoding and size failures require stream closure.
+ */
+pub receive(session: Session, max_bytes: Int): Result[Option[Event], Error] ->
+    case Console.read_line(max_bytes) {
+        Ok(None) -> Ok(None);
+        Ok(Some(line)) -> Ok(Some(Protocol.parse(session, line)));
+        Err(reason) -> Err(reason)
+    }.
+
+/**
+ * Json.to_string escapes content newlines; stdout contains only MCP messages.
+ */
+pub send(message: Json): Unit ->
+    Console.println(Json.to_string(message)).

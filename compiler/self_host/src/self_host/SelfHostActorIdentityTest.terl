@@ -1,0 +1,15 @@
+/** Known-vector contracts for actor continuation identity byte encoding. */
+module self_host.SelfHostActorIdentityTest.
+
+import self_host.SelfHostActorIdentity.
+
+
+@test
+pub export_identity_matches_native_lowering(): Bool ->
+    SelfHostActorIdentity.export_identity("sample", "run", 1)
+        == "sha256:6f66e0934b20baa992ae5bbcb284b3a190020550f2cbb01684d2bb226a289adc".
+
+@test
+pub continuation_identity_matches_native_lowering(): Bool ->
+    SelfHostActorIdentity.continuation("sample", "run", 1, 2)
+        == "sha256:e0163c973e268153e54e5a90b5f4a87fd0ea5a704d672da4b8006a66e2b43e80".

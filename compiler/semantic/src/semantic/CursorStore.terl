@@ -1,0 +1,109 @@
+/**
+ * Content-addressed continuations bound to a semantic scope and projection.
+ */
+module semantic.CursorStore.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.JsonRules.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub save(store: String, context: String, projection: String, offset: Int): Result[String, Failure] ->
+    let true <- offset >= 0 else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.cursor.offset",
+                    message = "Cursor cannot contain a negative semantic position.",
+                ),
+            )
+    };
+    (let document =
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.query-cursor.v1"))
+        .put("scope", Json.string(context))
+        .put("offset", Json.int(offset))
+        .put("projection", Json.string(projection));
+let contents = Json.to_string(document);
+let digest = Hash.sha256(contents);
+let folder = store + "/query-cursors/" + digest;
+if {
+    File.exists(folder) -> if {
+        File.read_text(folder + "/cursor.json") == Ok(contents) -> Ok("c:" + digest);
+        true -> Err(
+            Failure(
+                code = "semantic.cursor.corrupt",
+                message = "Existing cursor contents do not match their identity.",
+            ),
+        )
+    };
+    true -> let Ok(stage) <- Directory.create_temporary("terlan-semantic-cursor-") else {
+        _ ->
+            Err(
+                Failure(code = "semantic.cursor.storage", message = "Cannot create a cursor stage."),
+            )
+    };
+    (let written =
+    File.write_text(stage + "/cursor.json", contents) == Ok(Unit)
+        and Directory.create_all(store + "/query-cursors") == Ok(Unit)
+        and Directory.copy_tree_excluding(stage, folder, []) == Ok(Unit);
+let cleaned = Directory.remove_all(stage) == Ok(Unit);
+if {
+    written and cleaned -> Ok("c:" + digest);
+    true -> Err(
+        Failure(
+            code = "semantic.cursor.storage",
+            message = "Cannot publish the semantic continuation.",
+        ),
+    )
+})
+}).
+
+pub load(store: String, context: String, projection: String, cursor: String): Result[Int, Failure] ->
+    if {
+        cursor == "" -> Ok(0);
+        true -> let true <- JsonRules.id(cursor, "c:") else {
+            _ -> Err(Failure(code = "semantic.cursor.id", message = "Malformed cursor identity."))
+        };
+        (let digest = cursor.utf8_slice(2, 64);
+let path = store + "/query-cursors/" + digest + "/cursor.json";
+(let {
+    Ok(size) <- File.size(path);
+    true <- size <= 1_024;
+    Ok(contents) <- File.read_text(path);
+    true <- Hash.sha256(contents) == digest;
+    Ok(document) <- Json.parse(contents);
+    Ok(schema) <- JsonRules.text(document, "schema");
+    Ok(recorded_context) <- JsonRules.text(document, "scope");
+    Ok(offset) <- JsonRules.number(document, "offset");
+    Ok(recorded_projection) <- JsonRules.text(document, "projection")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.cursor.corrupt",
+                message = "Cursor is missing, incomplete, or no longer matches its identity.",
+            ),
+        )
+};
+(let true <-
+    schema == "terlan.semantic.query-cursor.v1"
+        and recorded_context == context
+        and recorded_projection == projection
+        and offset >= 0 else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.cursor.context",
+                message = "Cursor belongs to another snapshot, target, or semantic question.",
+            ),
+        )
+};
+Ok(offset))))
+    }.

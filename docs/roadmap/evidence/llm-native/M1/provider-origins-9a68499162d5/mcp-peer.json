@@ -1,0 +1,2769 @@
+{
+  "artifacts": {
+    "entities": [
+      {
+        "digest": "f28c0baeebf868e18345a08930581d3ca72aec5fcf223ae80476d5f1b33fdf01",
+        "entity_id": "e:1eb6ef891c337b73fcee635660ec096313d48bc058b67f9bca8d30790ddb34c7",
+        "expanded_from": [],
+        "kind": "module",
+        "name": "mcp_query",
+        "origin": {
+          "end_byte": 0,
+          "path": "mcp_query.terl",
+          "start_byte": 0
+        },
+        "owner": null,
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+        "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "decide",
+        "origin": {
+          "end_byte": 97,
+          "path": "mcp_query.terl",
+          "start_byte": 29
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "b6bb3e0c43aca67618aa41bd1160609df81b379c2bc952eaa5230e4a6901c479",
+        "entity_id": "e:e47186313adab024a25d7cfb6b889cf59f315d5a669c6bf6452c9c2d6abde892",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "choose",
+        "origin": {
+          "end_byte": 140,
+          "path": "mcp_query.terl",
+          "start_byte": 104
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "a769258db62108cc3823712bab9696424971d01dfe5e9c3fc984d49b5aa22eac",
+        "entity_id": "e:4163f463af23f9c371d88eb0747513d06cd15b4e35993899582c1ab1488eeeac",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "choose",
+        "origin": {
+          "end_byte": 189,
+          "path": "mcp_query.terl",
+          "start_byte": 147
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "c20b74fc9ef2eef3f87fb3ee635a87dbf05953594c228f7694ccf8def3b99402",
+        "entity_id": "e:e47692e2ca8b54095297856ac89febec024397282c5a6c240856ad88eb41c524",
+        "expanded_from": [],
+        "kind": "type",
+        "name": "Base",
+        "origin": {
+          "end_byte": 231,
+          "path": "mcp_query.terl",
+          "start_byte": 192
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "0b307ce296aadb641521b25fef221db2b641bd28f06a321b127d93cd36d67141",
+        "entity_id": "e:1aac5e4531ff603a94e1fd1cdd444f530557f1f8083416507a5bb21bfd34dd84",
+        "expanded_from": [],
+        "kind": "type",
+        "name": "Leaf",
+        "origin": {
+          "end_byte": 286,
+          "path": "mcp_query.terl",
+          "start_byte": 233
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "101319622a26ba2805633621d617a567518284d6672081c0573ec7b9137b86fd",
+        "entity_id": "e:294992f762bfbaed81bbfaf5564d07e61118e0da75feb6f94d0720b3048bb3ad",
+        "expanded_from": [],
+        "kind": "shape",
+        "name": "Positive",
+        "origin": {
+          "end_byte": 338,
+          "path": "mcp_query.terl",
+          "start_byte": 288
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "3480cf3e4c551774343ddec21ffd9223956767ecf7bc78f985a0bf9c5f62a21c",
+        "entity_id": "e:b9b73e5edebf1be38ed7c679a3572c07bcb754317cce5949e2a4f4731e62f645",
+        "expanded_from": [],
+        "kind": "trait",
+        "name": "Encode",
+        "origin": {
+          "end_byte": 394,
+          "path": "mcp_query.terl",
+          "start_byte": 340
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "0c65eba23268ebc1c26c2f760f1ab3a78dbf1ca8f625c205933d79893cc5e25d",
+        "entity_id": "e:019d90c8ad93e439a59b9706e21234081d2d45e4901a81560ad9ad72cb4c002e",
+        "expanded_from": [],
+        "kind": "type",
+        "name": "Secret",
+        "origin": {
+          "end_byte": 419,
+          "path": "mcp_query.terl",
+          "start_byte": 396
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "41edd645ecb999596a37537b818f97046434bdcd58dadd6d76d2e58911c03a43",
+        "entity_id": "e:86557fb87b900be0b43387d78f74f9e5008e05507a34755e4cce5b11d159de04",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "display",
+        "origin": {
+          "end_byte": 519,
+          "path": "mcp_query.terl",
+          "start_byte": 455
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "6412c1e7f2752d75938cf6940d8af355b4d0918b715492111d5d6d0af5849600",
+        "entity_id": "e:1c6afbedc2b4ce6190f5f399f2c50104f30d90c85ac6b49a9fb38d03af06ddb1",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "encode_bound",
+        "origin": {
+          "end_byte": 678,
+          "path": "mcp_query.terl",
+          "start_byte": 606
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "0f8d9a01e367125a8fab970cb4dc43fe02477c895a96de926c85014ddd7b4463",
+        "entity_id": "e:8e16df6de6eb53f4345de4687d1869ef310ee4d0599f145926d5342fdd888b76",
+        "expanded_from": [],
+        "kind": "function",
+        "name": "positive",
+        "origin": {
+          "end_byte": 785,
+          "path": "mcp_query.terl",
+          "start_byte": 685
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "ebdd2b55d4d4a1bbb996631f4ba4f71191c445e2fce1dc045c7a0e5587af795c",
+        "entity_id": "e:f1ef380024c13828654476059dbcc334e332dc424651f5cdb831b05c9f9e3219",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "flag",
+        "origin": {
+          "end_byte": 97,
+          "path": "mcp_query.terl",
+          "start_byte": 29
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "cd201ac91ecc27d3b238238c08954c633f611ce29a78039e0010e6529f1ccb2f",
+        "entity_id": "e:24449e7860dcb31049fa4b37d875c4125e86f6642b27d3ab98ba57d49c66678d",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "local",
+        "origin": {
+          "end_byte": 97,
+          "path": "mcp_query.terl",
+          "start_byte": 29
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "9c3ff57859545c9b7382224b9c4255e7e3c5b4eeea4418fcdad4dfe1202fad62",
+        "entity_id": "e:a68bb0afb1bdd248a50af216c6efb3905b2f55ac8ef7e99e796251c7ccee8c9e",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 140,
+          "path": "mcp_query.terl",
+          "start_byte": 104
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "9511607fd50177b5a06faa8e18c5fea3459a599af0438540914f128cf30ccd7a",
+        "entity_id": "e:1fa6553735874907ab0a3faa5c6dfaf84c7328aeba0911f6f7a96219deb589aa",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 189,
+          "path": "mcp_query.terl",
+          "start_byte": 147
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "9617a77a83206039c242ed1812f09840e1ff34eb2774b94f3ddbf253ed60179b",
+        "entity_id": "e:94d21351f053c8daf52431e1031bb7787313a98723b169d9ff3da4d88cb1a8b5",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 519,
+          "path": "mcp_query.terl",
+          "start_byte": 455
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "ab55f6afcc370e81d21a01ab3d5c3a10c5541039081990999e14e3d6f920f770",
+        "entity_id": "e:5057a9f0958eebdb110d206450329bc12a3ab46cbc32e5ac040cf20076a7beca",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 596,
+          "path": "mcp_query.terl",
+          "start_byte": 557
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "53cb42ff697304327d407d02e9fbb6225e5b13092e357d2d70903834a1915c44",
+        "entity_id": "e:762fe3c664e3fe7b6d6d059effd409c14167ffa3a789784cca3c75cdd7076182",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 678,
+          "path": "mcp_query.terl",
+          "start_byte": 606
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "9301b3c952635fa6d37300581cd9143da5dcf398c9cef29a2f22e759a06552c2",
+        "entity_id": "e:8b7cfb3a2bc5521a16859726317438322831c4d1d892ac9a1c93481859587882",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "value",
+        "origin": {
+          "end_byte": 785,
+          "path": "mcp_query.terl",
+          "start_byte": 685
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "fcbe41cc4206f595273566d06a45ec65e1d5709d43554d44fedeca373af376d3",
+        "entity_id": "e:54dc5eddbd28c38f9e9119367982fa44f24b8c6e70f6bfca5b44498d3f1e0cb1",
+        "expanded_from": [],
+        "kind": "binding",
+        "name": "found",
+        "origin": {
+          "end_byte": 785,
+          "path": "mcp_query.terl",
+          "start_byte": 685
+        },
+        "owner": "mcp_query",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "26e8f2b36015c4bbfac2fc360e6e856d394a05ec05e2cbc44ab84c652574469b",
+        "entity_id": "e:227cadcbdfabff522324124e049e648c42333f168992cd529303ecf8b478a2c3",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "decide /clauses/0/body/patterns/0 (var)",
+        "origin": {
+          "end_byte": 97,
+          "path": "mcp_query.terl",
+          "start_byte": 29
+        },
+        "owner": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "e987415bcbced5ad83399510a07b175e23d07edf1c9bccabfb2aa7649b99f028",
+        "entity_id": "e:0fddb5b529542672ae587d849bea085d9942ddc6bcc84b3ad80c982a1c8e2aeb",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "decide /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 97,
+          "path": "mcp_query.terl",
+          "start_byte": 29
+        },
+        "owner": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "7548d0164e6603501a4df9930c4963e4c0a43e7a36682fe73db3b25d00e1a0b0",
+        "entity_id": "e:8df9a524bcc9689efb69180c419180caf6c9ab352788e708f6f87a04c624cfeb",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "choose /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 140,
+          "path": "mcp_query.terl",
+          "start_byte": 104
+        },
+        "owner": "e:e47186313adab024a25d7cfb6b889cf59f315d5a669c6bf6452c9c2d6abde892",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "b752aa7e0bd4dd9cdb3460e547b5ce38807658dae0cb60e1036badaaf96f69e3",
+        "entity_id": "e:4d108764d2f12c179f34b8403aa2876f301232cca6453ef8c5653d938823d5a3",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "choose /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 189,
+          "path": "mcp_query.terl",
+          "start_byte": 147
+        },
+        "owner": "e:4163f463af23f9c371d88eb0747513d06cd15b4e35993899582c1ab1488eeeac",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "ea48431e02ec71102d713f4247856678da4483fa63a028fdde4f717893f0c33a",
+        "entity_id": "e:210bad04991a06b96b0cc6a72ddf273c4f4eeba521dfdfb6adeb7ec19a3f3593",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "display /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 519,
+          "path": "mcp_query.terl",
+          "start_byte": 455
+        },
+        "owner": "e:86557fb87b900be0b43387d78f74f9e5008e05507a34755e4cce5b11d159de04",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "d6cc03667d2fe052f0e3897e21269b1673cfce6c42c0fefde0679131af2d55cd",
+        "entity_id": "e:53ed426c20d56d9873beec6721fea67fdd7e78a654763bed6e3c0809fcc81200",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "encode_bound /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 678,
+          "path": "mcp_query.terl",
+          "start_byte": 606
+        },
+        "owner": "e:1c6afbedc2b4ce6190f5f399f2c50104f30d90c85ac6b49a9fb38d03af06ddb1",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "711aada096d9fcaaf021374d8dcf6e3ba0f360c93ebc5b507914fd7789ddb1ea",
+        "entity_id": "e:6036f071fde1e3d48dcedf9bbc8730295de64493efc85aa721de8003e6bec2a2",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "positive /clauses/0/body/clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 785,
+          "path": "mcp_query.terl",
+          "start_byte": 685
+        },
+        "owner": "e:8e16df6de6eb53f4345de4687d1869ef310ee4d0599f145926d5342fdd888b76",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "4050f90f4a71ca87a4013b39ef990dc603ea0784401bd31c94f2558f181fef28",
+        "entity_id": "e:b3008e2b2ecb3e6123076c3fca57ad05e5034f5d920393240a64dc3de59909d2",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "positive /clauses/0/body/clauses/1/patterns/0 (wildcard)",
+        "origin": {
+          "end_byte": 785,
+          "path": "mcp_query.terl",
+          "start_byte": 685
+        },
+        "owner": "e:8e16df6de6eb53f4345de4687d1869ef310ee4d0599f145926d5342fdd888b76",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      },
+      {
+        "digest": "a00bcd6c359558a62fee97b5d324222555dd0ad34ba8fbdc79f213a2e2abfe8c",
+        "entity_id": "e:09b237708ced4d4d86a4ebc2e6d8a800f76ca15d36780a0faa7602e05dc151ac",
+        "expanded_from": [],
+        "kind": "pattern",
+        "name": "positive /clauses/0/patterns/0 (var)",
+        "origin": {
+          "end_byte": 785,
+          "path": "mcp_query.terl",
+          "start_byte": 685
+        },
+        "owner": "e:8e16df6de6eb53f4345de4687d1869ef310ee4d0599f145926d5342fdd888b76",
+        "schema": "terlan.semantic.entity.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+      }
+    ],
+    "query": {
+      "facts": [
+        {
+          "kind": "function_type",
+          "origin_entity_ids": [
+            "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091"
+          ],
+          "value": {
+            "display_return_type": "Bool",
+            "evidence": "checked_core_function",
+            "origin": {
+              "arity": 1,
+              "declaration_span": {
+                "end": 97,
+                "start": 29
+              },
+              "function": "decide",
+              "module": "mcp_query"
+            },
+            "parameters": [
+              {
+                "core_ty": "Bool",
+                "name": "flag",
+                "ty": "Bool"
+              }
+            ],
+            "return_type": "Bool"
+          }
+        }
+      ],
+      "limitations": [],
+      "next_cursor": null,
+      "result_bytes": 796,
+      "schema": "terlan.semantic.query-result.v1",
+      "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+      "status": "complete",
+      "target": {
+        "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+        "expected_digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+        "kind": "function"
+      },
+      "work_used": 10
+    },
+    "raw_wire_replies": [
+      {
+        "error": {
+          "code": -32700,
+          "message": "Invalid JSON."
+        },
+        "jsonrpc": "2.0"
+      },
+      {
+        "error": {
+          "code": -32002,
+          "message": "Initialize the connection before calling server methods."
+        },
+        "id": 0,
+        "jsonrpc": "2.0"
+      },
+      {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "capabilities": {
+            "resources": {},
+            "tools": {}
+          },
+          "protocolVersion": "2025-11-25",
+          "serverInfo": {
+            "name": "terlan-semantic",
+            "version": "0.1.0"
+          }
+        }
+      },
+      {
+        "error": {
+          "code": -32602,
+          "message": "Tool arguments must be an object."
+        },
+        "id": 2,
+        "jsonrpc": "2.0"
+      },
+      {
+        "error": {
+          "code": -32602,
+          "message": "Resource read requires a URI string."
+        },
+        "id": 3,
+        "jsonrpc": "2.0"
+      },
+      {
+        "error": {
+          "code": -32600,
+          "message": "Invalid JSON-RPC message."
+        },
+        "id": 4,
+        "jsonrpc": "2.0"
+      },
+      {
+        "id": 18446744073709551615,
+        "jsonrpc": "2.0",
+        "result": {}
+      },
+      {
+        "error": {
+          "code": -32600,
+          "message": "Request identity was already used on this connection."
+        },
+        "id": 18446744073709551615,
+        "jsonrpc": "2.0"
+      },
+      {
+        "error": {
+          "code": -32601,
+          "message": "Method not found."
+        },
+        "id": "missing-method",
+        "jsonrpc": "2.0"
+      }
+    ],
+    "tool": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "description": "Query checked compiler facts in the admitted snapshot. Discover exact entity handles in snapshot resources. Partial and unavailable facts carry limitations; candidates still require verification.",
+      "execution": null,
+      "icons": null,
+      "inputSchema": {
+        "$defs": {
+          "digest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "entity_id": {
+            "pattern": "^e:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "limits": {
+            "additionalProperties": false,
+            "properties": {
+              "max_bytes": {
+                "maximum": 1048576,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "max_work": {
+                "maximum": 1000000,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "max_bytes",
+              "max_work"
+            ],
+            "type": "object"
+          },
+          "snapshot_id": {
+            "pattern": "^s:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "target": {
+            "additionalProperties": false,
+            "properties": {
+              "entity_id": {
+                "$ref": "#/$defs/entity_id"
+              },
+              "expected_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "kind": {
+                "enum": [
+                  "module",
+                  "binding",
+                  "function",
+                  "type",
+                  "trait",
+                  "shape",
+                  "implication",
+                  "pattern",
+                  "actor",
+                  "protocol",
+                  "message"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "entity_id",
+              "kind",
+              "expected_digest"
+            ],
+            "type": "object"
+          }
+        },
+        "$id": "urn:terlan:semantic:query:v1",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fact": {
+            "enum": [
+              "declaration",
+              "definition",
+              "references",
+              "type",
+              "interface",
+              "conformance",
+              "effects",
+              "ownership",
+              "pattern_coverage",
+              "core",
+              "expected_values",
+              "legal_transformations",
+              "impact"
+            ],
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/$defs/limits"
+          },
+          "schema": {
+            "const": "terlan.semantic.query.v1"
+          },
+          "snapshot_id": {
+            "$ref": "#/$defs/snapshot_id"
+          },
+          "target": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "required": [
+          "schema",
+          "snapshot_id",
+          "target",
+          "fact",
+          "limits",
+          "cursor"
+        ],
+        "title": "Terlan semantic query v1",
+        "type": "object"
+      },
+      "meta": null,
+      "name": "terlan_query",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "$defs": {
+              "bound_origin": {
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "else": {
+                      "properties": {
+                        "entity": {
+                          "type": "null"
+                        },
+                        "reason": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "if": {
+                      "properties": {
+                        "status": {
+                          "const": "resolved"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "entity": {
+                          "type": "object"
+                        },
+                        "reason": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "binding": {
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  },
+                  "bound_index": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "entity": {
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  },
+                  "reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "resolved",
+                      "unavailable"
+                    ]
+                  },
+                  "trait_name": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bound_index",
+                  "trait_name",
+                  "binding",
+                  "entity",
+                  "status",
+                  "reason"
+                ],
+                "type": "object"
+              },
+              "declaration_requirements": {
+                "additionalProperties": false,
+                "properties": {
+                  "arity": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "bounds": {
+                    "items": {
+                      "$ref": "#/$defs/requirement_bound"
+                    },
+                    "type": "array"
+                  },
+                  "kind": {
+                    "enum": [
+                      "function",
+                      "type"
+                    ]
+                  },
+                  "model": {
+                    "const": "checked-declaration-requirements.v1"
+                  },
+                  "module": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "parameter_types": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  "return_type": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "span_end": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "span_start": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "type_variables": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "declaration": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "id": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "name": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "declaration"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "model",
+                  "kind",
+                  "module",
+                  "name",
+                  "arity",
+                  "span_start",
+                  "span_end",
+                  "type_variables",
+                  "parameter_types",
+                  "return_type",
+                  "bounds"
+                ],
+                "type": "object"
+              },
+              "digest": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "entity_id": {
+                "pattern": "^e:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "fact": {
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "kind": {
+                          "const": "checked_semantic_relation"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "value": {
+                          "$ref": "#/$defs/semantic_relation"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "kind": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "origin_entity_ids": {
+                    "items": {
+                      "$ref": "#/$defs/entity_id"
+                    },
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "value": {}
+                },
+                "required": [
+                  "kind",
+                  "value",
+                  "origin_entity_ids"
+                ],
+                "type": "object"
+              },
+              "limitation": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "message": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "requirement_bound": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "arguments": {
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object"
+                            }
+                          ]
+                        },
+                        "type": "array"
+                      },
+                      "kind": {
+                        "const": "trait"
+                      },
+                      "trait_name": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "trait_name",
+                      "arguments"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "structural_implication"
+                      },
+                      "required_shape": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "Map": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "key": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "required": {
+                                  "type": "boolean"
+                                },
+                                "value": {
+                                  "oneOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "object"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "value",
+                                "required"
+                              ],
+                              "type": "object"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "Map"
+                        ],
+                        "type": "object"
+                      },
+                      "subject": {
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "subject",
+                      "required_shape"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "semantic_relation": {
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "else": {
+                      "else": {
+                        "properties": {
+                          "scope": {
+                            "const": "selected_declaration"
+                          }
+                        }
+                      },
+                      "if": {
+                        "properties": {
+                          "relation_kind": {
+                            "const": "shape_expansion"
+                          }
+                        }
+                      },
+                      "required": [
+                        "resolver_bindings",
+                        "satisfaction_at_call_site",
+                        "candidate_set_exhaustive"
+                      ],
+                      "then": {
+                        "properties": {
+                          "evidence": {
+                            "$ref": "#/$defs/shape_expansion_origin"
+                          },
+                          "scope": {
+                            "const": "selected_pattern"
+                          }
+                        }
+                      }
+                    },
+                    "if": {
+                      "properties": {
+                        "relation_kind": {
+                          "const": "trait_conformance"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "$ref": "#/$defs/trait_conformance"
+                        },
+                        "scope": {
+                          "const": "containing_module"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "relation_kind": {
+                          "const": "shape_definition"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "$ref": "#/$defs/shape_definition"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "relation_kind": {
+                          "const": "declaration_requirements"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "$ref": "#/$defs/declaration_requirements"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "relation_kind": {
+                          "const": "trait_definition"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "evidence": {
+                          "properties": {
+                            "constants": {
+                              "items": {
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "is_public": {
+                              "type": "boolean"
+                            },
+                            "kind": {
+                              "const": "trait"
+                            },
+                            "methods": {
+                              "items": {
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "name": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "params": {
+                              "items": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "super_traits": {
+                              "items": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "methods",
+                            "params",
+                            "super_traits",
+                            "constants",
+                            "is_public"
+                          ],
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "bound_origins": {
+                    "items": {
+                      "$ref": "#/$defs/bound_origin"
+                    },
+                    "type": "array"
+                  },
+                  "candidate_set_exhaustive": {
+                    "const": false
+                  },
+                  "evidence": {
+                    "type": "object"
+                  },
+                  "relation_kind": {
+                    "enum": [
+                      "trait_definition",
+                      "shape_definition",
+                      "declaration_requirements",
+                      "trait_conformance",
+                      "shape_expansion"
+                    ]
+                  },
+                  "resolver_bindings": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "satisfaction_at_call_site": {
+                    "const": "requires_verification"
+                  },
+                  "scope": {
+                    "enum": [
+                      "selected_declaration",
+                      "containing_module",
+                      "selected_pattern"
+                    ]
+                  }
+                },
+                "required": [
+                  "relation_kind",
+                  "scope",
+                  "evidence"
+                ],
+                "type": "object"
+              },
+              "shape_definition": {
+                "additionalProperties": false,
+                "properties": {
+                  "guard": {
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  },
+                  "name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "params": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "pattern": {
+                    "type": "object"
+                  },
+                  "public": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "name",
+                  "params",
+                  "pattern",
+                  "guard",
+                  "public"
+                ],
+                "type": "object"
+              },
+              "shape_expansion_origin": {
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "else": {
+                      "properties": {
+                        "entity": {
+                          "type": "null"
+                        },
+                        "reason": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "if": {
+                      "properties": {
+                        "status": {
+                          "const": "resolved"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "entity": {
+                          "type": "object"
+                        },
+                        "reason": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "entity": {
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  },
+                  "reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "source_reference": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "source_module": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_name": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source_module",
+                      "source_name"
+                    ],
+                    "type": "object"
+                  },
+                  "status": {
+                    "enum": [
+                      "resolved",
+                      "unavailable"
+                    ]
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "entity",
+                  "status",
+                  "reason"
+                ],
+                "type": "object"
+              },
+              "snapshot_id": {
+                "pattern": "^s:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "target": {
+                "additionalProperties": false,
+                "properties": {
+                  "entity_id": {
+                    "$ref": "#/$defs/entity_id"
+                  },
+                  "expected_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "kind": {
+                    "enum": [
+                      "module",
+                      "binding",
+                      "function",
+                      "type",
+                      "trait",
+                      "shape",
+                      "implication",
+                      "pattern",
+                      "actor",
+                      "protocol",
+                      "message"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "entity_id",
+                  "kind",
+                  "expected_digest"
+                ],
+                "type": "object"
+              },
+              "trait_conformance": {
+                "additionalProperties": false,
+                "properties": {
+                  "for_type": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "generic_params": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "is_negative": {
+                    "type": "boolean"
+                  },
+                  "module": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "public": {
+                    "type": "boolean"
+                  },
+                  "source": {
+                    "enum": [
+                      "implements",
+                      "explicit_impl"
+                    ]
+                  },
+                  "trait_ref": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "module",
+                  "trait_ref",
+                  "for_type",
+                  "generic_params",
+                  "is_negative",
+                  "public",
+                  "source"
+                ],
+                "type": "object"
+              }
+            },
+            "$id": "urn:terlan:semantic:query-result:v1",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "else": {
+                  "properties": {
+                    "limitations": {
+                      "minItems": 1
+                    }
+                  }
+                },
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "complete"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "limitations": {
+                      "maxItems": 0
+                    },
+                    "next_cursor": {
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unavailable"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "facts": {
+                      "maxItems": 0
+                    },
+                    "next_cursor": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "facts": {
+                "items": {
+                  "$ref": "#/$defs/fact"
+                },
+                "minItems": 0,
+                "type": "array"
+              },
+              "limitations": {
+                "items": {
+                  "$ref": "#/$defs/limitation"
+                },
+                "minItems": 0,
+                "type": "array"
+              },
+              "next_cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "result_bytes": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "schema": {
+                "const": "terlan.semantic.query-result.v1"
+              },
+              "snapshot_id": {
+                "$ref": "#/$defs/snapshot_id"
+              },
+              "status": {
+                "enum": [
+                  "complete",
+                  "partial",
+                  "unavailable"
+                ],
+                "type": "string"
+              },
+              "target": {
+                "$ref": "#/$defs/target"
+              },
+              "work_used": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "schema",
+              "snapshot_id",
+              "target",
+              "status",
+              "facts",
+              "limitations",
+              "next_cursor",
+              "work_used",
+              "result_bytes"
+            ],
+            "title": "Terlan semantic query-result v1",
+            "type": "object"
+          },
+          {
+            "$id": "urn:terlan:semantic:query-error:v1",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "message": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "schema": {
+                "const": "terlan.semantic.query-error.v1"
+              }
+            },
+            "required": [
+              "schema",
+              "code",
+              "message"
+            ],
+            "title": "Terlan semantic query execution error v1",
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      },
+      "title": null
+    }
+  },
+  "cases": [
+    {
+      "case_id": "mcp.initialize",
+      "elapsed_ms": 69070,
+      "evidence": {
+        "capabilities": {
+          "completions": null,
+          "experimental": null,
+          "logging": null,
+          "prompts": null,
+          "resources": {
+            "listChanged": null,
+            "subscribe": null
+          },
+          "tasks": null,
+          "tools": {
+            "listChanged": null
+          }
+        },
+        "instructions": null,
+        "meta": null,
+        "protocolVersion": "2025-11-25",
+        "serverInfo": {
+          "icons": null,
+          "name": "terlan-semantic",
+          "title": null,
+          "version": "0.1.0",
+          "websiteUrl": null
+        }
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.ping",
+      "elapsed_ms": 69075,
+      "evidence": {},
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.tool-discovery-and-schemas",
+      "elapsed_ms": 69152,
+      "evidence": {
+        "tool": "terlan_query"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.resource-discovery",
+      "elapsed_ms": 69172,
+      "evidence": {
+        "continuations": 0,
+        "count": 2
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.bounded-schema-valid-resources",
+      "elapsed_ms": 69217,
+      "evidence": {
+        "entities": 30
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.empty-template-discovery",
+      "elapsed_ms": 69236,
+      "evidence": {},
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.compiler-type-query",
+      "elapsed_ms": 69468,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "function_type",
+            "origin_entity_ids": [
+              "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091"
+            ],
+            "value": {
+              "display_return_type": "Bool",
+              "evidence": "checked_core_function",
+              "origin": {
+                "arity": 1,
+                "declaration_span": {
+                  "end": 97,
+                  "start": 29
+                },
+                "function": "decide",
+                "module": "mcp_query"
+              },
+              "parameters": [
+                {
+                  "core_ty": "Bool",
+                  "name": "flag",
+                  "ty": "Bool"
+                }
+              ],
+              "return_type": "Bool"
+            }
+          }
+        ],
+        "limitations": [],
+        "next_cursor": null,
+        "result_bytes": 796,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "complete",
+        "target": {
+          "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+          "expected_digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+          "kind": "function"
+        },
+        "work_used": 10
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.checked-purity-contract",
+      "elapsed_ms": 69718,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "checked_purity_contract",
+            "origin_entity_ids": [
+              "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091"
+            ],
+            "value": {
+              "contract": {
+                "arity": 1,
+                "compiler_proven_pure": true,
+                "generic_bounds": [],
+                "generic_params": [],
+                "module": "mcp_query",
+                "name": "decide",
+                "parameter_types": [
+                  "Bool"
+                ],
+                "public": true,
+                "receiver_method": false,
+                "receiver_mutable": false,
+                "return_type": "Bool"
+              },
+              "effect_set_exhaustive": false,
+              "evidence": "authoritative_compiler_interface",
+              "scope": "checked_interface_purity"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.effect_set_not_exported",
+            "message": "This is the compiler's checked purity classification. A false value means not proven pure; individual effects, transitive effects and dynamic targets are not enumerated."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 1139,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+          "expected_digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+          "kind": "function"
+        },
+        "work_used": 17
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.checked-pattern-coverage",
+      "elapsed_ms": 69971,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "finite_pattern_coverage",
+            "origin_entity_ids": [
+              "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091"
+            ],
+            "value": {
+              "binding_index": null,
+              "consistent": true,
+              "error": null,
+              "exhaustive": true,
+              "expected_type": "Bool",
+              "guarded_clauses": [],
+              "owner": {
+                "arity": 1,
+                "module": "mcp_query",
+                "name": "decide",
+                "span_end": 97,
+                "span_start": 29
+              },
+              "reason": null,
+              "span_end": 97,
+              "span_start": 29,
+              "subject_kind": "function_clauses",
+              "subject_syntax_digest": null,
+              "uncovered": []
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.coverage_scope",
+            "message": "Observations describe the enclosing checked function's prepared syntax. Guards contribute no coverage; null verdicts and conflicting inference contexts remain unknown. This is not a proof of all control-flow paths or a source edit."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 1165,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+          "expected_digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+          "kind": "function"
+        },
+        "work_used": 18
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.expected-values-constraints",
+      "elapsed_ms": 70207,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "expected_values",
+            "origin_entity_ids": [
+              "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091"
+            ],
+            "value": {
+              "compiler_type": "Bool",
+              "exhaustive_for_program_location": false,
+              "exhaustive_for_type": true,
+              "literal_candidates": [
+                false,
+                true
+              ],
+              "scope": "type_inhabitants",
+              "verification_required": [
+                "ownership_effect_and_actor_context"
+              ]
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.expected_context_incomplete",
+            "message": "Boolean literals exhaust this compiler type; ownership, effects, guards and actor-state constraints at a specific program location are not exported here."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 982,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+          "expected_digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+          "kind": "function"
+        },
+        "work_used": 10
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.same-arity-overload-identity",
+      "elapsed_ms": 70755,
+      "evidence": {
+        "entities": [
+          "e:e47186313adab024a25d7cfb6b889cf59f315d5a669c6bf6452c9c2d6abde892",
+          "e:4163f463af23f9c371d88eb0747513d06cd15b4e35993899582c1ab1488eeeac"
+        ]
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.included-type-origin",
+      "elapsed_ms": 71114,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "type_declaration",
+            "origin_entity_ids": [
+              "e:1aac5e4531ff603a94e1fd1cdd444f530557f1f8083416507a5bb21bfd34dd84"
+            ],
+            "value": {
+              "core_type": {
+                "body": [],
+                "core_body": {
+                  "Struct": {
+                    "fields": [
+                      {
+                        "is_private": false,
+                        "name": "code",
+                        "ty": "Int"
+                      },
+                      {
+                        "is_private": false,
+                        "name": "label",
+                        "ty": "String"
+                      }
+                    ],
+                    "name": "Leaf"
+                  }
+                },
+                "name": "Leaf",
+                "params": [],
+                "visibility": "Public"
+              },
+              "included_origins": [
+                {
+                  "digest": "c20b74fc9ef2eef3f87fb3ee635a87dbf05953594c228f7694ccf8def3b99402",
+                  "entity_id": "e:e47692e2ca8b54095297856ac89febec024397282c5a6c240856ad88eb41c524",
+                  "expanded_from": [],
+                  "kind": "type",
+                  "name": "Base",
+                  "origin": {
+                    "end_byte": 231,
+                    "path": "mcp_query.terl",
+                    "start_byte": 192
+                  },
+                  "owner": "mcp_query",
+                  "schema": "terlan.semantic.entity.v1",
+                  "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+                }
+              ],
+              "join": "containing_module_and_unique_declaration_name",
+              "resolved_include_imports": [],
+              "scope": "checked_type_declaration",
+              "source_declaration": {
+                "fields": [
+                  {
+                    "annotation": {
+                      "span": {
+                        "end": 223,
+                        "start": 220
+                      },
+                      "text": "Int"
+                    },
+                    "default": {
+                      "arity": 0,
+                      "catch_clauses": [],
+                      "children": [],
+                      "clauses": [],
+                      "fields": [],
+                      "html_nodes": [],
+                      "kind": "int",
+                      "operator": null,
+                      "patterns": [],
+                      "raw": null,
+                      "remote": null,
+                      "span": {
+                        "end": 227,
+                        "start": 214
+                      },
+                      "text": "7",
+                      "try_after": null
+                    },
+                    "docs": [],
+                    "has_default": true,
+                    "is_private": false,
+                    "name": "code",
+                    "span": {
+                      "end": 227,
+                      "start": 214
+                    }
+                  },
+                  {
+                    "annotation": {
+                      "span": {
+                        "end": 282,
+                        "start": 276
+                      },
+                      "text": "String"
+                    },
+                    "default": null,
+                    "docs": [],
+                    "has_default": false,
+                    "is_private": false,
+                    "name": "label",
+                    "span": {
+                      "end": 282,
+                      "start": 269
+                    }
+                  }
+                ],
+                "generic_params": [],
+                "implements": [],
+                "includes": [
+                  "Base"
+                ],
+                "is_public": true,
+                "kind": "struct",
+                "name": "Leaf"
+              },
+              "unavailable_include_origins": []
+            }
+          }
+        ],
+        "limitations": [],
+        "next_cursor": null,
+        "result_bytes": 2041,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "complete",
+        "target": {
+          "entity_id": "e:1aac5e4531ff603a94e1fd1cdd444f530557f1f8083416507a5bb21bfd34dd84",
+          "expected_digest": "0b307ce296aadb641521b25fef221db2b641bd28f06a321b127d93cd36d67141",
+          "kind": "type"
+        },
+        "work_used": 24
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.pattern-owner-core-origin",
+      "elapsed_ms": 71411,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "pattern_owner_core",
+            "origin_entity_ids": [
+              "e:227cadcbdfabff522324124e049e648c42333f168992cd529303ecf8b478a2c3"
+            ],
+            "value": {
+              "digest": "9eda1e00d4a9480d9dad94f1f4a871fbcbef740695050a50446211c355a7aa35",
+              "encoding": "application/json",
+              "owner_entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+              "scope": "enclosing_function",
+              "text": "{\"arity\":1,\"clauses\":[{\"body\":{\"arity\":1,\"checked_preservation_evidence\":{\"freshness\":\"NoRuntimeBindings\",\"kind\":\"StructuralCoreExpr\",\"target\":\"Let(Var(local)=Var(flag);BinaryOp(and;Var(local), Var(flag)))\"},\"children\":[{\"arity\":0,\"checked_preservation_evidence\":{\"freshness\":\"NoRuntimeBindings\",\"kind\":\"StructuralCoreExpr\",\"target\":\"Var(flag)\"},\"children\":[],\"core_expr\":{\"Var\":\"flag\"},\"kind\":\"Var\",\"operator\":null,\"proof_coverage\":\"LeanCovered\",\"remote\":null,\"text\":\"flag\"},{\"arity\":2,\"checked_preservation_evidence\":{\"freshness\":\"NoRuntimeBindings\",\"kind\":\"StructuralCoreExpr\",\"target\":\"BinaryOp(and;Var(local), Var(flag))\"},\"children\":[{\"arity\":0,\"checked_preservation_evidence\":{\"freshness\":\"NoRuntimeBindings\",\"kind\":\"StructuralCoreExpr\",\"target\":\"Var(local)\"},\"children\":[],\"core_expr\":{\"Var\":\"local\"},\"kind\":\"Var\",\"operator\":null,\"proof_coverage\":\"LeanCovered\",\"remote\":null,\"text\":\"local\"},{\"arity\":0,\"checked_preservation_evidence\":{\"freshness\":\"NoRuntimeBindings\",\"kind\":\"StructuralCoreExpr\",\"target\":\"Var(flag)\"},\"children\":[],\"core_expr\":{\"Var\":\"flag\"},\"kind\":\"Var\",\"operator\":null,\"proof_coverage\":\"LeanCovered\",\"remote\":null,\"text\":\"flag\"}],\"core_expr\":{\"BinaryOp\":{\"left\":{\"Var\":\"local\"},\"operator\":\"and\",\"right\":{\"Var\":\"flag\"}}},\"kind\":\"BinaryOp\",\"operator\":\"and\",\"proof_coverage\":\"ProofModelRequired\",\"remote\":null,\"text\":null}],\"core_expr\":{\"Let\":{\"bindings\":[{\"pattern\":{\"Var\":\"local\"},\"value\":{\"Var\":\"flag\"}}],\"body\":{\"BinaryOp\":{\"left\":{\"Var\":\"local\"},\"operator\":\"and\",\"right\":{\"Var\":\"flag\"}}}}},\"kind\":\"Let\",\"operator\":null,\"proof_coverage\":\"ProofModelRequired\",\"remote\":null,\"text\":null},\"core_patterns\":[{\"Var\":\"flag\"}],\"guard\":null,\"pattern_checked_preservation_evidence\":[{\"freshness\":\"RuntimeBindingsRequired\",\"kind\":\"StructuralCorePattern\",\"target\":\"Var(flag)\"}],\"pattern_proof_coverage\":[\"LeanCovered\"],\"patterns\":[\"Var:text=flag:arity=0\"]}],\"core_return_type\":\"Bool\",\"generic_params\":[],\"name\":\"decide\",\"native_operation\":null,\"params\":[{\"core_ty\":\"Bool\",\"name\":\"flag\",\"ty\":\"Bool\"}],\"public\":true,\"receiver_command\":false,\"receiver_method\":false,\"receiver_mutable\":false,\"return_type\":\"Bool\",\"source\":{\"arity\":1,\"declaration_span\":{\"end\":97,\"start\":29},\"function\":\"decide\",\"module\":\"mcp_query\"}}"
+            }
+          }
+        ],
+        "limitations": [],
+        "next_cursor": null,
+        "result_bytes": 3348,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "complete",
+        "target": {
+          "entity_id": "e:227cadcbdfabff522324124e049e648c42333f168992cd529303ecf8b478a2c3",
+          "expected_digest": "26e8f2b36015c4bbfac2fc360e6e856d394a05ec05e2cbc44ab84c652574469b",
+          "kind": "pattern"
+        },
+        "work_used": 181
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.checked-shape-definition",
+      "elapsed_ms": 71793,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:294992f762bfbaed81bbfaf5564d07e61118e0da75feb6f94d0720b3048bb3ad"
+            ],
+            "value": {
+              "candidate_set_exhaustive": false,
+              "evidence": {
+                "guard": {
+                  "arity": 2,
+                  "catch_clauses": [],
+                  "children": [
+                    {
+                      "arity": 0,
+                      "catch_clauses": [],
+                      "children": [],
+                      "clauses": [],
+                      "fields": [],
+                      "html_nodes": [],
+                      "kind": "var",
+                      "operator": null,
+                      "patterns": [],
+                      "raw": null,
+                      "remote": null,
+                      "span": {
+                        "end": 0,
+                        "start": 0
+                      },
+                      "text": "value",
+                      "try_after": null
+                    },
+                    {
+                      "arity": 0,
+                      "catch_clauses": [],
+                      "children": [],
+                      "clauses": [],
+                      "fields": [],
+                      "html_nodes": [],
+                      "kind": "int",
+                      "operator": null,
+                      "patterns": [],
+                      "raw": null,
+                      "remote": null,
+                      "span": {
+                        "end": 0,
+                        "start": 0
+                      },
+                      "text": "0",
+                      "try_after": null
+                    }
+                  ],
+                  "clauses": [],
+                  "fields": [],
+                  "html_nodes": [],
+                  "kind": "binary_op",
+                  "operator": ">",
+                  "patterns": [],
+                  "raw": null,
+                  "remote": null,
+                  "span": {
+                    "end": 0,
+                    "start": 0
+                  },
+                  "text": null,
+                  "try_after": null
+                },
+                "name": "Positive",
+                "params": [
+                  "value"
+                ],
+                "pattern": {
+                  "arity": 0,
+                  "children": [],
+                  "fields": [],
+                  "kind": "var",
+                  "text": "value"
+                },
+                "public": true
+              },
+              "relation_kind": "shape_definition",
+              "resolver_bindings": [],
+              "satisfaction_at_call_site": "requires_verification",
+              "scope": "selected_declaration"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:294992f762bfbaed81bbfaf5564d07e61118e0da75feb6f94d0720b3048bb3ad"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Secret",
+                "generic_params": [],
+                "is_negative": true,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:294992f762bfbaed81bbfaf5564d07e61118e0da75feb6f94d0720b3048bb3ad"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Int",
+                "generic_params": [],
+                "is_negative": false,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode[Int]"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.relations_scope",
+            "message": "Definitions and bounds belong to the selected declaration, shape expansion origins to the selected pattern, and explicit conformances to the containing module. Generic variables are local to each checked requirement record. These facts do not enumerate all satisfying values, prove applicability at a call site, or imply an implementation from absent negative evidence."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 2651,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:294992f762bfbaed81bbfaf5564d07e61118e0da75feb6f94d0720b3048bb3ad",
+          "expected_digest": "101319622a26ba2805633621d617a567518284d6672081c0573ec7b9137b86fd",
+          "kind": "shape"
+        },
+        "work_used": 12
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.negative-trait-conformance",
+      "elapsed_ms": 72190,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:b9b73e5edebf1be38ed7c679a3572c07bcb754317cce5949e2a4f4731e62f645"
+            ],
+            "value": {
+              "candidate_set_exhaustive": false,
+              "evidence": {
+                "constants": [],
+                "is_public": true,
+                "kind": "trait",
+                "methods": [
+                  {
+                    "default_body": null,
+                    "docs": [],
+                    "generic_bounds": [],
+                    "generic_params": [],
+                    "is_public": false,
+                    "is_pure": false,
+                    "name": "encode",
+                    "params": [
+                      {
+                        "annotation": {
+                          "span": {
+                            "end": 381,
+                            "start": 380
+                          },
+                          "text": "T"
+                        },
+                        "name": "value",
+                        "span": {
+                          "end": 381,
+                          "start": 373
+                        }
+                      }
+                    ],
+                    "return_type": {
+                      "span": {
+                        "end": 390,
+                        "start": 384
+                      },
+                      "text": "String"
+                    },
+                    "span": {
+                      "end": 391,
+                      "start": 366
+                    }
+                  }
+                ],
+                "name": "Encode",
+                "params": [
+                  "T"
+                ],
+                "super_traits": []
+              },
+              "relation_kind": "trait_definition",
+              "resolver_bindings": [],
+              "satisfaction_at_call_site": "requires_verification",
+              "scope": "selected_declaration"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:b9b73e5edebf1be38ed7c679a3572c07bcb754317cce5949e2a4f4731e62f645"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Secret",
+                "generic_params": [],
+                "is_negative": true,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:b9b73e5edebf1be38ed7c679a3572c07bcb754317cce5949e2a4f4731e62f645"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Int",
+                "generic_params": [],
+                "is_negative": false,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode[Int]"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.relations_scope",
+            "message": "Definitions and bounds belong to the selected declaration, shape expansion origins to the selected pattern, and explicit conformances to the containing module. Generic variables are local to each checked requirement record. These facts do not enumerate all satisfying values, prove applicability at a call site, or imply an implementation from absent negative evidence."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 2320,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:b9b73e5edebf1be38ed7c679a3572c07bcb754317cce5949e2a4f4731e62f645",
+          "expected_digest": "3480cf3e4c551774343ddec21ffd9223956767ecf7bc78f985a0bf9c5f62a21c",
+          "kind": "trait"
+        },
+        "work_used": 13
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.positive-trait-conformance",
+      "elapsed_ms": 72190,
+      "evidence": {
+        "evidence": {
+          "for_type": "Int",
+          "generic_params": [],
+          "is_negative": false,
+          "module": "mcp_query",
+          "public": true,
+          "source": "explicit_impl",
+          "trait_ref": "Encode[Int]"
+        },
+        "relation_kind": "trait_conformance",
+        "scope": "containing_module"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.checked-implication-requirement",
+      "elapsed_ms": 72648,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:86557fb87b900be0b43387d78f74f9e5008e05507a34755e4cce5b11d159de04"
+            ],
+            "value": {
+              "bound_origins": [],
+              "candidate_set_exhaustive": false,
+              "evidence": {
+                "arity": 1,
+                "bounds": [
+                  {
+                    "kind": "structural_implication",
+                    "required_shape": {
+                      "Map": [
+                        {
+                          "key": "name",
+                          "required": true,
+                          "value": "Binary"
+                        }
+                      ]
+                    },
+                    "subject": {
+                      "Var": 0
+                    }
+                  }
+                ],
+                "kind": "function",
+                "model": "checked-declaration-requirements.v1",
+                "module": "mcp_query",
+                "name": "display",
+                "parameter_types": [
+                  {
+                    "Var": 0
+                  }
+                ],
+                "return_type": "Binary",
+                "span_end": 519,
+                "span_start": 455,
+                "type_variables": [
+                  {
+                    "declaration": "T => {name: String}",
+                    "id": 0,
+                    "name": "T"
+                  }
+                ]
+              },
+              "relation_kind": "declaration_requirements",
+              "resolver_bindings": [],
+              "satisfaction_at_call_site": "requires_verification",
+              "scope": "selected_declaration"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:86557fb87b900be0b43387d78f74f9e5008e05507a34755e4cce5b11d159de04"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Secret",
+                "generic_params": [],
+                "is_negative": true,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:86557fb87b900be0b43387d78f74f9e5008e05507a34755e4cce5b11d159de04"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Int",
+                "generic_params": [],
+                "is_negative": false,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode[Int]"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.relations_scope",
+            "message": "Definitions and bounds belong to the selected declaration, shape expansion origins to the selected pattern, and explicit conformances to the containing module. Generic variables are local to each checked requirement record. These facts do not enumerate all satisfying values, prove applicability at a call site, or imply an implementation from absent negative evidence."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 2322,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:86557fb87b900be0b43387d78f74f9e5008e05507a34755e4cce5b11d159de04",
+          "expected_digest": "41edd645ecb999596a37537b818f97046434bdcd58dadd6d76d2e58911c03a43",
+          "kind": "function"
+        },
+        "work_used": 25
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.checked-bound-provider-origin",
+      "elapsed_ms": 73179,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:1c6afbedc2b4ce6190f5f399f2c50104f30d90c85ac6b49a9fb38d03af06ddb1"
+            ],
+            "value": {
+              "bound_origins": [
+                {
+                  "binding": null,
+                  "bound_index": 0,
+                  "entity": {
+                    "digest": "3480cf3e4c551774343ddec21ffd9223956767ecf7bc78f985a0bf9c5f62a21c",
+                    "entity_id": "e:b9b73e5edebf1be38ed7c679a3572c07bcb754317cce5949e2a4f4731e62f645",
+                    "expanded_from": [],
+                    "kind": "trait",
+                    "name": "Encode",
+                    "origin": {
+                      "end_byte": 394,
+                      "path": "mcp_query.terl",
+                      "start_byte": 340
+                    },
+                    "owner": "mcp_query",
+                    "schema": "terlan.semantic.entity.v1",
+                    "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+                  },
+                  "reason": null,
+                  "status": "resolved",
+                  "trait_name": "Encode"
+                }
+              ],
+              "candidate_set_exhaustive": false,
+              "evidence": {
+                "arity": 1,
+                "bounds": [
+                  {
+                    "arguments": [
+                      {
+                        "Var": 0
+                      }
+                    ],
+                    "kind": "trait",
+                    "trait_name": "Encode"
+                  }
+                ],
+                "kind": "function",
+                "model": "checked-declaration-requirements.v1",
+                "module": "mcp_query",
+                "name": "encode_bound",
+                "parameter_types": [
+                  {
+                    "Var": 0
+                  }
+                ],
+                "return_type": "Binary",
+                "span_end": 678,
+                "span_start": 606,
+                "type_variables": [
+                  {
+                    "declaration": "T",
+                    "id": 0,
+                    "name": "T"
+                  }
+                ]
+              },
+              "relation_kind": "declaration_requirements",
+              "resolver_bindings": [],
+              "satisfaction_at_call_site": "requires_verification",
+              "scope": "selected_declaration"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:1c6afbedc2b4ce6190f5f399f2c50104f30d90c85ac6b49a9fb38d03af06ddb1"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Secret",
+                "generic_params": [],
+                "is_negative": true,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          },
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:1c6afbedc2b4ce6190f5f399f2c50104f30d90c85ac6b49a9fb38d03af06ddb1"
+            ],
+            "value": {
+              "evidence": {
+                "for_type": "Int",
+                "generic_params": [],
+                "is_negative": false,
+                "module": "mcp_query",
+                "public": true,
+                "source": "explicit_impl",
+                "trait_ref": "Encode[Int]"
+              },
+              "relation_kind": "trait_conformance",
+              "scope": "containing_module"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.relations_scope",
+            "message": "Definitions and bounds belong to the selected declaration, shape expansion origins to the selected pattern, and explicit conformances to the containing module. Generic variables are local to each checked requirement record. These facts do not enumerate all satisfying values, prove applicability at a call site, or imply an implementation from absent negative evidence."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 2756,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:1c6afbedc2b4ce6190f5f399f2c50104f30d90c85ac6b49a9fb38d03af06ddb1",
+          "expected_digest": "6412c1e7f2752d75938cf6940d8af355b4d0918b715492111d5d6d0af5849600",
+          "kind": "function"
+        },
+        "work_used": 34
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.checked-shape-expansion-origin",
+      "elapsed_ms": 75302,
+      "evidence": {
+        "facts": [
+          {
+            "kind": "checked_semantic_relation",
+            "origin_entity_ids": [
+              "e:6036f071fde1e3d48dcedf9bbc8730295de64493efc85aa721de8003e6bec2a2"
+            ],
+            "value": {
+              "candidate_set_exhaustive": false,
+              "evidence": {
+                "entity": {
+                  "digest": "101319622a26ba2805633621d617a567518284d6672081c0573ec7b9137b86fd",
+                  "entity_id": "e:294992f762bfbaed81bbfaf5564d07e61118e0da75feb6f94d0720b3048bb3ad",
+                  "expanded_from": [],
+                  "kind": "shape",
+                  "name": "Positive",
+                  "origin": {
+                    "end_byte": 338,
+                    "path": "mcp_query.terl",
+                    "start_byte": 288
+                  },
+                  "owner": "mcp_query",
+                  "schema": "terlan.semantic.entity.v1",
+                  "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41"
+                },
+                "reason": null,
+                "source_reference": {
+                  "source_module": "mcp_query",
+                  "source_name": "Positive"
+                },
+                "status": "resolved"
+              },
+              "relation_kind": "shape_expansion",
+              "resolver_bindings": [],
+              "satisfaction_at_call_site": "requires_verification",
+              "scope": "selected_pattern"
+            }
+          }
+        ],
+        "limitations": [
+          {
+            "code": "semantic.query.relations_scope",
+            "message": "Definitions and bounds belong to the selected declaration, shape expansion origins to the selected pattern, and explicit conformances to the containing module. Generic variables are local to each checked requirement record. These facts do not enumerate all satisfying values, prove applicability at a call site, or imply an implementation from absent negative evidence."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 1701,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "partial",
+        "target": {
+          "entity_id": "e:6036f071fde1e3d48dcedf9bbc8730295de64493efc85aa721de8003e6bec2a2",
+          "expected_digest": "711aada096d9fcaaf021374d8dcf6e3ba0f360c93ebc5b507914fd7789ddb1ea",
+          "kind": "pattern"
+        },
+        "work_used": 1320
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.explicit-unknown",
+      "elapsed_ms": 75519,
+      "evidence": {
+        "facts": [],
+        "limitations": [
+          {
+            "code": "semantic.query.ownership_not_exported",
+            "message": "No authoritative ownership fact is exported for this entity."
+          }
+        ],
+        "next_cursor": null,
+        "result_bytes": 546,
+        "schema": "terlan.semantic.query-result.v1",
+        "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+        "status": "unavailable",
+        "target": {
+          "entity_id": "e:1f7f8c28942fe9e627e1658186414506d02c8e3e2abef752fa79a464933c9091",
+          "expected_digest": "814a7d540b71cc15c273683c0bf698bb79c905246ace62c43c4cc589882de040",
+          "kind": "function"
+        },
+        "work_used": 2
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.stale-entity-rejection",
+      "elapsed_ms": 75673,
+      "evidence": {
+        "code": "semantic.entity.stale",
+        "message": "Entity content changed; refresh selection from the requested snapshot.",
+        "schema": "terlan.semantic.query-error.v1"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.snapshot-scope-rejection",
+      "elapsed_ms": 75702,
+      "evidence": {
+        "code": "semantic.mcp.snapshot_scope",
+        "message": "Query selects a snapshot outside this connection's admitted scope.",
+        "schema": "terlan.semantic.query-error.v1"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.invalid-budget-tool-error",
+      "elapsed_ms": 75732,
+      "evidence": {
+        "code": "semantic.query.constraints",
+        "message": "Query has an invalid identity, fact, kind, cursor, or work/byte budget.",
+        "schema": "terlan.semantic.query-error.v1"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.unknown-tool-protocol-error",
+      "elapsed_ms": 75751,
+      "evidence": {
+        "code": -32602
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.forged-resource-cursor",
+      "elapsed_ms": 75772,
+      "evidence": {
+        "code": -32602
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.resource-uri-confinement",
+      "elapsed_ms": 75792,
+      "evidence": {
+        "code": -32002
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.cli-query-parity",
+      "elapsed_ms": 133372,
+      "evidence": {
+        "request_digest": "9ee4cce6a47539d724b68fb97c6338e7f7e4da53df8b16de4807d3313420aad0"
+      },
+      "status": "passed"
+    },
+    {
+      "case_id": "mcp.raw-wire-framing-and-errors",
+      "elapsed_ms": 149977,
+      "evidence": {
+        "eof_exit_code": 0,
+        "frame_terminator": "CRLF",
+        "replies": 9,
+        "requests_and_notifications": 13
+      },
+      "status": "passed"
+    }
+  ],
+  "command": [
+    "/tmp/terlan-provider-origins-tools-1/terlc",
+    "semantic",
+    "mcp",
+    "/tmp/terlan-provider-origins-mcp-store-1",
+    "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+    "--cache-dir",
+    "/tmp/terlan-provider-origins-mcp-cache-1",
+    "--out-dir",
+    "/tmp/terlan-provider-origins-mcp-cache-1/build"
+  ],
+  "compiler_digest": "acd377ac80a0dc3927b73731601d34b6ad7aec87802f52326c879aa9da5da487",
+  "fixture_digest": "b77810451d4788955ab7cbae1481ec7b7ec494720ac79b54ea6ec4957f0048bf",
+  "peer_versions": {
+    "jsonschema": "4.25.1",
+    "mcp": "1.26.0"
+  },
+  "protocol_schema_digest": "1ffe4c5577974012f5fa02af14ea88df4b7146679df1abaaad497c8d9230ca8a",
+  "protocol_version": "2025-11-25",
+  "schema": "terlan.semantic.mcp-peer-evidence.v1",
+  "scope": "Live independent SDK initialization, discovery, resources, compiler queries and rejection paths; not the full LNC-005 gate.",
+  "snapshot_id": "s:203a09e9b92eda0e74a39ba8bfcc9e0a3d734426eb304e4f43e1fcfabc8aba41",
+  "status": "passed"
+}

@@ -1,0 +1,416 @@
+/**
+ * Exact declaration links for compiler-accepted call targets.
+ */
+module semantic.CallOrigins.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.EntityLookup.{Selection}.
+import semantic.{DeclarationEntities, EntityLookup}.
+import std.core.Result.{Err, Ok}.
+import std.crypto.Hash.
+import std.data.Json.
+
+import type std.core.Result.
+import type std.data.Json.
+
+pub struct Found {
+    entity: Json,
+    used: Int,
+    reason: String,
+}.
+
+struct Rows {
+    rows: Json,
+    used: Int,
+}.
+
+pub step(used: Int, maximum: Int): Result[Int, Failure] ->
+    if {
+        used < maximum -> Ok(used + 1);
+        true -> Err(
+            Failure(
+                code = "semantic.query.work_limit",
+                message = "Call origin traversal exhausted its checked-record inspection budget.",
+            ),
+        )
+    }.
+
+pub units(selection: Selection): Json ->
+    case selection.context.get("units") {
+        Ok(rows) -> rows;
+        _ -> Json.array().push(Json.object().put("export", selection.artifact))
+    }.
+
+pub target_module(target: Json): String ->
+    if {
+        EntityLookup.text(target, "identity_kind") == "checked_source_declaration" -> EntityLookup.text(target, "module");
+        true -> case target.get("signature") {
+            Ok(signature) -> EntityLookup.text(signature, "module");
+            _ -> ""
+        }
+    }.
+
+parameters(
+    rows: Json,
+    index: Int,
+    count: Int,
+    types: Json,
+    used: Int,
+    maximum: Int,
+): Result[Rows, Failure] ->
+    if {
+        index == count -> Ok(Rows(rows = types, used = used));
+        true -> let Ok(next) <- step(used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(row) <- rows.at(index);
+    Ok(annotation) <- row.get("annotation");
+    Ok(text) <- annotation.get("text")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked callable parameter annotation is missing.",
+            ),
+        )
+};
+parameters(rows, index + 1, count, types.push(text), next, maximum))
+    }.
+
+same(left: Json, right: Json, key: String): Bool ->
+    case {left.get(key), right.get(key)} {
+        {Ok(a), Ok(b)} -> Json.to_string(a) == Json.to_string(b);
+        _ -> false
+    }.
+
+signature_matches(
+    payload: Json,
+    signature: Json,
+    used: Int,
+    maximum: Int,
+): Result[Rows, Failure] ->
+    let {
+        Ok(params) <- payload.get("params");
+        Ok(count) <- params.length();
+        Ok(result) <- payload.get("return_type");
+        Ok(expected_result) <- signature.get("return_type");
+        Ok(expected_params) <- signature.get("parameter_types");
+        Ok(receiver_flag) <- signature.get("receiver_method");
+        Ok(is_receiver) <- receiver_flag.as_bool()
+    } else {
+        _ -> Ok(Rows(rows = Json.array(), used = used))
+    };
+    (let kind = EntityLookup.text(payload, "kind");
+let receiver_mutable =
+    (let {
+    Ok(receiver) <- payload.get("receiver");
+    Ok(flag) <- receiver.get("is_mutable")
+} else {
+    _ -> false
+};
+flag.as_bool() == Ok(true));
+let receiver_types =
+    if {
+        kind == "method" -> let {
+            Ok(receiver) <- payload.get("receiver");
+            Ok(annotation) <- receiver.get("annotation");
+            Ok(ty) <- annotation.get("text")
+        } else {
+            _ -> Json.array()
+        };
+        Json.array().push(ty);
+        true -> Json.array()
+    };
+(let Ok(types) <- parameters(params, 0, count, receiver_types, used, maximum) else {
+    Err(reason) -> Err(reason)
+};
+(let matched =
+    (kind == "function" or kind == "method")
+        and is_receiver == (kind == "method")
+        and case signature.get("receiver_mutable") {
+    Ok(flag) -> flag.as_bool() == Ok(receiver_mutable);
+    _ -> false
+}
+        and EntityLookup.text(payload, "name") == EntityLookup.text(signature, "name")
+        and EntityLookup.text(result, "text") == case expected_result.as_string() {
+    Ok(text) -> text;
+    _ -> ""
+}
+        and Json.to_string(types.rows) == Json.to_string(expected_params)
+        and same(payload, signature, "generic_params")
+        and same(payload, signature, "generic_bounds")
+        and case {payload.get("is_public"), signature.get("public")} {
+    {Ok(a), Ok(b)} -> Json.to_string(a) == Json.to_string(b);
+    _ -> false
+};
+Ok(
+    Rows(
+        rows = if {
+            matched -> Json.array().push(signature);
+            true -> Json.array()
+        },
+        used = types.used,
+    ),
+)))).
+
+contracts(
+    rows: Json,
+    signature: Json,
+    index: Int,
+    count: Int,
+    found: Int,
+    used: Int,
+    maximum: Int,
+): Result[Rows, Failure] ->
+    if {
+        index == count -> Ok(
+            Rows(
+                rows = if {
+                    found == 1 -> Json.array().push(signature);
+                    true -> Json.array()
+                },
+                used = used,
+            ),
+        );
+        true -> let Ok(next) <- step(used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let Ok(row) <- rows.at(index) else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked interface signature is missing.",
+            ),
+        )
+};
+contracts(
+    rows,
+    signature,
+    index + 1,
+    count,
+    found + if {
+    Json.to_string(row) == Json.to_string(signature) -> 1;
+    true -> 0
+},
+    next,
+    maximum,
+))
+    }.
+
+declarations(
+    selection: Selection,
+    artifact: Json,
+    target: Json,
+    rows: Json,
+    index: Int,
+    count: Int,
+    output: Rows,
+    maximum: Int,
+): Result[Rows, Failure] ->
+    if {
+        index == count -> Ok(output);
+        true -> let Ok(next) <- step(output.used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(row) <- rows.at(index);
+    Ok(payload) <- row.get("payload");
+    Ok(span) <- row.get("span")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Checked call target declaration is missing.",
+            ),
+        )
+};
+(let Ok(matched) <-
+    if {
+        EntityLookup.text(target, "identity_kind") == "checked_source_declaration" -> let precise =
+            DeclarationEntities.kind(payload) == "function"
+                and EntityLookup.text(payload, "name") == EntityLookup.text(target, "name")
+                and case {span.get("start"), span.get("end"), target.get("span_start"), target.get("span_end")} {
+    {Ok(a), Ok(b), Ok(c), Ok(d)} ->
+        Json.to_string(a) == Json.to_string(c) and Json.to_string(b) == Json.to_string(d);
+    _ -> false
+};
+        Ok(
+            Rows(
+                rows = if {
+                    precise -> Json.array().push(target);
+                    true -> Json.array()
+                },
+                used = next,
+            ),
+        );
+        true -> case target.get("signature") {
+            Ok(signature) -> signature_matches(payload, signature, next, maximum);
+            _ -> Ok(Rows(rows = Json.array(), used = next))
+        }
+    } else {
+    Err(reason) -> Err(reason)
+};
+if {
+    matched.rows.length() == Ok(1) -> let Ok(entity) <-
+        DeclarationEntities.entity(
+            artifact,
+            EntityLookup.module_name(artifact),
+            EntityLookup.text(selection.entity, "snapshot_id"),
+            Hash.sha256(Json.to_string(artifact)),
+            row,
+        ) else {
+        Err(reason) -> Err(reason)
+    };
+    declarations(
+        selection,
+        artifact,
+        target,
+        rows,
+        index + 1,
+        count,
+        Rows(rows = output.rows.push(entity), used = matched.used),
+        maximum,
+    );
+    true -> declarations(
+        selection,
+        artifact,
+        target,
+        rows,
+        index + 1,
+        count,
+        Rows(rows = output.rows, used = matched.used),
+        maximum,
+    )
+}))
+    }.
+
+providers(
+    selection: Selection,
+    target: Json,
+    source_units: Json,
+    index: Int,
+    count: Int,
+    output: Rows,
+    maximum: Int,
+): Result[Rows, Failure] ->
+    if {
+        index == count -> Ok(output);
+        true -> let Ok(next) <- step(output.used, maximum) else {
+            Err(reason) -> Err(reason)
+        };
+        (let {
+    Ok(source_row) <- source_units.at(index);
+    Ok(artifact) <- source_row.get("export")
+} else {
+    _ ->
+        Err(
+            Failure(
+                code = "semantic.query.artifact",
+                message = "Call provider source-set unit is missing.",
+            ),
+        )
+};
+if {
+    EntityLookup.module_name(artifact) != target_module(target)
+        or EntityLookup.text(artifact, "status") != "checked"
+    and EntityLookup.text(artifact, "status") != "interface_only" -> providers(
+        selection,
+        target,
+        source_units,
+        index + 1,
+        count,
+        Rows(rows = output.rows, used = next),
+        maximum,
+    );
+    true -> let Ok(admitted) <-
+        if {
+            EntityLookup.text(target, "identity_kind") == "checked_source_declaration" -> Ok(Rows(rows = Json.array().push(target), used = next));
+            true -> let {
+                Ok(signature) <- target.get("signature");
+                Ok(rows) <- artifact.get("purity_contracts");
+                Ok(length) <- rows.length()
+            } else {
+                _ -> Ok(Rows(rows = Json.array(), used = next))
+            };
+            contracts(rows, signature, 0, length, 0, next, maximum)
+        } else {
+        Err(reason) -> Err(reason)
+    };
+    (let Ok(found) <-
+    if {
+        admitted.rows.length() != Ok(1) -> Ok(Rows(rows = output.rows, used = admitted.used));
+        true -> let {
+            Ok(rows) <- artifact.get("source_declarations");
+            Ok(length) <- rows.length()
+        } else {
+            _ ->
+                Err(
+                    Failure(
+                        code = "semantic.query.artifact",
+                        message = "Call target declarations are missing.",
+                    ),
+                )
+        };
+        declarations(
+            selection,
+            artifact,
+            target,
+            rows,
+            0,
+            length,
+            Rows(rows = output.rows, used = admitted.used),
+            maximum,
+        )
+    } else {
+    Err(reason) -> Err(reason)
+};
+providers(selection, target, source_units, index + 1, count, found, maximum))
+})
+    }.
+
+pub resolve(selection: Selection, target: Json, used: Int, maximum: Int): Result[Found, Failure] ->
+    let source_units = units(selection);
+    let Ok(count) <- source_units.length() else {
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Call provider units are malformed.",
+                ),
+            )
+    };
+    (let Ok(found) <-
+    providers(
+        selection,
+        target,
+        source_units,
+        0,
+        count,
+        Rows(rows = Json.array(), used = used),
+        maximum,
+    ) else {
+    Err(reason) -> Err(reason)
+};
+if {
+    found.rows.length() == Ok(1) -> case found.rows.at(0) {
+        Ok(entity) -> Ok(Found(entity = entity, used = found.used, reason = ""));
+        _ ->
+            Err(
+                Failure(
+                    code = "semantic.query.artifact",
+                    message = "Call origin selection is incomplete.",
+                ),
+            )
+    };
+    true -> Ok(
+        Found(
+            entity = Json.null(),
+            used = found.used,
+            reason = "no_unique_exact_provider_declaration_in_snapshot",
+        ),
+    )
+}).

@@ -360,6 +360,7 @@ impl CorePrimitiveIntrinsic {
 pub enum CoreRuntimeCapability {
     ConsolePrintln,
     ConsoleEprintln,
+    ConsoleReadLine,
     FileExists,
     FileReadText,
     FileReadBytes,
@@ -428,6 +429,7 @@ impl CoreRuntimeCapability {
         match self {
             Self::ConsolePrintln => "runtime.console.println",
             Self::ConsoleEprintln => "runtime.console.eprintln",
+            Self::ConsoleReadLine => "runtime.console.read_line",
             Self::FileExists => "runtime.file.exists",
             Self::FileReadText => "runtime.file.read_text",
             Self::FileReadBytes => "runtime.file.read_bytes",

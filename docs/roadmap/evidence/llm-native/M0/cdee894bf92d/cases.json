@@ -1,0 +1,17 @@
+[
+  {
+    "case_id": "contracts.schema",
+    "reason": "Independent schema peer; not runtime verification.",
+    "status": "passed"
+  },
+  {
+    "case_id": "harness.failure-injection",
+    "reason": "Exact test inventory and compiler result manifest.",
+    "status": "passed"
+  },
+  {
+    "case_id": "baseline.compiler",
+    "reason": "Cold/warm/reference compiler checks and existing LSP navigation; future properties registered only.",
+    "status": "passed"
+  }
+]

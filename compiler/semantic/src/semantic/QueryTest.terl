@@ -1,0 +1,804 @@
+/**
+ * Real compiler facts, scoped references, bounded pages and stale continuation tests.
+ */
+module semantic.QueryTest.
+
+import semantic.CompilerBridge.{Failure}.
+import semantic.SourceSet.{Input}.
+import semantic.{Catalog, JsonRules, Query, QueryRequest, Snapshot, SourceSet}.
+import std.core.Option.{Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.Unit.
+import std.data.Json.
+import std.io.Console.{eprintln}.
+import std.io.{Directory, File}.
+import std.system.Environment.
+
+import type std.core.Result.
+import type std.data.Json.
+
+struct Fixture {
+    root: String,
+    store: String,
+    snapshot: Json,
+    entities: Json,
+}.
+
+compiler(): String ->
+    case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
+        Some(value) -> value;
+        _ -> Environment.current_directory() + "/target/debug/terlc"
+    }.
+
+text(value: Json, key: String): String ->
+    case JsonRules.text(value, key) {
+        Ok(result) -> result;
+        _ -> ""
+    }.
+
+fixture(source: String): Result[Fixture, Bool] ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-query-test-");
+        Ok(_) <- File.write_text(root + "/sample.terl", source);
+        Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(entities) <- catalog.get("entities")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(Fixture(root = root, store = root + "/store", snapshot = snapshot, entities = entities)).
+
+find(
+    rows: Json,
+    kind: String,
+    name: String,
+    occurrence: Int,
+    index: Int,
+    count: Int,
+): Result[Json, Bool] ->
+    let true <- index < count else {
+        _ -> Err(false)
+    };
+    (let Ok(row) <- rows.at(index) else {
+    _ -> Err(false)
+};
+if {
+    text(row, "kind") == kind and text(row, "name") == name -> if {
+        occurrence == 0 -> Ok(row);
+        true -> find(rows, kind, name, occurrence - 1, index + 1, count)
+    };
+    true -> find(rows, kind, name, occurrence, index + 1, count)
+}).
+
+selected(context: Fixture, kind: String, name: String, occurrence: Int): Result[Json, Bool] ->
+    let Ok(count) <- context.entities.length() else {
+        _ -> Err(false)
+    };
+    find(context.entities, kind, name, occurrence, 0, count).
+
+request(context: Fixture, entity: Json, fact: String, bytes: Int, work: Int, cursor: Json): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.semantic.query.v1"))
+        .put("snapshot_id", Json.string(text(context.snapshot, "snapshot_id")))
+        .put(
+            "target",
+            Json.object()
+                .put("entity_id", Json.string(text(entity, "entity_id")))
+                .put("kind", Json.string(text(entity, "kind")))
+                .put("expected_digest", Json.string(text(entity, "digest"))),
+        )
+        .put("fact", Json.string(fact))
+        .put(
+            "limits",
+            Json.object().put("max_bytes", Json.int(bytes)).put("max_work", Json.int(work)),
+        )
+        .put("cursor", cursor).
+
+run(
+    context: Fixture,
+    entity: Json,
+    fact: String,
+    bytes: Int,
+    work: Int,
+    cursor: Json,
+): Result[Json, Failure] ->
+    case Query.run(context.store, request(context, entity, fact, bytes, work, cursor)) {
+        Ok(value) -> Ok(value);
+        Err(reason) ->
+            let _reported = eprintln(reason.code + ": " + reason.message);
+            Err(reason)
+    }.
+
+first_value(result: Json): Result[Json, Bool] ->
+    let {
+        Ok(facts) <- result.get("facts");
+        Ok(first) <- facts.at(0);
+        Ok(value) <- first.get("value")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(value).
+
+clean(context: Fixture): Bool ->
+    Directory.remove_all(context.root) == Ok(Unit).
+
+@test
+pub typed_queries_distinguish_same_name_and_arity_overloads(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub value(input: Int): Int -> input.\npub value(input: Float): Float -> input.\n",
+            );
+        Ok(first) <- selected(context, "function", "value", 0);
+        Ok(second) <- selected(context, "function", "value", 1);
+        Ok(left) <- run(context, first, "type", 16_384, 1_000, Json.null());
+        Ok(right) <- run(context, second, "type", 16_384, 1_000, Json.null());
+        Ok(left_type) <- first_value(left);
+        Ok(right_type) <- first_value(right);
+        Ok(left_return) <- left_type.get("return_type");
+        Ok(right_return) <- right_type.get("return_type")
+    } else {
+        _ -> false
+    };
+    (let exact =
+    left_return.as_string() == Ok("Int")
+        and right_return.as_string() == Ok("Float")
+        and text(left, "status") == "complete"
+        and text(right, "status") == "complete";
+let cleaned = clean(context);
+exact and cleaned).
+
+@test
+pub reference_queries_keep_shadowed_bindings_distinct(): Bool ->
+    let source = "module sample.\npub value(input: Int): Int -> let local = input; let nested = case true { true -> let local = input + 1; local; false -> input }; local + nested.\n";
+    let {
+        Ok(context) <- fixture(source);
+        Ok(outer) <- selected(context, "binding", "local", 0);
+        Ok(inner) <- selected(context, "binding", "local", 1);
+        Ok(outer_result) <- run(context, outer, "references", 16_384, 1_000, Json.null());
+        Ok(inner_result) <- run(context, inner, "references", 16_384, 1_000, Json.null());
+        Ok(outer_rows) <- outer_result.get("facts");
+        Ok(inner_rows) <- inner_result.get("facts");
+        Ok(outer_count) <- outer_rows.length();
+        Ok(inner_count) <- inner_rows.length();
+        Ok(outer_value) <- first_value(outer_result);
+        Ok(inner_value) <- first_value(inner_result)
+    } else {
+        _ -> false
+    };
+    (let separate =
+    outer_count == 1
+        and inner_count == 1
+        and text(outer_value, "binding_id") != text(inner_value, "binding_id")
+        and text(outer_value, "semantic_path") != text(inner_value, "semantic_path");
+let cleaned = clean(context);
+separate and cleaned).
+
+pages(
+    context: Fixture,
+    entity: Json,
+    cursor: Json,
+    remaining: Int,
+    collected: Int,
+): Result[Int, Bool] ->
+    let {
+        true <- remaining > 0;
+        Ok(result) <- run(context, entity, "references", 16_384, 5, cursor);
+        Ok(rows) <- result.get("facts");
+        Ok(count) <- rows.length();
+        Ok(next) <- result.get("next_cursor");
+        Ok(used) <- JsonRules.number(result, "work_used");
+        true <- used <= 5
+    } else {
+        _ -> Err(false)
+    };
+    if {
+        next.is_null() -> Ok(collected + count);
+        true -> pages(context, entity, next, remaining - 1, collected + count)
+    }.
+
+repeated_source(): String ->
+    "module sample.\npub sum(input: Int): Int -> input + input + input + input + input + input + input + input.\n".
+
+@test
+pub work_limited_pages_continue_without_omitting_references(): Bool ->
+    let {
+        Ok(context) <- fixture(repeated_source());
+        Ok(entity) <- selected(context, "binding", "input", 0);
+        Ok(total) <- pages(context, entity, Json.null(), 10, 0)
+    } else {
+        _ -> false
+    };
+    (let cleaned = clean(context); total == 8 and cleaned).
+
+@test
+pub cursor_is_bound_to_question_and_detects_storage_tampering(): Bool ->
+    let {
+        Ok(context) <- fixture(repeated_source());
+        Ok(entity) <- selected(context, "binding", "input", 0);
+        Ok(result) <- run(context, entity, "references", 16_384, 5, Json.null());
+        Ok(cursor) <- result.get("next_cursor");
+        Ok(id) <- cursor.as_string()
+    } else {
+        _ -> false
+    };
+    (let wrong_question =
+    case run(context, entity, "declaration", 16_384, 1_000, cursor) {
+        Err(reason) -> reason.code == "semantic.cursor.context";
+        _ -> false
+    };
+let changed = File.write_text(context.store + "/query-cursors/" + id.utf8_slice(2, 64) + "/cursor.json", "{}") == Ok(Unit);
+let corrupt =
+    case run(context, entity, "references", 16_384, 5, cursor) {
+        Err(reason) -> reason.code == "semantic.cursor.corrupt";
+        _ -> false
+    };
+let cleaned = clean(context);
+wrong_question and changed and corrupt and cleaned).
+
+@test
+pub byte_accounting_is_exact_and_tiny_budgets_fail_explicitly(): Bool ->
+    let {
+        Ok(context) <- fixture(repeated_source());
+        Ok(entity) <- selected(context, "binding", "input", 0);
+        Ok(result) <- run(context, entity, "references", 2_000, 1_000, Json.null());
+        Ok(bytes) <- JsonRules.number(result, "result_bytes")
+    } else {
+        _ -> false
+    };
+    (let exact = bytes == Json.to_string(result).byte_size() and bytes <= 2_000;
+let tiny =
+    case run(context, entity, "references", 1, 1_000, Json.null()) {
+        Err(reason) -> reason.code == "semantic.query.byte_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+exact and tiny and cleaned).
+
+@test
+pub stale_selection_and_insufficient_work_never_return_successful_facts(): Bool ->
+    let {
+        Ok(context) <- fixture(repeated_source());
+        Ok(entity) <- selected(context, "binding", "input", 0)
+    } else {
+        _ -> false
+    };
+    (let document = request(context, entity, "references", 16_384, 1_000, Json.null());
+(let Ok(target) <- document.get("target") else {
+    _ -> false
+};
+(let _digest =
+    target
+        .put(
+            "expected_digest",
+            Json.string("0000000000000000000000000000000000000000000000000000000000000000"),
+        );
+let _target = document.put("target", target);
+let stale =
+    case Query.run(context.store, document) {
+        Err(reason) -> reason.code == "semantic.entity.stale";
+        _ -> false
+    };
+let work =
+    case run(context, entity, "references", 16_384, 1, Json.null()) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+stale and work and cleaned))).
+
+@test
+pub inferred_local_types_are_checked_and_ownership_remains_unavailable(): Bool ->
+    let {
+        Ok(context) <- fixture("module sample.\npub value(input: Int): Int -> let local = input + 1; local.\n");
+        Ok(entity) <- selected(context, "binding", "local", 0);
+        Ok(types) <- run(context, entity, "type", 16_384, 1_000, Json.null());
+        Ok(ownership) <- run(context, entity, "ownership", 16_384, 1_000, Json.null());
+        Ok(type_rows) <- types.get("facts");
+        Ok(type_count) <- type_rows.length();
+        Ok(inferred) <- first_value(types);
+        Ok(owner_rows) <- ownership.get("facts");
+        Ok(owner_count) <- owner_rows.length()
+    } else {
+        _ -> false
+    };
+    (let unknown =
+    text(types, "status") == "complete"
+        and text(inferred, "display_type") == "Int"
+        and text(inferred, "model") == "checked-binding-type.v1"
+        and text(inferred, "type_encoding") == "terlan.typecheck.type.v1"
+        and text(ownership, "status") == "unavailable"
+        and type_count == 1
+        and owner_count == 0;
+let cleaned = clean(context);
+unknown and cleaned).
+
+@test
+pub inferred_types_keep_nested_shadowed_bindings_distinct(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub value(input: Int): Int -> let local = input + 1; let nested = (let local = true; local); local.\n",
+            );
+        Ok(first) <- selected(context, "binding", "local", 0);
+        Ok(second) <- selected(context, "binding", "local", 1);
+        Ok(first_result) <- run(context, first, "type", 16_384, 1_000, Json.null());
+        Ok(second_result) <- run(context, second, "type", 16_384, 1_000, Json.null());
+        Ok(first_type) <- first_value(first_result);
+        Ok(second_type) <- first_value(second_result);
+        Ok(first_binding) <- first_type.get("binding");
+        Ok(second_binding) <- second_type.get("binding")
+    } else {
+        _ -> false
+    };
+    (let distinct =
+    text(first_result, "status") == "complete"
+        and text(second_result, "status") == "complete"
+        and text(first, "entity_id") != text(second, "entity_id")
+        and Json.to_string(first_binding) != Json.to_string(second_binding)
+        and (text(first_type, "display_type") == "Int" and text(second_type, "display_type") == "Bool"
+    or text(first_type, "display_type") == "Bool" and text(second_type, "display_type") == "Int");
+let cleaned = clean(context);
+distinct and cleaned).
+
+@test
+pub expected_values_separate_type_inhabitants_from_program_legality(): Bool ->
+    let {
+        Ok(context) <- fixture("module sample.\npub flag(): Bool -> true.\n");
+        Ok(entity) <- selected(context, "function", "flag", 0);
+        Ok(result) <- run(context, entity, "expected_values", 16_384, 1_000, Json.null());
+        Ok(value) <- first_value(result);
+        Ok(type_exhaustive) <- value.get("exhaustive_for_type");
+        Ok(location_exhaustive) <- value.get("exhaustive_for_program_location")
+    } else {
+        _ -> false
+    };
+    (let scoped =
+    text(result, "status") == "partial"
+        and type_exhaustive.as_bool() == Ok(true)
+        and location_exhaustive.as_bool() == Ok(false);
+let cleaned = clean(context);
+scoped and cleaned).
+
+@test
+pub schema_integer_limits_accept_whole_numbers_and_reject_extra_fields(): Bool ->
+    let {
+        Ok(context) <- fixture(repeated_source());
+        Ok(entity) <- selected(context, "binding", "input", 0)
+    } else {
+        _ -> false
+    };
+    (let document = request(context, entity, "references", 16_384, 1_000, Json.null());
+(let Ok(limits) <- Json.parse("{\"max_bytes\":16384.0,\"max_work\":1000.0}") else {
+    _ -> false
+};
+(let _limits = document.put("limits", limits);
+let whole =
+    case QueryRequest.parse(document) {
+        Ok(_) -> true;
+        _ -> false
+    };
+let _extra = document.put("unrecognized", Json.bool(true));
+let extra =
+    case QueryRequest.parse(document) {
+        Err(reason) -> reason.code == "semantic.query.fields";
+        _ -> false
+    };
+let cleaned = clean(context);
+whole and extra and cleaned))).
+
+pattern_source(): String ->
+    "module sample.\npub head(input: List[Int]): Int -> case input { [value | rest] -> value; _ -> 0 }.\n".
+
+pattern_selected(context: Fixture, fragment: String, index: Int, count: Int): Result[Json, Bool] ->
+    let true <- index < count else {
+        _ -> Err(false)
+    };
+    (let Ok(row) <- context.entities.at(index) else {
+    _ -> Err(false)
+};
+if {
+    text(row, "kind") == "pattern" and text(row, "name").contains(fragment) -> Ok(row);
+    true -> pattern_selected(context, fragment, index + 1, count)
+}).
+
+check_pattern_rows(context: Fixture, index: Int, count: Int, observed: Int): Bool ->
+    if {
+        index == count -> observed == 5;
+        true -> let Ok(row) <- context.entities.at(index) else {
+            _ -> false
+        };
+        if {
+            text(row, "kind") != "pattern" -> check_pattern_rows(context, index + 1, count, observed);
+            true -> let {
+                Ok(declaration) <- run(context, row, "declaration", 16_384, 100_000, Json.null());
+                Ok(value) <- first_value(declaration);
+                Ok(payload) <- value.get("payload");
+                Ok(definition) <- run(context, row, "definition", 16_384, 100_000, Json.null());
+                Ok(location) <- first_value(definition);
+                Ok(selected_entity) <- location.get("entity");
+                true <- text(payload, "kind") != "";
+                true <- text(value, "semantic_path") != "";
+                true <- text(selected_entity, "entity_id") == text(row, "entity_id");
+                true <- text(selected_entity, "digest") == text(row, "digest")
+            } else {
+                _ -> false
+            };
+            check_pattern_rows(context, index + 1, count, observed + 1)
+        }
+    }.
+
+@test
+pub nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog(): Bool ->
+    let {
+        Ok(context) <- fixture(pattern_source());
+        Ok(count) <- context.entities.length()
+    } else {
+        _ -> false
+    };
+    (let consistent = check_pattern_rows(context, 0, count, 0); let cleaned = clean(context); consistent and cleaned).
+
+@test
+pub pattern_selection_enforces_work_budget_and_rejects_stale_handles(): Bool ->
+    let {
+        Ok(context) <- fixture(pattern_source());
+        Ok(count) <- context.entities.length();
+        Ok(wildcard) <- pattern_selected(context, "(wildcard)", 0, count)
+    } else {
+        _ -> false
+    };
+    (let limited =
+    case Query.run(context.store, request(context, wildcard, "declaration", 16_384, 2, Json.null())) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let stale =
+    wildcard
+        .put(
+            "digest",
+            Json.string("0000000000000000000000000000000000000000000000000000000000000000"),
+        );
+let rejected =
+    case Query.run(context.store, request(context, stale, "declaration", 16_384, 100_000, Json.null())) {
+        Err(reason) -> reason.code == "semantic.entity.stale";
+        _ -> false
+    };
+let cleaned = clean(context);
+limited and rejected and cleaned).
+
+@test
+pub pattern_core_queries_link_the_owner_by_compiler_declaration_origin(): Bool ->
+    let {
+        Ok(context) <- fixture(pattern_source());
+        Ok(count) <- context.entities.length();
+        Ok(wildcard) <- pattern_selected(context, "(wildcard)", 0, count);
+        Ok(result) <- run(context, wildcard, "core", 65_536, 100_000, Json.null());
+        Ok(value) <- first_value(result);
+        Ok(encoded) <- JsonRules.text(value, "text");
+        Ok(core) <- Json.parse(encoded);
+        Ok(source) <- core.get("source");
+        Ok(owner) <- wildcard.get("owner");
+        Ok(selected_owner) <- value.get("owner_entity_id")
+    } else {
+        _ -> false
+    };
+    (let linked =
+    text(value, "scope") == "enclosing_function"
+        and text(source, "function") == "head"
+        and Json.to_string(owner) == Json.to_string(selected_owner);
+let cleaned = clean(context);
+linked and cleaned).
+
+@test
+pub type_queries_retain_struct_include_edges_and_original_field_metadata(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub struct Base { code: Int = 7 }.\npub struct Leaf includes Base { name: String }.\n",
+            );
+        Ok(base) <- selected(context, "type", "Base", 0);
+        Ok(leaf) <- selected(context, "type", "Leaf", 0);
+        Ok(parent_result) <- run(context, base, "type", 65_536, 10_000, Json.null());
+        Ok(child_result) <- run(context, leaf, "type", 65_536, 10_000, Json.null());
+        Ok(parent_value) <- first_value(parent_result);
+        Ok(child_value) <- first_value(child_result);
+        Ok(parent_declaration) <- parent_value.get("source_declaration");
+        Ok(child_declaration) <- child_value.get("source_declaration");
+        Ok(parent_fields) <- parent_declaration.get("fields");
+        Ok(child_fields) <- child_declaration.get("fields");
+        Ok(parent_field) <- parent_fields.at(0);
+        Ok(copied_field) <- child_fields.at(0);
+        Ok(links) <- child_value.get("included_origins");
+        Ok(link) <- links.at(0);
+        Ok(core_type) <- child_value.get("core_type")
+    } else {
+        _ -> false
+    };
+    (let preserved =
+    Json.to_string(parent_field) == Json.to_string(copied_field)
+        and text(link, "entity_id") == text(base, "entity_id")
+        and text(link, "digest") == text(base, "digest")
+        and child_fields.length() == Ok(2)
+        and text(core_type, "name").ends_with("Leaf");
+let cleaned = clean(context);
+preserved and cleaned).
+
+@test
+pub type_queries_expose_core_alias_payload_without_inventing_constructor_inhabitants(): Bool ->
+    let {
+        Ok(context) <- fixture("module sample.\npub type Flag = Enabled | Disabled.\n");
+        Ok(entity) <- selected(context, "type", "Flag", 0);
+        Ok(result) <- run(context, entity, "type", 16_384, 10_000, Json.null());
+        Ok(value) <- first_value(result);
+        Ok(core_type) <- value.get("core_type");
+        Ok(body) <- core_type.get("core_body");
+        Ok(expected) <- run(context, entity, "expected_values", 16_384, 10_000, Json.null())
+    } else {
+        _ -> false
+    };
+    (let typed =
+    not body.is_null()
+        and text(result, "status") == "complete"
+        and text(expected, "status") == "unavailable";
+let cleaned = clean(context);
+typed and cleaned).
+
+source_fixture(inputs: List[Input]): Result[Fixture, Bool] ->
+    let {
+        Ok(root) <- Directory.create_temporary("terlan-import-query-test-");
+        Ok(snapshot) <- SourceSet.capture(compiler(), inputs, root + "/store");
+        Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
+        Ok(entities) <- catalog.get("entities")
+    } else {
+        _ -> Err(false)
+    };
+    Ok(Fixture(root = root, store = root + "/store", snapshot = snapshot, entities = entities)).
+
+@test
+pub imported_include_aliases_resolve_to_exact_provider_snapshot_entities(): Bool ->
+    let {
+        Ok(context) <-
+            source_fixture(
+                [
+                    Input(
+                        path = "library.terli",
+                        contents = "module library.\npub struct Base { code: Int }.\n",
+                        document_version = 0,
+                    ),
+                    Input(
+                        path = "main.terl",
+                        contents = "module main.\nimport type library.{Base as Parent}.\npub struct Child includes Parent { label: String }.\n",
+                        document_version = 3,
+                    ),
+                ],
+            );
+        Ok(provider) <- selected(context, "type", "Base", 0);
+        Ok(child) <- selected(context, "type", "Child", 0);
+        Ok(result) <- run(context, child, "type", 65_536, 10_000, Json.null());
+        Ok(value) <- first_value(result);
+        Ok(origins) <- value.get("included_origins");
+        Ok(origin) <- origins.at(0);
+        Ok(bindings) <- value.get("resolved_include_imports");
+        Ok(binding) <- bindings.at(0);
+        Ok(used_value) <- result.get("work_used");
+        Ok(used) <- used_value.as_int()
+    } else {
+        _ -> false
+    };
+    (let linked =
+    text(origin, "entity_id") == text(provider, "entity_id")
+        and text(origin, "digest") == text(provider, "digest")
+        and text(binding, "local_name") == "Parent"
+        and text(binding, "source_module") == "library"
+        and text(binding, "source_name") == "Base"
+        and text(result, "status") == "complete";
+let budgeted =
+    case Query.run(context.store, request(context, child, "type", 65_536, used - 1, Json.null())) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+linked and budgeted and cleaned).
+
+@test
+pub include_origins_outside_snapshot_remain_partial_with_resolved_alias_evidence(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\nimport type std.core.Error.{Error}.\npub struct LocalError includes Error { detail: String }.\n",
+            );
+        Ok(entity) <- selected(context, "type", "LocalError", 0);
+        Ok(result) <- run(context, entity, "type", 65_536, 10_000, Json.null());
+        Ok(value) <- first_value(result);
+        Ok(origins) <- value.get("included_origins");
+        Ok(missing) <- value.get("unavailable_include_origins");
+        Ok(bindings) <- value.get("resolved_include_imports");
+        Ok(binding) <- bindings.at(0);
+        Ok(first) <- missing.at(0)
+    } else {
+        _ -> false
+    };
+    (let bounded =
+    text(result, "status") == "partial"
+        and origins.length() == Ok(0)
+        and first.as_string() == Ok("Error")
+        and text(binding, "source_module") == "std.core.Error"
+        and text(binding, "source_name") == "Error";
+let cleaned = clean(context);
+bounded and cleaned).
+
+@test
+pub effect_queries_expose_checked_purity_without_claiming_a_complete_effect_set(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\nimport std.io.Console.\n@pure\npub identity(value: Int): Int -> value.\npub write(value: String): Unit -> Console.println(value).\n",
+            );
+        Ok(pure_entity) <- selected(context, "function", "identity", 0);
+        Ok(io_entity) <- selected(context, "function", "write", 0);
+        Ok(pure_result) <- run(context, pure_entity, "effects", 16_384, 10_000, Json.null());
+        Ok(io_result) <- run(context, io_entity, "effects", 16_384, 10_000, Json.null());
+        Ok(pure_value) <- first_value(pure_result);
+        Ok(io_value) <- first_value(io_result);
+        Ok(pure_contract) <- pure_value.get("contract");
+        Ok(io_contract) <- io_value.get("contract");
+        Ok(pure) <- pure_contract.get("compiler_proven_pure");
+        Ok(io_pure) <- io_contract.get("compiler_proven_pure");
+        Ok(exhaustive) <- pure_value.get("effect_set_exhaustive")
+    } else {
+        _ -> false
+    };
+    (let scoped =
+    pure.as_bool() == Ok(true)
+        and io_pure.as_bool() == Ok(false)
+        and exhaustive.as_bool() == Ok(false)
+        and text(pure_result, "status") == "partial"
+        and text(io_result, "status") == "partial";
+let cleaned = clean(context);
+scoped and cleaned).
+
+@test
+pub effect_queries_match_overloads_by_exact_checked_signature(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\nimport std.io.Console.\n@pure\npub pick(value: Int): Int -> value.\npub pick(value: String): Int -> let printed = Console.println(value); 0.\n",
+            );
+        Ok(first) <- selected(context, "function", "pick", 0);
+        Ok(second) <- selected(context, "function", "pick", 1);
+        Ok(first_result) <- run(context, first, "effects", 16_384, 10_000, Json.null());
+        Ok(second_result) <- run(context, second, "effects", 16_384, 10_000, Json.null());
+        Ok(first_observation) <- first_value(first_result);
+        Ok(second_observation) <- first_value(second_result);
+        Ok(first_contract) <- first_observation.get("contract");
+        Ok(second_contract) <- second_observation.get("contract");
+        Ok(first_pure) <- first_contract.get("compiler_proven_pure");
+        Ok(second_pure) <- second_contract.get("compiler_proven_pure")
+    } else {
+        _ -> false
+    };
+    (let distinct = first_pure.as_bool() == Ok(true) and second_pure.as_bool() == Ok(false); let cleaned = clean(context); distinct and cleaned).
+
+@test
+pub effect_contract_scans_count_against_the_query_work_budget(): Bool ->
+    let {
+        Ok(context) <- fixture("module sample.\n@pure\npub identity(value: Int): Int -> value.\n");
+        Ok(entity) <- selected(context, "function", "identity", 0);
+        Ok(result) <- run(context, entity, "effects", 16_384, 10_000, Json.null());
+        Ok(used) <- JsonRules.number(result, "work_used")
+    } else {
+        _ -> false
+    };
+    (let limited =
+    case Query.run(context.store, request(context, entity, "effects", 16_384, used - 1, Json.null())) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+limited and cleaned).
+
+coverage_value(rows: Json, subject: String, index: Int, count: Int): Result[Json, Bool] ->
+    let {
+        true <- index < count;
+        Ok(fact) <- rows.at(index);
+        Ok(value) <- fact.get("value")
+    } else {
+        _ -> Err(false)
+    };
+    if {
+        text(value, "subject_kind") == subject -> Ok(value);
+        true -> coverage_value(rows, subject, index + 1, count)
+    }.
+
+coverage_observation(result: Json, subject: String): Result[Json, Bool] ->
+    let {
+        Ok(rows) <- result.get("facts");
+        Ok(count) <- rows.length()
+    } else {
+        _ -> Err(false)
+    };
+    coverage_value(rows, subject, 0, count).
+
+@test
+pub coverage_queries_return_checked_case_verdicts_and_guard_assumptions(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub value(flag: Bool): Bool -> case flag { true where false -> false; true -> true; false -> false }.\n",
+            );
+        Ok(entity) <- selected(context, "function", "value", 0);
+        Ok(result) <- run(context, entity, "pattern_coverage", 32_768, 10_000, Json.null());
+        Ok(observation) <- coverage_observation(result, "case");
+        Ok(covered) <- observation.get("exhaustive");
+        Ok(guards) <- observation.get("guarded_clauses");
+        Ok(missing) <- observation.get("uncovered");
+        Ok(consistent) <- observation.get("consistent");
+        Ok(owner) <- observation.get("owner")
+    } else {
+        _ -> false
+    };
+    (let checked =
+    covered.as_bool() == Ok(true)
+        and consistent.as_bool() == Ok(true)
+        and Json.to_string(guards) == "[0]"
+        and missing.length() == Ok(0)
+        and text(owner, "name") == "value"
+        and text(owner, "module") == "sample"
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+checked and cleaned).
+
+@test
+pub coverage_queries_preserve_missing_function_head_alternatives(): Bool ->
+    let {
+        Ok(context) <- fixture("module sample.\npub value({true, _}: {Bool, Bool}): Bool -> true.\n");
+        Ok(entity) <- selected(context, "function", "value", 0);
+        Ok(result) <- run(context, entity, "pattern_coverage", 32_768, 10_000, Json.null());
+        Ok(observation) <- coverage_observation(result, "function_clauses");
+        Ok(covered) <- observation.get("exhaustive");
+        Ok(missing) <- observation.get("uncovered");
+        Ok(alternative) <- missing.at(0)
+    } else {
+        _ -> false
+    };
+    (let checked =
+    covered.as_bool() == Ok(false)
+        and missing.length() == Ok(1)
+        and alternative.as_string() == Ok("(false, Bool)")
+        and text(result, "status") == "partial";
+let cleaned = clean(context);
+checked and cleaned).
+
+@test
+pub coverage_queries_keep_overloaded_origins_separate_and_charge_scans(): Bool ->
+    let {
+        Ok(context) <-
+            fixture(
+                "module sample.\npub value({true, _}: {Bool, Bool}): Bool -> true.\npub value(number: Int): Int -> number.\n",
+            );
+        Ok(boolean) <- selected(context, "function", "value", 0);
+        Ok(integer) <- selected(context, "function", "value", 1);
+        Ok(boolean_result) <- run(context, boolean, "pattern_coverage", 32_768, 10_000, Json.null());
+        Ok(integer_result) <- run(context, integer, "pattern_coverage", 32_768, 10_000, Json.null());
+        Ok(finite) <- coverage_observation(boolean_result, "function_clauses");
+        Ok(open_domain) <- coverage_observation(integer_result, "function_clauses");
+        Ok(verdict) <- finite.get("exhaustive");
+        Ok(unknown) <- open_domain.get("exhaustive");
+        Ok(used) <- JsonRules.number(boolean_result, "work_used")
+    } else {
+        _ -> false
+    };
+    (let exact =
+    verdict.as_bool() == Ok(false)
+        and unknown.is_null()
+        and text(open_domain, "reason") == "finite_domain_not_available";
+let bounded =
+    case Query.run(
+        context.store,
+        request(context, boolean, "pattern_coverage", 32_768, used - 1, Json.null()),
+    ) {
+        Err(reason) -> reason.code == "semantic.query.work_limit";
+        _ -> false
+    };
+let cleaned = clean(context);
+exact and bounded and cleaned).

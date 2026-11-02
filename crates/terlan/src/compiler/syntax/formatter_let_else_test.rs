@@ -113,6 +113,23 @@ pub resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
 }
 
 #[test]
+fn formatter_preserves_priority_of_failure_before_an_overlapping_continuation() {
+    let source = r#"
+module overlapping_case_format.
+pub check(first: Result[String, String], second: Result[Int, String]): Bool ->
+    case first {
+        Ok(_) -> true;
+        _ -> case second { Ok(_) -> true; _ -> false }
+    }.
+"#;
+    let formatted = format_source_module(source).expect("format overlapping case pyramid");
+    assert!(formatted.contains("case first"));
+    assert!(formatted.contains("case second"));
+    assert!(!formatted.contains("_ <-"));
+    assert_eq!(format_source_module(&formatted).unwrap(), formatted);
+}
+
+#[test]
 fn formatter_keeps_failure_binding_dependent_case_pyramid_explicit() {
     let source = r#"
 module dependent_case_format.

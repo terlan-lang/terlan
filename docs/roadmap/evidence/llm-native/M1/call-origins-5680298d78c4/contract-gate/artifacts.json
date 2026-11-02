@@ -1,0 +1,14 @@
+[
+  {
+    "digest": "ae97ab6e40c293fe4819165ea97695456d2106099e1bddd03ec8fe49f4d4f5c1",
+    "path": "contract-evidence.json"
+  },
+  {
+    "digest": "fd5d76143313da699801a3f00b1cf0b8d6defe876cce3f96c2ace11c1939ab5a",
+    "path": "peer.stdout"
+  },
+  {
+    "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "path": "peer.stderr"
+  }
+]

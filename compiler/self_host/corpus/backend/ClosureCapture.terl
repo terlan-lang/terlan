@@ -1,0 +1,9 @@
+/** Executable closure probe covering captured and non-captured lambdas. */
+module self_host_probe.ClosureCapture.
+
+evaluate(expected: Bool): Bool ->
+    ((value: Bool) -> value).(
+        ((_ignored: Bool) -> expected).(false),
+    ).
+
+pub main(): Bool -> evaluate(true).

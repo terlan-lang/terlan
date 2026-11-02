@@ -30,6 +30,10 @@ append_bindings(
     case left { [] -> right; [value | rest] -> [value | append_bindings(rest, right)] }.
 
 @pure
+append_names(left: List[String], right: List[String]): List[String] ->
+    case left { [] -> right; [value | rest] -> [value | append_names(rest, right)] }.
+
+@pure
 contains(values: List[String], name: String): Bool ->
     case values { [] -> false; [value | rest] -> value == name or contains(rest, name) }.
 
@@ -132,6 +136,22 @@ local_types(values: List[BackendDeclaration]): List[String] ->
                 or value.class == TraitDeclaration ->
             [value.symbol_name | local_types(rest)];
         [_value | rest] -> local_types(rest)
+    }.
+
+@pure
+missing_signature_types(
+    values: List[ProjectedTypeDeclarationTree],
+    known: List[String],
+): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> if {
+            contains(known, value.name) -> missing_signature_types(rest, known);
+            true -> [
+                value.name
+                | missing_signature_types(rest, [value.name | known])
+            ]
+        }
     }.
 
 @pure
@@ -466,7 +486,11 @@ pub resolve_with_interfaces(
     external_types: List[String],
     imported_interfaces: List[ModuleInterface],
 ): ProjectedTypeResolution ->
-    let local = local_types(source.backend.declarations);
+    let backend_local = local_types(source.backend.declarations);
+    let local = append_names(
+        backend_local,
+        missing_signature_types(source.signatures.types, backend_local),
+    );
     let visible_external = ProjectedImportedTypeCatalog.build(source.backend, imported_interfaces);
     let imported_bindings = if {
         imported_interfaces == [] -> identity_bindings(external_types);

@@ -1,0 +1,170 @@
+/**
+ * Measures the existing LSP binding rename as a baseline, not an MCP service.
+ */
+module llm_native.LegacyLsp.
+
+import llm_native.Evidence.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+import std.system.Process.
+import std.time.Clock.
+
+import type std.core.Option.
+import type std.data.Json.
+
+frame(body: String): String ->
+    String.concat(["Content-Length: ", Int.to_string(body.byte_size()), "\r\n\r\n", body]).
+
+request(id: Int, method: String, params: Json): String ->
+    frame(
+        Json.to_string(
+            Json.object()
+                .put("jsonrpc", Json.string("2.0"))
+                .put("id", Json.int(id))
+                .put("method", Json.string(method))
+                .put("params", params),
+        ),
+    ).
+
+notification(method: String, params: Json): String ->
+    frame(
+        Json.to_string(
+            Json.object()
+                .put("jsonrpc", Json.string("2.0"))
+                .put("method", Json.string(method))
+                .put("params", params),
+        ),
+    ).
+
+response(frames: List[String], expected_id: Int): Option[Json] ->
+    let {
+        [body | rest] <- frames;
+        Ok(value) <- Json.parse(body)
+    } else {
+        _ -> None
+    };
+    if {
+        Evidence.number(value, "id") == expected_id -> Some(value);
+        true -> response(rest, expected_id)
+    }.
+
+edits_hold(edits: Json): Bool ->
+    let {
+        Ok(2) <- edits.length();
+        Ok(first) <- edits.at(0);
+        Ok(second) <- edits.at(1)
+    } else {
+        _ -> false
+    };
+    Evidence.text(first, "newText") == "answer" and Evidence.text(second, "newText") == "answer".
+
+/**
+ * Runs a phased standard LSP session against an explicitly selected binary.
+ */
+pub run(binary: String, directory: String): Json ->
+    let result = Json.object().put("kind", Json.string("existing_lsp_binding_rename"));
+    let source = "module baseline.Navigation.\npub value(input: Int): Int ->\n    let local = input + 1;\n    let label = \"local\";\n    local.\n";
+    let sources = String.append(directory, "/src/baseline");
+    let path = String.append(sources, "/Navigation.terl");
+    let {
+        Ok(_) <- Directory.create_all(sources);
+        Ok(_) <- File.write_text(path, source);
+        Ok(binary_digest) <- Hash.sha256_file(binary)
+    } else {
+        _ ->
+            result
+                .put("status", Json.string("unavailable"))
+                .put("reason", Json.string("LSP binary or baseline source unavailable."))
+    };
+    (let uri = String.append("file://", path.replace("%", "%25").replace(" ", "%20"));
+let initialized =
+    Json.object()
+        .put("capabilities", Json.object())
+        .put("rootUri", Json.string(String.append("file://", directory)));
+let document =
+    Json.object()
+        .put("uri", Json.string(uri))
+        .put("languageId", Json.string("terlan"))
+        .put("version", Json.int(1))
+        .put("text", Json.string(source));
+let rename =
+    Json.object()
+        .put("textDocument", Json.object().put("uri", Json.string(uri)))
+        .put("position", Json.object().put("line", Json.int(2)).put("character", Json.int(9)))
+        .put("newName", Json.string("answer"));
+let operations =
+    String.concat(
+        [
+            notification("initialized", Json.object()),
+            notification("textDocument/didOpen", Json.object().put("textDocument", document)),
+            request(2, "textDocument/rename", rename),
+            request(3, "shutdown", Json.null()),
+        ],
+    );
+let exchanges =
+    [
+        Process.exchange(request(1, "initialize", initialized), 1),
+        Process.exchange(operations, 3),
+        Process.exchange(notification("exit", Json.null()), 0),
+    ];
+let command =
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(Process.command(binary), 30_000),
+        2_097_152,
+    );
+let started = Clock.monotonic_time_ns();
+let execution = Process.run_length_framed(Process.length_framed(command, exchanges, "Content-Length"));
+let _elapsed = result.put("wall_time_ns", Json.int(Clock.monotonic_time_ns() - started));
+let _binary = result.put("binary_digest", Json.string(binary_digest));
+let _source = result.put("source_digest", Json.string(Hash.sha256(source)));
+let _context = result.put("context_bytes", Json.int(source.byte_size()));
+case execution {
+    Ok(output) ->
+        let _stderr = File.write_text(String.append(directory, "/lsp.stderr"), output.stderr);
+        let frames = Json.array();
+        let _frames = record_frames(frames, output.frames);
+        let _saved = File.write_text(String.append(directory, "/frames.json"), Json.to_string(frames));
+        let valid =
+            output.status == 0
+                and _stderr == Ok(Unit)
+                and _saved == Ok(Unit)
+                and Hash.sha256_file(binary) == Ok(binary_digest)
+                and case response(output.frames, 2) {
+    Some(message) ->
+        let {
+            Ok(edit) <- message.get("result");
+            Ok(changes) <- edit.get("changes");
+            Ok(edits) <- changes.get(uri)
+        } else {
+            _ -> false
+        };
+        edits_hold(edits);
+    None -> false
+};
+        result
+            .put(
+                "status",
+                Json.string(
+                    if {
+                        valid -> "passed";
+                        true -> "failed"
+                    },
+                ),
+            );
+    _ ->
+        result
+            .put("status", Json.string("failed"))
+            .put("reason", Json.string("Bounded LSP session failed."))
+}).
+
+record_frames(mut rows: Json, frames: List[String]): Bool ->
+    case frames {
+        [] -> true;
+        [body | rest] ->
+            let _row = rows.push(Json.string(body));
+            record_frames(rows, rest)
+    }.

@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "cases": [
+    {
+      "sent": "first\n",
+      "received": "first\n",
+      "stdin_open": true
+    },
+    {
+      "sent": "second\r\n",
+      "received": "second\n",
+      "stdin_open": true
+    }
+  ],
+  "exit_code": 0
+}
