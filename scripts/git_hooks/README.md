@@ -139,11 +139,11 @@ The standard-library release manifest is checked against the staged sources,
 including typed consumers for JavaScript bindings and opaque constructor types.
 
 Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
-and service runtime, and tests the hook policy and snapshot isolation. It also
-builds all JavaScript binding consumers with Terlan and executes the complete
-Playwright suite in Chromium, Firefox, and WebKit. Module filters are cleared;
-missing browsers, skipped cases, expected failures, retries, and incomplete
-reports reject the commit. The paired
+and service runtime, and tests the hook policy and snapshot isolation. Release
+publication additionally builds all JavaScript binding consumers with Terlan
+and executes the complete Playwright suite in Chromium, Firefox, and WebKit.
+Module filters are cleared; missing browsers, skipped cases, expected failures,
+retries, and incomplete reports reject publication. The paired
 service runtime is required by executable service-package tests. This requires Git, Bash, the
 pinned Rust toolchain with rustfmt and Clippy, Make, and the compiler's native build dependencies.
 The first run compiles a fresh cache and can take several minutes. Later runs
@@ -156,12 +156,12 @@ npm --prefix tests/js ci --ignore-scripts
 (cd tests/js && npx playwright install --with-deps chromium firefox webkit)
 ```
 
-The browser matrix runs for every nonempty commit, including documentation-only
-commits. Its compiler, sources, and generated artifacts come from the staged
-snapshot. Reports and failure traces are under the snapshot's
-`target/js-browser/` directory.
-Selected source and report checks run before the browser matrix, so stale
-generated reports fail before recompiling the browser fixture corpus.
+The browser matrix runs once for the exact clean commit admitted by `make
+publish`. Its compiler, sources, and generated artifacts come from that
+validated release candidate. Reports and failure traces are under
+`target/js-browser/`. Release-candidate source and report checks run before the
+browser matrix, so stale generated reports fail before recompiling the browser
+fixture corpus.
 The browser server selects a free port by default. Set `TERLAN_JS_TEST_PORT`
 to request a specific port; `0` selects an available port automatically.
 
@@ -194,7 +194,8 @@ compiler's formatting of the same file at the commit's original base. Exact
 matches still receive formatting and type checks, but do not launch changed-file
 tests or external integration gates for layout-only edits. New files, invalid
 originals, and any other source changes retain their selected tests. This does
-not affect the unconditional complete Playwright matrix or other planned lanes.
+not affect other planned lanes; the complete Playwright matrix remains a
+mandatory publication gate.
 Script entries outside a package's source roots use package-aware builds so
 their imports resolve with the same configuration as normal compilation.
 Run `TERLC=target/debug/terlc bash scripts/git_hooks_formatting_test.sh` to check

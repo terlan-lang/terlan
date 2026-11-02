@@ -65,9 +65,9 @@ pub(crate) mod run;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod scripts;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
-pub(crate) mod semantic;
-#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod self_update;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) mod semantic;
 pub(crate) mod serve;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) mod source_layout;

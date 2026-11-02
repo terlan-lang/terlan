@@ -76,6 +76,7 @@ use html_typecheck::*;
 pub(crate) mod binding_type_observations;
 pub(crate) mod call_observations;
 pub(crate) mod coverage_observations;
+mod observation_guard;
 pub(crate) mod requirement_observations;
 
 mod patterns;

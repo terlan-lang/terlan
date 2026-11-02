@@ -670,9 +670,19 @@ pub(in crate::compiler::native_ir::application) fn receiver_types_match(
 fn receiver_nominal_names_match(expected: &str, actual: &str) -> bool {
     let expected = canonical_receiver_name(expected);
     let actual = canonical_receiver_name(actual);
-    expected == actual
-        || ((!expected.contains('.') || !actual.contains('.'))
-            && expected.rsplit('.').next() == actual.rsplit('.').next())
+    if expected == actual {
+        return true;
+    }
+    // `Map` and `Set` are the canonical ABI spellings for Terlan's built-in
+    // collections. They are identities, not unresolved short names. Treating
+    // them as leaf-name aliases makes an imported type such as
+    // `std.js.Map.Map[K, V]` collide with `std.collections.Map[K, V]` during
+    // receiver dispatch.
+    if matches!(expected, "Map" | "Set") || matches!(actual, "Map" | "Set") {
+        return false;
+    }
+    (!expected.contains('.') || !actual.contains('.'))
+        && expected.rsplit('.').next() == actual.rsplit('.').next()
 }
 
 fn canonical_receiver_name(name: &str) -> &str {

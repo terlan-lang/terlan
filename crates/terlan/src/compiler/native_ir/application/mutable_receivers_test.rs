@@ -210,6 +210,30 @@ fn generic_receivers_do_not_merge_distinct_qualified_constructors() {
 }
 
 #[test]
+fn builtin_map_receiver_does_not_merge_with_js_map() {
+    let target = ReceiverTarget {
+        module: "std.collections.Map".into(),
+        function: "get".into(),
+        receiver: CoreType::Apply {
+            constructor: "Map".into(),
+            args: vec![CoreType::Named("K".into()), CoreType::Named("V".into())],
+        },
+        result: None,
+        public: true,
+        trait_fallback: false,
+        mutable: false,
+        command: false,
+        generic_params: vec!["K".into(), "V".into()],
+    };
+    let js_map = CoreType::Apply {
+        constructor: "std.js.Map.Map".into(),
+        args: vec![CoreType::Named("K".into()), CoreType::Named("V".into())],
+    };
+
+    assert!(!super::receiver_matches(&target, &js_map));
+}
+
+#[test]
 fn applied_receiver_matches_public_and_internal_nominal_paths() {
     let expected = CoreType::Apply {
         constructor: "pkg.Transition.Transition".into(),

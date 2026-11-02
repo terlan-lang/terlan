@@ -3,20 +3,19 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::terlan_hir::{
-    ModuleInterface, expand_syntax_shape_imports, resolve_syntax_module_output_with_interfaces,
+    expand_syntax_shape_imports, resolve_syntax_module_output_with_interfaces, ModuleInterface,
 };
 use crate::terlan_syntax::{
-    SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
-    parse_script_as_syntax_output,
+    parse_script_as_syntax_output, SyntaxDeclarationPayload, SyntaxExprOutput, SyntaxModuleOutput,
 };
 use crate::terlan_typeck::{expand_syntax_includes, expand_syntax_macros_with_interfaces};
 
 use crate::validation::config_contract::check_config_declarations_syntax_output;
-use crate::validation::native_policy::{NativePolicy, validate_native_policy};
+use crate::validation::native_policy::{validate_native_policy, NativePolicy};
 use crate::validation::phase_manifest::PhaseManifestDiagnostic;
 use crate::validation::target_profile::{
-    TargetProfile, TargetProfileCheckOptions, target_profile_checks_with_options,
+    target_profile_checks_with_options, TargetProfile, TargetProfileCheckOptions,
 };
 use crate::validation::template_contract::type_check_syntax_module_output_with_template_inputs;
 

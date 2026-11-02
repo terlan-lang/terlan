@@ -36,12 +36,22 @@ pub(super) fn check_non_callable_alias_implications(
 ) {
     let alias_declaration = match &declaration.payload {
         SyntaxDeclarationPayload::Type { name, params, .. } => Some((name, params)),
-        SyntaxDeclarationPayload::Struct { name, generic_params, .. } => Some((name, generic_params)),
+        SyntaxDeclarationPayload::Struct {
+            name,
+            generic_params,
+            ..
+        } => Some((name, generic_params)),
         _ => None,
     };
     if let Some((name, params)) = alias_declaration {
         if let Some(alias) = expr_ctx.aliases.get(name) {
-            requirement_observations::record_alias(expr_ctx.current_module, name, declaration.span.into(), params, alias);
+            requirement_observations::record_alias(
+                expr_ctx.current_module,
+                name,
+                declaration.span.into(),
+                params,
+                alias,
+            );
         }
     }
     if let SyntaxDeclarationPayload::Trait {

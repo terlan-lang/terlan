@@ -10,9 +10,9 @@ mod project;
 #[cfg(test)]
 mod mod_test;
 
+pub(crate) use command::effective_check_target_profile;
 #[cfg(test)]
 use command::parse_check_args;
-pub(crate) use command::effective_check_target_profile;
 pub(crate) use command::run;
 #[cfg(test)]
 use directory::check_dir_phase_manifest_path;

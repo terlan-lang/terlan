@@ -34,7 +34,9 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
             // Only this VM-owned route may access application stdin. The
             // external NativeBoundary worker dispatcher deliberately has no
             // read_line operation: its stdin is the worker RPC channel.
-            return Ok(NativeBoundaryReplyTerm::Ok(console_input::read_stdin(*maximum)));
+            return Ok(NativeBoundaryReplyTerm::Ok(console_input::read_stdin(
+                *maximum,
+            )));
         }
         "std.system.arguments.count" => {
             let count = i64::try_from(program_arguments.len()).map_err(|_| {

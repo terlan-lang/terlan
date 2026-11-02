@@ -109,6 +109,7 @@ crates/terlan/src/commands/dev_dependencies.rs	18	internal-helper	command-errors
 crates/terlan/src/commands/doc/mod.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/doc/validation.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/doctor/mod.rs	7	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/emit_core.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/emit_js/mod.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/emit_js/oxc_backend.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/emit_js/template_runtime.rs	3	internal-helper	command-errors	0.0.9
@@ -127,8 +128,9 @@ crates/terlan/src/commands/process_runner.rs	1	internal-helper	command-errors	0.
 crates/terlan/src/commands/repl/evaluation.rs	7	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/repl/interactive.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/repl/source.rs	2	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/run/mod.rs	18	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/run/mod.rs	22	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/scripts.rs	7	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/semantic.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/args.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/channel_transport.rs	6	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/handler.rs	8	internal-helper	command-errors	0.0.9
@@ -262,7 +264,7 @@ crates/terlan/src/compiler/native_ir/lowering_test_support.rs	1	internal-helper	
 crates/terlan/src/compiler/native_ir/native_object_test_support.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/nested_closure_lifting.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/self_host_actor_adapter.rs	4	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/self_host_adapter.rs	14	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/self_host_adapter.rs	15	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/self_host_adapter/control_flow.rs	8	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/self_host_adapter/expressions.rs	17	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/self_host_adapter/instructions.rs	1	internal-helper	compiler-errors	0.0.9
@@ -298,7 +300,7 @@ crates/terlan/src/compiler/typeck/expression/function_inference.rs	3	internal-he
 crates/terlan/src/compiler/typeck/expression/function_inference/explicit_type_args.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/expression/function_inference/trait_bounds.rs	7	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/expression/operators.rs	3	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/typeck/expression/overloads.rs	4	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/typeck/expression/overloads.rs	6	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/patterns.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/patterns/binary_layout.rs	2	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/typeck/patterns/constructors.rs	1	internal-helper	compiler-errors	0.0.9

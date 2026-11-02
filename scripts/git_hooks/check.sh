@@ -152,6 +152,3 @@ while IFS= read -r lane; do
     *) echo "Unknown pre-commit lane: $lane" >&2; exit 1 ;;
   esac
 done < "$plan"
-
-echo 'pre-commit: complete Playwright browser matrix'
-bash scripts/git_hooks/js_browser.sh

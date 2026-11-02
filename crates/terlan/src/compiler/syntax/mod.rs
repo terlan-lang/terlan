@@ -80,7 +80,7 @@ pub use syntax_output::{
     SyntaxHtmlAttrValueOutput, SyntaxHtmlElementOutput, SyntaxHtmlNamedSlotOutput,
     SyntaxHtmlNodeOutput, SyntaxImplConstOutput, SyntaxImplMethodOutput, SyntaxImportItem,
     SyntaxImportKind, SyntaxModuleOutput, SyntaxParamOutput, SyntaxPatternFieldOutput,
-    SyntaxPatternKind, SyntaxPatternOutput, SyntaxShapeOrigin, SyntaxShapeImport, SyntaxSourceKind,
+    SyntaxPatternKind, SyntaxPatternOutput, SyntaxShapeImport, SyntaxShapeOrigin, SyntaxSourceKind,
     SyntaxStructFieldOutput, SyntaxTemplatePropOutput, SyntaxTraitConstOutput,
     SyntaxTraitMethodOutput, SyntaxTypeOutput, SyntaxValuedUnionArmOutput,
     SYNTAX_MODULE_OUTPUT_SCHEMA,

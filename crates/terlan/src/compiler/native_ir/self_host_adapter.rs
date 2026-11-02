@@ -114,7 +114,12 @@ fn top_level_function_arrow(source: &str) -> Option<usize> {
     None
 }
 
-fn split_function_parameters(source: &str) -> Result<Vec<&str>, String> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct FunctionParameterError {
+    message: &'static str,
+}
+
+fn split_function_parameters(source: &str) -> Result<Vec<&str>, FunctionParameterError> {
     if source.trim().is_empty() {
         return Ok(Vec::new());
     }
@@ -133,10 +138,9 @@ fn split_function_parameters(source: &str) -> Result<Vec<&str>, String> {
             b',' if round == 0 && square == 0 && brace == 0 => {
                 let value = source[start..index].trim();
                 if value.is_empty() {
-                    return Err(adapter_error(
-                        "function_type",
-                        "function parameter type is empty",
-                    ));
+                    return Err(FunctionParameterError {
+                        message: "function parameter type is empty",
+                    });
                 }
                 values.push(value);
                 start = index + 1;
@@ -146,10 +150,9 @@ fn split_function_parameters(source: &str) -> Result<Vec<&str>, String> {
     }
     let value = source[start..].trim();
     if value.is_empty() {
-        return Err(adapter_error(
-            "function_type",
-            "function parameter type is empty",
-        ));
+        return Err(FunctionParameterError {
+            message: "function parameter type is empty",
+        });
     }
     values.push(value);
     Ok(values)
@@ -174,7 +177,8 @@ fn native_function_type(type_name: &str) -> Result<Option<NativeType>, String> {
             "function result type is empty",
         ));
     }
-    let parameters = split_function_parameters(&parameters[1..parameters.len() - 1])?
+    let parameters = split_function_parameters(&parameters[1..parameters.len() - 1])
+        .map_err(|error| adapter_error("function_type", error.message))?
         .into_iter()
         .map(native_type)
         .collect::<Result<Vec<_>, _>>()?;

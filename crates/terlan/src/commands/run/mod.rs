@@ -7,8 +7,8 @@ use std::process::{Command, ExitCode, Output, Stdio};
 use serde::Deserialize;
 
 use crate::validation::target_profile::{
-    TargetInferenceInput, TargetProfile, explicit_target_profile_override_error,
-    infer_target_profile_from_typed_evidence,
+    explicit_target_profile_override_error, infer_target_profile_from_typed_evidence,
+    TargetInferenceInput, TargetProfile,
 };
 use crate::{CliCommand, CliState};
 

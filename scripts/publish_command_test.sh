@@ -66,6 +66,16 @@ SH
 done
 echo 'Publication command regressions passed (10 scenarios).'
 
+# The complete browser matrix is intentionally release-bound: ordinary
+# commits keep targeted feedback, while publication cannot bypass browser
+# consumer compilation or any supported Playwright engine.
+grep -Fq '$(MAKE) --no-print-directory browser-release-check' "$root/Makefile"
+grep -Fq 'CARGO_TARGET_DIR="$(CURDIR)/target" bash scripts/git_hooks/js_browser.sh' "$root/Makefile"
+if rg -q 'scripts/git_hooks/js_browser\.sh' "$root/scripts/git_hooks/check.sh"; then
+  echo 'The complete browser matrix must run once at publication, not per commit.' >&2
+  exit 1
+fi
+
 # Exercise the hosted tag guard itself, including retries from a newer main.
 # Checkout must use the named tag: the implicit event SHA flattens annotations.
 grep -Fxq '          ref: refs/tags/${{ inputs.tag || github.ref_name }}' "$root/.github/workflows/publish.yml"

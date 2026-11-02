@@ -42,8 +42,8 @@ pub(super) use special::{
     is_unit_named_type,
 };
 pub(super) use substitution::{
-    canonical_observation_type, existential_types_are_alpha_equivalent, expand_type_aliases, mapping_without_bound_params,
-    substitute_type_vars,
+    canonical_observation_type, existential_types_are_alpha_equivalent, expand_type_aliases,
+    mapping_without_bound_params, substitute_type_vars,
 };
 pub(super) use text::{
     compact_spaces, split_module_name, split_top_level_csv, split_top_level_plus,

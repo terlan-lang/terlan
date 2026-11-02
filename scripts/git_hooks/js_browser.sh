@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Every commit executes the complete browser matrix against staged Terlan code.
+# Publication executes the complete browser matrix against validated Terlan code.
 set -euo pipefail
 unset TERLAN_JS_MODULES
 export TERLC="$CARGO_TARGET_DIR/release/terlc"
