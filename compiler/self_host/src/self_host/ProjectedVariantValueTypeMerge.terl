@@ -1,0 +1,191 @@
+/**
+ * Adds finite-sum owner types to zero-arity variant value expressions.
+ */
+module self_host.ProjectedVariantValueTypeMerge.
+
+import self_host.ModuleInterfaceSyntax.ModuleInterface.
+import self_host.ProjectedBindingSyntax.BindingReference.
+import self_host.ProjectedBodySyntax.{ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
+import self_host.ProjectedFrontendSyntax.ProjectedFrontendModule.
+import self_host.ProjectedLocalSemanticSyntax.LocalSemanticResult.
+import self_host.ProjectedPatternAuthority.{FiniteSumContract, PatternAuthorityCatalog}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import self_host.{ProjectedDeclarationLowering, ProjectedPatternAuthority, TypedModuleLowering}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+struct VariantFactScan {
+    next_id: Int,
+    facts: List[InferredTypeFact],
+}.
+
+constructor VariantFactScan {
+    (next_id: Int, facts: List[InferredTypeFact]): VariantFactScan ->
+        VariantFactScan {next_id: next_id, facts: facts}
+}.
+
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+contains(values: List[String], name: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == name or contains(rest, name)
+    }.
+
+owner(name: String, values: List[FiniteSumContract]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                contains(value.members, name) -> Some(value.name);
+                true -> owner(name, rest)
+            }
+    }.
+
+upper_identifier(value: String): Bool ->
+    if {
+        value == "" -> false;
+        true -> let byte = value.utf8_byte_at(0);
+        byte >= 65 and byte <= 90
+    }.
+
+scan_children(
+    values: List[ProjectedExpressionNode],
+    next_id: Int,
+    catalog: PatternAuthorityCatalog,
+): VariantFactScan ->
+    case values {
+        [] -> VariantFactScan(next_id, []);
+        [value | rest] ->
+            let current = scan_node(value, next_id, catalog);
+            let remaining = scan_children(rest, current.next_id, catalog);
+            VariantFactScan(remaining.next_id, append(current.facts, remaining.facts))
+    }.
+
+scan_node(
+    value: ProjectedExpressionNode,
+    node_id: Int,
+    catalog: PatternAuthorityCatalog,
+): VariantFactScan ->
+    let nested = scan_children(value.children, node_id + 1, catalog);
+    if {
+        value.kind != "constructor" and value.kind != "binding" and value.kind != "primary"
+            or not upper_identifier(value.text)
+            or value.children != [] -> nested;
+        true -> case owner(value.text, catalog.sums) {
+            None -> nested;
+            Some(type_name) ->
+                VariantFactScan(
+                    nested.next_id,
+                    [InferredTypeFact(node_id, Some(type_name), value.start_byte) | nested.facts],
+                )
+        }
+    }.
+
+scan_bodies(
+    values: List[ProjectedBody],
+    next_id: Int,
+    catalog: PatternAuthorityCatalog,
+): VariantFactScan ->
+    case values {
+        [] -> VariantFactScan(next_id, []);
+        [value | rest] ->
+            case value.expression.node {
+                None -> scan_bodies(rest, next_id, catalog);
+                Some(node) ->
+                    let current = scan_node(node, next_id, catalog);
+                    let remaining = scan_bodies(rest, current.next_id, catalog);
+                    VariantFactScan(remaining.next_id, append(current.facts, remaining.facts))
+            }
+    }.
+
+has_resolved_fact(node_id: Int, byte_offset: Int, values: List[InferredTypeFact]): Bool ->
+    case values {
+        [] -> false;
+        [candidate | rest] ->
+            if {
+                candidate.node_id == node_id
+                    and candidate.byte_offset == byte_offset
+                    and candidate.type_name != None -> true;
+                true -> has_resolved_fact(node_id, byte_offset, rest)
+            }
+    }.
+
+has_resolved_offset(byte_offset: Int, values: List[InferredTypeFact]): Bool ->
+    case values {
+        [] -> false;
+        [candidate | rest] ->
+            if {
+                candidate.byte_offset == byte_offset and candidate.type_name != None -> true;
+                true -> has_resolved_offset(byte_offset, rest)
+            }
+    }.
+
+has_lexical_declaration(byte_offset: Int, values: List[BindingReference]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            if {
+                value.byte_offset == byte_offset and value.declaration_offset != None -> true;
+                true -> has_lexical_declaration(byte_offset, rest)
+            }
+    }.
+
+facts_at_offset(
+    value: InferredTypeFact,
+    existing: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case existing {
+        [] -> [];
+        [candidate | rest] ->
+            if {
+                candidate.byte_offset == value.byte_offset
+                    and candidate.type_name == None
+                    and not has_resolved_fact(candidate.node_id, candidate.byte_offset, existing) -> [InferredTypeFact(candidate.node_id, value.type_name, value.byte_offset) | facts_at_offset(value, rest)];
+                true -> facts_at_offset(value, rest)
+            }
+    }.
+
+missing_facts(
+    values: List[InferredTypeFact],
+    existing: List[InferredTypeFact],
+    references: List[BindingReference],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            if {
+                has_lexical_declaration(value.byte_offset, references)
+                    or has_resolved_offset(value.byte_offset, existing) -> missing_facts(rest, existing, references);
+                true -> append(facts_at_offset(value, existing), missing_facts(rest, existing, references))
+            }
+    }.
+
+/**
+ * Adds local and imported finite-sum value types before argument checking.
+ */
+pub merge(
+    frontend: ProjectedFrontendModule,
+    interfaces: List[ModuleInterface],
+    semantics: LocalSemanticResult,
+): LocalSemanticResult ->
+    let typed = TypedModuleLowering.lower(ProjectedDeclarationLowering.lower(frontend.surface));
+    let catalog = ProjectedPatternAuthority.catalog_with_interfaces(typed, interfaces);
+    let facts = scan_bodies(frontend.bodies.values, 0, catalog).facts;
+    LocalSemanticResult(
+        semantics.bindings,
+        semantics.callables,
+        TypeConstraintResolution(
+            append(
+                semantics.types.facts,
+                missing_facts(facts, semantics.types.facts, semantics.bindings.references),
+            ),
+            semantics.types.diagnostics,
+        ),
+    ).

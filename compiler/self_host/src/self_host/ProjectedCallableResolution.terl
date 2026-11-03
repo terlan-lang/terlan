@@ -3,19 +3,25 @@
  */
 module self_host.ProjectedCallableResolution.
 
-
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
-import std.core.String.
 import self_host.ProjectedCallableSyntax.
-
 import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableDiagnostic, CallableResolution, CallableUse, ResolvedCallableUse}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
 @pure
 module_matches(expected: Option[String], actual: String): Bool ->
     case expected {
-        None -> true;
+        None -> actual == "";
+        Some("$receiver") -> true;
         Some(name) -> name == actual or String.ends_with(actual, String.append(".", name))
+    }.
+
+@pure
+kind_matches(expected: Option[String], callable_kind: String): Bool ->
+    case expected {
+        Some("$receiver") -> callable_kind == "method";
+        _ -> true
     }.
 
 @pure
@@ -25,24 +31,31 @@ matching(
 ): List[CallableDeclaration] ->
     case declarations {
         [] -> List.new[CallableDeclaration]();
-        [declaration | rest] -> if {
-            declaration.name == use_site.name
-                and declaration.arity == use_site.arity
-                and module_matches(use_site.module_name, declaration.module_name)
-                -> [declaration | matching(use_site, rest)];
-            true -> matching(use_site, rest)
-        }
+        [declaration | rest] ->
+            if {
+                declaration.name == use_site.name
+                    and declaration.arity == use_site.arity
+                    and kind_matches(use_site.module_name, declaration.callable_kind)
+                    and module_matches(use_site.module_name, declaration.module_name) -> [declaration | matching(use_site, rest)];
+                true -> matching(use_site, rest)
+            }
     }.
 
 @pure
-reverse_uses(values: List[ResolvedCallableUse], result: List[ResolvedCallableUse]): List[ResolvedCallableUse] ->
+reverse_uses(
+    values: List[ResolvedCallableUse],
+    result: List[ResolvedCallableUse],
+): List[ResolvedCallableUse] ->
     case values {
         [] -> result;
         [value | rest] -> reverse_uses(rest, [value | result])
     }.
 
 @pure
-reverse_diagnostics(values: List[CallableDiagnostic], result: List[CallableDiagnostic]): List[CallableDiagnostic] ->
+reverse_diagnostics(
+    values: List[CallableDiagnostic],
+    result: List[CallableDiagnostic],
+): List[CallableDiagnostic] ->
     case values {
         [] -> result;
         [value | rest] -> reverse_diagnostics(rest, [value | result])
@@ -59,22 +72,24 @@ walk_after_match_head(
     diagnostics: List[CallableDiagnostic],
 ): CallableResolution ->
     case remaining {
-        [] -> walk(
-            rest,
-            declarations,
-            [ResolvedCallableUse(source = use_site, declaration = Some(declaration)) | resolved],
-            diagnostics,
-        );
-        [_ | _] -> walk(
-            rest,
-            declarations,
-            [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
-            [CallableDiagnostic(
-                code = "ambiguous-callable",
-                message = "more than one callable matches this name and arity",
-                byte_offset = use_site.byte_offset,
-            ) | diagnostics],
-        )
+        [] ->
+            walk(
+                rest,
+                declarations,
+                [ResolvedCallableUse(source = use_site, declaration = Some(declaration)) | resolved],
+                diagnostics,
+            );
+        [_ | _] ->
+            walk(
+                rest,
+                declarations,
+                [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
+                [CallableDiagnostic(
+    code = "ambiguous-callable",
+    message = "more than one callable matches this name and arity",
+    byte_offset = use_site.byte_offset,
+) | diagnostics],
+            )
     }.
 
 @pure
@@ -87,17 +102,27 @@ walk_matches(
     diagnostics: List[CallableDiagnostic],
 ): CallableResolution ->
     case matches {
-        [] -> walk(
-            rest,
-            declarations,
-            [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
-            [CallableDiagnostic(
-                code = "unresolved-callable",
-                message = "no callable matches this name and arity",
-                byte_offset = use_site.byte_offset,
-            ) | diagnostics],
-        );
-        [declaration | remaining] -> walk_after_match_head(declaration, remaining, use_site, rest, declarations, resolved, diagnostics)
+        [] ->
+            walk(
+                rest,
+                declarations,
+                [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
+                [CallableDiagnostic(
+    code = "unresolved-callable",
+    message = "no callable matches this name and arity",
+    byte_offset = use_site.byte_offset,
+) | diagnostics],
+            );
+        [declaration | remaining] ->
+            walk_after_match_head(
+                declaration,
+                remaining,
+                use_site,
+                rest,
+                declarations,
+                resolved,
+                diagnostics,
+            )
     }.
 
 @pure
@@ -108,21 +133,22 @@ walk(
     diagnostics: List[CallableDiagnostic],
 ): CallableResolution ->
     case uses {
-        [] -> CallableResolution(
-            uses = reverse_uses(resolved, List.new[ResolvedCallableUse]()),
-            diagnostics = reverse_diagnostics(diagnostics, List.new[CallableDiagnostic]()),
-        );
-        [use_site | rest] -> walk_matches(matching(use_site, declarations), use_site, rest, declarations, resolved, diagnostics)
+        [] ->
+            CallableResolution(
+                uses = reverse_uses(resolved, List.new[ResolvedCallableUse]()),
+                diagnostics = reverse_diagnostics(diagnostics, List.new[CallableDiagnostic]()),
+            );
+        [use_site | rest] ->
+            walk_matches(
+                matching(use_site, declarations),
+                use_site,
+                rest,
+                declarations,
+                resolved,
+                diagnostics,
+            )
     }.
 
 @pure
-pub resolve(
-    uses: List[CallableUse],
-    declarations: List[CallableDeclaration],
-): CallableResolution ->
-    walk(
-        uses,
-        declarations,
-        List.new[ResolvedCallableUse](),
-        List.new[CallableDiagnostic](),
-    ).
+pub resolve(uses: List[CallableUse], declarations: List[CallableDeclaration]): CallableResolution ->
+    walk(uses, declarations, List.new[ResolvedCallableUse](), List.new[CallableDiagnostic]()).

@@ -249,4 +249,49 @@ repository_contract_line=$(rg -n -F 'make --no-print-directory repository-build-
 test -n "$release_install_line"
 test -n "$repository_contract_line"
 test "$release_install_line" -lt "$repository_contract_line"
-echo 'Git hook regression tests passed (18 scenarios).'
+
+# Adjacent legacy `*Test.terl` modules without `@test` declarations are still
+# compiled with their package, but must not be sent to an empty test runner.
+# Real declaration-based suites continue to execute.
+mkdir -p "$temporary/terlan-lane/scripts/git_hooks" "$temporary/terlan-lane/src"
+cat > "$temporary/terlan-lane/scripts/git_hooks/formatting_only.sh" <<'FORMAT'
+#!/usr/bin/env bash
+exit 1
+FORMAT
+cat > "$temporary/terlan-lane/terlc" <<'TERLC'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$TERLAN_LANE_CALLS"
+TERLC
+cat > "$temporary/terlan-lane/src/Legacy.terl" <<'SOURCE'
+module fixture.Legacy.
+SOURCE
+cat > "$temporary/terlan-lane/src/LegacyTest.terl" <<'SOURCE'
+module fixture.LegacyTest.
+pub self_test(): Bool -> true.
+SOURCE
+cat > "$temporary/terlan-lane/src/Declared.terl" <<'SOURCE'
+module fixture.Declared.
+SOURCE
+cat > "$temporary/terlan-lane/src/DeclaredTest.terl" <<'SOURCE'
+module fixture.DeclaredTest.
+@test
+declared_test(): Bool -> true.
+SOURCE
+printf '%s\n' src/Legacy.terl src/Declared.terl > "$temporary/terlan-lane/changes.txt"
+chmod +x "$temporary/terlan-lane/terlc" \
+  "$temporary/terlan-lane/scripts/git_hooks/formatting_only.sh"
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$temporary/terlan-lane.calls" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" changes.txt unused "$PWD/terlc" false \
+    > "$temporary/terlan-lane.log" 2>&1
+)
+grep -Fx 'check src/Legacy.terl' "$temporary/terlan-lane.calls"
+grep -Fx 'check src/Declared.terl' "$temporary/terlan-lane.calls"
+grep -Fx 'test src/DeclaredTest.terl' "$temporary/terlan-lane.calls"
+if grep -Fxq 'test src/LegacyTest.terl' "$temporary/terlan-lane.calls"; then
+  echo 'Hook launched an empty legacy test suite' >&2; exit 1
+fi
+grep -Fq 'compiled legacy self-test module: src/LegacyTest.terl' "$temporary/terlan-lane.log"
+
+echo 'Git hook regression tests passed (19 scenarios).'

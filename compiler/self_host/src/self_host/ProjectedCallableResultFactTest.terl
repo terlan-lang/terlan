@@ -1,0 +1,33 @@
+/**
+ * Resolved call results remain authoritative through let binding chains.
+ */
+module self_host.ProjectedCallableResultFactTest.
+
+import self_host.{CanonicalLexer, ProjectedFrontend, ProjectedSemanticAnalysis}.
+import std.collections.List.
+import std.core.String.
+
+@test
+pub missing_generic_facts_are_created_from_callable_results(): Bool ->
+    let source =
+        String.concat(
+            [
+                "module demo.CallResultFacts.\n",
+                "struct Box { value: Bool }.\n",
+                "constructor Box { (value: Bool): Box -> Box { value: value } }.\n",
+                "next(value: Box): Box -> value.\n",
+                "accept(value: Box): Bool -> value.value.\n",
+                "pub run(): Bool ->\n",
+                "    let first = Box(true);\n",
+                "    let second = next(first);\n",
+                "    accept(second).\n",
+            ],
+        );
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze(
+    ProjectedFrontend.compile(source, lexed.tokens),
+    List.new[String](),
+).expression_typecheck.valid.
+
+pub self_test(): Bool ->
+    missing_generic_facts_are_created_from_callable_results().

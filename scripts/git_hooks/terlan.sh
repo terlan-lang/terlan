@@ -11,6 +11,15 @@ run_terlan_test() {
   for previous in "${tested_terlan[@]}"; do
     if [[ "$previous" == "$1" ]]; then return 0; fi
   done
+  # Older modules named `*Test.terl` expose a `self_test()` helper instead of
+  # test declarations. Their owning package build above still type-checks them,
+  # but `terlc test` correctly rejects an empty test selection. Only launch the
+  # test runner when it can discover at least one declaration.
+  if ! rg -q '^[[:space:]]*@test([[:space:](]|$)' "$1"; then
+    echo "pre-commit: compiled legacy self-test module: $1"
+    tested_terlan+=("$1")
+    return 0
+  fi
   "$terlc" test "$1"
   tested_terlan+=("$1")
 }

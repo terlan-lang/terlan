@@ -1,4 +1,6 @@
-/** Checks resolved call arguments against declared parameter contracts. */
+/**
+ * Checks resolved call arguments against declared parameter contracts.
+ */
 module self_host.ProjectedCallableArgumentTypecheck.
 
 import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableResolution, ResolvedCallableUse}.
@@ -15,7 +17,7 @@ struct GenericBinding {
 
 constructor GenericBinding {
     (name: String, actual: String): GenericBinding ->
-        GenericBinding { name: name, actual: actual }
+        GenericBinding {name: name, actual: actual}
 }.
 
 struct ArgumentState {
@@ -25,12 +27,15 @@ struct ArgumentState {
 
 constructor ArgumentState {
     (bindings: List[GenericBinding], diagnostics: List[TypeConstraintDiagnostic]): ArgumentState ->
-        ArgumentState { bindings: bindings, diagnostics: diagnostics }
+        ArgumentState {bindings: bindings, diagnostics: diagnostics}
 }.
 
 @pure
 contains(values: List[String], target: String): Bool ->
-    case values { [] -> false; [value | rest] -> value == target or contains(rest, target) }.
+    case values {
+        [] -> false;
+        [value | rest] -> value == target or contains(rest, target)
+    }.
 
 @pure
 type_matches(expected: String, actual: String): Bool ->
@@ -38,35 +43,55 @@ type_matches(expected: String, actual: String): Bool ->
 
 @pure
 base_type(value: String): String ->
-    case String.split(value, "[") { [base | _rest] -> base; [] -> value }.
+    case String.split(value, "[") {
+        [base | _rest] -> base;
+        [] -> value
+    }.
 
 @pure
 uses_parameter(value: String, parameters: List[String]): Bool ->
     case parameters {
         [] -> false;
-        [parameter | rest] -> String.contains(value, String.concat(["[", parameter]))
-            or String.contains(value, String.concat([",", parameter]))
-            or uses_parameter(value, rest)
+        [parameter | rest] ->
+            String.contains(value, String.concat(["[", parameter]))
+                or String.contains(value, String.concat([",", parameter]))
+                or uses_parameter(value, rest)
     }.
 
 @pure
-fact_type_at(values: List[InferredTypeFact], byte_offset: Int, current: Option[String]): Option[String] ->
+implicit_constructor_parameter(value: String, declaration: CallableDeclaration): Bool ->
+    if {
+        declaration.callable_kind != "constructor"
+            or declaration.type_parameters != []
+            or value.byte_size() != 1 -> false;
+        true -> let byte = value.utf8_byte_at(0);
+        byte >= 65 and byte <= 90
+    }.
+
+@pure
+fact_type_at(
+    values: List[InferredTypeFact],
+    byte_offset: Int,
+    current: Option[String],
+): Option[String] ->
     case values {
         [] -> current;
-        [value | rest] -> if {
-            value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
-            true -> fact_type_at(rest, byte_offset, current)
-        }
+        [value | rest] ->
+            if {
+                value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
+                true -> fact_type_at(rest, byte_offset, current)
+            }
     }.
 
 @pure
 fact_type_at_node(values: List[InferredTypeFact], node_id: Int): Option[String] ->
     case values {
         [] -> None;
-        [value | rest] -> if {
-            value.node_id == node_id and value.type_name != None -> value.type_name;
-            true -> fact_type_at_node(rest, node_id)
-        }
+        [value | rest] ->
+            if {
+                value.node_id == node_id and value.type_name != None -> value.type_name;
+                true -> fact_type_at_node(rest, node_id)
+            }
     }.
 
 @pure
@@ -82,13 +107,20 @@ argument_type(
 
 @pure
 remaining_node_ids(values: List[Int]): List[Int] ->
-    case values { [] -> List.new[Int](); [_value | rest] -> rest }.
+    case values {
+        [] -> List.new[Int]();
+        [_value | rest] -> rest
+    }.
 
 @pure
 binding_type(name: String, values: List[GenericBinding]): Option[String] ->
     case values {
         [] -> None;
-        [value | rest] -> if { value.name == name -> Some(value.actual); true -> binding_type(name, rest) }
+        [value | rest] ->
+            if {
+                value.name == name -> Some(value.actual);
+                true -> binding_type(name, rest)
+            }
     }.
 
 @pure
@@ -103,22 +135,31 @@ check_generic(
     state: ArgumentState,
 ): ArgumentState ->
     case actual {
-        None -> ArgumentState(state.bindings, [diagnostic(
-            "unresolved-call-argument-type",
-            "call argument type is unresolved",
-            byte_offset,
-        ) | state.diagnostics]);
-        Some(actual_name) -> case binding_type(expected, state.bindings) {
-            None -> ArgumentState([GenericBinding(expected, actual_name) | state.bindings], state.diagnostics);
-            Some(bound) -> if {
-                type_matches(bound, actual_name) -> state;
-                true -> ArgumentState(state.bindings, [diagnostic(
-                    "inconsistent-generic-call-argument",
-                    "call arguments infer incompatible types for one generic parameter",
-                    byte_offset,
-                ) | state.diagnostics])
+        None ->
+            ArgumentState(
+                state.bindings,
+                [diagnostic("unresolved-call-argument-type", "call argument type is unresolved", byte_offset) | state.diagnostics],
+            );
+        Some(actual_name) ->
+            case binding_type(expected, state.bindings) {
+                None ->
+                    ArgumentState(
+                        [GenericBinding(expected, actual_name) | state.bindings],
+                        state.diagnostics,
+                    );
+                Some(bound) ->
+                    if {
+                        type_matches(bound, actual_name) -> state;
+                        true -> ArgumentState(
+                            state.bindings,
+                            [diagnostic(
+    "inconsistent-generic-call-argument",
+    "call arguments infer incompatible types for one generic parameter",
+    byte_offset,
+) | state.diagnostics],
+                        )
+                    }
             }
-        }
     }.
 
 @pure
@@ -129,19 +170,23 @@ check_concrete(
     state: ArgumentState,
 ): ArgumentState ->
     case actual {
-        None -> ArgumentState(state.bindings, [diagnostic(
-            "unresolved-call-argument-type",
-            "call argument type is unresolved",
-            byte_offset,
-        ) | state.diagnostics]);
-        Some(actual_name) -> if {
-            type_matches(expected, actual_name) -> state;
-            true -> ArgumentState(state.bindings, [diagnostic(
-                "call-argument-type-mismatch",
-                String.concat(["call argument type mismatch: expected ", expected, ", found ", actual_name]),
-                byte_offset,
-            ) | state.diagnostics])
-        }
+        None ->
+            ArgumentState(
+                state.bindings,
+                [diagnostic("unresolved-call-argument-type", "call argument type is unresolved", byte_offset) | state.diagnostics],
+            );
+        Some(actual_name) ->
+            if {
+                type_matches(expected, actual_name) -> state;
+                true -> ArgumentState(
+                    state.bindings,
+                    [diagnostic(
+    "call-argument-type-mismatch",
+    String.concat(["call argument type mismatch: expected ", expected, ", found ", actual_name]),
+    byte_offset,
+) | state.diagnostics],
+                )
+            }
     }.
 
 @pure
@@ -153,7 +198,8 @@ check_composite_generic(
 ): ArgumentState ->
     case actual {
         None -> check_concrete(expected, actual, byte_offset, state);
-        Some(actual_name) -> check_concrete(base_type(expected), Some(base_type(actual_name)), byte_offset, state)
+        Some(actual_name) ->
+            check_concrete(base_type(expected), Some(base_type(actual_name)), byte_offset, state)
     }.
 
 @pure
@@ -166,11 +212,13 @@ check_expected(
 ): ArgumentState ->
     case expected {
         None -> state;
-        Some(expected_name) -> if {
-            contains(declaration.type_parameters, expected_name) -> check_generic(expected_name, actual, byte_offset, state);
-            uses_parameter(expected_name, declaration.type_parameters) -> check_composite_generic(expected_name, actual, byte_offset, state);
-            true -> check_concrete(expected_name, actual, byte_offset, state)
-        }
+        Some(expected_name) ->
+            if {
+                contains(declaration.type_parameters, expected_name)
+                    or implicit_constructor_parameter(expected_name, declaration) -> check_generic(expected_name, actual, byte_offset, state);
+                uses_parameter(expected_name, declaration.type_parameters) -> check_composite_generic(expected_name, actual, byte_offset, state);
+                true -> check_concrete(expected_name, actual, byte_offset, state)
+            }
     }.
 
 @pure
@@ -185,14 +233,21 @@ check_arguments(
     case {expected, offsets} {
         {[], _} -> state;
         {_, []} -> state;
-        {[expected_type | expected_rest], [offset | offset_rest]} -> check_arguments(
-            expected_rest,
-            offset_rest,
-            remaining_node_ids(node_ids),
-            declaration,
-            facts,
-            check_expected(expected_type, argument_type(facts, node_ids, offset), offset, declaration, state),
-        )
+        {[expected_type | expected_rest], [offset | offset_rest]} ->
+            check_arguments(
+                expected_rest,
+                offset_rest,
+                remaining_node_ids(node_ids),
+                declaration,
+                facts,
+                check_expected(
+                    expected_type,
+                    argument_type(facts, node_ids, offset),
+                    offset,
+                    declaration,
+                    state,
+                ),
+            )
     }.
 
 @pure
@@ -203,14 +258,15 @@ check_use(
 ): List[TypeConstraintDiagnostic] ->
     case value.declaration {
         None -> output;
-        Some(declaration) -> check_arguments(
-            declaration.parameter_types,
-            value.source.argument_offsets,
-            value.source.argument_node_ids,
-            declaration,
-            facts,
-            ArgumentState(List.new[GenericBinding](), output),
-        ).diagnostics
+        Some(declaration) ->
+            check_arguments(
+    declaration.parameter_types,
+    value.source.argument_offsets,
+    value.source.argument_node_ids,
+    declaration,
+    facts,
+    ArgumentState(List.new[GenericBinding](), output),
+).diagnostics
     }.
 
 @pure
@@ -226,18 +282,27 @@ check_uses(
 
 @pure
 reverse_at[T](values: List[T], output: List[T]): List[T] ->
-    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
 
 @pure
 append[T](left: List[T], right: List[T]): List[T] ->
-    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
 
 @pure
 pub check(callables: CallableResolution, types: TypeConstraintResolution): TypeConstraintResolution ->
     TypeConstraintResolution(
         types.facts,
-        append(types.diagnostics, reverse_at(
-            check_uses(callables.uses, types.facts, List.new[TypeConstraintDiagnostic]()),
-            List.new[TypeConstraintDiagnostic](),
-        )),
+        append(
+            types.diagnostics,
+            reverse_at(
+                check_uses(callables.uses, types.facts, List.new[TypeConstraintDiagnostic]()),
+                List.new[TypeConstraintDiagnostic](),
+            ),
+        ),
     ).

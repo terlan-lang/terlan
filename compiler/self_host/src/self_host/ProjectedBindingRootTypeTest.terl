@@ -1,0 +1,30 @@
+/**
+ * Let sources select the enclosing expression fact at shared source offsets.
+ */
+module self_host.ProjectedBindingRootTypeTest.
+
+import self_host.{CanonicalLexer, ProjectedFrontend, ProjectedSemanticAnalysis}.
+import std.collections.List.
+import std.core.String.
+
+@test
+pub enclosing_boolean_expression_wins_over_its_record_receiver(): Bool ->
+    let source =
+        String.concat(
+            [
+                "module demo.BindingRootType.\n",
+                "struct Evidence { ready: Bool }.\n",
+                "accept(value: Bool): Bool -> value.\n",
+                "pub run(evidence: Evidence): Bool ->\n",
+                "    let ready = evidence.ready and true;\n",
+                "    accept(ready).\n",
+            ],
+        );
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze(
+    ProjectedFrontend.compile(source, lexed.tokens),
+    List.new[String](),
+).expression_typecheck.valid.
+
+pub self_test(): Bool ->
+    enclosing_boolean_expression_wins_over_its_record_receiver().

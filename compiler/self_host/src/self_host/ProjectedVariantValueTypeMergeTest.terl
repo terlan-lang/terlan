@@ -1,0 +1,30 @@
+/**
+ * Finite-sum members are typed values as well as pattern constructors.
+ */
+module self_host.ProjectedVariantValueTypeMergeTest.
+
+import self_host.{CanonicalLexer, ProjectedFrontend, ProjectedSemanticAnalysis}.
+import std.collections.List.
+import std.core.String.
+
+@test
+pub zero_arity_variant_value_has_its_sum_owner_type(): Bool ->
+    let source =
+        String.concat(
+            [
+                "module demo.VariantValues.\n",
+                "pub type Ready.\n",
+                "pub type Waiting.\n",
+                "pub type State = Ready | Waiting.\n",
+                "accept(value: State): State -> value.\n",
+                "pub run(): State -> accept(Ready).\n",
+            ],
+        );
+    let lexed = CanonicalLexer.lex(source);
+    ProjectedSemanticAnalysis.analyze(
+    ProjectedFrontend.compile(source, lexed.tokens),
+    List.new[String](),
+).expression_typecheck.valid.
+
+pub self_test(): Bool ->
+    zero_arity_variant_value_has_its_sum_owner_type().

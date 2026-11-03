@@ -3,20 +3,27 @@
  */
 module self_host.ProjectedCallableTypeMerge.
 
-
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
-import self_host.ProjectedCallableSyntax.
 import self_host.ProjectedCallableSyntax.{CallableResolution, ResolvedCallableUse}.
-import self_host.ProjectedTypeConstraintSyntax.
-
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import self_host.{ProjectedCallableSyntax, ProjectedTypeConstraintSyntax}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
 
 @pure
 declaration_return_type(value: ResolvedCallableUse): Option[String] ->
     case value.declaration {
         Some(declaration) -> declaration.return_type;
+        None -> None
+    }.
+
+@pure
+declaration_concrete_return_type(value: ResolvedCallableUse): Option[String] ->
+    case value.declaration {
+        Some(declaration) ->
+            if {
+                declaration.type_parameters == [] -> declaration.return_type;
+                true -> None
+            };
         None -> None
     }.
 
@@ -28,19 +35,39 @@ return_type_at(
 ): Option[String] ->
     case values {
         [] -> None;
-        [value | rest] -> if {
-            node_id >= 0 and value.source.node_id == node_id -> declaration_return_type(value);
-            node_id < 0 and value.source.node_id < 0 and value.source.byte_offset == byte_offset ->
-                declaration_return_type(value);
-            true -> return_type_at(node_id, byte_offset, rest)
-        }
+        [value | rest] ->
+            if {
+                node_id >= 0 and value.source.node_id == node_id -> declaration_return_type(value);
+                node_id < 0 and value.source.node_id < 0 and value.source.byte_offset == byte_offset -> declaration_return_type(value);
+                true -> return_type_at(node_id, byte_offset, rest)
+            }
+    }.
+
+@pure
+concrete_return_type_at(
+    node_id: Int,
+    byte_offset: Int,
+    values: List[ResolvedCallableUse],
+): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                node_id >= 0 and value.source.node_id == node_id -> declaration_concrete_return_type(value);
+                node_id < 0 and value.source.node_id < 0 and value.source.byte_offset == byte_offset -> declaration_concrete_return_type(value);
+                true -> concrete_return_type_at(node_id, byte_offset, rest)
+            }
     }.
 
 @pure
 merged_type(value: InferredTypeFact, uses: List[ResolvedCallableUse]): Option[String] ->
-    case value.type_name {
+    case concrete_return_type_at(value.node_id, value.byte_offset, uses) {
         Some(name) -> Some(name);
-        None -> return_type_at(value.node_id, value.byte_offset, uses)
+        None ->
+            case value.type_name {
+                Some(name) -> Some(name);
+                None -> return_type_at(value.node_id, value.byte_offset, uses)
+            }
     }.
 
 @pure
@@ -50,19 +77,58 @@ merge_facts(
 ): List[InferredTypeFact] ->
     case values {
         [] -> List.new[InferredTypeFact]();
-        [value | rest] -> [InferredTypeFact(
-            node_id = value.node_id,
-            type_name = merged_type(value, uses),
-            byte_offset = value.byte_offset,
-        ) | merge_facts(rest, uses)]
+        [value | rest] ->
+            [InferredTypeFact(
+    node_id = value.node_id,
+    type_name = merged_type(value, uses),
+    byte_offset = value.byte_offset,
+) | merge_facts(rest, uses)]
     }.
 
 @pure
-pub merge(
-    types: TypeConstraintResolution,
-    callables: CallableResolution,
-): TypeConstraintResolution ->
+has_fact(node_id: Int, byte_offset: Int, values: List[InferredTypeFact]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            if {
+                node_id >= 0 and value.node_id == node_id -> true;
+                node_id < 0 and value.node_id < 0 and value.byte_offset == byte_offset -> true;
+                true -> has_fact(node_id, byte_offset, rest)
+            }
+    }.
+
+@pure
+missing_facts(
+    values: List[ResolvedCallableUse],
+    facts: List[InferredTypeFact],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> List.new[InferredTypeFact]();
+        [value | rest] ->
+            case declaration_return_type(value) {
+                None -> missing_facts(rest, facts);
+                Some(type_name) ->
+                    if {
+                        has_fact(value.source.node_id, value.source.byte_offset, facts) -> missing_facts(rest, facts);
+                        true -> [InferredTypeFact(
+    node_id = value.source.node_id,
+    type_name = Some(type_name),
+    byte_offset = value.source.byte_offset,
+) | missing_facts(rest, facts)]
+                    }
+            }
+    }.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+pub merge(types: TypeConstraintResolution, callables: CallableResolution): TypeConstraintResolution ->
     TypeConstraintResolution(
-        facts = merge_facts(types.facts, callables.uses),
+        facts = append(merge_facts(types.facts, callables.uses), missing_facts(callables.uses, types.facts)),
         diagnostics = types.diagnostics,
     ).

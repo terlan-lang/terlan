@@ -3,32 +3,24 @@
  */
 module self_host.ProjectedCallableCatalog.
 
-import std.core.String.
-
-
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
-import std.core.String.{append, byte_size, starts_with, utf8_byte_at, utf8_slice}.
-import self_host.BackendSyntax.
 import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
-import self_host.ConstructorSyntax.
 import self_host.ConstructorSyntax.{ConstructorClauseSyntax, ConstructorSyntax}.
-import self_host.DeclarationClass.
-import self_host.Syntax.{ConstFunctionDeclaration, ConstructorDeclaration, FunctionDeclaration, MethodDeclaration}.
-import self_host.ModuleInterfaceSyntax.
-import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
-import self_host.ProjectedCallableSyntax.
-import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
 import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
-import self_host.ParameterSyntax.{ParameterSyntax}.
-import self_host.TypedModuleSyntax.
-
+import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
+import self_host.Syntax.{ConstFunctionDeclaration, ConstructorDeclaration, FunctionDeclaration, MethodDeclaration, TypeDeclaration}.
 import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, ImportPayload, MethodPayload, TypedDeclarationPayload}.
+import self_host.{BackendSyntax, ConstructorSyntax, DeclarationClass, ModuleInterfaceSyntax, ParameterSyntax, ProjectedCallableSyntax, TypedModuleSyntax}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+import std.core.String.{append, byte_size, starts_with, utf8_byte_at, utf8_slice}.
 
-some_return_type(value: String): Option[String] -> Some(value).
+some_return_type(value: String): Option[String] ->
+    Some(value).
 
-none_return_type(): Option[String] -> None.
+none_return_type(): Option[String] ->
+    None.
 
 callable_name_at(value: String, index: Int): String ->
     if {
@@ -40,7 +32,8 @@ callable_name_at(value: String, index: Int): String ->
         true -> callable_name_at(value, index + 1)
     }.
 
-callable_name(value: String): String -> callable_name_at(value, 0).
+callable_name(value: String): String ->
+    callable_name_at(value, 0).
 
 callable(
     module_name: String,
@@ -109,8 +102,8 @@ constructor_clauses(
 ): List[CallableDeclaration] ->
     case values {
         [] -> List.new[CallableDeclaration]();
-        [value | rest] -> [constructor_callable(module_name, name, value, byte_offset)
-            | constructor_clauses(module_name, name, rest, byte_offset)]
+        [value | rest] ->
+            [constructor_callable(module_name, name, value, byte_offset) | constructor_clauses(module_name, name, rest, byte_offset)]
     }.
 
 constructor_callable(
@@ -143,10 +136,7 @@ function_kind(is_const: Bool): String ->
         true -> "function"
     }.
 
-local_declaration(
-    module_name: String,
-    value: BackendDeclaration,
-): List[CallableDeclaration] ->
+local_declaration(module_name: String, value: BackendDeclaration): List[CallableDeclaration] ->
     local_function_payload(module_name, value, value.payload).
 
 local_function_payload(
@@ -155,17 +145,23 @@ local_function_payload(
     payload: TypedDeclarationPayload,
 ): List[CallableDeclaration] ->
     case payload {
-        FunctionPayload(function) -> [callable(
-            module_name,
-            callable_name(value.symbol_name),
-            function.typed_parameters.length(),
-            function_kind(function.is_const),
-            false,
-            callable_type_parameters(value.symbol_name),
-            parameter_types(function.typed_parameters),
-            selected_return_type(function.return_type.valid, function.return_type.syntax.text),
-            declaration_offset(value),
-        )];
+        FunctionPayload(function) ->
+            [
+                callable(
+                    module_name,
+                    callable_name(value.symbol_name),
+                    function.typed_parameters.length(),
+                    function_kind(function.is_const),
+                    false,
+                    callable_type_parameters(value.symbol_name),
+                    parameter_types(function.typed_parameters),
+                    selected_return_type(
+                        function.return_type.valid,
+                        function.return_type.syntax.text,
+                    ),
+                    declaration_offset(value),
+                ),
+            ];
         _ -> local_method_payload(module_name, value, payload)
     }.
 
@@ -175,17 +171,20 @@ local_method_payload(
     payload: TypedDeclarationPayload,
 ): List[CallableDeclaration] ->
     case payload {
-        MethodPayload(method) -> [callable(
-            module_name,
-            callable_name(value.symbol_name),
-            method.parameters.length() + 1,
-            "method",
-            method.receiver.is_mutable,
-            callable_type_parameters(value.symbol_name),
-            [parameter_type(method.receiver) | parameter_types(method.parameters)],
-            selected_return_type(method.return_type.valid, method.return_type.syntax.text),
-            declaration_offset(value),
-        )];
+        MethodPayload(method) ->
+            [
+                callable(
+                    module_name,
+                    callable_name(value.symbol_name),
+                    method.parameters.length() + 1,
+                    "method",
+                    method.receiver.is_mutable,
+                    callable_type_parameters(value.symbol_name),
+                    [parameter_type(method.receiver) | parameter_types(method.parameters)],
+                    selected_return_type(method.return_type.valid, method.return_type.syntax.text),
+                    declaration_offset(value),
+                ),
+            ];
         _ -> local_constructor_payload(module_name, value, payload)
     }.
 
@@ -195,12 +194,13 @@ local_constructor_payload(
     payload: TypedDeclarationPayload,
 ): List[CallableDeclaration] ->
     case payload {
-        ConstructorPayload(constructor_payload) -> constructor_clauses(
-            module_name,
-            callable_name(value.symbol_name),
-            constructor_payload.clauses,
-            declaration_offset(value),
-        );
+        ConstructorPayload(constructor_payload) ->
+            constructor_clauses(
+                module_name,
+                callable_name(value.symbol_name),
+                constructor_payload.clauses,
+                declaration_offset(value),
+            );
         _ -> List.new[CallableDeclaration]()
     }.
 
@@ -232,14 +232,8 @@ local_at(
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
-        [value | rest] -> local_at(
-            module_name,
-            rest,
-            prepend_all(
-            local_declaration(module_name, value),
-                output,
-            ),
-        )
+        [value | rest] ->
+            local_at(module_name, rest, prepend_all(local_declaration(module_name, value), output))
     }.
 
 is_callable_class(value: DeclarationClass): Bool ->
@@ -267,7 +261,8 @@ is_constructor_callable_class(value: DeclarationClass): Bool ->
     }.
 
 is_callable_symbol(value: ExportedSymbol): Bool ->
-    value.owner == None and is_callable_class(value.class).
+    value.owner == None and is_callable_class(value.class)
+        or value.owner != None and value.class == TypeDeclaration and value.arity > 0.
 
 class_kind(value: DeclarationClass): String ->
     case value {
@@ -284,13 +279,11 @@ method_class_kind(value: DeclarationClass): String ->
 constructor_class_kind(value: DeclarationClass): String ->
     case value {
         ConstructorDeclaration -> "constructor";
+        TypeDeclaration -> "constructor";
         _ -> "function"
     }.
 
-interface_symbols(
-    module_name: String,
-    values: List[ExportedSymbol],
-): List[CallableDeclaration] ->
+interface_symbols(module_name: String, values: List[ExportedSymbol]): List[CallableDeclaration] ->
     case values {
         [] -> List.new[CallableDeclaration]();
         [value | rest] -> interface_symbol(module_name, value, rest)
@@ -302,8 +295,7 @@ interface_symbol(
     rest: List[ExportedSymbol],
 ): List[CallableDeclaration] ->
     if {
-        is_callable_symbol(value) -> [interface_callable(module_name, value)
-            | interface_symbols(module_name, rest)];
+        is_callable_symbol(value) -> [interface_callable(module_name, value) | interface_symbols(module_name, rest)];
         true -> interface_symbols(module_name, rest)
     }.
 
@@ -327,11 +319,8 @@ interface_symbols_at(
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
-        [value | rest] -> interface_symbols_at(
-            module_name,
-            rest,
-            interface_output(module_name, value, output),
-        )
+        [value | rest] ->
+            interface_symbols_at(module_name, rest, interface_output(module_name, value, output))
     }.
 
 interface_output(
@@ -353,17 +342,20 @@ selected_item(name: String, values: List[ImportItemSyntax]): Bool ->
 import_exposes_symbol(value: ImportSyntax, symbol: ExportedSymbol): Bool ->
     not value.is_selected or selected_item(callable_name(symbol.name), value.items).
 
-selected_submodule(
-    module_name: String,
-    parent: String,
-    values: List[ImportItemSyntax],
-): Bool ->
+import_visibility(value: ImportSyntax, module_name: String): String ->
+    if {
+        value.is_selected -> "";
+        true -> module_name
+    }.
+
+selected_submodule(module_name: String, parent: String, values: List[ImportItemSyntax]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            module_name == append(parent, append(".", value.name)) -> true;
-            true -> selected_submodule(module_name, parent, rest)
-        }
+        [value | rest] ->
+            if {
+                module_name == append(parent, append(".", value.name)) -> true;
+                true -> selected_submodule(module_name, parent, rest)
+            }
     }.
 
 direct_import_symbols_at(
@@ -374,12 +366,12 @@ direct_import_symbols_at(
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
-        [value | rest] -> if {
-            imported_name == append(module_name, append(".", callable_name(value.name)))
-                and is_callable_symbol(value) ->
-                    [interface_callable(module_name, value) | output];
-            true -> direct_import_symbols_at(imported_name, module_name, rest, output)
-        }
+        [value | rest] ->
+            if {
+                imported_name == append(module_name, append(".", callable_name(value.name)))
+                    and is_callable_symbol(value) -> [interface_callable("", value) | output];
+                true -> direct_import_symbols_at(imported_name, module_name, rest, output)
+            }
     }.
 
 direct_symbol_import(imported_name: String, module_name: String): Bool ->
@@ -393,16 +385,16 @@ imported_interface_symbols_at(
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
-        [value | rest] -> if {
-            import_exposes_symbol(imported, value) and is_callable_symbol(value) ->
-                imported_interface_symbols_at(
+        [value | rest] ->
+            if {
+                import_exposes_symbol(imported, value) and is_callable_symbol(value) -> imported_interface_symbols_at(
                     imported,
                     module_name,
                     rest,
-                    [interface_callable(module_name, value) | output],
+                    [interface_callable(import_visibility(imported, module_name), value) | output],
                 );
-            true -> imported_interface_symbols_at(imported, module_name, rest, output)
-        }
+                true -> imported_interface_symbols_at(imported, module_name, rest, output)
+            }
     }.
 
 interface_import_at(
@@ -413,21 +405,19 @@ interface_import_at(
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
-        [value | rest] -> case value.payload {
-            ImportPayload(imported) -> if {
-                imported.valid and imported.module_name == module_name ->
-                    imported_interface_symbols_at(imported, module_name, symbols, output);
-                imported.valid and imported.is_selected and selected_submodule(
-                    module_name,
-                    imported.module_name,
-                    imported.items,
-                ) -> interface_symbols_at(module_name, symbols, output);
-                imported.valid and direct_symbol_import(imported.module_name, module_name) ->
-                    direct_import_symbols_at(imported.module_name, module_name, symbols, output);
-                true -> interface_import_at(module_name, symbols, rest, output)
-            };
-            _ -> interface_import_at(module_name, symbols, rest, output)
-        }
+        [value | rest] ->
+            case value.payload {
+                ImportPayload(imported) ->
+                    if {
+                        imported.valid and imported.module_name == module_name -> imported_interface_symbols_at(imported, module_name, symbols, output);
+                        imported.valid
+                            and imported.is_selected
+                            and selected_submodule(module_name, imported.module_name, imported.items) -> interface_symbols_at(module_name, symbols, output);
+                        imported.valid and direct_symbol_import(imported.module_name, module_name) -> direct_import_symbols_at(imported.module_name, module_name, symbols, output);
+                        true -> interface_import_at(module_name, symbols, rest, output)
+                    };
+                _ -> interface_import_at(module_name, symbols, rest, output)
+            }
     }.
 
 interfaces_at(
@@ -437,33 +427,34 @@ interfaces_at(
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
-        [value | rest] -> interfaces_at(
-            rest,
-            imports,
-            interface_import_at(value.module_name, value.symbols, imports, output),
-        )
+        [value | rest] ->
+            interfaces_at(
+                rest,
+                imports,
+                interface_import_at(value.module_name, value.symbols, imports, output),
+            )
     }.
 
 pub local(current_module: BackendModule): List[CallableDeclaration] ->
-    reverse(local_at(
-        current_module.module_name,
-        current_module.declarations,
-        List.new[CallableDeclaration](),
-    )).
+    reverse(
+        local_at(
+            current_module.module_name,
+            current_module.declarations,
+            List.new[CallableDeclaration](),
+        ),
+    ).
 
 pub build(
     current_module: BackendModule,
     imported_interfaces: List[ModuleInterface],
 ): List[CallableDeclaration] ->
     prepend_all(
-        local_at(
-            current_module.module_name,
-            current_module.declarations,
-            List.new[CallableDeclaration](),
+        local_at("", current_module.declarations, List.new[CallableDeclaration]()),
+        reverse(
+            interfaces_at(
+                imported_interfaces,
+                current_module.declarations,
+                List.new[CallableDeclaration](),
+            ),
         ),
-        reverse(interfaces_at(
-            imported_interfaces,
-            current_module.declarations,
-            List.new[CallableDeclaration](),
-        )),
     ).

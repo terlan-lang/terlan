@@ -1,0 +1,38 @@
+/**
+ * Shared-offset lexical binding type regression tests.
+ */
+module self_host.ProjectedBindingSpecificityTest.
+
+import self_host.ProjectedBindingSyntax.{BindingReference, BindingResolution}.
+import self_host.ProjectedBindingTypeMerge.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+import std.test.Test.{assert_equal}.
+
+type_at(node_id: Int, values: List[InferredTypeFact]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.node_id == node_id -> value.type_name;
+                true -> type_at(node_id, rest)
+            }
+    }.
+
+@test
+pub enclosing_node_does_not_inherit_leaf_binding_type(): Bool ->
+    let types =
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(-6, Some("String"), 5),
+                InferredTypeFact(0, None, 10),
+                InferredTypeFact(1, None, 10),
+            ],
+            [],
+        );
+    let bindings = BindingResolution([], [BindingReference("text", 10, Some(5))], []);
+    let merged = ProjectedBindingTypeMerge.merge(types, bindings, []);
+    assert_equal(None, type_at(0, merged.facts))
+        and assert_equal(Some("String"), type_at(1, merged.facts)).
