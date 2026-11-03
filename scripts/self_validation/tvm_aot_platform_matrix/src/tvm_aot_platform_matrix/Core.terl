@@ -411,7 +411,17 @@ run_command(
     }.
 
 cargo_validation_target(root: String): String ->
-    child(root, "target/self-validation/tvm-aot-platform-cargo").
+    child(root, "target").
+
+release_vm(root: String): String ->
+    let platform = Platform.current();
+    child(
+        root,
+        if {
+            platform.operating_system == "windows" -> "target/release/terlan-vm.exe";
+            true -> "target/release/terlan-vm"
+        },
+    ).
 
 run_native_tests(root: String): Bool ->
     let platform = Platform.current();
@@ -447,7 +457,7 @@ run_package_consumer(root: String): Bool ->
     case run_command(
         root,
         "package consumer",
-        child(cargo_validation_target(root), "debug/terlan-vm"),
+        release_vm(root),
         [
             "run",
             child(
@@ -614,68 +624,43 @@ pub run_target(): Bool ->
     case host_target() {
         None -> false;
         Some(target) ->
-            let debug_build =
-                run_command(
-                    root,
-                    "debug compiler build",
-                    "cargo",
-                    [
-                        "build",
-                        "--locked",
-                        "--target-dir",
-                        cargo_validation_target(root),
-                        "--no-default-features",
-                        "--features",
-                        "native-codegen",
-                        "-p",
-                        "terlan",
-                        "--bin",
-                        "terlc",
-                        "--bin",
-                        "terlan-vm",
-                    ],
-                );
-            case debug_build {
-                None -> false;
-                Some(_debug_output) ->
-                    if {
-                        not run_package_consumer(root) -> false;
-                        not run_native_tests(root) -> false;
-                        true -> let release_build =
-                            run_command(
-                                root,
-                                "release compiler build",
-                                "cargo",
-                                [
-                                    "build",
-                                    "--locked",
-                                    "--no-default-features",
-                                    "--release",
-                                    "-p",
-                                    "terlan",
-                                    "--features",
-                                    "native-codegen,editor-lsp",
-                                    "--bin",
-                                    "terlc",
-                                    "--bin",
-                                    "terlan-vm",
-                                    "--bin",
-                                    "terlan-native-worker",
-                                    "--bin",
-                                    "terlan-lsp",
-                                ],
-                            );
-                        case release_build {
-                            None -> false;
-                            Some(_release_output) ->
-                                if {
-                                    not run_release_tool(root, "package") -> false;
-                                    not run_release_tool(root, "smoke") -> false;
-                                    not run_release_tool(root, "installer-smoke") -> false;
-                                    true -> finish_target(root, target)
-                                }
+            if {
+                not run_native_tests(root) -> false;
+                true -> let release_build =
+                    run_command(
+                        root,
+                        "release compiler build",
+                        "cargo",
+                        [
+                            "build",
+                            "--locked",
+                            "--no-default-features",
+                            "--release",
+                            "-p",
+                            "terlan",
+                            "--features",
+                            "native-codegen,editor-lsp",
+                            "--bin",
+                            "terlc",
+                            "--bin",
+                            "terlan-vm",
+                            "--bin",
+                            "terlan-native-worker",
+                            "--bin",
+                            "terlan-lsp",
+                        ],
+                    );
+                case release_build {
+                    None -> false;
+                    Some(_release_output) ->
+                        if {
+                            not run_package_consumer(root) -> false;
+                            not run_release_tool(root, "package") -> false;
+                            not run_release_tool(root, "smoke") -> false;
+                            not run_release_tool(root, "installer-smoke") -> false;
+                            true -> finish_target(root, target)
                         }
-                    }
+                }
             }
     }.
 
@@ -723,9 +708,38 @@ pub workflow_text_valid(workflow: String): Bool ->
                 "uses: actions/checkout@",
                 "uses: actions/upload-artifact@",
                 "uses: actions/download-artifact@",
+                "cache-build: \"true\"",
             ],
         )
     }.
+
+pub compiled_cache_text_valid(action: String): Bool ->
+    fragments_present(
+        action,
+        [
+            "cache-build:",
+            "Cache compiled Rust dependencies",
+            "target/debug/.fingerprint",
+            "target/debug/build",
+            "target/debug/deps",
+            "target/release/.fingerprint",
+            "target/release/build",
+            "target/release/deps",
+            "github.sha",
+            "github.job",
+            "restore-keys:",
+        ],
+    ).
+
+pub platform_runner_text_valid(source: String): Bool ->
+    let isolated_target = String.concat(["target/self-validation/tvm-aot-platform-", "cargo"]);
+    let duplicate_build = String.concat(["\"debug compiler ", "build\""]);
+    not source.contains(isolated_target)
+        and not source.contains(duplicate_build)
+        and source.contains("child(root, \"target\")")
+        and source.contains("target/release/terlan-vm")
+        and source.contains("not run_native_tests(root) -> false")
+        and source.contains("not run_package_consumer(root) -> false").
 
 pub native_setup_text_valid(action: String): Bool ->
     let normalized_action = String.replace(action, "\r\n", "\n");
@@ -764,6 +778,14 @@ pub workflow_contract(): Bool ->
         Ok(ci) <- read_text(child(root, ".github/workflows/ci.yml"));
         Ok(release) <- read_text(child(root, ".github/workflows/release.yml"));
         Ok(native_setup) <- read_text(child(root, ".github/actions/setup-native-dependencies/action.yml"));
+        Ok(rust_setup) <- read_text(child(root, ".github/actions/setup-rust/action.yml"));
+        Ok(platform_runner) <-
+            read_text(
+                child(
+                    root,
+                    "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl",
+                ),
+            );
         Ok(makefile) <- read_text(child(root, "Makefile"))
     } else {
         _ -> failure("workflow", "cannot read workflow contract inputs")
@@ -771,6 +793,8 @@ pub workflow_contract(): Bool ->
     if {
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
         not native_setup_text_valid(native_setup) -> failure("workflow", "target-native dependency action drifted");
+        not compiled_cache_text_valid(rust_setup) -> failure("workflow", "compiled Rust cache contract drifted");
+        not platform_runner_text_valid(platform_runner) -> failure("workflow", "platform runner rebuild contract drifted");
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");

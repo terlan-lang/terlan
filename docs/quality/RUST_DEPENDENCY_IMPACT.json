@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "0cd4adb70d38f7a71c9a3916fe8a31f381b7dcb74c6d84fb85fc8176a836f4b7",
+  "compilation_input_sha256": "bd9447fc470f2ecb181a8b4fc6c9d6f05fcf2335a2e820c82b2b04741c2148b6",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -50,7 +50,7 @@
     },
     {
       "domain": "formal_pipeline",
-      "reference_sites": 81,
+      "reference_sites": 82,
       "source_domains": [
         "commands",
         "lsp",
@@ -804,7 +804,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 79,
+      "reference_sites": 80,
       "to": "formal_pipeline"
     },
     {
@@ -926,8 +926,8 @@
     },
     {
       "name": "commands",
-      "physical_lines": 139087,
-      "rust_files": 421
+      "physical_lines": 139264,
+      "rust_files": 422
     },
     {
       "name": "compiler",

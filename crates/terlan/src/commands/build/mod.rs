@@ -112,6 +112,8 @@ mod build_test;
 use build_orchestration::*;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use build_orchestration::{resolve_project_test_dependencies, run, run_package_command};
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use source_roots::prepare_source_root_interfaces;
 
 /// Lists the exact source files used for build and run target inference.
 pub(crate) fn target_inference_sources(path: &Path) -> Result<Vec<PathBuf>, String> {

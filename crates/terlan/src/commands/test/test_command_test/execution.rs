@@ -739,6 +739,66 @@ fn run_project_test_inside_source_root_compiles_active_module_once() {
     assert_eq!(result, ExitCode::SUCCESS);
 }
 
+/// Verifies a focused project test compiles only its transitive import closure.
+#[test]
+fn focused_project_test_skips_unreachable_source_modules() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_vm_focused_test_closure_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos(),
+    ));
+    fs::create_dir_all(root.join("src/app")).expect("source root");
+    fs::create_dir_all(root.join("tests/app")).expect("test root");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\n",
+    )
+    .expect("project manifest");
+    fs::write(
+        root.join("src/app/Leaf.terl"),
+        "module app.Leaf.\npub answer(): Int -> 42.\n",
+    )
+    .expect("transitive source");
+    fs::write(
+        root.join("src/app/Used.terl"),
+        "module app.Used.\nimport app.Leaf.\npub answer(): Int -> Leaf.answer().\n",
+    )
+    .expect("direct source");
+    fs::write(
+        root.join("src/app/Unused.terl"),
+        "module app.Unused.\npub broken(): Int -> \"not an int\".\n",
+    )
+    .expect("unreachable invalid source");
+    let test = root.join("tests/app/FocusedTest.terl");
+    fs::write(
+        &test,
+        concat!(
+            "module app.FocusedTest.\n",
+            "import app.Used.\n\n",
+            "@test\n",
+            "pub imported_closure_executes(): Bool -> Used.answer() == 42.\n",
+        ),
+    )
+    .expect("focused test");
+
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![test.to_string_lossy().into_owned()],
+        },
+        CliState {
+            out_dir: root.join("out"),
+            cache_dir: Some(root.join(".terlan")),
+            ..CliState::default()
+        },
+    );
+    fs::remove_dir_all(root).expect("remove focused test fixture");
+    assert_eq!(result, ExitCode::SUCCESS);
+}
+
 /// Verifies project tests resolve local package dependencies through build semantics.
 ///
 /// Inputs:

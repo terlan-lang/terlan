@@ -237,6 +237,7 @@ workflow_contract_valid(workflow: String): Bool ->
         workflow,
         [
             "uses: ./.github/actions/setup-rust",
+            "cache-build: \"true\"",
             String.concat(["targets: ", target()]),
             "make vm-multicore-thread-sanitizer-check",
             "vm-multicore-thread-sanitizer-report.json",
@@ -250,6 +251,9 @@ setup_rust_contract_valid(action: String): Bool ->
             String.concat(["default: ", toolchain()]),
             "arguments=(toolchain install \"$TERLAN_RUST_TOOLCHAIN\" --profile minimal)",
             "arguments+=(--target \"$TERLAN_RUST_TARGETS\")",
+            "Cache compiled Rust dependencies",
+            "target/debug/deps",
+            "target/release/deps",
         ],
     ).
 

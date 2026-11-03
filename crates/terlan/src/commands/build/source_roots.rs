@@ -35,7 +35,7 @@ pub(super) struct SourceRootBuildUnit {
 /// This is intentionally narrower than `terlc check`: it parses and validates
 /// module layout, then writes `.typi` files so the following per-module build
 /// pass can resolve imports while doing the actual typecheck only once.
-pub(super) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> Result<(), String> {
+pub(crate) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> Result<(), String> {
     let cache_dir = state
         .cache_dir
         .as_deref()

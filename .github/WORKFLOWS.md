@@ -119,7 +119,9 @@ always executes the complete cycle on the current host. The strict contract
 self-test rejects incomplete target rows and malformed aggregate data without
 making artifact upload or hosted retention a completion requirement.
 For an actual release-validation run, every native runner also builds and
-installer-smokes its own archive. The final job rejects anything other than the
+installer-smokes its own archive. Native library tests and the optimized release
+tools share the workspace Cargo target; the platform validator does not build a
+second isolated debug compiler. The final job rejects anything other than the
 exact six archives and six matching checksum sidecars, then retains that joined
 distribution under the successful run.
 Matrix aggregation and final archive/contract validation share that job and
@@ -245,9 +247,12 @@ account, or retained hosted artifact.
 
 Workflow actions are pinned to immutable commits and updated by Dependabot.
 Checkout credentials are never persisted. The shared setup action pins Rust
-1.96.0, installs only the Rustfmt and Clippy components exercised by the stable
-workflow lanes, and caches only Cargo registry inputs; compiled `target/` trees
-are not shared between jobs or retained in GitHub caches. ThreadSanitizer owns
+1.96.0 and installs only the components exercised by each lane. Long validation
+jobs cache Cargo registry inputs plus compiled dependency, build-script, and
+fingerprint directories; incremental state and final executables are excluded.
+The cache key binds the host, toolchain, manifests, commit, and job. An exact
+commit may seed a later job, while each job saves its completed cache under a
+distinct key instead of freezing a partial preflight cache. ThreadSanitizer owns
 its separate pinned nightly `rust-src` installation. Developer coverage support
 remains declared in `rust-toolchain.toml` without making every hosted matrix
 lane download `rust-src` and LLVM tools it never executes.
@@ -309,7 +314,10 @@ instead of each issuing equivalent `cargo check` calls, and repository
 validation rejects direct Cargo recipes that bypass the locked wrapper.
 Repeated exact `terlc test --name` selectors compile one source and native
 application closure for their union, so grouped validation does not pay one
-compiler process per selected test. Tree-sitter validation bootstraps its exact locked npm
+compiler process per selected test. An explicit `terlc test <file>` performs the
+signature-only source-root prepass and lowers only that test's transitive import
+closure; directory and coverage runs retain complete project validation.
+Tree-sitter validation bootstraps its exact locked npm
 dependency on demand and keeps npm, home, and parser caches under `target/tmp`,
 so clean checkouts and cleanup use the same reproducible path.
 Artifact-budget measurement reuses a prior sealed report only while source and

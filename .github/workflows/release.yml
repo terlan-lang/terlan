@@ -113,6 +113,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           components: ""
+          cache-build: "true"
 
       - name: Validate macOS process ownership
         if: runner.os == 'macOS'
@@ -170,6 +171,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           components: ""
+          cache-build: "true"
 
       - name: Install pinned Rust ThreadSanitizer toolchain
         run: rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src
@@ -207,6 +209,7 @@ jobs:
         with:
           targets: x86_64-unknown-linux-gnutsan
           components: ""
+          cache-build: "true"
 
       - name: Validate multicore VM memory safety
         run: make vm-multicore-thread-sanitizer-check
@@ -249,6 +252,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
+        with:
+          cache-build: "true"
 
       - name: Download target execution attestations
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

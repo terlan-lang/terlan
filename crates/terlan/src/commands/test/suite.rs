@@ -10,11 +10,11 @@ use super::arguments::TestArgs;
 use super::coverage::DeclarationCoverage;
 use super::discovery::{discover_tests, select_tests, DiscoveredTest, TestKind};
 use super::execution::{
-    compile_imported_std_source_core_modules, compile_project_source_core_modules,
-    finish_declaration_coverage, print_benchmark_report, print_runtime_test_report,
-    TestCompiledModule, TestProjectContext,
+    compile_imported_std_source_core_modules, finish_declaration_coverage, print_benchmark_report,
+    print_runtime_test_report, TestCompiledModule, TestProjectContext,
 };
 use super::manifest::{print_validation_report, validation_report};
+use super::project_closure::compile_project_source_core_modules;
 use super::project_context::{
     discover_test_project_context, discover_test_project_root, prepare_test_project_context,
     test_target_profile_options,

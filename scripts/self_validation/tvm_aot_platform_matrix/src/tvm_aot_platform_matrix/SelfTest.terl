@@ -10,7 +10,7 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.File.{read_text}.
 import std.system.Environment.
-import tvm_aot_platform_matrix.Core.{build_matrix, json_string, matrix_schema, native_setup_text_valid, official_repository, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
+import tvm_aot_platform_matrix.Core.{build_matrix, compiled_cache_text_valid, json_string, matrix_schema, native_setup_text_valid, official_repository, platform_runner_text_valid, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -139,6 +139,8 @@ provenance_self_test(): Bool ->
 self_test_assertions(
     ci: String,
     native_setup: String,
+    rust_setup: String,
+    platform_runner: String,
     valid_matrix: Json,
     incomplete: List[Report],
 ): Bool ->
@@ -167,6 +169,8 @@ self_test_assertions(
         );
     let missing_pkgconf = String.replace(native_setup, " \"pkgconf:$triplet\"", "");
     let masked_installer_failure = String.replace(native_setup, "$LASTEXITCODE -ne 0", "$false");
+    let missing_compiled_cache = String.replace(rust_setup, "target/release/deps", "target/release/omitted");
+    let isolated_platform_runner = String.append(platform_runner, "\ntarget/self-validation/tvm-aot-platform-cargo");
     if {
         not workflow_contract() -> false;
         not workflow_text_valid(crlf_ci) -> failure("workflow checker rejected Windows line endings");
@@ -179,6 +183,10 @@ self_test_assertions(
         not native_setup_text_valid(native_setup) -> failure("native dependency action rejected valid input");
         native_setup_text_valid(missing_pkgconf)
             or native_setup_text_valid(masked_installer_failure) -> failure("native dependency checker admitted invalid input");
+        not compiled_cache_text_valid(rust_setup) -> failure("compiled cache action rejected valid input");
+        compiled_cache_text_valid(missing_compiled_cache) -> failure("compiled cache checker admitted incomplete inputs");
+        not platform_runner_text_valid(platform_runner) -> failure("platform runner rejected the shared build target");
+        platform_runner_text_valid(isolated_platform_runner) -> failure("platform runner admitted an isolated duplicate build target");
         not provenance_self_test() -> failure("provenance checker admitted invalid input");
         not matrix_schema_valid(valid_matrix) -> failure("valid matrix did not aggregate");
         matrix_present(incomplete) -> failure("incomplete executable checks passed");
@@ -198,17 +206,37 @@ self_test_assertions(
         true
     }.
 
-self_test_with_matrix(ci: String, native_setup: String, valid_matrix: Json): Bool ->
+self_test_with_matrix(
+    ci: String,
+    native_setup: String,
+    rust_setup: String,
+    platform_runner: String,
+    valid_matrix: Json,
+): Bool ->
     case replace_last_with("executed_checks", string_array(["compiler-generated-image"])) {
-        Some(incomplete) -> self_test_assertions(ci, native_setup, valid_matrix, incomplete);
+        Some(incomplete) ->
+            self_test_assertions(
+                ci,
+                native_setup,
+                rust_setup,
+                platform_runner,
+                valid_matrix,
+                incomplete,
+            );
         None -> failure("cannot construct incomplete fixture")
     }.
 
-self_test_with_ci(ci: String, native_setup: String): Bool ->
+self_test_with_ci(
+    ci: String,
+    native_setup: String,
+    rust_setup: String,
+    platform_runner: String,
+): Bool ->
     let fixture_targets = targets();
     let reports = fixture_reports(fixture_targets);
     case build_matrix(reports) {
-        Some(valid_matrix) -> self_test_with_matrix(ci, native_setup, valid_matrix);
+        Some(valid_matrix) ->
+            self_test_with_matrix(ci, native_setup, rust_setup, platform_runner, valid_matrix);
         None -> failure("cannot construct valid matrix fixture")
     }.
 
@@ -217,7 +245,15 @@ pub self_test(): Bool ->
     case {
         read_text(String.append(root, "/.github/workflows/ci.yml")),
         read_text(String.append(root, "/.github/actions/setup-native-dependencies/action.yml")),
+        read_text(String.append(root, "/.github/actions/setup-rust/action.yml")),
+        read_text(
+            String.append(
+                root,
+                "/scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl",
+            ),
+        ),
     } {
-        {Ok(ci), Ok(native_setup)} -> self_test_with_ci(ci, native_setup);
+        {Ok(ci), Ok(native_setup), Ok(rust_setup), Ok(platform_runner)} ->
+            self_test_with_ci(ci, native_setup, rust_setup, platform_runner);
         _ -> failure("cannot read platform workflow fixtures")
     }.

@@ -14,6 +14,10 @@ inputs:
     description: Comma-separated rustup components required by the workflow.
     required: false
     default: rustfmt,clippy
+  cache-build:
+    description: Restore and retain compiled Cargo dependencies for long validation jobs.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -28,6 +32,23 @@ runs:
         key: terlan-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
         restore-keys: |
           terlan-cargo-v1-${{ runner.os }}-${{ runner.arch }}-
+
+    - name: Cache compiled Rust dependencies
+      if: inputs.cache-build == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: |
+          target/debug/.fingerprint
+          target/debug/build
+          target/debug/deps
+          target/release/.fingerprint
+          target/release/build
+          target/release/deps
+        key: terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-${{ github.sha }}-${{ github.job }}
+        restore-keys: |
+          terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-${{ github.sha }}-
+          terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
+          terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-
 
     - name: Install exact Rust toolchain
       shell: bash

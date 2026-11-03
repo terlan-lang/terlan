@@ -6,6 +6,7 @@ mod manifest;
 mod manifest_evidence;
 #[cfg(test)]
 mod manifest_evidence_test;
+mod project_closure;
 mod project_context;
 mod style;
 mod suite;

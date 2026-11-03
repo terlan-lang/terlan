@@ -26,6 +26,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           components: rustfmt
+          cache-build: "true"
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
       - name: Check source inventory and test ownership

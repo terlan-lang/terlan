@@ -10,9 +10,10 @@ use super::manifest::{
     print_validation_report, validation_report, write_test_manifest, write_test_result_manifest,
     TestRunReport, TestRunStatus,
 };
+use super::project_closure::compile_project_source_core_closure;
 use super::project_context::{
-    is_test_source_path, prepare_test_project_context, run_js_test_directory,
-    run_terlan_vm_test_directory, test_target_profile_options,
+    discover_test_project_context, is_test_source_path, prepare_test_project_context,
+    run_js_test_directory, run_terlan_vm_test_directory, test_target_profile_options,
 };
 use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
@@ -287,14 +288,29 @@ pub(super) fn run_terlan_vm_test_file(
         return ExitCode::from(1);
     }
 
-    let (project_context, state) =
-        match prepare_test_project_context(path, state, TargetProfile::Vm) {
-            Ok(result) => result,
+    // A focused file owns only its import closure. Publish source signatures so
+    // imports resolve, then let closure compilation typecheck reachable modules.
+    let project_context =
+        match discover_test_project_context(Path::new(path), state.cache_dir.as_ref()) {
+            Ok(context) => context,
             Err(message) => {
                 eprintln!("{message}");
                 return ExitCode::from(1);
             }
         };
+    let mut state = state;
+    state.target_profile = TargetProfile::Vm;
+    if let Some(context) = project_context.as_ref() {
+        state.cache_dir = Some(context.cache_dir.clone());
+        for root in &context.source_roots {
+            if let Err(message) =
+                crate::commands::build::prepare_source_root_interfaces(root, &state)
+            {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        }
+    }
 
     let source = match crate::support::read_file(path) {
         Ok(source) => source,
@@ -358,7 +374,12 @@ pub(super) fn run_terlan_vm_test_file(
 
     let project_core_modules = match project_context.as_ref() {
         Some(context) => {
-            match compile_project_source_core_modules(context, &state, &[PathBuf::from(path)]) {
+            match compile_project_source_core_closure(
+                context,
+                &state,
+                &[PathBuf::from(path)],
+                &[&compiled.core],
+            ) {
                 Ok(modules) => modules,
                 Err(exit_code) => return exit_code,
             }
@@ -525,83 +546,6 @@ pub(super) fn finish_declaration_coverage(
             ExitCode::from(1)
         }
     }
-}
-
-/// Compiles project source-root modules for VM test execution.
-///
-/// Inputs:
-/// - `context`: project test context discovered from `terlan.toml`.
-/// - `state`: VM test command state with project cache and target profile.
-/// - `active_tests`: already compiled test files, excluded by filesystem identity.
-///
-/// Output:
-/// - Checked CoreIR modules for all source-root `.terl` files, or a command
-///   exit code when any source fails.
-///
-/// Transformation:
-/// - Reuses the formal compiler path after project source-root validation so
-///   tests can execute imported project functions inside the VM without
-///   falling back to generated Erlang, BEAM artifacts, or host-side stubs.
-pub(super) fn compile_project_source_core_modules(
-    context: &TestProjectContext,
-    state: &CliState,
-    active_tests: &[PathBuf],
-) -> Result<Vec<TestCompiledModule>, ExitCode> {
-    let mut compiled_paths = BTreeSet::new();
-    for active_test in active_tests {
-        let active_test = active_test.canonicalize().map_err(|error| {
-            eprintln!(
-                "cannot resolve active test {}: {error}",
-                active_test.display()
-            );
-            ExitCode::from(1)
-        })?;
-        compiled_paths.insert(active_test);
-    }
-    let mut modules = Vec::new();
-    for root in &context.source_roots {
-        let files = match crate::formal_pipeline::terlan_sources_in_dir(root) {
-            Ok(files) => files,
-            Err(message) => {
-                eprintln!("{message}");
-                return Err(ExitCode::from(1));
-            }
-        };
-        for file in files {
-            let canonical = file.canonicalize().map_err(|error| {
-                eprintln!("cannot resolve project source {}: {error}", file.display());
-                ExitCode::from(1)
-            })?;
-            if !compiled_paths.insert(canonical) {
-                continue;
-            }
-            let path = file.to_string_lossy().into_owned();
-            let source = match crate::support::read_file(&path) {
-                Ok(source) => source,
-                Err(message) => {
-                    eprintln!("{message}");
-                    return Err(ExitCode::from(1));
-                }
-            };
-            let compiled =
-                crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-                    &path,
-                    &source,
-                    state.diagnostic_format,
-                    state.cache_dir.as_deref(),
-                    state.native_policy,
-                    TargetProfile::Vm,
-                    test_target_profile_options(state, true),
-                )?;
-            modules.push(TestCompiledModule {
-                source_path: path,
-                source_text: source,
-                syntax: compiled.syntax_output,
-                core: compiled.core,
-            });
-        }
-    }
-    Ok(modules)
 }
 
 /// Compiles imported standard-library sources needed by standalone std tests.
