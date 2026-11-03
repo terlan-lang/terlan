@@ -47,7 +47,7 @@ peer(inventory: Json, large: Bool): Json ->
         .put("protocol_version", Json.string("2025-11-25"))
         .put(
             "peer_versions",
-            Json.object().put("mcp", Json.string("1.26.0")).put("jsonschema", Json.string("4.25.1")),
+            Json.object().put("mcp", Json.string("1.30.0")).put("jsonschema", Json.string("4.25.1")),
         )
         .put("compiler_digest", Json.string("compiler"))
         .put("fixture_digest", Json.string("fixture"))

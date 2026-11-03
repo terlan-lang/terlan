@@ -24,7 +24,7 @@ def validate(root):
     contract = load(contract_path)
     assert contract["schema"] == "terlan.semantic.service-contract.v1"
     assert contract["mcp_protocol_version"] == types.LATEST_PROTOCOL_VERSION
-    assert version("jsonschema") == "4.25.1" and version("mcp") == "1.26.0"
+    assert version("jsonschema") == "4.25.1" and version("mcp") == "1.30.0"
     schemas = {}
     inputs = [contract_path]
     spec_root = root / "tests/fixtures/llm_native/mcp"
@@ -137,7 +137,7 @@ def validate(root):
         "wire_spec_case_count": sum(case["model"] == "McpSpecMessage" for case in wire["cases"]),
         "limitations": ["Schema acceptance is not runtime/compiler verification.",
                          "Tool descriptors are SDK-validated fixtures, not server interoperability.",
-                         "SDK 1.26.0 requires an error ID; the official schema validates anonymous errors permitted by MCP."],
+                         "SDK 1.30.0 requires an error ID; the official schema validates anonymous errors permitted by MCP."],
     }
 
 

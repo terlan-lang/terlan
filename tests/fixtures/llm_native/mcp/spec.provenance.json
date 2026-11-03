@@ -7,7 +7,9 @@
     {
       "path": "spec.schema.json",
       "url": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/38c84e9f93ad191d9eb26d92b945d17bd0efcaf3/schema/2025-11-25/schema.json",
-      "sha256": "1ffe4c5577974012f5fa02af14ea88df4b7146679df1abaaad497c8d9230ca8a"
+      "source_sha256": "1ffe4c5577974012f5fa02af14ea88df4b7146679df1abaaad497c8d9230ca8a",
+      "normalization": "remove-one-terminal-empty-line",
+      "sha256": "7885bca2fcb40a3e693ca4f8c0672544323c17de7efaf9b8ce9f4dee0b5a8adf"
     },
     {
       "path": "spec.LICENSE",
@@ -15,5 +17,5 @@
       "sha256": "346e57dc40801e3d58165e97f64d45b42c4571a68a76ecb10c3c12858acecb3f"
     }
   ],
-  "scope": "Unmodified official schema and license, test-only oracle; the pinned Python SDK requires IDs on errors while the protocol permits anonymous errors."
+  "scope": "Official schema with one terminal empty line removed and unmodified license; test-only oracle; the pinned Python SDK requires IDs on errors while the protocol permits anonymous errors."
 }

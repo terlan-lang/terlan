@@ -18,7 +18,7 @@ from mcp.shared.exceptions import McpError
 
 
 async def validate(args):
-    assert version("mcp") == "1.26.0" and version("jsonschema") == "4.25.1"
+    assert version("mcp") == "1.30.0" and version("jsonschema") == "4.25.1"
     root = args.root.resolve()
     compiler = args.compiler.resolve()
     schemas = root / "compiler/semantic/schemas"

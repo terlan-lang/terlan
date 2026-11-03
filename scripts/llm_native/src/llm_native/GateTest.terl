@@ -17,7 +17,11 @@ import type std.data.Json.
 compiler(): String ->
     case Environment.get("TERLAN_LLM_NATIVE_TEST_COMPILER") {
         Some(path) -> path;
-        _ -> String.append(Environment.current_directory(), "/target/release/terlc")
+        _ ->
+            case Environment.get("TERLC") {
+                Some(path) -> path;
+                _ -> String.append(Environment.current_directory(), "/target/release/terlc")
+            }
     }.
 
 json(source: String): Json ->
@@ -31,7 +35,7 @@ peer(cases: String, digest: String): Json ->
         String.concat(
             [
                 "{\"schema\":\"terlan.semantic.contract-evidence.v1\",\"status\":\"passed\",\"kind\":\"schema_validation\",",
-                "\"mcp_protocol_version\":\"2025-11-25\",\"peer_versions\":{\"jsonschema\":\"4.25.1\",\"mcp\":\"1.26.0\"},",
+                "\"mcp_protocol_version\":\"2025-11-25\",\"peer_versions\":{\"jsonschema\":\"4.25.1\",\"mcp\":\"1.30.0\"},",
                 "\"source_closure_digest\":\"",
                 digest,
                 "\",\"case_count\":1,\"cases\":",
@@ -140,20 +144,17 @@ pub missing_or_malformed_peer_report_cannot_pass(): Bool ->
 
 @test
 pub subprocess_timeout_and_output_limit_fail(): Bool ->
-    let Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON") else {
-        _ -> false
-    };
-    (let timed_out =
-    case Gate.capture(python, ["-I", "-c", "import time; time.sleep(5)"], 20) {
-        Some(_) -> false;
-        _ -> true
-    };
-let excessive =
-    case Gate.capture(python, ["-I", "-c", "print('x' * 3000000)"], 2_000) {
-        Some(_) -> false;
-        _ -> true
-    };
-timed_out and excessive).
+    let timed_out =
+        case Gate.capture("/bin/sh", ["-c", "sleep 5"], 20) {
+            Some(_) -> false;
+            _ -> true
+        };
+    let excessive =
+        case Gate.capture("/bin/sh", ["-c", "head -c 3000000 /dev/zero"], 2_000) {
+            Some(_) -> false;
+            _ -> true
+        };
+    timed_out and excessive.
 
 @test
 pub wire_evidence_rejects_missing_and_unknown_cases(): Bool ->
@@ -207,20 +208,10 @@ created and empty_written and empty and duplicate_written and duplicate and actu
 
 @test
 pub baseline_preserves_timeout_diagnostic(): Bool ->
-    let {
-        Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
-        Ok(directory) <- Directory.create_temporary("terlan-llm-native-timeout-")
-    } else {
+    let Ok(directory) <- Directory.create_temporary("terlan-llm-native-timeout-") else {
         _ -> false
     };
-    (let row =
-    Baseline.capture_bounded(
-        python,
-        ["-I", "-c", "import time; time.sleep(5)"],
-        directory,
-        "timeout",
-        20,
-    );
+    (let row = Baseline.capture_bounded("/bin/sh", ["-c", "sleep 5"], directory, "timeout", 20);
 let correct =
     Evidence.text(row, "status") == "failed"
         and Evidence.text(row, "failure_kind") == "timed_out"

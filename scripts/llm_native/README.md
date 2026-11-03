@@ -7,7 +7,7 @@ compiler dependencies. The MCP compatibility baseline is 2025-11-25.
 The official protocol schema and license are pinned under
 `tests/fixtures/llm_native/mcp/spec.*`, with revision and SHA-256 provenance.
 The schema oracle checks anonymous errors directly against that official schema;
-SDK 1.26.0's error model requires an ID. The Terlan server omits unreadable IDs,
+SDK 1.30.0's error model requires an ID. The Terlan server omits unreadable IDs,
 preserves readable IDs in malformed requests, and never replies to peer errors.
 
 Create a test environment once:

@@ -131,7 +131,7 @@ pub admit_peer(
         and Evidence.text(report, "schema") == "terlan.semantic.mcp-peer-evidence.v1"
         and Evidence.text(report, "status") == "passed"
         and Evidence.text(report, "protocol_version") == "2025-11-25"
-        and Evidence.text(versions, "mcp") == "1.26.0"
+        and Evidence.text(versions, "mcp") == "1.30.0"
         and Evidence.text(versions, "jsonschema") == "4.25.1"
         and Evidence.text(report, "compiler_digest") == compiler_digest
         and Evidence.text(report, "fixture_digest") == fixture_digest

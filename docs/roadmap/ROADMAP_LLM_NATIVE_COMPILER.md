@@ -99,7 +99,7 @@ their self-hosted replacement passes its authority-transfer gates.
 | Progress, cancellation, and failures | MCP conventions for the supported revision | Stop compiler work, preserve transaction state, and return actionable semantic diagnostics |
 | Transaction lifetime and publication | Compiler tools invoked through standard MCP calls | Candidate handles, freshness checks, idempotent recovery, verification, atomic publication, and rollback |
 
-The initial contract pins MCP 2025-11-25, matching the independent SDK 1.26.0
+The initial contract pins MCP 2025-11-25, matching the independent SDK 1.30.0
 test peer. Its mappings follow the official [tools specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools),
 [resource specification](https://modelcontextprotocol.io/specification/2025-11-25/server/resources),
 [transport specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports),

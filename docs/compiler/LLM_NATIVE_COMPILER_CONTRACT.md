@@ -14,7 +14,7 @@ the [service inventory](../../compiler/semantic/contract.json) and the
 self-contained schemas in `compiler/semantic/schemas/`.
 
 The initial revision is deliberately pinned to MCP 2025-11-25, which the
-independent Python SDK 1.26.0 test peer supports. This is a compatibility
+independent Python SDK 1.30.0 test peer supports. This is a compatibility
 baseline, not a claim to implement newer revisions. The initial server offers
 standard stdio. Initialization selects only implemented revisions; a client
 that cannot accept the selected revision disconnects according to MCP's

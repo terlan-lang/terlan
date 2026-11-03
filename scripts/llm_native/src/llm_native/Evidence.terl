@@ -184,7 +184,7 @@ pub schema_report(report: Json, expected_digest: String, expected_ids: List[Stri
         and text(report, "source_closure_digest") == expected_digest
         and text(report, "mcp_protocol_version") == "2025-11-25"
         and text(peers, "jsonschema") == "4.25.1"
-        and text(peers, "mcp") == "1.26.0"
+        and text(peers, "mcp") == "1.30.0"
         and not List.is_empty(expected_ids)
         and List.length(actual_ids) == List.length(expected_ids)
         and List.is_empty(List.subtract(actual_ids, expected_ids))
