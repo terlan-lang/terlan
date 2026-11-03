@@ -634,17 +634,67 @@ source_roots = ["src"]
         ),
     )
     .expect("write project test");
+    fs::write(
+        root.join("tests/app/SecondTest.terl"),
+        concat!(
+            "module app.SecondTest.\n\n",
+            "import app.Math.\n\n",
+            "@test\n",
+            "pub second_module_uses_shared_source(): Bool ->\n",
+            "    Math.add(20, 22) == 42.\n",
+        ),
+    )
+    .expect("write second project test");
 
-    let exit_code = run(
-        CliCommand {
-            verb: Some("test".to_string()),
-            args: vec![root.join("tests").to_string_lossy().into_owned()],
-        },
-        CliState::default(),
+    let command = || CliCommand {
+        verb: Some("test".to_string()),
+        args: vec![root.join("tests").to_string_lossy().into_owned()],
+    };
+    let state = CliState {
+        out_dir: root.join("out"),
+        cache_dir: Some(root.join(".terlan")),
+        ..CliState::default()
+    };
+    let exit_code = run(command(), state.clone());
+    let suite_workspaces = fs::read_dir(root.join("out/test-aot"))
+        .expect("shared suite output")
+        .count();
+    assert_eq!(suite_workspaces, 1, "directory tests must build one suite");
+
+    fs::remove_dir_all(root.join("out/test-aot")).expect("remove suite output");
+    let cached_exit_code = run(command(), state.clone());
+    assert!(
+        !root.join("out/test-aot").exists(),
+        "unchanged test modules must not rebuild a native suite"
+    );
+    fs::write(
+        root.join("tests/app/SecondTest.terl"),
+        concat!(
+            "module app.SecondTest.\n\n",
+            "import app.Math.\n\n",
+            "@test\n",
+            "pub second_module_uses_shared_source(): Bool ->\n",
+            "    Math.add(21, 21) == 42.\n",
+        ),
+    )
+    .expect("change one test module");
+    let changed_exit_code = run(command(), state);
+    assert!(
+        root.join("out/test-aot").is_dir(),
+        "a changed test module must rebuild the suite"
+    );
+    assert_eq!(
+        fs::read_dir(root.join(".terlan/test-results/terlan-vm"))
+            .expect("test result cache")
+            .count(),
+        3,
+        "changing one test must preserve the sibling module result"
     );
     let _ = fs::remove_dir_all(&root);
 
     assert_eq!(exit_code, ExitCode::SUCCESS);
+    assert_eq!(cached_exit_code, ExitCode::SUCCESS);
+    assert_eq!(changed_exit_code, ExitCode::SUCCESS);
 }
 
 /// Tests inside a source root have one application owner, even with overlapping roots.

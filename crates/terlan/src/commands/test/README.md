@@ -48,7 +48,14 @@ must not count these entries as supported API coverage.
 
 The command accepts no path or one or more explicit test files and directories.
 With no path, `terlc test` uses the project `tests` directory. Each directory
-discovers `*Test.terl` files recursively in deterministic order. A multi-path
+discovers `*Test.terl` files recursively in deterministic order. Directory VM
+tests compile the project closure once and link every changed test module into
+one native suite image; they never rebuild the project once per test file.
+Successful VM results and JS validation results are content-addressed by the
+compiler revision, target, project source closure, native helpers, and the
+individual test module. Unchanged modules are skipped. Coverage, benchmarks,
+explicit `--name` selections, and `TERLAN_TEST_FORCE_RERUN=1` always execute;
+`terlc clean` removes the local result evidence. A multi-path
 request retains a separate dependency session and compilation result per path
 while amortizing compiler process startup; failure in one path does not prevent
 the remaining paths from reporting their results. Repeated `--name` flags
@@ -61,7 +68,8 @@ run by ordinary test commands and currently execute only on `terlan-vm`.
 The main flow is:
 
 1. Parse the optional source paths and optional target selector.
-2. Compile each source through formal syntax, HIR, typecheck, and CoreIR phases.
+2. Reuse unchanged successful module evidence, then compile changed sources
+   through formal syntax, HIR, typecheck, and CoreIR phases.
 3. Validate annotated test declarations.
 4. Optionally emit a source-level test discovery manifest for release gates and
    runner integrations.
@@ -127,6 +135,8 @@ from production test-command sources.
 
 - `mod.rs`: command argument parsing, formal compilation, test discovery,
   target runner dispatch, and directory traversal.
+- `suite.rs`: project-grouped VM/JS directory orchestration, shared native
+  suite construction, and content-addressed successful-result reuse.
 - `manifest.rs`: serializable manifest/result artifacts plus in-memory
   pass/fail report construction and rendering helpers.
 - `process_runner.rs`: generic bounded process execution helpers used by

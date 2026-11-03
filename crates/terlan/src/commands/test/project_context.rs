@@ -7,10 +7,8 @@ use crate::validation::target_profile::{TargetProfile, TargetProfileCheckOptions
 use crate::CliState;
 
 use super::arguments::{TestArgs, TEST_SOURCE_PATTERN_DESCRIPTION};
-use super::coverage::DeclarationCoverage;
-use super::execution::{
-    finish_declaration_coverage, run_js_tests, run_terlan_vm_test_file, TestProjectContext,
-};
+use super::execution::TestProjectContext;
+use super::suite::{run_js_test_files, run_terlan_vm_test_files};
 
 /// Validates all JavaScript test modules below one directory.
 ///
@@ -26,9 +24,8 @@ use super::execution::{
 ///
 /// Transformation:
 /// - Recursively discovers `*Test.terl` or legacy `*_test.terl` files in
-///   deterministic order, then delegates each file to the JS validation runner
-///   and aggregates status without inventing a directory-level manifest
-///   format.
+///   deterministic order, then validates each owning project once and reuses
+///   content-addressed validation evidence for unchanged modules.
 pub(super) fn run_js_test_directory(
     args: &TestArgs,
     state: CliState,
@@ -55,33 +52,7 @@ pub(super) fn run_js_test_directory(
         return ExitCode::from(1);
     }
 
-    let mut failed = false;
-    for file in files {
-        let file_args = TestArgs {
-            path: file.to_string_lossy().into_owned(),
-            additional_paths: Vec::new(),
-            target: args.target,
-            test_names: args.test_names.clone(),
-            benchmark: args.benchmark,
-            benchmark_warmup: args.benchmark_warmup,
-            benchmark_samples: args.benchmark_samples,
-            coverage: false,
-            coverage_threshold: None,
-            emit_test_manifest: None,
-            emit_test_result_manifest: None,
-        };
-        let mut file_state = state.clone();
-        file_state.target_profile = profile;
-        if run_js_tests(&file_args, file_state) != ExitCode::SUCCESS {
-            failed = true;
-        }
-    }
-
-    if failed {
-        ExitCode::from(1)
-    } else {
-        ExitCode::SUCCESS
-    }
+    run_js_test_files(args, state, profile, files)
 }
 
 /// Executes all test modules below one directory through the Terlan VM.
@@ -97,9 +68,8 @@ pub(super) fn run_js_test_directory(
 ///
 /// Transformation:
 /// - Recursively discovers `*Test.terl` or legacy `*_test.terl` files in
-///   deterministic order, then delegates each file to the VM runner and
-///   aggregates the command status without inventing a directory-level
-///   manifest format.
+///   deterministic order, then compiles the complete directory as shared
+///   project suites instead of rebuilding the project once per test file.
 pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> ExitCode {
     if args.emit_test_manifest.is_some() || args.emit_test_result_manifest.is_some() {
         eprintln!(
@@ -122,35 +92,7 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
         return ExitCode::from(1);
     }
 
-    let mut failed = false;
-    let mut coverage = args.coverage.then(DeclarationCoverage::default);
-    for file in files {
-        let file_args = TestArgs {
-            path: file.to_string_lossy().into_owned(),
-            additional_paths: Vec::new(),
-            target: args.target,
-            test_names: args.test_names.clone(),
-            benchmark: args.benchmark,
-            benchmark_warmup: args.benchmark_warmup,
-            benchmark_samples: args.benchmark_samples,
-            coverage: args.coverage,
-            coverage_threshold: args.coverage_threshold,
-            emit_test_manifest: None,
-            emit_test_result_manifest: None,
-        };
-        if run_terlan_vm_test_file(&file_args, state.clone(), coverage.as_mut())
-            != ExitCode::SUCCESS
-        {
-            failed = true;
-        }
-    }
-
-    let status = if failed {
-        ExitCode::from(1)
-    } else {
-        ExitCode::SUCCESS
-    };
-    finish_declaration_coverage(status, args.coverage_threshold, coverage.as_ref())
+    run_terlan_vm_test_files(args, state, files)
 }
 
 /// Prepares manifest source roots for one test file.
@@ -216,20 +158,7 @@ pub(super) fn discover_test_project_context(
     test_path: &Path,
     explicit_cache_dir: Option<&PathBuf>,
 ) -> Result<Option<TestProjectContext>, String> {
-    let canonical_test = match fs::canonicalize(test_path) {
-        Ok(path) => path,
-        Err(_) => return Ok(None),
-    };
-    let mut current = canonical_test.parent();
-    let mut project_root = None;
-    while let Some(dir) = current {
-        if dir.join("terlan.toml").is_file() {
-            project_root = Some(dir.to_path_buf());
-            break;
-        }
-        current = dir.parent();
-    }
-    let Some(root) = project_root else {
+    let Some(root) = discover_test_project_root(test_path) else {
         return Ok(None);
     };
 
@@ -243,10 +172,24 @@ pub(super) fn discover_test_project_context(
         .map_err(|error| format!("failed to resolve test project dependencies: {error}"))?;
 
     Ok(Some(TestProjectContext {
+        project_root: root,
         cache_dir,
         source_roots: dependencies.source_roots,
         native_helper_environment: dependencies.native_helper_environment,
     }))
+}
+
+/// Finds the nearest owning project without resolving or building dependencies.
+pub(super) fn discover_test_project_root(test_path: &Path) -> Option<PathBuf> {
+    let canonical_test = fs::canonicalize(test_path).ok()?;
+    let mut current = canonical_test.parent();
+    while let Some(dir) = current {
+        if dir.join("terlan.toml").is_file() {
+            return Some(dir.to_path_buf());
+        }
+        current = dir.parent();
+    }
+    None
 }
 
 /// Reads project metadata for VM-owned test execution.

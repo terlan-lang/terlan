@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 fn main() {
     emit_checked_frontend_revision();
     emit_native_codegen_revision();
+    emit_test_runner_revision();
     emit_native_build_policy();
     println!("cargo:rerun-if-changed=src/compiler/syntax/terlan_lalrpop.lalrpop");
     lalrpop::Configuration::new()
@@ -94,6 +95,24 @@ fn emit_native_codegen_revision() {
         collect_rust_sources(root, &mut sources);
     }
     emit_source_revision("TERLAN_NATIVE_CODEGEN_REVISION_SHA256", sources);
+}
+
+/// Binds successful test-result reuse to the runner and VM implementation.
+fn emit_test_runner_revision() {
+    let roots = [Path::new("src/commands/test"), Path::new("src/runtime/vm")];
+    let mut sources = Vec::new();
+    for root in roots {
+        collect_rust_sources(root, &mut sources);
+    }
+    sources.retain(|path| {
+        !path.components().any(|component| {
+            let component = component.as_os_str().to_string_lossy();
+            component == "tests" || component.ends_with("_test")
+        }) && !path
+            .file_name()
+            .is_some_and(|name| name.to_string_lossy().ends_with("_test.rs"))
+    });
+    emit_source_revision("TERLAN_TEST_RUNNER_REVISION_SHA256", sources);
 }
 
 /// Emits a deterministic content identity for one compiler source closure.

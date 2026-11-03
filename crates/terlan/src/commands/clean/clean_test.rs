@@ -92,6 +92,8 @@ fn clean_project_removes_generated_outputs_only() {
     let root = temp_dir("generated_outputs");
     fs::create_dir_all(root.join("_build/bin")).expect("create build output");
     fs::create_dir_all(root.join(".terlan/tmp/cache")).expect("create scratch output");
+    fs::create_dir_all(root.join(".terlan/test-results/terlan-vm"))
+        .expect("create test result cache");
     fs::create_dir_all(root.join(".terlan/packages/registry")).expect("create package cache");
     fs::create_dir_all(root.join("src/app")).expect("create source");
     fs::create_dir_all(root.join("src/.terlan/packages/registry"))
@@ -99,6 +101,11 @@ fn clean_project_removes_generated_outputs_only() {
     fs::create_dir_all(root.join("tests/app")).expect("create tests");
     fs::write(root.join("_build/bin/app"), "generated").expect("write generated artifact");
     fs::write(root.join(".terlan/tmp/cache/value"), "generated").expect("write scratch artifact");
+    fs::write(
+        root.join(".terlan/test-results/terlan-vm/result.passed"),
+        "generated",
+    )
+    .expect("write test result cache");
     fs::write(root.join(".terlan/app.Main.typi"), "generated").expect("write summary");
     fs::write(root.join(".terlan/app.Main.typi.deps"), "generated")
         .expect("write summary dependencies");
@@ -138,6 +145,7 @@ fn clean_project_removes_generated_outputs_only() {
         vec![
             root.join("_build"),
             root.join(".terlan/tmp"),
+            root.join(".terlan/test-results"),
             root.join(".terlan/app.Main.typi"),
             root.join(".terlan/app.Main.typi.deps"),
             root.join(".terlan/app.Main.typi.hash"),
@@ -147,6 +155,7 @@ fn clean_project_removes_generated_outputs_only() {
     );
     assert!(!root.join("_build").exists());
     assert!(!root.join(".terlan/tmp").exists());
+    assert!(!root.join(".terlan/test-results").exists());
     assert!(root.join(".terlan").exists());
     assert!(root.join(".terlan/settings.toml").exists());
     assert!(root.join(".terlan/packages/registry/package.typi").exists());

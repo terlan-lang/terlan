@@ -173,6 +173,12 @@ validated release candidate. Reports and failure traces are under
 `target/js-browser/`. Release-candidate source and report checks run before the
 browser matrix, so stale generated reports fail before recompiling the browser
 fixture corpus.
+Successful JavaScript and Playwright runs are content-addressed by their
+tracked sources, browser configuration, runner, exact `terlc` binary, Node, and
+npm. Repeating the gate with identical inputs reuses that evidence before
+dependency installation or browser startup. Set `TERLAN_TEST_FORCE_RERUN=1` to
+execute the matrix deliberately; `terlc clean` and target cleanup remove local
+result caches.
 The browser server selects a free port by default. Set `TERLAN_JS_TEST_PORT`
 to request a specific port; `0` selects an available port automatically.
 

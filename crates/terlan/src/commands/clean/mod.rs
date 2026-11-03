@@ -33,7 +33,7 @@ struct CleanArgs {
 /// - Centralizes the cleanup contract so command logic, tests, and docs do not
 ///   duplicate path strings.
 fn clean_output_paths() -> &'static [&'static str] {
-    &["_build", ".terlan/tmp"]
+    &["_build", ".terlan/tmp", ".terlan/test-results"]
 }
 
 /// Returns compiler summary artifacts stored in project-owned cache roots.

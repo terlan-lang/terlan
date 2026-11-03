@@ -8,6 +8,7 @@ mod manifest_evidence;
 mod manifest_evidence_test;
 mod project_context;
 mod style;
+mod suite;
 #[cfg(test)]
 mod test_shape_import_test;
 mod vm_runner;

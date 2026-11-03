@@ -41,6 +41,7 @@ use crate::{CliCommand, CliState};
 ///   resolution, instead of compiling the active test file in isolation.
 #[derive(Debug, Clone)]
 pub(super) struct TestProjectContext {
+    pub(super) project_root: PathBuf,
     pub(super) cache_dir: PathBuf,
     pub(super) source_roots: Vec<PathBuf>,
     pub(super) native_helper_environment: Vec<(String, PathBuf)>,
@@ -48,9 +49,9 @@ pub(super) struct TestProjectContext {
 
 /// Checked module plus the source metadata needed by native coverage records.
 pub(super) struct TestCompiledModule {
-    source_path: String,
-    source_text: String,
-    syntax: SyntaxModuleOutput,
+    pub(super) source_path: String,
+    pub(super) source_text: String,
+    pub(super) syntax: SyntaxModuleOutput,
     pub(super) core: CoreModule,
 }
 
@@ -357,7 +358,7 @@ pub(super) fn run_terlan_vm_test_file(
 
     let project_core_modules = match project_context.as_ref() {
         Some(context) => {
-            match compile_project_source_core_modules(context, &state, Path::new(path)) {
+            match compile_project_source_core_modules(context, &state, &[PathBuf::from(path)]) {
                 Ok(modules) => modules,
                 Err(exit_code) => return exit_code,
             }
@@ -369,7 +370,7 @@ pub(super) fn run_terlan_vm_test_file(
         .collect::<Vec<_>>();
     let imported_std_core_modules = match compile_imported_std_source_core_modules(
         &std_import_roots,
-        Path::new(path),
+        &[PathBuf::from(path)],
         &state,
     ) {
         Ok(modules) => modules,
@@ -531,7 +532,7 @@ pub(super) fn finish_declaration_coverage(
 /// Inputs:
 /// - `context`: project test context discovered from `terlan.toml`.
 /// - `state`: VM test command state with project cache and target profile.
-/// - `active_test`: already compiled test file, excluded by filesystem identity.
+/// - `active_tests`: already compiled test files, excluded by filesystem identity.
 ///
 /// Output:
 /// - Checked CoreIR modules for all source-root `.terl` files, or a command
@@ -544,16 +545,19 @@ pub(super) fn finish_declaration_coverage(
 pub(super) fn compile_project_source_core_modules(
     context: &TestProjectContext,
     state: &CliState,
-    active_test: &Path,
+    active_tests: &[PathBuf],
 ) -> Result<Vec<TestCompiledModule>, ExitCode> {
-    let active_test = active_test.canonicalize().map_err(|error| {
-        eprintln!(
-            "cannot resolve active test {}: {error}",
-            active_test.display()
-        );
-        ExitCode::from(1)
-    })?;
-    let mut compiled_paths = BTreeSet::from([active_test]);
+    let mut compiled_paths = BTreeSet::new();
+    for active_test in active_tests {
+        let active_test = active_test.canonicalize().map_err(|error| {
+            eprintln!(
+                "cannot resolve active test {}: {error}",
+                active_test.display()
+            );
+            ExitCode::from(1)
+        })?;
+        compiled_paths.insert(active_test);
+    }
     let mut modules = Vec::new();
     for root in &context.source_roots {
         let files = match crate::formal_pipeline::terlan_sources_in_dir(root) {
@@ -604,7 +608,7 @@ pub(super) fn compile_project_source_core_modules(
 ///
 /// Inputs:
 /// - `test_core`: active test module with resolved CoreIR imports.
-/// - `test_path`: active test source path.
+/// - `test_paths`: active test source paths.
 /// - `state`: VM test command state with cache and native policy.
 ///
 /// Output:
@@ -618,7 +622,7 @@ pub(super) fn compile_project_source_core_modules(
 ///   execution before test dispatch.
 pub(super) fn compile_imported_std_source_core_modules(
     root_cores: &[&CoreModule],
-    test_path: &Path,
+    test_paths: &[PathBuf],
     state: &CliState,
 ) -> Result<Vec<TestCompiledModule>, ExitCode> {
     let mut modules = Vec::new();
@@ -636,17 +640,22 @@ pub(super) fn compile_imported_std_source_core_modules(
         })
         .map(|import| import.module.clone())
         .collect::<VecDeque<_>>();
-    let active_file = fs::canonicalize(test_path).ok();
+    let active_files = test_paths
+        .iter()
+        .filter_map(|path| fs::canonicalize(path).ok())
+        .collect::<BTreeSet<_>>();
+    let test_path = test_paths
+        .first()
+        .map(PathBuf::as_path)
+        .unwrap_or(Path::new("."));
     while let Some(module) = pending.pop_front() {
         let Some(path) = imported_std_source_path(&module, test_path) else {
             continue;
         };
-        if active_file.as_ref().is_some_and(|active| {
-            fs::canonicalize(&path)
-                .ok()
-                .as_ref()
-                .is_some_and(|candidate| candidate == active)
-        }) {
+        if fs::canonicalize(&path)
+            .ok()
+            .is_some_and(|candidate| active_files.contains(&candidate))
+        {
             continue;
         }
         if !seen.insert(path.clone()) {

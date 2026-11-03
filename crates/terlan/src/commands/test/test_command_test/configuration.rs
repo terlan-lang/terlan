@@ -66,7 +66,7 @@ fn intrinsic_only_std_test_import_keeps_type_declarations() {
     );
     let modules = super::super::execution::compile_imported_std_source_core_modules(
         &[&root],
-        std::path::Path::new("alias_closure.terl"),
+        &[std::path::PathBuf::from("alias_closure.terl")],
         &CliState::default(),
     )
     .expect("load std test closure");
