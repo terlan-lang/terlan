@@ -129,13 +129,17 @@ release profile once and reuses it for size, reports, summaries, proofs, and
 release-contract consumers. Unchanged executable inputs select no release
 build.
 
-The 0.10.0 compiler, VM, native worker, and test orchestrator measured
-134,384,008 release bytes after concrete imported-generic layouts and
-source-visible process teardown operations were added. That exceeded the former
-128 MiB aggregate ceiling by 166,280 bytes. The reviewed ceiling is therefore
-129 MiB (135,266,304 bytes), leaving 882,296 bytes of headroom; the existing
-ratchet policy still requires three comparable measurements before lowering it
-and a new reviewed rationale before any later increase.
+The 0.10.0 compiler, VM, native worker, and test orchestrator originally
+measured 134,384,008 release bytes after concrete imported-generic layouts and
+source-visible process teardown operations were added. Persistent checked-CoreIR
+reuse then increased the aggregate. Equivalent stripped local builds measured
+about 135.26 MB in the hook target and 135.91 MB in the primary target; a clean
+GitHub runner independently exceeded the 129 MiB limit. The reviewed ceiling is
+therefore 132 MiB (138,412,032 bytes), leaving a small portability margin while
+still detecting material growth. Failures print the measured and allowed totals
+so future increases can be diagnosed directly.
+The existing ratchet policy still requires three comparable measurements before
+lowering the ceiling and a new reviewed rationale before any later increase.
 
 The full clean-build timing and artifact-footprint measurement remains a release gate.
 After this size check, Terlan compilation, formatting, summary checks, and browser

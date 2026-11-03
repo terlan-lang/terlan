@@ -1311,7 +1311,14 @@ validate_executables(report: Json, policy: Json, findings: List[String]): List[S
                         append_finding(
                             findings,
                             debug > maximum,
-                            "canonical debug executable-size total exceeds policy",
+                            String.concat(
+                                [
+                                    "canonical debug executable-size total ",
+                                    Int.to_string(debug),
+                                    " exceeds policy ",
+                                    Int.to_string(maximum),
+                                ],
+                            ),
                         );
                     None -> findings
                 };
@@ -1320,7 +1327,14 @@ validate_executables(report: Json, policy: Json, findings: List[String]): List[S
                     append_finding(
                         debug_findings,
                         release > maximum,
-                        "canonical release executable-size total exceeds policy",
+                        String.concat(
+                            [
+                                "canonical release executable-size total ",
+                                Int.to_string(release),
+                                " exceeds policy ",
+                                Int.to_string(maximum),
+                            ],
+                        ),
                     );
                 None -> debug_findings
             };
@@ -1675,6 +1689,25 @@ pub executable_budget_rejects_overflow_missing_files_and_invalid_policy(): Bool 
         _ -> false
     };
     executable_budget_cases(sizes, policy, maxima).
+
+@test
+pub executable_budget_failure_reports_measured_totals(): Bool ->
+    let {
+        Ok(report) <-
+            Json.parse(
+                "{\"executable_sizes\":{\"debug/terlc\":1,\"debug/terlan-vm\":1,\"debug/terlan-native-worker\":1,\"debug/terlan-test-orchestrator\":1,\"release/terlc\":2,\"release/terlan-vm\":2,\"release/terlan-native-worker\":2,\"release/terlan-test-orchestrator\":2}}",
+            );
+        Ok(policy) <- Json.parse("{\"executable_maximum_bytes\":{\"debug\":3,\"release\":7}}")
+    } else {
+        _ -> false
+    };
+    same_strings(
+        validate_executables(report, policy, []),
+        [
+            "canonical release executable-size total 8 exceeds policy 7",
+            "canonical debug executable-size total 4 exceeds policy 3",
+        ],
+    ).
 
 executable_budget_cases(sizes: Json, policy: Json, maxima: Json): Bool ->
     let exact_limit = executable_sizes_within_budget(sizes, policy);
