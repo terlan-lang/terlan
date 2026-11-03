@@ -11,7 +11,7 @@ import std.io.{Directory, File}.
 import std.system.Arguments.
 
 import type std.core.Option.
-import type std.io.File.TextFile.
+import type std.io.File.FileError.
 
 failure(message: String): Bool ->
     let _printed = eprintln(String.append("error[self_validation.checkout]: ", message));
@@ -27,6 +27,29 @@ python_artifact(path: String): Bool ->
     String.ends_with(path, ".py")
         or String.ends_with(path, ".pyc")
         or String.ends_with(path, ".pyo").
+
+retained_python_peer(path: String): Bool ->
+    let normalized = String.replace(path, "\\", "/");
+    String.ends_with(
+    normalized,
+    "/docs/roadmap/evidence/llm-native/M1/binding-types-3fb8a509fa69/structured-type-oracle.py",
+)
+        or String.ends_with(
+    normalized,
+    "/docs/roadmap/evidence/llm-native/M1/call-origins-5680298d78c4/multi-provider-oracle.py",
+)
+        or String.ends_with(
+    normalized,
+    "/docs/roadmap/evidence/llm-native/M1/query-mcp-a05ae1adafcb/console-probe.py",
+)
+        or String.ends_with(normalized, "/scripts/llm_native/peers/mcp_peer.py")
+        or String.ends_with(normalized, "/scripts/llm_native/peers/schema_peer.py")
+        or String.ends_with(normalized, "/scripts/llm_native/peers/semantic_peer.py").
+
+llm_native_python_documentation(path: String): Bool ->
+    let normalized = String.replace(path, "\\", "/");
+    String.ends_with(normalized, "/scripts/llm_native/README.md")
+        or String.ends_with(normalized, "/docs/roadmap/evidence/llm-native/README.md").
 
 command_surface(path: String): Bool ->
     String.ends_with(path, "/Makefile")
@@ -50,6 +73,9 @@ command_surface(path: String): Bool ->
         or String.ends_with(path, ".properties")
         or String.ends_with(path, ".xml").
 
+json_command_surface(path: String): Bool ->
+    String.ends_with(path, ".json") or String.ends_with(path, ".jsonc").
+
 documentation_surface(path: String): Bool ->
     String.ends_with(path, ".md") and not String.contains(path, "/docs/roadmap/archive/").
 
@@ -71,7 +97,7 @@ first_python_artifact(paths: List[String]): Option[String] ->
         [] -> None;
         [path | rest] ->
             if {
-                python_artifact(path) -> Some(path);
+                python_artifact(path) and not retained_python_peer(path) -> Some(path);
                 true -> first_python_artifact(rest)
             }
     }.
@@ -102,6 +128,18 @@ python_command(contents: String): Bool ->
         or String.contains(normalized, "env python")
         or String.contains(normalized, "pip install").
 
+python_json_command(contents: String): Bool ->
+    let normalized = String.lowercase(contents);
+    String.contains(normalized, "\"python\"")
+        or String.contains(normalized, "\"python3\"")
+        or String.contains(normalized, "\": \"python ")
+        or String.contains(normalized, "\":\"python ")
+        or String.contains(normalized, "\": \"python3 ")
+        or String.contains(normalized, "\":\"python3 ")
+        or String.contains(normalized, "/bin/python")
+        or String.contains(normalized, "env python")
+        or String.contains(normalized, "pip install").
+
 python_documentation_command(contents: String): Bool ->
     let normalized = String.lowercase(contents);
     String.contains(normalized, "python3")
@@ -113,14 +151,23 @@ python_documentation_command(contents: String): Bool ->
         or String.contains(normalized, "env python")
         or String.contains(normalized, "pip install").
 
-first_python_command(files: List[TextFile]): Option[String] ->
-    case files {
-        [] -> None;
-        [file | rest] ->
-            if {
-                documentation_surface(file.path) and python_documentation_command(file.contents) -> Some(file.path);
-                command_surface(file.path) and python_command(file.contents) -> Some(file.path);
-                true -> first_python_command(rest)
+first_python_command(paths: List[String]): Result[Option[String], FileError] ->
+    case paths {
+        [] -> Ok(None);
+        [path | rest] ->
+            case File.read_text(path) {
+                Err(reason) -> Err(reason);
+                Ok(contents) ->
+                    if {
+                        documentation_surface(path)
+                            and not llm_native_python_documentation(path)
+                            and python_documentation_command(contents) -> Ok(Some(path));
+                        json_command_surface(path) and python_json_command(contents) -> Ok(Some(path));
+                        command_surface(path)
+                            and not json_command_surface(path)
+                            and python_command(contents) -> Ok(Some(path));
+                        true -> first_python_command(rest)
+                    }
             }
     }.
 
@@ -140,33 +187,35 @@ scan(checkout: String): Bool ->
                     case first_python_artifact(paths) {
                         Some(path) ->
                             failure(
-                                String.append("Python artifact remains in clean checkout: ", path),
+                                String.append(
+                                    "unapproved Python artifact remains in clean checkout: ",
+                                    path,
+                                ),
                             );
                         None ->
-                            case File.read_text_many(collect_command_surfaces(paths, List.new[String]())) {
+                            case first_python_command(
+                                collect_command_surfaces(paths, List.new[String]()),
+                            ) {
                                 Err(reason) -> failure(reason.message);
-                                Ok(files) ->
-                                    case first_python_command(files) {
-                                        Some(path) ->
-                                            failure(
-                                                String.append(
-                                                    "Python command remains in clean checkout: ",
-                                                    path,
-                                                ),
-                                            );
-                                        None ->
-                                            let _printed =
-                                                println(
-                                                    String.concat(
-                                                        [
-                                                            "clean source checkout qualified ",
-                                                            Int.to_string(List.length(paths)),
-                                                            " files without Python and with Terlan-owned self-validation",
-                                                        ],
-                                                    ),
-                                                );
-                                            true
-                                    }
+                                Ok(Some(path)) ->
+                                    failure(
+                                        String.append(
+                                            "Python command remains in clean checkout: ",
+                                            path,
+                                        ),
+                                    );
+                                Ok(None) ->
+                                    let _printed =
+                                        println(
+                                            String.concat(
+                                                [
+                                                    "clean source checkout qualified ",
+                                                    Int.to_string(List.length(paths)),
+                                                    " files without unapproved Python and with Terlan-owned self-validation",
+                                                ],
+                                            ),
+                                        );
+                                    true
                             }
                     }
             }
@@ -204,11 +253,25 @@ run(root: String): Bool ->
             }
     }.
 
+policy_is_exact(): Bool ->
+    retained_python_peer("/workspace/scripts/llm_native/peers/mcp_peer.py")
+        and retained_python_peer(
+    "/workspace/docs/roadmap/evidence/llm-native/M1/query-mcp-a05ae1adafcb/console-probe.py",
+)
+        and not retained_python_peer("/workspace/scripts/llm_native/peers/other.py")
+        and not retained_python_peer("/workspace/scripts/llm_native/peers/mcp_peer.pyc")
+        and llm_native_python_documentation("/workspace/scripts/llm_native/README.md")
+        and not llm_native_python_documentation("/workspace/docs/README.md")
+        and python_json_command("{\"command\": \"python tool.py\"}")
+        and python_json_command("{\"argv\": [\"python3\", \"tool.py\"]}")
+        and not python_json_command("{\"scope\": \"pinned Python environment\"}").
+
 entry(): Bool ->
     case {Arguments.get(0), Arguments.count()} {
         {Some(root), 1} -> run(root);
         _ -> failure("expected one repository-root argument")
     }.
 
+assert(policy_is_exact());
 assert(entry());
 Unit.

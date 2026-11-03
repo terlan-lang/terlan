@@ -9,5 +9,6 @@ import std.system.Arguments.
 
 let Some(path) = Arguments.get(0);
 let Ok(source) = File.read_text(path);
+println(String.join(Plan.prefixed_preflight_lanes(String.split(source, "\n")), "\n"));
 println(String.join(Plan.lanes(String.split(source, "\n")), "\n"));
 Unit.

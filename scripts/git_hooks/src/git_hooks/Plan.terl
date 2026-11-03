@@ -14,6 +14,147 @@ pub affected(paths: List[String], prefix: String, suffix: String): Bool ->
                 or affected(rest, prefix, suffix)
     }.
 
+pub rust_security(paths: List[String]): Bool ->
+    affected(paths, "", "Cargo.toml")
+        or affected(paths, "", "Cargo.lock")
+        or affected(paths, "", "rust-toolchain.toml").
+
+pub node_security(paths: List[String]): Bool ->
+    affected(paths, "", "package.json")
+        or affected(paths, "", "package-lock.json")
+        or affected(paths, "", "npm-shrinkwrap.json").
+
+pub editor_release(paths: List[String]): Bool ->
+    affected(paths, "editors/", "") or affected(paths, "tree-sitter-terlan/", "").
+
+pub artifact_bootstrap(paths: List[String]): Bool ->
+    affected(paths, "Makefile", "")
+        or affected(paths, "mk/", "")
+        or affected(paths, "scripts/build_artifact_bootstrap_test.sh", "")
+        or affected(paths, "scripts/build_typed_validator.sh", "").
+
+pub grammar(paths: List[String]): Bool ->
+    syntax(paths) or affected(paths, "scripts/self_validation/EbnfValidator.terls", "").
+
+pub js_bindings(paths: List[String]): Bool ->
+    syntax(paths)
+        or affected(paths, "std/js/", "")
+        or affected(paths, "scripts/self_validation/JsBindingsDriftTest.terl", "")
+        or affected(paths, "crates/terlan/src/commands/bind/ts_", "").
+
+pub negative_api(paths: List[String]): Bool ->
+    syntax(paths)
+        or compiler(paths)
+        or affected(paths, "std/core/", "")
+        or affected(paths, "std/io/", "")
+        or affected(paths, "std/test/", "")
+        or affected(paths, "std/vm/", "")
+        or affected(paths, "scripts/self_validation/StdlibValidation.terls", "").
+
+pub artifact_budget(paths: List[String]): Bool ->
+    rust_security(paths)
+        or affected(paths, "crates/terlan/", ".rs")
+        or affected(paths, "scripts/self_validation/BuildArtifactBudgetTest.terl", "")
+        or affected(paths, "scripts/build_artifact_budget", "").
+
+pub release_manifest(paths: List[String]): Bool ->
+    affected(paths, "std/", ".terl")
+        or affected(paths, "std/", ".terli")
+        or affected(paths, "std/scripts/ReleaseManifestTest.terl", "")
+        or affected(paths, "tests/std/RELEASE_API_TESTS.tsv", "").
+
+pub rust_docs(paths: List[String]): Bool ->
+    rust_security(paths) or affected(paths, "", ".rs").
+
+pub preparation(paths: List[String]): Bool ->
+    affected(paths, "Makefile", "")
+        or affected(paths, "mk/", "")
+        or affected(paths, "scripts/self_validation/release_promotion/", "")
+        or affected(paths, "scripts/build_typed_validator.sh", "").
+
+pub hook_policy(paths: List[String]): Bool ->
+    affected(paths, ".githooks/", "")
+        or affected(paths, "scripts/git_hooks", "")
+        or affected(paths, "scripts/git_commit_message", "")
+        or affected(paths, "scripts/publication_process_preflight_test.sh", "").
+
+pub terlan_format(paths: List[String]): Bool ->
+    affected(paths, "", ".terl")
+        or affected(paths, "", ".terli")
+        or affected(paths, "", ".terls")
+        or affected(paths, "crates/terlan/src/compiler/syntax/formatter", "")
+        or affected(paths, "crates/terlan/cli.mk", "").
+
+selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
+    if {
+        condition -> [name | lanes];
+        true -> lanes
+    }.
+
+pub preflight_lanes(paths: List[String]): List[String] ->
+    ["inventory" | selected(
+    rust_security(paths),
+    "rust-security",
+    selected(
+        node_security(paths),
+        "node-security",
+        selected(
+            editor_release(paths),
+            "editor-release",
+            selected(
+                artifact_bootstrap(paths),
+                "artifact-bootstrap",
+                selected(
+                    grammar(paths),
+                    "grammar",
+                    selected(
+                        js_bindings(paths),
+                        "js-bindings",
+                        selected(
+                            negative_api(paths),
+                            "negative-api",
+                            selected(
+                                artifact_budget(paths),
+                                "artifact-budget",
+                                selected(
+                                    release_manifest(paths),
+                                    "release-manifest",
+                                    selected(
+                                        rust_docs(paths),
+                                        "rust-docs",
+                                        selected(
+                                            preparation(paths),
+                                            "preparation",
+                                            selected(
+                                                hook_policy(paths),
+                                                "hook-policy",
+                                                selected(
+                                                    terlan_format(paths),
+                                                    "terlan-format",
+                                                    List.new[String](),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ),
+)].
+
+pub prefixed_preflight_lanes(paths: List[String]): List[String] ->
+    prefix_preflight_lanes(preflight_lanes(paths)).
+
+prefix_preflight_lanes(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [String.append("preflight:", value) | prefix_preflight_lanes(rest)]
+    }.
+
 pub workspace(paths: List[String]): Bool ->
     affected(paths, "", "Cargo.toml")
         or affected(paths, "", "Cargo.lock")
@@ -37,8 +178,43 @@ non_compiler_rust(paths: List[String]): Bool ->
         [path | rest] ->
             String.ends_with(path, ".rs")
     and not String.starts_with(path, "crates/terlan/src/compiler/")
+    and not String.starts_with(path, "crates/terlan/src/commands/")
+    and not String.starts_with(path, "tools/rust_boundary_audit/")
     and not String.starts_with(path, "tree-sitter-terlan/")
                 or non_compiler_rust(rest)
+    }.
+
+pub rust_boundary_audit(paths: List[String]): Bool ->
+    affected(paths, "tools/rust_boundary_audit/", "").
+
+pub commands(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/commands/", ".rs").
+
+pub command_lanes(paths: List[String]): List[String] ->
+    selected(
+        affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
+        "commands-clean",
+        selected(
+            affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
+            "commands-doctor",
+            selected(
+                affected(paths, "crates/terlan/src/commands/init/", ".rs"),
+                "commands-init",
+                selected(other_commands(paths), "commands", List.new[String]()),
+            ),
+        ),
+    ).
+
+other_commands(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.starts_with(path, "crates/terlan/src/commands/")
+    and String.ends_with(path, ".rs")
+    and not String.starts_with(path, "crates/terlan/src/commands/clean/")
+    and not String.starts_with(path, "crates/terlan/src/commands/doctor/")
+    and not String.starts_with(path, "crates/terlan/src/commands/init/")
+                or other_commands(rest)
     }.
 
 pub syntax(paths: List[String]): Bool ->
@@ -56,10 +232,7 @@ pub native_bindings(paths: List[String]): Bool ->
         or affected(paths, "crates/terlan/src/runtime/native_boundary/adapter_abi", "")
         or affected(paths, "crates/terlan/tests/fixtures/c_abi_native_boundary/", "")
         or affected(paths, "crates/terlan/tests/fixtures/cpp_native_boundary/", "")
-        or affected(paths, "std/native/", "")
-        or affected(paths, "Makefile", "")
-        or affected(paths, "scripts/git_hooks/check.sh", "")
-        or affected(paths, "scripts/git_hooks/src/git_hooks/Plan", "").
+        or affected(paths, "std/native/", "").
 
 pub compiler(paths: List[String]): Bool ->
     case paths {
@@ -152,6 +325,8 @@ pub lanes(paths: List[String]): List[String] ->
     let rust =
         if {
             workspace(paths) -> ["workspace"];
+            rust_boundary_audit(paths) -> ["rust-boundary-audit"];
+            commands(paths) -> command_lanes(paths);
             compiler(paths) -> ["compiler", "phase"];
             syntax(paths) -> ["syntax", "phase"];
             phase(paths) -> ["phase"];

@@ -143,6 +143,30 @@ fn doctor_project_accepts_clean_vm_project() {
     assert_eq!(findings, Vec::new());
 }
 
+/// Verifies the current compiler command is not mistaken for retired `erlc`.
+#[test]
+fn doctor_distinguishes_terlc_from_erlc_commands() {
+    let root = doctor_test_dir("compiler_command_boundaries");
+    fs::write(
+        root.join("Makefile"),
+        "check:\n\t/usr/local/bin/terlc check src\n",
+    )
+    .expect("write current command");
+    assert!(
+        !finding_codes(&doctor_project(&root).expect("doctor current command"))
+            .contains("doctor_retired_test_or_script_runtime")
+    );
+
+    fs::write(root.join("Makefile"), "check:\n\terlc src/app/Main.erl\n")
+        .expect("write retired command");
+    assert!(
+        finding_codes(&doctor_project(&root).expect("doctor retired command"))
+            .contains("doctor_retired_test_or_script_runtime")
+    );
+
+    fs::remove_dir_all(root).expect("cleanup doctor test");
+}
+
 /// Verifies doctor reports VM-pivot migration hazards with exact codes.
 ///
 /// Inputs:

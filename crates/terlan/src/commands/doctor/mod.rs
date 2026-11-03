@@ -341,7 +341,7 @@ fn scan_script_file(
     }
     let text =
         fs::read_to_string(path).map_err(|err| format!("cannot read {}: {err}", path.display()))?;
-    let has_removed_command = text.contains("erlc")
+    let has_removed_command = contains_command_token(&text, "erlc")
         || text.contains(" eunit")
         || text.contains("--target erlang")
         || text.contains("--runtime beam")
@@ -357,6 +357,17 @@ fn scan_script_file(
         });
     }
     Ok(())
+}
+
+/// Returns whether `token` occurs outside an identifier-sized command word.
+fn contains_command_token(text: &str, token: &str) -> bool {
+    let command_word = |character: char| character.is_ascii_alphanumeric() || character == '_';
+    text.match_indices(token).any(|(offset, _)| {
+        let before = text[..offset].chars().next_back();
+        let after = text[offset + token.len()..].chars().next();
+        before.is_none_or(|character| !command_word(character))
+            && after.is_none_or(|character| !command_word(character))
+    })
 }
 
 /// Returns whether a path has one of the given extensions.

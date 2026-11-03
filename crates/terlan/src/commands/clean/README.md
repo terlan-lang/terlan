@@ -27,9 +27,14 @@ The command removes:
 ```text
 _build/
 .terlan/tmp/
+.terlan/*.typi*
+<configured-source-root>/.terlan/*.typi*
 ```
 
-It skips absent paths and reports every removed path.
+It reads `[build].source_roots`, skips absent paths, and reports every removed
+path. Interface summaries are compiler cache entries; package, registry, TLS,
+and other nested `.terlan` state is preserved. Configured roots that resolve
+outside the project are rejected before their cache is touched.
 
 ## Integration Points
 

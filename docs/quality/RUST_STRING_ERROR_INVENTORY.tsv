@@ -94,7 +94,7 @@ crates/terlan/src/commands/build/wasm_artifact.rs	1	internal-helper	command-erro
 crates/terlan/src/commands/build/web_toolchain.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/check/command.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/check/dependencies.rs	1	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/clean/mod.rs	3	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/clean/mod.rs	6	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/cloud.rs	21	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/cloud/release_archive.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/cloud/validation.rs	16	internal-helper	command-errors	0.0.9

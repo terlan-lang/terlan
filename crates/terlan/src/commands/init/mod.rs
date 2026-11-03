@@ -431,7 +431,7 @@ fn render_manifest(package_name: &str, profile: InitProfile) -> String {
 /// - Lists only compiler-owned output paths so generated projects keep source,
 ///   tests, manifests, assets, templates, and lockfiles visible to git.
 fn render_gitignore() -> &'static str {
-    "_build/\n.terlan/tmp/\n"
+    "_build/\n.terlan/tmp/\n.terlan/*.typi*\n"
 }
 
 /// Renders the generated project Makefile.

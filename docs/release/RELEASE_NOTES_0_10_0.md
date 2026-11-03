@@ -91,7 +91,12 @@ exclude disposable cache hashes.
 `terlc doctor` accepts current interface caches in `.terlan` and
 `_build/.terlan`, as well as reviewed API declarations without cache sidecars.
 It diagnoses malformed summaries and mismatching compiler metadata rather than
-treating every generated interface as stale.
+treating every generated interface as stale. `terlc clean` removes
+`.terlan/*.typi*` summaries from the project and every manifest-configured
+source root, as well as `_build/` and `.terlan/tmp/`, so its prescribed recovery
+actually clears mismatching compiler contracts. Source roots that resolve
+outside the project are rejected. Doctor matches the retired `erlc` executable
+at command-token boundaries and does not misclassify valid `terlc` paths.
 
 Build-plan generation and report admission share one typed budget definition,
 removing duplicated Makefile and test-fixture limits. Regression coverage checks

@@ -127,6 +127,46 @@ pub ordinary_docs_avoid_test_suites(): Bool ->
     Plan.lanes(["README.md"]) == ["shell"].
 
 @test
+pub ordinary_docs_avoid_artifact_workloads(): Bool ->
+    Plan.preflight_lanes(["README.md"]) == ["inventory"]
+        and not Plan.artifact_budget(["README.md"])
+        and not Plan.release_manifest(["README.md"])
+        and not Plan.rust_docs(["README.md"]).
+
+@test
+pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
+    Plan.lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "clippy", "rust-reports", "commands-doctor"]
+        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "artifact-budget", "rust-docs"].
+
+@test
+pub boundary_audit_changes_use_owning_crate_tests(): Bool ->
+    Plan.lanes(["tools/rust_boundary_audit/src/source_inventory_test.rs"]) == ["shell", "clippy", "rust-reports", "rust-boundary-audit"].
+
+@test
+pub multiple_command_owners_keep_exact_test_lanes(): Bool ->
+    Plan.lanes(
+    [
+        "crates/terlan/src/commands/clean/mod.rs",
+        "crates/terlan/src/commands/doctor/mod.rs",
+        "crates/terlan/src/commands/init/mod.rs",
+    ],
+) == ["shell", "clippy", "rust-reports", "commands-clean", "commands-doctor", "commands-init"].
+
+@test
+pub hook_changes_skip_unrelated_artifacts(): Bool ->
+    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
+        and not Plan.native_bindings(["scripts/git_hooks/check.sh"])
+        and not Plan.artifact_budget(["scripts/git_hooks/check.sh"]).
+
+@test
+pub dependency_changes_select_security_and_binary_consumers(): Bool ->
+    Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "rust-security", "artifact-budget", "rust-docs"].
+
+@test
+pub standard_library_changes_select_owned_contracts(): Bool ->
+    Plan.preflight_lanes(["std/core/Int.terl"]) == ["inventory", "negative-api", "release-manifest", "terlan-format"].
+
+@test
 pub terlan_manifests_trigger_package_validation(): Bool ->
     Plan.lanes(["scripts/git_hooks/terlan.toml"]) == ["shell", "terlan"].
 
@@ -152,7 +192,7 @@ pub clippy_configuration_changes_are_checked(): Bool ->
 
 @test
 pub make_quality_changes_require_clippy(): Bool ->
-    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "native-bindings", "bootstrap", "clippy", "rust-reports", "release-contract"].
+    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "bootstrap", "clippy", "rust-reports", "release-contract"].
 
 @test
 pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
@@ -160,7 +200,7 @@ pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
 
 @test
 pub bootstrap_runner_changes_test_the_lane(): Bool ->
-    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "native-bindings", "bootstrap", "release-contract"].
+    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "bootstrap", "release-contract"].
 
 @test
 pub workspace_tests_already_cover_bootstrap(): Bool ->
@@ -220,7 +260,7 @@ pub platform_installer_changes_execute_release_contract_tests(): Bool ->
 
 @test
 pub native_generator_changes_run_consistency_before_workspace_tests(): Bool ->
-    Plan.lanes(["crates/terlan/src/commands/bind/native_helper_transport.rs"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace"].
+    Plan.lanes(["crates/terlan/src/commands/bind/native_helper_transport.rs"]) == ["shell", "native-bindings", "clippy", "rust-reports", "commands"].
 
 native_paths_are_checked(paths: List[String]): Bool ->
     case paths {

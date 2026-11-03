@@ -131,7 +131,8 @@ generated directory, and watches source changes.
 
 - `main.rs`: routes the `init` verb here.
 - `terlc build`: consumes the generated `terlan.toml` and source modules.
-- `terlc clean`: removes generated `_build/` and `.terlan/tmp/` output.
+- `terlc clean`: removes generated `_build/`, `.terlan/tmp/`, and root
+  `.terlan/*.typi*` compiler summaries.
 - `terlc serve`: serves the generated browser package for web-profile projects.
 - `terlc static serve`: renders and serves static-profile projects during local
   development.

@@ -131,6 +131,11 @@ printf 'exit 0\n' > "$temporary/early-bindings/scripts/build_artifact_bootstrap_
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
+if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
+  printf 'preflight:inventory\npreflight:grammar\nshell\n'
+  exit 0
+fi
+if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 test "$TERLAN_EBNF_ROOT" = "$PWD"
 test "$TERLAN_EBNF_COMPILER" = "$0"
 test "$*" = 'run scripts/self_validation/EbnfValidator.terls'
@@ -149,6 +154,11 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
+if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
+  printf 'preflight:inventory\npreflight:grammar\npreflight:js-bindings\nshell\n'
+  exit 0
+fi
+if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
 test "$TERLAN_JS_BINDINGS_ROOT" = "$PWD"
 test "$TERLAN_JS_BINDINGS_TERLC" = "$0"
@@ -169,6 +179,11 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
+if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
+  printf 'preflight:inventory\npreflight:grammar\npreflight:js-bindings\npreflight:negative-api\nshell\n'
+  exit 0
+fi
+if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
 if [[ "$*" == 'test scripts/self_validation/JsBindingsDriftTest.terl' ]]; then
   exit 0
@@ -191,6 +206,24 @@ for contract in negative-api io-negative-api; do
     test "$status" = 38
   )
 done
+# Retained-source inventory drift must stop before planning or optimized builds.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+case "$*" in
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt') printf 'preflight:inventory\nshell\n' ;;
+  'test scripts/self_validation/InventoryTest.terl') exit 36 ;;
+  *) exit 98 ;;
+esac
+TERLC
+(
+  cd "$temporary/early-bindings"
+  status=0
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-python-inventory.log" 2>&1 || status=$?
+  test "$status" = 36
+)
 # Native generation drift must stop before optimized builds. The real planner
 # separately tests the changed-path classification; this checks execution order
 # and failure propagation through the actual hook checker.
@@ -198,11 +231,11 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 case "$*" in
-  'run scripts/self_validation/EbnfValidator.terls'|'test scripts/self_validation/JsBindingsDriftTest.terl'|'run scripts/self_validation/StdlibValidation.terls -- negative-api'|'run scripts/self_validation/StdlibValidation.terls -- io-negative-api') exit 0 ;;
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'shell\n'
+    printf 'preflight:inventory\nshell\n'
     if [[ "$HOOK_NATIVE_SELECTED" == yes ]]; then printf 'native-bindings\n'; fi
     ;;
+  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
   *) exit 98 ;;
 esac
 TERLC
@@ -220,7 +253,7 @@ for scenario in failure success unrelated; do
     cd "$temporary/early-bindings"
     selected=yes
     failure=0
-    expected=99 # The stand-in rejects the optimized build if reached.
+    expected=0 # Unselected optimized artifacts must not be built.
     if [[ "$scenario" == failure ]]; then failure=41; expected=41; fi
     if [[ "$scenario" == unrelated ]]; then selected=no; fi
     calls="$temporary/native-$scenario.calls"
@@ -294,4 +327,33 @@ if grep -Fxq 'test src/LegacyTest.terl' "$temporary/terlan-lane.calls"; then
 fi
 grep -Fq 'compiled legacy self-test module: src/LegacyTest.terl' "$temporary/terlan-lane.log"
 
-echo 'Git hook regression tests passed (19 scenarios).'
+# Prebuilt workspace binaries must honor the hook's isolated Cargo target.
+# A relative target/debug path points at the staged checkout instead and made
+# release-contract validation fail only after all earlier commit gates passed.
+mkdir -p "$temporary/prebuilt/scripts" "$temporary/prebuilt/bin"
+cp "$(dirname "$driver")/run_prebuilt_terlan_binary.sh" "$temporary/prebuilt/scripts/"
+cat > "$temporary/prebuilt/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+set -eu
+printf '%s\n' "$*" >> "$PREBUILT_CARGO_CALLS"
+mkdir -p "$CARGO_TARGET_DIR/debug"
+cat > "$CARGO_TARGET_DIR/debug/terlan-quality" <<'BINARY'
+#!/usr/bin/env bash
+printf 'prebuilt:%s\n' "$*"
+BINARY
+chmod +x "$CARGO_TARGET_DIR/debug/terlan-quality"
+CARGO
+chmod +x "$temporary/prebuilt/bin/cargo"
+(
+  cd "$temporary/prebuilt"
+  PATH="$PWD/bin:$PATH" \
+    CARGO_TARGET_DIR="$PWD/owned-target" \
+    PREBUILT_CARGO_CALLS="$temporary/prebuilt-cargo.calls" \
+    bash scripts/run_prebuilt_terlan_binary.sh terlan-quality quality-tools -- release-check
+) > "$temporary/prebuilt.log"
+grep -Fx 'prebuilt:release-check' "$temporary/prebuilt.log"
+grep -Fx 'quality-tools' "$temporary/prebuilt/owned-target/debug/.terlan-prebuilt-terlan-quality.profile"
+test "$(wc -l < "$temporary/prebuilt-cargo.calls")" = 1
+test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
+
+echo 'Git hook regression tests passed (21 scenarios).'

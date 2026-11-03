@@ -24,11 +24,16 @@ case "$binary" in
     ;;
 esac
 
+target_dir="${CARGO_TARGET_DIR:-target}"
+if [[ "$target_dir" != /* && ! "$target_dir" =~ ^[A-Za-z]:[\\/] ]]; then
+  target_dir="$repo_root/$target_dir"
+fi
+debug_dir="$target_dir/debug"
 case "$(uname -s)" in
-  MINGW*|MSYS*|CYGWIN*) executable="target/debug/$binary.exe" ;;
-  *) executable="target/debug/$binary" ;;
+  MINGW*|MSYS*|CYGWIN*) executable="$debug_dir/$binary.exe" ;;
+  *) executable="$debug_dir/$binary" ;;
 esac
-profile_stamp="target/debug/.terlan-prebuilt-$binary.profile"
+profile_stamp="$debug_dir/.terlan-prebuilt-$binary.profile"
 
 binary_is_stale() {
   [[ -x "$executable" ]] || return 0

@@ -32,8 +32,9 @@ deterministic libpq regeneration, both compiled helper protocols, and bounded
 transport regressions. Generator, shared protocol, ABI, reviewed package, fixture,
 syntax and dependency changes select this gate. Private framing implementation
 text is not an ABI contract: compiled helper tests enforce frame bounds,
-chunking and request correlation. The full workspace suite remains selected.
-The same Make gate is available for focused feedback before staging changes.
+chunking and request correlation. Command-owned generator changes run the
+targeted `commands::` suite rather than the full workspace. The same Make gate
+is available for focused feedback before staging changes.
 
 Build-plan limits have one definition in `RepositoryValidation.terls`. Make
 delegates report admission to that typed validator; shell and Rust integration
@@ -62,8 +63,9 @@ Integer separators added a `DecimalDigits` EBNF rule while the reviewed grammar
 summary still counted the previous rules. Reduced manual checks missed its
 existing Rust golden test. The Terlan EBNF validator now also checks the canonical
 summary's rule count, rejects malformed fixtures, and runs immediately after the
-debug compiler build in every commit hook, before optimized builds. Its self-test
-covers stale counts; the hook regression verifies that this failure stops early.
+debug compiler plan when grammar inputs change, before optimized builds. Its
+self-test covers stale counts; the hook regression verifies that this failure
+stops early.
 The syntax lane retains the full Rust summary comparison.
 
 Proof baselines must consume a current lane seal. A retained local gate and lane
@@ -96,31 +98,36 @@ unrelated packages in the global Cargo cache out of staged validation. An
 explicit `CARGO_HOME` is honored; relative paths resolve from the working
 repository root. The default cache persists between commits.
 
-Every nonempty commit first runs `make rust-security-audit-check` against the
-staged lockfile and the current RustSec database, with warnings denied. This
-also catches newly published advisories when no dependencies were changed.
+Commits that change Rust dependency or toolchain inputs run `make
+rust-security-audit-check` against the staged lockfile and the current RustSec
+database, with warnings denied. Scheduled and release checks retain the
+independent current-advisory scan when dependencies are unchanged.
 Install the pinned auditor with `cargo install cargo-audit --version 0.22.2 --locked`.
 Missing tools, database download failures, and audit findings stop the commit
 before compiler builds begin.
 
-The same commit gate runs `make node-security-audit-check` against every
-repository `package-lock.json`. Moderate-or-higher npm advisories, registry
-failures, and lockfile drift therefore stop locally before the corresponding
-release and scheduled security workflows run the identical target.
+Node manifest or lockfile changes run `make node-security-audit-check` against
+every repository `package-lock.json`. Moderate-or-higher npm advisories,
+registry failures, and lockfile drift therefore stop locally before the
+corresponding release and scheduled security workflows run the identical
+target.
 
-Every nonempty commit also generates fresh proof-lane and semantic-kernel reports
-and checks the proof release baseline with the staged compiler before Terlan
-formatting, browser tests, and the selected test lanes. The baseline binds
+Proof-owned changes generate fresh proof-lane and semantic-kernel reports and
+check the proof release baseline with the staged compiler before their focused
+proof tests. The baseline binds
 dependency inputs such as `Cargo.lock` as well as proof slices.
 Changes require a reviewed baseline update; the hook never refreshes it.
 
-A Make bootstrap regression checks that the artifact-budget validator survives
-cleanup of disposable `_build` output before its later release gate runs.
+A Make bootstrap regression runs when its Make or bootstrap inputs change and
+checks that the artifact-budget validator survives cleanup of disposable
+`_build` output before its later release gate runs.
 
-Every nonempty commit builds the four canonical debug and release executables
-and checks their combined sizes against `docs/quality/BUILD_ARTIFACT_BUDGET.json`.
-The check uses the staged source and the hook's Cargo cache, rejects missing or
-empty executables, and shares the release gate's size-budget calculation.
+Changes that can affect shipped Rust executables build the canonical release
+executables and check their combined sizes against
+`docs/quality/BUILD_ARTIFACT_BUDGET.json`. The hook materializes each required
+release profile once and reuses it for size, reports, summaries, proofs, and
+release-contract consumers. Unchanged executable inputs select no release
+build.
 
 The 0.10.0 compiler, VM, native worker, and test orchestrator measured
 134,384,008 release bytes after concrete imported-generic layouts and
@@ -135,11 +142,15 @@ After this size check, Terlan compilation, formatting, summary checks, and brows
 fixture generation use the optimized compiler already built from the same staged
 sources. Rust tests and semantic runtime oracles retain their debug builds.
 
-The standard-library release manifest is checked against the staged sources,
-including typed consumers for JavaScript bindings and opaque constructor types.
+Standard-library API changes check the release manifest against the staged
+sources, including typed consumers for JavaScript bindings and opaque
+constructor types.
 
-Every nonempty commit checks Rust formatting, builds the staged compiler, VM,
-and service runtime, and tests the hook policy and snapshot isolation. Release
+Every nonempty commit checks Rust formatting, builds only the staged `terlc`
+planner, and runs the retained-source inventory. The typed plan then selects
+artifact owners and focused test lanes. Hook-policy and snapshot tests run only
+when their inputs change; the VM, worker, service runtime, quality tools, and
+optimized compiler are built only for selected consumers. Release
 publication additionally builds all JavaScript binding consumers with Terlan
 and executes the complete Playwright suite in Chromium, Firefox, and WebKit.
 Module filters are cleared; missing browsers, skipped cases, expected failures,
@@ -180,6 +191,8 @@ summary generation batches the independent CSS property modules separately.
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
 | Other compiler source | Compiler suite and phase-contract goldens |
 | Phase-contract fixtures alone | Exact phase-contract golden test |
+| Compiler command Rust source | Owning command-module tests (with a `commands::` fallback); artifact size and Rust documentation only when their inputs changed |
+| Rust boundary-audit source | Boundary-audit crate tests and report validation |
 | Other Rust source, Cargo manifests/lockfile, Rust toolchain/config | Workspace tests, including binary and integration targets |
 | Root Makefile, isolated bootstrap Makefile, or hook runner | On Linux, run the real sandbox bootstrap integration suite; requires Bubblewrap and working user namespaces |
 | Other `tests/fixtures/` inputs | Workspace tests; negative fixtures are validated by their owning tests |
@@ -216,8 +229,8 @@ locally.
 
 `scripts/git_hooks_test.sh` tests Git isolation with small temporary repositories
 under `target/`; CI runs it in source preflight. The planner tests run with
-`terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl` and are also executed by
-every hook invocation. Bash owns only Git plumbing and command execution; the
+`terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl` and are executed when
+hook policy changes. Bash owns only Git plumbing and command execution; the
 selection policy lives in `src/git_hooks/Plan.terl`.
 
 Missing tools and failed or empty Rust test selections stop the commit. Test

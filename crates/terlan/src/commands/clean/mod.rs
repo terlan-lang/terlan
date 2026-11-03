@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use crate::commands::build::project_manifest;
 use crate::CliCommand;
 
 /// Parsed command-local arguments for `terlc clean`.
@@ -35,6 +36,90 @@ fn clean_output_paths() -> &'static [&'static str] {
     &["_build", ".terlan/tmp"]
 }
 
+/// Returns compiler summary artifacts stored in project-owned cache roots.
+fn clean_summary_output_paths(project_dir: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut summaries = Vec::new();
+    for root in clean_summary_roots(project_dir)? {
+        summaries.extend(summary_output_paths(&root)?);
+    }
+    summaries.sort();
+    Ok(summaries)
+}
+
+/// Returns the project root and every manifest-configured source root.
+fn clean_summary_roots(project_dir: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut roots = vec![project_dir.to_path_buf()];
+    let manifest_path = project_dir.join("terlan.toml");
+    if !manifest_path.is_file() {
+        return Ok(roots);
+    }
+
+    let manifest = project_manifest::read_project_manifest(&manifest_path)?;
+    let canonical_project = fs::canonicalize(project_dir).map_err(|error| {
+        format!(
+            "cannot resolve clean project directory {}: {error}",
+            project_dir.display()
+        )
+    })?;
+    for configured in manifest.source_roots {
+        let source_root = project_dir.join(configured);
+        let canonical_source = match fs::canonicalize(&source_root) {
+            Ok(path) => path,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(format!(
+                    "cannot resolve clean source root {}: {error}",
+                    source_root.display()
+                ));
+            }
+        };
+        if !canonical_source.starts_with(&canonical_project) {
+            return Err(format!(
+                "refusing to clean source root outside project: {}",
+                source_root.display()
+            ));
+        }
+        roots.push(source_root);
+    }
+    Ok(roots)
+}
+
+/// Returns summary files stored directly in one root's compiler cache.
+fn summary_output_paths(root: &Path) -> Result<Vec<PathBuf>, String> {
+    let cache = root.join(".terlan");
+    let metadata = match fs::symlink_metadata(&cache) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(format!("cannot inspect {}: {error}", cache.display())),
+    };
+    if !metadata.file_type().is_dir() {
+        return Ok(Vec::new());
+    }
+
+    let mut summaries = Vec::new();
+    for entry in
+        fs::read_dir(&cache).map_err(|error| format!("cannot read {}: {error}", cache.display()))?
+    {
+        let entry = entry.map_err(|error| {
+            format!(
+                "cannot read directory entry in {}: {error}",
+                cache.display()
+            )
+        })?;
+        let file_type = entry
+            .file_type()
+            .map_err(|error| format!("cannot inspect {}: {error}", entry.path().display()))?;
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if (file_type.is_file() || file_type.is_symlink())
+            && (name.ends_with(".typi") || name.contains(".typi."))
+        {
+            summaries.push(entry.path());
+        }
+    }
+    Ok(summaries)
+}
+
 /// Executes the `clean` CLI command.
 ///
 /// Inputs:
@@ -47,8 +132,8 @@ fn clean_output_paths() -> &'static [&'static str] {
 ///
 /// Transformation:
 /// - Removes only compiler-owned generated output directories from the selected
-///   project root and leaves source files, manifests, assets, tests, and user
-///   configuration untouched.
+///   project root and configured source roots, leaving source files, manifests,
+///   assets, tests, and user configuration untouched.
 pub(crate) fn run(cmd: CliCommand) -> ExitCode {
     let args = match parse_clean_args(&cmd.args) {
         Ok(args) => args,
@@ -127,6 +212,10 @@ fn clean_project(project_dir: &Path) -> Result<Vec<PathBuf>, String> {
             continue;
         }
         remove_output_path(&path)?;
+        removed.push(path);
+    }
+    for path in clean_summary_output_paths(project_dir)? {
+        fs::remove_file(&path).map_err(|err| format!("cannot remove {}: {err}", path.display()))?;
         removed.push(path);
     }
     Ok(removed)

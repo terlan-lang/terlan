@@ -51,6 +51,8 @@ Important invariants:
 
 - Missing project directories are reported as command errors.
 - Stale summary fingerprints are diagnosed without rebuilding summaries.
+- Current `terlc` command paths are not mistaken for the retired `erlc`
+  executable.
 - Retired manifest artifact metadata receives generic clean/build migration
   wording.
 

@@ -1089,7 +1089,7 @@ terlan-self-validation-capabilities-check:
 		--name compare_orders_later_text_after \
 		--name compare_accepts_equal_text
 
-# One public closeout owns the Python-free source inventory, typed capability
+# One public closeout owns the explicit retained-source inventory, typed capability
 # surface, generated std contracts, thin Make dispatch, browser-manifest
 # consumers, documentation validation, and release-promotion orchestration.
 # Every prerequisite reuses the compiler and sealed images from the shared
@@ -1108,7 +1108,7 @@ terlan-self-validation-check: \
 	browser-package-preflight \
 	web-profile-preflight \
 	release-promotion-pipeline-check
-	@echo "[terlan-self-validation] Python-free direct-AOT validation passed"
+	@echo "[terlan-self-validation] direct-AOT validation passed without unapproved host scripts"
 
 terlan-self-validation-clean-checkout-check: terlan-self-validation-checkout-bootstrap
 	$(TERLAN_SELF_VALIDATION_CHECKOUT) "$(CURDIR)"
