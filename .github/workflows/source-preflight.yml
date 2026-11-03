@@ -27,6 +27,7 @@ jobs:
         with:
           components: rustfmt
           cache-build: "true"
+          cache-scope: ubuntu-24.04
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
       - name: Check source inventory and test ownership

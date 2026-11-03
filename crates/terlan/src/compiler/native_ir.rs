@@ -6,6 +6,29 @@ type QualifiedFunctionIdentity = (String, String, usize);
 
 pub(crate) use crate::runtime::native_image::debug::tvm_coverage_callable_id as coverage_callable_id;
 
+/// Returns the first arrow outside nested type delimiters.
+fn top_level_arrow(source: &str) -> Option<usize> {
+    let bytes = source.as_bytes();
+    let (mut round, mut square, mut brace) = (0usize, 0usize, 0usize);
+    let mut index = 0usize;
+    while index + 1 < bytes.len() {
+        match bytes[index] {
+            b'(' => round += 1,
+            b')' => round = round.saturating_sub(1),
+            b'[' => square += 1,
+            b']' => square = square.saturating_sub(1),
+            b'{' => brace += 1,
+            b'}' => brace = brace.saturating_sub(1),
+            b'-' if bytes[index + 1] == b'>' && round == 0 && square == 0 && brace == 0 => {
+                return Some(index);
+            }
+            _ => {}
+        }
+        index += 1;
+    }
+    None
+}
+
 #[cfg(test)]
 mod coverage_callable_id_test;
 

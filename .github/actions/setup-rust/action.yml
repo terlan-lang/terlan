@@ -18,10 +18,50 @@ inputs:
     description: Restore and retain compiled Cargo dependencies for long validation jobs.
     required: false
     default: "false"
+  cache-scope:
+    description: Runner image or ABI label for compiled Cargo artifacts.
+    required: false
+    default: ""
 
 runs:
   using: composite
   steps:
+    - name: Validate compiled cache scope
+      if: inputs.cache-build == 'true'
+      id: compiled-cache-scope
+      shell: bash
+      env:
+        TERLAN_RUST_CACHE_SCOPE: ${{ inputs.cache-scope }}
+      run: |
+        if [[ -z "$TERLAN_RUST_CACHE_SCOPE" ]]; then
+          echo "cache-scope is required when cache-build is true" >&2
+          exit 1
+        fi
+        if [[ ! "$TERLAN_RUST_CACHE_SCOPE" =~ ^[A-Za-z0-9._-]+$ ]]; then
+          echo "cache-scope must be a runner image or ABI label" >&2
+          exit 1
+        fi
+        case "$RUNNER_OS" in
+          Linux)
+            runtime_abi=$(getconf GNU_LIBC_VERSION | tr ' ' '-')
+            ;;
+          macOS)
+            runtime_abi="macos-$(sw_vers -productVersion | cut -d. -f1)"
+            ;;
+          Windows)
+            runtime_abi="${ImageOS:-windows}"
+            ;;
+          *)
+            echo "unsupported runner OS for compiled cache: $RUNNER_OS" >&2
+            exit 1
+            ;;
+        esac
+        if [[ ! "$runtime_abi" =~ ^[A-Za-z0-9._-]+$ ]]; then
+          echo "resolved runtime ABI is unsafe for a cache key" >&2
+          exit 1
+        fi
+        printf 'value=%s-%s\n' "$TERLAN_RUST_CACHE_SCOPE" "$runtime_abi" >> "$GITHUB_OUTPUT"
+
     - name: Cache Cargo registry inputs
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
@@ -44,11 +84,10 @@ runs:
           target/release/.fingerprint
           target/release/build
           target/release/deps
-        key: terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-${{ github.sha }}-${{ github.job }}
+        key: terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-${{ github.sha }}
         restore-keys: |
-          terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-${{ github.sha }}-
-          terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
-          terlan-rust-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-
+          terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
+          terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-
 
     - name: Install exact Rust toolchain
       shell: bash

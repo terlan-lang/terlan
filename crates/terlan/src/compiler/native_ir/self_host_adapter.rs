@@ -92,28 +92,6 @@ fn adapter_error(context: &str, message: impl AsRef<str>) -> String {
     )
 }
 
-fn top_level_function_arrow(source: &str) -> Option<usize> {
-    let bytes = source.as_bytes();
-    let (mut round, mut square, mut brace) = (0usize, 0usize, 0usize);
-    let mut index = 0usize;
-    while index + 1 < bytes.len() {
-        match bytes[index] {
-            b'(' => round += 1,
-            b')' => round = round.saturating_sub(1),
-            b'[' => square += 1,
-            b']' => square = square.saturating_sub(1),
-            b'{' => brace += 1,
-            b'}' => brace = brace.saturating_sub(1),
-            b'-' if bytes[index + 1] == b'>' && round == 0 && square == 0 && brace == 0 => {
-                return Some(index);
-            }
-            _ => {}
-        }
-        index += 1;
-    }
-    None
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FunctionParameterError {
     message: &'static str,
@@ -160,7 +138,7 @@ fn split_function_parameters(source: &str) -> Result<Vec<&str>, FunctionParamete
 
 fn native_function_type(type_name: &str) -> Result<Option<NativeType>, String> {
     let source = type_name.trim();
-    let Some(arrow) = top_level_function_arrow(source) else {
+    let Some(arrow) = super::top_level_arrow(source) else {
         return Ok(None);
     };
     let parameters = source[..arrow].trim();

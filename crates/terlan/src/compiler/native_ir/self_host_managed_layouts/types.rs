@@ -270,7 +270,7 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Nativ
     if source.is_empty() {
         return Err("empty type contract".into());
     }
-    if let Some(arrow) = top_level_type_arrow(source) {
+    if let Some(arrow) = super::super::top_level_arrow(source) {
         let parameters = source[..arrow].trim();
         let result = source[arrow + 2..].trim();
         if parameters.len() < 2 || !parameters.starts_with('(') || !parameters.ends_with(')') {
@@ -347,28 +347,6 @@ pub(super) fn parse_type_at(source: &str, depth: usize) -> Result<AbiType, Nativ
         constructor: constructor.into(),
         arguments,
     })
-}
-
-fn top_level_type_arrow(source: &str) -> Option<usize> {
-    let bytes = source.as_bytes();
-    let (mut round, mut square, mut brace) = (0usize, 0usize, 0usize);
-    let mut index = 0usize;
-    while index + 1 < bytes.len() {
-        match bytes[index] {
-            b'(' => round += 1,
-            b')' => round = round.saturating_sub(1),
-            b'[' => square += 1,
-            b']' => square = square.saturating_sub(1),
-            b'{' => brace += 1,
-            b'}' => brace = brace.saturating_sub(1),
-            b'-' if bytes[index + 1] == b'>' && round == 0 && square == 0 && brace == 0 => {
-                return Some(index);
-            }
-            _ => {}
-        }
-        index += 1;
-    }
-    None
 }
 
 pub(super) fn split_type_arguments(source: &str) -> Result<Vec<&str>, NativeIrError> {

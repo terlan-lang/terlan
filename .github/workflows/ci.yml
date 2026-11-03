@@ -140,6 +140,7 @@ jobs:
         with:
           components: ""
           cache-build: "true"
+          cache-scope: ${{ matrix.runner }}
 
       - name: Validate target-native AOT consumers
         run: make tvm-aot-platform-target-check
@@ -176,6 +177,7 @@ jobs:
         with:
           components: ""
           cache-build: "true"
+          cache-scope: ubuntu-24.04
 
       - name: Download target execution attestations
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -224,6 +226,7 @@ jobs:
         with:
           components: ""
           cache-build: "true"
+          cache-scope: ubuntu-24.04
 
       - name: Validate thread-neutral AOT runtime
         run: make tvm-aot-thread-sanitizer-check
@@ -260,6 +263,7 @@ jobs:
           targets: x86_64-unknown-linux-gnutsan
           components: ""
           cache-build: "true"
+          cache-scope: ubuntu-24.04
 
       - name: Validate multicore VM memory safety
         run: make vm-multicore-thread-sanitizer-check
@@ -304,6 +308,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           cache-build: "true"
+          cache-scope: ubuntu-24.04
 
       - name: Validate AOT cutover
         run: make release-candidate-check
