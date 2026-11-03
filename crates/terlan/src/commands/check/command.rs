@@ -28,7 +28,7 @@ use crate::{CliCommand, CliState};
 /// - Parses check-local arguments, delegates directory checks to the existing
 ///   directory checker, and runs single-file sources through the formal compile
 ///   phase pipeline with optional phase-manifest emission.
-pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
+pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
     let (path, phase_manifest_path, interfaces_only) = match parse_check_args(&cmd.args) {
         Ok(result) => result,
         Err(message) => {
@@ -37,6 +37,9 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    if phase_manifest_path.is_none() {
+        state.incremental = true;
+    }
 
     if Path::new(&path).is_dir() {
         return super::project::run(

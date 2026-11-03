@@ -96,6 +96,8 @@ mod cli_dispatch;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 mod cli_usage;
 mod commands;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+mod compiler_timings;
 
 #[cfg(any(not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use cli_dispatch::run_cli;

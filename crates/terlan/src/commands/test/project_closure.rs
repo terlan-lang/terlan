@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
-use crate::validation::target_profile::TargetProfile;
 use crate::CliState;
 
 use super::execution::{TestCompiledModule, TestProjectContext};
@@ -151,20 +150,21 @@ fn compile_project_source_core_module(
             return Err(ExitCode::from(1));
         }
     };
-    let compiled =
-        crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-            &path,
-            &source,
-            state.diagnostic_format,
-            state.cache_dir.as_deref(),
-            state.native_policy,
-            TargetProfile::Vm,
-            test_target_profile_options(state, true),
-        )?;
+    let compiled = crate::commands::build::vm_artifact::compile_checked_vm_artifacts(
+        &path,
+        &source,
+        state,
+        test_target_profile_options(state, true),
+    )?;
+    let native_debug =
+        crate::commands::build::vm_artifact::native_debug::NativeDebugInput::capture_owned(
+            path,
+            source,
+            &compiled.core,
+            &compiled.syntax_output,
+        );
     Ok(TestCompiledModule {
-        source_path: path,
-        source_text: source,
-        syntax: compiled.syntax_output,
         core: compiled.core,
+        native_debug,
     })
 }

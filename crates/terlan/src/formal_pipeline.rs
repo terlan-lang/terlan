@@ -792,6 +792,28 @@ pub(crate) fn compile_syntax_module_through_phases_with_profile_options(
     compile_result_to_artifacts(result)
 }
 
+/// Compiles one module with an authoritative source interface graph.
+pub(crate) fn compile_syntax_module_with_interface_graph(
+    path: &str,
+    source: &str,
+    diagnostic_format: DiagnosticFormat,
+    interfaces: InterfaceInputs<'_>,
+    native_policy: NativePolicy,
+    target_profile: TargetProfile,
+    target_profile_options: TargetProfileCheckOptions,
+) -> Result<CheckedSyntaxModuleArtifacts, ExitCode> {
+    let result = compile_syntax_module_with_interfaces(
+        path,
+        source,
+        diagnostic_format,
+        interfaces,
+        native_policy,
+        target_profile,
+        target_profile_options,
+    );
+    compile_result_to_artifacts(result)
+}
+
 /// Extracts successful checked artifacts from a full phase result.
 ///
 /// Inputs:

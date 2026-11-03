@@ -11,14 +11,19 @@ use crate::commands::artifacts::{
 };
 use crate::formal_pipeline::CheckedSyntaxModuleArtifacts;
 use crate::terlan_hir::syntax_module_output_to_interface;
-use crate::terlan_syntax::syntax_contract_identity_matches_current;
+use crate::terlan_hir::ModuleInterface;
+use crate::terlan_syntax::{syntax_contract_identity_matches_current, SyntaxModuleOutput};
+use crate::terlan_typeck::CoreModule;
+use crate::validation::target_profile::{
+    target_profile_checks_with_options, TargetProfileCheckOptions,
+};
 use crate::CliState;
 
 use super::super::{write_build_file, BuildOneError};
 use super::artifact_cache_retention::{Budget, CacheFamily, RetainedCache};
 use super::native_cache;
 
-const CHECKED_CACHE_SCHEMA: &str = "terlan-checked-implementation-v1";
+const CHECKED_CACHE_SCHEMA: &str = "terlan-checked-implementation-v2";
 const CHECKED_CACHE_BACKEND: &str = "terlan-frontend-v1";
 const CHECKED_CACHE_FILE: &str = "checked.json";
 const CHECKED_CACHE_TARGET: &str = "terlan-vm";
@@ -35,7 +40,19 @@ fn retention_budget() -> Budget {
 }
 
 fn retention_root(cache_dir: &Path, identity: &str) -> PathBuf {
-    cache_dir.join("checked-v2").join(&identity[..1])
+    shared_checked_cache_root(cache_dir)
+        .join("checked-v2")
+        .join(&identity[..1])
+}
+
+/// Shares immutable checked payloads within one source-control workspace.
+fn shared_checked_cache_root(cache_dir: &Path) -> PathBuf {
+    let search_root = cache_dir.parent().unwrap_or(cache_dir);
+    search_root
+        .ancestors()
+        .find(|ancestor| ancestor.join(".git").exists())
+        .map(|workspace| workspace.join(".terlan/compiler-cache"))
+        .unwrap_or_else(|| cache_dir.to_path_buf())
 }
 
 /// Lossless compiler-private implementation payload retained between builds.
@@ -78,6 +95,8 @@ pub(super) fn load_checked_implementation(
     path: &str,
     source: &str,
     state: &CliState,
+    target_profile_options: TargetProfileCheckOptions,
+    source_graph: Option<&crate::formal_pipeline::interface_graph::SourceInterfaceGraph>,
 ) -> Result<Option<CheckedSyntaxModuleArtifacts>, BuildOneError> {
     let Some(cache_dir) = state.cache_dir.as_deref() else {
         return Ok(None);
@@ -97,7 +116,17 @@ pub(super) fn load_checked_implementation(
     // Verified bytes are owned now. Parsing and dependency discovery must not
     // serialize unrelated readers or hold a retention lease across frontend work.
     drop(cache);
-    Ok(bytes.and_then(|bytes| decode_checked_entry(path, source, state, &source_sha256, &bytes)))
+    Ok(bytes.and_then(|bytes| {
+        decode_checked_entry(
+            path,
+            source,
+            state,
+            target_profile_options,
+            source_graph,
+            &source_sha256,
+            &bytes,
+        )
+    }))
 }
 
 /// Copies verified payload bytes while a bucket lease prevents retirement.
@@ -121,6 +150,8 @@ fn decode_checked_entry(
     path: &str,
     source: &str,
     state: &CliState,
+    target_profile_options: TargetProfileCheckOptions,
+    source_graph: Option<&crate::formal_pipeline::interface_graph::SourceInterfaceGraph>,
     source_sha256: &str,
     bytes: &[u8],
 ) -> Option<CheckedSyntaxModuleArtifacts> {
@@ -130,7 +161,7 @@ fn decode_checked_entry(
             .ok()?;
     if cached.schema != CHECKED_CACHE_SCHEMA
         || cached.compiler != compiler_identity()
-        || cached.native_policy != native_policy_identity(state)
+        || cached.native_policy != compilation_policy_identity(state)
         || cached.source_sha256 != source_sha256
     {
         return None;
@@ -142,7 +173,6 @@ fn decode_checked_entry(
     if manifest.module != cached.syntax_output.module_name
         || manifest.module != cached.core.module
         || manifest.source_hash != fingerprint(source.as_bytes())
-        || read_manifest(&dependency_manifest_path(cache_dir, &manifest.module))? != manifest
     {
         return None;
     }
@@ -153,6 +183,15 @@ fn decode_checked_entry(
         cached.core.interface =
             load_low_memory_interface(&manifest, &cached.syntax_output, cache_dir)?;
         cached.core.source.source_path = Some(path.to_string());
+        if !target_profile_checks_with_options(
+            &cached.core,
+            state.target_profile,
+            target_profile_options,
+        )
+        .is_empty()
+        {
+            return None;
+        }
         return Some(CheckedSyntaxModuleArtifacts {
             syntax_output: cached.syntax_output,
             interfaces: Default::default(),
@@ -160,17 +199,22 @@ fn decode_checked_entry(
         });
     }
     let interface = syntax_module_output_to_interface(&cached.syntax_output);
-    let mut interfaces = crate::formal_pipeline::load_external_interfaces_for_module(
-        path,
-        Some(cache_dir),
-        &cached.syntax_output,
+    let mut interfaces = source_graph.map_or_else(
+        || {
+            crate::formal_pipeline::load_external_interfaces_for_module(
+                path,
+                Some(cache_dir),
+                &cached.syntax_output,
+            )
+        },
+        |graph| graph.interfaces.clone(),
     );
     if crate::formal_pipeline::interface_dependencies::check_interface_dependencies(
         Path::new(path),
         &cached.syntax_output,
         Some(cache_dir),
         &mut interfaces,
-        None,
+        source_graph,
     )
     .iter()
     .any(|diagnostic| {
@@ -226,6 +270,15 @@ fn decode_checked_entry(
         return None;
     }
     cached.core.source.source_path = Some(path.to_string());
+    if !target_profile_checks_with_options(
+        &cached.core,
+        state.target_profile,
+        target_profile_options,
+    )
+    .is_empty()
+    {
+        return None;
+    }
     Some(CheckedSyntaxModuleArtifacts {
         syntax_output: cached.syntax_output,
         interfaces,
@@ -296,60 +349,27 @@ fn interface_matches_manifest(
 pub(super) fn publish_checked_implementation(
     path: &str,
     source: &str,
-    compiled: &CheckedSyntaxModuleArtifacts,
+    syntax_output: &SyntaxModuleOutput,
+    interfaces: &std::collections::HashMap<String, ModuleInterface>,
+    core: &CoreModule,
     state: &CliState,
 ) -> Result<(), BuildOneError> {
+    let dependency_manifest =
+        publish_checked_dependency_manifest(path, source, syntax_output, interfaces, core, state)?;
     let Some(cache_dir) = state.cache_dir.as_deref() else {
         return Ok(());
     };
-    fs::create_dir_all(cache_dir).map_err(|error| {
-        BuildOneError::Message(format!(
-            "error[build.checked_cache_directory]: cannot create `{}`: {error}",
-            cache_dir.display()
-        ))
-    })?;
-    let dependency_manifest = DependencyManifest {
-        module: compiled.syntax_output.module_name.clone(),
-        syntax_contract_identity: compiled.syntax_output.syntax_contract.clone(),
-        source_hash: fingerprint(source.as_bytes()),
-        interface_hash: fingerprint(
-            compiled
-                .core
-                .interface
-                .to_terlan_interface_type_text()
-                .as_bytes(),
-        ),
-        interface_doc_hash: fingerprint(
-            compiled
-                .core
-                .interface
-                .to_terlan_interface_doc_text()
-                .as_bytes(),
-        ),
-        dependencies: collect_syntax_dependency_hashes(
-            &compiled.syntax_output,
-            &compiled.interfaces,
-            Some(Path::new(path)),
-            None,
-        ),
-    };
-    write_build_file(
-        &dependency_manifest_path(cache_dir, &dependency_manifest.module),
-        dependency_manifest.encode().as_bytes(),
-        state.incremental,
-    )
-    .map_err(BuildOneError::Message)?;
 
     let source_sha256 = native_cache::sha256_hex(source.as_bytes());
     let (identity, _) = checked_cache_location(cache_dir, &source_sha256, state);
     let cached = CheckedImplementationCache {
         schema: CHECKED_CACHE_SCHEMA.to_string(),
         compiler: compiler_identity(),
-        native_policy: native_policy_identity(state),
+        native_policy: compilation_policy_identity(state),
         source_sha256,
         dependency_manifest: dependency_manifest.encode(),
-        syntax_output: compiled.syntax_output.clone(),
-        core: compiled.core.clone(),
+        syntax_output: syntax_output.clone(),
+        core: core.clone(),
     };
     let bytes = serde_json::to_vec(&cached).map_err(|error| {
         BuildOneError::Message(format!(
@@ -378,6 +398,60 @@ pub(super) fn publish_checked_implementation(
     Ok(())
 }
 
+/// Publishes the workspace-local dependency index for a verified cache hit.
+pub(super) fn publish_checked_dependency_manifest(
+    path: &str,
+    source: &str,
+    syntax_output: &SyntaxModuleOutput,
+    interfaces: &std::collections::HashMap<String, ModuleInterface>,
+    core: &CoreModule,
+    state: &CliState,
+) -> Result<DependencyManifest, BuildOneError> {
+    let Some(cache_dir) = state.cache_dir.as_deref() else {
+        return Ok(DependencyManifest {
+            module: syntax_output.module_name.clone(),
+            syntax_contract_identity: syntax_output.syntax_contract.clone(),
+            source_hash: fingerprint(source.as_bytes()),
+            interface_hash: fingerprint(core.interface.to_terlan_interface_type_text().as_bytes()),
+            interface_doc_hash: fingerprint(
+                core.interface.to_terlan_interface_doc_text().as_bytes(),
+            ),
+            dependencies: collect_syntax_dependency_hashes(
+                syntax_output,
+                interfaces,
+                Some(Path::new(path)),
+                None,
+            ),
+        });
+    };
+    fs::create_dir_all(cache_dir).map_err(|error| {
+        BuildOneError::Message(format!(
+            "error[build.checked_cache_directory]: cannot create `{}`: {error}",
+            cache_dir.display()
+        ))
+    })?;
+    let dependency_manifest = DependencyManifest {
+        module: syntax_output.module_name.clone(),
+        syntax_contract_identity: syntax_output.syntax_contract.clone(),
+        source_hash: fingerprint(source.as_bytes()),
+        interface_hash: fingerprint(core.interface.to_terlan_interface_type_text().as_bytes()),
+        interface_doc_hash: fingerprint(core.interface.to_terlan_interface_doc_text().as_bytes()),
+        dependencies: collect_syntax_dependency_hashes(
+            syntax_output,
+            interfaces,
+            Some(Path::new(path)),
+            None,
+        ),
+    };
+    write_build_file(
+        &dependency_manifest_path(cache_dir, &dependency_manifest.module),
+        dependency_manifest.encode().as_bytes(),
+        state.incremental,
+    )
+    .map_err(BuildOneError::Message)?;
+    Ok(dependency_manifest)
+}
+
 /// Returns the content identity and directory for one checked source profile.
 fn checked_cache_location(
     cache_dir: &Path,
@@ -388,7 +462,7 @@ fn checked_cache_location(
         format!(
             "{CHECKED_CACHE_SCHEMA}\0{}\0{}\0{source_sha256}",
             compiler_identity(),
-            native_policy_identity(state)
+            compilation_policy_identity(state)
         )
         .as_bytes(),
     );
@@ -409,8 +483,8 @@ fn compiler_identity() -> String {
 }
 
 /// Returns the target validation policy identity used by checked CoreIR.
-fn native_policy_identity(state: &CliState) -> String {
-    format!("{:?}", state.native_policy)
+fn compilation_policy_identity(state: &CliState) -> String {
+    format!("{:?}:{:?}", state.native_policy, state.target_profile)
 }
 
 /// Returns the canonical dependency manifest path for one module interface.

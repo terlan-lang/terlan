@@ -2,9 +2,6 @@
 
 use std::time::Instant;
 
-/// Environment switch for compiler-development phase profiling.
-const PHASE_TIMINGS_ENVIRONMENT: &str = "TERLAN_COMPILER_PHASE_TIMINGS";
-
 /// Low-overhead phase clock enabled only for explicit compiler profiling.
 pub(super) struct FormalPipelineTimings<'a> {
     enabled: bool,
@@ -18,8 +15,7 @@ impl<'a> FormalPipelineTimings<'a> {
     pub(super) fn new(path: &'a str) -> Self {
         let now = Instant::now();
         Self {
-            enabled: std::env::var_os(PHASE_TIMINGS_ENVIRONMENT).as_deref()
-                == Some(std::ffi::OsStr::new("1")),
+            enabled: crate::compiler_timings::frontend_enabled(),
             path,
             started: now,
             last: now,

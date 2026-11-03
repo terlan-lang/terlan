@@ -486,7 +486,7 @@ pub(super) fn compile_rooted_native_application_image(
             return Ok(Some(image));
         }
     }
-    let trace_timings = std::env::var_os("TERLAN_NATIVE_AOT_TIMINGS").is_some();
+    let trace_timings = crate::compiler_timings::native_enabled();
     let started = Instant::now();
     let mut previous = started;
     let mut mark = |phase: &str| {
@@ -674,12 +674,12 @@ pub(super) fn compile_serve_native_application_image_with_metadata(
     .map_err(build_error_message)
 }
 
-/// Compiles one test module into a native image without producing JSON artifacts.
-pub(crate) fn compile_test_native_image(
+/// Compiles a test image by moving its complete CoreIR closure into lowering.
+pub(crate) fn compile_test_native_image_owned(
     workspace: &Path,
     native_cache_root: &Path,
     module_stem: &str,
-    cores: &[&CoreModule],
+    cores: Vec<CoreModule>,
     roots: &[(String, String, usize)],
     debug_inputs: &[NativeDebugInput],
     incremental: bool,
@@ -687,7 +687,7 @@ pub(crate) fn compile_test_native_image(
     let vm_dir = workspace.join("vm");
     fs::create_dir_all(&vm_dir)
         .map_err(|error| format!("cannot create test AOT output directory: {error}"))?;
-    compile_rooted_native_application_image(
+    compile_owned_rooted_native_application_image(
         &vm_dir,
         native_cache_root,
         module_stem,

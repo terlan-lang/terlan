@@ -43,6 +43,10 @@ mod parallel_compile_test;
 pub(crate) mod source_exports;
 mod std_source;
 
+pub(crate) use compile::{
+    compile_checked_vm_artifacts, compile_checked_vm_artifacts_with_interfaces,
+    publish_checked_vm_artifacts,
+};
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use orchestration::compile_serve_application;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]

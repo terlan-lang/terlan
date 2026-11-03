@@ -36,39 +36,130 @@ pub(super) fn compile_vm_module(
 ) -> Result<CompiledVmModule, BuildOneError> {
     let source_text = crate::support::read_file(path)
         .map_err(|error| BuildOneError::Message(error.to_string()))?;
-    if state.incremental {
-        if let Some(compiled) =
-            checked_cache::load_checked_implementation(path, &source_text, state)?
-        {
-            return Ok(compact_compiled_module(
-                path.to_string(),
-                source_text,
-                compiled,
-                true,
-            ));
-        }
-    }
-    let compiled =
-        crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-            path,
-            &source_text,
-            state.diagnostic_format,
-            state.cache_dir.as_deref(),
-            state.native_policy,
-            TargetProfile::Vm,
-            TargetProfileCheckOptions {
-                allow_asset_imports: false,
-                allow_rust_backed_std_modules: state.native_policy != NativePolicy::Pure,
-            },
-        )
-        .map_err(BuildOneError::Exit)?;
-    checked_cache::publish_checked_implementation(path, &source_text, &compiled, state)?;
+    let target_profile_options = TargetProfileCheckOptions {
+        allow_asset_imports: false,
+        allow_rust_backed_std_modules: state.native_policy != NativePolicy::Pure,
+    };
+    let (compiled, checked_cache_reused) = load_or_compile_checked_vm_artifacts(
+        path,
+        &source_text,
+        state,
+        target_profile_options,
+        None,
+    )?;
     Ok(compact_compiled_module(
         path.to_string(),
         source_text,
         compiled,
-        false,
+        checked_cache_reused,
     ))
+}
+
+/// Loads or compiles checked VM artifacts for test and build commands.
+pub(crate) fn compile_checked_vm_artifacts(
+    path: &str,
+    source: &str,
+    state: &CliState,
+    target_profile_options: TargetProfileCheckOptions,
+) -> Result<CheckedSyntaxModuleArtifacts, std::process::ExitCode> {
+    compile_checked_vm_artifacts_with_interfaces(path, source, state, target_profile_options, None)
+}
+
+/// Loads or compiles checked VM artifacts against an authoritative source graph.
+pub(crate) fn compile_checked_vm_artifacts_with_interfaces(
+    path: &str,
+    source: &str,
+    state: &CliState,
+    target_profile_options: TargetProfileCheckOptions,
+    source_graph: Option<&crate::formal_pipeline::interface_graph::SourceInterfaceGraph>,
+) -> Result<CheckedSyntaxModuleArtifacts, std::process::ExitCode> {
+    match load_or_compile_checked_vm_artifacts(
+        path,
+        source,
+        state,
+        target_profile_options,
+        source_graph,
+    ) {
+        Ok((compiled, _)) => Ok(compiled),
+        Err(BuildOneError::Message(message)) => {
+            eprintln!("{message}");
+            Err(std::process::ExitCode::from(1))
+        }
+        Err(BuildOneError::Exit(exit_code)) => Err(exit_code),
+    }
+}
+
+/// Publishes already-checked VM artifacts for reuse by later commands.
+pub(crate) fn publish_checked_vm_artifacts(
+    path: &str,
+    source: &str,
+    syntax_output: &crate::terlan_syntax::SyntaxModuleOutput,
+    interfaces: &std::collections::HashMap<String, crate::terlan_hir::ModuleInterface>,
+    core: &CoreModule,
+    state: &CliState,
+) -> Result<(), std::process::ExitCode> {
+    checked_cache::publish_checked_implementation(
+        path,
+        source,
+        syntax_output,
+        interfaces,
+        core,
+        state,
+    )
+    .map_err(|error| {
+        eprintln!("{error}");
+        std::process::ExitCode::from(1)
+    })
+}
+
+fn load_or_compile_checked_vm_artifacts(
+    path: &str,
+    source_text: &str,
+    state: &CliState,
+    target_profile_options: TargetProfileCheckOptions,
+    source_graph: Option<&crate::formal_pipeline::interface_graph::SourceInterfaceGraph>,
+) -> Result<(CheckedSyntaxModuleArtifacts, bool), BuildOneError> {
+    if state.incremental {
+        if let Some(compiled) = checked_cache::load_checked_implementation(
+            path,
+            source_text,
+            state,
+            target_profile_options,
+            source_graph,
+        )? {
+            checked_cache::publish_checked_dependency_manifest(
+                path,
+                source_text,
+                &compiled.syntax_output,
+                &compiled.interfaces,
+                &compiled.core,
+                state,
+            )?;
+            return Ok((compiled, true));
+        }
+    }
+    let compiled = crate::formal_pipeline::compile_syntax_module_with_interface_graph(
+        path,
+        source_text,
+        state.diagnostic_format,
+        crate::formal_pipeline::InterfaceInputs {
+            cache_dir: state.cache_dir.as_deref(),
+            source_graph,
+        },
+        state.native_policy,
+        TargetProfile::Vm,
+        target_profile_options,
+    )
+    .map_err(BuildOneError::Exit)?;
+    checked_cache::publish_checked_implementation(
+        path,
+        source_text,
+        &compiled.syntax_output,
+        &compiled.interfaces,
+        &compiled.core,
+        state,
+    )?;
+    Ok((compiled, false))
 }
 
 /// Projects checked frontend output into the state required by native linking.

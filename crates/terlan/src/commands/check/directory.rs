@@ -17,7 +17,7 @@
 ///   manifests, and emits optional phase manifests.
 pub(crate) fn run_check_dir(
     path: &str,
-    state: CliState,
+    mut state: CliState,
     phase_manifest_path: Option<&Path>,
 ) -> ExitCode {
     let dir = Path::new(path);
@@ -25,6 +25,7 @@ pub(crate) fn run_check_dir(
         .cache_dir
         .clone()
         .unwrap_or_else(|| dir.join(".terlan"));
+    state.cache_dir = Some(cache_dir.clone());
     if let Err(err) = fs::create_dir_all(&cache_dir) {
         eprintln!("cannot create cache directory: {}", err);
         return ExitCode::from(1);
@@ -386,19 +387,25 @@ pub(crate) fn run_check_dir(
             return ExitCode::from(1);
         }
     };
-    if !dependencies.is_empty() {
-        let graph = crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
-            parsed_modules
-                .iter()
-                .map(|(path, _, syntax)| (path.as_path(), syntax))
-                .chain(
-                    dependencies
-                        .iter()
-                        .map(|(path, syntax)| (path.as_path(), syntax)),
-                ),
-            Some(&cache_dir),
-        );
-        interfaces.extend(graph.interfaces);
+    let source_graph = if dependencies.is_empty() {
+        None
+    } else {
+        Some(
+            crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
+                parsed_modules
+                    .iter()
+                    .map(|(path, _, syntax)| (path.as_path(), syntax))
+                    .chain(
+                        dependencies
+                            .iter()
+                            .map(|(path, syntax)| (path.as_path(), syntax)),
+                    ),
+                Some(&cache_dir),
+            ),
+        )
+    };
+    if let Some(graph) = &source_graph {
+        interfaces.extend(graph.interfaces.clone());
     }
     crate::formal_pipeline::load_embedded_std_interfaces(&mut interfaces);
     if let Some((file, _, _)) = parsed_modules.first() {
@@ -440,6 +447,26 @@ pub(crate) fn run_check_dir(
             && state.trace_invalidation
         {
             println!("INTERFACE_CHANGED {}", module_name);
+        }
+
+        if state.incremental
+            && phase_manifest_root.is_none()
+            && target_profile == crate::validation::target_profile::TargetProfile::Vm
+        {
+            state.target_profile = target_profile;
+            match crate::commands::build::vm_artifact::compile_checked_vm_artifacts_with_interfaces(
+                &file.to_string_lossy(),
+                source,
+                &state,
+                TargetProfileCheckOptions::default(),
+                source_graph.as_ref(),
+            ) {
+                Ok(_) => continue,
+                Err(_) => {
+                    has_errors = true;
+                    continue;
+                }
+            }
         }
 
         let (mut syntax_output, imported_macro_diagnostics) =
@@ -725,6 +752,23 @@ pub(crate) fn run_check_dir(
         ) {
             eprintln!("failed to write dependency manifest: {}", err);
             return ExitCode::from(1);
+        }
+        if state.incremental
+            && target_profile == crate::validation::target_profile::TargetProfile::Vm
+        {
+            state.target_profile = target_profile;
+            if let Err(exit_code) =
+                crate::commands::build::vm_artifact::publish_checked_vm_artifacts(
+                    &file.to_string_lossy(),
+                    source,
+                    &syntax_output,
+                    &interfaces,
+                    &core,
+                    &state,
+                )
+            {
+                return exit_code;
+            }
         }
     }
 

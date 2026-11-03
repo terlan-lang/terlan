@@ -71,6 +71,32 @@ The executable gate persists compiler-incremental-cache-report.json with:
 The report is release evidence that incremental compilation remains equivalent
 to a clean build for the same inputs while still allowing cache reuse.
 
+## Checked module reuse
+
+Ordinary directory checks and VM tests publish complete checked syntax and
+CoreIR into the verified checked-implementation cache. Subsequent `terlc check`
+and `terlc test` commands reuse an entry only after validating the compiler,
+source, native policy, target profile, syntax contract, public interface, and
+every current dependency hash. Target-profile options are rerun against cached
+CoreIR, so a permissive test invocation cannot make a later strict build valid.
+
+Immutable checked payloads are shared by package-local commands under the same
+source-control workspace. Package-local `.typi.deps` indices remain separate
+and are republished after a shared hit. This lets several packages reuse an
+unchanged dependency without allowing one workspace to trust another. The
+workspace cache retains the existing bounded, leased retention policy.
+
+Focused file tests compile only their transitive project import closure.
+Directory and coverage suites continue to validate the complete project, but
+reuse unchanged checked modules across commands. Native test lowering consumes
+the checked CoreIR closure by ownership instead of cloning the full closure;
+this removes the former simultaneous checked/rooted CoreIR peak.
+
+`terlc --timings check ...` and `terlc --timings test ...` enable frontend,
+typecheck, native-lowering, and AOT phase timing from one flag. The legacy
+`TERLAN_COMPILER_PHASE_TIMINGS=1` and `TERLAN_NATIVE_AOT_TIMINGS=1`
+development switches remain supported.
+
 ## Checked application image reuse
 
 Incremental native application builds may reuse an image after the frontend has

@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use super::{check_dir_phase_manifest_path, parse_check_args};
+use super::{check_dir_phase_manifest_path, parse_check_args, run};
+use crate::{CliCommand, CliState};
 
 fn args(items: &[&str]) -> Vec<String> {
     items.iter().map(|item| (*item).to_string()).collect()
@@ -86,4 +87,57 @@ fn check_dir_phase_manifest_path_uses_file_stem_for_file_root() {
         check_dir_phase_manifest_path(Path::new("_build/phase/check.json"), "app.Main"),
         PathBuf::from("_build/phase/check.app.Main.phase-manifest.json")
     );
+}
+
+#[test]
+fn ordinary_directory_check_publishes_incremental_core_cache() {
+    let root = crate::support::test_fs::temp_dir("check", "automatic_incremental_cache");
+    let source_root = root.join("src");
+    std::fs::create_dir_all(source_root.join("app")).expect("source root");
+    std::fs::write(
+        source_root.join("app/Main.terl"),
+        "module app.Main.\npub answer(): Int -> 42.\n",
+    )
+    .expect("source");
+    let cache = root.join("cache");
+    let check = || {
+        run(
+            CliCommand {
+                verb: Some("check".into()),
+                args: vec![source_root.to_string_lossy().into_owned()],
+            },
+            CliState {
+                cache_dir: Some(cache.clone()),
+                ..CliState::default()
+            },
+        )
+    };
+    assert_eq!(check(), std::process::ExitCode::SUCCESS);
+    assert!(cache.join("app.Main.typi.deps").is_file());
+    let checked_entries = std::fs::read_dir(cache.join("checked-v2"))
+        .expect("checked cache buckets")
+        .flatten()
+        .flat_map(|bucket| {
+            std::fs::read_dir(bucket.path().join("entries"))
+                .into_iter()
+                .flatten()
+                .flatten()
+        })
+        .map(|entry| entry.path().join("checked.json"))
+        .collect::<Vec<_>>();
+    assert_eq!(checked_entries.len(), 1);
+    let modified = std::fs::metadata(&checked_entries[0])
+        .expect("checked payload")
+        .modified()
+        .expect("checked payload timestamp");
+    assert_eq!(check(), std::process::ExitCode::SUCCESS);
+    assert_eq!(
+        std::fs::metadata(&checked_entries[0])
+            .expect("unchanged checked payload")
+            .modified()
+            .expect("unchanged checked payload timestamp"),
+        modified,
+        "unchanged default checks must not republish checked CoreIR"
+    );
+    std::fs::remove_dir_all(root).expect("remove check fixture");
 }

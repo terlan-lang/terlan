@@ -453,7 +453,16 @@ fn vm_aot_timings_report_compile_and_native_artifact_phases() {
         stderr.contains("terlc timing: vm.aot-and-artifact:"),
         "{stderr}"
     );
-    assert_eq!(stderr.matches("terlc timing:").count(), 2, "{stderr}");
+    for phase in [
+        "terlc timing: frontend.parse:",
+        "terlc timing: frontend.interfaces:",
+        "terlc timing: frontend.typecheck:",
+        "terlc timing: frontend.core-lowering:",
+        "terlc timing: typecheck.declarations:",
+        "terlc native-aot: application.selected-application-lowering:",
+    ] {
+        assert!(stderr.contains(phase), "missing `{phase}`:\n{stderr}");
+    }
 
     fs::remove_dir_all(&root).expect("remove timing fixture root");
 }

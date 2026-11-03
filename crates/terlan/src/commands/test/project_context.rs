@@ -123,6 +123,7 @@ pub(super) fn prepare_test_project_context(
     let mut project_state = state.clone();
     project_state.target_profile = profile;
     project_state.cache_dir = Some(context.cache_dir.clone());
+    project_state.incremental = true;
 
     for root in &context.source_roots {
         let status = crate::commands::check::run_check_dir(

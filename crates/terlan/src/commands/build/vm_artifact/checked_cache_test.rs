@@ -5,9 +5,10 @@ use std::path::Path;
 
 use crate::commands::build::source_roots::prepare_source_root_interfaces;
 use crate::support::test_fs;
+use crate::validation::target_profile::TargetProfileCheckOptions;
 use crate::CliState;
 
-use super::checked_cache::checked_cache_file_for_test;
+use super::checked_cache::{checked_cache_file_for_test, load_checked_implementation};
 use super::compile::{compile_vm_module, CompiledVmModule};
 
 /// Compiles one fixture through the VM checked-artifact frontend.
@@ -193,6 +194,52 @@ fn checked_cache_reuses_unchanged_dependency_implementations() {
     assert!(
         !fixture.compile_main().checked_cache_reused,
         "public dependency interface changes must invalidate consumers"
+    );
+    fixture.remove();
+}
+
+/// Cache hits revalidate the caller's target-profile options.
+#[test]
+fn checked_cache_revalidates_target_validation_options() {
+    let fixture = CheckedCacheFixture::new("target_validation_options");
+    fixture.prepare_interfaces();
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+    let source = fs::read_to_string(&fixture.dependency).expect("dependency source");
+    let path = fixture.dependency.to_string_lossy();
+    let test_options = TargetProfileCheckOptions {
+        allow_asset_imports: true,
+        allow_rust_backed_std_modules: true,
+    };
+    assert!(
+        load_checked_implementation(&path, &source, &fixture.state, test_options, None)
+            .expect("load revalidated test cache")
+            .is_some(),
+        "compatible target options should reuse checked CoreIR after revalidation"
+    );
+    assert!(fixture.compile_dependency().checked_cache_reused);
+    fixture.remove();
+}
+
+/// Dependency CoreIR is shared across package-local caches in one workspace.
+#[test]
+fn checked_cache_reuses_dependencies_across_workspace_packages() {
+    let fixture = CheckedCacheFixture::new("workspace_dependency_reuse");
+    fs::create_dir_all(fixture.root.join(".git")).expect("workspace marker");
+    fixture.prepare_interfaces();
+    assert!(!fixture.compile_dependency().checked_cache_reused);
+
+    let consumer_cache = fixture.root.join("consumer/.terlan");
+    let consumer_state = CliState {
+        cache_dir: Some(consumer_cache),
+        ..fixture.state.clone()
+    };
+    prepare_source_root_interfaces(&fixture.source_root, &consumer_state)
+        .expect("prepare consumer interfaces");
+    let compiled = compile_fixture_module(&fixture.dependency, &consumer_state)
+        .expect("compile dependency from consumer cache");
+    assert!(
+        compiled.checked_cache_reused,
+        "unchanged dependency must reuse the workspace checked payload"
     );
     fixture.remove();
 }

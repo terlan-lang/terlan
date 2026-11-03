@@ -19,9 +19,8 @@ use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
 use super::wasm::run_wasm_tests;
 use crate::commands::build::vm_artifact::native_debug::NativeDebugInput;
-use crate::commands::build::vm_artifact::native_image::compile_test_native_image;
+use crate::commands::build::vm_artifact::native_image::compile_test_native_image_owned;
 use crate::commands::dev_dependencies;
-use crate::terlan_syntax::SyntaxModuleOutput;
 use crate::terlan_typeck::core_intrinsic_lowering::core_primitive_intrinsic;
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
 use crate::validation::target_profile::TargetProfile;
@@ -50,10 +49,8 @@ pub(super) struct TestProjectContext {
 
 /// Checked module plus the source metadata needed by native coverage records.
 pub(super) struct TestCompiledModule {
-    pub(super) source_path: String,
-    pub(super) source_text: String,
-    pub(super) syntax: SyntaxModuleOutput,
     pub(super) core: CoreModule,
+    pub(super) native_debug: NativeDebugInput,
 }
 
 /// Executes the `test` CLI command.
@@ -300,6 +297,7 @@ pub(super) fn run_terlan_vm_test_file(
         };
     let mut state = state;
     state.target_profile = TargetProfile::Vm;
+    state.incremental = true;
     if let Some(context) = project_context.as_ref() {
         state.cache_dir = Some(context.cache_dir.clone());
         for root in &context.source_roots {
@@ -319,19 +317,15 @@ pub(super) fn run_terlan_vm_test_file(
             return ExitCode::from(1);
         }
     };
-    let compiled =
-        match crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-            path,
-            &source,
-            state.diagnostic_format,
-            state.cache_dir.as_deref(),
-            state.native_policy,
-            TargetProfile::Vm,
-            test_target_profile_options(&state, true),
-        ) {
-            Ok(compiled) => compiled,
-            Err(exit_code) => return exit_code,
-        };
+    let compiled = match crate::commands::build::vm_artifact::compile_checked_vm_artifacts(
+        path,
+        &source,
+        &state,
+        test_target_profile_options(&state, true),
+    ) {
+        Ok(compiled) => compiled,
+        Err(exit_code) => return exit_code,
+    };
 
     let tests = match discover_tests(&compiled.syntax_output) {
         Ok(tests) => tests,
@@ -397,51 +391,39 @@ pub(super) fn run_terlan_vm_test_file(
         Ok(modules) => modules,
         Err(exit_code) => return exit_code,
     };
-    let core = compiled.core;
+    let module_name = compiled.syntax_output.module_name.clone();
     let test_roots = tests
         .iter()
-        .map(|test| {
-            (
-                compiled.syntax_output.module_name.clone(),
-                test.name.clone(),
-                0,
-            )
-        })
+        .map(|test| (module_name.clone(), test.name.clone(), 0))
         .collect::<Vec<_>>();
-    let application_cores = std::iter::once(&core)
-        .chain(project_core_modules.iter().map(|module| &module.core))
-        .chain(imported_std_core_modules.iter().map(|module| &module.core))
-        .collect::<Vec<_>>();
-    let active_debug_input =
-        NativeDebugInput::capture(path, &source, &core, &compiled.syntax_output);
-    let debug_inputs = std::iter::once(active_debug_input)
-        .chain(
-            project_core_modules
-                .iter()
-                .chain(imported_std_core_modules.iter())
-                .map(|module| {
-                    NativeDebugInput::capture(
-                        &module.source_path,
-                        &module.source_text,
-                        &module.core,
-                        &module.syntax,
-                    )
-                }),
-        )
-        .collect::<Vec<_>>();
+    let active_debug_input = NativeDebugInput::capture_owned(
+        path.to_string(),
+        source,
+        &compiled.core,
+        &compiled.syntax_output,
+    );
+    let mut application_cores = vec![compiled.core];
+    let mut debug_inputs = vec![active_debug_input];
+    for module in project_core_modules
+        .into_iter()
+        .chain(imported_std_core_modules)
+    {
+        application_cores.push(module.core);
+        debug_inputs.push(module.native_debug);
+    }
 
-    let module_stem = compiled.syntax_output.module_name.replace('.', "_");
+    let module_stem = module_name.replace('.', "_");
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
     let native_cache_root = state
         .cache_dir
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
-    let native_image = match compile_test_native_image(
+    let native_image = match compile_test_native_image_owned(
         &test_aot_workspace,
         &native_cache_root,
         &module_stem,
-        &application_cores,
+        application_cores,
         &test_roots,
         &debug_inputs,
         state.incremental,
@@ -454,7 +436,7 @@ pub(super) fn run_terlan_vm_test_file(
     };
 
     let report = match run_discovered_terlan_vm_tests(
-        compiled.syntax_output.module_name.as_str(),
+        module_name.as_str(),
         &tests,
         native_image.as_deref(),
         project_context
@@ -497,7 +479,7 @@ pub(super) fn run_terlan_vm_test_file(
         if let Err(message) = write_test_result_manifest(
             result_manifest_path,
             path,
-            &compiled.syntax_output.module_name,
+            &module_name,
             "terlan-vm",
             TargetProfile::Vm.as_str(),
             &report,
@@ -613,16 +595,12 @@ pub(super) fn compile_imported_std_source_core_modules(
                 return Err(ExitCode::from(1));
             }
         };
-        let compiled =
-            crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-                &path_text,
-                &source,
-                state.diagnostic_format,
-                state.cache_dir.as_deref(),
-                state.native_policy,
-                TargetProfile::Vm,
-                test_target_profile_options(state, true),
-            )?;
+        let compiled = crate::commands::build::vm_artifact::compile_checked_vm_artifacts(
+            &path_text,
+            &source,
+            state,
+            test_target_profile_options(state, true),
+        )?;
         let mut core = compiled.core;
         pending.extend(
             core.imports
@@ -637,12 +615,9 @@ pub(super) fn compile_imported_std_source_core_modules(
         );
         remove_compiler_intrinsic_functions(&mut core);
         // Keep provider declarations even when all executable intrinsics are erased.
-        modules.push(TestCompiledModule {
-            source_path: path_text,
-            source_text: source,
-            syntax: compiled.syntax_output,
-            core,
-        });
+        let native_debug =
+            NativeDebugInput::capture_owned(path_text, source, &core, &compiled.syntax_output);
+        modules.push(TestCompiledModule { core, native_debug });
     }
     Ok(modules)
 }

@@ -11,7 +11,7 @@ use super::coverage::DeclarationCoverage;
 use super::discovery::{discover_tests, select_tests, DiscoveredTest, TestKind};
 use super::execution::{
     compile_imported_std_source_core_modules, finish_declaration_coverage, print_benchmark_report,
-    print_runtime_test_report, TestCompiledModule, TestProjectContext,
+    print_runtime_test_report, TestProjectContext,
 };
 use super::manifest::{print_validation_report, validation_report};
 use super::project_closure::compile_project_source_core_modules;
@@ -22,7 +22,7 @@ use super::project_context::{
 use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
 use crate::commands::build::vm_artifact::native_debug::NativeDebugInput;
-use crate::commands::build::vm_artifact::native_image::compile_test_native_image;
+use crate::commands::build::vm_artifact::native_image::compile_test_native_image_owned;
 use crate::validation::target_profile::TargetProfile;
 use crate::CliState;
 
@@ -200,7 +200,15 @@ pub(super) fn run_terlan_vm_test_files(
 }
 
 struct SuiteTestModule {
-    compiled: TestCompiledModule,
+    module_name: String,
+    core: crate::terlan_typeck::CoreModule,
+    native_debug: NativeDebugInput,
+    tests: Vec<DiscoveredTest>,
+    result_fingerprint: Option<String>,
+}
+
+struct RunnableTestModule {
+    module_name: String,
     tests: Vec<DiscoveredTest>,
     result_fingerprint: Option<String>,
 }
@@ -456,19 +464,15 @@ fn run_terlan_vm_test_file_group(
                 return ExitCode::from(1);
             }
         };
-        let compiled =
-            match crate::formal_pipeline::compile_syntax_module_through_phases_with_profile_options(
-                &path,
-                &source,
-                state.diagnostic_format,
-                state.cache_dir.as_deref(),
-                state.native_policy,
-                TargetProfile::Vm,
-                test_target_profile_options(&state, true),
-            ) {
-                Ok(compiled) => compiled,
-                Err(exit_code) => return exit_code,
-            };
+        let compiled = match crate::commands::build::vm_artifact::compile_checked_vm_artifacts(
+            &path,
+            &source,
+            &state,
+            test_target_profile_options(&state, true),
+        ) {
+            Ok(compiled) => compiled,
+            Err(exit_code) => return exit_code,
+        };
         let tests = match discover_tests(&compiled.syntax_output)
             .map_err(|messages| messages.join("\n"))
             .and_then(|tests| select_tests(tests, &args.test_names, &path, kind))
@@ -483,13 +487,13 @@ fn run_terlan_vm_test_file_group(
             eprintln!("no {} declarations found in {path}", kind.annotation());
             return ExitCode::from(1);
         }
+        let module_name = compiled.syntax_output.module_name.clone();
+        let native_debug =
+            NativeDebugInput::capture_owned(path, source, &compiled.core, &compiled.syntax_output);
         test_modules.push(SuiteTestModule {
-            compiled: TestCompiledModule {
-                source_path: path,
-                source_text: source,
-                syntax: compiled.syntax_output,
-                core: compiled.core,
-            },
+            module_name,
+            core: compiled.core,
+            native_debug,
             tests,
             result_fingerprint,
         });
@@ -504,7 +508,7 @@ fn run_terlan_vm_test_file_group(
     };
     let std_import_roots = test_modules
         .iter()
-        .map(|module| &module.compiled.core)
+        .map(|module| &module.core)
         .chain(project_core_modules.iter().map(|module| &module.core))
         .collect::<Vec<_>>();
     let imported_std_core_modules =
@@ -512,67 +516,53 @@ fn run_terlan_vm_test_file_group(
             Ok(modules) => modules,
             Err(exit_code) => return exit_code,
         };
-    let application_cores = test_modules
-        .iter()
-        .map(|module| &module.compiled.core)
-        .chain(project_core_modules.iter().map(|module| &module.core))
-        .chain(imported_std_core_modules.iter().map(|module| &module.core))
-        .collect::<Vec<_>>();
     let test_roots = test_modules
         .iter()
         .flat_map(|module| {
-            module.tests.iter().map(|test| {
-                (
-                    module.compiled.syntax.module_name.clone(),
-                    test.name.clone(),
-                    0,
-                )
-            })
-        })
-        .collect::<Vec<_>>();
-    let debug_inputs = test_modules
-        .iter()
-        .map(|module| {
-            NativeDebugInput::capture(
-                &module.compiled.source_path,
-                &module.compiled.source_text,
-                &module.compiled.core,
-                &module.compiled.syntax,
-            )
-        })
-        .chain(
-            project_core_modules
+            module
+                .tests
                 .iter()
-                .chain(imported_std_core_modules.iter())
-                .map(|module| {
-                    NativeDebugInput::capture(
-                        &module.source_path,
-                        &module.source_text,
-                        &module.core,
-                        &module.syntax,
-                    )
-                }),
-        )
+                .map(|test| (module.module_name.clone(), test.name.clone(), 0))
+        })
         .collect::<Vec<_>>();
     let package = test_modules[0]
-        .compiled
-        .syntax
         .module_name
         .split('.')
         .next()
         .unwrap_or("terlan");
     let module_stem = format!("{package}_test_suite");
+    let mut application_cores = Vec::with_capacity(
+        test_modules.len() + project_core_modules.len() + imported_std_core_modules.len(),
+    );
+    let mut debug_inputs = Vec::with_capacity(application_cores.capacity());
+    let mut runnable_modules = Vec::with_capacity(test_modules.len());
+    for module in test_modules {
+        application_cores.push(module.core);
+        debug_inputs.push(module.native_debug);
+        runnable_modules.push(RunnableTestModule {
+            module_name: module.module_name,
+            tests: module.tests,
+            result_fingerprint: module.result_fingerprint,
+        });
+    }
+    for module in project_core_modules
+        .into_iter()
+        .chain(imported_std_core_modules)
+    {
+        application_cores.push(module.core);
+        debug_inputs.push(module.native_debug);
+    }
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
     let native_cache_root = state
         .cache_dir
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
-    let native_image = match compile_test_native_image(
+    let native_image = match compile_test_native_image_owned(
         &test_aot_workspace,
         &native_cache_root,
         &module_stem,
-        &application_cores,
+        application_cores,
         &test_roots,
         &debug_inputs,
         true,
@@ -587,9 +577,9 @@ fn run_terlan_vm_test_file_group(
     let output_style = TestOutputStyle::from_diagnostic_format(state.diagnostic_format);
     let mut failed = false;
     let mut covered_callables = BTreeSet::new();
-    for module in &test_modules {
+    for module in &runnable_modules {
         let report = match run_discovered_terlan_vm_tests(
-            &module.compiled.syntax.module_name,
+            &module.module_name,
             &module.tests,
             native_image.as_deref(),
             project_context

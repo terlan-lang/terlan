@@ -74,7 +74,7 @@ impl ApplicationLoweringTimings {
     fn begin() -> Self {
         let started = Instant::now();
         Self {
-            enabled: std::env::var_os("TERLAN_NATIVE_AOT_TIMINGS").is_some(),
+            enabled: crate::compiler_timings::native_enabled(),
             started,
             previous: started,
         }

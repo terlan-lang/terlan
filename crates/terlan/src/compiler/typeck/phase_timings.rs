@@ -2,8 +2,6 @@
 
 use std::time::Instant;
 
-const PHASE_TIMINGS_ENVIRONMENT: &str = "TERLAN_COMPILER_PHASE_TIMINGS";
-
 /// Local typecheck phase clock; disabled clocks only retain two instants.
 pub(super) struct TypeCheckTimings {
     enabled: bool,
@@ -15,8 +13,7 @@ impl TypeCheckTimings {
     pub(super) fn new() -> Self {
         let now = Instant::now();
         Self {
-            enabled: std::env::var_os(PHASE_TIMINGS_ENVIRONMENT).as_deref()
-                == Some(std::ffi::OsStr::new("1")),
+            enabled: crate::compiler_timings::frontend_enabled(),
             started: now,
             last: now,
         }

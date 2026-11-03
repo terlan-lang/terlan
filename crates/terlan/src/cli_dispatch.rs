@@ -48,6 +48,7 @@ where
     }
 
     let (state, cmd) = parse_args(args);
+    let _timing_scope = crate::compiler_timings::scope(state.timings);
     if cmd.verb.is_none() {
         print_usage();
         return ExitCode::from(2);
