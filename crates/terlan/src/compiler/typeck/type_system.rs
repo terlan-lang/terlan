@@ -17,7 +17,7 @@ pub(super) use return_type::unify_return_type;
 pub(crate) mod parser;
 mod special;
 mod standard_aliases;
-use special::portable_list_element;
+pub(super) use special::portable_list_element;
 mod substitution;
 mod text;
 

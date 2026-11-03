@@ -799,6 +799,124 @@ fn focused_project_test_skips_unreachable_source_modules() {
     assert_eq!(result, ExitCode::SUCCESS);
 }
 
+/// Verifies focused native imports with nested generic results stay bounded.
+///
+/// Inputs:
+/// - A native-declaration provider, one reachable domain module returning
+///   `Result[Option[Batch], Failure]`, and one unreachable invalid module.
+/// - A focused test importing the native operation and every nested nominal
+///   payload type explicitly.
+///
+/// Output:
+/// - Successful focused test execution without compiling the unreachable
+///   source module.
+///
+/// Transformation:
+/// - Exercises the package-native/type-inference shape that formerly retained
+///   and cloned a complete project graph, while the invalid sentinel proves
+///   closure compilation remains limited to the selected test's imports.
+#[test]
+fn focused_native_import_nested_generic_test_uses_reachable_closure() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_vm_focused_native_nested_generic_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos(),
+    ));
+    fs::create_dir_all(root.join("src/app")).expect("application source root");
+    fs::create_dir_all(root.join("src/native_probe")).expect("native source root");
+    fs::create_dir_all(root.join("tests/app")).expect("focused test root");
+    fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\n",
+    )
+    .expect("project manifest");
+    fs::write(
+        root.join("src/native_probe/Frame.terl"),
+        concat!(
+            "module native_probe.Frame.\n\n",
+            "pub opaque type Frame.\n\n",
+            "@compiler.native {native_probe.frame.dispose}\n",
+            "pub (_frame: Frame) dispose(): Unit ->\n",
+            "    native.\n",
+        ),
+    )
+    .expect("native declaration provider");
+    fs::write(
+        root.join("src/app/Batch.terl"),
+        concat!(
+            "module app.Batch.\n\n",
+            "import std.core.Option.{Some}.\n",
+            "import std.core.Result.{Ok}.\n\n",
+            "import type std.collections.List.{List}.\n",
+            "import type std.core.Option.{Option}.\n",
+            "import type std.core.Result.{Result}.\n",
+            "import type native_probe.Frame.{Frame}.\n\n",
+            "pub struct Bar {\n",
+            "    sequence: Int,\n",
+            "}.\n\n",
+            "pub struct Batch {\n",
+            "    completed_bars: List[Bar],\n",
+            "}.\n\n",
+            "pub (batch: Batch) completed_bars(): List[Bar] ->\n",
+            "    batch.completed_bars.\n\n",
+            "pub type Failure = Atom[\"failed\"].\n\n",
+            "pub inspect(_frame: Frame): Result[Option[Batch], Failure] ->\n",
+            "    Ok(Some(Batch { completed_bars: [Bar { sequence: 7 }] })).\n\n",
+            "pub sample(): Result[Option[Batch], Failure] ->\n",
+            "    Ok(Some(Batch { completed_bars: [Bar { sequence: 7 }] })).\n",
+        ),
+    )
+    .expect("nested generic domain source");
+    fs::write(
+        root.join("src/app/Unused.terl"),
+        "module app.Unused.\npub broken(): Int -> \"unreachable\".\n",
+    )
+    .expect("unreachable invalid source");
+    let test = root.join("tests/app/FocusedNativeTest.terl");
+    fs::write(
+        &test,
+        concat!(
+            "module app.FocusedNativeTest.\n\n",
+            "import app.Batch.{sample}.\n",
+            "import native_probe.Frame.{dispose}.\n",
+            "import std.core.Option.{Some}.\n",
+            "import std.core.Result.{Ok}.\n\n",
+            "import type app.Batch.{Bar, Batch, Failure}.\n",
+            "import type native_probe.Frame.{Frame}.\n",
+            "import type std.collections.List.{List}.\n",
+            "import type std.core.Option.{Option}.\n",
+            "import type std.core.Result.{Result}.\n\n",
+            "@test\n",
+            "pub nested_result_preserves_nominal_payload(): Bool ->\n",
+            "    let {\n",
+            "        Ok(Some(batch)) <- sample();\n",
+            "        [bar] <- batch.completed_bars()\n",
+            "    } else {\n",
+            "        _ -> false\n",
+            "    };\n",
+            "    bar.sequence == 7.\n",
+        ),
+    )
+    .expect("focused native test");
+
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![test.to_string_lossy().into_owned()],
+        },
+        CliState {
+            out_dir: root.join("out"),
+            cache_dir: Some(root.join(".terlan")),
+            ..CliState::default()
+        },
+    );
+    fs::remove_dir_all(root).expect("remove focused native fixture");
+    assert_eq!(result, ExitCode::SUCCESS);
+}
+
 /// Verifies project tests resolve local package dependencies through build semantics.
 ///
 /// Inputs:

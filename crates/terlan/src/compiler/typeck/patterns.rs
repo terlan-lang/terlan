@@ -9,9 +9,9 @@ use crate::terlan_typeck::field_visibility::{
 use super::{
     alias_constructor_schemes, apply_subst, bind_var, expand_type_aliases,
     instantiate_constructor_scheme, is_literal_atom, is_map_type, next_constructor_type_var,
-    normalize_union, parse_interface_constructor_schemes, parse_type_expr, pretty_type,
-    split_module_name, unify, ConstructorScheme, ExprInferContext, MapFieldType, Type, TypeAlias,
-    TypeVarId,
+    normalize_union, parse_interface_constructor_schemes, parse_type_expr, portable_list_element,
+    pretty_type, split_module_name, unify, ConstructorScheme, ExprInferContext, MapFieldType, Type,
+    TypeAlias, TypeVarId,
 };
 
 mod binary_layout;
@@ -490,46 +490,45 @@ pub(super) fn check_syntax_pattern(
                 pretty_type(&expected)
             )),
         },
-        SyntaxPatternKind::List => match &expected {
-            Type::List(elem) => {
+        SyntaxPatternKind::List => {
+            if let Some(elem) = portable_list_element(&expected) {
                 for item in &pattern.children {
                     check_syntax_pattern(item, elem, aliases, ctx, locals, subst)?;
                 }
-                Ok(())
+                return Ok(());
             }
-            Type::Dynamic | Type::Term => {
-                for item in &pattern.children {
-                    check_syntax_pattern(item, &Type::Dynamic, aliases, ctx, locals, subst)?;
+
+            match &expected {
+                Type::Dynamic | Type::Term => {
+                    for item in &pattern.children {
+                        check_syntax_pattern(item, &Type::Dynamic, aliases, ctx, locals, subst)?;
+                    }
+                    Ok(())
                 }
-                Ok(())
+                _ => unify(&expected, &Type::List(Box::new(Type::Dynamic)), subst).map(|_| ()),
             }
-            _ => unify(&expected, &Type::List(Box::new(Type::Dynamic)), subst).map(|_| ()),
-        },
-        SyntaxPatternKind::ListCons => match &expected {
-            Type::List(elem) => {
+        }
+        SyntaxPatternKind::ListCons => {
+            if let Some(elem) = portable_list_element(&expected) {
                 if let Some(head) = pattern.children.first() {
                     check_syntax_pattern(head, elem, aliases, ctx, locals, subst)?;
                 }
                 if let Some(tail) = pattern.children.get(1) {
-                    check_syntax_pattern(
-                        tail,
-                        &Type::List(elem.clone()),
-                        aliases,
-                        ctx,
-                        locals,
-                        subst,
-                    )?;
+                    check_syntax_pattern(tail, &expected, aliases, ctx, locals, subst)?;
                 }
-                Ok(())
+                return Ok(());
             }
-            Type::Dynamic | Type::Term => {
-                for item in &pattern.children {
-                    check_syntax_pattern(item, &Type::Dynamic, aliases, ctx, locals, subst)?;
+
+            match &expected {
+                Type::Dynamic | Type::Term => {
+                    for item in &pattern.children {
+                        check_syntax_pattern(item, &Type::Dynamic, aliases, ctx, locals, subst)?;
+                    }
+                    Ok(())
                 }
-                Ok(())
+                _ => unify(&expected, &Type::List(Box::new(Type::Dynamic)), subst).map(|_| ()),
             }
-            _ => unify(&expected, &Type::List(Box::new(Type::Dynamic)), subst).map(|_| ()),
-        },
+        }
         SyntaxPatternKind::Map => match &expected {
             Type::Map(expected_fields) => {
                 for pattern_field in &pattern.fields {

@@ -92,6 +92,17 @@ reuse unchanged checked modules across commands. Native test lowering consumes
 the checked CoreIR closure by ownership instead of cloning the full closure;
 this removes the former simultaneous checked/rooted CoreIR peak.
 
+The focused native-import regression combines an opaque native declaration,
+an imported `Result[Option[Batch], Failure]`, explicit nested nominal payload
+imports, and an unreachable invalid source module. It must execute without
+typechecking that sentinel. This locks the bounded closure and owned-CoreIR
+path that replaced the approximately 8.9 GiB full-project test-compilation
+peak observed in the trading-data workload. It also destructures a portable
+`std.collections.List[Bar]` returned by an imported receiver method, preventing
+the pattern checker from losing `Bar` to `Dynamic`. The reduced regression
+peaks near 136 MiB; the original focused workload completed at 194 MiB cold
+and 139 MiB warm after this boundary was fixed.
+
 `terlc --timings check ...` and `terlc --timings test ...` enable frontend,
 typecheck, native-lowering, and AOT phase timing from one flag. The legacy
 `TERLAN_COMPILER_PHASE_TIMINGS=1` and `TERLAN_NATIVE_AOT_TIMINGS=1`
