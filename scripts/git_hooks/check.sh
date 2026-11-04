@@ -21,7 +21,7 @@ if [[ ${TERLAN_HOOK_SHARED_TARGET:-0} == 1 ]]; then
   node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
 fi
 echo 'pre-commit: build the staged compiler planner'
-cargo build --locked -p terlan --bin terlc
+cargo build --locked -p terlan --bin terlc --bin terlan-vm
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 export TERLC="$terlc"
 raw_plan="${changes%.txt}.raw-plan"

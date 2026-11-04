@@ -5,7 +5,7 @@
 module std.mcp.Protocol.
 
 import std.collections.Set.
-import std.core.Result.{Ok}.
+import std.core.Result.{Err, Ok}.
 import std.crypto.Hash.
 import std.data.Json.
 
@@ -160,6 +160,15 @@ params_object(value: Json): Bool ->
         _ -> false
     }.
 
+supported_version(value: Json): Bool ->
+    let {
+        Err(_) <- value.as_string();
+        Err(_) <- value.as_int()
+    } else {
+        _ -> true
+    };
+    false.
+
 initialization_valid(params: Json): Bool ->
     let {
         Ok(version) <- params.get("protocolVersion");
@@ -170,15 +179,7 @@ initialization_valid(params: Json): Bool ->
     } else {
         _ -> false
     };
-    (let version_valid =
-    case version.as_string() {
-        Ok(_) -> true;
-        _ ->
-            case version.as_int() {
-                Ok(_) -> true;
-                _ -> false
-            }
-    };
+    (let version_valid = supported_version(version);
 let name_valid =
     case name.as_string() {
         Ok(_) -> true;

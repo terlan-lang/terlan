@@ -123,8 +123,11 @@ mkdir -p "$temporary/early-bindings/bin" "$temporary/early-bindings/cache/debug"
   "$temporary/early-bindings/scripts"
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
-case " $* " in *' --release '*) exit 99 ;; esac
-exit 0
+case "$*" in
+  'fmt --all -- --check'|'build --locked -p terlan --bin terlc --bin terlan-vm') exit 0 ;;
+  *'--release'*) exit 99 ;;
+  *) exit 97 ;;
+esac
 CARGO
 printf '#!/usr/bin/env bash\nexit 0\n' > "$temporary/early-bindings/bin/make"
 printf 'exit 0\n' > "$temporary/early-bindings/scripts/build_artifact_bootstrap_test.sh"

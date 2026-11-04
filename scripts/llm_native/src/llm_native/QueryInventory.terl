@@ -146,14 +146,13 @@ pub load(root: String): Result[Json, Bool] ->
     Ok(inventory).
 
 test_count(inventory: Json, names: List[String]): Int ->
-    case names {
-        [] -> 0;
-        [name | rest] ->
-            case tests(inventory, name) {
-                Some(expected) -> List.length(expected) + test_count(inventory, rest);
-                _ -> 0
-            }
-    }.
+    let {
+        [name | rest] <- names;
+        Some(expected) <- tests(inventory, name)
+    } else {
+        _ -> 0
+    };
+    List.length(expected) + test_count(inventory, rest).
 
 pub expected_test_count(inventory: Json): Int ->
     test_count(inventory, suites()).
