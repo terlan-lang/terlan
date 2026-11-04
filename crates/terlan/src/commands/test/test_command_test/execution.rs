@@ -1001,6 +1001,102 @@ artifact = "library"
     assert_eq!(exit_code, ExitCode::SUCCESS);
 }
 
+/// Verifies declaration coverage belongs to the selected package.
+///
+/// Inputs:
+/// - An application with a local dependency containing one uncovered function.
+/// - Package-local tests for both the application and dependency.
+///
+/// Output:
+/// - The application reaches 100% coverage without owning dependency declarations.
+/// - The dependency's own 100% gate detects its uncovered declaration.
+///
+/// Transformation:
+/// - Keeps dependency roots in the compilation closure while restricting each
+///   coverage denominator to that package's `[build].source_roots`.
+#[test]
+fn declaration_coverage_excludes_dependency_owned_sources() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_package_coverage_ownership_test_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos()
+    ));
+    let app = root.join("app");
+    let dependency = root.join("math_dependency");
+    fs::create_dir_all(app.join("src/app")).expect("create app source dir");
+    fs::create_dir_all(app.join("tests/app")).expect("create app test dir");
+    fs::create_dir_all(dependency.join("src/math_dependency"))
+        .expect("create dependency source dir");
+    fs::create_dir_all(dependency.join("tests/math_dependency"))
+        .expect("create dependency test dir");
+    fs::write(
+        app.join("terlan.toml"),
+        r#"[package]
+name = "app"
+version = "0.0.0"
+
+[build]
+source_roots = ["src"]
+
+[dependencies]
+math_dependency = { path = "../math_dependency" }
+"#,
+    )
+    .expect("write app manifest");
+    fs::write(
+        dependency.join("terlan.toml"),
+        r#"[package]
+name = "math-dependency"
+version = "0.0.0"
+namespace = "math_dependency"
+
+[build]
+source_roots = ["src"]
+artifact = "library"
+"#,
+    )
+    .expect("write dependency manifest");
+    fs::write(
+        dependency.join("src/math_dependency/Math.terl"),
+        "module math_dependency.Math.\n\npub add(x: Int, y: Int): Int ->\n    x + y.\n\npub uncovered_dependency(value: Int): Int ->\n    value + 1.\n\npub choose(covered: Bool): Int ->\n    if {\n        covered -> add(2, 3);\n        _ -> uncovered_dependency(4)\n    }.\n",
+    )
+    .expect("write dependency source");
+    fs::write(
+        app.join("src/app/Calculator.terl"),
+        "module app.Calculator.\n\nimport math_dependency.Math.{add}.\n\npub total(): Int ->\n    add(2, 3).\n",
+    )
+    .expect("write app source");
+    fs::write(
+        app.join("tests/app/CalculatorTest.terl"),
+        "module app.CalculatorTest.\n\nimport app.Calculator.{total}.\n\n@test\npub application_is_covered(): Bool ->\n    total() == 5.\n",
+    )
+    .expect("write app test");
+    fs::write(
+        dependency.join("tests/math_dependency/MathTest.terl"),
+        "module math_dependency.MathTest.\n\nimport math_dependency.Math.{choose}.\n\n@test\npub dependency_add_is_covered(): Bool ->\n    choose(true) == 5.\n",
+    )
+    .expect("write dependency test");
+
+    let coverage_args = |tests: PathBuf| CliCommand {
+        verb: Some("test".to_string()),
+        args: vec![
+            tests.to_string_lossy().into_owned(),
+            "--coverage".to_string(),
+            "--coverage-threshold".to_string(),
+            "100".to_string(),
+        ],
+    };
+    let app_result = run(coverage_args(app.join("tests")), CliState::default());
+    let dependency_result = run(coverage_args(dependency.join("tests")), CliState::default());
+    let _ = fs::remove_dir_all(&root);
+
+    assert_eq!(app_result, ExitCode::SUCCESS);
+    assert_eq!(dependency_result, ExitCode::from(1));
+}
+
 /// Verifies Terlan VM tests report boolean failures as command failures.
 ///
 /// Inputs:

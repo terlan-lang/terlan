@@ -116,6 +116,7 @@ fi
 if preflight_has artifact-budget; then
   echo 'pre-commit: canonical executable size budget'
   ensure_release_tools
+  cargo build --locked -p terlan --bin terlan-native-worker
   cargo build --release --locked -p terlan-test-orchestrator --bin terlan-test-orchestrator
   ensure_orchestrator
   TERLAN_REPOSITORY_ROOT="$PWD" "$terlc" run scripts/self_validation/BuildArtifactBudgetTest.terl \
@@ -202,6 +203,9 @@ while IFS= read -r lane; do
       ;;
     commands)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::
+      ;;
+    commands-test)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test::
       ;;
     commands-clean)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test

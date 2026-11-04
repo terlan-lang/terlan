@@ -163,6 +163,10 @@ pub multiple_command_owners_keep_exact_test_lanes(): Bool ->
 ) == ["shell", "clippy", "rust-reports", "commands-clean", "commands-doctor", "commands-init"].
 
 @test
+pub test_command_changes_use_their_owned_tests(): Bool ->
+    Plan.lanes(["crates/terlan/src/commands/test/coverage.rs"]) == ["shell", "clippy", "rust-reports", "commands-test"].
+
+@test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->
     Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
         and not Plan.native_bindings(["scripts/git_hooks/check.sh"])

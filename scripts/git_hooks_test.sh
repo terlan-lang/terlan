@@ -317,6 +317,19 @@ test -n "$release_install_line"
 test -n "$repository_contract_line"
 test "$release_install_line" -lt "$repository_contract_line"
 
+# The executable budget owns four binaries in both profiles. Planner bootstrap
+# already provides debug terlc and terlan-vm; the budget lane must explicitly
+# provide the remaining debug native worker before invoking its validator.
+native_worker_build_pattern='cargo '
+native_worker_build_pattern+='build --locked -p terlan --bin terlan-native-worker'
+native_worker_build_line=$(rg -n -F "$native_worker_build_pattern" \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+executable_budget_line=$(rg -n -F -- '-- --check-executables "$CARGO_TARGET_DIR"' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+test -n "$native_worker_build_line"
+test -n "$executable_budget_line"
+test "$native_worker_build_line" -lt "$executable_budget_line"
+
 # Adjacent legacy `*Test.terl` modules without `@test` declarations are still
 # compiled with their package, but must not be sent to an empty test runner.
 # Real declaration-based suites continue to execute.
@@ -390,4 +403,4 @@ grep -Fx 'quality-tools' "$temporary/prebuilt/owned-target/debug/.terlan-prebuil
 test "$(wc -l < "$temporary/prebuilt-cargo.calls")" = 1
 test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
 
-echo 'Git hook regression tests passed (21 scenarios).'
+echo 'Git hook regression tests passed (22 scenarios).'

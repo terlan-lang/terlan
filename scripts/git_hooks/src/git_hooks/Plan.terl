@@ -201,15 +201,19 @@ pub commands(paths: List[String]): Bool ->
 
 pub command_lanes(paths: List[String]): List[String] ->
     selected(
-        affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
-        "commands-clean",
+        affected(paths, "crates/terlan/src/commands/test/", ".rs"),
+        "commands-test",
         selected(
-            affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
-            "commands-doctor",
+            affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
+            "commands-clean",
             selected(
-                affected(paths, "crates/terlan/src/commands/init/", ".rs"),
-                "commands-init",
-                selected(other_commands(paths), "commands", List.new[String]()),
+                affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
+                "commands-doctor",
+                selected(
+                    affected(paths, "crates/terlan/src/commands/init/", ".rs"),
+                    "commands-init",
+                    selected(other_commands(paths), "commands", List.new[String]()),
+                ),
             ),
         ),
     ).
@@ -220,6 +224,7 @@ other_commands(paths: List[String]): Bool ->
         [path | rest] ->
             String.starts_with(path, "crates/terlan/src/commands/")
     and String.ends_with(path, ".rs")
+    and not String.starts_with(path, "crates/terlan/src/commands/test/")
     and not String.starts_with(path, "crates/terlan/src/commands/clean/")
     and not String.starts_with(path, "crates/terlan/src/commands/doctor/")
     and not String.starts_with(path, "crates/terlan/src/commands/init/")

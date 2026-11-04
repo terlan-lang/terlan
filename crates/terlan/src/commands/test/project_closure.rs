@@ -28,7 +28,7 @@ pub(super) fn compile_project_source_core_modules(
         compiled_paths.insert(active_test);
     }
     let mut modules = Vec::new();
-    for root in &context.source_roots {
+    for root in &context.compilation_source_roots {
         let files = match crate::formal_pipeline::terlan_sources_in_dir(root) {
             Ok(files) => files,
             Err(message) => {
@@ -66,7 +66,7 @@ pub(super) fn compile_project_source_core_closure(
     }
 
     let mut sources = BTreeMap::new();
-    for root in &context.source_roots {
+    for root in &context.compilation_source_roots {
         let files = crate::formal_pipeline::terlan_sources_in_dir(root).map_err(|message| {
             eprintln!("{message}");
             ExitCode::from(1)

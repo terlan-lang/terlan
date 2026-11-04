@@ -125,7 +125,7 @@ pub(super) fn prepare_test_project_context(
     project_state.cache_dir = Some(context.cache_dir.clone());
     project_state.incremental = true;
 
-    for root in &context.source_roots {
+    for root in &context.compilation_source_roots {
         let status = crate::commands::check::run_check_dir(
             &root.to_string_lossy(),
             project_state.clone(),
@@ -172,10 +172,16 @@ pub(super) fn discover_test_project_context(
     let dependencies = crate::commands::build::resolve_project_test_dependencies(&root, &manifest)
         .map_err(|error| format!("failed to resolve test project dependencies: {error}"))?;
 
+    let coverage_source_roots = manifest
+        .source_roots
+        .iter()
+        .map(|source_root| root.join(source_root))
+        .collect();
     Ok(Some(TestProjectContext {
         project_root: root,
         cache_dir,
-        source_roots: dependencies.source_roots,
+        compilation_source_roots: dependencies.source_roots,
+        coverage_source_roots,
         native_helper_environment: dependencies.native_helper_environment,
     }))
 }

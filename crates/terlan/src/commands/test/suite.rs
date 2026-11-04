@@ -272,7 +272,7 @@ fn test_result_fingerprint_base(
         if root_lock.is_file() {
             inputs.push(root_lock);
         }
-        for root in &context.source_roots {
+        for root in &context.compilation_source_roots {
             inputs.extend(
                 crate::formal_pipeline::terlan_sources_in_dir(root).map_err(TestCacheError)?,
             );
@@ -625,7 +625,7 @@ fn run_terlan_vm_test_file_group(
         };
         if let Err(message) = coverage.record_image(
             native_image,
-            &project_context.source_roots,
+            &project_context.coverage_source_roots,
             &covered_callables,
         ) {
             eprintln!("{message}");

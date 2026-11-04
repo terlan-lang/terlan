@@ -43,7 +43,10 @@ use crate::{CliCommand, CliState};
 pub(super) struct TestProjectContext {
     pub(super) project_root: PathBuf,
     pub(super) cache_dir: PathBuf,
-    pub(super) source_roots: Vec<PathBuf>,
+    /// Root package plus dependency sources required for compilation.
+    pub(super) compilation_source_roots: Vec<PathBuf>,
+    /// Root package sources owned by this package's coverage report.
+    pub(super) coverage_source_roots: Vec<PathBuf>,
     pub(super) native_helper_environment: Vec<(String, PathBuf)>,
 }
 
@@ -300,7 +303,7 @@ pub(super) fn run_terlan_vm_test_file(
     state.incremental = true;
     if let Some(context) = project_context.as_ref() {
         state.cache_dir = Some(context.cache_dir.clone());
-        for root in &context.source_roots {
+        for root in &context.compilation_source_roots {
             if let Err(message) =
                 crate::commands::build::prepare_source_root_interfaces(root, &state)
             {
@@ -468,7 +471,7 @@ pub(super) fn run_terlan_vm_test_file(
         };
         if let Err(message) = coverage.record_image(
             native_image,
-            &project_context.source_roots,
+            &project_context.coverage_source_roots,
             &report.covered_callables,
         ) {
             eprintln!("{message}");
