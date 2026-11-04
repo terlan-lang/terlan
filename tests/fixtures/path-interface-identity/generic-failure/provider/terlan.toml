@@ -1,0 +1,10 @@
+[package]
+name = "generic-failure-provider"
+version = "0.0.0"
+
+[build]
+source_roots = ["src"]
+artifact = "library"
+
+[dependencies]
+generic-failure-contract = { path = "../contract" }

@@ -1,0 +1,20 @@
+module app.Main.
+
+import fixture.Adapter.
+import fixture.Driver.
+import fixture.Driver.{run}.
+import fixture.Provider.
+import fixture.Provider.{ImportedAdapter}.
+
+import type fixture.Adapter.{Adapter}.
+import type fixture.Driver.{DriverFailure, DriverState}.
+import type fixture.Provider.{ImportedAdapter}.
+import type fixture.Provider.{ImportedFailure}.
+import type std.core.Result.{Result}.
+
+pub execute(): Result[DriverState[Int], DriverFailure[ImportedFailure]] ->
+    run(ImportedAdapter(), 0).
+
+pub main(): Unit ->
+    let _result = execute();
+    Unit.

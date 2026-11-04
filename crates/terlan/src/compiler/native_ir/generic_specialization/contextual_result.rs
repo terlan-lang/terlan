@@ -60,22 +60,26 @@ pub(super) fn seed(
             function,
             args,
             type_args,
+        } => seed_call(
+            function, args, type_args, expected, variables, templates, module,
+        ),
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+            type_args,
         } => {
-            let symbolic = callable_templates(templates, module, function, args.len()).is_some_and(
-                |candidates| {
-                    candidates.iter().any(|candidate| {
-                        type_args
-                            .iter()
-                            .any(|ty| contains_generic_parameter(ty, &candidate.generic_params))
-                    })
-                },
-            );
-            if type_args.is_empty() || symbolic {
-                let inferred = infer(function, args, expected, variables, templates, module);
-                if let Some(inferred) = inferred {
-                    *type_args = inferred;
-                }
+            let function = constructor_identity.as_deref().unwrap_or(constructor);
+            if let ([argument], Some(payload)) = (
+                args.as_mut_slice(),
+                super::pattern_types::constructor_payload_type(expected, function).cloned(),
+            ) {
+                apply_contextual_argument_type(argument, &payload);
+                seed(argument, &payload, variables, templates, module);
             }
+            seed_call(
+                function, args, type_args, expected, variables, templates, module,
+            );
         }
         CoreExpr::Cast { expr, target_type } => {
             if contextual_type_specializes(target_type, expected) {
@@ -146,6 +150,30 @@ pub(super) fn seed(
     }
 }
 
+fn seed_call(
+    function: &str,
+    args: &mut [CoreExpr],
+    type_args: &mut Vec<CoreType>,
+    expected: &CoreType,
+    variables: &HashMap<String, CoreType>,
+    templates: &CallableTemplates,
+    module: &str,
+) {
+    let symbolic =
+        callable_templates(templates, module, function, args.len()).is_some_and(|candidates| {
+            candidates.iter().any(|candidate| {
+                type_args
+                    .iter()
+                    .any(|ty| contains_generic_parameter(ty, &candidate.generic_params))
+            })
+        });
+    if type_args.is_empty() || symbolic {
+        if let Some(inferred) = infer(function, args, expected, variables, templates, module) {
+            *type_args = inferred;
+        }
+    }
+}
+
 fn clear_bindings(pattern: &CorePattern, variables: &mut HashMap<String, CoreType>) {
     for name in super::super::expression::free_variable_analysis::pattern_bound_names(pattern) {
         variables.remove(&name);
@@ -165,16 +193,6 @@ fn infer(
         if template.generic_params.is_empty() || template.params.len() != arguments.len() {
             return None;
         }
-        // Parameters already inferable from arguments keep the established path.
-        if !template.generic_params.iter().any(|name| {
-            !template
-                .params
-                .iter()
-                .filter_map(|parameter| parameter.core_ty.as_ref())
-                .any(|ty| contains_generic_parameter(ty, std::slice::from_ref(name)))
-        }) {
-            return None;
-        }
         let mut bindings = HashMap::new();
         unify(
             template.core_return_type.as_ref()?,
@@ -183,9 +201,20 @@ fn infer(
             &mut bindings,
         )
         .ok()?;
-        let argument_types =
-            infer_generic_argument_types(template, arguments, &[], variables, templates, module)
-                .ok()?;
+        let contextual_type_args = template
+            .generic_params
+            .iter()
+            .map(|name| bindings.get(name).cloned())
+            .collect::<Option<Vec<_>>>();
+        let argument_types = infer_generic_argument_types(
+            template,
+            arguments,
+            contextual_type_args.as_deref().unwrap_or_default(),
+            variables,
+            templates,
+            module,
+        )
+        .ok()?;
         for (parameter, actual) in template.params.iter().zip(argument_types) {
             unify(
                 parameter.core_ty.as_ref()?,

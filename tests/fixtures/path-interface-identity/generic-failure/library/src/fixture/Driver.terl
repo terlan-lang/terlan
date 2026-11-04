@@ -1,0 +1,42 @@
+module fixture.Driver.
+
+import std.core.Result.{Err, Ok}.
+import fixture.Adapter.
+
+import type fixture.Adapter.{Adapter, Transition}.
+import type std.core.Result.{Result}.
+
+pub type AdapterFailureTag = Atom["adapter_failure"].
+pub type FixedFailureTag = Atom["fixed_failure"].
+
+pub type DriverFailure[Failure] =
+      {AdapterFailureTag, Failure}
+    | {FixedFailureTag, Int}.
+
+pub struct DriverState[State] {
+    state: State,
+}.
+
+pub constructor AdapterFailed[Failure] {
+    (reason: Failure): DriverFailure[Failure] ->
+        {AdapterFailureTag, reason}
+}.
+
+pub constructor FixedFailed[Failure] {
+    (code: Int): DriverFailure[Failure] ->
+        {FixedFailureTag, code}
+}.
+
+pub constructor DriverState[State] {
+    (state: State): DriverState[State] ->
+        DriverState {state: state}
+}.
+
+pub run[Implementation, State, Failure](
+    implementation: Implementation,
+    state: State,
+)[Adapter[Implementation, State, Failure]]: Result[DriverState[State], DriverFailure[Failure]] ->
+    case Adapter.execute(implementation, state) {
+        Err(reason) -> Err(AdapterFailed(reason));
+        Ok(transition) -> Ok(DriverState(transition.current))
+    }.

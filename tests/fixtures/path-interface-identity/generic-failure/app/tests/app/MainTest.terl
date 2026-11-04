@@ -1,0 +1,12 @@
+module app.MainTest.
+
+import app.Main.{execute}.
+import fixture.Driver.{AdapterFailed}.
+import std.core.Result.{Err}.
+
+import type fixture.Provider.{ImportedFailure}.
+
+@test
+pub imported_trait_failure_keeps_concrete_constructor_argument(): Bool ->
+    execute()
+        == Err(AdapterFailed(ImportedFailure.REJECTED)).

@@ -1,0 +1,14 @@
+module fixture.Adapter.
+
+import type std.core.Result.{Result}.
+
+pub struct Transition[State] {
+    current: State,
+}.
+
+pub trait Adapter[Implementation, State, Failure] {
+    execute(
+        implementation: Implementation,
+        state: State,
+    ): Result[Transition[State], Failure].
+}.

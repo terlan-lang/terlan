@@ -70,3 +70,11 @@ fn path_dependency_patterns_preserve_single_tuple_constructor_aliases() {
         assert_eq!(test(root.path()), ExitCode::SUCCESS);
     }
 }
+
+#[test]
+fn path_dependency_specializes_imported_trait_failure_constructor() {
+    let root = project("generic-failure");
+    for _ in 0..2 {
+        assert_eq!(test(root.path()), ExitCode::SUCCESS);
+    }
+}

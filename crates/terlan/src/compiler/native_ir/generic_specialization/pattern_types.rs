@@ -190,7 +190,7 @@ fn applied_result_element(ty: &CoreType, index: usize) -> Option<&CoreType> {
 }
 
 /// Resolves a unary constructor payload from generic or expanded alias types.
-fn constructor_payload_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
+pub(super) fn constructor_payload_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
     let constructor = name.rsplit('.').next()?;
     let applied = match constructor {
         "Some" => applied_element(ty, "Option"),

@@ -1,0 +1,20 @@
+module fixture.Provider.
+
+import fixture.Adapter.
+import std.core.Result.{Err}.
+
+import type fixture.Adapter.{Adapter, Transition}.
+import type std.core.Result.{Result}.
+
+pub type ImportedFailure: Int = REJECTED = 1.
+
+pub struct ImportedAdapter implements Adapter[ImportedAdapter, Int, ImportedFailure] {}.
+
+pub constructor ImportedAdapter {
+    (): ImportedAdapter -> ImportedAdapter {}
+}.
+
+pub (implementation: ImportedAdapter) execute(
+    _state: Int,
+): Result[Transition[Int], ImportedFailure] ->
+    Err(ImportedFailure.REJECTED).
