@@ -30,6 +30,10 @@ jobs:
           cache-scope: ubuntu-24.04
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
+      - name: Build Terlan source checker
+        run: cargo build --locked -p terlan --bin terlc
+      - name: Check Terlan readability canonicalization
+        run: make --no-print-directory -f crates/terlan/cli.mk terlan-readability-canonicalization-check TERLC=target/debug/terlc
       - name: Check source inventory and test ownership
         run: |
           cargo test --locked -p terlan-rust-boundary-audit

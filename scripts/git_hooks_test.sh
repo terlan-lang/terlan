@@ -131,6 +131,37 @@ esac
 CARGO
 printf '#!/usr/bin/env bash\nexit 0\n' > "$temporary/early-bindings/bin/make"
 printf 'exit 0\n' > "$temporary/early-bindings/scripts/build_artifact_bootstrap_test.sh"
+# Readability must fail before release-profile work, not near the end of the
+# publication gate. The release build sentinel makes the ordering observable.
+cat > "$temporary/early-bindings/bin/make" <<'MAKE'
+#!/usr/bin/env bash
+set -eu
+if [[ "$*" == "--no-print-directory -f crates/terlan/cli.mk terlan-readability-canonicalization-check TERLC=$PWD/cache/debug/terlc" ]]; then
+  exit 35
+fi
+exit 0
+MAKE
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
+  printf 'preflight:inventory\npreflight:release-manifest\npreflight:terlan-format\nshell\n'
+  exit 0
+fi
+if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
+exit 96
+TERLC
+chmod +x "$temporary/early-bindings/bin/"* "$temporary/early-bindings/cache/debug/terlc"
+printf 'std/core/Int.terl\n' > "$temporary/early-bindings/changes.txt"
+(
+  cd "$temporary/early-bindings"
+  status=0
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-readability.log" 2>&1 || status=$?
+  test "$status" = 35
+)
+printf '#!/usr/bin/env bash\nexit 0\n' > "$temporary/early-bindings/bin/make"
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu

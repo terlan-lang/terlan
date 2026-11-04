@@ -65,10 +65,11 @@ same Chromium archive again.
 ## Compiler CI
 
 Both compiler and release workflows first call `source-preflight.yml`. Rust
-formatting, source-inventory regression tests, test-runner ownership tests, and
-actionlint must pass before expensive compiler, sanitizer, or platform builds.
-This catches stale source paths and workflow errors without waiting for the
-compiler library suite.
+formatting, source-inventory regression tests, test-runner ownership tests,
+Terlan readability canonicalization, and actionlint must pass before expensive
+compiler, sanitizer, or platform builds. This catches stale source paths,
+TL0009/TL0010 findings, and workflow errors without waiting for the compiler
+library suite.
 
 `ci.yml` runs on pull requests, `main` pushes, and dedicated `agent/aot-*`
 branch pushes when compiler-facing sources change. It can also be dispatched
@@ -191,11 +192,12 @@ so neither path can omit or duplicate the destructive pre-build measurement:
 make release-candidate-check
 ```
 
-Workflow syntax is checked in that same canonical CI job before release
-validation begins. The deterministic multicore release contract and repository
-build/release contract are part of `release-candidate-check`; they are not run
-in preliminary steps that would build the compiler and typed validators only
-to discard them during the candidate's clean artifact measurement.
+Workflow syntax and source-level readability are checked before release
+validation begins. The preflight compiler is disposable and never counts as
+candidate evidence. The deterministic multicore release contract and
+repository build/release contract remain part of `release-candidate-check`;
+they are not duplicated in preliminary steps that would build typed validators
+only to discard them during the candidate's clean artifact measurement.
 
 The shared native-dependency action installs bubblewrap and enables unprivileged
 user namespaces on the ephemeral Ubuntu 24.04 runners. Both validation-tool
@@ -251,11 +253,14 @@ Checkout credentials are never persisted. The shared setup action pins Rust
 jobs cache Cargo registry inputs plus compiled dependency, build-script, and
 fingerprint directories; incremental state and final executables are excluded.
 The cache key binds the host, toolchain, manifests, commit, and job. An exact
-commit may seed a later job, while each job saves its completed cache under a
-distinct key instead of freezing a partial preflight cache. ThreadSanitizer owns
-its separate pinned nightly `rust-src` installation. Developer coverage support
-remains declared in `rust-toolchain.toml` without making every hosted matrix
-lane download `rust-src` and LLVM tools it never executes.
+commit may seed a rerun, while each job saves its cache under a distinct key
+instead of freezing a partial preflight cache. The compiler job explicitly
+saves reusable compiled outputs after a failed late gate as well as after
+success; a cache hit only avoids unchanged compilation and never substitutes
+for executing a validation gate. ThreadSanitizer owns its separate pinned
+nightly `rust-src` installation. Developer coverage support remains declared
+in `rust-toolchain.toml` without making every hosted matrix lane download
+`rust-src` and LLVM tools it never executes.
 Compiler and release validation both build the exact locked `cargo-audit 0.22.2`
 source and run it against `Cargo.lock`, denying vulnerabilities, unsound
 dependencies, and unmaintained dependencies. Registry inputs are cached, but

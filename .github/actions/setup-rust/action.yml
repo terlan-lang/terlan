@@ -1,6 +1,14 @@
 name: Set up pinned Rust
 description: Install the requested Rust toolchain and cache immutable Cargo inputs.
 
+outputs:
+  compiled-cache-hit:
+    description: Whether the exact compiled Cargo cache key was restored.
+    value: ${{ steps.compiled-rust-cache.outputs.cache-hit }}
+  compiled-cache-key:
+    description: Exact key used for the compiled Cargo cache.
+    value: ${{ steps.compiled-cache-key.outputs.value }}
+
 inputs:
   toolchain:
     description: Exact Rust toolchain version.
@@ -62,6 +70,20 @@ runs:
         fi
         printf 'value=%s-%s\n' "$TERLAN_RUST_CACHE_SCOPE" "$runtime_abi" >> "$GITHUB_OUTPUT"
 
+    - name: Resolve compiled cache key
+      if: inputs.cache-build == 'true'
+      id: compiled-cache-key
+      shell: bash
+      env:
+        TERLAN_CACHE_SCOPE: ${{ steps.compiled-cache-scope.outputs.value }}
+        TERLAN_CACHE_TOOLCHAIN: ${{ inputs.toolchain }}
+        TERLAN_CACHE_MANIFEST: ${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}
+      run: |
+        printf 'value=terlan-rust-build-v2-%s-%s-%s-%s-%s-%s-%s\n' \
+          "$TERLAN_CACHE_SCOPE" "$RUNNER_OS" "$RUNNER_ARCH" \
+          "$TERLAN_CACHE_TOOLCHAIN" "$GITHUB_JOB" "$TERLAN_CACHE_MANIFEST" \
+          "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
     - name: Cache Cargo registry inputs
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
@@ -75,6 +97,7 @@ runs:
 
     - name: Cache compiled Rust dependencies
       if: inputs.cache-build == 'true'
+      id: compiled-rust-cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: |
@@ -84,7 +107,7 @@ runs:
           target/release/.fingerprint
           target/release/build
           target/release/deps
-        key: terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-${{ github.sha }}
+        key: ${{ steps.compiled-cache-key.outputs.value }}
         restore-keys: |
           terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
           terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-

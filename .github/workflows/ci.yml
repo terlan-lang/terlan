@@ -305,17 +305,32 @@ jobs:
         run: elan toolchain install "$(cat proofs/lean/lean-toolchain)"
 
       - name: Install Rust toolchain
+        id: rust
         uses: ./.github/actions/setup-rust
         with:
           cache-build: "true"
           cache-scope: ubuntu-24.04
 
-      - name: Validate AOT cutover
+      - name: Validate release candidate
+        id: release-candidate
         run: make release-candidate-check
         env:
           # The serialized compiler library suite exceeds thirty minutes on
           # hosted runners; retain a bounded deadline without skipping tests.
           TERLAN_TEST_PHASE_TIMEOUT_SECONDS: "3600"
+
+      - name: Preserve compiled Rust cache
+        if: ${{ always() && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            target/debug/.fingerprint
+            target/debug/build
+            target/debug/deps
+            target/release/.fingerprint
+            target/release/build
+            target/release/deps
+          key: ${{ steps.rust.outputs.compiled-cache-key }}
 
       - name: Test local commit policy
         run: target/debug/terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl

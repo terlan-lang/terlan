@@ -63,6 +63,14 @@ if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'
   "$terlc" test scripts/self_validation/InventoryTest.terl
 fi
+if preflight_has terlan-format; then
+  echo 'pre-commit: Terlan readability canonicalization'
+  make --no-print-directory -f crates/terlan/cli.mk \
+    terlan-readability-canonicalization-check TERLC="$terlc"
+  echo 'pre-commit: Terlan formatting'
+  make --no-print-directory -f crates/terlan/cli.mk \
+    terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
+fi
 if preflight_has rust-security; then
   echo 'pre-commit: Rust dependency security audit'
   make --no-print-directory rust-security-audit-check
@@ -130,10 +138,6 @@ fi
 if preflight_has preparation; then
   echo 'pre-commit: preparation owner Cargo resource controls'
   "$terlc" test scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl
-fi
-if preflight_has terlan-format; then
-  echo 'pre-commit: Terlan formatting'
-  make --no-print-directory -f crates/terlan/cli.mk terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
 fi
 typed_css_checked=false
 if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
