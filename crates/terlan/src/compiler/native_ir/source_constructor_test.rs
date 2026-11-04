@@ -648,6 +648,45 @@ pub check(): Bool -> integers().length() == 0 and Items(1, 2).length() == 2.
 }
 
 #[test]
+fn source_constructor_infers_phantom_union_argument_from_result_context() {
+    check_sources(&[
+        r#"
+module constructor_phantom_union_test.
+import sample.phantom.Failure.{GeneralFailure}.
+import std.core.Result.{Err}.
+import type sample.phantom.Failure.{Failure}.
+import type std.core.Result.{Result}.
+pub trait Provider[Source, Value, Reason] {
+    failure_code(source: Source): Reason.
+}.
+pub type TestReason: Int = UNAVAILABLE = 7.
+pub struct NumberProvider implements Provider[NumberProvider, Int, TestReason] {}.
+pub constructor NumberProvider { (): NumberProvider -> NumberProvider {} }.
+pub (source: NumberProvider) failure_code(): TestReason -> TestReason.UNAVAILABLE.
+run[Source, Value, Reason](source: Source, fallback: Value, reason: Reason)[Provider[Source, Value, Reason]]: Result[Value, Failure[Reason]] ->
+    Err(GeneralFailure(42)).
+pub check(): Bool ->
+    let result = run(NumberProvider(), 0, TestReason.UNAVAILABLE);
+    result == Err(GeneralFailure(42))
+        and case result {
+            Err(GeneralFailure(code)) -> code == 42;
+            _ -> false
+        }.
+"#,
+        r#"
+module sample.phantom.Failure.
+pub type SpecificTag = Atom["specific"].
+pub type GeneralTag = Atom["general"].
+pub type Failure[Reason] = {SpecificTag, Reason} | {GeneralTag, Int}.
+pub constructor GeneralFailure[Reason] {
+    (code: Int): Failure[Reason] -> {GeneralTag, code}
+}.
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
 fn missing_source_constructor_body_is_not_a_layout_fallback() {
     let syntax = parse_module_as_syntax_output(
         "module missing_constructor. pub type Adjusted = Int. pub constructor Adjusted { (value: Int): Adjusted -> value + 2 }. pub check(): Bool -> Adjusted(40) == 42."

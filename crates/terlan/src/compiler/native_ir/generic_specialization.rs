@@ -41,6 +41,72 @@ pub(super) use pattern_types::{bind_pattern_types, lambda_type_scope, structural
 pub(super) use templates::CallableTemplates;
 use type_substitution::substitute_function_types;
 
+fn contextual_type_specializes(symbolic: &CoreType, concrete: &CoreType) -> bool {
+    fn relation(symbolic: &CoreType, concrete: &CoreType) -> Option<bool> {
+        if symbolic == concrete {
+            return Some(false);
+        }
+        match (symbolic, concrete) {
+            (CoreType::Named(name), _)
+                if name != "Unit"
+                    && !name.contains('.')
+                    && name.starts_with(|character: char| character.is_ascii_uppercase()) =>
+            {
+                Some(true)
+            }
+            (
+                CoreType::Apply {
+                    constructor: symbolic_constructor,
+                    args: symbolic_args,
+                },
+                CoreType::Apply {
+                    constructor: concrete_constructor,
+                    args: concrete_args,
+                },
+            ) if symbolic_constructor == concrete_constructor => {
+                sequence_relation(symbolic_args, concrete_args)
+            }
+            (CoreType::Union(symbolic), CoreType::Union(concrete)) => {
+                sequence_relation(symbolic, concrete)
+            }
+            (CoreType::List(symbolic), CoreType::List(concrete)) => relation(symbolic, concrete),
+            (CoreType::Tuple(symbolic), CoreType::Tuple(concrete))
+                if symbolic.len() == concrete.len() =>
+            {
+                symbolic
+                    .iter()
+                    .zip(concrete)
+                    .try_fold(false, |changed, (symbolic, concrete)| {
+                        let symbolic = match symbolic {
+                            crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
+                            | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => ty,
+                        };
+                        let concrete = match concrete {
+                            crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
+                            | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => ty,
+                        };
+                        relation(symbolic, concrete).map(|item| changed || item)
+                    })
+            }
+            _ => None,
+        }
+    }
+
+    fn sequence_relation(symbolic: &[CoreType], concrete: &[CoreType]) -> Option<bool> {
+        if symbolic.len() != concrete.len() {
+            return None;
+        }
+        symbolic
+            .iter()
+            .zip(concrete)
+            .try_fold(false, |changed, (symbolic, concrete)| {
+                relation(symbolic, concrete).map(|item| changed || item)
+            })
+    }
+
+    relation(symbolic, concrete) == Some(true)
+}
+
 #[path = "generic_specialization/module.rs"]
 mod module;
 use module::specialize_core;
@@ -397,8 +463,8 @@ fn rewrite_expr(
             left,
             right,
         } if matches!(operator.as_str(), "==" | "!=") => {
-            let left_type = infer_type(left, variables, templates, module);
-            let right_type = if matches!(left.as_ref(), CoreExpr::Map(_))
+            let mut left_type = infer_type(left, variables, templates, module);
+            let mut right_type = if matches!(left.as_ref(), CoreExpr::Map(_))
                 && matches!(right.as_ref(), CoreExpr::Map(_))
             {
                 // Literal records share a checked comparison layout; source
@@ -407,6 +473,15 @@ fn rewrite_expr(
             } else {
                 infer_type(right, variables, templates, module)
             };
+            if let (Some(concrete), Some(symbolic)) = (&left_type, &right_type) {
+                if contextual_type_specializes(symbolic, concrete) {
+                    contextual_result::seed(right, concrete, variables, templates, module);
+                    right_type = Some(concrete.clone());
+                } else if contextual_type_specializes(concrete, symbolic) {
+                    contextual_result::seed(left, symbolic, variables, templates, module);
+                    left_type = Some(symbolic.clone());
+                }
+            }
             for (operand, ty) in [(left, left_type), (right, right_type)] {
                 // Preserve aggregate operand schemas before calls receive
                 // specialized names. Equality returns Bool, so its enclosing

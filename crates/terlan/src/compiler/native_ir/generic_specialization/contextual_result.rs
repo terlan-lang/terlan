@@ -61,16 +61,39 @@ pub(super) fn seed(
             args,
             type_args,
         } => {
-            if type_args.is_empty() {
-                if let Some(inferred) =
-                    infer(function, args, expected, variables, templates, module)
-                {
+            let symbolic = callable_templates(templates, module, function, args.len()).is_some_and(
+                |candidates| {
+                    candidates.iter().any(|candidate| {
+                        type_args
+                            .iter()
+                            .any(|ty| contains_generic_parameter(ty, &candidate.generic_params))
+                    })
+                },
+            );
+            if type_args.is_empty() || symbolic {
+                let inferred = infer(function, args, expected, variables, templates, module);
+                if let Some(inferred) = inferred {
                     *type_args = inferred;
                 }
             }
         }
         CoreExpr::Cast { expr, target_type } => {
+            if contextual_type_specializes(target_type, expected) {
+                *target_type = expected.clone();
+            }
             seed(expr, target_type, variables, templates, module)
+        }
+        CoreExpr::Tuple(items) => {
+            let Some(element_types) =
+                super::super::collection_intrinsic_specialization::contextual_tuple_elements(
+                    items, expected,
+                )
+            else {
+                return;
+            };
+            for (item, expected) in items.iter_mut().zip(element_types) {
+                seed(item, expected, variables, templates, module);
+            }
         }
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();
@@ -184,3 +207,7 @@ fn infer(
     let inferred = matching.next()?;
     matching.next().is_none().then_some(inferred)
 }
+
+#[cfg(test)]
+#[path = "contextual_result_test.rs"]
+mod tests;
