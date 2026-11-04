@@ -63,6 +63,11 @@ if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'
   "$terlc" test scripts/self_validation/InventoryTest.terl
 fi
+if preflight_has workflow-contract; then
+  echo 'pre-commit: workflow and compiled-cache contracts'
+  "$terlc" run scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
+    -- self-test
+fi
 if preflight_has terlan-format; then
   echo 'pre-commit: Terlan readability canonicalization'
   make --no-print-directory -f crates/terlan/cli.mk \

@@ -717,17 +717,44 @@ pub compiled_cache_text_valid(action: String): Bool ->
     fragments_present(
         action,
         [
+            "outputs:",
+            "compiled-cache-hit:",
+            "value: \${{ steps.compiled-rust-cache.outputs.cache-hit }}",
+            "compiled-cache-key:",
+            "value: \${{ steps.compiled-cache-key.outputs.value }}",
             "cache-build:",
+            "Resolve compiled cache key",
+            "id: compiled-cache-key",
             "Cache compiled Rust dependencies",
+            "id: compiled-rust-cache",
             "target/debug/.fingerprint",
             "target/debug/build",
             "target/debug/deps",
             "target/release/.fingerprint",
             "target/release/build",
             "target/release/deps",
-            "github.sha",
+            "\"$GITHUB_SHA\"",
             "github.job",
             "restore-keys:",
+        ],
+    ).
+
+pub compiled_cache_preservation_text_valid(workflow: String): Bool ->
+    fragments_present(
+        workflow,
+        [
+            "id: rust",
+            "name: Preserve compiled Rust cache",
+            "always() && steps.rust.outputs.compiled-cache-key != ''",
+            "steps.rust.outputs.compiled-cache-hit != 'true'",
+            "uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830",
+            "target/debug/.fingerprint",
+            "target/debug/build",
+            "target/debug/deps",
+            "target/release/.fingerprint",
+            "target/release/build",
+            "target/release/deps",
+            "key: \${{ steps.rust.outputs.compiled-cache-key }}",
         ],
     ).
 
@@ -794,6 +821,7 @@ pub workflow_contract(): Bool ->
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
         not native_setup_text_valid(native_setup) -> failure("workflow", "target-native dependency action drifted");
         not compiled_cache_text_valid(rust_setup) -> failure("workflow", "compiled Rust cache contract drifted");
+        not compiled_cache_preservation_text_valid(ci) -> failure("workflow", "compiled Rust cache preservation drifted");
         not platform_runner_text_valid(platform_runner) -> failure("workflow", "platform runner rebuild contract drifted");
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
