@@ -61,6 +61,15 @@ pub(super) fn core_expr_type(
     types: &HashMap<String, CoreType>,
     functions: &HashMap<(String, usize), CoreType>,
 ) -> Option<CoreType> {
+    core_expr_type_impl(expr, types, functions, None)
+}
+
+fn core_expr_type_impl(
+    expr: &CoreExpr,
+    types: &HashMap<String, CoreType>,
+    functions: &HashMap<(String, usize), CoreType>,
+    constructors: Option<&NativeConstructorLayouts>,
+) -> Option<CoreType> {
     let inferred = match expr {
         CoreExpr::Int(_) => Some(CoreType::Int),
         CoreExpr::Float(_) => Some(CoreType::Float),
@@ -77,7 +86,7 @@ pub(super) fn core_expr_type(
             let CoreType::Arrow {
                 params,
                 return_type,
-            } = core_expr_type(callee, types, functions)?
+            } = core_expr_type_impl(callee, types, functions, constructors)?
             else {
                 return None;
             };
@@ -92,7 +101,8 @@ pub(super) fn core_expr_type(
             elements.extend(
                 args.iter()
                     .map(|argument| {
-                        core_expr_type(argument, types, functions).map(CoreTupleTypeElem::Type)
+                        core_expr_type_impl(argument, types, functions, constructors)
+                            .map(CoreTupleTypeElem::Type)
                     })
                     .collect::<Option<Vec<_>>>()?,
             );
@@ -107,7 +117,8 @@ pub(super) fn core_expr_type(
                         return Some(CoreTupleTypeElem::Type(CoreType::AtomLiteral(tag.clone())));
                     }
                 }
-                core_expr_type(item, types, functions).map(CoreTupleTypeElem::Type)
+                core_expr_type_impl(item, types, functions, constructors)
+                    .map(CoreTupleTypeElem::Type)
             })
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
@@ -117,16 +128,21 @@ pub(super) fn core_expr_type(
                 Some(CoreMapTypeField {
                     key: field.key.clone(),
                     operator: ":".into(),
-                    value: core_expr_type(&field.value, types, functions)?,
+                    value: core_expr_type_impl(&field.value, types, functions, constructors)?,
                 })
             })
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Map),
         CoreExpr::List(items) => super::super::expression::homogeneous_list_type(items, |item| {
-            core_expr_type(item, types, functions)
+            core_expr_type_impl(item, types, functions, constructors)
         }),
+        CoreExpr::RecordConstruct { name, .. } => constructors
+            .and_then(|layouts| {
+                super::super::constructors::record_construct_result_core_type(expr, layouts)
+            })
+            .or_else(|| Some(CoreType::Named(name.clone()))),
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
-            let base = core_expr_type(base, types, functions)?;
+            let base = core_expr_type_impl(base, types, functions, constructors)?;
             let CoreType::Struct { fields, .. } = base else {
                 return None;
             };
@@ -140,7 +156,7 @@ pub(super) fn core_expr_type(
                 return None;
             };
             let index = usize::try_from(*index).ok()?;
-            match core_expr_type(base, types, functions)? {
+            match core_expr_type_impl(base, types, functions, constructors)? {
                 CoreType::Tuple(elements) => elements.get(index).map(tuple_element_type).cloned(),
                 CoreType::List(element) => Some(*element),
                 CoreType::Apply { constructor, args }
@@ -155,7 +171,7 @@ pub(super) fn core_expr_type(
             if matches!(target_type, CoreType::Dynamic)
                 || matches!(target_type, CoreType::Named(name) if name == "Dynamic") =>
         {
-            core_expr_type(expr, types, functions)
+            core_expr_type_impl(expr, types, functions, constructors)
         }
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
         CoreExpr::Intrinsic(call)
@@ -172,12 +188,12 @@ pub(super) fn core_expr_type(
         {
             call.args
                 .first()
-                .and_then(|operand| core_expr_type(operand, types, functions))
+                .and_then(|operand| core_expr_type_impl(operand, types, functions, constructors))
         }
         CoreExpr::Intrinsic(call) => Some(call.return_type.clone()),
         CoreExpr::UnaryOp { operator, operand } => match operator.as_str() {
             "not" | "!" => Some(CoreType::Bool),
-            "-" => core_expr_type(operand, types, functions),
+            "-" => core_expr_type_impl(operand, types, functions, constructors),
             _ => None,
         },
         CoreExpr::BinaryOp {
@@ -188,8 +204,8 @@ pub(super) fn core_expr_type(
             "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or" => Some(CoreType::Bool),
             "div" | "rem" => Some(CoreType::Int),
             "+" | "-" | "*" | "/" => {
-                let left = core_expr_type(left, types, functions)?;
-                let right = core_expr_type(right, types, functions)?;
+                let left = core_expr_type_impl(left, types, functions, constructors)?;
+                let right = core_expr_type_impl(right, types, functions, constructors)?;
                 if left == CoreType::Float || right == CoreType::Float {
                     Some(CoreType::Float)
                 } else {
@@ -204,19 +220,23 @@ pub(super) fn core_expr_type(
                 let CorePattern::Var(name) = &binding.pattern else {
                     return None;
                 };
-                let inferred = core_expr_type(&binding.value, &lexical, functions);
+                let inferred =
+                    core_expr_type_impl(&binding.value, &lexical, functions, constructors);
                 lexical.remove(name);
                 if let Some(ty) = inferred {
                     lexical.insert(name.clone(), ty);
                 }
             }
-            core_expr_type(body, &lexical, functions)
+            core_expr_type_impl(body, &lexical, functions, constructors)
         }
-        CoreExpr::If { clauses } => {
-            control_result_type(clauses.iter().map(|clause| &clause.body), types, functions)
-        }
+        CoreExpr::If { clauses } => control_result_type(
+            clauses.iter().map(|clause| &clause.body),
+            types,
+            functions,
+            constructors,
+        ),
         CoreExpr::Case { scrutinee, clauses } => {
-            case_result_type(scrutinee, clauses, types, functions)
+            case_result_type(scrutinee, clauses, types, functions, constructors)
         }
         _ => None,
     };
@@ -232,7 +252,7 @@ pub(super) fn core_expr_type_with_constructors(
     functions: &HashMap<(String, usize), CoreType>,
     constructors: &NativeConstructorLayouts,
 ) -> Option<CoreType> {
-    if let Some(ty) = core_expr_type(expr, types, functions) {
+    if let Some(ty) = core_expr_type_impl(expr, types, functions, Some(constructors)) {
         return Some(ty);
     }
     let (CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. }) = expr
@@ -262,13 +282,16 @@ fn case_result_type(
     clauses: &[crate::terlan_typeck::CoreCaseClause],
     types: &HashMap<String, CoreType>,
     functions: &HashMap<(String, usize), CoreType>,
+    constructors: Option<&NativeConstructorLayouts>,
 ) -> Option<CoreType> {
-    let scrutinee_type = core_expr_type(scrutinee, types, functions)?;
+    let scrutinee_type = core_expr_type_impl(scrutinee, types, functions, constructors);
     if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
         eprintln!(
             "[native-aot case-type] scrutinee={} type={} variables={:?}",
             scrutinee.contract_text(),
-            scrutinee_type.contract_text(),
+            scrutinee_type
+                .as_ref()
+                .map_or_else(|| "unknown".to_string(), CoreType::contract_text),
             types.keys().collect::<Vec<_>>(),
         );
     }
@@ -280,8 +303,10 @@ fn case_result_type(
             continue;
         }
         let mut lexical = types.clone();
-        bind_pattern_types(&clause.pattern, &scrutinee_type, &mut lexical);
-        let clause_type = core_expr_type(&clause.body, &lexical, functions);
+        if let Some(scrutinee_type) = scrutinee_type.as_ref() {
+            bind_pattern_types(&clause.pattern, scrutinee_type, &mut lexical);
+        }
+        let clause_type = core_expr_type_impl(&clause.body, &lexical, functions, constructors);
         if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
             eprintln!(
                 "[native-aot case-type] pattern={} body={} type={clause_type:?} variables={:?}",
@@ -390,6 +415,7 @@ fn control_result_type<'a>(
     expressions: impl Iterator<Item = &'a CoreExpr>,
     types: &HashMap<String, CoreType>,
     functions: &HashMap<(String, usize), CoreType>,
+    constructors: Option<&NativeConstructorLayouts>,
 ) -> Option<CoreType> {
     let mut result = None;
     let mut inherited_none = false;
@@ -398,7 +424,7 @@ fn control_result_type<'a>(
             inherited_none = true;
             continue;
         }
-        match core_expr_type(expression, types, functions) {
+        match core_expr_type_impl(expression, types, functions, constructors) {
             Some(found) => match result.take() {
                 Some(expected) => result = Some(merge_control_types(expected, found)?),
                 None => result = Some(found),
@@ -539,7 +565,10 @@ pub(in crate::compiler::native_ir) fn canonical_control_type(
         .unwrap_or(ty)
 }
 
-fn control_types_equivalent(left: &CoreType, right: &CoreType) -> bool {
+pub(in crate::compiler::native_ir) fn control_types_equivalent(
+    left: &CoreType,
+    right: &CoreType,
+) -> bool {
     match (left, right) {
         (CoreType::Tuple(left), CoreType::Tuple(right)) => {
             left.len() == right.len()
@@ -556,6 +585,8 @@ fn control_types_equivalent(left: &CoreType, right: &CoreType) -> bool {
                 })
         }
         (CoreType::List(left), CoreType::List(right)) => control_types_equivalent(left, right),
+        (CoreType::Named(left), CoreType::Struct { name: right, .. })
+        | (CoreType::Struct { name: left, .. }, CoreType::Named(right)) => left == right,
         _ => left == right,
     }
 }

@@ -46,7 +46,9 @@ use tagged_union::{
     tagged_union_by_atom, tagged_union_constructor, tagged_union_constructor_plan,
     TaggedUnionPattern,
 };
-pub(super) use type_support::{canonical_atom_union, canonical_control_type, merge_control_types};
+pub(super) use type_support::{
+    canonical_atom_union, canonical_control_type, control_types_equivalent, merge_control_types,
+};
 use type_support::{
     list_element_type, list_variant_type, map_key, map_types, native_core_type,
     option_element_type, struct_field_type, tuple_element_type,

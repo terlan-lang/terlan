@@ -664,6 +664,20 @@ pub(super) fn record_construct_result_type(
         .map(|layout| layout.result)
 }
 
+/// Returns the checked semantic result for one named record construction.
+pub(super) fn record_construct_result_core_type(
+    expr: &CoreExpr,
+    layouts: &NativeConstructorLayouts,
+) -> Option<CoreType> {
+    let CoreExpr::RecordConstruct { name, fields } = expr else {
+        return None;
+    };
+    record_layout(name, fields.len(), layouts)
+        .ok()?
+        .result_core_type
+        .clone()
+}
+
 /// Resolves and lowers one persistent update of a fixed named record.
 pub(super) fn lower_record_update(
     expr: &CoreExpr,

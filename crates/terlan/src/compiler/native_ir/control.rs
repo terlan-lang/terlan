@@ -311,10 +311,11 @@ pub(super) fn lower_owned_expr_with_yields(
                          native control prefix requires variable bindings"
                         .to_string());
                 };
-                let value_core_type = super::structured_case::core_expr_type(
+                let value_core_type = super::structured_case::core_expr_type_with_constructors(
                     &binding.value,
                     &entry_core_types,
                     function_core_types,
+                    constructors,
                 )
                 .map(|core_type| {
                     super::structured_case::canonical_control_type(core_type, constructors)

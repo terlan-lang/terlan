@@ -635,7 +635,27 @@ pub(in crate::compiler::native_ir) fn lower_lexical_expr_as(
     environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
     let CoreExpr::If { clauses } = expr else {
-        return lower_child(expr, params, param_types, core_types, environment);
+        return if matches!(
+            expr,
+            CoreExpr::Tuple(_)
+                | CoreExpr::List(_)
+                | CoreExpr::Map(_)
+                | CoreExpr::RecordConstruct { .. }
+                | CoreExpr::ConstructorCall { .. }
+                | CoreExpr::Cast { .. }
+        ) {
+            super::super::collection_values::lower_typed_value(
+                expr,
+                expected,
+                params,
+                param_types,
+                environment.functions,
+                environment.function_types,
+                environment.constructors,
+            )
+        } else {
+            lower_child(expr, params, param_types, core_types, environment)
+        };
     };
     if clauses.is_empty() {
         return Err("error[native_ir.typed_control]: if has no clauses".into());

@@ -82,6 +82,77 @@ pub select(enabled: Bool): Option[Int] ->
 }
 
 #[test]
+fn product_destructuring_after_case_retains_nested_option_type() {
+    let module = core(
+        r#"
+module control_prefix_case_product.
+pub type None = Atom["none"].
+pub type Some[T] = {Atom["some"], value: T}.
+pub type Option[T] = None | Some[T].
+pub type Ok[T] = {Atom["ok"], value: T}.
+pub type Err[E] = {Atom["error"], reason: E}.
+pub type Result[T, E] = Ok[T] | Err[E].
+pub struct Price {
+    micros: Int
+}.
+pub struct Source {
+    value: Int
+}.
+pub struct Observation {
+    source: Source,
+    count: Int,
+    average: Option[Price]
+}.
+source(): Result[Source, Unit] ->
+    Ok(Source(1)).
+build(source: Source, count: Int, average: Option[Price]): Result[Observation, Unit] ->
+    Ok(Observation(source, count, average)).
+pub select(current: Option[Int]): Option[Observation] ->
+    let {
+        Ok(source) <- source()
+    } else {
+        _ -> None
+    };
+    let {count, average} =
+        case current {
+            None -> {0, None};
+            Some(value) -> {3, Some(Price { micros: value })}
+        };
+    case build(source, count, average) {
+        Ok(value) -> Some(value);
+        _ -> None
+    }.
+pub answer(): Int ->
+    case select(Some(7)) {
+        Some(observation) -> observation.count;
+        None -> 0
+    }.
+"#,
+    );
+    let modules = NativeModule::lower_application(&[&module])
+        .expect("lower product destructuring after an exhaustive case join");
+    let object = emit_native_application_object("control-prefix-case-product", &modules)
+        .expect("emit product destructuring after a case join");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "answer")
+        .expect("answer export")
+        .export_id;
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "control-prefix-case-product",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: vec![],
+            expected_status: super::status::OK,
+            expected_result: Some(3),
+        }],
+    );
+}
+
+#[test]
 fn ordered_function_heads_specialize_patterns_and_keep_guard_scope() {
     let module = core(
         "module native_function_heads.\n\

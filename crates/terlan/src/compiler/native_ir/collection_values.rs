@@ -177,7 +177,10 @@ fn lower_boundary_collection_value_with_recursive_element(
             &target_type.contract_text(),
             constructors,
         );
-        if target_type == expected || expected_native == target_native {
+        if target_type == expected
+            || super::structured_case::control_types_equivalent(target_type, expected)
+            || expected_native == target_native
+        {
             return lower_boundary_collection_value_with_recursive_element(
                 expr,
                 CollectionBoundary {
