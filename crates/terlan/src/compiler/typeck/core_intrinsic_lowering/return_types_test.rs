@@ -120,6 +120,7 @@ fn runtime_capability_return_type_maps_file_mutations() {
     for capability in [
         CoreRuntimeCapability::FileWriteBytes,
         CoreRuntimeCapability::FileWriteText,
+        CoreRuntimeCapability::FileWriteTextMany,
         CoreRuntimeCapability::FileAppendText,
         CoreRuntimeCapability::FileDelete,
         CoreRuntimeCapability::FileSetTimestamps,

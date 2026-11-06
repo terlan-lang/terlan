@@ -70,6 +70,7 @@ pub(super) fn core_runtime_capability_return_type(capability: &CoreRuntimeCapabi
         },
         CoreRuntimeCapability::FileWriteBytes
         | CoreRuntimeCapability::FileWriteText
+        | CoreRuntimeCapability::FileWriteTextMany
         | CoreRuntimeCapability::FileAppendText
         | CoreRuntimeCapability::FileDelete
         | CoreRuntimeCapability::FileSetTimestamps

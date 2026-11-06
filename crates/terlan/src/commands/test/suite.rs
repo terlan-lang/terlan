@@ -17,7 +17,7 @@ use super::manifest::{print_validation_report, validation_report};
 use super::project_closure::compile_project_source_core_modules;
 use super::project_context::{
     discover_test_project_context, discover_test_project_root, prepare_test_project_context,
-    test_target_profile_options,
+    reachable_native_helper_environment, test_target_profile_options,
 };
 use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
@@ -290,6 +290,9 @@ fn test_result_fingerprint_base(
         for (_, helper) in &context.native_helper_environment {
             inputs.push(helper.clone());
         }
+        for candidate in &context.native_helper_candidates {
+            inputs.extend(candidate.fingerprint_paths());
+        }
     }
     inputs.sort();
     inputs.dedup();
@@ -552,6 +555,14 @@ fn run_terlan_vm_test_file_group(
         application_cores.push(module.core);
         debug_inputs.push(module.native_debug);
     }
+    let native_helper_environment =
+        match reachable_native_helper_environment(project_context.as_ref(), &application_cores) {
+            Ok(environment) => environment,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
     let native_cache_root = state
         .cache_dir
@@ -582,9 +593,7 @@ fn run_terlan_vm_test_file_group(
             &module.module_name,
             &module.tests,
             native_image.as_deref(),
-            project_context
-                .as_ref()
-                .map_or(&[], |context| context.native_helper_environment.as_slice()),
+            &native_helper_environment,
             args.benchmark
                 .then_some((args.benchmark_warmup, args.benchmark_samples)),
             false,

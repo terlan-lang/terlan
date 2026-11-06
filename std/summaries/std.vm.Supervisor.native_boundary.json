@@ -1,0 +1,48 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "start_child",
+      "operation": "std.vm.supervisor.start_child"
+    },
+    {
+      "arity": 2,
+      "name": "current_child",
+      "operation": "std.vm.supervisor.current_child"
+    },
+    {
+      "arity": 2,
+      "name": "stop_child",
+      "operation": "std.vm.supervisor.stop_child"
+    },
+    {
+      "arity": 1,
+      "name": "snapshot",
+      "operation": "std.vm.supervisor.snapshot"
+    },
+    {
+      "arity": 3,
+      "name": "start_persistent_child",
+      "operation": "std.vm.supervisor.start_persistent_child"
+    },
+    {
+      "arity": 2,
+      "name": "checkpoint",
+      "operation": "std.vm.supervisor.checkpoint"
+    },
+    {
+      "arity": 2,
+      "name": "append_event",
+      "operation": "std.vm.supervisor.append_event"
+    },
+    {
+      "arity": 0,
+      "name": "restore",
+      "operation": "std.vm.supervisor.restore"
+    }
+  ],
+  "module": "std_vm_supervisor_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.Supervisor"
+}

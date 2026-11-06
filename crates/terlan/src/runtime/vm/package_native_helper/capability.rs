@@ -84,6 +84,7 @@ pub(crate) fn dispatch_vm_capability_with_program_arguments(
             | "std.io.file.set_executable"
             | "std.io.file.copy"
             | "std.io.file.copy_many"
+            | "std.io.file.write_text_many"
             | "std.io.file.read_text_many"
             | "std.io.file.read_text_directory"
             | "std.io.file.read_text_tree_excluding"

@@ -35,7 +35,7 @@ jobs:
       TERLAN_TAG_PUBLICATION: "1"
     steps:
       - name: Checkout the tagged commit
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           # An explicit ref preserves the tag object instead of fetching the event SHA over it.
           ref: refs/tags/${{ inputs.tag || github.ref_name }}

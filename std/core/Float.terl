@@ -198,6 +198,185 @@ pub ceil(value: Float): Float -> 0.0.
 pub log(value: Float): Float -> 0.0.
 
 /**
+ * Returns the principal arctangent of a finite Float in radians.
+ *
+ * Input: one finite `Float` value.
+ * Output: the finite angle in `[-pi / 2, pi / 2]` whose tangent is the input.
+ * Transformation: delegates to the VM-owned binary64 arctangent primitive.
+ * Non-finite runtime values fail with the same stable domain diagnostic used
+ * by `log`.
+ */
+@compiler.intrinsic
+pub atan(value: Float): Float -> 0.0.
+
+/**
+ * Returns the principal square root of a non-negative finite Float.
+ *
+ * Input: one finite `Float` greater than or equal to zero.
+ * Output: the non-negative finite square root of the input.
+ * Transformation: delegates to the VM-owned binary64 square-root primitive.
+ * Negative and non-finite runtime values fail with the same stable domain
+ * diagnostic used by `log`.
+ */
+@compiler.intrinsic
+pub sqrt(value: Float): Float -> 0.0.
+
+/**
+ * Returns the nearest whole binary64 value, with halfway cases away from zero.
+ */
+@compiler.intrinsic
+pub round(value: Float): Float -> 0.0.
+
+/**
+ * Removes the fractional component of a finite binary64 value.
+ */
+@compiler.intrinsic
+pub trunc(value: Float): Float -> 0.0.
+
+/**
+ * Returns `e` raised to a finite binary64 exponent.
+ */
+@compiler.intrinsic
+pub exp(value: Float): Float -> 0.0.
+
+/**
+ * Returns the base-two logarithm of a positive finite value.
+ */
+@compiler.intrinsic
+pub log2(value: Float): Float -> 0.0.
+
+/**
+ * Returns the base-ten logarithm of a positive finite value.
+ */
+@compiler.intrinsic
+pub log10(value: Float): Float -> 0.0.
+
+/**
+ * Returns the finite real cube root of a finite value.
+ */
+@compiler.intrinsic
+pub cbrt(value: Float): Float -> 0.0.
+
+/**
+ * Returns the sine of a finite angle in radians.
+ */
+@compiler.intrinsic
+pub sin(value: Float): Float -> 0.0.
+
+/**
+ * Returns the cosine of a finite angle in radians.
+ */
+@compiler.intrinsic
+pub cos(value: Float): Float -> 0.0.
+
+/**
+ * Returns the tangent of a finite angle in radians.
+ */
+@compiler.intrinsic
+pub tan(value: Float): Float -> 0.0.
+
+/**
+ * Returns the principal arcsine in radians for a value in `[-1, 1]`.
+ */
+@compiler.intrinsic
+pub asin(value: Float): Float -> 0.0.
+
+/**
+ * Returns the principal arccosine in radians for a value in `[-1, 1]`.
+ */
+@compiler.intrinsic
+pub acos(value: Float): Float -> 0.0.
+
+/**
+ * Returns the hyperbolic sine of a finite value.
+ */
+@compiler.intrinsic
+pub sinh(value: Float): Float -> 0.0.
+
+/**
+ * Returns the hyperbolic cosine of a finite value.
+ */
+@compiler.intrinsic
+pub cosh(value: Float): Float -> 0.0.
+
+/**
+ * Returns the hyperbolic tangent of a finite value.
+ */
+@compiler.intrinsic
+pub tanh(value: Float): Float -> 0.0.
+
+/**
+ * Returns the inverse hyperbolic sine of a finite value.
+ */
+@compiler.intrinsic
+pub asinh(value: Float): Float -> 0.0.
+
+/**
+ * Returns the inverse hyperbolic cosine of a finite value at least one.
+ */
+@compiler.intrinsic
+pub acosh(value: Float): Float -> 0.0.
+
+/**
+ * Returns the inverse hyperbolic tangent of a finite value in `(-1, 1)`.
+ */
+@compiler.intrinsic
+pub atanh(value: Float): Float -> 0.0.
+
+/**
+ * Returns two raised to a finite binary64 exponent.
+ */
+@compiler.intrinsic
+pub exp2(value: Float): Float -> 0.0.
+
+/**
+ * Returns `exp(value) - 1` without losing precision near zero.
+ */
+@compiler.intrinsic
+pub expm1(value: Float): Float -> 0.0.
+
+/**
+ * Returns `log(1 + value)` without losing precision near zero.
+ */
+@compiler.intrinsic
+pub log1p(value: Float): Float -> 0.0.
+
+/**
+ * Raises a finite base to a finite exponent and requires a finite real result.
+ */
+@compiler.intrinsic
+pub pow(base: Float, exponent: Float): Float -> 0.0.
+
+/**
+ * Returns the principal angle of the finite vector `(x, y)` in radians.
+ */
+@compiler.intrinsic
+pub atan2(y: Float, x: Float): Float -> 0.0.
+
+/**
+ * Returns the finite Euclidean length of a two-dimensional finite vector.
+ */
+@compiler.intrinsic
+pub hypot(x: Float, y: Float): Float -> 0.0.
+
+/**
+ * Converts an angle in degrees to radians.
+ */
+pub radians(degrees: Float): Float ->
+    degrees * pi() / 180.0.
+
+/**
+ * Converts an angle in radians to degrees.
+ */
+pub degrees(radians: Float): Float ->
+    radians * 180.0 / pi().
+
+/**
+ * Returns the nearest binary64 representation of Euler's number.
+ */
+pub e(): Float -> 2.718281828459045.
+
+/**
  * Returns the nearest binary64 representation of pi.
  */
 pub pi(): Float -> 3.141592653589793.
@@ -206,3 +385,23 @@ pub pi(): Float -> 3.141592653589793.
  * Returns the nearest binary64 representation of tau.
  */
 pub tau(): Float -> 6.283185307179586.
+
+/**
+ * Returns the nearest binary64 representation of the natural log of two.
+ */
+pub ln2(): Float -> 0.6931471805599453.
+
+/**
+ * Returns the nearest binary64 representation of the natural log of ten.
+ */
+pub ln10(): Float -> 2.302585092994046.
+
+/**
+ * Returns the nearest binary64 representation of the square root of two.
+ */
+pub sqrt2(): Float -> 1.4142135623730951.
+
+/**
+ * Returns the nearest binary64 representation of one over square root two.
+ */
+pub sqrt_half(): Float -> 0.7071067811865476.

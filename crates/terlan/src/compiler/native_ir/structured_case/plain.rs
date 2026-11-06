@@ -75,6 +75,9 @@ pub(super) fn lower_plain(
             result_type,
         });
     }
+    let checked_type = core_expr_type(expr, core_types, function_core_types)
+        .map(|ty| ty.contract_text())
+        .unwrap_or_else(|| "unknown".to_string());
     lower_expr_with_constructors(
         expr,
         params,
@@ -83,6 +86,9 @@ pub(super) fn lower_plain(
         function_types,
         constructors,
     )
+    .map_err(|error| {
+        format!("{error}; while lowering lexical expression with checked type `{checked_type}`")
+    })
 }
 
 pub(super) fn closure_invocation_signature(

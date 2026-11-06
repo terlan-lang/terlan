@@ -71,6 +71,11 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   git -C "$snapshot" clean -ffdqx
   export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$cache/build}"
   case "$CARGO_TARGET_DIR" in /*) ;; *) export CARGO_TARGET_DIR="$root/$CARGO_TARGET_DIR" ;; esac
+  # The staged checkout reuses ordinary Cargo artifacts, but incremental state
+  # is both checkout-specific and disproportionately large. Default it off so
+  # a workspace test lane cannot exhaust disk after Clippy and release builds.
+  # An explicit caller setting remains authoritative for diagnostics.
+  export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
   if [[ "$CARGO_TARGET_DIR" != "$cache/build" ]]; then
     export TERLAN_HOOK_SHARED_TARGET=1
   else

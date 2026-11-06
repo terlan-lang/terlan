@@ -66,6 +66,7 @@ const OPERATION_ARITIES: &[(&str, usize)] = &[
     ("std.io.file.read_text_tree_excluding", 2),
     ("std.io.file.read_text_tree_matching", 6),
     ("std.io.file.write_text", 2),
+    ("std.io.file.write_text_many", 1),
     ("std.io.file.append_text", 2),
     ("std.io.file.delete", 1),
     ("std.system.environment.contains", 1),

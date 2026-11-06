@@ -30,6 +30,7 @@ test "$2" = "$(git -C "$(git remote get-url origin)" rev-parse HEAD)"
 if test -n "${EXPECTED_HOOK_CARGO_HOME:-}"; then
   test "$CARGO_HOME" = "$EXPECTED_HOOK_CARGO_HOME"
 fi
+test "$CARGO_INCREMENTAL" = "${EXPECTED_HOOK_CARGO_INCREMENTAL:-0}"
 CHECK
 printf 'initial\n' > tracked.txt
 printf 'original\n' > marker.txt
@@ -51,6 +52,10 @@ env -u CARGO_HOME EXPECTED_HOOK_CARGO_HOME="$PWD/target/git-hooks/cargo-home" \
   bash "$driver" check > "$temporary/cargo-default.log" 2>&1
 CARGO_HOME=custom-cache EXPECTED_HOOK_CARGO_HOME="$PWD/custom-cache" \
   bash "$driver" check > "$temporary/cargo-explicit.log" 2>&1
+env -u CARGO_INCREMENTAL EXPECTED_HOOK_CARGO_INCREMENTAL=0 \
+  bash "$driver" check > "$temporary/incremental-default.log" 2>&1
+CARGO_INCREMENTAL=1 EXPECTED_HOOK_CARGO_INCREMENTAL=1 \
+  bash "$driver" check > "$temporary/incremental-explicit.log" 2>&1
 
 # The default cache cannot redirect validation into an unrelated global cache.
 mkdir "$temporary/unrelated-cargo"

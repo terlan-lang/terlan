@@ -24,6 +24,52 @@ import std.core.Ordering.{*}.
 @pure
 pub abs(value: Float): Float.
 
+/// Returns the principal arccosine in radians for a value in `[-1, 1]`.
+
+@pure
+pub acos(value: Float): Float.
+
+/// Returns the inverse hyperbolic cosine of a finite value at least one.
+
+@pure
+pub acosh(value: Float): Float.
+
+/// Returns the principal arcsine in radians for a value in `[-1, 1]`.
+
+@pure
+pub asin(value: Float): Float.
+
+/// Returns the inverse hyperbolic sine of a finite value.
+
+@pure
+pub asinh(value: Float): Float.
+
+/// Returns the principal arctangent of a finite Float in radians.
+///
+/// Input: one finite `Float` value.
+/// Output: the finite angle in `[-pi / 2, pi / 2]` whose tangent is the input.
+/// Transformation: delegates to the VM-owned binary64 arctangent primitive.
+/// Non-finite runtime values fail with the same stable domain diagnostic used
+/// by `log`.
+
+@pure
+pub atan(value: Float): Float.
+
+/// Returns the principal angle of the finite vector `(x, y)` in radians.
+
+@pure
+pub atan2(y: Float, x: Float): Float.
+
+/// Returns the inverse hyperbolic tangent of a finite value in `(-1, 1)`.
+
+@pure
+pub atanh(value: Float): Float.
+
+/// Returns the finite real cube root of a finite value.
+
+@pure
+pub cbrt(value: Float): Float.
+
 /// Returns the least whole Float not less than the input.
 ///
 /// Input: one finite `Float` value.
@@ -57,6 +103,26 @@ pub ceil(value: Float): Float.
 @pure
 pub compare(left: Float, right: Float): std.core.Ordering.Comparison.
 
+/// Returns the cosine of a finite angle in radians.
+
+@pure
+pub cos(value: Float): Float.
+
+/// Returns the hyperbolic cosine of a finite value.
+
+@pure
+pub cosh(value: Float): Float.
+
+/// Converts an angle in radians to degrees.
+
+@pure
+pub degrees(radians: Float): Float.
+
+/// Returns the nearest binary64 representation of Euler's number.
+
+@pure
+pub e(): Float.
+
 /// Returns whether two finite `Float` values are equal.
 ///
 /// Input: two supported finite `Float` values.
@@ -74,6 +140,21 @@ pub compare(left: Float, right: Float): std.core.Ordering.Comparison.
 
 @pure
 pub equal(left: Float, right: Float): Bool.
+
+/// Returns `e` raised to a finite binary64 exponent.
+
+@pure
+pub exp(value: Float): Float.
+
+/// Returns two raised to a finite binary64 exponent.
+
+@pure
+pub exp2(value: Float): Float.
+
+/// Returns `exp(value) - 1` without losing precision near zero.
+
+@pure
+pub expm1(value: Float): Float.
 
 /// Returns the greatest whole Float not greater than the input.
 ///
@@ -103,6 +184,21 @@ pub floor(value: Float): Float.
 @pure
 pub from_string(value: String): Option[Float].
 
+/// Returns the finite Euclidean length of a two-dimensional finite vector.
+
+@pure
+pub hypot(x: Float, y: Float): Float.
+
+/// Returns the nearest binary64 representation of the natural log of ten.
+
+@pure
+pub ln10(): Float.
+
+/// Returns the nearest binary64 representation of the natural log of two.
+
+@pure
+pub ln2(): Float.
+
 /// Returns the natural logarithm of a positive finite Float.
 ///
 /// Input: one finite `Float` greater than zero.
@@ -113,6 +209,21 @@ pub from_string(value: String): Option[Float].
 
 @pure
 pub log(value: Float): Float.
+
+/// Returns the base-ten logarithm of a positive finite value.
+
+@pure
+pub log10(value: Float): Float.
+
+/// Returns `log(1 + value)` without losing precision near zero.
+
+@pure
+pub log1p(value: Float): Float.
+
+/// Returns the base-two logarithm of a positive finite value.
+
+@pure
+pub log2(value: Float): Float.
 
 /// Returns the larger of two finite `Float` values.
 ///
@@ -154,6 +265,62 @@ pub min(left: Float, right: Float): Float.
 @pure
 pub pi(): Float.
 
+/// Raises a finite base to a finite exponent and requires a finite real result.
+
+@pure
+pub pow(base: Float, exponent: Float): Float.
+
+/// Converts an angle in degrees to radians.
+
+@pure
+pub radians(degrees: Float): Float.
+
+/// Returns the nearest whole binary64 value, with halfway cases away from zero.
+
+@pure
+pub round(value: Float): Float.
+
+/// Returns the sine of a finite angle in radians.
+
+@pure
+pub sin(value: Float): Float.
+
+/// Returns the hyperbolic sine of a finite value.
+
+@pure
+pub sinh(value: Float): Float.
+
+/// Returns the principal square root of a non-negative finite Float.
+///
+/// Input: one finite `Float` greater than or equal to zero.
+/// Output: the non-negative finite square root of the input.
+/// Transformation: delegates to the VM-owned binary64 square-root primitive.
+/// Negative and non-finite runtime values fail with the same stable domain
+/// diagnostic used by `log`.
+
+@pure
+pub sqrt(value: Float): Float.
+
+/// Returns the nearest binary64 representation of the square root of two.
+
+@pure
+pub sqrt2(): Float.
+
+/// Returns the nearest binary64 representation of one over square root two.
+
+@pure
+pub sqrt_half(): Float.
+
+/// Returns the tangent of a finite angle in radians.
+
+@pure
+pub tan(value: Float): Float.
+
+/// Returns the hyperbolic tangent of a finite value.
+
+@pure
+pub tanh(value: Float): Float.
+
 /// Returns the nearest binary64 representation of tau.
 
 @pure
@@ -175,3 +342,8 @@ pub tau(): Float.
 
 @pure
 pub to_string(value: Float): String.
+
+/// Removes the fractional component of a finite binary64 value.
+
+@pure
+pub trunc(value: Float): Float.

@@ -571,6 +571,97 @@ fn batch_text_reads_preserve_order_and_attach_failing_path() {
     assert_eq!(error.path(), Some(missing.to_string_lossy().as_ref()));
 }
 
+fn text_write_plan(path: &std::path::Path, contents: &str) -> NativeBoundaryValue {
+    NativeBoundaryValue::Record {
+        name: "TextWritePlan".to_string(),
+        fields: vec![
+            (
+                "path".to_string(),
+                NativeBoundaryValue::Text(path.to_string_lossy().into_owned()),
+            ),
+            (
+                "contents".to_string(),
+                NativeBoundaryValue::Text(contents.to_string()),
+            ),
+        ],
+    }
+}
+
+#[test]
+fn batch_text_writes_create_parents_and_preserve_exact_utf8() {
+    let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_text_writes");
+    let first = root.join("nested/first.txt");
+    let second = root.join("second.json");
+    dispatch(
+        "std.io.file.write_text_many",
+        &[NativeBoundaryValue::List(vec![
+            text_write_plan(&first, "Aé\n"),
+            text_write_plan(&second, "{\"value\":2}"),
+        ])],
+    )
+    .expect("publish text batch");
+    assert_eq!(
+        std::fs::read(&first).expect("read UTF-8 output"),
+        "Aé\n".as_bytes()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&second).expect("read JSON output"),
+        "{\"value\":2}"
+    );
+}
+
+#[test]
+fn batch_text_writes_prevalidate_destinations_and_rollback_created_tree() {
+    let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_text_rollback");
+    let existing = root.join("existing.txt");
+    let untouched = root.join("must-not-exist.txt");
+    std::fs::write(&existing, "original").expect("write existing destination");
+    let error = dispatch(
+        "std.io.file.write_text_many",
+        &[NativeBoundaryValue::List(vec![
+            text_write_plan(&untouched, "new"),
+            text_write_plan(&existing, "replacement"),
+        ])],
+    )
+    .expect_err("existing destination must reject the complete batch");
+    assert_eq!(error.code(), "file.invalid_path");
+    assert!(!untouched.exists());
+    assert_eq!(std::fs::read_to_string(&existing).unwrap(), "original");
+
+    let published = root.join("created/first.txt");
+    let blocked_parent = root.join("blocked");
+    std::fs::write(&blocked_parent, "not a directory").expect("write blocking parent");
+    let blocked = blocked_parent.join("second.txt");
+    let error = dispatch(
+        "std.io.file.write_text_many",
+        &[NativeBoundaryValue::List(vec![
+            text_write_plan(&published, "first"),
+            text_write_plan(&blocked, "second"),
+        ])],
+    )
+    .expect_err("later parent failure must roll back earlier publications");
+    assert!(matches!(error.code(), "file.not_found" | "file.unknown"));
+    assert!(!published.exists());
+    assert!(!root.join("created").exists());
+}
+
+#[test]
+fn batch_text_writes_reject_lexically_aliased_destinations() {
+    let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_text_alias");
+    let direct = root.join("same.txt");
+    let alias = root.join("nested/../same.txt");
+    let error = dispatch(
+        "std.io.file.write_text_many",
+        &[NativeBoundaryValue::List(vec![
+            text_write_plan(&direct, "first"),
+            text_write_plan(&alias, "second"),
+        ])],
+    )
+    .expect_err("aliased destinations must be rejected before writing");
+    assert_eq!(error.code(), "file.invalid_path");
+    assert!(!direct.exists());
+}
+
 #[test]
 fn directory_text_read_is_sorted_immediate_and_omits_symlinks() {
     let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "directory_text_read");

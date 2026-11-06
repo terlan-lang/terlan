@@ -75,6 +75,26 @@ pub struct TextFile {
 }.
 
 /**
+ * One UTF-8 text file requested as part of an atomic batch publication.
+ */
+pub struct TextWritePlan {
+    path: String,
+    contents: String,
+}.
+
+pub constructor TextWritePlan {
+    (path: String, contents: String): TextWritePlan ->
+        TextWritePlan {path: path, contents: contents}
+}.
+
+/**
+ * Constructs one typed UTF-8 text publication plan.
+ */
+@pure
+pub text_write_plan(path: String, contents: String): TextWritePlan ->
+    TextWritePlan(path, contents).
+
+/**
  * One regular-file copy requested as part of a bounded batch.
  */
 pub struct CopyPlan {
@@ -308,6 +328,17 @@ pub read_text_tree_matching(
 @compiler.intrinsic
 pub write_text(path: String, content: String): Result[Unit, FileError] ->
     Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Publishes a bounded ordered set of new UTF-8 text files atomically.
+ *
+ * Destinations must be unique and absent. Missing parents are created in
+ * deterministic input order. If any creation or write fails, every file and
+ * directory created by this operation is removed before the error is returned.
+ */
+@compiler.intrinsic
+pub write_text_many(plans: List[TextWritePlan]): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", "")).
 
 /**
  * Appends UTF-8 text to a file.

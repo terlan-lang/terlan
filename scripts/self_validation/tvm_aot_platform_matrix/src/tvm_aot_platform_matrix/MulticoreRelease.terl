@@ -19,6 +19,7 @@ import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
 
 import type std.core.Option.
 import type std.data.Json.
+import type std.vcs.Git.SourceTreeIdentity.
 
 pub schema(): String -> "terlan.vm-multicore-release-closeout.v4".
 
@@ -52,6 +53,46 @@ pub local_gates(): List[String] ->
 failure(message: String): Bool ->
     let _printed = eprintln(String.append("error[vm.multicore.release]: ", message));
     false.
+
+required_json(path: String, message: String): Option[Json] ->
+    case load_json(path) {
+        Some(value) -> Some(value);
+        None ->
+            let _reported = failure(message);
+            None
+    }.
+
+required_text(path: String, message: String): Option[String] ->
+    case read_text(path) {
+        Ok(value) -> Some(value);
+        Err(_reason) ->
+            let _reported = failure(message);
+            None
+    }.
+
+required_parsed_json(source: String, message: String): Option[Json] ->
+    case Json.parse(source) {
+        Ok(value) -> Some(value);
+        Err(_reason) ->
+            let _reported = failure(message);
+            None
+    }.
+
+required_source_identity(root: String): Option[SourceTreeIdentity] ->
+    case source_tree_identity(root) {
+        Ok(value) -> Some(value);
+        Err(_reason) ->
+            let _reported = failure("current Git source-tree identity cannot be resolved");
+            None
+    }.
+
+required_digest(path: String, message: String): Option[String] ->
+    case sha256_file(path) {
+        Ok(value) -> Some(value);
+        Err(_reason) ->
+            let _reported = failure(message);
+            None
+    }.
 
 json_clone(value: Json): Option[Json] ->
     let {
@@ -412,15 +453,19 @@ pub verify(): Bool ->
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
     let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
     let {
-        Some(actual) <- load_json(report_path);
-        Some(memory_model) <- load_json(memory_model_path);
-        Some(thread_sanitizer) <- load_json(thread_sanitizer_path);
-        Ok(inventory_source) <- read_text(inventory_path);
-        Ok(inventory) <- Json.parse(inventory_source);
-        Ok(contract_source) <- read_text(contract_path);
-        Ok(identity) <- source_tree_identity(root);
-        Ok(memory_model_digest) <- sha256_file(memory_model_path);
-        Ok(thread_sanitizer_digest) <- sha256_file(thread_sanitizer_path);
+        Some(actual) <- required_json(report_path, "sealed closeout is missing or malformed");
+        Some(memory_model) <- required_json(memory_model_path, "memory-model evidence is missing or malformed");
+        Some(thread_sanitizer) <-
+            required_json(
+                thread_sanitizer_path,
+                "thread-sanitizer evidence is missing or malformed",
+            );
+        Some(inventory_source) <- required_text(inventory_path, "runtime invariant inventory cannot be read");
+        Some(inventory) <- required_parsed_json(inventory_source, "runtime invariant inventory is malformed");
+        Some(contract_source) <- required_text(contract_path, "runtime concurrency contract cannot be read");
+        Some(identity) <- required_source_identity(root);
+        Some(memory_model_digest) <- required_digest(memory_model_path, "memory-model evidence cannot be hashed");
+        Some(thread_sanitizer_digest) <- required_digest(thread_sanitizer_path, "thread-sanitizer evidence cannot be hashed");
         Some(expected) <-
             build_closeout(
                 memory_model,
@@ -435,7 +480,7 @@ pub verify(): Bool ->
                 thread_sanitizer_digest,
             )
     } else {
-        _ -> failure("sealed publication evidence is missing or malformed")
+        _ -> failure("sealed evidence does not match its source identity and contracts")
     };
     if {
         not identity.clean -> failure("publication evidence requires a clean source tree");

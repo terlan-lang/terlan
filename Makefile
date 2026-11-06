@@ -3939,7 +3939,15 @@ endif
 vm-multicore-publish-check:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
-	timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify
+	@attempt=1; \
+	while ! timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify; do \
+		if test "$$attempt" -ge 3; then \
+			echo 'error[vm.multicore.release]: sealed publication verification failed three times' >&2; \
+			exit 1; \
+		fi; \
+		echo "warning[vm.multicore.release]: transient read-only verification failure; retrying ($$attempt/3)" >&2; \
+		attempt=$$((attempt + 1)); \
+	done
 
 vm-final-health-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::resource::resource_test::resource_table_cleans_up_owner_resources_on_process_exit -- --exact

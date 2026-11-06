@@ -75,6 +75,44 @@ pub shifted(pointer: Float, grab_offset: Float): Float -> floor(pointer - grab_o
 }
 
 #[test]
+fn scientific_float_intrinsics_execute_in_javascript() {
+    let source = r#"module tests.js.FloatScientific.
+import std.core.Float.{acos, acosh, asin, asinh, atan, atan2, atanh, cbrt, cos, cosh, exp, exp2, expm1, hypot, log, log10, log1p, log2, pow, round, sin, sinh, sqrt, tan, tanh, trunc}.
+pub check(): Bool ->
+    log(1.0) == 0.0
+        and atan(0.0) == 0.0
+        and sqrt(9.0) == 3.0
+        and round(-2.5) == -3.0
+        and trunc(-2.9) == -2.0
+        and exp(0.0) == 1.0
+        and log2(8.0) == 3.0
+        and log10(100.0) == 2.0
+        and cbrt(27.0) == 3.0
+        and sin(0.0) == 0.0
+        and cos(0.0) == 1.0
+        and tan(0.0) == 0.0
+        and asin(0.0) == 0.0
+        and acos(1.0) == 0.0
+        and sinh(0.0) == 0.0
+        and cosh(0.0) == 1.0
+        and tanh(0.0) == 0.0
+        and asinh(0.0) == 0.0
+        and acosh(1.0) == 0.0
+        and atanh(0.0) == 0.0
+        and exp2(3.0) == 8.0
+        and expm1(0.0000000000000001) == 0.0000000000000001
+        and log1p(0.0000000000000001) == 0.0000000000000001
+        and pow(2.0, 10.0) == 1024.0
+        and atan2(0.0, 1.0) == 0.0
+        and hypot(3.0, 4.0) == 5.0.
+"#;
+    execute(
+        &compiled(source),
+        "if (!check()) throw new Error('scientific Float intrinsic changed');",
+    );
+}
+
+#[test]
 fn optional_generic_host_values_distinguish_null_from_missing() {
     for kind in ["property", "method"] {
         let member = serde_json::from_value(serde_json::json!({

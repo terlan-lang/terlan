@@ -183,7 +183,30 @@ pub(super) fn discover_test_project_context(
         compilation_source_roots: dependencies.source_roots,
         coverage_source_roots,
         native_helper_environment: dependencies.native_helper_environment,
+        native_helper_candidates: dependencies.native_helper_candidates,
     }))
+}
+
+/// Resolves only native helpers whose provider modules survived test closure pruning.
+pub(super) fn reachable_native_helper_environment(
+    context: Option<&TestProjectContext>,
+    cores: &[crate::terlan_typeck::CoreModule],
+) -> Result<Vec<(String, PathBuf)>, String> {
+    let Some(context) = context else {
+        return Ok(Vec::new());
+    };
+    let reachable_modules = cores
+        .iter()
+        .map(|core| core.module.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut environment = context.native_helper_environment.clone();
+    environment.extend(crate::commands::build::build_reachable_test_native_helpers(
+        &context.native_helper_candidates,
+        &reachable_modules,
+    )?);
+    environment.sort_by(|left, right| left.0.cmp(&right.0));
+    environment.dedup_by(|left, right| left.0 == right.0 && left.1 == right.1);
+    Ok(environment)
 }
 
 /// Finds the nearest owning project without resolving or building dependencies.

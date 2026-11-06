@@ -196,6 +196,9 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteText) => {
             LoweringCoverage::native("Intrinsic.runtime.file.write_text")
         }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteTextMany) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.write_text_many")
+        }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileAppendText) => {
             LoweringCoverage::native("Intrinsic.runtime.file.append_text")
         }
@@ -378,6 +381,31 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::FloatToString => LoweringCoverage::native("Intrinsic.core.float.to_string"),
         P::FloatFromString => LoweringCoverage::native("Intrinsic.core.float.from_string"),
         P::FloatLog => LoweringCoverage::native("Intrinsic.core.float.log"),
+        P::FloatAtan => LoweringCoverage::native("Intrinsic.core.float.atan"),
+        P::FloatSqrt => LoweringCoverage::native("Intrinsic.core.float.sqrt"),
+        P::FloatRound => LoweringCoverage::native("Intrinsic.core.float.round"),
+        P::FloatTrunc => LoweringCoverage::native("Intrinsic.core.float.trunc"),
+        P::FloatExp => LoweringCoverage::native("Intrinsic.core.float.exp"),
+        P::FloatLog2 => LoweringCoverage::native("Intrinsic.core.float.log2"),
+        P::FloatLog10 => LoweringCoverage::native("Intrinsic.core.float.log10"),
+        P::FloatCbrt => LoweringCoverage::native("Intrinsic.core.float.cbrt"),
+        P::FloatSin => LoweringCoverage::native("Intrinsic.core.float.sin"),
+        P::FloatCos => LoweringCoverage::native("Intrinsic.core.float.cos"),
+        P::FloatTan => LoweringCoverage::native("Intrinsic.core.float.tan"),
+        P::FloatAsin => LoweringCoverage::native("Intrinsic.core.float.asin"),
+        P::FloatAcos => LoweringCoverage::native("Intrinsic.core.float.acos"),
+        P::FloatSinh => LoweringCoverage::native("Intrinsic.core.float.sinh"),
+        P::FloatCosh => LoweringCoverage::native("Intrinsic.core.float.cosh"),
+        P::FloatTanh => LoweringCoverage::native("Intrinsic.core.float.tanh"),
+        P::FloatAsinh => LoweringCoverage::native("Intrinsic.core.float.asinh"),
+        P::FloatAcosh => LoweringCoverage::native("Intrinsic.core.float.acosh"),
+        P::FloatAtanh => LoweringCoverage::native("Intrinsic.core.float.atanh"),
+        P::FloatExp2 => LoweringCoverage::native("Intrinsic.core.float.exp2"),
+        P::FloatExpm1 => LoweringCoverage::native("Intrinsic.core.float.expm1"),
+        P::FloatLog1p => LoweringCoverage::native("Intrinsic.core.float.log1p"),
+        P::FloatPow => LoweringCoverage::native("Intrinsic.core.float.pow"),
+        P::FloatAtan2 => LoweringCoverage::native("Intrinsic.core.float.atan2"),
+        P::FloatHypot => LoweringCoverage::native("Intrinsic.core.float.hypot"),
         P::BoolToString => LoweringCoverage::native("Intrinsic.core.bool.to_string"),
         P::BoolFromString => LoweringCoverage::native("Intrinsic.core.bool.from_string"),
         P::ValueToString => LoweringCoverage::native("Intrinsic.core.value.to_string"),

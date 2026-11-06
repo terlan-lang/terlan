@@ -8,7 +8,10 @@ mod test_dependencies;
 pub(in crate::commands::build) use package_outputs::write_terlan_vm_executable_package_outputs;
 use package_outputs::{root_vm_service_route_sources, write_package_metadata};
 pub(in crate::commands::build) use source_root_builds::*;
-pub(crate) use test_dependencies::resolve_project_test_dependencies;
+pub(crate) use test_dependencies::{
+    build_reachable_test_native_helpers, resolve_project_test_dependencies,
+    TestNativeHelperCandidate,
+};
 
 #[cfg(test)]
 pub(super) const BUILD_DEBUG_MAP_FILE: &str = "terlan-debug-map.json";

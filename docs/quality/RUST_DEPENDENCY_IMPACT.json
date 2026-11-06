@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "b299e17dcc15d1fd4a8dc5e127fddc2aa8a48484672deefa5fc0915a00a009b1",
+  "compilation_input_sha256": "1c5e9de1ed357603cd1b5978de14aa091c08cf51a5ac75aea5ed8e8fa06564d1",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -936,13 +936,13 @@
     },
     {
       "name": "commands",
-      "physical_lines": 139669,
-      "rust_files": 422
+      "physical_lines": 139992,
+      "rust_files": 424
     },
     {
       "name": "compiler",
-      "physical_lines": 188920,
-      "rust_files": 526
+      "physical_lines": 189215,
+      "rust_files": 527
     },
     {
       "name": "formal_pipeline",
@@ -976,7 +976,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 50720,
+      "physical_lines": 50749,
       "rust_files": 153
     },
     {
@@ -1071,8 +1071,8 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 143895,
-      "rust_files": 484
+      "physical_lines": 144356,
+      "rust_files": 486
     },
     {
       "name": "self_host_ir",
@@ -1091,7 +1091,7 @@
     },
     {
       "name": "validation",
-      "physical_lines": 8997,
+      "physical_lines": 9023,
       "rust_files": 24
     },
     {
@@ -1421,7 +1421,7 @@
     },
     {
       "from": "runtime",
-      "reference_sites": 18,
+      "reference_sites": 21,
       "to": "support"
     },
     {
@@ -1443,12 +1443,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 54671,
-      "rust_files": 241
+      "physical_lines": 54739,
+      "rust_files": 242
     },
     {
       "name": "compiler",
-      "physical_lines": 55342,
+      "physical_lines": 55395,
       "rust_files": 259
     },
     {
@@ -1478,7 +1478,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 29252,
+      "physical_lines": 29277,
       "rust_files": 129
     },
     {
@@ -1528,7 +1528,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 83597,
+      "physical_lines": 83825,
       "rust_files": 373
     },
     {

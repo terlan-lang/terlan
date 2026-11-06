@@ -78,6 +78,13 @@ pub struct TextFile {
     contents: String
 }.
 
+/// One UTF-8 text file requested as part of an atomic batch publication.
+
+pub struct TextWritePlan {
+    path: String,
+    contents: String
+}.
+
 /// The selected target reported an unclassified filesystem failure.
 
 pub type Unknown =
@@ -229,6 +236,11 @@ pub set_timestamps(path: String, accessed_unix_ns: Int, modified_unix_ns: Int): 
 
 pub size(path: String): Result[Int, FileError].
 
+/// Constructs one typed UTF-8 text publication plan.
+
+@pure
+pub text_write_plan(path: String, contents: String): TextWritePlan.
+
 /// Returns access and modification timestamps for one regular file.
 
 pub timestamps(path: String): Result[FileTimestamps, FileError].
@@ -252,3 +264,16 @@ pub write_bytes(path: String, content: std.vm.Bytes): Result[Unit, FileError].
 /// successful write returns `Unit`.
 
 pub write_text(path: String, content: String): Result[Unit, FileError].
+
+/// Publishes a bounded ordered set of new UTF-8 text files atomically.
+///
+/// Destinations must be unique and absent. Missing parents are created in
+/// deterministic input order. If any creation or write fails, every file and
+/// directory created by this operation is removed before the error is returned.
+
+pub write_text_many(plans: List[TextWritePlan]): Result[Unit, FileError].
+
+pub constructor TextWritePlan {
+    (path: String, contents: String): TextWritePlan ->
+        TextWritePlan {path: path, contents: contents}
+}.

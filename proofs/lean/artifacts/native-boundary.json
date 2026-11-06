@@ -26,14 +26,14 @@
     "Terlan.NativeBoundary.typedVmDispatchAdmitted"
   ],
   "manifest_fingerprints": {
-    "crates/terlan/src/runtime/native_boundary/dispatch.rs": "sha256:0986855e7cead80caed1f946faf9bbc2cb3bb8ae9358490992bcb2375bd110ca",
+    "crates/terlan/src/runtime/native_boundary/dispatch.rs": "sha256:319d317a25e32cefdba03cb0aa32021b89748c4fd94dc00047d1731e2187d996",
     "crates/terlan/src/runtime/native_boundary/dispatch/error.rs": "sha256:8e9c20cb1d5d39162d4a8aecbddf86110f75492cfe4228c7cb95d4503d6c39c4",
     "crates/terlan/src/runtime/native_boundary/dispatch/value.rs": "sha256:1f923b92af26cb9a765944d2cb142fe1ed3015bdcdb733653922912e914244f7",
     "crates/terlan/src/runtime/native_boundary/metadata.rs": "sha256:845d662acd46e2783d4c6e10b621626aff0453a8c973b20a83f3532afb040242",
     "crates/terlan/src/runtime/native_boundary/runtime.rs": "sha256:407b1104c8705b62fba317632a7426848e605f1300774ee1dd459389e7eafe54",
     "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:861eb2c6f71d7eb8eb36cfb3132469e1aad2d4b7600e7cd8f7f903f07e65245d",
     "proofs/lean/native_boundary/promotion-policy.json": "sha256:475f6bbafe0c5749b919cfb196b6d0ba05026429cf58374adb67c5aacdfb45f8",
-    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:661005959ca3bc4b2be860c390206c3df5f998deca494e85b7ea1d099130b7b3",
+    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:be34d7216e4e6edd5a3944b4de2b975f048ae23f7e776234b7313a31fea2fdef",
     "std/summaries/std.crypto.Ed25519.native_boundary.json": "sha256:22d0ea6f3e889065c297675b80315160d1efb024e74ab2cc4cd97ee2636e4ff6",
     "std/summaries/std.crypto.Hash.native_boundary.json": "sha256:b498f88f056831522d90524edb38baf2172777081e37e7341844c93c03ee4f3e",
     "std/summaries/std.data.Json.native_boundary.json": "sha256:f7a0f326187ae9b346df7115c55b3b3ec2589fe682c336fa120f49b79020d54b",

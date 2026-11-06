@@ -24,7 +24,6 @@ crates/terlan/src/lsp/backend/navigation.rs	implementation	931	900	1000	lsp-stru
 crates/terlan/src/lsp/hover.rs	implementation	942	900	1000	lsp-structure	0.0.9
 crates/terlan/src/quality/executable_docs_vm.rs	implementation	907	900	1000	quality-structure	0.0.9
 crates/terlan/src/quality/vm_persistent_actor_performance.rs	implementation	968	900	1000	quality-structure	0.0.9
-crates/terlan/src/runtime/native_boundary/dispatch/filesystem.rs	implementation	917	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/native_image/managed/maps.rs	implementation	993	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/acme_worker.rs	implementation	910	900	1000	runtime-structure	0.0.9
 crates/terlan/src/runtime/vm/actor.rs	implementation	921	900	1000	runtime-structure	0.0.9

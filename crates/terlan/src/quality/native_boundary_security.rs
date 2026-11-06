@@ -336,6 +336,35 @@ fn validate_policy_contract(rule: &NativeBoundaryPolicyRule, diagnostics: &mut V
             diagnostics.push("`std.db.Postgres` must use owned-resource-handle policy".to_string());
         }
     }
+    if rule.module_prefix == "std.vm.Supervisor" {
+        if rule.blocking_policy != "may-block" {
+            diagnostics.push(
+                "`std.vm.Supervisor` must conservatively classify durable recovery as may-block"
+                    .to_string(),
+            );
+        }
+        if rule.worker_placement == "direct" {
+            diagnostics.push(
+                "`std.vm.Supervisor` durable recovery must execute through a worker".to_string(),
+            );
+        }
+        if rule.cancellation_policy != "cancel-on-owner-exit" {
+            diagnostics.push(
+                "`std.vm.Supervisor` must cancel pending recovery work when its owner exits"
+                    .to_string(),
+            );
+        }
+        if rule.timeout_policy == "none" {
+            diagnostics.push(
+                "`std.vm.Supervisor` must declare a bounded recovery timeout policy".to_string(),
+            );
+        }
+        if rule.resource_policy != "owned-resource-handle" {
+            diagnostics.push(
+                "`std.vm.Supervisor` must retain owner-checked lifecycle resources".to_string(),
+            );
+        }
+    }
     if rule.module_prefix == "std.native.collections.Vector"
         && rule.resource_policy != "owned-resource-handle"
     {

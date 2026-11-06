@@ -13,7 +13,8 @@ use super::manifest::{
 use super::project_closure::compile_project_source_core_closure;
 use super::project_context::{
     discover_test_project_context, is_test_source_path, prepare_test_project_context,
-    run_js_test_directory, run_terlan_vm_test_directory, test_target_profile_options,
+    reachable_native_helper_environment, run_js_test_directory, run_terlan_vm_test_directory,
+    test_target_profile_options,
 };
 use super::style::TestOutputStyle;
 use super::vm_runner::run_discovered_terlan_vm_tests;
@@ -48,6 +49,7 @@ pub(super) struct TestProjectContext {
     /// Root package sources owned by this package's coverage report.
     pub(super) coverage_source_roots: Vec<PathBuf>,
     pub(super) native_helper_environment: Vec<(String, PathBuf)>,
+    pub(super) native_helper_candidates: Vec<crate::commands::build::TestNativeHelperCandidate>,
 }
 
 /// Checked module plus the source metadata needed by native coverage records.
@@ -414,6 +416,14 @@ pub(super) fn run_terlan_vm_test_file(
         application_cores.push(module.core);
         debug_inputs.push(module.native_debug);
     }
+    let native_helper_environment =
+        match reachable_native_helper_environment(project_context.as_ref(), &application_cores) {
+            Ok(environment) => environment,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
 
     let module_stem = module_name.replace('.', "_");
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
@@ -442,9 +452,7 @@ pub(super) fn run_terlan_vm_test_file(
         module_name.as_str(),
         &tests,
         native_image.as_deref(),
-        project_context
-            .as_ref()
-            .map_or(&[], |context| context.native_helper_environment.as_slice()),
+        &native_helper_environment,
         if args.benchmark {
             Some((args.benchmark_warmup, args.benchmark_samples))
         } else {

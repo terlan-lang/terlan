@@ -52,6 +52,31 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
                     | CorePrimitiveIntrinsic::FloatFloor
                     | CorePrimitiveIntrinsic::FloatCeil
                     | CorePrimitiveIntrinsic::FloatLog
+                    | CorePrimitiveIntrinsic::FloatAtan
+                    | CorePrimitiveIntrinsic::FloatSqrt
+                    | CorePrimitiveIntrinsic::FloatRound
+                    | CorePrimitiveIntrinsic::FloatTrunc
+                    | CorePrimitiveIntrinsic::FloatExp
+                    | CorePrimitiveIntrinsic::FloatLog2
+                    | CorePrimitiveIntrinsic::FloatLog10
+                    | CorePrimitiveIntrinsic::FloatCbrt
+                    | CorePrimitiveIntrinsic::FloatSin
+                    | CorePrimitiveIntrinsic::FloatCos
+                    | CorePrimitiveIntrinsic::FloatTan
+                    | CorePrimitiveIntrinsic::FloatAsin
+                    | CorePrimitiveIntrinsic::FloatAcos
+                    | CorePrimitiveIntrinsic::FloatSinh
+                    | CorePrimitiveIntrinsic::FloatCosh
+                    | CorePrimitiveIntrinsic::FloatTanh
+                    | CorePrimitiveIntrinsic::FloatAsinh
+                    | CorePrimitiveIntrinsic::FloatAcosh
+                    | CorePrimitiveIntrinsic::FloatAtanh
+                    | CorePrimitiveIntrinsic::FloatExp2
+                    | CorePrimitiveIntrinsic::FloatExpm1
+                    | CorePrimitiveIntrinsic::FloatLog1p
+                    | CorePrimitiveIntrinsic::FloatPow
+                    | CorePrimitiveIntrinsic::FloatAtan2
+                    | CorePrimitiveIntrinsic::FloatHypot
                     | CorePrimitiveIntrinsic::StringCompare
                     | CorePrimitiveIntrinsic::StringConcat
                     | CorePrimitiveIntrinsic::StringContains
@@ -112,6 +137,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
                     | CoreRuntimeCapability::FileExists
                     | CoreRuntimeCapability::FileReadText
                     | CoreRuntimeCapability::FileWriteText
+                    | CoreRuntimeCapability::FileWriteTextMany
                     | CoreRuntimeCapability::FileWriteBytes
                     | CoreRuntimeCapability::FileAppendText
                     | CoreRuntimeCapability::FileDelete

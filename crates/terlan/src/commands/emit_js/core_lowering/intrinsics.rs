@@ -16,18 +16,36 @@ use super::*;
 ///   operations while keeping JavaScript names out of CoreIR and source syntax.
 pub(super) fn core_intrinsic_call_expr_to_js(call: &CoreIntrinsicCall) -> Option<String> {
     match &call.id {
-        CoreIntrinsicId::Primitive(
-            intrinsic @ (CorePrimitiveIntrinsic::FloatFloor | CorePrimitiveIntrinsic::FloatCeil),
-        ) => {
-            let [value] = call.args.as_slice() else {
-                return None;
-            };
-            let method = if matches!(intrinsic, CorePrimitiveIntrinsic::FloatFloor) {
-                "floor"
+        CoreIntrinsicId::Primitive(intrinsic) if float_math_method(intrinsic).is_some() => {
+            let method = float_math_method(intrinsic)?;
+            let arguments = call
+                .args
+                .iter()
+                .map(core_expr_to_js)
+                .collect::<Option<Vec<_>>>()?;
+            let expected = if matches!(
+                intrinsic,
+                CorePrimitiveIntrinsic::FloatPow
+                    | CorePrimitiveIntrinsic::FloatAtan2
+                    | CorePrimitiveIntrinsic::FloatHypot
+            ) {
+                2
             } else {
-                "ceil"
+                1
             };
-            Some(format!("Math.{method}({})", core_expr_to_js(value)?))
+            if arguments.len() != expected {
+                return None;
+            }
+            if matches!(intrinsic, CorePrimitiveIntrinsic::FloatRound) {
+                let value = &arguments[0];
+                return Some(format!(
+                    "((value) => value < 0 ? -Math.round(-value) : Math.round(value))({value})"
+                ));
+            }
+            if matches!(intrinsic, CorePrimitiveIntrinsic::FloatExp2) {
+                return Some(format!("Math.pow(2, {})", arguments[0]));
+            }
+            Some(format!("Math.{method}({})", arguments.join(", ")))
         }
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::StringContains) => {
             let [value, pattern] = call.args.as_slice() else {
@@ -104,4 +122,38 @@ pub(super) fn core_intrinsic_call_expr_to_js(call: &CoreIntrinsicCall) -> Option
         }
         _ => None,
     }
+}
+
+fn float_math_method(intrinsic: &CorePrimitiveIntrinsic) -> Option<&'static str> {
+    Some(match intrinsic {
+        CorePrimitiveIntrinsic::FloatFloor => "floor",
+        CorePrimitiveIntrinsic::FloatCeil => "ceil",
+        CorePrimitiveIntrinsic::FloatLog => "log",
+        CorePrimitiveIntrinsic::FloatAtan => "atan",
+        CorePrimitiveIntrinsic::FloatSqrt => "sqrt",
+        CorePrimitiveIntrinsic::FloatRound => "round",
+        CorePrimitiveIntrinsic::FloatTrunc => "trunc",
+        CorePrimitiveIntrinsic::FloatExp => "exp",
+        CorePrimitiveIntrinsic::FloatLog2 => "log2",
+        CorePrimitiveIntrinsic::FloatLog10 => "log10",
+        CorePrimitiveIntrinsic::FloatCbrt => "cbrt",
+        CorePrimitiveIntrinsic::FloatSin => "sin",
+        CorePrimitiveIntrinsic::FloatCos => "cos",
+        CorePrimitiveIntrinsic::FloatTan => "tan",
+        CorePrimitiveIntrinsic::FloatAsin => "asin",
+        CorePrimitiveIntrinsic::FloatAcos => "acos",
+        CorePrimitiveIntrinsic::FloatSinh => "sinh",
+        CorePrimitiveIntrinsic::FloatCosh => "cosh",
+        CorePrimitiveIntrinsic::FloatTanh => "tanh",
+        CorePrimitiveIntrinsic::FloatAsinh => "asinh",
+        CorePrimitiveIntrinsic::FloatAcosh => "acosh",
+        CorePrimitiveIntrinsic::FloatAtanh => "atanh",
+        CorePrimitiveIntrinsic::FloatExp2 => "pow",
+        CorePrimitiveIntrinsic::FloatExpm1 => "expm1",
+        CorePrimitiveIntrinsic::FloatLog1p => "log1p",
+        CorePrimitiveIntrinsic::FloatPow => "pow",
+        CorePrimitiveIntrinsic::FloatAtan2 => "atan2",
+        CorePrimitiveIntrinsic::FloatHypot => "hypot",
+        _ => return None,
+    })
 }

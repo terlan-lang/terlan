@@ -628,7 +628,32 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
         },
         CorePrimitiveIntrinsic::FloatFloor
         | CorePrimitiveIntrinsic::FloatCeil
-        | CorePrimitiveIntrinsic::FloatLog => CoreType::Float,
+        | CorePrimitiveIntrinsic::FloatLog
+        | CorePrimitiveIntrinsic::FloatAtan
+        | CorePrimitiveIntrinsic::FloatSqrt
+        | CorePrimitiveIntrinsic::FloatRound
+        | CorePrimitiveIntrinsic::FloatTrunc
+        | CorePrimitiveIntrinsic::FloatExp
+        | CorePrimitiveIntrinsic::FloatLog2
+        | CorePrimitiveIntrinsic::FloatLog10
+        | CorePrimitiveIntrinsic::FloatCbrt
+        | CorePrimitiveIntrinsic::FloatSin
+        | CorePrimitiveIntrinsic::FloatCos
+        | CorePrimitiveIntrinsic::FloatTan
+        | CorePrimitiveIntrinsic::FloatAsin
+        | CorePrimitiveIntrinsic::FloatAcos
+        | CorePrimitiveIntrinsic::FloatSinh
+        | CorePrimitiveIntrinsic::FloatCosh
+        | CorePrimitiveIntrinsic::FloatTanh
+        | CorePrimitiveIntrinsic::FloatAsinh
+        | CorePrimitiveIntrinsic::FloatAcosh
+        | CorePrimitiveIntrinsic::FloatAtanh
+        | CorePrimitiveIntrinsic::FloatExp2
+        | CorePrimitiveIntrinsic::FloatExpm1
+        | CorePrimitiveIntrinsic::FloatLog1p
+        | CorePrimitiveIntrinsic::FloatPow
+        | CorePrimitiveIntrinsic::FloatAtan2
+        | CorePrimitiveIntrinsic::FloatHypot => CoreType::Float,
         CorePrimitiveIntrinsic::StringContains
         | CorePrimitiveIntrinsic::StringStartsWith
         | CorePrimitiveIntrinsic::StringEndsWith => CoreType::Bool,

@@ -128,6 +128,31 @@ fn native_boundary_security_requires_postgres_resource_and_timeout_policy() {
     );
 }
 
+/// Verifies durable source supervision cannot regress to direct, unbounded I/O.
+#[test]
+fn native_boundary_security_requires_supervisor_worker_and_timeout_policy() {
+    let rules = vec![policy("std.vm.Supervisor")
+        .with_blocking("nonblocking")
+        .with_worker("direct")
+        .with_timeout("none")
+        .with_resource("value-only")];
+
+    let diagnostics = check_native_boundary_security(&rules, &[]);
+
+    for expected in [
+        "durable recovery as may-block",
+        "execute through a worker",
+        "cancel pending recovery work",
+        "bounded recovery timeout",
+        "owner-checked lifecycle resources",
+    ] {
+        assert!(
+            diagnostics.iter().any(|item| item.contains(expected)),
+            "expected `{expected}` diagnostic, got {diagnostics:?}"
+        );
+    }
+}
+
 /// Verifies the full manifest gate expands policy rows against operations.
 #[test]
 fn native_boundary_security_gate_accepts_matching_manifests() {

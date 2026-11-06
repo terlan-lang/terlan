@@ -1,6 +1,6 @@
 module std.core.FloatTest.
 
-import std.core.Float.{abs, ceil, compare, equal, floor, from_string, log, max, min, pi, tau, to_string}.
+import std.core.Float.{abs, acos, acosh, asin, asinh, atan, atan2, atanh, cbrt, ceil, compare, cos, cosh, degrees, e, equal, exp, exp2, expm1, floor, from_string, hypot, ln10, ln2, log, log10, log1p, log2, max, min, pi, pow, radians, round, sin, sinh, sqrt, sqrt2, sqrt_half, tan, tanh, tau, to_string, trunc}.
 import std.core.Option.{None, Some}.
 import std.core.Ordering.{Eq, Gt, Lt}.
 import std.test.Test.{assert, assert_equal, assert_false}.
@@ -122,5 +122,52 @@ pub log_returns_natural_logarithm(): Bool ->
     assert_equal(0.0, log(1.0)).
 
 @test
+pub atan_returns_principal_radians(): Bool ->
+    assert_equal(0.0, atan(0.0)) and assert_equal(0.7853981633974483, atan(1.0)).
+
+@test
+pub sqrt_returns_principal_nonnegative_root(): Bool ->
+    assert_equal(0.0, sqrt(0.0))
+        and assert_equal(3.0, sqrt(9.0))
+        and assert_equal(1.4142135623730951, sqrt(2.0)).
+
+@test
+pub graphing_calculator_float_surface_is_native(): Bool ->
+    assert_equal(3.0, round(2.5))
+        and assert_equal(-2.0, trunc(-2.9))
+        and assert_equal(1.0, exp(0.0))
+        and assert_equal(3.0, log2(8.0))
+        and assert_equal(2.0, log10(100.0))
+        and assert_equal(3.0, cbrt(27.0))
+        and assert_equal(0.0, sin(0.0))
+        and assert_equal(1.0, cos(0.0))
+        and assert_equal(0.0, tan(0.0))
+        and assert_equal(0.0, asin(0.0))
+        and assert_equal(0.0, acos(1.0))
+        and assert_equal(0.0, sinh(0.0))
+        and assert_equal(1.0, cosh(0.0))
+        and assert_equal(0.0, tanh(0.0))
+        and assert_equal(0.0, asinh(0.0))
+        and assert_equal(0.0, acosh(1.0))
+        and assert_equal(0.0, atanh(0.0))
+        and assert_equal(8.0, exp2(3.0))
+        and assert_equal(1e-16, expm1(1e-16))
+        and assert_equal(1e-16, log1p(1e-16))
+        and assert_equal(1024.0, pow(2.0, 10.0))
+        and assert_equal(0.0, atan2(0.0, 1.0))
+        and assert_equal(5.0, hypot(3.0, 4.0)).
+
+@test
 pub mathematical_constants_are_binary64_values(): Bool ->
-    assert_equal(3.141592653589793, pi()) and assert_equal(6.283185307179586, tau()).
+    assert_equal(2.718281828459045, e())
+        and assert_equal(3.141592653589793, pi())
+        and assert_equal(6.283185307179586, tau())
+        and assert_equal(0.6931471805599453, ln2())
+        and assert_equal(2.302585092994046, ln10())
+        and assert_equal(1.4142135623730951, sqrt2())
+        and assert_equal(0.7071067811865476, sqrt_half()).
+
+@test
+pub angle_units_convert_explicitly(): Bool ->
+    assert_equal(3.141592653589793, radians(180.0))
+        and assert_equal(180.0, degrees(3.141592653589793)).

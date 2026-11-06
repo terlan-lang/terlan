@@ -285,7 +285,13 @@ pub(super) fn lower_cast(
         function_types,
         constructors,
     )
-    .map_err(Into::into)
+    .map_err(|error| {
+        format!(
+            "{error}; while preserving cast target `{}`",
+            target_type.contract_text()
+        )
+        .into()
+    })
 }
 
 /// Exposes contextual collection casts without discarding executable type checks.

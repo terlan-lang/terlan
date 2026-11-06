@@ -4,12 +4,17 @@ import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
 import std.io.Directory.{create_all, remove_all}.
-import std.io.File.{NotFound, append_text, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, timestamps, write_bytes, write_text}.
+import std.io.File.{NotFound, append_text, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, text_write_plan, timestamps, write_bytes, write_text, write_text_many}.
 import std.test.Test.{assert_equal}.
 import std.vm.Bytes.{from_list}.
 
 import type std.core.Result.
 import type std.io.File.{CopyPlan, FileError}.
+
+@test
+pub text_write_plan_retains_both_string_fields(): Bool ->
+    let plan = text_write_plan("target/report.txt", "complete");
+    plan.path == "target/report.txt" and plan.contents == "complete".
 
 copy_many_after_directory_creation(
     plans: List[CopyPlan],
@@ -241,6 +246,36 @@ pub copy_many_rejects_duplicate_destinations_before_copying(): Bool ->
     let removed = delete(source);
     case {written, copied, destination_read, removed} {
         {Ok(Unit), Err(_reason), Err(_missing), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub write_text_many_publishes_complete_utf8_pair(): Bool ->
+    let root = "target/terlan-file-write-text-many";
+    let first = "target/terlan-file-write-text-many/nested/report.txt";
+    let second = "target/terlan-file-write-text-many/report.json";
+    let _old = remove_all(root);
+    let first_plan = text_write_plan(first, "Aé");
+    let second_plan = text_write_plan(second, "{\"complete\":true}");
+    let plans = List(first_plan, second_plan);
+    let written = write_text_many(plans);
+    let first_contents = read_text(first);
+    let second_contents = read_text(second);
+    let removed = remove_all(root);
+    case {written, first_contents, second_contents, removed} {
+        {Ok(Unit), Ok("Aé"), Ok("{\"complete\":true}"), Ok(Unit)} -> true;
+        _ -> false
+    }.
+
+@test
+pub write_text_many_rejects_duplicates_without_partial_output(): Bool ->
+    let path = "target/terlan-file-write-text-many-duplicate.txt";
+    let first_plan = text_write_plan(path, "first");
+    let second_plan = text_write_plan(path, "second");
+    let plans = List(first_plan, second_plan);
+    let written = write_text_many(plans);
+    case {written, read_text(path)} {
+        {Err(_reason), Err(_missing)} -> true;
         _ -> false
     }.
 

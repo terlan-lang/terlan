@@ -259,8 +259,12 @@ incremental caches and larger debug profiles in nested proof commands. Owners
 now preserve `CARGO_TARGET_DIR`, `CARGO_INCREMENTAL`, `CARGO_BUILD_JOBS`,
 `CARGO_PROFILE_DEV_DEBUG`, and `CARGO_PROFILE_TEST_DEBUG` when supplied, and bind
 the admitted values to their existing environment fingerprint. Unset controls
-retain Cargo defaults. A compiled Terlan regression verifies the actual isolated
-child receives those controls before the proof baseline runs.
+retain Cargo defaults inside preparation owners. The staged Git hook itself
+defaults `CARGO_INCREMENTAL` to `0`: its shared ordinary artifacts remain
+reusable, while checkout-specific incremental caches cannot consume tens of
+gigabytes before the workspace lane. Explicit diagnostic overrides remain
+supported. Regressions verify both the hook default and the actual isolated
+child controls before the proof baseline runs.
 
 Browser preparation saves every consumer compilation result and rejects failed
 or terminated compilations before starting Playwright. Previously a shared

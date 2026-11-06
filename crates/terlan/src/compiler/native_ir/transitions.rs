@@ -314,6 +314,7 @@ fn capability_transition(
         CoreRuntimeCapability::FileReadTextTreeExcluding => (20, 2),
         CoreRuntimeCapability::FileReadTextTreeMatching => (21, 6),
         CoreRuntimeCapability::FileWriteText => (4, 2),
+        CoreRuntimeCapability::FileWriteTextMany => (63, 1),
         CoreRuntimeCapability::FileAppendText => (5, 2),
         CoreRuntimeCapability::FileDelete => (6, 1),
         CoreRuntimeCapability::SystemArgumentsCount => (8, 0),
@@ -375,6 +376,7 @@ fn capability_collection_argument(
     use CoreRuntimeCapability::*;
     let element = match (capability, index) {
         (FileCopyMany, 0) => CoreType::Named("std.io.File.CopyPlan".into()),
+        (FileWriteTextMany, 0) => CoreType::Named("std.io.File.TextWritePlan".into()),
         (
             HashSha256LabeledFileDigests | HashSha256LabeledFileContents | HashAuditLabeledFiles,
             0,

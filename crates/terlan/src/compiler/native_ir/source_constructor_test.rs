@@ -362,6 +362,58 @@ pub check(): Bool -> Mapper.map(Ok(1), increment) == Ok(2)
 }
 
 #[test]
+fn checked_let_preserves_typed_result_failures_in_native_control_flow() {
+    check_sources(&[
+        r#"
+module checked_result_failure.
+import checked_result_failure.Failure.
+import checked_result_failure.Model.{Parsed}.
+import std.core.Result.{Err, Ok}.
+import type checked_result_failure.Failure.{Failure}.
+import type checked_result_failure.Model.{Parsed}.
+import type std.core.Result.{Result}.
+parse_one(value: Int): Result[Int, Failure] ->
+    if { value < 0 -> Err(Failure.Missing); true -> Ok(value) }.
+map_failure(reason: Int): Result[Int, Failure] ->
+    case reason {
+        0 -> if {
+            reason == 0 -> Err(Failure.Missing);
+            true -> Err(Failure.Invalid)
+        };
+        _ -> Ok(reason)
+    }.
+parse(values: List[Int]): Result[Parsed, Failure] ->
+    case values {
+        [first, second] -> let {
+            Ok(left) <- parse_one(first);
+            Ok(right) <- parse_one(second)
+        } else {
+            Err(reason) -> Err(reason);
+            _ -> Err(Failure.Invalid)
+        };
+        Ok(Parsed(left + right));
+        _ -> Err(Failure.Invalid)
+    }.
+pub check(): Bool ->
+    parse([20, 22]) == Ok(Parsed(42))
+        and parse([-1, 22]) == Err(Failure.Missing)
+        and map_failure(0) == Err(Failure.Missing)
+        and map_failure(7) == Ok(7).
+"#,
+        r#"
+module checked_result_failure.Failure.
+pub type Failure: Int = Missing = 5 | Invalid = 6.
+"#,
+        r#"
+module checked_result_failure.Model.
+pub struct Parsed { total: Int }.
+pub constructor Parsed { (total: Int): Parsed -> Parsed {total: total} }.
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
 fn source_constructor_retains_explicit_empty_and_enclosing_type_arguments() {
     let modules = check_sources(&[r#"
 module constructor_explicit_empty.
