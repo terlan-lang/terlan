@@ -360,6 +360,74 @@ pub atan2(y: Float, x: Float): Float -> 0.0.
 pub hypot(x: Float, y: Float): Float -> 0.0.
 
 /**
+ * Returns the square of a finite value.
+ *
+ * The finite `Float` contract rejects an overflowing result.
+ */
+pub square(value: Float): Float ->
+    value * value.
+
+/**
+ * Returns the multiplicative inverse of a non-zero finite value.
+ */
+pub reciprocal(value: Float): Float ->
+    1.0 / value.
+
+/**
+ * Returns the logarithm of `value` in the supplied positive base.
+ *
+ * The base must be positive and unequal to one. Invalid domains fail through
+ * the same finite-scalar contract as the primitive logarithms.
+ */
+pub log_base(value: Float, base: Float): Float ->
+    log(value) / log(base).
+
+/**
+ * Returns the positive real `degree`th root of a non-negative value.
+ *
+ * The degree must be non-zero. Use `cbrt` when a negative cube-root input
+ * must be supported.
+ */
+pub root(value: Float, degree: Float): Float ->
+    pow(value, 1.0 / degree).
+
+/**
+ * Returns the signed fractional component of a finite value.
+ */
+pub fract(value: Float): Float ->
+    value - trunc(value).
+
+/**
+ * Returns `-1.0`, `0.0`, or `1.0` according to a finite value's sign.
+ */
+pub signum(value: Float): Float ->
+    if {
+        value < 0.0 -> -1.0;
+        value > 0.0 -> 1.0;
+        true -> 0.0
+    }.
+
+/**
+ * Returns the finite remainder after truncating `dividend / divisor`.
+ *
+ * The result has the sign of `dividend`; a zero divisor is rejected by the
+ * finite-scalar arithmetic contract.
+ */
+pub remainder(dividend: Float, divisor: Float): Float ->
+    dividend - trunc(dividend / divisor) * divisor.
+
+/**
+ * Constrains a finite value to inclusive ordered bounds.
+ *
+ * Returns `None` when `lower` is greater than `upper`.
+ */
+pub clamp(value: Float, lower: Float, upper: Float): Option[Float] ->
+    case lower <= upper {
+        true -> Some(min(max(value, lower), upper));
+        false -> None
+    }.
+
+/**
  * Converts an angle in degrees to radians.
  */
 pub radians(degrees: Float): Float ->

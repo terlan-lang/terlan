@@ -1,6 +1,6 @@
 module std.core.FloatTest.
 
-import std.core.Float.{abs, acos, acosh, asin, asinh, atan, atan2, atanh, cbrt, ceil, compare, cos, cosh, degrees, e, equal, exp, exp2, expm1, floor, from_string, hypot, ln10, ln2, log, log10, log1p, log2, max, min, pi, pow, radians, round, sin, sinh, sqrt, sqrt2, sqrt_half, tan, tanh, tau, to_string, trunc}.
+import std.core.Float.{abs, acos, acosh, asin, asinh, atan, atan2, atanh, cbrt, ceil, clamp, compare, cos, cosh, degrees, e, equal, exp, exp2, expm1, floor, fract, from_string, hypot, ln10, ln2, log, log10, log1p, log2, log_base, max, min, pi, pow, radians, reciprocal, remainder, root, round, signum, sin, sinh, sqrt, sqrt2, sqrt_half, square, tan, tanh, tau, to_string, trunc}.
 import std.core.Option.{None, Some}.
 import std.core.Ordering.{Eq, Gt, Lt}.
 import std.test.Test.{assert, assert_equal, assert_false}.
@@ -171,3 +171,37 @@ pub mathematical_constants_are_binary64_values(): Bool ->
 pub angle_units_convert_explicitly(): Bool ->
     assert_equal(3.141592653589793, radians(180.0))
         and assert_equal(180.0, degrees(3.141592653589793)).
+
+@test
+pub derived_power_and_log_operations_are_complete(): Bool ->
+    assert_equal(9.0, square(-3.0))
+        and assert_equal(0.25, reciprocal(4.0))
+        and assert_equal(3.0, log_base(8.0, 2.0))
+        and assert_equal(3.0, root(81.0, 4.0)).
+
+@test
+pub fractional_calculator_operations_are_complete(): Bool ->
+    assert_equal(0.75, fract(2.75))
+        and assert_equal(-0.75, fract(-2.75))
+        and assert_equal(1.5, remainder(7.5, 2.0))
+        and assert_equal(-1.5, remainder(-7.5, 2.0)).
+
+@test
+pub signum_covers_negative_zero_and_positive_values(): Bool ->
+    assert_equal(-1.0, signum(-2.75))
+        and assert_equal(0.0, signum(0.0))
+        and assert_equal(1.0, signum(2.75)).
+
+@test
+pub clamp_constrains_values(): Bool ->
+    case clamp(12.0, 0.0, 10.0) {
+        Some(value) -> assert_equal(10.0, value);
+        None -> false
+    }.
+
+@test
+pub clamp_rejects_reversed_bounds(): Bool ->
+    case clamp(5.0, 10.0, 0.0) {
+        None -> true;
+        Some(_invalid) -> false
+    }.

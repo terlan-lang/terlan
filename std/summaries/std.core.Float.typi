@@ -80,6 +80,12 @@ pub cbrt(value: Float): Float.
 @pure
 pub ceil(value: Float): Float.
 
+/// Constrains a finite value to inclusive ordered bounds.
+///
+/// Returns `None` when `lower` is greater than `upper`.
+
+pub clamp(value: Float, lower: Float, upper: Float): Option[Float].
+
 /// Compares two supported finite `Float` values using numeric ordering.
 ///
 /// Input: two supported finite `Float` values.
@@ -166,6 +172,11 @@ pub expm1(value: Float): Float.
 @pure
 pub floor(value: Float): Float.
 
+/// Returns the signed fractional component of a finite value.
+
+@pure
+pub fract(value: Float): Float.
+
 /// Parses a canonical UTF-8 `String` into `Float`.
 ///
 /// Input: one `String` value.
@@ -225,6 +236,14 @@ pub log1p(value: Float): Float.
 @pure
 pub log2(value: Float): Float.
 
+/// Returns the logarithm of `value` in the supplied positive base.
+///
+/// The base must be positive and unequal to one. Invalid domains fail through
+/// the same finite-scalar contract as the primitive logarithms.
+
+@pure
+pub log_base(value: Float, base: Float): Float.
+
 /// Returns the larger of two finite `Float` values.
 ///
 /// Input: two supported finite `Float` values.
@@ -275,10 +294,36 @@ pub pow(base: Float, exponent: Float): Float.
 @pure
 pub radians(degrees: Float): Float.
 
+/// Returns the multiplicative inverse of a non-zero finite value.
+
+@pure
+pub reciprocal(value: Float): Float.
+
+/// Returns the finite remainder after truncating `dividend / divisor`.
+///
+/// The result has the sign of `dividend`; a zero divisor is rejected by the
+/// finite-scalar arithmetic contract.
+
+@pure
+pub remainder(dividend: Float, divisor: Float): Float.
+
+/// Returns the positive real `degree`th root of a non-negative value.
+///
+/// The degree must be non-zero. Use `cbrt` when a negative cube-root input
+/// must be supported.
+
+@pure
+pub root(value: Float, degree: Float): Float.
+
 /// Returns the nearest whole binary64 value, with halfway cases away from zero.
 
 @pure
 pub round(value: Float): Float.
+
+/// Returns `-1.0`, `0.0`, or `1.0` according to a finite value's sign.
+
+@pure
+pub signum(value: Float): Float.
 
 /// Returns the sine of a finite angle in radians.
 
@@ -310,6 +355,13 @@ pub sqrt2(): Float.
 
 @pure
 pub sqrt_half(): Float.
+
+/// Returns the square of a finite value.
+///
+/// The finite `Float` contract rejects an overflowing result.
+
+@pure
+pub square(value: Float): Float.
 
 /// Returns the tangent of a finite angle in radians.
 
