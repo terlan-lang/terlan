@@ -35,6 +35,24 @@ fn environment_identity_is_order_independent_and_preserves_empty_values() {
 }
 
 #[test]
+fn captured_validation_disables_cargo_global_cache_collection() {
+    let captured = ExecutionEnvironment::capture().unwrap();
+    assert_eq!(
+        captured.value(CARGO_CACHE_AUTO_CLEAN_FREQUENCY),
+        Some("never".into())
+    );
+
+    let fixture = temporary_fixture("environment-cargo-cache");
+    let overridden = snapshot(&[(CARGO_CACHE_AUTO_CLEAN_FREQUENCY, "1 day")], &fixture.0)
+        .with_value(CARGO_CACHE_AUTO_CLEAN_FREQUENCY, "never")
+        .unwrap();
+    assert_eq!(
+        overridden.value(CARGO_CACHE_AUTO_CLEAN_FREQUENCY),
+        Some("never".into())
+    );
+}
+
+#[test]
 fn certificate_defaults_are_frozen_bounded_and_preserve_existing_valid_choices() {
     let fixture = temporary_fixture("environment-certificates");
     let default_file = fixture.0.join("default.pem");

@@ -10,6 +10,7 @@ use std::process::Command;
 
 const MAX_ENTRIES: usize = 4_096;
 const MAX_BYTES: usize = 1024 * 1024;
+const CARGO_CACHE_AUTO_CLEAN_FREQUENCY: &str = "CARGO_CACHE_AUTO_CLEAN_FREQUENCY";
 
 /// Owns one snapshot; subsequent launches never inherit the live environment.
 pub(super) struct ExecutionEnvironment {
@@ -35,7 +36,23 @@ impl ExecutionEnvironment {
         let mut snapshot =
             Self::from_entries(env::vars_os(), &env::current_dir().map_err(failure)?)?;
         snapshot.account_home = home::home_dir();
-        snapshot.with_certificates(certificates)
+        snapshot
+            .with_value(CARGO_CACHE_AUTO_CLEAN_FREQUENCY, "never")?
+            .with_certificates(certificates)
+    }
+
+    /// Prevents Cargo's global cache collector from changing admitted resolver inputs.
+    fn with_value(self, key: &str, value: &str) -> Result<Self, PhaseFailure> {
+        let mut command = self.command(Path::new("environment-normalization"));
+        command.env(key, value);
+        let mut normalized = Self::from_entries(
+            command
+                .get_envs()
+                .filter_map(|(key, value)| Some((key.to_owned(), value?.to_owned()))),
+            &self.directory,
+        )?;
+        normalized.account_home = self.account_home;
+        Ok(normalized)
     }
 
     fn with_certificates(
