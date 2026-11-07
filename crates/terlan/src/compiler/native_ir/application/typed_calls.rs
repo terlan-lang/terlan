@@ -12,18 +12,17 @@ pub(crate) fn resolve_typed_generic_calls(cores: &mut [CoreModule]) -> NativeIrR
     let deferred = super::overloads::resolve_typed_overloads(cores)?;
     super::transparent_aliases::expand_transparent_aliases(cores);
     let nominal_parameters = generic_specialization::nominal_parameter_catalog(cores);
-    let exported_templates = cores
+    let source_templates = cores
         .iter()
         .map(|core| {
             core.functions
                 .iter()
                 .filter(|function| {
-                    function.public
-                        && !generic_specialization::generic_parameters_with_nominals(
-                            function,
-                            &nominal_parameters,
-                        )
-                        .is_empty()
+                    !generic_specialization::generic_parameters_with_nominals(
+                        function,
+                        &nominal_parameters,
+                    )
+                    .is_empty()
                 })
                 .cloned()
                 .collect::<Vec<_>>()
@@ -33,9 +32,10 @@ pub(crate) fn resolve_typed_generic_calls(cores: &mut [CoreModule]) -> NativeIrR
         cores,
         &mut SpecializationBudget::default(),
     )?;
-    // JavaScript exports can remain generic when their bodies need no static
-    // trait choice. Keep those exports; unresolved trait bodies fail emission.
-    for (core, templates) in cores.iter_mut().zip(exported_templates) {
+    // JavaScript erases generic types. Keep templates, including private helpers
+    // reachable from generic exports, until ordinary function-graph pruning.
+    // Unresolved trait bodies still fail emission when reachable.
+    for (core, templates) in cores.iter_mut().zip(source_templates) {
         core.functions.extend(templates);
     }
     deferred.resolve(cores)

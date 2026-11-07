@@ -85,6 +85,42 @@ pub(super) fn formal_cons_list_expr_is_distinct_from_generator_expr() {
 }
 
 #[test]
+fn formal_list_elements_accept_bare_lambdas_without_type_drift() {
+    let expression = parse_terlan_expr("[() -> pair(1, [2, 3]), (value) -> value]")
+        .expect("parse bare lambdas as list elements");
+    let Expr::List(items) = expression else {
+        panic!("expected list expression");
+    };
+    assert!(matches!(
+        &items[0],
+        Expr::Fun { clauses }
+            if clauses.len() == 1 && clauses[0].patterns.is_empty()
+    ));
+    assert!(matches!(
+        &items[1],
+        Expr::Fun { clauses }
+            if clauses.len() == 1 && clauses[0].patterns.len() == 1
+    ));
+
+    let cons = parse_terlan_expr("[() -> 1 | tail]").expect("parse lambda list head");
+    assert!(matches!(cons, Expr::ListCons(head, _) if matches!(*head, Expr::Fun { .. })));
+    assert!(parse_terlan_expr("[() ->]").is_err());
+
+    let module = parse_module(
+        r#"
+module lambda_list.
+pub struct CallbackSet { callbacks: List[() -> Int] }.
+pub callbacks(): List[() -> Int] -> [() -> 1, (value) -> value].
+"#,
+    )
+    .expect("function types and bare list lambdas coexist");
+    let Decl::Function(function) = &module.declarations[1] else {
+        panic!("expected callbacks function");
+    };
+    assert!(matches!(&function.clauses[0].body, Expr::List(items) if items.len() == 2));
+}
+
+#[test]
 fn formal_list_qualifiers_require_a_leading_generator() {
     for source in ["[x | true, false]", "[x | x > 0, x <- xs]"] {
         assert!(parse_terlan_expr(source).is_err(), "accepted {source}");

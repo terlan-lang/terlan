@@ -13,6 +13,7 @@ pub mod lalrpop_boundary;
 #[cfg(test)]
 mod lalrpop_boundary_test;
 mod lalrpop_diagnostics;
+mod lalrpop_list_lambda;
 mod lalrpop_lowering;
 mod lalrpop_projection;
 pub mod lalrpop_syntax;

@@ -5,6 +5,7 @@ use std::fmt;
 use lalrpop_util::ParseError as LalrpopParseError;
 
 use super::{
+    lalrpop_list_lambda::direct_list_lambda_groups,
     lalrpop_projection::{
         config_raw_declaration_end, expression_raw_macro_end, function_body_arrow_indices,
         head_constraint_list_end, html_raw_block_end, if_clause_semicolon_indices,
@@ -201,21 +202,22 @@ pub struct LalrpopBoundaryError {
 fn spanned_tokens(
     tokens: Vec<Token>,
 ) -> impl Iterator<Item = Result<(usize, LalrpopToken, usize), LalrpopLexicalError>> {
-    projected_tokens(tokens, false, false).into_iter()
+    projected_tokens(tokens, false, false, &[]).into_iter()
 }
 
 fn expression_spanned_tokens(
     tokens: Vec<Token>,
+    grouped_list_lambdas: &[usize],
 ) -> impl Iterator<Item = Result<(usize, LalrpopToken, usize), LalrpopLexicalError>> {
-    projected_tokens(tokens, true, true).into_iter()
+    projected_tokens(tokens, true, true, grouped_list_lambdas).into_iter()
 }
 
 fn projected_tokens(
     tokens: Vec<Token>,
     classify_lambda_delimiters: bool,
     omit_trivia: bool,
+    grouped_list_lambdas: &[usize],
 ) -> Vec<Result<(usize, LalrpopToken, usize), LalrpopLexicalError>> {
-    let mut projected = Vec::with_capacity(tokens.len().saturating_sub(1));
     let function_body_arrows = if classify_lambda_delimiters {
         function_body_arrow_indices(&tokens)
     } else {
@@ -226,6 +228,20 @@ fn projected_tokens(
     } else {
         Vec::new()
     };
+    let list_lambda_groups = if classify_lambda_delimiters {
+        direct_list_lambda_groups(&tokens, &lambda_openings)
+            .into_iter()
+            .filter(|(opening, _)| grouped_list_lambdas.contains(opening))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let mut projected = Vec::with_capacity(
+        tokens
+            .len()
+            .saturating_sub(1)
+            .saturating_add(list_lambda_groups.len().saturating_mul(2)),
+    );
     let lambda_sequence_semicolons = lambda_sequence_semicolon_indices(&tokens, &lambda_openings);
     let typed_lambda_patterns = typed_lambda_pattern_ranges(&tokens, &lambda_openings);
     let if_clause_semicolons = if classify_lambda_delimiters {
@@ -238,8 +254,28 @@ fn projected_tokens(
         if skip_through.is_some_and(|end| index <= end) {
             continue;
         }
+        for _ in list_lambda_groups
+            .iter()
+            .filter(|(_, boundary)| *boundary == index)
+        {
+            projected.push(Ok((
+                token.start,
+                LalrpopToken::Canonical(TokenKind::RParen),
+                token.start,
+            )));
+        }
         if token.kind == TokenKind::EOF || (omit_trivia && is_trivia(&token.kind)) {
             continue;
+        }
+        if list_lambda_groups
+            .iter()
+            .any(|(opening, _)| *opening == index)
+        {
+            projected.push(Ok((
+                token.start,
+                LalrpopToken::Canonical(TokenKind::LParen),
+                token.start,
+            )));
         }
         let next_significant = || {
             tokens[index + 1..]
@@ -598,14 +634,24 @@ pub fn parse_lalrpop_expression(input: &str) -> LalrpopBoundaryResult<LalrpopExp
             span: Span::new(0, 0),
         })?
         .fingerprint;
-    let mut output = terlan_lalrpop::ExpressionOutputParser::new()
-        .parse(
+    let mut grouped_list_lambdas = Vec::new();
+    let mut output = loop {
+        match terlan_lalrpop::ExpressionOutputParser::new().parse(
             input,
             &source_index,
             identity.as_str(),
-            expression_spanned_tokens(tokens),
-        )
-        .map_err(lalrpop_error)?;
+            expression_spanned_tokens(tokens.clone(), &grouped_list_lambdas),
+        ) {
+            Ok(output) => break output,
+            Err(error) => {
+                let Some(opening) = retryable_list_lambda(&tokens, &grouped_list_lambdas, &error)
+                else {
+                    return Err(lalrpop_error(error));
+                };
+                grouped_list_lambdas.push(opening);
+            }
+        }
+    };
     output.root = normalize_lalrpop_expression(output.root);
     validate_lalrpop_expression(&output.root)
         .map_err(|(message, span)| LalrpopBoundaryError { message, span })?;
@@ -621,7 +667,7 @@ pub fn parse_lalrpop_type(input: &str) -> LalrpopBoundaryResult<LalrpopFragmentO
             input,
             &source_index,
             identity.as_str(),
-            expression_spanned_tokens(tokens),
+            expression_spanned_tokens(tokens, &[]),
         )
         .map_err(lalrpop_error)
 }
@@ -635,7 +681,7 @@ pub fn parse_lalrpop_pattern(input: &str) -> LalrpopBoundaryResult<LalrpopFragme
             input,
             &source_index,
             identity.as_str(),
-            expression_spanned_tokens(tokens),
+            expression_spanned_tokens(tokens, &[]),
         )
         .map_err(lalrpop_error)
 }
@@ -659,16 +705,46 @@ pub(crate) fn parse_lalrpop_module_syntax_unvalidated(
 ) -> LalrpopBoundaryResult<LalrpopModuleSyntaxOutput> {
     let source_index = LalrpopSourceIndex::new(input);
     let (tokens, identity) = lex_fragment(input)?;
-    let mut output = terlan_lalrpop::ModuleSyntaxOutputParser::new()
-        .parse(
+    let mut grouped_list_lambdas = Vec::new();
+    let mut output = loop {
+        match terlan_lalrpop::ModuleSyntaxOutputParser::new().parse(
             input,
             &source_index,
             identity.as_str(),
-            expression_spanned_tokens(tokens),
-        )
-        .map_err(lalrpop_error)?;
+            expression_spanned_tokens(tokens.clone(), &grouped_list_lambdas),
+        ) {
+            Ok(output) => break output,
+            Err(error) => {
+                let Some(opening) = retryable_list_lambda(&tokens, &grouped_list_lambdas, &error)
+                else {
+                    return Err(lalrpop_error(error));
+                };
+                grouped_list_lambdas.push(opening);
+            }
+        }
+    };
     output.root = normalize_lalrpop_expression(output.root);
     Ok(output)
+}
+
+fn retryable_list_lambda(
+    tokens: &[Token],
+    grouped: &[usize],
+    error: &LalrpopParseError<usize, LalrpopToken, LalrpopLexicalError>,
+) -> Option<usize> {
+    let location = match error {
+        LalrpopParseError::InvalidToken { location }
+        | LalrpopParseError::UnrecognizedEof { location, .. } => *location,
+        LalrpopParseError::UnrecognizedToken { token, .. }
+        | LalrpopParseError::ExtraToken { token } => token.0,
+        LalrpopParseError::User { .. } => return None,
+    };
+    let function_body_arrows = function_body_arrow_indices(tokens);
+    let lambda_openings = lambda_opening_indices(tokens, &function_body_arrows);
+    direct_list_lambda_groups(tokens, &lambda_openings)
+        .into_iter()
+        .map(|(opening, _)| opening)
+        .find(|opening| !grouped.contains(opening) && tokens[*opening].start == location)
 }
 
 fn lex_fragment(input: &str) -> LalrpopBoundaryResult<(Vec<Token>, String)> {

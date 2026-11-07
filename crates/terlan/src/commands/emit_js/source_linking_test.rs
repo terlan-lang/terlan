@@ -248,3 +248,30 @@ pub check(): Bool ->
         .expect("resolve Show implementations");
     assert_js_check(&linked);
 }
+
+#[test]
+fn generic_exports_retain_private_helpers_for_erased_javascript_calls() {
+    let cores = checked_cores(&[r#"
+module generic_helpers.
+pub struct Box[T] { run: (T) -> T, }.
+pub create[T](): Box[T] -> Box {run: ((value) -> forward(value))}.
+forward[T](value: T): T -> identity(value).
+identity[T](value: T): T -> value.
+"#]);
+    let linked = link_cores(cores).expect("link private generic helpers");
+    let js = crate::commands::emit_js::direct_ast::emit_core_module_with_direct_oxc_ast(&linked)
+        .expect("emit generic factory");
+    let output = std::process::Command::new("node")
+        .args([
+            "--input-type=module",
+            "--eval",
+            &format!("{js}\nif (create().run(17) !== 17 || create().run('text') !== 'text') process.exit(1);"),
+        ])
+        .output()
+        .expect("execute exported factory with two runtime types");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
