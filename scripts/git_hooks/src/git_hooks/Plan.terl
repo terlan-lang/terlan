@@ -256,16 +256,14 @@ pub compiler(paths: List[String]): Bool ->
                 or compiler(rest)
     }.
 
-only_native_lowering(paths: List[String]): Bool ->
+has_non_native_lowering(paths: List[String]): Bool ->
     case paths {
         [] -> false;
-        [path] ->
-            String.starts_with(path, "crates/terlan/src/compiler/native_ir/")
-                or path == "crates/terlan/src/compiler/native_ir.rs";
         [path | rest] ->
-            (String.starts_with(path, "crates/terlan/src/compiler/native_ir/")
-    or path == "crates/terlan/src/compiler/native_ir.rs")
-                and only_native_lowering(rest)
+            path != ""
+    and not String.starts_with(path, "crates/terlan/src/compiler/native_ir/")
+    and path != "crates/terlan/src/compiler/native_ir.rs"
+                or has_non_native_lowering(rest)
     }.
 
 pub phase(paths: List[String]): Bool ->
@@ -316,14 +314,14 @@ pub clippy(paths: List[String]): Bool ->
         or affected(paths, "mk/", "").
 
 pub reports(paths: List[String]): Bool ->
-    clippy(paths) and not only_native_lowering(paths)
+    clippy(paths) and has_non_native_lowering(paths)
         or affected(paths, "docs/quality/", "")
         or affected(paths, "scripts/self_validation/rust_quality/", "")
         or affected(paths, "scripts/git_hooks/rust_reports.sh", "").
 
 pub summaries(paths: List[String]): Bool ->
     workspace(paths)
-        or compiler(paths) and not only_native_lowering(paths)
+        or compiler(paths) and has_non_native_lowering(paths)
         or syntax(paths)
         or affected(paths, "std/", ".terl")
         or affected(paths, "std/", ".terli")

@@ -92,7 +92,18 @@ pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "clippy", "compiler", "phase"]
         and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "clippy", "compiler", "phase"]
-        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "negative-api", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "negative-api", "rust-docs"]
+        and Plan.lanes(
+    [
+        "crates/terlan/src/compiler/native_ir/collection_values.rs",
+        "crates/terlan/src/compiler/native_ir/collection_values/typed_values.rs",
+        "crates/terlan/src/compiler/native_ir/constructors.rs",
+        "crates/terlan/src/compiler/native_ir/expression/casts.rs",
+        "crates/terlan/src/compiler/native_ir/source_constructor_test.rs",
+        "crates/terlan/src/compiler/native_ir/structured_case/lowering.rs",
+        "",
+    ],
+) == ["shell", "clippy", "compiler", "phase"].
 
 @test
 pub runtime_changes_use_workspace_fallback(): Bool ->
