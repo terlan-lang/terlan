@@ -90,7 +90,9 @@ pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
-    Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "compiler", "phase"].
+    Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "clippy", "compiler", "phase"]
+        and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "clippy", "compiler", "phase"]
+        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "negative-api", "rust-docs"].
 
 @test
 pub runtime_changes_use_workspace_fallback(): Bool ->
@@ -146,7 +148,7 @@ pub platform_validator_changes_validate_themselves_early(): Bool ->
 @test
 pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "clippy", "rust-reports", "commands-doctor"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "artifact-budget", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "rust-docs"].
 
 @test
 pub boundary_audit_changes_use_owning_crate_tests(): Bool ->
