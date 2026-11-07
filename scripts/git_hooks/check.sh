@@ -184,14 +184,16 @@ while IFS= read -r lane; do
       make --no-print-directory rust-clippy-check
       ;;
     rust-reports)
-      ensure_release_tools
       ensure_quality_tools
       ensure_orchestrator
-      TERLAN_HOOK_ARTIFACTS_PREBUILT=1 bash scripts/git_hooks/rust_reports.sh
+      TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
+      TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
+      TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
+        bash scripts/git_hooks/rust_reports.sh
       ;;
     summaries)
-      ensure_release_tools
-      bash scripts/git_hooks/stdlib_summaries.sh
+      TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
+        bash scripts/git_hooks/stdlib_summaries.sh
       ;;
     shell)
       while IFS= read -r path; do
@@ -203,6 +205,9 @@ while IFS= read -r lane; do
       ;;
     commands)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::
+      ;;
+    commands-emit-js)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
       ;;
     commands-test)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test::

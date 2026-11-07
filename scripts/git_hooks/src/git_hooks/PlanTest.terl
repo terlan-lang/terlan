@@ -162,6 +162,16 @@ pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
         and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "rust-docs"].
 
 @test
+pub javascript_emitter_changes_do_not_run_native_command_suites(): Bool ->
+    Plan.lanes(["crates/terlan/src/commands/emit_js/cast_semantics.rs"]) == ["shell", "clippy", "rust-reports", "commands-emit-js"]
+        and Plan.lanes(
+    [
+        "crates/terlan/src/commands/emit_js/cast_semantics.rs",
+        "crates/terlan/src/commands/bind/mod.rs",
+    ],
+) == ["shell", "native-bindings", "clippy", "rust-reports", "commands-emit-js", "commands"].
+
+@test
 pub boundary_audit_changes_use_owning_crate_tests(): Bool ->
     Plan.lanes(["tools/rust_boundary_audit/src/source_inventory_test.rs"]) == ["shell", "clippy", "rust-reports", "rust-boundary-audit"].
 
@@ -251,7 +261,7 @@ pub report_validator_changes_check_their_reports(): Bool ->
 
 @test
 pub report_runner_changes_execute_report_checks(): Bool ->
-    Plan.lanes(["scripts/git_hooks/rust_reports.sh"]) == ["shell", "rust-reports", "release-contract"].
+    Plan.lanes(["scripts/git_hooks/rust_reports.sh"]) == ["shell", "rust-reports"].
 
 @test
 pub summary_metadata_changes_check_both_generators(): Bool ->
@@ -267,7 +277,7 @@ pub summary_generator_changes_run_drift_checks(): Bool ->
 
 @test
 pub summary_runner_changes_execute_drift_checks(): Bool ->
-    Plan.lanes(["scripts/git_hooks/stdlib_summaries.sh"]) == ["shell", "summaries", "release-contract"].
+    Plan.lanes(["scripts/git_hooks/stdlib_summaries.sh"]) == ["shell", "summaries"].
 
 @test
 pub publication_workflow_checks_release_contract(): Bool ->

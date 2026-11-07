@@ -198,20 +198,27 @@ pub rust_boundary_audit(paths: List[String]): Bool ->
 pub commands(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/src/commands/", ".rs").
 
+pub commands_emit_js(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/commands/emit_js/", ".rs").
+
 pub command_lanes(paths: List[String]): List[String] ->
     selected(
-        affected(paths, "crates/terlan/src/commands/test/", ".rs"),
-        "commands-test",
+        commands_emit_js(paths),
+        "commands-emit-js",
         selected(
-            affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
-            "commands-clean",
+            affected(paths, "crates/terlan/src/commands/test/", ".rs"),
+            "commands-test",
             selected(
-                affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
-                "commands-doctor",
+                affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
+                "commands-clean",
                 selected(
-                    affected(paths, "crates/terlan/src/commands/init/", ".rs"),
-                    "commands-init",
-                    selected(other_commands(paths), "commands", List.new[String]()),
+                    affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
+                    "commands-doctor",
+                    selected(
+                        affected(paths, "crates/terlan/src/commands/init/", ".rs"),
+                        "commands-init",
+                        selected(other_commands(paths), "commands", List.new[String]()),
+                    ),
                 ),
             ),
         ),
@@ -227,6 +234,7 @@ other_commands(paths: List[String]): Bool ->
     and not String.starts_with(path, "crates/terlan/src/commands/clean/")
     and not String.starts_with(path, "crates/terlan/src/commands/doctor/")
     and not String.starts_with(path, "crates/terlan/src/commands/init/")
+    and not String.starts_with(path, "crates/terlan/src/commands/emit_js/")
                 or other_commands(rest)
     }.
 
@@ -308,6 +316,8 @@ release_script(paths: List[String]): Bool ->
             String.starts_with(path, "scripts/")
     and String.ends_with(path, ".sh")
     and path != "scripts/git_hooks/check.sh"
+    and path != "scripts/git_hooks/rust_reports.sh"
+    and path != "scripts/git_hooks/stdlib_summaries.sh"
                 or release_script(rest)
     }.
 

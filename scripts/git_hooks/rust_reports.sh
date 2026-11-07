@@ -22,10 +22,10 @@ mkdir -p target/quality
   > target/quality/rust-boundary-ast.json
 "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --cargo-metadata \
   "$PWD/target/quality/rust-cargo-metadata.json" -- cargo --locked
-# check.sh has already built and validated these canonical release tools.
-# Compile this exact snapshot once, then execute every report check from that image.
-terlc="$CARGO_TARGET_DIR/release/terlc"
-vm="$CARGO_TARGET_DIR/release/terlan-vm"
+# The commit hook supplies its already-built staged debug tools. Standalone and
+# release callers retain the canonical release-profile defaults.
+terlc=${TERLAN_RUST_REPORT_TERLC:-"$CARGO_TARGET_DIR/release/terlc"}
+vm=${TERLAN_RUST_REPORT_VM:-"$CARGO_TARGET_DIR/release/terlan-vm"}
 output=target/git-hooks-rust-quality
 "$terlc" build scripts/self_validation/rust_quality/scripts/RustQuality.terls \
   --target terlan-vm --out-dir "$output"
