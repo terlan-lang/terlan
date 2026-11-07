@@ -245,3 +245,20 @@ pub struct User {\n\
             diagnostics
         );
 }
+
+#[test]
+pub(super) fn primitive_defining_modules_may_declare_receiver_methods() {
+    for (module, primitive) in [
+        ("std.core.Bool", "Bool"),
+        ("std.core.Int", "Int"),
+        ("std.core.Float", "Float"),
+        ("std.core.String", "String"),
+        ("std.core.Unit", "Unit"),
+    ] {
+        let source = format!(
+            "module {module}.\n\npub (value: {primitive}) identity(): {primitive} -> value.\n"
+        );
+        let diagnostics = check_syntax_output(&source);
+        assert!(diagnostics.is_empty(), "{module}: {diagnostics:?}");
+    }
+}

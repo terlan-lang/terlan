@@ -380,6 +380,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::FloatCeil => LoweringCoverage::native("Intrinsic.core.float.ceil"),
         P::FloatToString => LoweringCoverage::native("Intrinsic.core.float.to_string"),
         P::FloatFromString => LoweringCoverage::native("Intrinsic.core.float.from_string"),
+        P::FloatToIntExact => LoweringCoverage::native("Intrinsic.core.float.to_int_exact"),
         P::FloatLog => LoweringCoverage::native("Intrinsic.core.float.log"),
         P::FloatAtan => LoweringCoverage::native("Intrinsic.core.float.atan"),
         P::FloatSqrt => LoweringCoverage::native("Intrinsic.core.float.sqrt"),

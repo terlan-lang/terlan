@@ -699,9 +699,15 @@ pub(super) fn check_syntax_receiver_methods(
             continue;
         };
 
-        if !(local_type_names.contains(&receiver_head)
-            || module.module_name == "std.core.String" && receiver_head == "String")
-        {
+        let primitive_owner = matches!(
+            (module.module_name.as_str(), receiver_head.as_str()),
+            ("std.core.Bool", "Bool")
+                | ("std.core.Int", "Int")
+                | ("std.core.Float", "Float")
+                | ("std.core.String", "String")
+                | ("std.core.Unit", "Unit")
+        );
+        if !(local_type_names.contains(&receiver_head) || primitive_owner) {
             diagnostics.push(Diagnostic {
                 span: declaration.span.into(),
                 message: format!(

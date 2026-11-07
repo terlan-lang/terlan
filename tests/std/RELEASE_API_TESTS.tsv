@@ -327,6 +327,9 @@ std.core.Ordering.Float.gt	std/core/FloatTest.terl	ordering_trait_orders_larger_
 std.core.Float.from_string.positive	std/core/FloatTest.terl	from_string_parses_positive_float
 std.core.Float.from_string.negative	std/core/FloatTest.terl	from_string_parses_negative_float
 std.core.Float.from_string.unknown	std/core/FloatTest.terl	from_string_rejects_unknown_text
+std.core.Float.to_int_exact.integral	std/core/FloatTest.terl	to_int_exact_accepts_integral_in_range_values
+std.core.Float.to_int_exact.fractional	std/core/FloatTest.terl	to_int_exact_rejects_fractional_values
+std.core.Float.to_int_exact.range	std/core/FloatTest.terl	to_int_exact_rejects_values_above_int_range
 std.core.Float.floor.signed	std/core/FloatTest.terl	floor_rounds_toward_negative_infinity
 std.core.Float.ceil.signed	std/core/FloatTest.terl	ceil_rounds_toward_positive_infinity
 std.core.Float.pi.constant	std/core/FloatTest.terl	mathematical_constants_are_binary64_values

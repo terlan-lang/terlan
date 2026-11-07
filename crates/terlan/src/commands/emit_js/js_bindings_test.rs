@@ -113,6 +113,18 @@ pub check(): Bool ->
 }
 
 #[test]
+fn exact_float_to_int_conversion_executes_in_javascript() {
+    let source = r#"module tests.js.FloatToIntExact.
+import type std.core.Option.
+pub exact(value: Float): Option[Int] -> value.to_int_exact().
+"#;
+    execute(
+        &compiled(source),
+        "const accepted = exact(42); if (!Array.isArray(accepted) || accepted[0] !== 'some' || accepted[1] !== 42) throw new Error('integral Float conversion failed'); for (const value of [42.5, 9223372036854775808, Infinity, NaN]) if (exact(value) !== 'none') throw new Error('invalid Float conversion was accepted');",
+    );
+}
+
+#[test]
 fn optional_generic_host_values_distinguish_null_from_missing() {
     for kind in ["property", "method"] {
         let member = serde_json::from_value(serde_json::json!({

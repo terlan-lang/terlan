@@ -5,10 +5,14 @@ import std.core.Option.{None, Some}.
 import std.core.Ordering.{Eq, Gt, Lt}.
 import std.test.Test.{assert, assert_equal, assert_false}.
 
+import type std.core.Option.
 import type std.core.Ordering.Comparison.
 
 pub ordering_compare(left: Float, right: Float): Comparison ->
     compare(left, right).
+
+pub exact_int(value: Float): Option[Int] ->
+    value.to_int_exact().
 
 @test
 pub equal_accepts_matching_floats(): Bool ->
@@ -130,6 +134,30 @@ pub sqrt_returns_principal_nonnegative_root(): Bool ->
     assert_equal(0.0, sqrt(0.0))
         and assert_equal(3.0, sqrt(9.0))
         and assert_equal(1.4142135623730951, sqrt(2.0)).
+
+@test
+pub to_int_exact_accepts_integral_in_range_values(): Bool ->
+    let {
+        Some(42) <- exact_int(42.0);
+        Some(value) <- exact_int(-9000000000000000000.0)
+    } else {
+        _ -> false
+    };
+    value == -9_000_000_000_000_000_000.
+
+@test
+pub to_int_exact_rejects_fractional_values(): Bool ->
+    case exact_int(42.5) {
+        None -> true;
+        _ -> false
+    }.
+
+@test
+pub to_int_exact_rejects_values_above_int_range(): Bool ->
+    case exact_int(9223372036854776000.0) {
+        None -> true;
+        _ -> false
+    }.
 
 @test
 pub graphing_calculator_float_surface_is_native(): Bool ->

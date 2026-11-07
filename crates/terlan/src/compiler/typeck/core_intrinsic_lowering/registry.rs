@@ -329,6 +329,7 @@ fn core_float_primitive_intrinsic(function: &str, arity: usize) -> Option<CorePr
     match (function, arity) {
         ("to_string", 1) => Some(CorePrimitiveIntrinsic::FloatToString),
         ("from_string", 1) => Some(CorePrimitiveIntrinsic::FloatFromString),
+        ("to_int_exact", 1) => Some(CorePrimitiveIntrinsic::FloatToIntExact),
         ("floor", 1) => Some(CorePrimitiveIntrinsic::FloatFloor),
         ("ceil", 1) => Some(CorePrimitiveIntrinsic::FloatCeil),
         ("log", 1) => Some(CorePrimitiveIntrinsic::FloatLog),

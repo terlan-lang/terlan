@@ -457,6 +457,9 @@ fn core_intrinsic_call_expr_to_oxc_expression<'a>(
                 false,
             ))
         }
+        crate::terlan_typeck::CoreIntrinsicId::Primitive(
+            crate::terlan_typeck::CorePrimitiveIntrinsic::FloatToIntExact,
+        ) => float_intrinsics::float_to_int_exact_to_oxc_expression(ast, &call.args),
         crate::terlan_typeck::CoreIntrinsicId::Primitive(intrinsic)
             if float_math_method(intrinsic).is_some() =>
         {

@@ -378,6 +378,17 @@ pub tanh(value: Float): Float.
 @pure
 pub tau(): Float.
 
+/// Converts an exactly integral finite Float to Int.
+///
+/// Input: one runtime `Float` value.
+/// Output: `Some(value)` only when the input is finite, has no fractional
+/// component, and lies in the signed 64-bit `Int` range; otherwise `None`.
+/// Transformation: performs a checked numeric conversion without parsing text,
+/// rounding, saturation, or precision loss.
+
+@pure
+pub (value: Float) to_int_exact(): Option[Int].
+
 /// Renders a finite `Float` as its canonical UTF-8 `String`.
 ///
 /// Input: one supported finite `Float` value.

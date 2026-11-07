@@ -37,6 +37,7 @@ const ATANH: u8 = 25;
 const EXP2: u8 = 26;
 const EXPM1: u8 = 27;
 const LOG1P: u8 = 28;
+const TO_INT_EXACT: u8 = 29;
 const FROM_STRING_BYTES: usize = HEADER_BYTES + SEMANTIC_BYTES;
 
 /// Encodes canonical finite-binary64 formatting into a managed UTF-8 string.
@@ -47,6 +48,13 @@ pub fn encode_float_to_string_operation() -> Vec<u8> {
 /// Encodes finite-binary64 parsing into the admitted `Option[Float]` layout.
 pub fn encode_float_from_string_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
     let mut encoded = header(FROM_STRING);
+    encoded.extend_from_slice(&option_semantic.bytes());
+    encoded
+}
+
+/// Encodes checked finite-binary64 conversion into `Option[Int]`.
+pub fn encode_float_to_int_exact_operation(option_semantic: SemanticTypeId) -> Vec<u8> {
+    let mut encoded = header(TO_INT_EXACT);
     encoded.extend_from_slice(&option_semantic.bytes());
     encoded
 }
@@ -197,7 +205,10 @@ pub(super) fn is_float_operation(encoded: &[u8]) -> bool {
 
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn float_operation_result_is_reference(encoded: &[u8]) -> bool {
-    matches!(encoded.get(6).copied(), Some(TO_STRING | FROM_STRING))
+    matches!(
+        encoded.get(6).copied(),
+        Some(TO_STRING | FROM_STRING | TO_INT_EXACT)
+    )
 }
 
 pub(super) fn execute_float_operation(
@@ -215,6 +226,9 @@ pub(super) fn execute_float_operation(
         }
         (FROM_STRING, FROM_STRING_BYTES, [text]) if encoded[7] == 0 => {
             parse_float(heap, layouts, encoded, *text)
+        }
+        (TO_INT_EXACT, FROM_STRING_BYTES, [word]) if encoded[7] == 0 => {
+            float_to_int_exact(heap, layouts, encoded, *word)
         }
         (operation, HEADER_BYTES, [word]) if encoded[7] == 0 && is_unary(operation) => {
             execute_unary(operation, *word)
@@ -324,6 +338,28 @@ fn parse_float(
     let parsed = parse_float_text(&text);
     let (variant, fields) = match parsed {
         Some(value) => ("Some", vec![ManagedFieldValue::Float(value)]),
+        None => ("None", Vec::new()),
+    };
+    let layout = super::option_layout(layouts, semantic, variant, fields.len())?;
+    heap.allocate_aggregate_ref(layout, &fields)
+        .map(|value| value.erase().encoded_abi_word())
+}
+
+fn float_to_int_exact(
+    heap: &mut ActorHeap,
+    layouts: &ManagedLayoutRegistry,
+    encoded: &[u8],
+    word: i64,
+) -> Result<u64, ManagedMemoryError> {
+    let semantic = semantic_at(encoded, HEADER_BYTES)?;
+    let value = f64::from_bits(u64::from_ne_bytes(word.to_ne_bytes()));
+    let converted = (value.is_finite()
+        && value.fract() == 0.0
+        && value >= i64::MIN as f64
+        && value < 9_223_372_036_854_775_808.0)
+        .then_some(value as i64);
+    let (variant, fields) = match converted {
+        Some(value) => ("Some", vec![ManagedFieldValue::Int(value)]),
         None => ("None", Vec::new()),
     };
     let layout = super::option_layout(layouts, semantic, variant, fields.len())?;

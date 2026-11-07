@@ -49,6 +49,7 @@ pub(in crate::validation::target_profile) fn target_profile_supports_vm_intrinsi
                     | CorePrimitiveIntrinsic::IntFromStringBase
                     | CorePrimitiveIntrinsic::FloatToString
                     | CorePrimitiveIntrinsic::FloatFromString
+                    | CorePrimitiveIntrinsic::FloatToIntExact
                     | CorePrimitiveIntrinsic::FloatFloor
                     | CorePrimitiveIntrinsic::FloatCeil
                     | CorePrimitiveIntrinsic::FloatLog

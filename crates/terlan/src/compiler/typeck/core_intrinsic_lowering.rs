@@ -626,6 +626,10 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             constructor: "Option".to_string(),
             args: vec![CoreType::Float],
         },
+        CorePrimitiveIntrinsic::FloatToIntExact => CoreType::Apply {
+            constructor: "Option".to_string(),
+            args: vec![CoreType::Int],
+        },
         CorePrimitiveIntrinsic::FloatFloor
         | CorePrimitiveIntrinsic::FloatCeil
         | CorePrimitiveIntrinsic::FloatLog

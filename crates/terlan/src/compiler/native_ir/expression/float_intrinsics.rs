@@ -11,8 +11,8 @@ use crate::runtime::native_image::managed::{
     encode_float_log10_operation, encode_float_log1p_operation, encode_float_log2_operation,
     encode_float_log_operation, encode_float_pow_operation, encode_float_round_operation,
     encode_float_sin_operation, encode_float_sinh_operation, encode_float_sqrt_operation,
-    encode_float_tan_operation, encode_float_tanh_operation, encode_float_to_string_operation,
-    encode_float_trunc_operation,
+    encode_float_tan_operation, encode_float_tanh_operation, encode_float_to_int_exact_operation,
+    encode_float_to_string_operation, encode_float_trunc_operation,
 };
 use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic};
 
@@ -48,7 +48,8 @@ pub(super) fn lower_float_intrinsic(
         }
         CoreIntrinsicId::Primitive(
             intrinsic @ (CorePrimitiveIntrinsic::FloatToString
-            | CorePrimitiveIntrinsic::FloatFromString),
+            | CorePrimitiveIntrinsic::FloatFromString
+            | CorePrimitiveIntrinsic::FloatToIntExact),
         ) if call.args.len() == 1 => {
             let operand = lower_operand(
                 call,
@@ -75,6 +76,22 @@ pub(super) fn lower_float_intrinsic(
                         );
                     };
                     encode_float_from_string_operation(semantic)
+                }
+                CorePrimitiveIntrinsic::FloatToIntExact => {
+                    let NativeType::ManagedRef(semantic) = native_type(
+                        Some(&call.return_type),
+                        &call.return_type.contract_text(),
+                    )
+                    .ok_or_else(|| {
+                        "error[native_ir.float_to_int_exact]: unsupported Option[Int] result"
+                            .to_string()
+                    })?
+                    else {
+                        return Err(
+                            "error[native_ir.float_to_int_exact]: result is not managed".to_string()
+                        );
+                    };
+                    encode_float_to_int_exact_operation(semantic)
                 }
                 _ => unreachable!(),
             };
@@ -140,9 +157,9 @@ pub(super) fn infer_float_intrinsic_type(call: &CoreIntrinsicCall) -> Option<Nat
         CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatToString) => {
             Some(NativeType::StringRef)
         }
-        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatFromString) => {
-            native_type(Some(&call.return_type), &call.return_type.contract_text())
-        }
+        CoreIntrinsicId::Primitive(
+            CorePrimitiveIntrinsic::FloatFromString | CorePrimitiveIntrinsic::FloatToIntExact,
+        ) => native_type(Some(&call.return_type), &call.return_type.contract_text()),
         CoreIntrinsicId::Primitive(intrinsic)
             if float_unary_operation(intrinsic).is_some()
                 || float_binary_operation(intrinsic).is_some() =>

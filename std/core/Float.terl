@@ -164,6 +164,19 @@ pub from_string(value: String): Option[Float] ->
     None.
 
 /**
+ * Converts an exactly integral finite Float to Int.
+ *
+ * Input: one runtime `Float` value.
+ * Output: `Some(value)` only when the input is finite, has no fractional
+ * component, and lies in the signed 64-bit `Int` range; otherwise `None`.
+ * Transformation: performs a checked numeric conversion without parsing text,
+ * rounding, saturation, or precision loss.
+ */
+@compiler.intrinsic
+pub (value: Float) to_int_exact(): Option[Int] ->
+    None.
+
+/**
  * Returns the greatest whole Float not greater than the input.
  *
  * Input: one finite `Float` value.

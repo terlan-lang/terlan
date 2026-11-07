@@ -1,6 +1,9 @@
 //! Direct Oxc lowering for calculator-grade Float intrinsics.
 
-use super::{core_expr_to_oxc_expression, core_lam_param_to_oxc_formal_parameter, oxc_ident_name};
+use super::{
+    core_expr_to_oxc_expression, core_lam_param_to_oxc_formal_parameter, oxc_ident_name,
+    oxc_string_value,
+};
 
 pub(super) fn float_math_method(
     intrinsic: &crate::terlan_typeck::CorePrimitiveIntrinsic,
@@ -178,4 +181,102 @@ pub(super) fn float_intrinsic_call_to_oxc_expression<'a>(
         arguments.push(Argument::from(core_expr_to_oxc_expression(ast, argument)?));
     }
     Some(ast.expression_call(SPAN, callee, oxc_ast::NONE, arguments, false))
+}
+
+/// Lowers checked `Float.to_int_exact()` into the JavaScript Option layout.
+pub(super) fn float_to_int_exact_to_oxc_expression<'a>(
+    ast: oxc_ast::AstBuilder<'a>,
+    args: &[crate::terlan_typeck::CoreExpr],
+) -> Option<oxc_ast::ast::Expression<'a>> {
+    use oxc_ast::ast::{Argument, ArrayExpressionElement, FormalParameterKind, NumberBase};
+    use oxc_span::SPAN;
+    use oxc_syntax::operator::{BinaryOperator, LogicalOperator, UnaryOperator};
+
+    let [argument] = args else {
+        return None;
+    };
+    let name = "$terlan_float_to_int_exact_value";
+    let identifier = || ast.expression_identifier(SPAN, oxc_ident_name(ast, name));
+    let number_predicate = |method: &str| {
+        let callee = ast
+            .member_expression_static(
+                SPAN,
+                ast.expression_identifier(SPAN, oxc_ident_name(ast, "Number")),
+                ast.identifier_name(SPAN, oxc_ident_name(ast, method)),
+                false,
+            )
+            .into();
+        ast.expression_call(
+            SPAN,
+            callee,
+            oxc_ast::NONE,
+            ast.vec1(Argument::from(identifier())),
+            false,
+        )
+    };
+    let limit = || {
+        ast.expression_numeric_literal(SPAN, 9_223_372_036_854_775_808.0, None, NumberBase::Decimal)
+    };
+    let lower = ast.expression_binary(
+        SPAN,
+        identifier(),
+        BinaryOperator::GreaterEqualThan,
+        ast.expression_unary(SPAN, UnaryOperator::UnaryNegation, limit()),
+    );
+    let upper = ast.expression_binary(SPAN, identifier(), BinaryOperator::LessThan, limit());
+    let valid = ast.expression_logical(
+        SPAN,
+        ast.expression_logical(
+            SPAN,
+            number_predicate("isFinite"),
+            LogicalOperator::And,
+            number_predicate("isInteger"),
+        ),
+        LogicalOperator::And,
+        ast.expression_logical(SPAN, lower, LogicalOperator::And, upper),
+    );
+    let some = ast.expression_array(
+        SPAN,
+        ast.vec_from_array([
+            ArrayExpressionElement::from(ast.expression_string_literal(
+                SPAN,
+                oxc_string_value(ast, "some"),
+                None,
+            )),
+            ArrayExpressionElement::from(identifier()),
+        ]),
+    );
+    let none = ast.expression_string_literal(SPAN, oxc_string_value(ast, "none"), None);
+    let result = ast.expression_conditional(SPAN, valid, some, none);
+    let parameter = core_lam_param_to_oxc_formal_parameter(
+        ast,
+        &crate::terlan_typeck::CorePattern::Var(name.to_string()),
+    )?;
+    let parameters = ast.alloc_formal_parameters(
+        SPAN,
+        FormalParameterKind::FormalParameter,
+        ast.vec1(parameter),
+        oxc_ast::NONE,
+    );
+    let body = ast.alloc_function_body(
+        SPAN,
+        ast.vec(),
+        ast.vec1(ast.statement_expression(SPAN, result)),
+    );
+    let function = ast.expression_arrow_function(
+        SPAN,
+        true,
+        false,
+        oxc_ast::NONE,
+        parameters,
+        oxc_ast::NONE,
+        body,
+    );
+    Some(ast.expression_call(
+        SPAN,
+        function,
+        oxc_ast::NONE,
+        ast.vec1(Argument::from(core_expr_to_oxc_expression(ast, argument)?)),
+        false,
+    ))
 }

@@ -89,8 +89,8 @@ pub use float::{
     encode_float_log10_operation, encode_float_log1p_operation, encode_float_log2_operation,
     encode_float_log_operation, encode_float_pow_operation, encode_float_round_operation,
     encode_float_sin_operation, encode_float_sinh_operation, encode_float_sqrt_operation,
-    encode_float_tan_operation, encode_float_tanh_operation, encode_float_to_string_operation,
-    encode_float_trunc_operation,
+    encode_float_tan_operation, encode_float_tanh_operation, encode_float_to_int_exact_operation,
+    encode_float_to_string_operation, encode_float_trunc_operation,
 };
 pub use integer::{
     encode_int_from_string_base_operation, encode_int_from_string_operation,

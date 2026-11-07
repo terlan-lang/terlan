@@ -16,6 +16,15 @@ use super::*;
 ///   operations while keeping JavaScript names out of CoreIR and source syntax.
 pub(super) fn core_intrinsic_call_expr_to_js(call: &CoreIntrinsicCall) -> Option<String> {
     match &call.id {
+        CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::FloatToIntExact) => {
+            let [value] = call.args.as_slice() else {
+                return None;
+            };
+            Some(format!(
+                "((value) => Number.isFinite(value) && Number.isInteger(value) && value >= -9223372036854775808 && value < 9223372036854775808 ? [\"some\", value] : \"none\")({})",
+                core_expr_to_js(value)?
+            ))
+        }
         CoreIntrinsicId::Primitive(intrinsic) if float_math_method(intrinsic).is_some() => {
             let method = float_math_method(intrinsic)?;
             let arguments = call

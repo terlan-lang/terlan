@@ -18,11 +18,12 @@ use super::{
     encode_float_log10_operation, encode_float_log1p_operation, encode_float_log2_operation,
     encode_float_log_operation, encode_float_pow_operation, encode_float_round_operation,
     encode_float_sin_operation, encode_float_sinh_operation, encode_float_sqrt_operation,
-    encode_float_tan_operation, encode_float_tanh_operation, encode_float_to_string_operation,
-    encode_float_trunc_operation, execute_float_operation,
+    encode_float_tan_operation, encode_float_tanh_operation, encode_float_to_int_exact_operation,
+    encode_float_to_string_operation, encode_float_trunc_operation, execute_float_operation,
 };
 
 const OPTION_FLOAT: &str = "Apply(Option;Float)";
+const OPTION_INT: &str = "Apply(Option;Int)";
 
 fn heap() -> ActorHeap {
     ActorHeap::new(
@@ -42,6 +43,16 @@ fn registry() -> ManagedLayoutRegistry {
             1,
             2,
             vec![(Some("value".to_string()), ManagedFieldType::Float)],
+        )
+        .expect("Some"),
+        ManagedAggregateDescriptor::constructor(OPTION_INT, "None", 0, 2, Vec::new())
+            .expect("None"),
+        ManagedAggregateDescriptor::constructor(
+            OPTION_INT,
+            "Some",
+            1,
+            2,
+            vec![(Some("value".to_string()), ManagedFieldType::Int)],
         )
         .expect("Some"),
     ];
@@ -217,6 +228,41 @@ fn float_parse_allocates_some_none_and_accepts_decimal_underflow() {
                 .read_aggregate(output.cast(), &layout)
                 .expect("Some value");
             assert_eq!(view.field(0), Ok(ManagedFieldValue::Float(expected)));
+        }
+    }
+}
+
+#[test]
+fn exact_float_to_int_conversion_checks_integrality_and_i64_range() {
+    let mut heap = heap();
+    let layouts = registry();
+    let convert = encode_float_to_int_exact_operation(semantic(OPTION_INT));
+
+    for (value, expected) in [
+        (0.0, Some(0)),
+        (-0.0, Some(0)),
+        (42.0, Some(42)),
+        (i64::MIN as f64, Some(i64::MIN)),
+        (1.5, None),
+        (9_223_372_036_854_775_808.0, None),
+        (f64::INFINITY, None),
+        (f64::NAN, None),
+    ] {
+        let output = execute_float_operation(&mut heap, &layouts, &convert, &[float_word(value)])
+            .map(reference)
+            .expect("checked conversion");
+        let layout = layouts
+            .layout_for_reference(&heap, semantic(OPTION_INT), output)
+            .expect("option layout");
+        assert_eq!(
+            layout.variant_name(),
+            Some(if expected.is_some() { "Some" } else { "None" })
+        );
+        if let Some(expected) = expected {
+            let view = heap
+                .read_aggregate(output.cast(), &layout)
+                .expect("Some value");
+            assert_eq!(view.field(0), Ok(ManagedFieldValue::Int(expected)));
         }
     }
 }
