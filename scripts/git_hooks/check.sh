@@ -219,6 +219,9 @@ while IFS= read -r lane; do
     rust-boundary-audit)
       cargo test --locked -p terlan-rust-boundary-audit
       ;;
+    native-ir)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
+      ;;
     syntax|compiler)
       filter=compiler::
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi

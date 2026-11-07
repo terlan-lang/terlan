@@ -266,6 +266,9 @@ has_non_native_lowering(paths: List[String]): Bool ->
                 or has_non_native_lowering(rest)
     }.
 
+pub native_lowering(paths: List[String]): Bool ->
+    compiler(paths) and not has_non_native_lowering(paths).
+
 pub phase(paths: List[String]): Bool ->
     syntax(paths) or compiler(paths) or affected(paths, "tests/fixtures/phase_contract/", "").
 
@@ -292,11 +295,21 @@ pub release_contract(paths: List[String]): Bool ->
     workflow(paths)
         or affected(paths, "Makefile", "")
         or affected(paths, "mk/", "")
-        or affected(paths, "scripts/", ".sh")
+        or release_script(paths)
         or affected(paths, "scripts/self_validation/RepositoryValidation.terls", "")
         or affected(paths, "scripts/self_validation/tvm_aot_platform_matrix/", "")
         or affected(paths, "editors/editor.mk", "")
         or affected(paths, "rust-toolchain.toml", "").
+
+release_script(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.starts_with(path, "scripts/")
+    and String.ends_with(path, ".sh")
+    and path != "scripts/git_hooks/check.sh"
+                or release_script(rest)
+    }.
 
 pub bootstrap(paths: List[String]): Bool ->
     not workspace(paths)
@@ -350,6 +363,7 @@ pub lanes(paths: List[String]): List[String] ->
             workspace(paths) -> ["workspace"];
             rust_boundary_audit(paths) -> ["rust-boundary-audit"];
             commands(paths) -> command_lanes(paths);
+            native_lowering(paths) -> ["native-ir", "phase"];
             compiler(paths) -> ["compiler", "phase"];
             syntax(paths) -> ["syntax", "phase"];
             phase(paths) -> ["phase"];
