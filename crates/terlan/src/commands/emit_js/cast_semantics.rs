@@ -1,4 +1,6 @@
-use crate::terlan_typeck::{CoreExpr, CoreType};
+use std::collections::HashMap;
+
+use crate::terlan_typeck::{CoreExpr, CorePattern, CoreTupleTypeElem, CoreType};
 
 /// Returns whether a CoreIR cast can lower as a JavaScript identity expression.
 ///
@@ -143,53 +145,231 @@ pub(super) fn erase_linked_identity_casts(core: &mut crate::terlan_typeck::CoreM
                 .clone()
                 .map(|ty| ((function.name.clone(), function.arity), ty))
         })
-        .collect::<std::collections::HashMap<_, _>>();
+        .collect::<HashMap<_, _>>();
     for function in &mut core.functions {
         for clause in &mut function.clauses {
+            let mut environment = HashMap::new();
+            for (index, parameter) in function.params.iter().enumerate() {
+                let Some(parameter_type) = &parameter.core_ty else {
+                    continue;
+                };
+                if let Some(pattern) = clause.core_patterns.get(index).and_then(Option::as_ref) {
+                    bind_pattern_type(pattern, parameter_type, &mut environment);
+                } else {
+                    environment.insert(parameter.name.clone(), parameter_type.clone());
+                }
+            }
             for summary in clause
                 .guard
                 .iter_mut()
                 .chain(std::iter::once(&mut clause.body))
             {
                 if let Some(expr) = &mut summary.core_expr {
-                    crate::terlan_typeck::visit_core_expr_mut(expr, &mut |expr| {
-                        let CoreExpr::Cast {
-                            expr: value,
-                            target_type,
-                        } = expr
-                        else {
-                            return;
-                        };
-                        if linked_expr_type(value, &returns)
-                            .as_ref()
-                            .is_some_and(|source| {
-                                core_type_is_js_identity_assignable(source, target_type)
-                            })
-                        {
-                            *expr = *std::mem::replace(value, Box::new(CoreExpr::Int(0)));
-                        }
-                    });
+                    erase_expr_identity_casts(expr, &returns, &environment);
                 }
             }
         }
     }
 }
 
-fn linked_expr_type(
-    expr: &CoreExpr,
-    returns: &std::collections::HashMap<(String, usize), CoreType>,
+/// Erases checked identity casts while retaining the lexical types in scope.
+fn erase_expr_identity_casts(
+    expr: &mut CoreExpr,
+    returns: &HashMap<(String, usize), CoreType>,
+    environment: &HashMap<String, CoreType>,
 ) -> Option<CoreType> {
     match expr {
+        CoreExpr::Let { bindings, body } => {
+            let mut nested = environment.clone();
+            for binding in bindings {
+                if let Some(value_type) =
+                    erase_expr_identity_casts(&mut binding.value, returns, &nested)
+                {
+                    bind_pattern_type(&binding.pattern, &value_type, &mut nested);
+                }
+            }
+            erase_expr_identity_casts(body, returns, &nested)
+        }
+        CoreExpr::Case { scrutinee, clauses } => {
+            let scrutinee_type = erase_expr_identity_casts(scrutinee, returns, environment);
+            let branch_types = clauses
+                .iter_mut()
+                .map(|clause| {
+                    let mut nested = environment.clone();
+                    if let Some(scrutinee_type) = &scrutinee_type {
+                        bind_pattern_type(&clause.pattern, scrutinee_type, &mut nested);
+                    }
+                    if let Some(guard) = &mut clause.guard {
+                        erase_expr_identity_casts(guard, returns, &nested);
+                    }
+                    erase_expr_identity_casts(&mut clause.body, returns, &nested)
+                })
+                .collect::<Vec<_>>();
+            common_type(&branch_types)
+        }
+        CoreExpr::Lam {
+            params,
+            parameter_types,
+            body,
+        } => {
+            let mut nested = environment.clone();
+            for (index, pattern) in params.iter().enumerate() {
+                if let Some(parameter_type) = parameter_types.get(index).and_then(Option::as_ref) {
+                    bind_pattern_type(pattern, parameter_type, &mut nested);
+                }
+            }
+            let return_type = erase_expr_identity_casts(body, returns, &nested)?;
+            Some(CoreType::Arrow {
+                params: parameter_types
+                    .iter()
+                    .map(|parameter| parameter.clone().unwrap_or(CoreType::Dynamic))
+                    .collect(),
+                return_type: Box::new(return_type),
+            })
+        }
+        CoreExpr::ListComprehension {
+            expr,
+            generators,
+            guards,
+            ..
+        } => {
+            let mut nested = environment.clone();
+            for generator in generators {
+                let source_type =
+                    erase_expr_identity_casts(&mut generator.source, returns, &nested);
+                if let Some(CoreType::List(item_type)) = source_type {
+                    bind_pattern_type(&generator.pattern, &item_type, &mut nested);
+                }
+            }
+            for guard in guards {
+                erase_expr_identity_casts(guard, returns, &nested);
+            }
+            erase_expr_identity_casts(expr, returns, &nested)
+                .map(|item_type| CoreType::List(Box::new(item_type)))
+        }
+        _ => {
+            crate::terlan_typeck::visit_core_expr_children_mut(expr, &mut |child| {
+                erase_expr_identity_casts(child, returns, environment);
+            });
+            let replacement = match expr {
+                CoreExpr::Cast {
+                    expr: value,
+                    target_type,
+                } if linked_expr_type(value, returns, environment)
+                    .as_ref()
+                    .is_some_and(|source| {
+                        core_type_is_js_identity_assignable(source, target_type)
+                    }) =>
+                {
+                    Some(*std::mem::replace(value, Box::new(CoreExpr::Int(0))))
+                }
+                _ => None,
+            };
+            if let Some(replacement) = replacement {
+                *expr = replacement;
+            }
+            linked_expr_type(expr, returns, environment)
+        }
+    }
+}
+
+fn linked_expr_type(
+    expr: &CoreExpr,
+    returns: &HashMap<(String, usize), CoreType>,
+    environment: &HashMap<String, CoreType>,
+) -> Option<CoreType> {
+    match expr {
+        CoreExpr::Var(name) => environment.get(name).cloned(),
         CoreExpr::Call { function, args, .. } => {
             returns.get(&(function.clone(), args.len())).cloned()
         }
         CoreExpr::List(items) | CoreExpr::Array(items) if !items.is_empty() => {
-            let first = linked_expr_type(&items[0], returns)?;
+            let first = linked_expr_type(&items[0], returns, environment)?;
             items[1..]
                 .iter()
-                .all(|item| linked_expr_type(item, returns).as_ref() == Some(&first))
+                .all(|item| linked_expr_type(item, returns, environment).as_ref() == Some(&first))
                 .then(|| CoreType::List(Box::new(first)))
         }
         _ => inferred_core_expr_type(expr),
     }
+}
+
+/// Binds lexical names to the checked structural type of their pattern.
+fn bind_pattern_type(
+    pattern: &CorePattern,
+    ty: &CoreType,
+    environment: &mut HashMap<String, CoreType>,
+) {
+    match pattern {
+        CorePattern::Var(name) => {
+            environment.insert(name.clone(), ty.clone());
+        }
+        CorePattern::Alias { alias, pattern } => {
+            environment.insert(alias.clone(), ty.clone());
+            bind_pattern_type(pattern, ty, environment);
+        }
+        CorePattern::Tuple(patterns) => {
+            if let CoreType::Tuple(elements) = ty {
+                for (pattern, element) in patterns.iter().zip(elements) {
+                    let element_type = match element {
+                        CoreTupleTypeElem::Type(element_type)
+                        | CoreTupleTypeElem::Field {
+                            ty: element_type, ..
+                        } => element_type,
+                    };
+                    bind_pattern_type(pattern, element_type, environment);
+                }
+            }
+        }
+        CorePattern::List(patterns) => {
+            if let CoreType::List(item_type) = ty {
+                for pattern in patterns {
+                    bind_pattern_type(pattern, item_type, environment);
+                }
+            }
+        }
+        CorePattern::ListCons { head, tail } => {
+            if let CoreType::List(item_type) = ty {
+                bind_pattern_type(head, item_type, environment);
+                bind_pattern_type(tail, ty, environment);
+            }
+        }
+        CorePattern::Constructor { name, args, .. } => {
+            if let (Some(payload), Some(payload_type)) =
+                (args.first(), constructor_pattern_payload(ty, name))
+            {
+                bind_pattern_type(payload, payload_type, environment);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn constructor_pattern_payload<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
+    let constructor = name.rsplit('.').next()?;
+    match ty {
+        CoreType::Apply {
+            constructor: applied,
+            args,
+        } if applied.rsplit('.').next() == Some("Result") && args.len() == 2 => match constructor {
+            "Ok" => args.first(),
+            "Err" => args.get(1),
+            _ => None,
+        },
+        CoreType::Apply {
+            constructor: applied,
+            args,
+        } if applied.rsplit('.').next() == Some("Option") && args.len() == 1 => {
+            (constructor == "Some").then(|| &args[0])
+        }
+        _ => None,
+    }
+}
+
+fn common_type(types: &[Option<CoreType>]) -> Option<CoreType> {
+    let first = types.first()?.as_ref()?;
+    types
+        .iter()
+        .all(|ty| ty.as_ref() == Some(first))
+        .then(|| first.clone())
 }
