@@ -4,16 +4,53 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
+#[path = "src/compiler/syntax/build_support/lalrpop_cache.rs"]
+mod lalrpop_cache;
+
 fn main() {
     emit_checked_frontend_revision();
     emit_native_codegen_revision();
     emit_test_runner_revision();
     emit_native_build_policy();
-    println!("cargo:rerun-if-changed=src/compiler/syntax/terlan_lalrpop.lalrpop");
+    generate_lalrpop_parser();
+}
+
+/// Generates the feature-independent parser once per grammar and lockfile.
+fn generate_lalrpop_parser() {
+    let grammar = Path::new("src/compiler/syntax/terlan_lalrpop.lalrpop");
+    let lockfile = Path::new("../../Cargo.lock");
+    println!("cargo:rerun-if-changed={}", grammar.display());
+    println!("cargo:rerun-if-changed={}", lockfile.display());
+    let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
+        .join("compiler/syntax/terlan_lalrpop.rs");
+    let cache = env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .map(|path| path.join("terlan-lalrpop-cache"));
+    let identity = cache.as_ref().map(|_| {
+        lalrpop_cache::identity(
+            &fs::read(grammar).expect("read Terlan LALRPOP grammar"),
+            &fs::read(lockfile).expect("read workspace lockfile"),
+        )
+    });
+    if cache
+        .as_ref()
+        .zip(identity.as_ref())
+        .is_some_and(|(root, identity)| {
+            lalrpop_cache::restore(root, identity, &output)
+                .expect("restore cached Terlan LALRPOP parser")
+        })
+    {
+        return;
+    }
     lalrpop::Configuration::new()
         .use_cargo_dir_conventions()
         .process()
         .expect("generate the Terlan LALRPOP parser");
+    if let Some((root, identity)) = cache.as_ref().zip(identity.as_ref()) {
+        lalrpop_cache::record(root, identity, &output)
+            .expect("record cached Terlan LALRPOP parser");
+    }
 }
 
 /// Binds checked-implementation caches to the compiler phases that produced

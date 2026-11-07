@@ -171,6 +171,10 @@ pub workspace(paths: List[String]): Bool ->
         or general_fixtures(paths)
         or non_compiler_rust(paths).
 
+pub build_support(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/build.rs", "")
+        or affected(paths, "crates/terlan/src/compiler/syntax/build_support/", "").
+
 general_fixtures(paths: List[String]): Bool ->
     case paths {
         [] -> false;
@@ -187,6 +191,7 @@ non_compiler_rust(paths: List[String]): Bool ->
             String.ends_with(path, ".rs")
     and not String.starts_with(path, "crates/terlan/src/compiler/")
     and not String.starts_with(path, "crates/terlan/src/commands/")
+    and path != "crates/terlan/build.rs"
     and not String.starts_with(path, "tools/rust_boundary_audit/")
     and not String.starts_with(path, "tree-sitter-terlan/")
                 or non_compiler_rust(rest)
@@ -239,9 +244,18 @@ other_commands(paths: List[String]): Bool ->
     }.
 
 pub syntax(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan/src/compiler/syntax/", "")
+    syntax_sources(paths)
         or affected(paths, "docs/grammar/", "")
         or affected(paths, "tree-sitter-terlan/", "").
+
+syntax_sources(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.starts_with(path, "crates/terlan/src/compiler/syntax/")
+    and not String.starts_with(path, "crates/terlan/src/compiler/syntax/build_support/")
+                or syntax_sources(rest)
+    }.
 
 pub native_bindings(paths: List[String]): Bool ->
     syntax(paths)
@@ -375,7 +389,7 @@ pub lanes(paths: List[String]): List[String] ->
             commands(paths) -> command_lanes(paths);
             native_lowering(paths) -> ["native-ir", "phase"];
             compiler(paths) -> ["compiler", "phase"];
-            syntax(paths) -> ["syntax", "phase"];
+            syntax(paths) or build_support(paths) -> ["syntax", "phase"];
             phase(paths) -> ["phase"];
             true -> List.new[String]()
         };

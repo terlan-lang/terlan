@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod build_support;
 mod dependency_modules;
 pub(crate) mod integer_literals;
 pub(crate) use dependency_modules::{collect_remote_modules, syntax_dependency_modules};

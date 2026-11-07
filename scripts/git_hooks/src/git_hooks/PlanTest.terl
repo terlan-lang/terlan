@@ -221,7 +221,11 @@ pub interface_changes_are_checked(): Bool ->
 
 @test
 pub rust_build_scripts_require_clippy(): Bool ->
-    Plan.lanes(["crates/terlan/build.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
+    Plan.lanes(["crates/terlan/build.rs"]) == ["shell", "clippy", "rust-reports", "syntax", "phase"].
+
+@test
+pub parser_cache_support_uses_the_syntax_lane(): Bool ->
+    Plan.lanes(["crates/terlan/src/compiler/syntax/build_support/lalrpop_cache.rs"]) == ["shell", "clippy", "rust-reports", "syntax", "phase"].
 
 @test
 pub clippy_configuration_changes_are_checked(): Bool ->
