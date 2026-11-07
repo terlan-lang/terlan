@@ -6,7 +6,9 @@ use crate::runtime::native_image::managed::{
     encode_erased_value_box_operation, encode_erased_value_is_type_operation,
     encode_erased_value_unbox_operation, managed_erased_value_semantic_id,
 };
-use crate::terlan_typeck::{CoreExpr, CoreIfClause, CoreIntrinsicCall, CoreIntrinsicId, CoreType};
+use crate::terlan_typeck::{
+    CoreCaseClause, CoreExpr, CoreIfClause, CoreIntrinsicCall, CoreIntrinsicId, CoreType,
+};
 
 use super::{
     infer_native_type_for_lowering, lower_expr_with_constructors,
@@ -84,13 +86,55 @@ pub(super) fn lower_cast(
                     })
                     .collect(),
             };
-            return lower_expr_with_constructors(
+            let core_types = super::core_types_from_native(param_types, constructors);
+            let function_core_types = super::core_types_from_native(function_types, constructors);
+            return super::super::structured_case::lower_lexical_expr(
                 &contextual,
                 params,
                 param_types,
-                functions,
-                function_types,
-                constructors,
+                &core_types,
+                super::super::structured_case::StructuredCaseEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types: &function_core_types,
+                    constructors,
+                },
+            )
+            .map_err(Into::into);
+        }
+    }
+    // A checked case has the same contextual join requirement as an if. Each
+    // selected body must construct the exact managed identity established by
+    // type checking, even when its constructor is otherwise underconstrained.
+    if let CoreExpr::Case { scrutinee, clauses } = expr {
+        if !clauses.is_empty() {
+            let contextual = CoreExpr::Case {
+                scrutinee: scrutinee.clone(),
+                clauses: clauses
+                    .iter()
+                    .map(|clause| CoreCaseClause {
+                        pattern: clause.pattern.clone(),
+                        guard: clause.guard.clone(),
+                        body: CoreExpr::Cast {
+                            expr: Box::new(clause.body.clone()),
+                            target_type: target_type.clone(),
+                        },
+                    })
+                    .collect(),
+            };
+            let core_types = super::core_types_from_native(param_types, constructors);
+            let function_core_types = super::core_types_from_native(function_types, constructors);
+            return super::super::structured_case::lower_lexical_expr(
+                &contextual,
+                params,
+                param_types,
+                &core_types,
+                super::super::structured_case::StructuredCaseEnvironment {
+                    functions,
+                    function_types,
+                    function_core_types: &function_core_types,
+                    constructors,
+                },
             )
             .map_err(Into::into);
         }
@@ -226,6 +270,7 @@ pub(super) fn lower_cast(
     if let Some(lowered) = lower_structural_constructor_call(
         expr,
         target_type,
+        constructors,
         |field, expected_core| {
             if let Some(lowered) = super::super::collection_values::lower_boundary_collection_value(
                 field,

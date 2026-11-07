@@ -402,6 +402,7 @@ pub(super) fn zero_field_managed_variant_layout<'a>(
 pub(super) fn lower_structural_constructor_call(
     expr: &CoreExpr,
     target: &CoreType,
+    layouts: &NativeConstructorLayouts,
     lower_field: impl Fn(&CoreExpr, &CoreType) -> Result<(NativeExpr, NativeType), String>,
 ) -> Result<Option<NativeExpr>, String> {
     let CoreExpr::ConstructorCall {
@@ -431,7 +432,12 @@ pub(super) fn lower_structural_constructor_call(
                     field_type.contract_text()
                 )
             })?;
-        let (field, actual) = lower_field(argument, field_type)?;
+        let (field, actual) =
+            if let Some(field) = lower_zero_field_managed_variant(argument, expected, layouts)? {
+                (field, expected)
+            } else {
+                lower_field(argument, field_type)?
+            };
         if actual != expected {
             return Err(format!(
                 "error[native_ir.structural_constructor_field]: `{name}` field {index} requires {expected:?}, found {actual:?}"

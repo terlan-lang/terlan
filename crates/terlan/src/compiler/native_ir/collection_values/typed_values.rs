@@ -180,6 +180,7 @@ pub(in crate::compiler::native_ir) fn try_lower_typed_value(
     if let Some(value) = super::super::constructors::lower_structural_constructor_call(
         structural_value,
         expected,
+        constructors,
         |field, field_type| {
             let ty = native_type(Some(field_type), &field_type.contract_text(), constructors)
                 .ok_or_else(|| {
@@ -188,43 +189,15 @@ pub(in crate::compiler::native_ir) fn try_lower_typed_value(
                         field_type.contract_text()
                     )
                 })?;
-            let lowered = if is_general_control_value(field) {
-                let actual = infer_native_type_with_constructors(
-                    field,
-                    param_types,
-                    function_types,
-                    constructors,
-                )
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.collection_control_type]: cannot infer `{}` field value",
-                        field_type.contract_text()
-                    )
-                })?;
-                if actual != ty {
-                    return Err(format!(
-                        "error[native_ir.collection_control_type]: expected {ty:?}, found {actual:?}"
-                    ));
-                }
-                lower_expr_with_constructors(
-                    field,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?
-            } else {
-                lower_typed_value(
-                    field,
-                    field_type,
-                    params,
-                    param_types,
-                    functions,
-                    function_types,
-                    constructors,
-                )?
-            };
+            let lowered = lower_typed_value(
+                field,
+                field_type,
+                params,
+                param_types,
+                functions,
+                function_types,
+                constructors,
+            )?;
             Ok((lowered, ty))
         },
     )? {

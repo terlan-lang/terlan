@@ -442,25 +442,15 @@ fn lower_case(
             .transpose()?
             .unwrap_or(NativeExpr::Bool(true));
         let condition = bool_and(plan.predicate, bind_values(&plan.bindings, guard));
-        let selected = if matches!(clause.body, CoreExpr::If { .. }) {
-            if let Some(expected) = managed_result_core {
-                lower_lexical_expr_as(
-                    &clause.body,
-                    expected,
-                    &binding_slots,
-                    &binding_types,
-                    &binding_core_types,
-                    environment,
-                )?
-            } else {
-                lower_child(
-                    &clause.body,
-                    &binding_slots,
-                    &binding_types,
-                    &binding_core_types,
-                    environment,
-                )?
-            }
+        let selected = if let Some(expected) = managed_result_core {
+            lower_lexical_expr_as(
+                &clause.body,
+                expected,
+                &binding_slots,
+                &binding_types,
+                &binding_core_types,
+                environment,
+            )?
         } else {
             lower_child(
                 &clause.body,

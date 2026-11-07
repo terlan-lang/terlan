@@ -414,6 +414,121 @@ pub constructor Parsed { (total: Int): Parsed -> Parsed {total: total} }.
 }
 
 #[test]
+fn mapped_result_identity_survives_consecutive_refutable_let_bindings() {
+    check_sources(&[
+        r#"
+module mapped_result_identity.
+import mapped_result_identity.Failure.
+import mapped_result_identity.Provider.{make}.
+import std.core.Result.{Err, Ok}.
+import type mapped_result_identity.ConfigViolation.{ConfigViolation}.
+import type mapped_result_identity.Failure.{Failure}.
+import type std.core.Result.{Result}.
+make_config(): Result[Int, ConfigViolation] -> Ok(6).
+run(): Result[Int, Failure] ->
+    let {
+        Ok(config) <- case make_config() {
+            Err(_) -> Err(Failure.CONFIG);
+            Ok(value) -> Ok(value)
+        };
+        Ok(output) <- make(config)
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err(Failure.PATTERN)
+    };
+    Ok(output).
+pub check(): Bool -> run() == Ok(7).
+"#,
+        r#"
+module mapped_result_identity.ConfigViolation.
+pub type ConfigViolation: Int = INVALID = 1.
+"#,
+        r#"
+module mapped_result_identity.Failure.
+pub type Failure: Int = CONFIG = 2 | PATTERN = 3.
+"#,
+        r#"
+module mapped_result_identity.Provider.
+import type mapped_result_identity.Failure.{Failure}.
+import std.core.Result.Ok.
+import type std.core.Result.{Result}.
+pub make(value: Int): Result[Int, Failure] -> Ok(value + 1).
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
+fn contextual_option_identity_survives_case_if_and_record_storage() {
+    check_sources(&[
+        r#"
+module contextual_option_identity.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import type std.core.Option.{Option}.
+import type std.core.Result.{Result}.
+pub struct Evidence { value: Int }.
+pub struct Holder { latest: Option[Evidence] }.
+make_evidence(accepted: Bool): Result[Evidence, Int] ->
+    if { accepted -> Ok(Evidence {value: 42}); true -> Err(1) }.
+build(warm: Bool): Holder ->
+    let evidence = if {
+        not warm -> None;
+        true -> case make_evidence(true) {
+            Err(_) -> None;
+            Ok(value) -> Some(value)
+        }
+    };
+    Holder {latest: evidence}.
+pub check(): Bool ->
+    case build(false).latest { None -> true; Some(_) -> false }
+        and case build(true).latest {
+            Some(evidence) -> evidence.value == 42;
+            None -> false
+        }.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
+fn nullary_mixed_union_variants_are_managed_inside_result() {
+    check_sources(&[
+        r#"
+module mixed_union_result.
+import mixed_union_result.Failure.{ConfigMismatch, DetailedFailure}.
+import std.core.Result.{Err}.
+import type mixed_union_result.Failure.{Failure}.
+import type std.core.Result.{Result}.
+fail_config(): Result[Int, Failure] -> Err(ConfigMismatch()).
+fail_detail(): Result[Int, Failure] -> Err(DetailedFailure(42)).
+pub check(): Bool ->
+    (case fail_config() {
+        Err(ConfigMismatch()) -> true;
+        _ -> false
+    }) and (case fail_detail() {
+        Err(DetailedFailure(code)) -> code == 42;
+        _ -> false
+    }).
+"#,
+        r#"
+module mixed_union_result.Failure.
+pub type ConfigMismatchTag = Atom["config_mismatch"].
+pub type DetailTag = Atom["detail"].
+pub type Failure = ConfigMismatchTag | {DetailTag, Int}.
+pub constructor ConfigMismatch {
+    (): Failure -> ConfigMismatchTag
+}.
+pub constructor DetailedFailure {
+    (code: Int): Failure -> {DetailTag, code}
+}.
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
 fn source_constructor_retains_explicit_empty_and_enclosing_type_arguments() {
     let modules = check_sources(&[r#"
 module constructor_explicit_empty.

@@ -707,40 +707,17 @@ pub(super) fn lower_typed_value(
         return Ok(lowered);
     }
     if is_general_control_value(value) {
-        let expected_native = native_type(Some(expected), &expected.contract_text(), constructors)
-            .ok_or_else(|| {
-                format!(
-                    "error[native_ir.collection_control_type]: `{}` is not native",
-                    expected.contract_text()
-                )
-            })?;
-        let actual =
-            infer_native_type_with_constructors(value, param_types, function_types, constructors)
-                .ok_or_else(|| {
-                format!(
-                    "error[native_ir.collection_control_type]: cannot infer `{value:?}` as `{}`",
-                    expected.contract_text()
-                )
-            })?;
-        if actual != expected_native {
-            return Err(format!(
-                "error[native_ir.collection_control_type]: expected {expected_native:?}, found {actual:?}"
-            ));
-        }
-        let core_types = super::expression::core_types_from_native(param_types, constructors);
-        let function_core_types =
-            super::expression::core_types_from_native(function_types, constructors);
-        return super::structured_case::lower_lexical_expr(
-            value,
+        let contextual = CoreExpr::Cast {
+            expr: Box::new(value.clone()),
+            target_type: expected.clone(),
+        };
+        return lower_expr_with_constructors(
+            &contextual,
             params,
             param_types,
-            &core_types,
-            super::structured_case::StructuredCaseEnvironment {
-                functions,
-                function_types,
-                function_core_types: &function_core_types,
-                constructors,
-            },
+            functions,
+            function_types,
+            constructors,
         );
     }
     Err(format!(
