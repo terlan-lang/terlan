@@ -4,16 +4,26 @@ import fixture.Adapter.
 import fixture.Driver.
 import fixture.Driver.{run}.
 import fixture.Provider.
-import fixture.Provider.{ImportedAdapter}.
+import fixture.Provider.{ImportedAdapter, ImportedInput, ImportedModel, ImportedState}.
 
 import type fixture.Adapter.{Adapter}.
 import type fixture.Driver.{DriverFailure, DriverState}.
 import type fixture.Provider.{ImportedAdapter}.
 import type fixture.Provider.{ImportedFailure}.
+import type fixture.Adapter.{AggregateTransition}.
+import type fixture.Provider.{ImportedInput, ImportedObservation, ImportedState, MixedFailure}.
 import type std.core.Result.{Result}.
 
 pub execute(): Result[DriverState[Int], DriverFailure[ImportedFailure]] ->
     run(ImportedAdapter(), 0).
+
+pub execute_mixed(
+    outcome: Int,
+): Result[AggregateTransition[ImportedState, ImportedObservation], MixedFailure] ->
+    ImportedModel().observe(
+        ImportedState(7, 10),
+        ImportedInput(42, outcome),
+    ).
 
 pub main(): Unit ->
     let _result = execute();

@@ -56,6 +56,7 @@ pub(super) fn materialize(
             constructors.push(CoreConstructorDecl {
                 implementation: Some(CoreConstructorImplementation {
                     function: function.clone(),
+                    generic_params: generic_params.clone(),
                     defaults,
                 }),
                 physical_body: None,

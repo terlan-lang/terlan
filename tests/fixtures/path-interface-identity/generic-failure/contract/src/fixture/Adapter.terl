@@ -12,3 +12,17 @@ pub trait Adapter[Implementation, State, Failure] {
         state: State,
     ): Result[Transition[State], Failure].
 }.
+
+pub struct AggregateTransition[State, Observation] {
+    previous: State,
+    current: State,
+    observation: Observation,
+}.
+
+pub trait Processor[Implementation, State, Input, Observation, Failure] {
+    observe(
+        implementation: Implementation,
+        state: State,
+        input: Input,
+    ): Result[AggregateTransition[State, Observation], Failure].
+}.

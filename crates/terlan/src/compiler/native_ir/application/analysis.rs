@@ -6,7 +6,9 @@ use super::*;
 /// authoritative constructor/type layout already installed for the same
 /// semantic variant. Expression scans lack constructor-field context and can
 /// otherwise reintroduce a narrow `Some(T)` field after NativeIR lowering has
-/// correctly selected `Option[T]`.
+/// correctly selected `Option[T]`. Their synthesized display name may differ
+/// from the declared constructor name, so semantic identity and discriminant
+/// own deduplication.
 pub(super) fn merge_expression_managed_layouts(
     layouts: &mut Vec<Arc<[u8]>>,
     additions: Vec<Arc<[u8]>>,
@@ -20,7 +22,6 @@ pub(super) fn merge_expression_managed_layouts(
                 .is_some_and(|existing| {
                     existing.managed().semantic_id() == candidate.managed().semantic_id()
                         && existing.kind() == candidate.kind()
-                        && existing.variant_name() == candidate.variant_name()
                         && existing.discriminant() == candidate.discriminant()
                 })
         });

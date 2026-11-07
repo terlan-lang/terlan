@@ -568,6 +568,9 @@ pub struct CoreConstructorDecl {
 pub struct CoreConstructorImplementation {
     /// Provider-local callable receiving fixed arguments and one packed vararg list.
     pub function: String,
+    /// Constructor type parameters retained for specialization-aware routing.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub generic_params: Vec<String>,
     /// Provider-local default callables, indexed by fixed parameter position.
     /// Each receives the preceding parameters exactly once in declaration order.
     pub defaults: Vec<Option<String>>,

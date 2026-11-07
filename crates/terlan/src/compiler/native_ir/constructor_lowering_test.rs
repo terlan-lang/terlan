@@ -8,11 +8,13 @@ use crate::terlan_hir::{
 use crate::terlan_syntax::parse_module_as_syntax_output;
 use crate::terlan_typeck::{
     lower_syntax_module_output_to_core, type_check_syntax_module_output, CoreConstructorDecl,
-    CoreExpr, CoreParam, CoreTupleTypeElem, CoreType,
+    CoreConstructorImplementation, CoreExpr, CoreParam, CoreTupleTypeElem, CoreType,
 };
 
 use super::constructor_chain::lower_constructor_chains;
-use super::constructors::{install_structural_type_layouts, native_constructor_layouts};
+use super::constructors::{
+    has_direct_source_layout, install_structural_type_layouts, native_constructor_layouts,
+};
 use super::expression::lower_expr_with_constructors;
 use super::native_object_test_support::{
     assert_managed_native_object_invocations, NativeObjectInvocation,
@@ -181,6 +183,207 @@ fn declaration(name: &str, parameter: &str) -> CoreConstructorDecl {
             args: vec![CoreType::Int, CoreType::Int],
         }),
     }
+}
+
+fn forwarding_source_declaration(
+    name: &str,
+    params: Vec<CoreParam>,
+    body: CoreExpr,
+    return_type: CoreType,
+) -> CoreConstructorDecl {
+    CoreConstructorDecl {
+        implementation: Some(CoreConstructorImplementation {
+            function: format!("$constructor_{name}"),
+            generic_params: Vec::new(),
+            defaults: vec![None; params.len()],
+        }),
+        physical_body: Some(body),
+        name: name.to_string(),
+        public: true,
+        min_arity: params.len(),
+        params,
+        vararg: None,
+        return_type: return_type.contract_text(),
+        core_return_type: Some(return_type),
+    }
+}
+
+#[test]
+fn forwarding_source_layouts_follow_semantic_union_order() {
+    let union = CoreType::Union(vec![
+        CoreType::AtomLiteral("zeta".to_string()),
+        CoreType::AtomLiteral("alpha".to_string()),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("payload".to_string())),
+            CoreTupleTypeElem::Type(CoreType::Int),
+        ]),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("named_payload".to_string())),
+            CoreTupleTypeElem::Field {
+                name: "reason".to_string(),
+                ty: CoreType::Int,
+            },
+        ]),
+    ]);
+    let reason = CoreParam {
+        name: "reason".to_string(),
+        ty: "Int".to_string(),
+        core_ty: Some(CoreType::Int),
+    };
+    let declarations = vec![
+        forwarding_source_declaration(
+            "Alpha",
+            Vec::new(),
+            CoreExpr::Atom("alpha".to_string()),
+            union.clone(),
+        ),
+        forwarding_source_declaration(
+            "Payload",
+            vec![reason.clone()],
+            CoreExpr::Tuple(vec![
+                CoreExpr::Atom("payload".to_string()),
+                CoreExpr::Var("reason".to_string()),
+            ]),
+            union.clone(),
+        ),
+        forwarding_source_declaration(
+            "Zeta",
+            Vec::new(),
+            CoreExpr::Cast {
+                expr: Box::new(CoreExpr::Atom("zeta".to_string())),
+                target_type: union.clone(),
+            },
+            union.clone(),
+        ),
+        forwarding_source_declaration(
+            "NamedPayload",
+            vec![reason.clone()],
+            CoreExpr::Tuple(vec![
+                CoreExpr::Atom("named_payload".to_string()),
+                CoreExpr::Var("reason".to_string()),
+            ]),
+            union.clone(),
+        ),
+    ];
+    assert!(declarations.iter().all(has_direct_source_layout));
+    let mut layouts =
+        native_constructor_layouts(&[("forwarding", declarations.as_slice())], "forwarding")
+            .expect("forwarding constructor layouts");
+    assert_eq!(
+        layouts[&("Zeta".to_string(), 0)].descriptor.discriminant(),
+        Some(0)
+    );
+    assert_eq!(
+        layouts[&("Alpha".to_string(), 0)].descriptor.discriminant(),
+        Some(1)
+    );
+    assert_eq!(
+        layouts[&("Payload".to_string(), 1)]
+            .descriptor
+            .discriminant(),
+        Some(2)
+    );
+    assert_eq!(
+        layouts[&("NamedPayload".to_string(), 1)]
+            .descriptor
+            .discriminant(),
+        Some(3)
+    );
+    assert_eq!(
+        layouts[&("NamedPayload".to_string(), 1)]
+            .descriptor
+            .variant_name(),
+        Some("Named_payload")
+    );
+    assert_eq!(
+        layouts[&("Payload".to_string(), 1)].descriptor.fields()[0].name(),
+        None
+    );
+    assert_eq!(
+        layouts[&("NamedPayload".to_string(), 1)]
+            .descriptor
+            .fields()[0]
+            .name(),
+        Some("reason")
+    );
+    assert!(layouts
+        .values()
+        .all(|layout| layout.descriptor.variant_count() == Some(4)));
+
+    let before = layouts.len();
+    install_structural_type_layouts([&union], &mut layouts)
+        .expect("complete constructor union suppresses structural duplicates");
+    assert_eq!(layouts.len(), before);
+
+    let mut rejected = declarations[1].clone();
+    rejected.physical_body = Some(CoreExpr::Tuple(vec![
+        CoreExpr::Atom("payload".to_string()),
+        CoreExpr::Int(1),
+    ]));
+    assert!(!has_direct_source_layout(&rejected));
+    rejected.physical_body = None;
+    assert!(!has_direct_source_layout(&rejected));
+    rejected = declarations[1].clone();
+    rejected.min_arity = 0;
+    assert!(!has_direct_source_layout(&rejected));
+    rejected = declarations[1].clone();
+    rejected.vararg = Some(reason.clone());
+    assert!(!has_direct_source_layout(&rejected));
+    rejected = declarations[1].clone();
+    rejected.implementation.as_mut().unwrap().defaults[0] = Some("default".to_string());
+    assert!(!has_direct_source_layout(&rejected));
+    rejected = declarations[1].clone();
+    rejected
+        .implementation
+        .as_mut()
+        .unwrap()
+        .generic_params
+        .push("Reason".to_string());
+    assert!(!has_direct_source_layout(&rejected));
+    assert!(!has_direct_source_layout(&declaration(
+        "LayoutOnly",
+        "value"
+    )));
+
+    let atom_union = CoreType::Union(vec![
+        CoreType::AtomLiteral("enabled".to_string()),
+        CoreType::AtomLiteral("disabled".to_string()),
+    ]);
+    let atom_only = forwarding_source_declaration(
+        "Enabled",
+        Vec::new(),
+        CoreExpr::Atom("enabled".to_string()),
+        atom_union,
+    );
+    assert!(!has_direct_source_layout(&atom_only));
+
+    let tuple = CoreType::Tuple(vec![
+        CoreTupleTypeElem::Type(CoreType::AtomLiteral("framed".to_string())),
+        CoreTupleTypeElem::Type(CoreType::Int),
+    ]);
+    let tuple_only = forwarding_source_declaration(
+        "Wrap",
+        vec![reason.clone()],
+        CoreExpr::Tuple(vec![
+            CoreExpr::Atom("framed".to_string()),
+            CoreExpr::Var("reason".to_string()),
+        ]),
+        tuple,
+    );
+    assert!(!has_direct_source_layout(&tuple_only));
+
+    let unknown = forwarding_source_declaration(
+        "Unknown",
+        Vec::new(),
+        CoreExpr::Atom("unknown".to_string()),
+        union,
+    );
+    assert!(!has_direct_source_layout(&unknown));
+    assert!(
+        native_constructor_layouts(&[("forwarding", &[unknown])], "forwarding")
+            .expect("unknown physical variant is excluded")
+            .is_empty()
+    );
 }
 
 #[test]

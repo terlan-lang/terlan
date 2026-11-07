@@ -1,8 +1,9 @@
 module app.MainTest.
 
-import app.Main.{execute}.
+import app.Main.{execute, execute_mixed}.
 import fixture.Driver.{AdapterFailed}.
-import std.core.Result.{Err}.
+import fixture.Provider.{ConfigMismatch, DetailedFailure}.
+import std.core.Result.{Err, Ok}.
 
 import type fixture.Provider.{ImportedFailure}.
 
@@ -10,3 +11,13 @@ import type fixture.Provider.{ImportedFailure}.
 pub imported_trait_failure_keeps_concrete_constructor_argument(): Bool ->
     execute()
         == Err(AdapterFailed(ImportedFailure.REJECTED)).
+
+@test
+pub imported_mixed_failure_allocates_inside_aggregate_result(): Bool ->
+    execute_mixed(0) == Err(ConfigMismatch())
+        and execute_mixed(1) == Err(DetailedFailure(42))
+        and case execute_mixed(2) {
+            Ok(transition) -> transition.current.value == 11
+                and transition.observation.value == 42;
+            _ -> false
+        }.

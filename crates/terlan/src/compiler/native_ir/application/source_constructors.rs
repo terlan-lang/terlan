@@ -26,8 +26,44 @@ pub(super) fn lower(cores: &mut [CoreModule]) -> NativeIrResult<()> {
         {
             bodies.insert((index, function.name.clone()), function.clone());
         }
-        for constructor in &core.constructors {
-            if constructor.implementation.is_some() {
+    }
+    for (index, core) in cores.iter_mut().enumerate() {
+        let mut direct_implementations = HashSet::new();
+        let physical_atoms = core
+            .types
+            .iter()
+            .filter_map(|declaration| match declaration.core_body.as_ref() {
+                Some(CoreType::AtomLiteral(atom)) => Some((declaration.name.clone(), atom.clone())),
+                _ => None,
+            })
+            .collect::<HashMap<_, _>>();
+        for constructor in &mut core.constructors {
+            if constructor.physical_body.is_none() {
+                constructor.physical_body = constructor
+                    .implementation
+                    .as_ref()
+                    .and_then(|implementation| {
+                        bodies.get(&(index, implementation.function.clone()))
+                    })
+                    .and_then(|function| {
+                        let [clause] = function.clauses.as_slice() else {
+                            return None;
+                        };
+                        clause
+                            .guard
+                            .is_none()
+                            .then(|| clause.body.core_expr.clone())
+                            .flatten()
+                    });
+            }
+            if let Some(body) = constructor.physical_body.as_mut() {
+                canonicalize_physical_tag(body, &constructor.params, &physical_atoms);
+            }
+            if let Some(implementation) = constructor.implementation.as_ref() {
+                if super::super::constructors::has_direct_source_layout(constructor) {
+                    direct_implementations.insert(implementation.function.clone());
+                    continue;
+                }
                 providers
                     .entry(format!("{}.{}", core.module, constructor.name))
                     .or_insert_with(|| (index, Vec::new()))
@@ -35,6 +71,8 @@ pub(super) fn lower(cores: &mut [CoreModule]) -> NativeIrResult<()> {
                     .push(constructor.clone());
             }
         }
+        core.functions
+            .retain(|function| !direct_implementations.contains(&function.name));
     }
     if providers.is_empty() {
         return Ok(());
@@ -88,6 +126,34 @@ pub(super) fn lower(cores: &mut [CoreModule]) -> NativeIrResult<()> {
         cores[provider].functions.push(function);
     }
     Ok(())
+}
+
+fn canonicalize_physical_tag(
+    body: &mut CoreExpr,
+    parameters: &[CoreParam],
+    atoms: &HashMap<String, String>,
+) {
+    let body = match body {
+        CoreExpr::Cast { expr, .. } => expr.as_mut(),
+        body => body,
+    };
+    let candidate = match body {
+        CoreExpr::Tuple(items) => items.first_mut(),
+        body if parameters.is_empty() => Some(body),
+        _ => None,
+    };
+    let Some(candidate) = candidate else {
+        return;
+    };
+    let CoreExpr::Var(name) = candidate else {
+        return;
+    };
+    if parameters.iter().any(|parameter| parameter.name == *name) {
+        return;
+    }
+    if let Some(atom) = atoms.get(name).cloned() {
+        *candidate = CoreExpr::Atom(atom);
+    }
 }
 
 /// An internal struct initializer has the enclosing constructor's nominal

@@ -493,30 +493,57 @@ pub check(): Bool ->
 }
 
 #[test]
-fn nullary_mixed_union_variants_are_managed_inside_result() {
-    check_sources(&[
-        r#"
+fn restored_mixed_union_bodies_are_managed_beside_generic_aggregate_results() {
+    let modules = check_sources_with_core_mutator(
+        &[
+            r#"
 module mixed_union_result.
 import mixed_union_result.Failure.{ConfigMismatch, DetailedFailure}.
-import std.core.Result.{Err}.
+import mixed_union_result.Transition.
+import std.core.Result.{Err, Ok}.
 import type mixed_union_result.Failure.{Failure}.
+import type mixed_union_result.Transition.{Transition}.
 import type std.core.Result.{Result}.
-fail_config(): Result[Int, Failure] -> Err(ConfigMismatch()).
-fail_detail(): Result[Int, Failure] -> Err(DetailedFailure(42)).
+pub struct Model { config: Int }.
+pub struct State { config: Int, value: Int }.
+pub struct Observation { value: Int }.
+pub (model: Model) observe(
+    state: State,
+): Result[Transition[State, Observation], Failure] ->
+    if {
+        state.config != model.config -> Err(ConfigMismatch());
+        true -> Ok(Transition(state, State {config: state.config, value: 42}, Observation {value: 7}))
+    }.
+fail_detail(): Result[Transition[State, Observation], Failure] -> Err(DetailedFailure(42)).
 pub check(): Bool ->
-    (case fail_config() {
+    (case Model {config: 1}.observe(State {config: 2, value: 0}) {
         Err(ConfigMismatch()) -> true;
+        _ -> false
+    }) and (case Model {config: 1}.observe(State {config: 1, value: 0}) {
+        Ok(transition) -> transition.current.value == 42 and transition.observation.value == 7;
         _ -> false
     }) and (case fail_detail() {
         Err(DetailedFailure(code)) -> code == 42;
         _ -> false
     }).
 "#,
-        r#"
+            r#"
 module mixed_union_result.Failure.
 pub type ConfigMismatchTag = Atom["config_mismatch"].
+pub type InvalidModelTag = Atom["invalid_model"].
+pub type InvalidStateTag = Atom["invalid_state"].
+pub type InvalidInputTag = Atom["invalid_input"].
+pub type ObservationRejectedTag = Atom["observation_rejected"].
+pub type TransitionRejectedTag = Atom["transition_rejected"].
 pub type DetailTag = Atom["detail"].
-pub type Failure = ConfigMismatchTag | {DetailTag, Int}.
+pub type Failure =
+      InvalidModelTag
+    | InvalidStateTag
+    | InvalidInputTag
+    | ConfigMismatchTag
+    | ObservationRejectedTag
+    | TransitionRejectedTag
+    | {DetailTag, Int}.
 pub constructor ConfigMismatch {
     (): Failure -> ConfigMismatchTag
 }.
@@ -524,8 +551,43 @@ pub constructor DetailedFailure {
     (code: Int): Failure -> {DetailTag, code}
 }.
 "#,
-        include_str!("../../../../../std/core/Result.terl"),
-    ]);
+            r#"
+module mixed_union_result.Transition.
+pub struct Transition[State, Observation] {
+    previous: State,
+    current: State,
+    observation: Observation,
+}.
+pub constructor Transition[State, Observation] {
+    (previous: State, current: State, observation: Observation): Transition[State, Observation] ->
+        Transition {previous: previous, current: current, observation: observation}
+}.
+"#,
+            include_str!("../../../../../std/core/Result.terl"),
+        ],
+        |cores| {
+            for core in cores {
+                for constructor in &mut core.constructors {
+                    constructor.physical_body = None;
+                }
+            }
+        },
+    );
+    let variants = modules
+        .iter()
+        .flat_map(|module| &module.managed_layouts)
+        .filter_map(|encoded| {
+            crate::runtime::native_image::managed::decode_aggregate_layout(encoded)
+                .ok()
+                .and_then(|descriptor| descriptor.variant_name().map(str::to_string))
+        })
+        .collect::<Vec<_>>();
+    for expected in ["Config_mismatch", "Detail"] {
+        assert!(
+            variants.iter().any(|variant| variant == expected),
+            "missing physical mixed-union variant {expected}: {variants:?}"
+        );
+    }
 }
 
 #[test]
@@ -982,6 +1044,13 @@ pub check(): Bool ->
 }
 
 pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
+    check_sources_with_core_mutator(sources, |_| {})
+}
+
+fn check_sources_with_core_mutator(
+    sources: &[&str],
+    mutate: impl FnOnce(&mut Vec<crate::terlan_typeck::CoreModule>),
+) -> Vec<NativeModule> {
     let syntaxes = sources
         .iter()
         .map(|source| parse_module_as_syntax_output(source).expect("parse source constructor"))
@@ -1009,6 +1078,7 @@ pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
             lower_syntax_module_output_to_core(&syntax, &resolved)
         })
         .collect::<Vec<_>>();
+    mutate(&mut cores);
     let root = cores[0].module.clone();
     super::prune_application_to_function_roots(
         &mut cores,

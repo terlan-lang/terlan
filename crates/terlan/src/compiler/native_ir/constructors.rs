@@ -17,11 +17,22 @@ use super::{call_composition::rebase_callee_locals, native_type, NativeExpr, Nat
 mod field_types;
 pub(super) use field_types::managed_field_type;
 use field_types::native_field_type;
+mod metadata;
+pub(super) use metadata::{canonical_structural_field_name, result_core_type_for_native};
 
 mod structural_registry;
 pub(super) use structural_registry::install_structural_type_layouts;
 mod records;
 pub(super) use records::{install_struct_layouts, lower_structural_record_construct};
+mod source_variants;
+pub(super) use source_variants::{
+    direct_source_field_names, direct_source_variant_name, direct_source_variant_position,
+    has_direct_source_layout,
+};
+mod zero_field_variants;
+pub(super) use zero_field_variants::{
+    lower_zero_field_managed_variant, zero_field_managed_variant_layout,
+};
 
 /// One fixed constructor admitted to managed NativeIR.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -43,38 +54,6 @@ pub(super) struct NativeConstructorLayout {
 /// Constructor identities resolved for one application module.
 pub(super) type NativeConstructorLayouts = HashMap<(String, usize), Arc<NativeConstructorLayout>>;
 
-/// Normalizes compiler-owned facade fields that have one public managed ABI.
-pub(super) fn canonical_structural_field_name(
-    canonical: &str,
-    variant: &str,
-    index: usize,
-    source_name: Option<&str>,
-) -> Option<String> {
-    if canonical == "Apply(Option;String)" && variant == "Some" && index == 0 {
-        Some("value".to_string())
-    } else {
-        source_name.map(str::to_string)
-    }
-}
-
-/// Recovers the checked semantic type carried by a managed native value.
-///
-/// Continuation lowering retains the compact native representation for local
-/// variables. Collection literals assembled from those variables still need
-/// the original semantic element type so their List schema remains identical
-/// to the checked program rather than becoming an opaque managed collection.
-pub(super) fn result_core_type_for_native(
-    result: NativeType,
-    layouts: &NativeConstructorLayouts,
-) -> Option<CoreType> {
-    let mut matches = layouts
-        .values()
-        .filter(|layout| layout.result == result)
-        .filter_map(|layout| layout.result_core_type.clone());
-    let first = matches.next()?;
-    matches.all(|candidate| candidate == first).then_some(first)
-}
-
 /// Builds deterministic fixed-constructor layouts visible from one module.
 pub(super) fn native_constructor_layouts(
     modules: &[(&str, &[CoreConstructorDecl])],
@@ -90,7 +69,7 @@ pub(super) fn native_constructor_layouts(
             let Some(result) = native_type(Some(return_core), &declaration.return_type) else {
                 continue;
             };
-            if declaration.implementation.is_some() || !result.is_managed_reference() {
+            if !result.is_managed_reference() {
                 continue;
             }
             // Transparent records are nominal managed values even though
@@ -101,6 +80,18 @@ pub(super) fn native_constructor_layouts(
             let is_record = matches!(return_core, CoreType::Struct { .. });
             let canonical = super::expression::managed_semantic_contract(return_core);
             let group = ((*module).to_owned(), canonical.clone());
+            if declaration.implementation.is_some() && !has_direct_source_layout(declaration) {
+                blocked_groups.insert(group);
+                continue;
+            }
+            let source_position = declaration
+                .implementation
+                .as_ref()
+                .and_then(|_| direct_source_variant_position(declaration, return_core));
+            if declaration.implementation.is_some() && source_position.is_none() {
+                blocked_groups.insert(group);
+                continue;
+            }
             let parameters = declaration
                 .params
                 .iter()
@@ -119,10 +110,11 @@ pub(super) fn native_constructor_layouts(
                 result,
                 parameters,
                 is_record,
+                source_position,
             ));
         }
     }
-    variants.retain(|(module, _, canonical, _, _, _)| {
+    variants.retain(|(module, _, canonical, _, _, _, _)| {
         !blocked_groups.contains(&(module.clone(), canonical.clone()))
     });
     variants.sort_by(|left, right| {
@@ -134,7 +126,7 @@ pub(super) fn native_constructor_layouts(
     });
 
     let mut group_sizes = HashMap::<(String, String), u32>::new();
-    for (module, _, canonical, _, _, _) in &variants {
+    for (module, _, canonical, _, _, _, _) in &variants {
         let count = group_sizes
             .entry((module.clone(), canonical.clone()))
             .or_default();
@@ -145,31 +137,54 @@ pub(super) fn native_constructor_layouts(
     }
     let mut discriminants = HashMap::<(String, String), u32>::new();
     let mut layouts = HashMap::new();
-    for (module, declaration, canonical, result, parameters, is_record) in variants {
+    for (module, declaration, canonical, result, parameters, is_record, source_position) in variants
+    {
         let group = (module.clone(), canonical.clone());
-        let discriminant = discriminants.entry(group.clone()).or_default();
+        let sequential_discriminant = discriminants.entry(group.clone()).or_default();
+        let (discriminant, variant_count) =
+            source_position.unwrap_or((*sequential_discriminant, group_sizes[&group]));
         let field_types = parameters
             .iter()
             .copied()
             .map(managed_field_type)
             .collect::<Result<Vec<_>, _>>()?;
-        let fields = declaration
-            .params
-            .iter()
-            .map(|parameter| parameter.name.clone())
-            .zip(field_types)
-            .collect::<Vec<_>>();
         let descriptor = Arc::new(
             if is_record {
-                ManagedAggregateDescriptor::record(&canonical, fields)
+                ManagedAggregateDescriptor::record(
+                    &canonical,
+                    declaration
+                        .params
+                        .iter()
+                        .map(|parameter| parameter.name.clone())
+                        .zip(field_types)
+                        .collect(),
+                )
             } else {
+                let variant_name = source_position
+                    .and_then(|_| direct_source_variant_name(declaration))
+                    .unwrap_or_else(|| declaration.name.clone());
+                let field_names = source_position
+                    .and_then(|(discriminant, _)| {
+                        direct_source_field_names(
+                            declaration.core_return_type.as_ref()?,
+                            discriminant,
+                        )
+                    })
+                    .unwrap_or_else(|| {
+                        declaration
+                            .params
+                            .iter()
+                            .map(|parameter| Some(parameter.name.clone()))
+                            .collect()
+                    });
                 ManagedAggregateDescriptor::constructor(
                     &canonical,
-                    &declaration.name,
-                    *discriminant,
-                    group_sizes[&group],
-                    fields
+                    &variant_name,
+                    discriminant,
+                    variant_count,
+                    field_names
                         .into_iter()
+                        .zip(field_types)
                         .enumerate()
                         .map(|(index, (name, ty))| {
                             (
@@ -177,7 +192,7 @@ pub(super) fn native_constructor_layouts(
                                     &canonical,
                                     &declaration.name,
                                     index,
-                                    Some(&name),
+                                    name.as_deref(),
                                 ),
                                 ty,
                             )
@@ -187,7 +202,7 @@ pub(super) fn native_constructor_layouts(
             }
             .map_err(|error| format!("error[native_ir.constructor_layout]: {error}"))?,
         );
-        *discriminant += 1;
+        *sequential_discriminant += 1;
         let identity = format!("{module}.{}", declaration.name);
         let key = (identity, declaration.min_arity);
         let encoded_layout = Arc::<[u8]>::from(
@@ -332,70 +347,6 @@ pub(super) fn lower_constructor_call(
         },
         layout.result,
     )))
-}
-
-/// Reifies an atom-form zero-field variant when a containing aggregate field
-/// requires the managed union representation.
-pub(super) fn lower_zero_field_managed_variant(
-    argument: &CoreExpr,
-    expected: NativeType,
-    layouts: &NativeConstructorLayouts,
-) -> Result<Option<NativeExpr>, String> {
-    Ok(
-        zero_field_managed_variant_layout(argument, expected, layouts)?.map(|layout| {
-            NativeExpr::Construct {
-                descriptor: layout.descriptor.clone(),
-                encoded_layout: layout.encoded_layout.clone(),
-                fields: Vec::new(),
-            }
-        }),
-    )
-}
-
-/// Shares checked nullary variant selection between type inference and lowering.
-pub(super) fn zero_field_managed_variant_layout<'a>(
-    argument: &CoreExpr,
-    expected: NativeType,
-    layouts: &'a NativeConstructorLayouts,
-) -> super::NativeIrResult<Option<&'a NativeConstructorLayout>> {
-    let NativeType::ManagedRef(_) = expected else {
-        return Ok(None);
-    };
-    let identity = match argument {
-        CoreExpr::Atom(identity) => identity,
-        CoreExpr::Var(identity)
-            if identity
-                .rsplit('.')
-                .next()
-                .and_then(|name| name.chars().next())
-                .is_some_and(|first| first.is_ascii_uppercase()) =>
-        {
-            identity
-        }
-        CoreExpr::ConstructorCall {
-            constructor, args, ..
-        } if args.is_empty() => constructor,
-        _ => return Ok(None),
-    };
-    let identity = identity.rsplit('.').next().unwrap_or(identity);
-    let mut candidates = layouts.values().filter(|layout| {
-        layout.result == expected
-            && layout.parameters.is_empty()
-            && layout
-                .descriptor
-                .variant_name()
-                .is_some_and(|variant| variant.eq_ignore_ascii_case(identity))
-    });
-    let Some(candidate) = candidates.next() else {
-        return Ok(None);
-    };
-    if candidates.any(|other| other.encoded_layout != candidate.encoded_layout) {
-        return Err(format!(
-            "error[native_ir.constructor_variant]: atom `{identity}` has ambiguous managed layouts"
-        )
-        .into());
-    }
-    Ok(Some(candidate))
 }
 
 /// Lowers a structural Option/Result constructor using its checked target type.

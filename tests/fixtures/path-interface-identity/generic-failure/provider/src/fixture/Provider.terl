@@ -1,12 +1,54 @@
 module fixture.Provider.
 
 import fixture.Adapter.
-import std.core.Result.{Err}.
+import std.core.Result.{Err, Ok}.
 
-import type fixture.Adapter.{Adapter, Transition}.
+import type fixture.Adapter.{Adapter, AggregateTransition, Processor, Transition}.
 import type std.core.Result.{Result}.
 
 pub type ImportedFailure: Int = REJECTED = 1.
+
+pub type InvalidModelTag = Atom["invalid_model"].
+pub type InvalidStateTag = Atom["invalid_state"].
+pub type InvalidInputTag = Atom["invalid_input"].
+pub type ConfigMismatchTag = Atom["config_mismatch"].
+pub type ObservationRejectedTag = Atom["observation_rejected"].
+pub type TransitionRejectedTag = Atom["transition_rejected"].
+pub type DetailedFailureTag = Atom["detailed_failure"].
+
+pub type MixedFailure =
+      InvalidModelTag
+    | InvalidStateTag
+    | InvalidInputTag
+    | ConfigMismatchTag
+    | ObservationRejectedTag
+    | TransitionRejectedTag
+    | {DetailedFailureTag, Int}.
+
+pub struct ImportedState { config: Int, value: Int }.
+pub struct ImportedInput { value: Int, outcome: Int }.
+pub struct ImportedObservation { value: Int }.
+pub struct ImportedModel implements Processor[ImportedModel, ImportedState, ImportedInput, ImportedObservation, MixedFailure] {}.
+
+pub constructor ImportedModel {
+    (): ImportedModel -> ImportedModel {}
+}.
+
+pub constructor ImportedState {
+    (config: Int, value: Int): ImportedState -> ImportedState {config: config, value: value}
+}.
+
+pub constructor ImportedInput {
+    (value: Int, outcome: Int): ImportedInput -> ImportedInput {value: value, outcome: outcome}
+}.
+
+pub constructor ConfigMismatch {
+    (): MixedFailure -> ConfigMismatchTag
+}.
+
+pub constructor DetailedFailure {
+    (code: Int): MixedFailure -> {DetailedFailureTag, code}
+}.
 
 pub struct ImportedAdapter implements Adapter[ImportedAdapter, Int, ImportedFailure] {}.
 
@@ -18,3 +60,17 @@ pub (implementation: ImportedAdapter) execute(
     _state: Int,
 ): Result[Transition[Int], ImportedFailure] ->
     Err(ImportedFailure.REJECTED).
+
+pub (model: ImportedModel) observe(
+    state: ImportedState,
+    input: ImportedInput,
+): Result[AggregateTransition[ImportedState, ImportedObservation], MixedFailure] ->
+    if {
+        input.outcome == 0 -> Err(ConfigMismatch());
+        input.outcome == 1 -> Err(DetailedFailure(42));
+        true -> Ok(AggregateTransition {
+            previous: state,
+            current: ImportedState {config: state.config, value: state.value + 1},
+            observation: ImportedObservation {value: input.value},
+        })
+    }.

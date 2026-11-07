@@ -395,6 +395,7 @@ pub(crate) fn lower_core_constructors(interface: &ModuleInterface) -> Vec<CoreCo
                     CoreConstructorDecl {
                         implementation: Some(CoreConstructorImplementation {
                             function: format!("$constructor_{name}_{index}"),
+                            generic_params: signature.type_params.clone(),
                             defaults: signature
                                 .params
                                 .iter()

@@ -8,6 +8,7 @@ use std::fs;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
@@ -36,6 +37,8 @@ pub fn record(name: &str) {
 
 struct Fixture(PathBuf);
 
+static FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
 impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
@@ -46,6 +49,31 @@ fn write(root: &Path, path: &str, contents: impl AsRef<[u8]>) {
     let path = root.join(path);
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, contents).unwrap();
+}
+
+fn create_unique_fixture_directory(
+    mut candidate: impl FnMut() -> PathBuf,
+) -> std::io::Result<PathBuf> {
+    loop {
+        let path = candidate();
+        match fs::DirBuilder::new().mode(0o700).create(&path) {
+            Ok(()) => return Ok(path),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+fn fixture_candidate(label: &str) -> PathBuf {
+    let sequence = FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!(
+        "terlan-live-make-{label}-{}-{}-{sequence}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ))
 }
 
 fn test_module(names: &[String], prefix: &str) -> String {
@@ -78,15 +106,7 @@ fn test_module(names: &[String], prefix: &str) -> String {
 }
 
 fn fixture() -> Fixture {
-    let path = std::env::temp_dir().join(format!(
-        "terlan-live-make-{}-{}",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
+    let path = create_unique_fixture_directory(|| fixture_candidate("fixture")).unwrap();
     let fixture = Fixture(path);
     let root = &fixture.0;
     write(root, ".gitignore", "/target\n");
@@ -199,6 +219,28 @@ swallowed:
         ),
     );
     fixture
+}
+
+#[test]
+fn fixture_directory_retries_existing_candidate() {
+    let parent = create_unique_fixture_directory(|| fixture_candidate("collision")).unwrap();
+    let fixture = Fixture(parent.clone());
+    let occupied = parent.join("occupied");
+    let available = parent.join("available");
+    fs::create_dir(&occupied).unwrap();
+    let mut first = true;
+    let created = create_unique_fixture_directory(|| {
+        if first {
+            first = false;
+            occupied.clone()
+        } else {
+            available.clone()
+        }
+    })
+    .unwrap();
+    assert_eq!(created, available);
+    assert!(created.is_dir());
+    drop(fixture);
 }
 
 fn command(root: &Path, program: impl AsRef<std::ffi::OsStr>) -> Command {

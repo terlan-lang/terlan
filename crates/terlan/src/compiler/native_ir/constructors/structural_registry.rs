@@ -72,6 +72,11 @@ fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result
             else {
                 continue;
             };
+            if layouts.values().any(|layout| {
+                layout.result == result && layout.descriptor.discriminant() == Some(discriminant)
+            }) {
+                continue;
+            }
             let parameters = fields
                 .iter()
                 .map(|(_, field)| native_type(Some(field), &field.contract_text()))
