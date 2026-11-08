@@ -7,12 +7,6 @@ case "$mode" in
   --record-dependency-impact) dependency_impact_command=dependency-impact-record ;;
   *) echo "unsupported Rust report mode: $mode" >&2; exit 2 ;;
 esac
-if [[ ${TERLAN_HOOK_ARTIFACTS_PREBUILT:-0} != 1 ]]; then
-  cargo build --locked -p terlan-rust-boundary-audit -p terlan-test-orchestrator
-  cargo build --locked -p terlan --bin terlan-quality --features quality-tools
-else
-  cargo build --locked -p terlan-rust-boundary-audit
-fi
 # The commit hook supplies its already-built staged debug tools. Standalone and
 # release callers retain the canonical release-profile defaults.
 terlc=${TERLAN_RUST_REPORT_TERLC:-"$CARGO_TARGET_DIR/release/terlc"}
@@ -72,6 +66,12 @@ if [[ "$mode" == check && -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
   fi
 fi
 
+if [[ ${TERLAN_HOOK_ARTIFACTS_PREBUILT:-0} != 1 ]]; then
+  cargo build --locked -p terlan-rust-boundary-audit -p terlan-test-orchestrator
+  cargo build --locked -p terlan --bin terlan-quality --features quality-tools
+else
+  cargo build --locked -p terlan-rust-boundary-audit
+fi
 "$quality" rust-quality
 mkdir -p target/quality
 "$boundary" . \
