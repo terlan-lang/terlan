@@ -39,6 +39,8 @@ case "$1" in
   wait) printf 'wait\n' >> target/operations ;;
   submit)
     test "$3" = "$(git rev-parse HEAD)"
+    test "$(git branch --show-current)" = main
+    test -z "$(git status --porcelain --untracked-files=normal)"
     printf 'submit\n' >> target/operations
     ;;
   *) exit 91 ;;
@@ -70,6 +72,17 @@ SH
   )
 done
 echo 'Publication command regressions passed (10 scenarios).'
+
+# The public entry point owns the clean-tree preflight once. The Terlan
+# controller guards the source again before dispatch and submission, so the
+# recursive publish-local graph must not replay the Make preflight.
+grep -Fxq 'publish: publish-source-preflight' "$root/Makefile"
+grep -Fxq 'publish-local:' "$root/Makefile"
+publish_local=$(awk '/^publish-local:$/ { active=1 } active && /^publish-release-input-check:/ { exit } active { print }' "$root/Makefile")
+if printf '%s\n' "$publish_local" | rg -q 'publish-source-preflight'; then
+  echo 'publish-local redundantly replays publish-source-preflight.' >&2
+  exit 1
+fi
 
 # Publication must not replay the compiler, AOT, sanitizer, or browser suites.
 # The exact hosted release workflow owns those gates and the sealed bundle.

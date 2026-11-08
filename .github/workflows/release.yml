@@ -7,8 +7,13 @@ on:
         description: Exact commit expected at the selected ref
         required: true
         type: string
+      compiler_run_id:
+        description: Successful Compiler CI run for the exact commit
+        required: true
+        type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -27,18 +32,42 @@ jobs:
         run: |
           [[ "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]
           test "$EXPECTED_REVISION" = "$GITHUB_SHA"
-
-  source-preflight:
-    needs: revision
-    uses: ./.github/workflows/source-preflight.yml
-    with:
-      mode: full
+      - name: Reuse exact Compiler CI evidence
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          COMPILER_RUN_ID: ${{ inputs.compiler_run_id }}
+        with:
+          script: |
+            const rawRunId = process.env.COMPILER_RUN_ID;
+            const runId = Number(rawRunId);
+            if (!/^[1-9][0-9]*$/.test(rawRunId) || !Number.isSafeInteger(runId)) {
+              throw new Error("compiler_run_id must be a positive integer");
+            }
+            const {data: run} = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId,
+            });
+            const validEvent = run.event === "push" || run.event === "workflow_dispatch";
+            if (
+              run.repository.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+              run.path !== ".github/workflows/ci.yml" ||
+              run.name !== "Compiler CI" ||
+              run.head_sha !== context.sha ||
+              run.head_branch !== "main" ||
+              !validEvent ||
+              run.status !== "completed" ||
+              run.conclusion !== "success" ||
+              run.run_attempt < 1
+            ) {
+              throw new Error("compiler_run_id is not successful exact-revision Compiler CI evidence");
+            }
 
   release-validation-identity:
     name: publish release validation identity
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: source-preflight
+    needs: revision
     permissions:
       contents: read
       statuses: write

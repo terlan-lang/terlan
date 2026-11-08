@@ -25,12 +25,12 @@ argument(index: Int, fallback: String): String ->
 
 wait_seconds(): Result[Int, String] ->
     case Environment.get("TERLAN_RELEASE_WAIT_SECONDS") {
-        None -> Ok(21600);
+        None -> Ok(21_600);
         Some(value) ->
             case Int.from_string(value) {
                 Some(seconds) ->
                     if {
-                        seconds >= 1 and seconds <= 21600 -> Ok(seconds);
+                        seconds >= 1 and seconds <= 21_600 -> Ok(seconds);
                         true -> Err("TERLAN_RELEASE_WAIT_SECONDS must be between 1 and 21600")
                     };
                 _ -> Err("TERLAN_RELEASE_WAIT_SECONDS must be an integer")
@@ -54,10 +54,10 @@ observe(revision: String, version: String): Result[Json, String] ->
 
 guard_main(revision: String): Result[Unit, String] ->
     let {
-        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
-        Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30000);
-        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000);
-        Ok(remote) <- Support.run("git", ["ls-remote", "origin", "refs/heads/main"], 60000)
+        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30_000);
+        Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
+        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000);
+        Ok(remote) <- Support.run("git", ["ls-remote", "origin", "refs/heads/main"], 60_000)
     } else {
         Err(reason) -> Err(reason)
     };
@@ -85,7 +85,7 @@ save(document: Json): Result[Unit, String] ->
                             case Support.run(
                                 "mv",
                                 ["--", pending, "target/quality/release-status.json"],
-                                30000,
+                                30_000,
                             ) {
                                 Ok(_output) -> Ok(Unit);
                                 Err(reason) -> Err(reason)
@@ -134,7 +134,8 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
                             };
                         let result =
                             if {
-                                Support.text(row, "state") == "missing" and compiler_ready -> Support.run(
+                                Support.text(row, "state") != "missing" or not compiler_ready -> Ok("");
+                                index == 0 -> Support.run(
                                     "gh",
                                     [
                                         "workflow",
@@ -143,11 +144,42 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
                                         "--ref",
                                         "main",
                                         "--field",
-                                        String.append("expected_revision=", Support.text(document, "revision")),
+                                        String.append(
+                                            "expected_revision=",
+                                            Support.text(document, "revision"),
+                                        ),
                                     ],
-                                    60000,
+                                    60_000,
                                 );
-                                true -> Ok("")
+                                true -> case checks.at(0) {
+                                    Err(_reason) -> Err("status has no Compiler CI evidence");
+                                    Ok(compiler) ->
+                                        Support.run(
+                                            "gh",
+                                            [
+                                                "workflow",
+                                                "run",
+                                                Support.text(row, "workflow"),
+                                                "--ref",
+                                                "main",
+                                                "--field",
+                                                String.append(
+                                                    "expected_revision=",
+                                                    Support.text(document, "revision"),
+                                                ),
+                                                "--field",
+                                                String.concat(
+                                                    [
+                                                        "compiler_run_id=",
+                                                        Int.to_string(
+                                                            Support.number(compiler, "databaseId"),
+                                                        ),
+                                                    ],
+                                                ),
+                                            ],
+                                            60_000,
+                                        )
+                                }
                             };
                         case result {
                             Err(reason) -> Err(reason);
@@ -176,7 +208,7 @@ wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
                 true -> let Ok(_dispatched) <- dispatch_missing(document, 0) else {
                     Err(reason) -> Err(reason)
                 };
-                case Support.run("sleep", ["30"], 35000) {
+                case Support.run("sleep", ["30"], 35_000) {
                     Err(reason) -> Err(reason);
                     Ok(_output) -> wait(revision, version, deadline)
                 }
@@ -202,8 +234,8 @@ stage(
         "make",
         ["--no-print-directory", target, String.append("VERSION=", version)],
         if {
-            target == "publish-prepare" -> 18000000;
-            true -> 3600000
+            target == "publish-prepare" -> 18_000_000;
+            true -> 3_600_000
         },
     ) {
         Err(reason) ->
@@ -256,7 +288,7 @@ run(command: String, version: String): Result[Unit, String] ->
     let true <- Version.valid(version) else {
         _ -> Err("version must contain three canonical nonnegative numbers, without a leading v")
     };
-    (let Ok(revision) <- Support.run("git", ["rev-parse", "HEAD"], 30000) else {
+    (let Ok(revision) <- Support.run("git", ["rev-parse", "HEAD"], 30_000) else {
     Err(reason) -> Err(reason)
 };
 if {
@@ -290,7 +322,7 @@ if {
                 Support.text(initial, "state") == "published" or command == "publish-tag" -> Ok(Unit);
                 true -> dispatch_missing(initial, 0)
             };
-        Ok(ready) <- wait(revision, version, Clock.monotonic_time_ns() + seconds * 1000000000)
+        Ok(ready) <- wait(revision, version, Clock.monotonic_time_ns() + seconds * 1_000_000_000)
     } else {
         Err(reason) -> Err(reason)
     };

@@ -63,12 +63,15 @@ same Chromium archive again.
 
 ## Compiler CI
 
-Both compiler and release workflows first call `source-preflight.yml`. A
-change-classification job distinguishes product inputs from workflow and
-documentation contracts. Contract-only changes run formatting, actionlint, and
-publication/tooling regressions without starting the compiler suite. Product
-changes additionally run source inventory, ownership, canonicalization, and the
-compiler gates.
+Compiler CI calls `source-preflight.yml` once. A change-classification job
+distinguishes product inputs from workflow and documentation contracts.
+Contract-only changes run formatting, actionlint, and publication/tooling
+regressions without starting the compiler suite. Product changes additionally
+run source inventory, ownership, canonicalization, and the compiler gates.
+Release control passes the successful exact-revision Compiler CI run ID into
+Release validation. A lightweight GitHub API gate verifies its repository,
+workflow path, commit, branch, event, attempt, status, and conclusion instead of
+recompiling and rerunning source preflight.
 
 `ci.yml` runs on pull requests, `main` pushes, and dedicated `agent/aot-*`
 branch pushes when compiler-facing sources change. It can also be dispatched
@@ -97,8 +100,10 @@ candidate before merge:
 On `main`, Compiler CI runs the general compiler/release-candidate job only when
 product inputs changed. Release validation never starts from a push: release
 control dispatches it once, with the expected full commit SHA, after Compiler CI
-for that SHA succeeds. It is the sole owner of the release AOT matrix, sanitizer
-families, candidate preparation, and publication bundle.
+for that SHA succeeds. The dispatch also binds the successful Compiler CI run
+ID, which Release validation verifies before starting any matrix job. It is the
+sole owner of the release AOT matrix, sanitizer families, candidate preparation,
+and publication bundle.
 On `main`, a separate short attestation job signs the three completed compiler
 coverage records. Only this job receives attestation/OIDC write permissions; it
 does not execute downloaded code or rebuild/retest the compiler. It consumes the
@@ -467,7 +472,10 @@ missing Compiler CI and Release validation sequentially, and waits until the
 exact commit has an unexpired sealed publication bundle. Only then does it
 atomically push the commit and annotated tag. The tag workflow performs sealed
 upload only. Working files must be clean; the command never commits, stashes, or
-resets them. `make release` aliases the same command.
+resets them. The Make clean-tree preflight runs once; the Terlan controller then
+guards the exact clean revision before dispatch and again before atomic tag
+submission without replaying that Make target. `make release` aliases the same
+command.
 
 The preflight rejects tags outside `main` history, mismatched local or remote
 tags, stale candidate evidence, and a missing or non-successful validation

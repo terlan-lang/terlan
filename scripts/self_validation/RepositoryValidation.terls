@@ -940,6 +940,10 @@ let release_fragments =
         "attestations: write",
         "id-token: write",
         "name: release locked dependency security audit",
+        "compiler_run_id:",
+        "name: Reuse exact Compiler CI evidence",
+        "github.rest.actions.getWorkflowRun",
+        "run.path !== \".github/workflows/ci.yml\"",
         "name: prepare sealed publication bundle",
         "--script-eval -- publication-bundle --version \"$VERSION\"",
         "name: release-publication-bundle",
@@ -957,6 +961,11 @@ if {
         "build_release.global_serialization",
         "Make must express serial ordering locally; GNU Make 4.3 treats .NOTPARALLEL as process-global",
     );
+    String.contains(makefile, "publish-local: publish-source-preflight")
+        or String.contains(makefile, "$(MAKE) --no-print-directory publish-source-preflight") -> failure(
+        "build_release.duplicate_publish_preflight",
+        "the public publish entry point must own the Make clean-tree preflight once",
+    );
     String.contains(String.append(makefile, quality), "\n\tcargo ")
         or String.contains(String.append(makefile, quality), "\n\t@cargo ") -> failure(
         "build_release.direct_cargo",
@@ -967,6 +976,10 @@ if {
         String.append("shell check bypasses shared Cargo ownership: ", unowned_script_cargo),
     );
     missing_release != "" -> failure("build_release.workflow", String.append("missing invariant: ", missing_release));
+    String.contains(release, "uses: ./.github/workflows/source-preflight.yml") -> failure(
+        "build_release.duplicate_preflight",
+        "release validation must reuse exact successful Compiler CI evidence",
+    );
     String.contains(release, "self-hosted") -> failure(
         "build_release.self_hosted",
         "release validation must not depend on a self-hosted runner",

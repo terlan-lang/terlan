@@ -5533,13 +5533,11 @@ publish: publish-source-preflight
 	flock --nonblock target/quality/release-control.lock \
 		$(MAKE) --no-print-directory publish-local VERSION="$(VERSION)" PUBLISH_REVISION="$$(git rev-parse HEAD)"
 
-publish-local: publish-source-preflight
+publish-local:
 	@test -n "$(PUBLISH_REVISION)" && test "$$(git rev-parse HEAD)" = "$(PUBLISH_REVISION)"
 	$(MAKE) --no-print-directory publish-local-check
 	$(MAKE) --no-print-directory terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) wait "$(VERSION)"
-	$(MAKE) --no-print-directory publish-source-preflight
-	@test "$$(git rev-parse HEAD)" = "$(PUBLISH_REVISION)" || { echo 'validated commit changed' >&2; exit 1; }
 	$(TERLAN_RELEASE_CONTROL) submit "$(VERSION)" "$(PUBLISH_REVISION)"
 
 publish-release-input-check: | terlan-compiler-bootstrap

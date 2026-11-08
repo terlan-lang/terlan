@@ -36,7 +36,7 @@ wrapper(root: String, tool: String, vm: String, image: String): Bool ->
                     ],
                 ),
             );
-        Ok(_value) <- Support.run("chmod", ["700", output], 30000)
+        Ok(_value) <- Support.run("chmod", ["700", output], 30_000)
     } else {
         _ -> false
     };
@@ -99,7 +99,7 @@ scenario(
                         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                     ],
                 ),
-                60000,
+                60_000,
             ),
             root,
         ),
@@ -175,7 +175,7 @@ pub run(vm: String, image: String): Bool ->
     root,
     "missing",
     true,
-    "dispatch ci.yml\ndispatch release.yml\npublish-prepare\npublish-upload\n",
+    "dispatch ci.yml\ndispatch release.yml compiler_run_id=17\nsleep\npublish-prepare\npublish-upload\n",
     vm,
     image,
 )

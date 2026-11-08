@@ -812,10 +812,17 @@ ci_trigger_valid(workflow: String): Bool ->
     normalized_workflow.contains("  pull_request:\n")
         and normalized_workflow.contains("    branches:\n      - main\n      - \"agent/aot-*\"\n").
 
-release_trigger_valid(workflow: String): Bool ->
+pub release_trigger_valid(workflow: String): Bool ->
     let normalized_workflow = String.replace(workflow, "\r\n", "\n");
     normalized_workflow.contains("  workflow_dispatch:\n")
         and normalized_workflow.contains("expected_revision:")
+        and normalized_workflow.contains("compiler_run_id:")
+        and normalized_workflow.contains("name: Reuse exact Compiler CI evidence")
+        and normalized_workflow.contains("github.rest.actions.getWorkflowRun")
+        and normalized_workflow.contains("run.path !== \".github/workflows/ci.yml\"")
+        and normalized_workflow.contains("run.head_sha !== context.sha")
+        and normalized_workflow.contains("run.conclusion !== \"success\"")
+        and not normalized_workflow.contains("uses: ./.github/workflows/source-preflight.yml")
         and not normalized_workflow.contains("  push:\n").
 
 evidence_present(release: String, files: List[String]): Bool ->

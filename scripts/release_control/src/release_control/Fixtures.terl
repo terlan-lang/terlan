@@ -252,6 +252,15 @@ artifact_rows(): Json ->
                 ),
         ).
 
+dispatch_operation(workflow: String): String ->
+    String.append(
+        "dispatch ",
+        if {
+            workflow == "release.yml" -> "release.yml compiler_run_id=17";
+            true -> workflow
+        },
+    ).
+
 api(path: String): Bool ->
     let artifact_request = String.contains(path, "/artifacts");
     let release_request = String.contains(path, "/releases?");
@@ -268,7 +277,10 @@ github(): Bool ->
         {"run", "view"} ->
             json(Json.object().put("headSha", Json.string(revision())).put("jobs", Json.array()));
         {"workflow", "run"} ->
-            log(String.append("dispatch ", arg(4)))
+            let workflow = arg(4);
+            let exact_compiler_evidence = workflow != "release.yml" or arg(9) == "--field" and arg(10) == "compiler_run_id=17";
+            exact_compiler_evidence
+                and log(dispatch_operation(workflow))
                 and write(String.append("dispatched-", arg(4)), "1");
         {"api", path} -> mode() != "api-failed" and api(path);
         _ -> false
