@@ -221,7 +221,8 @@ summary generation batches the independent CSS property modules separately.
 | Shell scripts/hooks | Bash syntax checks |
 
 Successful Rust report checks are reused only for an exact staged Git tree,
-report producer and validator binaries, and selected Cargo and Rust compiler.
+which owns all report producers and validators, plus the selected Cargo and
+Rust compiler identities and executable bytes.
 The hook stores a two-line, content-addressed receipt outside the disposable
 snapshot and rejects malformed receipts. A failed check never seals a receipt;
 set `TERLAN_TEST_FORCE_RERUN=1` to deliberately repeat an identical result.

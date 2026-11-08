@@ -51,8 +51,10 @@ if [[ "$mode" == check && -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
   rustc_executable=$(command -v rustc)
   cache_key="$({
     printf '%s\n' "$cache_schema" "$(git write-tree)"
-    for executable in "$quality" "$boundary" "$orchestrator" "$terlc" "$vm" \
-      "$cargo_executable" "$rustc_executable"; do
+    # The staged tree owns every workspace executable source and build command.
+    # Hash the external toolchain executables, not checkout-path-sensitive Rust
+    # outputs whose bytes can differ despite identical admitted source.
+    for executable in "$cargo_executable" "$rustc_executable"; do
       test -f "$executable"
       printf '%s\n' "$executable" "$(hash_file "$executable")"
     done

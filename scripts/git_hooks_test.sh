@@ -444,8 +444,8 @@ grep -Fx 'quality-tools' "$temporary/prebuilt/owned-target/debug/.terlan-prebuil
 test "$(wc -l < "$temporary/prebuilt-cargo.calls")" = 1
 test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
 
-# Rust report reuse is bound to the exact staged tree, every report executable,
-# and the Rust toolchain. Corruption and failed validation never grant reuse.
+# Rust report reuse is bound to the exact staged tree and Rust toolchain.
+# Corruption and failed validation never grant reuse.
 mkdir -p "$temporary/report-cache/scripts/git_hooks" "$temporary/report-cache/bin" \
   "$temporary/report-cache/owned-target/debug"
 cp "$(dirname "$driver")/git_hooks/rust_reports.sh" \
@@ -531,8 +531,7 @@ printf 'second\n' > "$temporary/report-cache/input.txt"
 git -C "$temporary/report-cache" add input.txt
 run_report_cache > "$temporary/report-cache-tree.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 15
-printf '\n# changed executable\n' >> \
-  "$temporary/report-cache/owned-target/debug/terlan-vm"
+printf '\n# changed toolchain executable\n' >> "$temporary/report-cache/bin/rustc"
 run_report_cache > "$temporary/report-cache-tool.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 20
 printf 'third\n' > "$temporary/report-cache/input.txt"
