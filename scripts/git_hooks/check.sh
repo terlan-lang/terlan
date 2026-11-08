@@ -21,7 +21,10 @@ if [[ ${TERLAN_HOOK_SHARED_TARGET:-0} == 1 ]]; then
   node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
 fi
 echo 'pre-commit: build the staged compiler planner'
-cargo build --locked -p terlan --bin terlc --bin terlan-vm
+# Use the quality superset once. Building the planner without it and the report
+# binary with it makes Cargo alternate two `terlan` library feature graphs on
+# every commit even when no Rust input changed.
+cargo build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 export TERLC="$terlc"
 raw_plan="${changes%.txt}.raw-plan"

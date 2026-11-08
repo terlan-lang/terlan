@@ -132,7 +132,7 @@ mkdir -p "$temporary/early-bindings/bin" "$temporary/early-bindings/cache/debug"
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 case "$*" in
-  'fmt --all -- --check'|'build --locked -p terlan --bin terlc --bin terlan-vm') exit 0 ;;
+  'fmt --all -- --check'|'build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools') exit 0 ;;
   *'--release'*) exit 99 ;;
   *) exit 97 ;;
 esac

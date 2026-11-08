@@ -169,6 +169,9 @@ Module filters are cleared; missing browsers, skipped cases, expected failures,
 retries, and incomplete reports reject publication. The paired
 service runtime is required by executable service-package tests. This requires Git, Bash, the
 pinned Rust toolchain with rustfmt and Clippy, Make, and the compiler's native build dependencies.
+The debug planner uses the `quality-tools` feature superset so Rust report
+validation reuses the same `terlan` library build instead of alternating two
+feature graphs between consecutive commits.
 The first run compiles a fresh cache and can take several minutes. Later runs
 reuse it. The Terlan planner selects additional checks:
 
