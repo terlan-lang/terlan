@@ -152,7 +152,11 @@ pub validate_makefile(makefile: String): Bool ->
                         "error[vm.multicore.tsan]: pinned Rust 1.96.0 ThreadSanitizer target is mandatory in CI",
                         "release-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check",
                         "$(MAKE) --no-print-directory vm-multicore-release-record",
-                        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",
+                        "release-hosted-publication-verifier: | terlan-tvm-platform-matrix-bootstrap",
+                        "target/quality/tvm-aot-platform-matrix-verifier.tvm",
+                        "target/quality/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256",
+                        "> tvm-aot-platform-matrix-verifier.sha256",
+                        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check release-hosted-publication-verifier",
                     ],
                 )
             }
@@ -202,6 +206,9 @@ pub validate_workflow(workflow: String): Bool ->
         "target/quality/vm-multicore-memory-model-tsan.json",
         "target/quality/vm-multicore-memory-model.json",
         "target/quality/vm-multicore-release-closeout.json",
+        "target/quality/tvm-aot-platform-matrix-verifier.tvm",
+        "target/quality/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256",
+        "target/quality/tvm-aot-platform-matrix-verifier.sha256",
         "release-validation-result:",
         "const targetUrl =",
         "/actions/runs/\${context.runId}",

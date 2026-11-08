@@ -255,6 +255,9 @@ hosted_evidence_files=(
   vm-multicore-memory-model-tsan.json
   vm-multicore-memory-model.json
   vm-multicore-release-closeout.json
+  tvm-aot-platform-matrix-verifier.tvm
+  tvm-aot-platform-matrix-verifier.tvm.inputs.sha256
+  tvm-aot-platform-matrix-verifier.sha256
 )
 for evidence in "${hosted_evidence_files[@]}"; do
   if [[ "$cache_hit" == 0 ]]; then
@@ -266,6 +269,19 @@ for evidence in "${hosted_evidence_files[@]}"; do
     exit 1
   }
 done
+(
+  cd "$hosted_evidence_dir"
+  mapfile -t verifier_rows < tvm-aot-platform-matrix-verifier.sha256
+  verifier_image_row='^[0-9a-f]{64}  tvm-aot-platform-matrix-verifier\.tvm$'
+  verifier_seal_row='^[0-9a-f]{64}  tvm-aot-platform-matrix-verifier\.tvm\.inputs\.sha256$'
+  if [[ "${#verifier_rows[@]}" != 2 \
+    || ! "${verifier_rows[0]}" =~ $verifier_image_row \
+    || ! "${verifier_rows[1]}" =~ $verifier_seal_row ]]; then
+    echo "hosted publication verifier manifest is not canonical" >&2
+    exit 1
+  fi
+  sha256sum --check --strict tvm-aot-platform-matrix-verifier.sha256
+)
 coverage_files=(
   rust-test-suite-report.json
   rust-test-suite-report.json.selections.json
@@ -390,6 +406,14 @@ mkdir -p target/quality
 for evidence in "${hosted_evidence_files[@]}" hosted-candidate-validation.json; do
   install -m 0644 "$hosted_evidence_dir/$evidence" "target/quality/$evidence"
 done
+publication_verifier="target/self-validation/tvm-aot-platform-matrix/vm/scripts_TvmAotPlatformMatrix.tvm"
+mkdir -p "$(dirname "$publication_verifier")"
+install -m 0644 \
+  "$hosted_evidence_dir/tvm-aot-platform-matrix-verifier.tvm" \
+  "$publication_verifier"
+install -m 0644 \
+  "$hosted_evidence_dir/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256" \
+  "$publication_verifier.inputs.sha256"
 
 mkdir -p dist
 retire_previous_candidate

@@ -313,6 +313,9 @@ jobs:
             target/quality/vm-multicore-memory-model-tsan.json
             target/quality/vm-multicore-memory-model.json
             target/quality/vm-multicore-release-closeout.json
+            target/quality/tvm-aot-platform-matrix-verifier.tvm
+            target/quality/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256
+            target/quality/tvm-aot-platform-matrix-verifier.sha256
           if-no-files-found: error
           retention-days: 90
 

@@ -1315,11 +1315,23 @@ RELEASE_ARTIFACT_SET_ROOT ?= target/release-distribution
 RELEASE_ARTIFACT_SET_LOCAL_PAYLOAD ?= 0
 # One hosted workspace and Make graph own the final compiler/validator bootstrap.
 # All underlying checks remain independently callable for local diagnosis.
-.PHONY: release-hosted-multicore-evidence-check release-hosted-validation-check
+.PHONY: release-hosted-multicore-evidence-check release-hosted-publication-verifier release-hosted-validation-check
 release-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check
 	$(MAKE) --no-print-directory vm-multicore-release-record
 
-release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check
+release-hosted-publication-verifier: | terlan-tvm-platform-matrix-bootstrap
+	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
+	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE).inputs.sha256
+	install -m 0644 $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE) \
+		target/quality/tvm-aot-platform-matrix-verifier.tvm
+	install -m 0644 $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE).inputs.sha256 \
+		target/quality/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256
+	cd target/quality && sha256sum \
+		tvm-aot-platform-matrix-verifier.tvm \
+		tvm-aot-platform-matrix-verifier.tvm.inputs.sha256 \
+		> tvm-aot-platform-matrix-verifier.sha256
+
+release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check release-hosted-publication-verifier
 
 release-artifact-set-check: | terlan-repository-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \

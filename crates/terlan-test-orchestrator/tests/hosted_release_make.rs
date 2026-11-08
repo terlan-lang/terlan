@@ -15,9 +15,10 @@ mod download_scratch;
 #[path = "hosted_release_make/execution_policy.rs"]
 mod execution_policy;
 
-const GOALS: [&str; 9] = [
+const GOALS: [&str; 10] = [
     "release-hosted-validation-check",
     "release-hosted-multicore-evidence-check",
+    "release-hosted-publication-verifier",
     "tvm-aot-platform-aggregate-check",
     "release-artifact-set-check",
     "vm-multicore-release-contract-check",
@@ -68,6 +69,7 @@ fn fixture() -> Fixture {
     let fixture = Fixture(root);
     fs::create_dir(fixture.0.join("seen")).unwrap();
     fs::create_dir(fixture.0.join("passed")).unwrap();
+    fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
     // Every leaf claims its own marker exclusively. A duplicate invocation
     // fails even under parallel Make rather than being hidden by a counter race.
     let worker = fixture.0.join("worker");
@@ -79,7 +81,13 @@ role=$1
 mkdir "seen/$role"
 case "$role" in
   compiler-bootstrap) ;;
-  matrix-bootstrap|repository-bootstrap) test -d passed/compiler-bootstrap ;;
+  matrix-bootstrap)
+    test -d passed/compiler-bootstrap
+    mkdir -p target
+    printf 'verifier image\n' > target/verifier.tvm
+    printf 'verifier seal\n' > target/verifier.tvm.inputs.sha256
+    ;;
+  repository-bootstrap) test -d passed/compiler-bootstrap ;;
   release-artifact-set)
     test -d passed/repository-bootstrap
     test "$2" = archives
@@ -116,6 +124,7 @@ mkdir "passed/$role"
         "TERLAN_TVM_CONTRACT_BOOTSTRAP := terlan-tvm-platform-matrix-bootstrap\n\
          TERLAN_TVM_CONTRACT_CHECK := ./worker\n\
          TERLAN_TVM_PLATFORM_MATRIX := ./worker\n\
+         TERLAN_TVM_PLATFORM_MATRIX_IMAGE := target/verifier.tvm\n\
          TERLAN_REPOSITORY_VALIDATION := ./worker\n\
          TERLAN_TVM_PLATFORM_REPORT_ROOT := reports\n\
          RELEASE_ARTIFACT_SET_ROOT := archives\n\
@@ -164,6 +173,33 @@ fn hosted_release_shares_bootstrap_and_executes_every_check_once() {
             fs::read_dir(fixture.0.join("seen")).unwrap().count(),
             LEAVES.len()
         );
+        assert_eq!(
+            fs::read_to_string(
+                fixture
+                    .0
+                    .join("target/quality/tvm-aot-platform-matrix-verifier.tvm"),
+            )
+            .unwrap(),
+            "verifier image\n"
+        );
+        assert_eq!(
+            fs::read_to_string(
+                fixture
+                    .0
+                    .join("target/quality/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256"),
+            )
+            .unwrap(),
+            "verifier seal\n"
+        );
+        let manifest = fs::read_to_string(
+            fixture
+                .0
+                .join("target/quality/tvm-aot-platform-matrix-verifier.sha256"),
+        )
+        .unwrap();
+        assert_eq!(manifest.lines().count(), 2);
+        assert!(manifest.contains("  tvm-aot-platform-matrix-verifier.tvm\n"));
+        assert!(manifest.contains("  tvm-aot-platform-matrix-verifier.tvm.inputs.sha256\n"));
     }
 }
 

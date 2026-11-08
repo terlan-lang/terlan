@@ -108,6 +108,10 @@ fn test_native_helper_candidate(
 }
 
 /// Builds only helpers whose provider namespace occurs in the compiled closure.
+///
+/// Existing source-backed binaries still pass through Cargo so its dependency
+/// fingerprints refresh helpers after provider source changes. Cargo reuses an
+/// unchanged helper without recompiling it.
 pub(crate) fn build_reachable_test_native_helpers(
     dependencies: &[TestNativeHelperCandidate],
     reachable_modules: &std::collections::BTreeSet<String>,
@@ -150,31 +154,29 @@ pub(crate) fn build_reachable_test_native_helpers(
         let helper_path = target_dir.join("debug").join(&dependency.helper);
         #[cfg(windows)]
         let helper_path = helper_path.with_extension("exe");
-        if !helper_path.is_file() || !dependency.features.is_empty() {
-            let mut command = Command::new("cargo");
-            command
-                .arg("build")
-                .arg("--manifest-path")
-                .arg(&manifest_path)
-                .arg("--bin")
-                .arg(&dependency.helper);
-            if !dependency.features.is_empty() {
-                command.arg("--features").arg(dependency.features.join(","));
-            }
-            let output = command.output().map_err(|error| {
-                format!(
-                    "failed to build native helper `{}` for tests: {error}",
-                    dependency.helper
-                )
-            })?;
-            if !output.status.success() {
-                return Err(format!(
-                    "failed to build native helper `{}` for tests\nstdout:\n{}\nstderr:\n{}",
-                    dependency.helper,
-                    String::from_utf8_lossy(&output.stdout),
-                    String::from_utf8_lossy(&output.stderr)
-                ));
-            }
+        let mut command = Command::new("cargo");
+        command
+            .arg("build")
+            .arg("--manifest-path")
+            .arg(&manifest_path)
+            .arg("--bin")
+            .arg(&dependency.helper);
+        if !dependency.features.is_empty() {
+            command.arg("--features").arg(dependency.features.join(","));
+        }
+        let output = command.output().map_err(|error| {
+            format!(
+                "failed to build native helper `{}` for tests: {error}",
+                dependency.helper
+            )
+        })?;
+        if !output.status.success() {
+            return Err(format!(
+                "failed to build native helper `{}` for tests\nstdout:\n{}\nstderr:\n{}",
+                dependency.helper,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            ));
         }
         if !helper_path.is_file() {
             return Err(format!(

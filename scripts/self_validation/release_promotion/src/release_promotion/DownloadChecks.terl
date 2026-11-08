@@ -29,7 +29,7 @@ gh_stub(): String ->
             "#!/usr/bin/env bash\nset -eu\nroot=$DOWNLOAD_FIXTURE\n",
             "case \"$1 $2\" in\n",
             "'auth status') exit 0;;\n'repo view') echo fixture/repository; exit 0;;\n",
-            "'run download') echo download >> \"$root/calls\"; case \"$5\" in release-distribution) cp \"$root/archives/\"* \"$7/\";; release-hosted-validation-evidence) cp \"$root/evidence/\"* \"$7/\";; compiler-test-coverage-22-1) cp \"$root/coverage/\"* \"$7/\";; *) exit 92;; esac; exit 0;;\n",
+            "'run download') echo download >> \"$root/calls\"; case \"$5\" in release-distribution) cp \"$root/archives/\"* \"$7/\";; release-hosted-validation-evidence) cp \"$root/evidence/\"* \"$7/\"; if [ \"$DOWNLOAD_MODE\" = bad-verifier ]; then printf corrupt >> \"$7/tvm-aot-platform-matrix-verifier.tvm\"; fi; if [ \"$DOWNLOAD_MODE\" = unsafe-verifier-manifest ]; then printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  ../outside\\n' > \"$7/tvm-aot-platform-matrix-verifier.sha256\"; fi;; compiler-test-coverage-22-1) cp \"$root/coverage/\"* \"$7/\";; *) exit 92;; esac; exit 0;;\n",
             "'attestation verify') echo attest >> \"$root/calls\"; case \"$3\" in */compiler-coverage/*) test \"$*\" = \"attestation verify $3 --repo fixture/repository --signer-workflow fixture/repository/.github/workflows/ci.yml --source-ref refs/heads/main --source-digest aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"; if [ \"$DOWNLOAD_MODE\" = bad-attestation ]; then exit 19; fi;; esac; exit 0;;\nesac\n",
             "case \"$*\" in\n",
             "*commits/*/status*) echo status >> \"$root/calls\"; echo '{\"state\":\"success\",\"target_url\":\"https://github.com/fixture/repository/actions/runs/21\"}';;\n",
@@ -92,6 +92,33 @@ prepare(root: String): Bool ->
             );
         true <- write_files(child(root, "payload"), names, "fixture");
         true <- write_files(child(root, "evidence"), evidence, "{}");
+        Ok(_verifier) <-
+            File.write_text(
+                child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm"),
+                "fixture verifier",
+            );
+        Ok(_verifier_seal) <-
+            File.write_text(
+                child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256"),
+                "fixture seal",
+            );
+        Ok(verifier_digest) <- Hash.sha256_file(child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm"));
+        Ok(verifier_seal_digest) <-
+            Hash.sha256_file(
+                child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256"),
+            );
+        Ok(_verifier_sums) <-
+            File.write_text(
+                child(root, "evidence/tvm-aot-platform-matrix-verifier.sha256"),
+                String.concat(
+                    [
+                        verifier_digest,
+                        "  tvm-aot-platform-matrix-verifier.tvm\n",
+                        verifier_seal_digest,
+                        "  tvm-aot-platform-matrix-verifier.tvm.inputs.sha256\n",
+                    ],
+                ),
+            );
         Ok(_sums) <-
             File.write_text(
                 child(root, "payload/SHA256SUMS"),
@@ -221,6 +248,8 @@ exercise(root: String): Bool ->
     let {
         true <- prepare(root);
         true <- run(root, "bad-job", 1, "status\n");
+        true <- run(root, "bad-verifier", 1, "status\ndownload\ndownload\ndownload\n");
+        true <- run(root, "unsafe-verifier-manifest", 1, "status\ndownload\ndownload\ndownload\n");
         true <-
             run(
                 root,
@@ -235,6 +264,21 @@ exercise(root: String): Bool ->
         true <- run(root, "locked", 1, "");
         true <- run(root, "failed-ci", 1, "status\n");
         true <- run(root, "attempt-two", 0, downloaded);
+        Ok(verifier) <-
+            File.read_text(
+                child(
+                    root,
+                    "target/self-validation/tvm-aot-platform-matrix/vm/scripts_TvmAotPlatformMatrix.tvm",
+                ),
+            );
+        Ok(verifier_seal) <-
+            File.read_text(
+                child(
+                    root,
+                    "target/self-validation/tvm-aot-platform-matrix/vm/scripts_TvmAotPlatformMatrix.tvm.inputs.sha256",
+                ),
+            );
+        true <- verifier == "fixture verifier" and verifier_seal == "fixture seal";
         Ok(files) <- Directory.files_recursive_excluding(child(root, "target/publication-downloads"), []);
         true <- corrupt_archives(files);
         Ok(_sentinel) <- File.write_text(child(root, "dist/release-candidate.json"), "preserve me");
