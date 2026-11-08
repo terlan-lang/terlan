@@ -444,4 +444,109 @@ grep -Fx 'quality-tools' "$temporary/prebuilt/owned-target/debug/.terlan-prebuil
 test "$(wc -l < "$temporary/prebuilt-cargo.calls")" = 1
 test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
 
-echo 'Git hook regression tests passed (23 scenarios).'
+# Rust report reuse is bound to the exact staged tree, every report executable,
+# and the Rust toolchain. Corruption and failed validation never grant reuse.
+mkdir -p "$temporary/report-cache/scripts/git_hooks" "$temporary/report-cache/bin" \
+  "$temporary/report-cache/owned-target/debug"
+cp "$(dirname "$driver")/git_hooks/rust_reports.sh" \
+  "$temporary/report-cache/scripts/git_hooks/"
+printf 'first\n' > "$temporary/report-cache/input.txt"
+cat > "$temporary/report-cache/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+if [[ "${1:-}" == -Vv ]]; then printf 'cargo fixture 1\n'; exit 0; fi
+printf 'cargo:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+CARGO
+cat > "$temporary/report-cache/bin/rustc" <<'RUSTC'
+#!/usr/bin/env bash
+test "${1:-}" = -Vv
+printf 'rustc fixture 1\n'
+RUSTC
+cat > "$temporary/report-cache/owned-target/debug/terlan-quality" <<'QUALITY'
+#!/usr/bin/env bash
+printf 'quality:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+mkdir -p target/quality
+touch target/quality/rust-api-boundary-input.tsv \
+  target/quality/rust-shared-helper-input.tsv \
+  target/quality/rust-structural-input.json
+QUALITY
+cat > "$temporary/report-cache/owned-target/debug/terlan-rust-boundary-audit" <<'BOUNDARY'
+#!/usr/bin/env bash
+printf 'boundary:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+printf '{}\n'
+BOUNDARY
+cat > "$temporary/report-cache/owned-target/debug/terlan-test-orchestrator" <<'ORCHESTRATOR'
+#!/usr/bin/env bash
+printf 'orchestrator:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+test "$1" = --cargo-metadata
+mkdir -p "$(dirname "$2")"
+printf '{}\n' > "$2"
+ORCHESTRATOR
+cat > "$temporary/report-cache/owned-target/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+printf 'terlc:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+mkdir -p target/git-hooks-rust-quality/vm
+printf 'image\n' > target/git-hooks-rust-quality/vm/scripts_RustQuality.tvm
+TERLC
+cat > "$temporary/report-cache/owned-target/debug/terlan-vm" <<'VM'
+#!/usr/bin/env bash
+printf 'vm:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+exit "${REPORT_VM_FAILURE:-0}"
+VM
+chmod +x "$temporary/report-cache/bin/"* \
+  "$temporary/report-cache/owned-target/debug/"*
+git init --quiet --initial-branch=main "$temporary/report-cache"
+(
+  cd "$temporary/report-cache"
+  git config user.name 'Report cache test'
+  git config user.email 'reports@example.invalid'
+  git add input.txt scripts/git_hooks/rust_reports.sh
+  git commit --quiet -m Initial
+)
+report_cache_calls="$temporary/report-cache.calls"
+: > "$report_cache_calls"
+run_report_cache() {
+  (
+    cd "$temporary/report-cache"
+    PATH="$PWD/bin:$PATH" \
+    CARGO_TARGET_DIR="$PWD/owned-target" \
+    REPORT_CACHE_CALLS="$report_cache_calls" \
+    TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
+    TERLAN_RUST_REPORT_TERLC="$PWD/owned-target/debug/terlc" \
+    TERLAN_RUST_REPORT_VM="$PWD/owned-target/debug/terlan-vm" \
+    TERLAN_RUST_REPORT_CACHE_DIR="$PWD/owned-target/validation-results/rust-reports" \
+      bash scripts/git_hooks/rust_reports.sh
+  )
+}
+run_report_cache > "$temporary/report-cache-first.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 5
+run_report_cache > "$temporary/report-cache-reused.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 5
+grep -Fq 'Rust quality reports unchanged; reusing' "$temporary/report-cache-reused.log"
+receipt=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
+  -type f -name '*.passed' -print -quit)
+printf 'corrupt\n' > "$receipt"
+run_report_cache > "$temporary/report-cache-corrupt.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 10
+printf 'second\n' > "$temporary/report-cache/input.txt"
+git -C "$temporary/report-cache" add input.txt
+run_report_cache > "$temporary/report-cache-tree.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 15
+printf '\n# changed executable\n' >> \
+  "$temporary/report-cache/owned-target/debug/terlan-vm"
+run_report_cache > "$temporary/report-cache-tool.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 20
+printf 'third\n' > "$temporary/report-cache/input.txt"
+git -C "$temporary/report-cache" add input.txt
+receipt_count=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
+  -type f -name '*.passed' | wc -l)
+if REPORT_VM_FAILURE=49 run_report_cache > "$temporary/report-cache-failure.log" 2>&1; then
+  echo 'Failed Rust report validation sealed a cache receipt' >&2; exit 1
+fi
+test "$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
+  -type f -name '*.passed' | wc -l)" = "$receipt_count"
+run_report_cache > "$temporary/report-cache-recovery.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 26
+TERLAN_TEST_FORCE_RERUN=1 run_report_cache > "$temporary/report-cache-forced.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 31
+
+echo 'Git hook regression tests passed (24 scenarios).'

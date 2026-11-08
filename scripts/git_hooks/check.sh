@@ -211,6 +211,7 @@ while IFS= read -r lane; do
       TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
       TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
       TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
+      TERLAN_RUST_REPORT_CACHE_DIR="$CARGO_TARGET_DIR/validation-results/rust-reports" \
         bash scripts/git_hooks/rust_reports.sh
       ;;
     summaries)

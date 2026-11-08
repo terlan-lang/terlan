@@ -220,6 +220,12 @@ summary generation batches the independent CSS property modules separately.
 | GitHub workflows/actions | Pinned actionlint, as in CI; requires Go |
 | Shell scripts/hooks | Bash syntax checks |
 
+Successful Rust report checks are reused only for an exact staged Git tree,
+report producer and validator binaries, and selected Cargo and Rust compiler.
+The hook stores a two-line, content-addressed receipt outside the disposable
+snapshot and rejects malformed receipts. A failed check never seals a receipt;
+set `TERLAN_TEST_FORCE_RERUN=1` to deliberately repeat an identical result.
+
 For Terlan files, Git plumbing compares the staged bytes with the staged
 compiler's formatting of the same file at the commit's original base. Exact
 matches still receive formatting and type checks, but do not launch changed-file
