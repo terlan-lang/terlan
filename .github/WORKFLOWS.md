@@ -173,8 +173,12 @@ Compiler and release platform matrices share
 `.github/actions/setup-native-dependencies/action.yml`. Windows validation
 installs `libpq` and `pkgconf` from the same vcpkg target triplet, exports the
 exact `pkgconf` executable to Cargo, and checks every native installer exit
-status. A failed package download therefore cannot be hidden by a later
-successful PowerShell command.
+status. The Windows action pre-seeds vcpkg's pinned, checksum-verified
+`win_flex_bison` archive through the authenticated GitHub asset API when the
+public release download edge is unavailable, then retries the complete
+idempotent vcpkg install with bounded backoff. A failed package download
+therefore cannot be hidden by a later successful PowerShell command or turn a
+short-lived edge failure into an immediate matrix failure.
 
 Release validation uses hosted runners only. It proves portable multicore
 correctness and retains the pinned multicore ThreadSanitizer report. Throughput

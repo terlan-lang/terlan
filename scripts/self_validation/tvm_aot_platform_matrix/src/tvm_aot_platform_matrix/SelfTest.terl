@@ -169,6 +169,20 @@ self_test_assertions(
         );
     let missing_pkgconf = String.replace(native_setup, " \"pkgconf:$triplet\"", "");
     let masked_installer_failure = String.replace(native_setup, "$LASTEXITCODE -ne 0", "$false");
+    let missing_authenticated_fallback =
+        String.replace(
+            native_setup,
+            "https://api.github.com/repos/lexxmark/winflexbison/releases/tags/v2.5.24",
+            "https://github.com/lexxmark/winflexbison/releases/download/v2.5.24",
+        );
+    let missing_prefetch_retry = String.replace(native_setup, "$prefetchAttempts = 4", "$prefetchAttempts = 1");
+    let missing_install_retry = String.replace(native_setup, "$installAttempts = 4", "$installAttempts = 1");
+    let missing_flex_checksum =
+        String.replace(
+            native_setup,
+            "dc89fcdaa7071fbbf88b0755b799d69223240c28736924b4c30968c08e7e0b116c7e05ae98a9257be26a1dfb4aa70a628808a6b6018706bf857555c5b4335018",
+            "unchecked",
+        );
     let missing_compiled_cache = String.replace(rust_setup, "target/release/deps", "target/release/omitted");
     let missing_cache_preservation =
         String.replace(
@@ -188,7 +202,11 @@ self_test_assertions(
             or workflow_text_valid(missing_install) -> failure("workflow checker admitted invalid input");
         not native_setup_text_valid(native_setup) -> failure("native dependency action rejected valid input");
         native_setup_text_valid(missing_pkgconf)
-            or native_setup_text_valid(masked_installer_failure) -> failure("native dependency checker admitted invalid input");
+            or native_setup_text_valid(masked_installer_failure)
+            or native_setup_text_valid(missing_authenticated_fallback)
+            or native_setup_text_valid(missing_prefetch_retry)
+            or native_setup_text_valid(missing_install_retry)
+            or native_setup_text_valid(missing_flex_checksum) -> failure("native dependency checker admitted invalid input");
         not compiled_cache_text_valid(rust_setup) -> failure("compiled cache action rejected valid input");
         compiled_cache_text_valid(missing_compiled_cache) -> failure("compiled cache checker admitted incomplete inputs");
         not compiled_cache_preservation_text_valid(normalized_ci) -> failure("compiled cache preservation rejected valid input");
