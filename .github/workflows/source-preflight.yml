@@ -30,8 +30,11 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: Setup Terlan script runner
+        id: script-runner
+        uses: ./.github/actions/setup-terlan-script-runner
       - name: Test CI change classification
-        run: node --test scripts/ci/classify_changes_test.cjs
+        run: ${{ steps.script-runner.outputs.terlc }} test scripts/ci --coverage --coverage-threshold 100
       - name: Check editor release contracts
         run: make editor-release-contract-check
       - name: Install Rust toolchain

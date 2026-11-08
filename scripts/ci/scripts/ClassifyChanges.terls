@@ -1,0 +1,56 @@
+#!/usr/bin/env -S terlc run
+import ci.ChangeClassifier.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.Console.{println}.
+import std.io.File.
+import std.system.{Arguments, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+
+changed_paths(base: String, head: String): Option[List[String]] ->
+    let {
+        Ok(output) <-
+            Process.run(
+                Process.with_arguments(
+                    Process.command("git"),
+                    ["diff", "--name-only", base, head, "--"],
+                ),
+            );
+        true <- output.status == 0
+    } else {
+        _ -> None
+    };
+    Some(String.split(String.trim(output.stdout), "\n")).
+
+entry(): Bool ->
+    let {
+        Some(base) <- Arguments.get(0);
+        Some(head) <- Arguments.get(1);
+        Some(output_path) <- Arguments.get(2);
+        true <- ChangeClassifier.valid_revision(head)
+    } else {
+        _ -> false
+    };
+    (let force_full = ChangeClassifier.indeterminate_base(base);
+(let {
+    Some(paths) <-
+        if {
+            force_full -> Some(List.new[String]());
+            true -> changed_paths(base, head)
+        };
+    Ok(_) <-
+        File.append_text(
+            output_path,
+            ChangeClassifier.render_outputs(ChangeClassifier.classify(paths, force_full)),
+        )
+} else {
+    _ -> false
+};
+(let _printed = println(ChangeClassifier.render_outputs(ChangeClassifier.classify(paths, force_full))); true))).
+
+assert(entry());
+Unit.

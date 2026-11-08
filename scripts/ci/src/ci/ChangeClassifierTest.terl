@@ -1,0 +1,72 @@
+module ci.ChangeClassifierTest.
+
+import ci.ChangeClassifier.
+
+@test
+pub workflow_and_documentation_changes_avoid_compiler_validation(): Bool ->
+    let result = ChangeClassifier.classify([".github/workflows/ci.yml", "docs/release.md"], false);
+    not result.compiler
+        and not result.source
+        and not result.dependencies
+        and result.changed_count == 2.
+
+@test
+pub compiler_sources_select_compiler_validation(): Bool ->
+    let result = ChangeClassifier.classify(["crates/terlan/src/main.rs", "std/core/Int.terl"], false);
+    result.compiler and result.source and not result.dependencies.
+
+@test
+pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
+    let result =
+        ChangeClassifier.classify(
+            ["crates/terlan/Cargo.toml", "tools/css/package-lock.json"],
+            false,
+        );
+    result.compiler
+        and result.source
+        and result.dependencies
+        and ChangeClassifier.is_dependency_file("scripts/peers/requirements.txt").
+
+@test
+pub manual_and_indeterminate_dispatches_force_all_validation(): Bool ->
+    let result = ChangeClassifier.classify([], true);
+    result.compiler and result.source and result.dependencies and result.changed_count == 0.
+
+@test
+pub classification_ignores_duplicate_and_empty_paths(): Bool ->
+    let result =
+        ChangeClassifier.classify(
+            ["Makefile", "", "Makefile", "editors/vscode/package.json"],
+            false,
+        );
+    result.source and not result.compiler and not result.dependencies and result.changed_count == 2.
+
+@test
+pub root_and_prefix_contracts_are_explicit(): Bool ->
+    ChangeClassifier.is_product_file("Cargo.lock")
+        and ChangeClassifier.is_compiler_file("Cargo.lock")
+        and ChangeClassifier.is_product_file("tree-sitter-terlan/grammar.js")
+        and not ChangeClassifier.is_product_file("docs/compiler.md")
+        and not ChangeClassifier.is_compiler_file("scripts/release_control/Main.terl")
+        and ChangeClassifier.is_dependency_file("Cargo.lock")
+        and not ChangeClassifier.is_dependency_file("README.md").
+
+@test
+pub release_tooling_receives_source_checks_without_compiler_replay(): Bool ->
+    let result = ChangeClassifier.classify(["Makefile", "scripts/release_control/Main.terl"], false);
+    result.source and not result.compiler and not result.dependencies.
+
+@test
+pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
+    ChangeClassifier.valid_revision("0123456789abcdef0123456789abcdef01234567")
+        and not ChangeClassifier.valid_revision("0123456789ABCDEF0123456789abcdef01234567")
+        and not ChangeClassifier.valid_revision("short")
+        and ChangeClassifier.indeterminate_base("")
+        and ChangeClassifier.indeterminate_base("0000000000000000000000000000000000000000")
+        and not ChangeClassifier.indeterminate_base("0123456789abcdef0123456789abcdef01234567").
+
+@test
+pub github_outputs_are_complete_and_stable(): Bool ->
+    ChangeClassifier.render_outputs(
+    ChangeClassifier.classify(["crates/terlan/src/main.rs", "Cargo.lock"], false),
+) == "source=true\ncompiler=true\ndependencies=true\nchanged-count=2\n".

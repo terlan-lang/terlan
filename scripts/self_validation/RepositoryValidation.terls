@@ -848,12 +848,18 @@ build_release_contract(repository: String): Bool ->
             "Makefile",
             "rust-toolchain.toml",
             ".github/workflows/ci.yml",
+            ".github/workflows/codeql.yml",
+            ".github/workflows/codeql-language.yml",
+            ".github/workflows/codeql-rust.yml",
             ".github/workflows/docs.yml",
             ".github/workflows/publish.yml",
             ".github/workflows/release.yml",
             ".github/workflows/security.yml",
             ".github/actions/security-audit/action.yml",
             ".github/actions/setup-native-dependencies/action.yml",
+            ".github/actions/setup-terlan-script-runner/action.yml",
+            "scripts/ci/scripts/ClassifyChanges.terls",
+            "scripts/ci/src/ci/ChangeClassifier.terl",
             "scripts/self_validation/RepositoryValidation.terls",
             "scripts/build_typed_validator.sh",
             "scripts/run_prebuilt_terlan_binary.sh",
@@ -869,6 +875,9 @@ build_release_contract(repository: String): Bool ->
         Some(editor) <- read(repository, "editors/editor.mk");
         Some(release) <- read(repository, ".github/workflows/release.yml");
         Some(ci) <- read(repository, ".github/workflows/ci.yml");
+        Some(codeql_actions) <- read(repository, ".github/workflows/codeql.yml");
+        Some(codeql_language) <- read(repository, ".github/workflows/codeql-language.yml");
+        Some(codeql_rust) <- read(repository, ".github/workflows/codeql-rust.yml");
         Some(source_preflight) <- read(repository, ".github/workflows/source-preflight.yml");
         Some(docs) <- read(repository, ".github/workflows/docs.yml");
         Some(publish_workflow) <- read(repository, ".github/workflows/publish.yml");
@@ -876,6 +885,7 @@ build_release_contract(repository: String): Bool ->
         Some(security) <- read(repository, ".github/workflows/security.yml");
         Some(dependency_audit) <- read(repository, ".github/actions/security-audit/action.yml");
         Some(native_setup) <- read(repository, ".github/actions/setup-native-dependencies/action.yml");
+        Some(script_runner) <- read(repository, ".github/actions/setup-terlan-script-runner/action.yml");
         Some(cleanup) <- read(repository, "scripts/clean_build_outputs.sh");
         Some(downloader) <- read(repository, "scripts/download_validated_release_artifacts.sh");
         Some(publisher) <- read(repository, "scripts/publish_release_from_dist.sh");
@@ -1027,6 +1037,37 @@ if {
         "actionlint-go1.25.0-v1.7.12",
     ],
 ) -> failure("build_release.actionlint", "actionlint toolchain/cache ownership drifted");
+    not contains_all(
+    String.concat([codeql_actions, codeql_language, codeql_rust]),
+    [
+        "name: CodeQL Actions",
+        "- \".github/**\"",
+        "language: actions",
+        "name: CodeQL Rust",
+        "- \"**/*.rs\"",
+        "language: rust",
+        "name: CodeQL language analysis",
+        "uses: ./.github/workflows/codeql-language.yml",
+        "languages: \${{ inputs.language }}",
+    ],
+) -> failure(
+        "build_release.codeql_scope",
+        "CodeQL languages must use path-scoped entry workflows and one shared analysis implementation",
+    );
+    not contains_all(
+    String.concat([ci, source_preflight, script_runner]),
+    [
+        "uses: ./.github/actions/setup-terlan-script-runner",
+        "scripts/ci/scripts/ClassifyChanges.terls",
+        "test scripts/ci --coverage --coverage-threshold 100",
+        "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        "actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        "cargo build --locked -p terlan --bin terlc --bin terlan-vm",
+    ],
+) -> failure(
+        "build_release.terlan_script_runner",
+        "hosted control scripts must use the cached self-bootstrapped Terlan runner",
+    );
     count_occurrences(ci, "uses: ./.github/actions/setup-native-dependencies") != 5
         or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 5
         or count_occurrences(docs, "uses: ./.github/actions/setup-native-dependencies") != 1

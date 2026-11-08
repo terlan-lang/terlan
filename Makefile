@@ -5546,7 +5546,7 @@ publish-release-input-check: | terlan-compiler-bootstrap
 		--coverage --coverage-threshold 100
 
 publish-local-check: publish-release-input-check
-	node --test scripts/ci/classify_changes_test.cjs
+	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/ci --coverage --coverage-threshold 100
 	bash scripts/publication_process_preflight_test.sh
 	go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
 

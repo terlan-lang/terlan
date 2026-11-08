@@ -10,7 +10,7 @@ deployment contract.
 Run the publication command from a clean `main` checkout:
 
 ```sh
-make publish VERSION=0.0.9
+make publish VERSION=0.0.10
 ```
 
 The command requires successful Compiler CI and explicit Release validation for
@@ -65,6 +65,12 @@ same Chromium archive again.
 
 Compiler CI calls `source-preflight.yml` once. A change-classification job
 distinguishes product inputs from workflow and documentation contracts.
+The classifier is Terlan source with 100% declaration coverage. A
+content-addressed script-runner cache restores `terlc` and `terlan-vm` when
+compiler inputs are unchanged; otherwise the candidate compiler self-bootstraps
+that runner once. Script capability is deliberately separate from release
+eligibility: candidate tooling may orchestrate a red build, while only complete
+independent evidence permits publication.
 Contract-only changes run formatting, actionlint, and publication/tooling
 regressions without starting the compiler suite. Product changes additionally
 run source inventory, ownership, canonicalization, and the compiler gates.
@@ -146,11 +152,15 @@ AOT slice is deliberately open.
 
 ## CodeQL
 
-`codeql.yml` owns security analysis for maintained repository languages. Its
-explicit matrix contains GitHub Actions and Rust; removed language surfaces are
-not retained as empty jobs because CodeQL treats an empty extraction as a
-configuration failure. Default setup is disabled so one commit cannot receive
-duplicate automatic and repository-owned analyses.
+`codeql.yml` and `codeql-rust.yml` select security analysis through declarative
+GitHub path filters. GitHub Actions analysis runs for `.github/**`; Rust
+analysis runs for Rust sources, Cargo manifests, the lockfile, toolchain input,
+or its shared CodeQL implementation. Both entry workflows call
+`codeql-language.yml`, so checkout, initialization, and analysis stay defined
+once. Documentation-only and Terlan-only pushes no longer start an 18-minute
+Rust extraction. Manual and scheduled runs still cover both maintained
+languages. Default setup is disabled so one commit cannot receive duplicate
+automatic and repository-owned analyses.
 
 A separate Linux x86-64 job installs the pinned
 `nightly-2026-07-16` toolchain with `rust-src` and runs:

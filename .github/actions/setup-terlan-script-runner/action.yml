@@ -1,0 +1,60 @@
+name: Setup Terlan script runner
+description: Restore or self-bootstrap the compiler used by Terlan CI scripts
+
+outputs:
+  terlc:
+    description: Cached compiler path
+    value: ${{ steps.paths.outputs.terlc }}
+  vm:
+    description: Cached VM path
+    value: ${{ steps.paths.outputs.vm }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve script-runner cache identity
+      id: identity
+      shell: bash
+      run: |
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli') }}"
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+
+    - name: Restore script runner
+      id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: target/script-runner
+        key: ${{ steps.identity.outputs.key }}
+
+    - name: Install Rust for self-bootstrap
+      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      uses: ./.github/actions/setup-rust
+      with:
+        components: ""
+        cache-build: "true"
+        cache-scope: script-runner
+        cache-profile: compiler-bootstrap
+
+    - name: Build candidate script runner
+      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: |
+        cargo build --locked -p terlan --bin terlc --bin terlan-vm
+        install -D -m 0755 target/debug/terlc target/script-runner/terlc
+        install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
+
+    - name: Save candidate script runner
+      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: target/script-runner
+        key: ${{ steps.identity.outputs.key }}
+
+    - name: Validate script runner
+      id: paths
+      shell: bash
+      run: |
+        test -x target/script-runner/terlc
+        test -x target/script-runner/terlan-vm
+        echo "terlc=$GITHUB_WORKSPACE/target/script-runner/terlc" >> "$GITHUB_OUTPUT"
+        echo "vm=$GITHUB_WORKSPACE/target/script-runner/terlan-vm" >> "$GITHUB_OUTPUT"

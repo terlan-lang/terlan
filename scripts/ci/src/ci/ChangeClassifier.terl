@@ -1,0 +1,142 @@
+/**
+ * Deterministic change classification for hosted validation.
+ */
+module ci.ChangeClassifier.
+
+import std.collections.List.
+import std.core.{Int, String}.
+
+pub struct Classification {
+    source: Bool,
+    compiler: Bool,
+    dependencies: Bool,
+    changed_count: Int,
+}.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+starts_with_any(path: String, prefixes: List[String]): Bool ->
+    case prefixes {
+        [] -> false;
+        [prefix | rest] -> String.starts_with(path, prefix) or starts_with_any(path, rest)
+    }.
+
+pub is_product_file(path: String): Bool ->
+    contains(
+    [
+        "Cargo.toml",
+        "Cargo.lock",
+        "Makefile",
+        "rust-toolchain.toml",
+        "rustfmt.toml",
+        "install.sh",
+        "install.ps1",
+    ],
+    path,
+)
+        or starts_with_any(
+    path,
+    [
+        "benchmarks/",
+        "build/",
+        "crates/",
+        "mk/",
+        "proofs/",
+        "std/",
+        "tests/",
+        "tools/",
+        "scripts/",
+        "tree-sitter-terlan/",
+    ],
+).
+
+pub is_compiler_file(path: String): Bool ->
+    contains(["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "rustfmt.toml"], path)
+        or starts_with_any(path, ["build/", "crates/", "std/", "tests/", "tree-sitter-terlan/"]).
+
+pub is_dependency_file(path: String): Bool ->
+    path == "Cargo.lock"
+        or path == "Cargo.toml"
+        or String.ends_with(path, "/Cargo.toml")
+        or String.ends_with(path, "/package-lock.json")
+        or String.ends_with(path, "/requirements.txt").
+
+any_product(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> is_product_file(path) or any_product(rest)
+    }.
+
+any_compiler(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> is_compiler_file(path) or any_compiler(rest)
+    }.
+
+any_dependency(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> is_dependency_file(path) or any_dependency(rest)
+    }.
+
+unique_nonempty(paths: List[String], seen: List[String]): List[String] ->
+    case paths {
+        [] -> seen;
+        ["" | rest] -> unique_nonempty(rest, seen);
+        [path | rest] ->
+            if {
+                contains(seen, path) -> unique_nonempty(rest, seen);
+                true -> unique_nonempty(rest, [path | seen])
+            }
+    }.
+
+pub classify(paths: List[String], force_full: Bool): Classification ->
+    let normalized = unique_nonempty(paths, []);
+    Classification(
+        source = force_full or any_product(normalized),
+        compiler = force_full or any_compiler(normalized),
+        dependencies = force_full or any_dependency(normalized),
+        changed_count = List.length(normalized),
+    ).
+
+hex_characters(characters: List[String]): Bool ->
+    case characters {
+        [] -> true;
+        [character | rest] ->
+            contains(
+    ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"],
+    character,
+)
+                and hex_characters(rest)
+    }.
+
+pub valid_revision(value: String): Bool ->
+    String.length(value) == 40 and hex_characters(String.characters(value)).
+
+pub indeterminate_base(value: String): Bool ->
+    not valid_revision(value) or value == "0000000000000000000000000000000000000000".
+
+boolean(value: Bool): String ->
+    if {
+        value -> "true";
+        true -> "false"
+    }.
+
+pub render_outputs(value: Classification): String ->
+    String.concat(
+        [
+            "source=",
+            boolean(value.source),
+            "\ncompiler=",
+            boolean(value.compiler),
+            "\ndependencies=",
+            boolean(value.dependencies),
+            "\nchanged-count=",
+            Int.to_string(value.changed_count),
+            "\n",
+        ],
+    ).

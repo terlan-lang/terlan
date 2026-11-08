@@ -32,6 +32,8 @@ on:
       - ".github/workflows/ci.yml"
       - ".github/workflows/source-preflight.yml"
       - ".github/workflows/codeql.yml"
+      - ".github/workflows/codeql-language.yml"
+      - ".github/workflows/codeql-rust.yml"
       - ".github/workflows/docs.yml"
       - ".github/workflows/release.yml"
       - ".github/workflows/publish.yml"
@@ -67,6 +69,8 @@ on:
       - ".github/workflows/ci.yml"
       - ".github/workflows/source-preflight.yml"
       - ".github/workflows/codeql.yml"
+      - ".github/workflows/codeql-language.yml"
+      - ".github/workflows/codeql-rust.yml"
       - ".github/workflows/docs.yml"
       - ".github/workflows/release.yml"
       - ".github/workflows/publish.yml"
@@ -86,7 +90,7 @@ jobs:
   changes:
     name: Classify validation scope
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 20
     outputs:
       source: ${{ steps.classify.outputs.source }}
       compiler: ${{ steps.classify.outputs.compiler }}
@@ -104,16 +108,18 @@ jobs:
         run: |
           [[ "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]
           test "$EXPECTED_REVISION" = "$GITHUB_SHA"
+      - name: Setup Terlan script runner
+        id: script-runner
+        uses: ./.github/actions/setup-terlan-script-runner
       - name: Classify changed files
         id: classify
         env:
           BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
           HEAD_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          node scripts/ci/classify_changes.cjs \
-            --base "$BASE_REVISION" \
-            --head "$HEAD_REVISION" \
-            --output "$GITHUB_OUTPUT"
+          "${{ steps.script-runner.outputs.terlc }}" run \
+            scripts/ci/scripts/ClassifyChanges.terls -- \
+            "$BASE_REVISION" "$HEAD_REVISION" "$GITHUB_OUTPUT"
 
   source-preflight:
     needs: changes
