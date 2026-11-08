@@ -68,7 +68,9 @@ distinguishes product inputs from workflow and documentation contracts.
 The classifier is Terlan source with 100% declaration coverage. A
 content-addressed script-runner cache restores `terlc` and `terlan-vm` when
 compiler inputs are unchanged; otherwise the candidate compiler self-bootstraps
-that runner once. Script capability is deliberately separate from release
+that runner once. Source preflight reuses the same compiler for classifier,
+release-payload, and readability checks instead of rebuilding it. Script
+capability is deliberately separate from release
 eligibility: candidate tooling may orchestrate a red build, while only complete
 independent evidence permits publication.
 Contract-only changes run formatting, actionlint, and publication/tooling

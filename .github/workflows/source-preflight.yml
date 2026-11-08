@@ -46,15 +46,12 @@ jobs:
           cache-profile: compiler-validation
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
-      - name: Build Terlan source checker
-        if: ${{ inputs.mode == 'full' }}
-        run: cargo build --locked -p terlan --bin terlc
       - name: Validate release payload inputs
         if: ${{ inputs.mode == 'full' }}
-        run: target/debug/terlc test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl --coverage --coverage-threshold 100
+        run: ${{ steps.script-runner.outputs.terlc }} test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl --coverage --coverage-threshold 100
       - name: Check Terlan readability canonicalization
         if: ${{ inputs.mode == 'full' }}
-        run: make --no-print-directory -f crates/terlan/cli.mk terlan-readability-canonicalization-check TERLC=target/debug/terlc
+        run: make --no-print-directory -f crates/terlan/cli.mk terlan-readability-canonicalization-check TERLC=${{ steps.script-runner.outputs.terlc }}
       - name: Check source inventory and test ownership
         if: ${{ inputs.mode == 'full' }}
         run: |
