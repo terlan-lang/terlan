@@ -849,6 +849,7 @@ build_release_contract(repository: String): Bool ->
             "rust-toolchain.toml",
             ".github/workflows/ci.yml",
             ".github/workflows/docs.yml",
+            ".github/workflows/publish.yml",
             ".github/workflows/release.yml",
             ".github/workflows/security.yml",
             ".github/actions/security-audit/action.yml",
@@ -870,6 +871,7 @@ build_release_contract(repository: String): Bool ->
         Some(ci) <- read(repository, ".github/workflows/ci.yml");
         Some(source_preflight) <- read(repository, ".github/workflows/source-preflight.yml");
         Some(docs) <- read(repository, ".github/workflows/docs.yml");
+        Some(publish_workflow) <- read(repository, ".github/workflows/publish.yml");
         Some(pages) <- read(repository, ".github/workflows/pages.yml");
         Some(security) <- read(repository, ".github/workflows/security.yml");
         Some(dependency_audit) <- read(repository, ".github/actions/security-audit/action.yml");
@@ -1004,6 +1006,15 @@ if {
         "pkgconf:$triplet",
         "PKG_CONFIG=$pkgConfig",
         "$LASTEXITCODE -ne 0",
+        "name: Install pinned Lean toolchain",
+        "if: inputs.lean == 'true'",
+        "GH_TOKEN: \${{ github.token }}",
+        "packages+=(elan zstd)",
+        "leanprover/lean4:v4.31.0",
+        "repos/leanprover/lean4/releases/tags/$lean_tag",
+        "lean_download_attempts=4",
+        "elan toolchain link \"$lean_toolchain\" \"$lean_root\"",
+        "elan run \"$lean_toolchain\" lean --version",
         "GITHUB_TOKEN: \${{ github.token }}",
         "https://api.github.com/repos/lexxmark/winflexbison/releases/tags/v2.5.24",
         "application/octet-stream",
@@ -1015,6 +1026,8 @@ if {
         "sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0",
     ],
 )
+        or String.contains(ci, "run: elan toolchain install")
+        or String.contains(publish_workflow, "run: elan toolchain install")
         or String.contains(native_setup, "pkgconfiglite") -> failure(
         "build_release.native_setup",
         "platform workflows must share fail-closed target-native dependency setup",

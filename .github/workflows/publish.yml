@@ -61,9 +61,6 @@ jobs:
           target: linux-x86_64
           lean: "true"
 
-      - name: Install pinned Lean toolchain
-        run: elan toolchain install "$(cat proofs/lean/lean-toolchain)"
-
       - name: Install Rust toolchain
         uses: ./.github/actions/setup-rust
         with:

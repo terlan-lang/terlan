@@ -109,9 +109,12 @@ workflow, and checks the compiler job's actual producing attempt through the
 GitHub job API before admitting its coverage bundle. The workflow's latest
 attempt is not substituted for the completed compiler job's attempt.
 
-The compiler job installs the exact Lean channel named by
-`proofs/lean/lean-toolchain` before any executable proof gate runs; a missing
-host toolchain is an infrastructure failure, not a failed theorem.
+The shared native-dependency action installs the exact Lean channel named by
+`proofs/lean/lean-toolchain` before any executable proof gate runs. It first
+uses `elan`, then falls back to the authenticated GitHub asset API with a
+pinned SHA-256, bounded retries, an explicit `elan` link and a version smoke
+test. Compiler CI and publication therefore share one fail-closed installer; a
+missing host toolchain is an infrastructure failure, not a failed theorem.
 
 The direct-AOT portable matrix contract covers Linux, macOS, and Windows on
 x86-64 and AArch64. Each available native runner may compile, package, install,

@@ -21,7 +21,7 @@ runs:
       run: |
         packages=(bubblewrap libpq-dev pkg-config ripgrep)
         if [[ "$TERLAN_INSTALL_LEAN" == true ]]; then
-          packages+=(elan)
+          packages+=(elan zstd)
         fi
         sudo apt-get update
         sudo apt-get install --yes "${packages[@]}"
@@ -30,6 +30,74 @@ runs:
         if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
           sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
         fi
+
+    - name: Install pinned Lean toolchain
+      if: inputs.lean == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        lean_toolchain=$(tr -d '\r\n' < proofs/lean/lean-toolchain)
+        if elan toolchain install "$lean_toolchain"; then
+          exit 0
+        fi
+
+        if [[ "$lean_toolchain" != leanprover/lean4:v4.31.0 ]]; then
+          echo "error: authenticated Lean fallback has no checksum for $lean_toolchain" >&2
+          exit 1
+        fi
+        lean_version=${lean_toolchain##*:v}
+        lean_tag="v$lean_version"
+        case "$(uname -m)" in
+          x86_64)
+            lean_platform=linux
+            lean_sha256=07a633cc8d9151cbc08825ea4cdda50d4b02a2c9cb852c0131b13046f49cad7f
+            ;;
+          aarch64|arm64)
+            lean_platform=linux_aarch64
+            lean_sha256=b1bf1d3c586b76cf4a86212a595d8b9edd99f438a41cce85d5780fa9347c811b
+            ;;
+          *)
+            echo "error: authenticated Lean fallback does not support $(uname -m)" >&2
+            exit 1
+            ;;
+        esac
+
+        lean_asset="lean-$lean_version-$lean_platform.tar.zst"
+        lean_archive="${RUNNER_TEMP:-/tmp}/$lean_asset"
+        lean_partial="$lean_archive.partial"
+        lean_download_attempts=4
+        lean_delay_seconds=5
+        for ((attempt = 1; attempt <= lean_download_attempts; attempt += 1)); do
+          lean_asset_api=""
+          if lean_asset_api=$(gh api "repos/leanprover/lean4/releases/tags/$lean_tag" \
+            --jq ".assets[] | select(.name == \"$lean_asset\") | .url") \
+            && [[ -n "$lean_asset_api" ]] \
+            && gh api -H "Accept: application/octet-stream" "$lean_asset_api" > "$lean_partial"; then
+            actual_sha256=$(sha256sum "$lean_partial" | cut -d' ' -f1)
+            if [[ "$actual_sha256" == "$lean_sha256" ]]; then
+              mv "$lean_partial" "$lean_archive"
+              break
+            fi
+            echo "warning: $lean_asset failed its pinned SHA-256 check" >&2
+          fi
+          rm -f "$lean_partial"
+          if ((attempt == lean_download_attempts)); then
+            echo "error: authenticated $lean_asset download failed after $lean_download_attempts attempts" >&2
+            exit 1
+          fi
+          echo "warning: authenticated $lean_asset download attempt $attempt failed; retrying in $lean_delay_seconds seconds" >&2
+          sleep "$lean_delay_seconds"
+          lean_delay_seconds=$((lean_delay_seconds * 2))
+        done
+
+        lean_install_parent=$(mktemp -d "${RUNNER_TEMP:-/tmp}/terlan-lean.XXXXXX")
+        tar --zstd --extract --file "$lean_archive" --directory "$lean_install_parent"
+        lean_root="$lean_install_parent/lean-$lean_version-$lean_platform"
+        test -x "$lean_root/bin/lean"
+        elan toolchain link "$lean_toolchain" "$lean_root"
+        elan run "$lean_toolchain" lean --version
 
     - name: Install macOS native dependencies
       if: startsWith(inputs.target, 'macos-')
