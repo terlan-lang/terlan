@@ -148,7 +148,7 @@ crossterm = "0.29.0"
 cssparser = "0.37.0"
 html5ever = "0.39.0"
 mime_guess.workspace = true
-lalrpop-util = { version = "=0.23.1", default-features = false }
+lalrpop-util = { version = "=0.23.2", default-features = false }
 mio = { workspace = true, features = ["net", "os-poll"] }
 oxc_allocator = "0.134.0"
 oxc_ast = "0.134.0"
