@@ -3,8 +3,9 @@
  */
 module tvm_aot_platform_matrix.ReleasePayload.
 
-import std.collections.List.{concat}.
+import std.collections.List.{concat, length}.
 import std.core.Option.{None, Some}.
+import std.core.Ordering.Lt.
 import std.core.Result.{Err, Ok}.
 import std.core.{String, Unit}.
 import std.crypto.Hash.
@@ -77,34 +78,54 @@ payload_roots(root: String): List[PayloadRoot] ->
 publishable_doc_rows(
     root: String,
     rows: List[String],
+    previous: Option[String],
     output: List[Payload],
 ): Option[List[Payload]] ->
     case rows {
         [] -> Some(reverse(output, []));
-        [row | rest] ->
-            let path = String.trim(row);
-            let source = child(root, path);
-            if {
-                path == "" or path == "path" -> publishable_doc_rows(root, rest, output);
-                not String.starts_with(path, "docs/") -> None;
-                String.contains(String.lowercase(path), "roadmap") -> None;
-                String.contains(String.lowercase(path), "archive") -> None;
-                String.contains(String.lowercase(path), "baseline") -> None;
-                String.contains(String.lowercase(path), "scratch") -> None;
-                String.contains(String.lowercase(path), "research") -> None;
-                not File.exists(source) -> None;
-                true -> publishable_doc_rows(
-                    root,
-                    rest,
-                    [payload(source, child("share/terlan", path)) | output],
-                )
+        ["" | rest] -> publishable_doc_rows(root, rest, previous, output);
+        ["path" | rest] ->
+            case previous {
+                None -> publishable_doc_rows(root, rest, Some(""), output);
+                Some(_value) -> None
+            };
+        [path | rest] ->
+            case previous {
+                None -> None;
+                Some(prior) ->
+                    let source = child(root, path);
+                    if {
+                        not String.starts_with(path, "docs/") or String.contains(path, "..") -> None;
+                        prior != "" and String.compare(prior, path) != Lt -> None;
+                        String.contains(String.lowercase(path), "roadmap") -> None;
+                        String.contains(String.lowercase(path), "archive") -> None;
+                        String.contains(String.lowercase(path), "baseline") -> None;
+                        String.contains(String.lowercase(path), "scratch") -> None;
+                        String.contains(String.lowercase(path), "research") -> None;
+                        not File.exists(source) -> None;
+                        true -> publishable_doc_rows(
+                            root,
+                            rest,
+                            Some(path),
+                            [payload(source, child("share/terlan", path)) | output],
+                        )
+                    }
             }
     }.
 
 publishable_docs(root: String): Option[List[Payload]] ->
     case File.read_text(child(root, "docs/release/PUBLISHABLE_DOCUMENTATION.tsv")) {
-        Ok(source) -> publishable_doc_rows(root, String.split(source, "\n"), []);
+        Ok(source) -> publishable_doc_rows(root, String.split(source, "\n"), None, []);
         Err(_reason) -> None
+    }.
+
+/**
+ * Validates the release documentation manifest before expensive packaging.
+ */
+pub publishable_docs_valid(root: String): Bool ->
+    case publishable_docs(root) {
+        None -> false;
+        Some(files) -> length(files) > 0
     }.
 
 fixed_payloads(root: String): List[Payload] ->

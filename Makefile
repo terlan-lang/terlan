@@ -5519,7 +5519,7 @@ release-control-check: | terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) self-test
 	$(TERLAN_RELEASE_CONTROL) acceptance-test "$(CURDIR)/$(TERLAN_BOOTSTRAP_VM)" "$(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE)"
 
-.PHONY: publish publish-local publish-local-check publish-upload browser-release-check
+.PHONY: publish publish-local publish-local-check publish-release-input-check publish-upload browser-release-check
 publish: publish-source-preflight
 	@test "$$(git branch --show-current)" = main || { echo 'publish requires main' >&2; exit 1; }
 	@test "$(VERSION)" = "$(RELEASE_VERSION)" || { echo 'VERSION must match workspace.package.version' >&2; exit 1; }
@@ -5542,7 +5542,12 @@ publish-local: publish-source-preflight
 	@test "$$(git rev-parse HEAD)" = "$(PUBLISH_REVISION)" || { echo 'validated commit changed' >&2; exit 1; }
 	$(TERLAN_RELEASE_CONTROL) submit "$(VERSION)" "$(PUBLISH_REVISION)"
 
-publish-local-check:
+publish-release-input-check: | terlan-compiler-bootstrap
+	$(TERLAN_BOOTSTRAP_COMPILER) test \
+		scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl \
+		--coverage --coverage-threshold 100
+
+publish-local-check: publish-release-input-check
 	node --test scripts/ci/classify_changes_test.cjs
 	bash scripts/publication_process_preflight_test.sh
 	go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml

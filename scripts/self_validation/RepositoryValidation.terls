@@ -923,6 +923,9 @@ build_release_contract(repository: String): Bool ->
         "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",
         "node-security-audit-check:",
         "npm audit --prefix \"$$package_dir\" --package-lock-only --audit-level=moderate",
+        "publish-local-check: publish-release-input-check",
+        "ReleasePayloadInputTest.terl \\",
+        "--coverage --coverage-threshold 100",
     ];
 let release_fragments =
     [
@@ -999,6 +1002,8 @@ if {
     not contains_all(
     source_preflight,
     [
+        "Validate release payload inputs",
+        "ReleasePayloadInputTest.terl --coverage --coverage-threshold 100",
         "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
         "go-version: \"1.25.0\"",
         "actionlint-go1.25.0-v1.7.12",

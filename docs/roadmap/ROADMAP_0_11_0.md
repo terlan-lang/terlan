@@ -9,7 +9,7 @@ The immediate metadata and budget reliability work moved into the 0.0.10
 release candidate on 2026-10-28 at the release owner's request. Its scope is
 removing disposable dependency sidecars from source requirements and release
 payloads, deriving dependencies from interface declarations, and sharing build
-budget policy. See the [0.0.10 release notes](../release/RELEASE_NOTES_0_10_0.md).
+budget policy. See the [0.0.10 release notes](../release/RELEASE_NOTES_0_0_10.md).
 The broader ownership and cache work below remains a follow-up; the acceptance
 criteria are not a claim that all of it is already implemented.
 

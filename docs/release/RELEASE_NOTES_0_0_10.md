@@ -76,7 +76,7 @@ dependencies retain their own deployment requirements. This does not freeze the
 runtime ABI or claim completion of compiler self-hosting.
 
 The classified changes from 0.0.9 and their migration guidance are recorded in
-`COMPATIBILITY_0_10_0.json`.
+`COMPATIBILITY_0_0_10.json`.
 
 ## Validation requirements
 

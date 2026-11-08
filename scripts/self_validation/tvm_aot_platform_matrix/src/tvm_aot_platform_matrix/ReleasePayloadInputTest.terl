@@ -1,0 +1,45 @@
+module tvm_aot_platform_matrix.ReleasePayloadInputTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.Ok.
+import std.core.Unit.
+import std.io.{Directory, File}.
+import std.system.Environment.
+import tvm_aot_platform_matrix.ReleasePayload.
+
+manifest_fixture(source: String, include_second: Bool, expected: Bool): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-release-payload-inputs.") else {
+        _ -> false
+    };
+    (let {
+    Ok(Unit) <- Directory.create_all(root + "/docs/release");
+    Ok(Unit) <- File.write_text(root + "/docs/release/PUBLISHABLE_DOCUMENTATION.tsv", source);
+    Ok(Unit) <- File.write_text(root + "/docs/a.md", "a")
+} else {
+    _ -> false
+};
+(let second =
+    if {
+        include_second -> File.write_text(root + "/docs/b.md", "b") == Ok(Unit);
+        true -> true
+    };
+let accepted = ReleasePayload.publishable_docs_valid(root);
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+second and accepted == expected and cleaned)).
+
+@test
+pub current_release_payload_inputs_exist(): Bool ->
+    case ReleasePayload.all(Environment.current_directory()) {
+        None -> false;
+        Some(payloads) -> List.length(payloads) > 0
+    }.
+
+@test
+pub documentation_manifest_is_nonempty_unique_sorted_and_complete(): Bool ->
+    manifest_fixture("path\ndocs/a.md\ndocs/b.md\n", true, true)
+        and manifest_fixture("path\ndocs/b.md\ndocs/a.md\n", true, false)
+        and manifest_fixture("path\ndocs/a.md\ndocs/a.md\n", true, false)
+        and manifest_fixture("path\ndocs/a.md\ndocs/b.md\n", false, false)
+        and manifest_fixture("docs/a.md\n", true, false)
+        and manifest_fixture("path\ndocs/a.md\npath\n", true, false).
