@@ -371,6 +371,8 @@ fn publication_verification_commands_have_outer_deadlines() {
         fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
     assert!(source
         .contains("timeout 300s $(TERLAN_RELEASE_PROMOTION) preflight --version \"$(VERSION)\""));
-    assert!(source.contains("timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) release-verify"));
+    assert!(source.contains(
+        "timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) hosted-release-verify \\\n\t\ttarget/quality/tvm-aot-platform-matrix-report.json \"$$(git rev-parse HEAD)\""
+    ));
     assert!(source.contains("timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify"));
 }

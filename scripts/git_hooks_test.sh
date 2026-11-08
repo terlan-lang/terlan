@@ -326,6 +326,11 @@ test -n "$repository_contract_line"
 test "$release_install_line" -lt "$repository_contract_line"
 release_contract_body=$(sed -n '/^    release-contract)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
+bootstrap_body=$(sed -n '/^    bootstrap)/,/^      ;;/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+publication_test_pattern='cargo '
+publication_test_pattern+='test --locked -p terlan-test-orchestrator --test publish_preflight'
+grep -Fq "$publication_test_pattern" <<< "$bootstrap_body"
 grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body"
 grep -Fq 'ensure_quality_tools' <<< "$release_contract_body"
 if grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
