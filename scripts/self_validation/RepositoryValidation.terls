@@ -942,6 +942,7 @@ let release_fragments =
         "name: release locked dependency security audit",
         "compiler_run_id:",
         "name: Reuse exact Compiler CI evidence",
+        "name: Publish workflow run identity",
         "github.rest.actions.getWorkflowRun",
         "run.path !== \".github/workflows/ci.yml\"",
         "name: prepare sealed publication bundle",
@@ -979,6 +980,10 @@ if {
     String.contains(release, "uses: ./.github/workflows/source-preflight.yml") -> failure(
         "build_release.duplicate_preflight",
         "release validation must reuse exact successful Compiler CI evidence",
+    );
+    String.contains(release, "release-validation-identity:") -> failure(
+        "build_release.duplicate_identity_job",
+        "release revision evidence and pending identity must share one guarded job",
     );
     String.contains(release, "self-hosted") -> failure(
         "build_release.self_hosted",

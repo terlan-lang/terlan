@@ -822,6 +822,8 @@ pub release_trigger_valid(workflow: String): Bool ->
         and normalized_workflow.contains("run.path !== \".github/workflows/ci.yml\"")
         and normalized_workflow.contains("run.head_sha !== context.sha")
         and normalized_workflow.contains("run.conclusion !== \"success\"")
+        and normalized_workflow.contains("name: Publish workflow run identity")
+        and not normalized_workflow.contains("release-validation-identity:")
         and not normalized_workflow.contains("uses: ./.github/workflows/source-preflight.yml")
         and not normalized_workflow.contains("  push:\n").
 

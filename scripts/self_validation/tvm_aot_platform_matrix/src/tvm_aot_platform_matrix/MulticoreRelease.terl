@@ -195,13 +195,16 @@ pub validate_workflow(workflow: String): Bool ->
         {"run: make vm-multicore-thread-sanitizer-check", 1},
         {"name: release-vm-multicore-thread-sanitizer", 2},
         {"run: make release-hosted-validation-check", 1},
+        {"release-validation-identity:", 0},
+        {"    needs: revision", 4},
     ],
 ) -> false;
         not fragments_present(
     workflow,
     [
         "statuses: write",
-        "release-validation-identity:",
+        "name: Reuse exact Compiler CI evidence",
+        "name: Publish workflow run identity",
         "multicore-thread-sanitizer:",
         "release-hosted-validation-evidence",
         "prepare-publication:",

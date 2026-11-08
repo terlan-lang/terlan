@@ -25,6 +25,10 @@ jobs:
     name: Require exact release revision
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      statuses: write
     steps:
       - name: Match dispatched revision
         env:
@@ -62,17 +66,6 @@ jobs:
             ) {
               throw new Error("compiler_run_id is not successful exact-revision Compiler CI evidence");
             }
-
-  release-validation-identity:
-    name: publish release validation identity
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    needs: revision
-    permissions:
-      contents: read
-      statuses: write
-
-    steps:
       - name: Publish workflow run identity
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -93,7 +86,7 @@ jobs:
   dependency-audit:
     name: release locked dependency security audit
     runs-on: ubuntu-24.04
-    needs: release-validation-identity
+    needs: revision
     timeout-minutes: 15
 
     steps:
@@ -113,7 +106,7 @@ jobs:
   platform:
     name: release AOT (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
-    needs: release-validation-identity
+    needs: revision
     timeout-minutes: ${{ matrix.target == 'macos-x86_64' && 150 || 90 }}
     # LLVM's optimized Terlan codegen can exhaust rustc's default worker stack
     # on the Intel macOS runner. Keep one explicit envelope for validation and
@@ -200,7 +193,7 @@ jobs:
   thread-sanitizer:
     name: release AOT ThreadSanitizer
     runs-on: ubuntu-24.04
-    needs: release-validation-identity
+    needs: revision
     timeout-minutes: 60
 
     steps:
@@ -239,7 +232,7 @@ jobs:
   multicore-thread-sanitizer:
     name: release VM multicore ThreadSanitizer
     runs-on: ubuntu-24.04
-    needs: release-validation-identity
+    needs: revision
     timeout-minutes: 60
 
     steps:

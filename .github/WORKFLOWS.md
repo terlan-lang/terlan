@@ -71,7 +71,9 @@ run source inventory, ownership, canonicalization, and the compiler gates.
 Release control passes the successful exact-revision Compiler CI run ID into
 Release validation. A lightweight GitHub API gate verifies its repository,
 workflow path, commit, branch, event, attempt, status, and conclusion instead of
-recompiling and rerunning source preflight.
+recompiling and rerunning source preflight. That same guarded job publishes the
+pending release identity, avoiding a second runner whose only purpose was to
+repeat the already-established source binding.
 
 `ci.yml` runs on pull requests, `main` pushes, and dedicated `agent/aot-*`
 branch pushes when compiler-facing sources change. It can also be dispatched
