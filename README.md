@@ -21,7 +21,7 @@ native bindings, and VM-owned HTTP/networking.
 
 ## Status
 
-Current version: `0.10.0`.
+Current version: `0.0.10`.
 
 Terlan is still early and experimental. The syntax, runtime, standard library,
 VM, editor integrations, and release tooling are changing quickly. The current
@@ -43,7 +43,7 @@ Current direction:
 
 Install the latest published platform artifact:
 
-Starting with 0.10.0, Linux x86-64 binaries require glibc 2.35 or newer;
+Starting with 0.0.10, Linux x86-64 binaries require glibc 2.35 or newer;
 Linux AArch64 binaries require glibc 2.39 or newer. The installer checks this requirement and starts
 the downloaded executables before replacing an existing installation. These
 GNU/Linux artifacts require their native libraries, including libpq; they do
@@ -56,7 +56,7 @@ curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh 
 Pin a published release through the installer:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.10.0 sh
+curl -fsSL https://raw.githubusercontent.com/terlan-lang/terlan/main/install.sh | env TERLAN_VERSION=v0.0.10 sh
 ```
 
 On Windows, use PowerShell:
@@ -329,7 +329,7 @@ inputs.
 From a clean `main` checkout, run:
 
 ```sh
-make publish VERSION=0.10.0
+make publish VERSION=0.0.10
 ```
 
 The command rejects uncommitted changes, runs local release validation, native

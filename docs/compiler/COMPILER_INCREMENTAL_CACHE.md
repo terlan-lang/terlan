@@ -215,7 +215,7 @@ The [retained comparison](../../scripts/benchmarks/compilation/results/checked-r
 contains all twelve raw sample reports, tool hashes, host snapshots, and the
 calculated medians. Each workload has 128 generated leaf modules with 64
 functions each (8,192 leaf functions, plus application helpers). The optimized
-0.10.0 candidate compiler used eight native build jobs on an Intel i9-12950HX
+0.0.10 candidate compiler used eight native build jobs on an Intel i9-12950HX
 Linux workstation. Each mode/workload pair has three observations.
 
 Median wall times, in seconds:

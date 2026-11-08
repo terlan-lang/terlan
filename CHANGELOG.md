@@ -7,7 +7,7 @@ documentation; unchanged capabilities do not need a release recap.
 
 ## Unreleased
 
-## 0.10.0
+## 0.0.10
 
 ### Language contracts
 

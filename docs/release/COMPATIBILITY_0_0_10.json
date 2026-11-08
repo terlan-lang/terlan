@@ -1,7 +1,7 @@
 {
   "schema": "terlan.release-compatibility-baseline.v1",
   "baseline": "0.0.9",
-  "candidate": "0.10.0",
+  "candidate": "0.0.10",
   "changes": [
     {
       "surface": "native.declarations",

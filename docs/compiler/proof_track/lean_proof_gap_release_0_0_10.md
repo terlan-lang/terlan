@@ -1,7 +1,7 @@
-# Proof exceptions for Terlan 0.10.0
+# Proof exceptions for Terlan 0.0.10
 
 On 2026-10-27 the repository owner explicitly approved carrying the six existing
-release-scoped proof exceptions from 0.0.9 into 0.10.0:
+release-scoped proof exceptions from 0.0.9 into 0.0.10:
 
 - Typed CoreIR preservation (compiler).
 - Target-profile inference (compiler).

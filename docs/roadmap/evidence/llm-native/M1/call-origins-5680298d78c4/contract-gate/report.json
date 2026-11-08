@@ -21,7 +21,7 @@
       "cache_schema": "terlan-native-codegen-v5",
       "calling_convention": "system_v",
       "codegen_revision": "6cd942d6a60c1b4bb044e9f8bec8832a933fcd8c69d58055dd3c143a379cf07d",
-      "compiler_version": "0.10.0",
+      "compiler_version": "0.0.10",
       "linker_identity": "05689f838e9fb264f42177ebff1f733288d4426d1dd0d7f9e1598dd413083904",
       "operating_system": "linux",
       "schema": "terlan.native-toolchain-identity.v1",

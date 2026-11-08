@@ -1,13 +1,13 @@
-# Terlan 0.10.0 Release Notes
+# Terlan 0.0.10 Release Notes
 
-Terlan 0.10.0 adds single executable application deployment, broader TypeScript
+Terlan 0.0.10 adds single executable application deployment, broader TypeScript
 interop, and typed CSS generation. Angular binding generation and lifecycle
 helpers belong to Angular.ts's `integrations/terlan` package; the compiler
 accepts its pinned declarations through `terlc bind typescript --manifest`.
 
 ## Before upgrading
 
-Rebuild applications and native packages with the 0.10.0 toolchain. Handwritten
+Rebuild applications and native packages with the 0.0.10 toolchain. Handwritten
 native methods use bodyless `@compiler.native` declarations. Rename `FixedArray`
 to `Array`, use the owning module's public type path, and replace the old CSS
 optional-property wrappers and getters with direct typed values.

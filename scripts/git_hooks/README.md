@@ -129,7 +129,7 @@ release profile once and reuses it for size, reports, summaries, proofs, and
 release-contract consumers. Unchanged executable inputs select no release
 build.
 
-The 0.10.0 compiler, VM, native worker, and test orchestrator originally
+The 0.0.10 compiler, VM, native worker, and test orchestrator originally
 measured 134,384,008 release bytes after concrete imported-generic layouts and
 source-visible process teardown operations were added. Persistent checked-CoreIR
 reuse then increased the aggregate. Equivalent stripped local builds measured
