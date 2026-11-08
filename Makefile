@@ -2286,7 +2286,9 @@ tvm-aot-release-prerequisites: tvm-aot-release-closeout-contract-check
 tvm-aot-publish-evidence-check:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE)
-	timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) release-verify
+	test -s target/quality/tvm-aot-platform-matrix-report.json
+	timeout 300s $(TERLAN_TVM_PLATFORM_MATRIX) hosted-release-verify \
+		target/quality/tvm-aot-platform-matrix-report.json "$$(git rev-parse HEAD)"
 
 tvm-aot-static-callable-check:
 	$(RUST_TEST) -p terlan --lib compiler::native_ir::static_callable_test

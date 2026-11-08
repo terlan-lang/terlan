@@ -1046,6 +1046,61 @@ Some(
         }
     }.
 
+matrix_reports_at(
+    values: Json,
+    index: Int,
+    count: Int,
+    reports: List[Report],
+): Option[List[Report]] ->
+    if {
+        index >= count -> Some(reports);
+        true -> let {
+            Ok(value) <- values.at(index);
+            Some(target_id) <- json_string(value, "target_id");
+            Some(result) <- matrix_reports_at(values, index + 1, count, [report(target_id, value) | reports])
+        } else {
+            _ -> reports_failure("hosted_release", "matrix target rows are malformed")
+        };
+        Some(result)
+    }.
+
+/**
+ * Rebuilds one hosted aggregate through the target/provenance validator and
+ * binds it to the exact candidate commit selected by publication.
+ */
+pub hosted_matrix_valid(value: Json, revision: String): Bool ->
+    let {
+        Some(values) <- json_value(value, "targets");
+        Ok(count) <- values.length();
+        Some(reports) <- matrix_reports_at(values, 0, count, []);
+        Some(expected) <- build_matrix(reports);
+        Some(source_revision) <- json_string(value, "source_revision");
+        Some(commit_sha) <- json_string(value, "commit_sha")
+    } else {
+        _ -> false
+    };
+    source_revision != ""
+        and String.starts_with(revision, source_revision)
+        and commit_sha == revision
+        and json_equals(value, expected).
+
+pub verify_hosted_matrix(path: String, revision: String): Bool ->
+    case load_json(path) {
+        None -> failure("hosted_release", "cannot load hosted platform matrix evidence");
+        Some(value) ->
+            if {
+                not hosted_matrix_valid(value, revision) -> failure(
+                    "hosted_release",
+                    "hosted platform matrix is invalid or belongs to another candidate",
+                );
+                true -> let _printed =
+                    println(
+                        String.append("TVM AOT hosted publication evidence verified: ", revision),
+                    );
+                true
+            }
+    }.
+
 pub aggregate(report_root: String): Bool ->
     let root = Environment.current_directory();
     let {

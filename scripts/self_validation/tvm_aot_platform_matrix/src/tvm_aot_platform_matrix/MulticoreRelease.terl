@@ -156,6 +156,8 @@ pub validate_makefile(makefile: String): Bool ->
                         "target/quality/tvm-aot-platform-matrix-verifier.tvm",
                         "target/quality/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256",
                         "> tvm-aot-platform-matrix-verifier.sha256",
+                        "$(TERLAN_TVM_PLATFORM_MATRIX) hosted-release-verify",
+                        "target/quality/tvm-aot-platform-matrix-report.json \"$$(git rev-parse HEAD)\"",
                         "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check release-hosted-publication-verifier",
                     ],
                 )

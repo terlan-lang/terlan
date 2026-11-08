@@ -8,7 +8,7 @@ import std.io.Console.{eprintln}.
 import std.system.Arguments.{get}.
 import tvm_aot_platform_matrix.AotThreadSanitizer.{run as run_tsan, self_test as tsan_self_test}.
 import tvm_aot_platform_matrix.ContractReceipt.
-import tvm_aot_platform_matrix.Core.{aggregate, run_target}.
+import tvm_aot_platform_matrix.Core.{aggregate, run_target, verify_hosted_matrix}.
 import tvm_aot_platform_matrix.ErlSuiteAudit.{check as check_erl_suite, self_test as erl_suite_self_test}.
 import tvm_aot_platform_matrix.MulticoreRelease.{record as record_multicore_release, self_test as multicore_release_self_test, verify as verify_multicore_release}.
 import tvm_aot_platform_matrix.MulticoreThreadSanitizer.{run as run_multicore_tsan, self_test as multicore_tsan_self_test}.
@@ -32,6 +32,11 @@ entry(): Bool ->
         Some("tsan-self-test") -> ContractReceipt.record("tsan-self-test", tsan_self_test());
         Some("release-record") -> record_release();
         Some("release-verify") -> verify_release();
+        Some("hosted-release-verify") ->
+            case {get(1), get(2)} {
+                {Some(path), Some(revision)} -> verify_hosted_matrix(path, revision);
+                _ -> failure("hosted-release-verify requires REPORT and REVISION")
+            };
         Some("release-self-test") ->
             ContractReceipt.record("release-self-test", release_self_test());
         Some("multicore-tsan-run") -> run_multicore_tsan();

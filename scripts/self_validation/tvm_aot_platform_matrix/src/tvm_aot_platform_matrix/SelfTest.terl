@@ -10,7 +10,7 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.File.{read_text}.
 import std.system.Environment.
-import tvm_aot_platform_matrix.Core.{build_matrix, compiled_cache_preservation_text_valid, compiled_cache_text_valid, json_string, matrix_schema, native_setup_text_valid, official_repository, platform_runner_text_valid, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
+import tvm_aot_platform_matrix.Core.{build_matrix, compiled_cache_preservation_text_valid, compiled_cache_text_valid, hosted_matrix_valid, json_string, matrix_schema, native_setup_text_valid, official_repository, platform_runner_text_valid, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, report, string_array, targets, workflow_contract, workflow_text_valid}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -197,6 +197,20 @@ self_test_assertions(
         platform_runner_text_valid(isolated_platform_runner) -> failure("platform runner admitted an isolated duplicate build target");
         not provenance_self_test() -> failure("provenance checker admitted invalid input");
         not matrix_schema_valid(valid_matrix) -> failure("valid matrix did not aggregate");
+        not hosted_matrix_valid(valid_matrix, "self-test-revision-full-sha") -> failure("hosted matrix rejected its exact candidate revision");
+        hosted_matrix_valid(valid_matrix, "unrelated-revision") -> failure("hosted matrix admitted another candidate revision");
+        hosted_matrix_valid(
+            valid_matrix.put("decision", Json.string("failure")),
+            "self-test-revision-full-sha",
+        ) -> failure("hosted matrix admitted changed aggregate metadata");
+        hosted_matrix_valid(
+            valid_matrix.put("targets", Json.array()),
+            "self-test-revision-full-sha",
+        ) -> failure("hosted matrix admitted an empty target set");
+        hosted_matrix_valid(
+            valid_matrix.put("targets", Json.array().push(Json.object())),
+            "self-test-revision-full-sha",
+        ) -> failure("hosted matrix admitted a malformed target row");
         matrix_present(incomplete) -> failure("incomplete executable checks passed");
         not matrix_rejects("decision", Json.string("skipped")) -> failure("skipped row passed");
         not matrix_rejects("calling_convention", Json.string("forged")) -> failure("forged ABI passed");
