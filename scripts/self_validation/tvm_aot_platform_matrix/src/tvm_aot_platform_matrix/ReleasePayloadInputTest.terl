@@ -38,6 +38,7 @@ pub current_release_payload_inputs_exist(): Bool ->
 @test
 pub documentation_manifest_is_nonempty_unique_sorted_and_complete(): Bool ->
     manifest_fixture("path\ndocs/a.md\ndocs/b.md\n", true, true)
+        and manifest_fixture("path\r\ndocs/a.md\r\ndocs/b.md\r\n", true, true)
         and manifest_fixture("path\ndocs/b.md\ndocs/a.md\n", true, false)
         and manifest_fixture("path\ndocs/a.md\ndocs/a.md\n", true, false)
         and manifest_fixture("path\ndocs/a.md\ndocs/b.md\n", false, false)
