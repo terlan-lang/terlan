@@ -200,6 +200,11 @@ pub dependency_changes_select_security_and_binary_consumers(): Bool ->
     Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "rust-security", "artifact-budget", "rust-docs"].
 
 @test
+pub exact_version_metadata_uses_only_its_owned_gate(): Bool ->
+    Plan.preflight_lanes([".terlan-hook/version-metadata"]) == ["inventory", "version-metadata"]
+        and Plan.lanes([".terlan-hook/version-metadata"]) == ["shell"].
+
+@test
 pub standard_library_changes_select_owned_contracts(): Bool ->
     Plan.preflight_lanes(["std/core/Int.terl"]) == ["inventory", "negative-api", "release-manifest", "terlan-format"].
 

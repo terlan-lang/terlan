@@ -723,6 +723,7 @@ pub compiled_cache_text_valid(action: String): Bool ->
             "compiled-cache-key:",
             "value: \${{ steps.compiled-cache-key.outputs.value }}",
             "cache-build:",
+            "cache-profile:",
             "Resolve compiled cache key",
             "id: compiled-cache-key",
             "Cache compiled Rust dependencies",
@@ -734,7 +735,8 @@ pub compiled_cache_text_valid(action: String): Bool ->
             "target/release/build",
             "target/release/deps",
             "\"$GITHUB_SHA\"",
-            "github.job",
+            "TERLAN_CACHE_PROFILE",
+            "terlan-rust-build-v3-",
             "restore-keys:",
         ],
     ).
@@ -810,6 +812,12 @@ ci_trigger_valid(workflow: String): Bool ->
     normalized_workflow.contains("  pull_request:\n")
         and normalized_workflow.contains("    branches:\n      - main\n      - \"agent/aot-*\"\n").
 
+release_trigger_valid(workflow: String): Bool ->
+    let normalized_workflow = String.replace(workflow, "\r\n", "\n");
+    normalized_workflow.contains("  workflow_dispatch:\n")
+        and normalized_workflow.contains("expected_revision:")
+        and not normalized_workflow.contains("  push:\n").
+
 evidence_present(release: String, files: List[String]): Bool ->
     case files {
         [] -> true;
@@ -843,6 +851,7 @@ pub workflow_contract(): Bool ->
         not compiled_cache_preservation_text_valid(ci) -> failure("workflow", "compiled Rust cache preservation drifted");
         not platform_runner_text_valid(platform_runner) -> failure("workflow", "platform runner rebuild contract drifted");
         not ci_trigger_valid(ci) -> failure("workflow", "CI trigger contract drifted");
+        not release_trigger_valid(release) -> failure("workflow", "release validation must be explicit and revision-bound");
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
         not release.contains("run: make release-hosted-validation-check") -> failure("workflow", "hosted release contract gate is missing");

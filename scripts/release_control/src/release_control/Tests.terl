@@ -56,6 +56,11 @@ pub run(): Bool ->
             Json.object()
                 .put("name", Json.string("release-hosted-validation-evidence"))
                 .put("expired", Json.bool(false)),
+        )
+        .push(
+            Json.object()
+                .put("name", Json.string("release-publication-bundle"))
+                .put("expired", Json.bool(false)),
         ),
 )
         and Status.decision(success, pending) == "waiting"

@@ -13,14 +13,13 @@ Run the publication command from a clean `main` checkout:
 make publish VERSION=0.0.9
 ```
 
-The command completes local validation, atomically pushes the commit and its
-annotated `vMAJOR.MINOR.PATCH` tag, and waits for publication. The pushed tag
-starts `publish.yml`. It must match `workspace.package.version`. Publication checks the existing
-remote tag and waits for successful Compiler CI and Release validation for its
-exact commit. It then verifies the attested six-platform artifacts, prepares
-proof and runtime evidence, and publishes the release with the existing verified
-uploader. Main may advance while
-the tagged release is being prepared; the tag and candidate must remain fixed.
+The command requires successful Compiler CI and explicit Release validation for
+the exact commit before it creates the annotated `vMAJOR.MINOR.PATCH` tag. A
+successful release-validation status means that every archive, proof/runtime
+record, editor artifact, installer smoke, publication plan, and checksum is
+already present in one attested, sealed publication bundle. The pushed tag starts
+`publish.yml`, which verifies and uploads that bundle without compiling or
+testing. It must match `workspace.package.version`.
 
 The tag workflow never creates or moves tags and never pushes `main`. Failed
 checks prevent publication. Retry a failed workflow on the same tag after fixing
@@ -64,12 +63,12 @@ same Chromium archive again.
 
 ## Compiler CI
 
-Both compiler and release workflows first call `source-preflight.yml`. Rust
-formatting, source-inventory regression tests, test-runner ownership tests,
-Terlan readability canonicalization, and actionlint must pass before expensive
-compiler, sanitizer, or platform builds. This catches stale source paths,
-TL0009/TL0010 findings, and workflow errors without waiting for the compiler
-library suite.
+Both compiler and release workflows first call `source-preflight.yml`. A
+change-classification job distinguishes product inputs from workflow and
+documentation contracts. Contract-only changes run formatting, actionlint, and
+publication/tooling regressions without starting the compiler suite. Product
+changes additionally run source inventory, ownership, canonicalization, and the
+compiler gates.
 
 `ci.yml` runs on pull requests, `main` pushes, and dedicated `agent/aot-*`
 branch pushes when compiler-facing sources change. It can also be dispatched
@@ -95,11 +94,11 @@ candidate before merge:
 - `Makefile`
 - workflow and shared action configuration
 
-On `main`, and on a pull request whose head is `release-validation/**`, Compiler
-CI runs only the general compiler/release-candidate job. The release workflow
-starts automatically for `main` pushes and is the sole owner of that commit's
-dependency audit, native AOT matrix, and sanitizer families; launching those
-jobs from both workflows is a validation error.
+On `main`, Compiler CI runs the general compiler/release-candidate job only when
+product inputs changed. Release validation never starts from a push: release
+control dispatches it once, with the expected full commit SHA, after Compiler CI
+for that SHA succeeds. It is the sole owner of the release AOT matrix, sanitizer
+families, candidate preparation, and publication bundle.
 On `main`, a separate short attestation job signs the three completed compiler
 coverage records. Only this job receives attestation/OIDC write permissions; it
 does not execute downloaded code or rebuild/retest the compiler. It consumes the
@@ -234,8 +233,10 @@ Non-AOT feature jobs remain paused during the hard AOT cutover.
 
 ## Release Validation
 
-`release.yml` may run manually as an additional validation surface. The local
-validation command is authoritative:
+`release.yml` is an explicit, exact-revision workflow. It is never restarted by
+an unrelated push. Its final successful status is withheld until the complete
+publication bundle has been prepared, attested, and retained. The local AOT
+validation command remains available for focused development:
 
 ```sh
 make tvm-aot-release-closeout-check
@@ -259,9 +260,10 @@ Checkout credentials are never persisted. The shared setup action pins Rust
 1.96.0 and installs only the components exercised by each lane. Long validation
 jobs cache Cargo registry inputs plus compiled dependency, build-script, and
 fingerprint directories; incremental state and final executables are excluded.
-The cache key binds the host, toolchain, manifests, commit, and job. An exact
-commit may seed a rerun, while each job saves its cache under a distinct key
-instead of freezing a partial preflight cache. The compiler job explicitly
+The cache key binds the host ABI, toolchain, compatible build profile,
+manifests, and commit. Sequential preflight, compiler, and preparation jobs with
+the same profile reuse compiled dependencies; sanitizer and platform profiles
+remain isolated. The compiler job explicitly
 saves reusable compiled outputs after a failed late gate as well as after
 success; a cache hit only avoids unchanged compilation and never substitutes
 for executing a validation gate. ThreadSanitizer owns its separate pinned
@@ -460,13 +462,12 @@ Run publication from a clean `main` checkout after committing the release conten
 make publish VERSION=0.0.9
 ```
 
-This entry point runs `publish-local-check`, pins and rechecks the source commit,
-then atomically pushes the commit and annotated tag. The Terlan controller waits
-for the tag workflow to publish; it reports workflow failures without modifying
-existing tags. Local validation failures prevent pushes. Working files must be
-clean; the command never commits, stashes, or resets them. The tag push triggers
-`publish.yml`, which owns artifact preparation and upload. `make release` aliases
-the same command. `make publish-local-check` validates without tagging or pushing.
+This entry point runs lightweight local publication-contract checks, dispatches
+missing Compiler CI and Release validation sequentially, and waits until the
+exact commit has an unexpired sealed publication bundle. Only then does it
+atomically push the commit and annotated tag. The tag workflow performs sealed
+upload only. Working files must be clean; the command never commits, stashes, or
+resets them. `make release` aliases the same command.
 
 The preflight rejects tags outside `main` history, mismatched local or remote
 tags, stale candidate evidence, and a missing or non-successful validation
@@ -475,16 +476,13 @@ to be successful for the exact candidate commit. Candidate validation happens
 once in those hosted workflows; publication does not replay the full Rust test
 suite.
 
-Preparation downloads the exact six-platform distribution from the successful
-status-bearing run, verifies its workflow identity, archive checksums, and
-Sigstore-backed GitHub build-provenance attestations. It also downloads the
-hosted platform and sanitizer evidence. If candidate-bound local evidence is
-missing or stale, preparation builds the required tools and seals multicore and
-AOT closeout. The workflow's `make publish-tag` only verifies that evidence; it never launches
-preparation or downloads the archives. Missing or stale evidence is a loud error
-with an explicit preparation command, so an interrupted upload cannot trigger
-compilation or tests. Preparation checks host tools before expensive work. No
-publication step measures or qualifies host performance.
+Release validation downloads the exact six-platform distribution, verifies its
+workflow identity, archive checksums, and Sigstore-backed GitHub provenance,
+then prepares all remaining candidate-bound evidence. It exports an immutable
+publication plan and attests the complete bundle. The tag workflow downloads
+that bundle, verifies its manifest and attestations, and uploads it. Missing or
+stale evidence prevents the green readiness status; an interrupted upload can
+be retried without compilation or tests.
 
 Verified downloads have an atomic checkpoint in `target/publication-downloads/`.
 The key binds the repository, commit, both successful workflow runs and attempts,

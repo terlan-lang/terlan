@@ -55,39 +55,15 @@ jobs:
           printf 'VERSION=%s\n' "${RELEASE_TAG#v}" >> "$GITHUB_ENV"
           gh auth setup-git --hostname github.com
 
-      - name: Install release dependencies
-        uses: ./.github/actions/setup-native-dependencies
-        with:
-          target: linux-x86_64
-          lean: "true"
+      - name: Restore the sealed publication bundle
+        run: bash scripts/download_publication_bundle.sh "$(git rev-parse HEAD)"
 
-      - name: Install Rust toolchain
-        uses: ./.github/actions/setup-rust
-        with:
-          cache-build: "true"
-          cache-scope: ubuntu-24.04
-
-      - name: Install Node for distribution verification
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-
-      - name: Install JDK for editor packaging
+      - name: Publish the existing sealed tag
+        env:
+          TERLAN_PUBLICATION_PLAN: ${{ github.workspace }}/target/publication-bundle/publication-plan.json
         run: |
-          sudo apt-get install --yes openjdk-21-jdk
-          echo 'JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> "$GITHUB_ENV"
-          echo '/usr/lib/jvm/java-21-openjdk-amd64/bin' >> "$GITHUB_PATH"
-
-      # workflow_dispatch retries load this workflow from main but still check
-      # out the immutable tag. Prewarming here lets an older failed tag reuse
-      # verified downloads even when its Makefile had a shorter preparation cap.
-      - name: Prewarm verified publication inputs
-        run: |
-          timeout --kill-after=10s 3600s \
-            bash scripts/download_validated_release_artifacts.sh "$(git rev-parse HEAD)"
-
-      - name: Validate and publish the existing tag
-        run: make release-tag VERSION="$VERSION"
+          timeout --kill-after=10s 1800s \
+            bash scripts/publish_release_from_dist.sh "$VERSION" </dev/null
 
       - name: Upload publication evidence
         if: always()

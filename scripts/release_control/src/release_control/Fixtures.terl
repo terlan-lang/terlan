@@ -64,14 +64,21 @@ head(): String ->
 
 git_tag(): Bool ->
     if {
-        arg(3) == "--list" -> show(if { mode() == "submit-existing" -> "v0.0.9"; true -> "" });
+        arg(3) == "--list" -> show(
+            if {
+                mode() == "submit-existing" -> "v0.0.9";
+                true -> ""
+            },
+        );
         true -> log("annotate")
     }.
 
 git_push(): Bool ->
-    let exact = arg(3) == "--atomic" and arg(4) == "origin"
-        and arg(5) == String.append(revision(), ":refs/heads/main")
-        and arg(6) == String.append(revision(), ":refs/tags/v0.0.9");
+    let exact =
+        arg(3) == "--atomic"
+            and arg(4) == "origin"
+            and arg(5) == String.append(revision(), ":refs/heads/main")
+            and arg(6) == String.append(revision(), ":refs/tags/v0.0.9");
     let successful = exact and log("push") and mode() != "submit-push-failed" and write("pushed", "1");
     if {
         not successful -> false;
@@ -224,7 +231,7 @@ release_rows(): Json ->
 
 artifact_rows(): Json ->
     Json.object()
-        .put("total_count", Json.int(2))
+        .put("total_count", Json.int(3))
         .put(
             "artifacts",
             Json.array()
@@ -236,6 +243,11 @@ artifact_rows(): Json ->
                 .push(
                     Json.object()
                         .put("name", Json.string("release-hosted-validation-evidence"))
+                        .put("expired", Json.bool(false)),
+                )
+                .push(
+                    Json.object()
+                        .put("name", Json.string("release-publication-bundle"))
                         .put("expired", Json.bool(false)),
                 ),
         ).

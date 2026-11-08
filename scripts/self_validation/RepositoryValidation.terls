@@ -996,7 +996,7 @@ if {
     ],
 ) -> failure("build_release.actionlint", "actionlint toolchain/cache ownership drifted");
     count_occurrences(ci, "uses: ./.github/actions/setup-native-dependencies") != 5
-        or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 4
+        or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 5
         or count_occurrences(docs, "uses: ./.github/actions/setup-native-dependencies") != 1
         or count_occurrences(pages, "uses: ./.github/actions/setup-native-dependencies") != 1
         or not contains_all(

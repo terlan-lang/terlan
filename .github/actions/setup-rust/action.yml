@@ -30,6 +30,10 @@ inputs:
     description: Runner image or ABI label for compiled Cargo artifacts.
     required: false
     default: ""
+  cache-profile:
+    description: Compatible build profile shared by sequential jobs.
+    required: false
+    default: default
 
 runs:
   using: composite
@@ -77,11 +81,16 @@ runs:
       env:
         TERLAN_CACHE_SCOPE: ${{ steps.compiled-cache-scope.outputs.value }}
         TERLAN_CACHE_TOOLCHAIN: ${{ inputs.toolchain }}
+        TERLAN_CACHE_PROFILE: ${{ inputs.cache-profile }}
         TERLAN_CACHE_MANIFEST: ${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}
       run: |
-        printf 'value=terlan-rust-build-v2-%s-%s-%s-%s-%s-%s-%s\n' \
+        if [[ ! "$TERLAN_CACHE_PROFILE" =~ ^[A-Za-z0-9._-]+$ ]]; then
+          echo "cache-profile must be a stable compatibility label" >&2
+          exit 1
+        fi
+        printf 'value=terlan-rust-build-v3-%s-%s-%s-%s-%s-%s-%s\n' \
           "$TERLAN_CACHE_SCOPE" "$RUNNER_OS" "$RUNNER_ARCH" \
-          "$TERLAN_CACHE_TOOLCHAIN" "$GITHUB_JOB" "$TERLAN_CACHE_MANIFEST" \
+          "$TERLAN_CACHE_TOOLCHAIN" "$TERLAN_CACHE_PROFILE" "$TERLAN_CACHE_MANIFEST" \
           "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
     - name: Cache Cargo registry inputs
@@ -109,8 +118,8 @@ runs:
           target/release/deps
         key: ${{ steps.compiled-cache-key.outputs.value }}
         restore-keys: |
-          terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
-          terlan-rust-build-v2-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ github.job }}-
+          terlan-rust-build-v3-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
+          terlan-rust-build-v3-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-
 
     - name: Install exact Rust toolchain
       shell: bash

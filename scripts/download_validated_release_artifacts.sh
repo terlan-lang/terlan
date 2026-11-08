@@ -108,13 +108,25 @@ command -v jq >/dev/null 2>&1 || {
   exit 127
 }
 repository="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-status_json="$(gh api "repos/{owner}/{repo}/commits/$revision/status" \
-  --jq '[.statuses[] | select(.context == "release-validation/run")] | sort_by(.created_at) | last // {}')"
-state="$(jq -r '.state // "missing"' <<<"$status_json")"
-target_url="$(jq -r '.target_url // ""' <<<"$status_json")"
 run_id=""
-if [[ "$state" == "success" && "$target_url" =~ /actions/runs/([0-9]+)$ ]]; then
-  run_id="${BASH_REMATCH[1]}"
+current_release_run="${TERLAN_CURRENT_RELEASE_RUN_ID:-}"
+if [[ -n "$current_release_run" ]]; then
+  [[ "${GITHUB_ACTIONS:-}" == true \
+    && "$current_release_run" =~ ^[1-9][0-9]*$ \
+    && "$current_release_run" == "${GITHUB_RUN_ID:-}" \
+    && "$revision" == "${GITHUB_SHA:-}" ]] || {
+    echo "current release run override is only valid inside its exact GitHub Actions run" >&2
+    exit 1
+  }
+  run_id="$current_release_run"
+else
+  status_json="$(gh api "repos/{owner}/{repo}/commits/$revision/status" \
+    --jq '[.statuses[] | select(.context == "release-validation/run")] | sort_by(.created_at) | last // {}')"
+  state="$(jq -r '.state // "missing"' <<<"$status_json")"
+  target_url="$(jq -r '.target_url // ""' <<<"$status_json")"
+  if [[ "$state" == "success" && "$target_url" =~ /actions/runs/([0-9]+)$ ]]; then
+    run_id="${BASH_REMATCH[1]}"
+  fi
 fi
 
 # A later duplicate run can be cancelled after this exact revision has already
@@ -122,7 +134,7 @@ fi
 # run. Fall back to the immutable successful `validate release` check run; the
 # workflow path, revision, conclusion, artifacts, and attestations are still
 # verified below.
-if [[ -z "$run_id" ]]; then
+if [[ -z "$run_id" && -z "$current_release_run" ]]; then
   release_check_json="$(gh api \
     -H 'Accept: application/vnd.github+json' \
     "repos/$repository/commits/$revision/check-runs?filter=all&per_page=100" \
@@ -152,7 +164,7 @@ run_revision="$(jq -r '.head_sha // ""' <<<"$run_json")"
 run_conclusion="$(jq -r '.conclusion // ""' <<<"$run_json")"
 run_path="$(jq -r '.path // ""' <<<"$run_json")"
 if [[ "$run_revision" != "$revision" \
-  || "$run_conclusion" != "success" \
+  || ( "$run_conclusion" != "success" && -z "$current_release_run" ) \
   || "$run_path" != ".github/workflows/release.yml" ]]; then
   echo "release-validation status does not identify a successful release workflow for $revision" >&2
   exit 1

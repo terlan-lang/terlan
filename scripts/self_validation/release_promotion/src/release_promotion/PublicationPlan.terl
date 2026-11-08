@@ -20,6 +20,7 @@ pub build(root: String, candidate: Json): Result[Json, String] ->
     let path = String.append(root, "/dist/release-candidate.json");
     let {
         Ok(version) <- candidate.get("version");
+        Ok(source_revision) <- candidate.get("source_revision");
         Ok(seal) <- candidate.get("seal");
         Ok(digest) <- seal.get("digest");
         Ok(rows) <- candidate.get("artifacts");
@@ -37,6 +38,7 @@ pub build(root: String, candidate: Json): Result[Json, String] ->
         Json.object()
             .put("schema", Json.string("terlan.publication-plan.v1"))
             .put("version", version)
+            .put("source_revision", source_revision)
             .put("candidate_seal", digest)
             .put(
                 "artifacts",
@@ -59,6 +61,8 @@ pub build(root: String, candidate: Json): Result[Json, String] ->
 pub emit(root: String, candidate: Json): Bool ->
     let {
         Ok(plan) <- build(root, candidate);
+        Ok(source_revision_value) <- plan.get("source_revision");
+        Ok(source_revision) <- source_revision_value.as_string();
         Ok(encoded) <- Json.stringify(plan)
     } else {
         _ ->
@@ -82,11 +86,14 @@ pub self_test(root: String, candidate: Json): Bool ->
         Ok(path) <- path_value.as_string();
         Ok(digest_value) <- row.get("sha256");
         Ok(digest) <- digest_value.as_string();
-        Ok(hash) <- Hash.sha256_file(String.append(root, "/dist/release-candidate.json"))
+        Ok(hash) <- Hash.sha256_file(String.append(root, "/dist/release-candidate.json"));
+        Ok(source_revision_value) <- plan.get("source_revision");
+        Ok(source_revision) <- source_revision_value.as_string()
     } else {
         _ -> false
     };
     before == rendered_after
+        and source_revision == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         and count == 3
         and path == "dist/release-candidate.json"
         and digest == String.append("sha256:", hash)

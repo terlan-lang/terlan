@@ -63,6 +63,14 @@ if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'
   "$terlc" test scripts/self_validation/InventoryTest.terl
 fi
+if preflight_has version-metadata; then
+  echo 'pre-commit: release version metadata'
+  version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+  test -n "$version"
+  cargo metadata --locked --no-deps --format-version 1 >/dev/null
+  TERLAN_RELEASE_VERSION="$version" TERLAN_RELEASE_CHANNEL=dev \
+    "$terlc" test scripts/self_validation/ReleaseVersionChannelTest.terl
+fi
 if preflight_has workflow-contract; then
   echo 'pre-commit: workflow and compiled-cache contracts'
   "$terlc" run scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
@@ -160,6 +168,7 @@ if preflight_has hook-policy; then
   bash scripts/git_commit_message_test.sh
   bash scripts/publication_process_preflight_test.sh
   node scripts/git_hooks/cache_test.cjs
+  node --test scripts/git_hooks/filter_version_changes_test.cjs
   TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh
 fi
 while IFS= read -r lane; do

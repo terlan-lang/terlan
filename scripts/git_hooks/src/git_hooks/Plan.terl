@@ -89,6 +89,9 @@ pub terlan_format(paths: List[String]): Bool ->
         or affected(paths, "crates/terlan/src/compiler/syntax/formatter", "")
         or affected(paths, "crates/terlan/cli.mk", "").
 
+pub version_metadata(paths: List[String]): Bool ->
+    affected(paths, ".terlan-hook/version-metadata", "").
+
 selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
     if {
         condition -> [name | lanes];
@@ -97,48 +100,52 @@ selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
 
 pub preflight_lanes(paths: List[String]): List[String] ->
     ["inventory" | selected(
-    platform_workflow_contract(paths),
-    "workflow-contract",
+    version_metadata(paths),
+    "version-metadata",
     selected(
-        rust_security(paths),
-        "rust-security",
+        platform_workflow_contract(paths),
+        "workflow-contract",
         selected(
-            node_security(paths),
-            "node-security",
+            rust_security(paths),
+            "rust-security",
             selected(
-                editor_release(paths),
-                "editor-release",
+                node_security(paths),
+                "node-security",
                 selected(
-                    artifact_bootstrap(paths),
-                    "artifact-bootstrap",
+                    editor_release(paths),
+                    "editor-release",
                     selected(
-                        grammar(paths),
-                        "grammar",
+                        artifact_bootstrap(paths),
+                        "artifact-bootstrap",
                         selected(
-                            js_bindings(paths),
-                            "js-bindings",
+                            grammar(paths),
+                            "grammar",
                             selected(
-                                negative_api(paths),
-                                "negative-api",
+                                js_bindings(paths),
+                                "js-bindings",
                                 selected(
-                                    artifact_budget(paths),
-                                    "artifact-budget",
+                                    negative_api(paths),
+                                    "negative-api",
                                     selected(
-                                        release_manifest(paths),
-                                        "release-manifest",
+                                        artifact_budget(paths),
+                                        "artifact-budget",
                                         selected(
-                                            rust_docs(paths),
-                                            "rust-docs",
+                                            release_manifest(paths),
+                                            "release-manifest",
                                             selected(
-                                                preparation(paths),
-                                                "preparation",
+                                                rust_docs(paths),
+                                                "rust-docs",
                                                 selected(
-                                                    hook_policy(paths),
-                                                    "hook-policy",
+                                                    preparation(paths),
+                                                    "preparation",
                                                     selected(
-                                                        terlan_format(paths),
-                                                        "terlan-format",
-                                                        List.new[String](),
+                                                        hook_policy(paths),
+                                                        "hook-policy",
+                                                        selected(
+                                                            terlan_format(paths),
+                                                            "terlan-format",
+                                                            List.new[String](),
+                                                        ),
                                                     ),
                                                 ),
                                             ),

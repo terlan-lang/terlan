@@ -3,6 +3,7 @@
 set -euo pipefail
 unset TERLAN_HOOK_SHARED_TARGET
 driver="$(cd "$(dirname "$0")" && pwd)/git_hooks.sh"
+version_filter="$(cd "$(dirname "$0")" && pwd)/git_hooks/filter_version_changes.cjs"
 mkdir -p target
 temporary=$(mktemp -d "$(pwd)/target/git-hooks-test.XXXXXX")
 trap 'result=$?; if (( result != 0 )); then cat "$temporary"/*.log >&2; fi; rm -rf "$temporary"' EXIT
@@ -11,6 +12,7 @@ git init --quiet --initial-branch=main "$temporary/unborn"
 (
   cd "$temporary/unborn"
   mkdir -p scripts/git_hooks
+  cp "$version_filter" scripts/git_hooks/
   printf 'test -f new.txt\n' > scripts/git_hooks/check.sh
   touch new.txt
   git add .
@@ -22,6 +24,7 @@ git config user.name 'Hook regression test'
 git config user.email 'hooks@example.invalid'
 git config core.hooksPath /dev/null
 mkdir -p scripts/git_hooks
+cp "$version_filter" scripts/git_hooks/
 cat > scripts/git_hooks/check.sh <<'CHECK'
 set -eu
 test "$(cat tracked.txt)" = good

@@ -160,11 +160,24 @@ expected_assets="$work_dir/expected-assets.txt"
 actual_assets="$work_dir/actual-assets.txt"
 expected_asset_metadata="$work_dir/expected-asset-metadata.tsv"
 actual_asset_metadata="$work_dir/actual-asset-metadata.tsv"
-# One checked export owns verification, artifact inventory, sizes, and hashes.
-# A failing producer cannot be hidden by process-substitution exit semantics.
-TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" publication-plan --version "$version" > "$publication_plan"
-jq -e --arg version "$version" '
-  .schema == "terlan.publication-plan.v1" and .version == $version
+# Release validation may provide the already-checked plan in its attested
+# publication bundle. The tag publisher must not rebuild validators or replay
+# candidate preparation. Local/manual promotion retains the checked exporter.
+if [[ -n "${TERLAN_PUBLICATION_PLAN:-}" ]]; then
+  [[ -f "$TERLAN_PUBLICATION_PLAN" && ! -L "$TERLAN_PUBLICATION_PLAN" ]] || {
+    echo "sealed publication plan is missing or unsafe" >&2
+    exit 1
+  }
+  cp "$TERLAN_PUBLICATION_PLAN" "$publication_plan"
+else
+  # One checked export owns verification, artifact inventory, sizes, and hashes.
+  # A failing producer cannot be hidden by process-substitution exit semantics.
+  TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" publication-plan --version "$version" > "$publication_plan"
+fi
+jq -e --arg version "$version" --arg revision "$head_commit" '
+  . as $plan
+  | .schema == "terlan.publication-plan.v1" and .version == $version
+  and ($revision | startswith($plan.source_revision))
   and (.candidate_seal | test("^sha256:[0-9a-f]{64}$"))
   and (.artifacts | type == "array" and length > 1)
   and all(.artifacts[];

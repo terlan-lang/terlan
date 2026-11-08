@@ -44,15 +44,17 @@ fi
 trap 'rmdir "$cache/lock"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+raw_changes="$cache/changed-paths.raw.txt"
 changes="$cache/changed-paths.txt"
 git diff --no-renames --name-only -z "$base" "$tree" > "$cache/changed-paths.nul"
-: > "$changes"
+: > "$raw_changes"
 while IFS= read -r -d '' path; do
   case "$path" in
     *$'\n'*|*$'\r'*) echo 'Pre-commit paths must not contain newlines.' >&2; exit 1 ;;
   esac
-  printf '%s\n' "$path" >> "$changes"
+  printf '%s\n' "$path" >> "$raw_changes"
 done < "$cache/changed-paths.nul"
+node scripts/git_hooks/filter_version_changes.cjs "$base" "$tree" "$raw_changes" "$changes"
 
 snapshot="$cache/source"
 echo "pre-commit: validating staged tree $tree in $snapshot"

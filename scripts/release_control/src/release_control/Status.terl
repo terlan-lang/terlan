@@ -168,7 +168,8 @@ pub assets_available(values: Json): Bool ->
     case values.length() {
         Ok(count) ->
             available(values, "release-distribution", 0, count)
-                and available(values, "release-hosted-validation-evidence", 0, count);
+                and available(values, "release-hosted-validation-evidence", 0, count)
+                and available(values, "release-publication-bundle", 0, count);
         _ -> false
     }.
 

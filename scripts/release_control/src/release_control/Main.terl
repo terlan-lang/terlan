@@ -124,9 +124,17 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
                 case checks.at(index) {
                     Err(_reason) -> Err("status has no workflow row");
                     Ok(row) ->
+                        let compiler_ready =
+                            if {
+                                index == 0 -> true;
+                                true -> case checks.at(0) {
+                                    Ok(compiler) -> Support.text(compiler, "state") == "success";
+                                    _ -> false
+                                }
+                            };
                         let result =
                             if {
-                                Support.text(row, "state") == "missing" -> Support.run(
+                                Support.text(row, "state") == "missing" and compiler_ready -> Support.run(
                                     "gh",
                                     [
                                         "workflow",
@@ -134,6 +142,8 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
                                         Support.text(row, "workflow"),
                                         "--ref",
                                         "main",
+                                        "--field",
+                                        String.append("expected_revision=", Support.text(document, "revision")),
                                     ],
                                     60000,
                                 );
@@ -163,7 +173,10 @@ wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
         _ ->
             if {
                 Clock.monotonic_time_ns() >= deadline -> Err("release validation wait deadline reached; rerun the same command to resume");
-                true -> case Support.run("sleep", ["30"], 35000) {
+                true -> let Ok(_dispatched) <- dispatch_missing(document, 0) else {
+                    Err(reason) -> Err(reason)
+                };
+                case Support.run("sleep", ["30"], 35000) {
                     Err(reason) -> Err(reason);
                     Ok(_output) -> wait(revision, version, deadline)
                 }

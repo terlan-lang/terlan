@@ -69,6 +69,7 @@ prepare(root: String, mode: String): Bool ->
         Json.object()
             .put("schema", Json.string("terlan.publication-plan.v1"))
             .put("version", Json.string("0.0.8"))
+            .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
             .put("candidate_seal", Json.string(digest))
             .put("artifacts", assets);
     let complete =
@@ -152,6 +153,13 @@ invoke(root: String, mode: String, status: Int, calls: String): Bool ->
                             ),
                             Process.environment_entry("PUBLICATION_FIXTURE", root),
                             Process.environment_entry("PUBLICATION_MODE", mode),
+                            Process.environment_entry(
+                                "TERLAN_PUBLICATION_PLAN",
+                                if {
+                                    mode == "sealed" -> child(root, "plan.json");
+                                    true -> ""
+                                },
+                            ),
                         ],
                     ),
             );
@@ -242,6 +250,7 @@ passed)).
  */
 pub self_test(): Bool ->
     matching_draft_reuses_uploads_and_verifies_once()
+        and scenario("sealed", 0, "publish\n")
         and partial_draft_uploads_only_the_missing_asset()
         and failed_plan_stops_before_upload_or_publication()
         and public_release_mismatch_is_never_mutated()

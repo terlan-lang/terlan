@@ -2,10 +2,11 @@ name: Release validation
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - "release-validation/**"
+    inputs:
+      expected_revision:
+        description: Exact commit expected at the selected ref
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,8 +16,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  revision:
+    name: Require exact release revision
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Match dispatched revision
+        env:
+          EXPECTED_REVISION: ${{ inputs.expected_revision }}
+        run: |
+          [[ "$EXPECTED_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          test "$EXPECTED_REVISION" = "$GITHUB_SHA"
+
   source-preflight:
+    needs: revision
     uses: ./.github/workflows/source-preflight.yml
+    with:
+      mode: full
 
   release-validation-identity:
     name: publish release validation identity
@@ -115,6 +131,7 @@ jobs:
           components: ""
           cache-build: "true"
           cache-scope: ${{ matrix.runner }}
+          cache-profile: native-platform
 
       - name: Validate macOS process ownership
         if: runner.os == 'macOS'
@@ -174,6 +191,7 @@ jobs:
           components: ""
           cache-build: "true"
           cache-scope: ubuntu-24.04
+          cache-profile: aot-thread-sanitizer
 
       - name: Install pinned Rust ThreadSanitizer toolchain
         run: rustup toolchain install nightly-2026-07-16 --profile minimal --component rust-src
@@ -213,6 +231,7 @@ jobs:
           components: ""
           cache-build: "true"
           cache-scope: ubuntu-24.04
+          cache-profile: vm-thread-sanitizer
 
       - name: Validate multicore VM memory safety
         run: make vm-multicore-thread-sanitizer-check
@@ -258,6 +277,7 @@ jobs:
         with:
           cache-build: "true"
           cache-scope: ubuntu-24.04
+          cache-profile: compiler-validation
 
       - name: Download target execution attestations
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -340,11 +360,116 @@ jobs:
           path: target/quality
           if-no-files-found: ignore
 
+  prepare-publication:
+    name: prepare sealed publication bundle
+    runs-on: ubuntu-24.04
+    needs: validate
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      attestations: write
+      contents: read
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TERLAN_CURRENT_RELEASE_RUN_ID: ${{ github.run_id }}
+      TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS: "7200"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Install publication dependencies
+        uses: ./.github/actions/setup-native-dependencies
+        with:
+          target: linux-x86_64
+          lean: "true"
+
+      - name: Install Rust toolchain
+        uses: ./.github/actions/setup-rust
+        with:
+          components: ""
+          cache-build: "true"
+          cache-scope: ubuntu-24.04
+          cache-profile: compiler-validation
+
+      - name: Install Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Install JDK for editor packaging
+        run: |
+          sudo apt-get install --yes openjdk-21-jdk
+          echo 'JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> "$GITHUB_ENV"
+          echo '/usr/lib/jvm/java-21-openjdk-amd64/bin' >> "$GITHUB_PATH"
+
+      - name: Prepare every publication input
+        shell: bash
+        run: |
+          version=$(sed -nE 's/^version = "([^"]+)"/\1/p' Cargo.toml | head -1)
+          test -n "$version"
+          make publish-prepare VERSION="$version"
+          printf 'VERSION=%s\n' "$version" >> "$GITHUB_ENV"
+
+      - name: Seal publication bundle
+        shell: bash
+        run: |
+          bundle=target/publication-bundle
+          test ! -e "$bundle"
+          mkdir -p "$bundle/dist"
+          TERLAN_RELEASE_ROOT="$PWD" \
+            target/debug/terlan-vm run \
+              target/self-validation/release-promotion/vm/scripts_ReleasePromotion.tvm \
+              --script-eval -- publication-plan --version "$VERSION" \
+              > "$bundle/publication-plan.json"
+          jq -e --arg version "$VERSION" '
+            .schema == "terlan.publication-plan.v1" and .version == $version
+            and (.source_revision | test("^[0-9a-f]{12,40}$"))
+            and (.artifacts | type == "array" and length > 1)
+          ' "$bundle/publication-plan.json" >/dev/null
+          while IFS= read -r artifact; do
+            [[ "$artifact" == dist/* && "$artifact" != *..* && "$artifact" != dist/*/* ]]
+            test -f "$artifact"
+            test ! -L "$artifact"
+            cp -p "$artifact" "$bundle/$artifact"
+          done < <(jq -r '.artifacts[].path' "$bundle/publication-plan.json")
+          (
+            cd "$bundle"
+            find . -type f ! -name bundle.sha256 -print0 \
+              | LC_ALL=C sort -z \
+              | xargs -0 sha256sum > bundle.sha256
+            sha256sum --check --strict bundle.sha256
+          )
+
+      - name: Attest sealed publication bundle
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: target/publication-bundle/**
+
+      - name: Upload sealed publication bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-publication-bundle
+          path: target/publication-bundle
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload preparation failure evidence
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-preparation-failure-${{ github.run_id }}
+          path: target/quality
+          if-no-files-found: ignore
+
   release-validation-result:
     name: publish release validation result
     runs-on: ubuntu-24.04
     if: always()
-    needs: validate
+    needs: prepare-publication
     timeout-minutes: 5
     permissions:
       contents: read
@@ -354,7 +479,7 @@ jobs:
       - name: Publish workflow result
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          VALIDATE_RESULT: ${{ needs.validate.result }}
+          VALIDATE_RESULT: ${{ needs.prepare-publication.result }}
         with:
           script: |
             const validateResult = process.env.VALIDATE_RESULT;

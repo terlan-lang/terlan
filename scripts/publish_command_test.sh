@@ -35,9 +35,14 @@ terlan-release-control-bootstrap:
 MAKE
     cat > submit.sh <<'SH'
 set -eu
-test "$1" = submit
-test "$3" = "$(git rev-parse HEAD)"
-printf 'submit\n' >> target/operations
+case "$1" in
+  wait) printf 'wait\n' >> target/operations ;;
+  submit)
+    test "$3" = "$(git rev-parse HEAD)"
+    printf 'submit\n' >> target/operations
+    ;;
+  *) exit 91 ;;
+esac
 SH
     git add .
     git commit --quiet -m Fixture
@@ -55,10 +60,10 @@ SH
     PUBLISH_TEST_MODE="$mode" make "${arguments[@]}" > "$temporary/$mode.log" 2>&1 || status=$?
     operations=$(cat target/operations 2>/dev/null || true)
     case "$mode" in
-      ready) test "$status" = 0; test "$operations" = $'validate\nbootstrap\nsubmit' ;;
+      ready) test "$status" = 0; test "$operations" = $'validate\nbootstrap\nwait\nsubmit' ;;
       dry-run) test "$status" = 0; test -z "$operations"; test ! -e target/quality/release-control.lock ;;
       failed) test "$status" != 0; test "$operations" = validate ;;
-      drift|head-drift) test "$status" != 0; test "$operations" = $'validate\nbootstrap' ;;
+      drift|head-drift) test "$status" != 0; test "$operations" = $'validate\nbootstrap\nwait' ;;
       *) test "$status" != 0; test -z "$operations" ;;
     esac
     if [[ "$mode" == untracked ]]; then test -f keep.txt; fi
@@ -66,10 +71,13 @@ SH
 done
 echo 'Publication command regressions passed (10 scenarios).'
 
-# The complete browser matrix is intentionally release-bound: ordinary
-# commits keep targeted feedback, while publication cannot bypass browser
-# consumer compilation or any supported Playwright engine.
-grep -Fq '$(MAKE) --no-print-directory browser-release-check' "$root/Makefile"
+# Publication must not replay the compiler, AOT, sanitizer, or browser suites.
+# The exact hosted release workflow owns those gates and the sealed bundle.
+publish_local_check=$(awk '/^publish-local-check:/ { active=1 } active && /^browser-release-check:/ { exit } active { print }' "$root/Makefile")
+if printf '%s\n' "$publish_local_check" | rg -q 'release-candidate-check|browser-release-check|thread-sanitizer-check|tvm-aot-platform-target-check'; then
+  echo 'make publish still replays an expensive validation gate.' >&2
+  exit 1
+fi
 grep -Fq 'CARGO_TARGET_DIR="$(CURDIR)/target" bash scripts/git_hooks/js_browser.sh' "$root/Makefile"
 if rg -q 'scripts/git_hooks/js_browser\.sh' "$root/scripts/git_hooks/check.sh"; then
   echo 'The complete browser matrix must run once at publication, not per commit.' >&2
@@ -81,11 +89,11 @@ fi
 grep -Fxq '          ref: refs/tags/${{ inputs.tag || github.ref_name }}' "$root/.github/workflows/publish.yml"
 grep -Fxq 'TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600' "$root/Makefile"
 grep -Fq 'timeout --kill-after=10s "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)s"' "$root/Makefile"
-prewarm_line=$(grep -n -F '      - name: Prewarm verified publication inputs' "$root/.github/workflows/publish.yml" | cut -d: -f1)
-publish_line=$(grep -n -F '      - name: Validate and publish the existing tag' "$root/.github/workflows/publish.yml" | cut -d: -f1)
+prewarm_line=$(grep -n -F '      - name: Restore the sealed publication bundle' "$root/.github/workflows/publish.yml" | cut -d: -f1)
+publish_line=$(grep -n -F '      - name: Publish the existing sealed tag' "$root/.github/workflows/publish.yml" | cut -d: -f1)
 test -n "$prewarm_line" && test -n "$publish_line" && test "$prewarm_line" -lt "$publish_line"
-grep -Fq '          timeout --kill-after=10s 3600s \' "$root/.github/workflows/publish.yml"
-grep -Fq '            bash scripts/download_validated_release_artifacts.sh "$(git rev-parse HEAD)"' "$root/.github/workflows/publish.yml"
+grep -Fq 'run: bash scripts/download_publication_bundle.sh "$(git rev-parse HEAD)"' "$root/.github/workflows/publish.yml"
+grep -Fq 'TERLAN_PUBLICATION_PLAN:' "$root/.github/workflows/publish.yml"
 awk '/^      - name: Require an annotated version tag$/ { guard=1; next }
   guard && /^        run: \|$/ { body=1; next }
   body && /^          / { sub(/^          /, ""); print; next }
