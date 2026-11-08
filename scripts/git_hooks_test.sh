@@ -324,6 +324,30 @@ repository_contract_line=$(rg -n -F 'make --no-print-directory repository-build-
 test -n "$release_install_line"
 test -n "$repository_contract_line"
 test "$release_install_line" -lt "$repository_contract_line"
+release_contract_body=$(sed -n '/^    release-contract)/,/^      ;;/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body"
+grep -Fq 'ensure_quality_tools' <<< "$release_contract_body"
+if grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
+  echo 'Release contract rebuilt optimized compiler tools unnecessarily' >&2; exit 1
+fi
+grep -Fq 'TERLAN_VALIDATION_BOOTSTRAPPED=1' <<< "$release_contract_body"
+grep -Fq 'TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality' <<< "$release_contract_body"
+grep -Fq 'prechecked_terlan' <<< "$release_contract_body"
+grep -Fq 'build_typed_validator.sh' <<< "$release_contract_body"
+grep -Fq 'repository_validator_image' <<< "$release_contract_body"
+if grep -Fq 'TERLAN_REPOSITORY_VALIDATION=\"$terlc\" run' <<< "$release_contract_body"; then
+  echo 'Release contract recompiles the repository validator on every run' >&2; exit 1
+fi
+repository_contract_recipe=$(awk '
+  /^repository-build-release-contract-check:/ { active=1 }
+  active && /^release-boundary-check:/ { exit }
+  active { print }
+' "$(dirname "$driver")/../Makefile")
+test "$(grep -Fc '$(TERLAN_REPOSITORY_VALIDATION)' <<< "$repository_contract_recipe")" = 1
+if grep -Fq '$(TERLAN_REPOSITORY_VALIDATION) build-plan-report' <<< "$repository_contract_recipe"; then
+  echo 'Repository build-plan report was validated in a second compiler process' >&2; exit 1
+fi
 
 # The executable budget owns four binaries in both profiles. Planner bootstrap
 # already provides debug terlc and terlan-vm; the budget lane must explicitly
@@ -365,22 +389,31 @@ module fixture.DeclaredTest.
 @test
 declared_test(): Bool -> true.
 SOURCE
-printf '%s\n' src/Legacy.terl src/Declared.terl > "$temporary/terlan-lane/changes.txt"
+cat > "$temporary/terlan-lane/src/Prechecked.terls" <<'SOURCE'
+assert(true).
+SOURCE
+printf '%s\n' src/Legacy.terl src/Declared.terl src/Prechecked.terls > "$temporary/terlan-lane/changes.txt"
+printf '%s\n' src/Prechecked.terls > "$temporary/terlan-lane/prechecked.txt"
 chmod +x "$temporary/terlan-lane/terlc" \
   "$temporary/terlan-lane/scripts/git_hooks/formatting_only.sh"
 (
   cd "$temporary/terlan-lane"
   TERLAN_LANE_CALLS="$temporary/terlan-lane.calls" \
-    bash "$(dirname "$driver")/git_hooks/terlan.sh" changes.txt unused "$PWD/terlc" false \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt \
     > "$temporary/terlan-lane.log" 2>&1
 )
 grep -Fx 'check src/Legacy.terl' "$temporary/terlan-lane.calls"
 grep -Fx 'check src/Declared.terl' "$temporary/terlan-lane.calls"
-grep -Fx 'test src/DeclaredTest.terl' "$temporary/terlan-lane.calls"
+grep -Fx 'test src/DeclaredTest.terl --coverage --coverage-threshold 100' "$temporary/terlan-lane.calls"
 if grep -Fxq 'test src/LegacyTest.terl' "$temporary/terlan-lane.calls"; then
   echo 'Hook launched an empty legacy test suite' >&2; exit 1
 fi
 grep -Fq 'compiled legacy self-test module: src/LegacyTest.terl' "$temporary/terlan-lane.log"
+grep -Fq 'reused earlier Terlan validation: src/Prechecked.terls' "$temporary/terlan-lane.log"
+if grep -Fq 'src/Prechecked.terls' "$temporary/terlan-lane.calls"; then
+  echo 'Hook repeated a prechecked Terlan entry build' >&2; exit 1
+fi
 
 # Prebuilt workspace binaries must honor the hook's isolated Cargo target.
 # A relative target/debug path points at the staged checkout instead and made
@@ -411,4 +444,4 @@ grep -Fx 'quality-tools' "$temporary/prebuilt/owned-target/debug/.terlan-prebuil
 test "$(wc -l < "$temporary/prebuilt-cargo.calls")" = 1
 test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
 
-echo 'Git hook regression tests passed (22 scenarios).'
+echo 'Git hook regression tests passed (23 scenarios).'

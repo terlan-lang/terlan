@@ -1,0 +1,10 @@
+/**
+ * Duplicate dependency classification diagnostics remain actionable.
+ */
+module rust_quality.DependencyClassificationsTest.
+
+import rust_quality.DependencyClassifications.
+
+@test
+pub mismatched_graph_reports_resolved_and_reviewed_versions(): Bool ->
+    DependencyClassifications.self_test().

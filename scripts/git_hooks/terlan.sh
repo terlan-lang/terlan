@@ -5,6 +5,7 @@ changes=$1
 base=$2
 terlc=$3
 typed_css_checked=$4
+prechecked=${5:-/dev/null}
 tested_terlan=(scripts/git_hooks/src/git_hooks/PlanTest.terl scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl)
 run_terlan_test() {
   local previous
@@ -20,7 +21,7 @@ run_terlan_test() {
     tested_terlan+=("$1")
     return 0
   fi
-  "$terlc" test "$1"
+  "$terlc" test "$1" --coverage --coverage-threshold 100
   tested_terlan+=("$1")
 }
 checked_projects=("")
@@ -50,11 +51,15 @@ while IFS= read -r path; do
   # JavaScript sources execute through the browser matrix below.
   if [[ "$path" == std/js/* || "$path" == tests/js/* ]]; then continue; fi
   if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then
-    check_terlan_source "$path"
-    # Entry builds resolve the package's configured source roots even when
-    # a script lives outside them. Standalone `check` cannot do that.
-    if [[ "$path" == *.terls && -f "$path" ]]; then
-      "$terlc" build "$path" --target terlan-vm --out-dir "target/git-hooks-terlan/entries/${path%.terls}"
+    if [[ -f "$prechecked" ]] && rg -Fqx -- "$path" "$prechecked"; then
+      echo "pre-commit: reused earlier Terlan validation: $path"
+    else
+      check_terlan_source "$path"
+      # Entry builds resolve the package's configured source roots even when
+      # a script lives outside them. Standalone `check` cannot do that.
+      if [[ "$path" == *.terls && -f "$path" ]]; then
+        "$terlc" build "$path" --target terlan-vm --out-dir "target/git-hooks-terlan/entries/${path%.terls}"
+      fi
     fi
     if bash scripts/git_hooks/formatting_only.sh "$base" "$path" "$terlc"; then
       # Standalone test files also need type checking when their only

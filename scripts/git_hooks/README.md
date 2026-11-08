@@ -98,6 +98,14 @@ unrelated packages in the global Cargo cache out of staged validation. An
 explicit `CARGO_HOME` is honored; relative paths resolve from the working
 repository root. The default cache persists between commits.
 
+Release-contract changes build the optimized compiler once without unrelated
+release binaries, then reuse it for the expensive Terlan checks. Repository
+validation produces and verifies its build-plan report in one synchronous
+invocation. Its compiled TVM is cached by the exact compiler, standard library,
+and validator sources; that completed entry is not compiled again by the later
+changed-Terlan-source lane. Changed declaration-based Terlan tests also enforce
+100% declaration coverage.
+
 Commits that change Rust dependency or toolchain inputs run `make
 rust-security-audit-check` against the staged lockfile and the current RustSec
 database, with warnings denied. Scheduled and release checks retain the

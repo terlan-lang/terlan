@@ -178,6 +178,9 @@ pub workspace(paths: List[String]): Bool ->
         or general_fixtures(paths)
         or non_compiler_rust(paths).
 
+pub test_orchestrator(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan-test-orchestrator/", ".rs").
+
 pub build_support(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/build.rs", "")
         or affected(paths, "crates/terlan/src/compiler/syntax/build_support/", "").
@@ -199,6 +202,7 @@ non_compiler_rust(paths: List[String]): Bool ->
     and not String.starts_with(path, "crates/terlan/src/compiler/")
     and not String.starts_with(path, "crates/terlan/src/commands/")
     and path != "crates/terlan/build.rs"
+    and not String.starts_with(path, "crates/terlan-test-orchestrator/")
     and not String.starts_with(path, "tools/rust_boundary_audit/")
     and not String.starts_with(path, "tree-sitter-terlan/")
                 or non_compiler_rust(rest)
@@ -290,6 +294,7 @@ has_non_native_lowering(paths: List[String]): Bool ->
         [] -> false;
         [path | rest] ->
             path != ""
+    and not String.starts_with(path, "crates/terlan-test-orchestrator/tests/")
     and not String.starts_with(path, "crates/terlan/src/compiler/native_ir/")
     and path != "crates/terlan/src/compiler/native_ir.rs"
                 or has_non_native_lowering(rest)
@@ -392,6 +397,7 @@ pub lanes(paths: List[String]): List[String] ->
     let rust =
         if {
             workspace(paths) -> ["workspace"];
+            test_orchestrator(paths) and not bootstrap(paths) -> ["test-orchestrator"];
             rust_boundary_audit(paths) -> ["rust-boundary-audit"];
             commands(paths) -> command_lanes(paths);
             native_lowering(paths) -> ["native-ir", "phase"];

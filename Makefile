@@ -1295,17 +1295,7 @@ repository-validation-self-test: | terlan-repository-validation-bootstrap
 repository-build-release-contract-check: | terlan-repository-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_REPOSITORY_VALIDATION) build-release-contract
-	@attempt=0; \
-	until test -s target/quality/validation-build-plan-report.json; do \
-		attempt=$$((attempt + 1)); \
-		if test "$$attempt" -ge 50; then \
-			echo "error: repository validator did not seal target/quality/validation-build-plan-report.json" >&2; \
-			exit 1; \
-		fi; \
-		sleep 0.1; \
-	done
-	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
-		$(TERLAN_REPOSITORY_VALIDATION) build-plan-report
+	test -s target/quality/validation-build-plan-report.json
 
 release-boundary-check: repository-build-release-contract-check
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \

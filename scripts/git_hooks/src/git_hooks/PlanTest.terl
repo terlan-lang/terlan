@@ -249,6 +249,20 @@ pub bootstrap_runner_changes_test_the_lane(): Bool ->
     Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "bootstrap"].
 
 @test
+pub orchestrator_tests_use_their_owning_crate_lane(): Bool ->
+    Plan.lanes(["crates/terlan-test-orchestrator/tests/hosted_release_make.rs"]) == ["shell", "clippy", "test-orchestrator"].
+
+@test
+pub bootstrap_changes_already_cover_orchestrator_regressions(): Bool ->
+    Plan.lanes(
+    [
+        "Makefile",
+        "scripts/git_hooks/check.sh",
+        "crates/terlan-test-orchestrator/tests/hosted_release_make.rs",
+    ],
+) == ["shell", "bootstrap", "clippy", "rust-reports", "release-contract"].
+
+@test
 pub workspace_tests_already_cover_bootstrap(): Bool ->
     Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace", "release-contract"].
 

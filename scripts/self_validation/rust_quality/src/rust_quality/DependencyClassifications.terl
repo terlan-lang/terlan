@@ -199,6 +199,38 @@ graph_matches(duplicates: List[Duplicate], rows: List[Classification]): Bool ->
     }.
 
 @pure
+duplicate_signature_at(values: List[Duplicate], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let separator =
+                if {
+                    output == "" -> "";
+                    true -> ";"
+                };
+            duplicate_signature_at(
+                rest,
+                String.concat([output, separator, value.name, "=", join_versions(value.versions)]),
+            )
+    }.
+
+@pure
+classification_signature_at(values: List[Classification], output: String): String ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            let separator =
+                if {
+                    output == "" -> "";
+                    true -> ";"
+                };
+            classification_signature_at(
+                rest,
+                String.concat([output, separator, value.name, "=", value.versions]),
+            )
+    }.
+
+@pure
 validate(duplicates: List[Duplicate], parsed: ClassificationResult): ClassificationResult ->
     let row_names = names(parsed.rows);
     let sorted = CargoMetadata.sort_unique(row_names);
@@ -215,7 +247,15 @@ validate(duplicates: List[Duplicate], parsed: ClassificationResult): Classificat
     let graph_diagnostics =
         if {
             graph_matches(duplicates, parsed.rows) -> unique_diagnostics;
-            true -> ["duplicate dependency classification does not match the resolved graph" | unique_diagnostics]
+            true -> [String.concat(
+    [
+        "duplicate dependency classification does not match the resolved graph; resolved `",
+        duplicate_signature_at(duplicates, ""),
+        "`; reviewed `",
+        classification_signature_at(parsed.rows, ""),
+        "`",
+    ],
+) | unique_diagnostics]
         };
     ClassificationResult(
         valid = true,
@@ -246,9 +286,28 @@ pub check(root: String, duplicates: List[Duplicate]): ClassificationResult ->
 pub self_test(): Bool ->
     let parsed =
         parse(
-            "name\tversions\tclassification\towner\trationale\tmilestone\na\t1,2\tdirectly-actionable\towner\trationale\t0.0.9\n",
+            "name\tversions\tclassification\towner\trationale\tmilestone\na\t1,2\tdirectly-actionable\towner\trationale\t0.0.9\nb\t2,3\ttransitive-upgrade-blocked\towner\trationale\t0.0.9\n",
         );
-    let checked = validate([Duplicate(name = "a", versions = ["1", "2"])], parsed);
+    let checked =
+        validate(
+            [
+                Duplicate(name = "a", versions = ["1", "2"]),
+                Duplicate(name = "b", versions = ["2", "3"]),
+            ],
+            parsed,
+        );
+    let mismatched =
+        validate(
+            [
+                Duplicate(name = "a", versions = ["1", "3"]),
+                Duplicate(name = "b", versions = ["2", "4"]),
+            ],
+            parsed,
+        );
     checked.valid
         and List.length(checked.diagnostics) == 0
-        and not graph_matches([Duplicate(name = "a", versions = ["1", "3"])], checked.rows).
+        and case mismatched.diagnostics {
+    [message] ->
+        message.contains("resolved `a=1,3;b=2,4`") and message.contains("reviewed `a=1,2;b=2,3`");
+    _ -> false
+}.

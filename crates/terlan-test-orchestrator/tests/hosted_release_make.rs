@@ -279,17 +279,17 @@ printf '{}\n' > target/quality/tvm-managed-list-profile.json
 }
 
 #[test]
-fn repository_report_consumer_propagates_typed_validation_failures() {
+fn repository_report_consumer_runs_once_and_propagates_failures() {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let source = fs::read_to_string(repository.join("Makefile")).unwrap();
-    for failure in ["", "build-release-contract", "build-plan-report"] {
+    for (failure, missing_report) in [("", false), ("build-release-contract", false), ("", true)] {
         let fixture = fixture();
         fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
         // Policy semantics belong to the typed validator's adversarial tests.
-        // This boundary must invoke it and propagate either command's failure.
+        // This boundary invokes it once, then requires its sealed report.
         fs::write(
             fixture.0.join("validator.sh"),
-            "set -eu\nprintf '%s\\n' \"$1\" >> calls\ntest \"$1\" != \"$FAIL_VALIDATION\"\ncase \"$1\" in\n  build-release-contract) printf 'report\\n' > target/quality/validation-build-plan-report.json ;;\n  build-plan-report) test -s target/quality/validation-build-plan-report.json ;;\n  *) exit 90 ;;\nesac\n",
+            "set -eu\nprintf '%s\\n' \"$1\" >> calls\ntest \"$1\" = build-release-contract\ntest \"$1\" != \"$FAIL_VALIDATION\"\nif test \"$MISSING_REPORT\" != 1; then\n  printf 'report\\n' > target/quality/validation-build-plan-report.json\nfi\n",
         )
         .unwrap();
         fs::write(
@@ -310,21 +310,17 @@ fn repository_report_consumer_propagates_typed_validation_failures() {
             .env_remove("MAKEFLAGS")
             .env_remove("MAKEOVERRIDES")
             .env_remove("MFLAGS")
-            .env("FAIL_VALIDATION", failure);
+            .env("FAIL_VALIDATION", failure)
+            .env("MISSING_REPORT", if missing_report { "1" } else { "0" });
         let result = ProcessControl::new(Duration::from_secs(10)).run(&mut command, |_| Ok(()));
         assert_eq!(
             result.is_ok(),
-            failure.is_empty(),
-            "wrong validation outcome for {failure}"
+            failure.is_empty() && !missing_report,
+            "wrong validation outcome for failure={failure}, missing_report={missing_report}"
         );
-        let expected = if failure == "build-release-contract" {
-            "build-release-contract\n"
-        } else {
-            "build-release-contract\nbuild-plan-report\n"
-        };
         assert_eq!(
             fs::read_to_string(fixture.0.join("calls")).unwrap(),
-            expected
+            "build-release-contract\n"
         );
     }
 }

@@ -121,7 +121,7 @@ CARGO
 )
 echo 'Optimized validation runtime preserves process ownership and prebuilt checks.'
 
-# Make delegates policy to the typed producer and propagates both failures.
+# Make delegates policy once and rejects producer or report failures.
 mkdir -p "$temporary/contract/target/quality"
 awk '/^repository-build-release-contract-check:/ { copying=1 }
   copying && /^$/ { exit }
@@ -134,24 +134,26 @@ MAKE
 cat > "$temporary/contract/producer.sh" <<'PRODUCER'
 set -eu
 printf '%s\n' "$1" >> calls
-test "$1" != "$FAIL_VALIDATION"
-case "$1" in
-  build-release-contract) printf 'report\n' > target/quality/validation-build-plan-report.json ;;
-  build-plan-report) test -s target/quality/validation-build-plan-report.json ;;
-  *) exit 90 ;;
-esac
+test "$1" = build-release-contract
+test "${FAIL_VALIDATION:-}" != build-release-contract
+if test "${MISSING_REPORT:-0}" != 1; then
+  printf 'report\n' > target/quality/validation-build-plan-report.json
+fi
 PRODUCER
 (
   cd "$temporary/contract"
   unset MAKEFLAGS MAKEOVERRIDES MFLAGS
   FAIL_VALIDATION='' make --no-print-directory repository-build-release-contract-check
-  printf 'build-release-contract\nbuild-plan-report\n' > expected
+  printf 'build-release-contract\n' > expected
   cmp expected calls
-  for command in build-release-contract build-plan-report; do
-    if FAIL_VALIDATION="$command" make --no-print-directory repository-build-release-contract-check > rejected.log 2>&1; then
-      echo "Build-plan consumer ignored failed $command" >&2
-      exit 1
-    fi
-  done
+  if FAIL_VALIDATION=build-release-contract make --no-print-directory repository-build-release-contract-check > rejected.log 2>&1; then
+    echo 'Build-plan consumer ignored failed build-release-contract' >&2
+    exit 1
+  fi
+  rm -f target/quality/validation-build-plan-report.json
+  if MISSING_REPORT=1 make --no-print-directory repository-build-release-contract-check > rejected.log 2>&1; then
+    echo 'Build-plan consumer accepted a missing sealed report' >&2
+    exit 1
+  fi
 )
-echo 'Build-plan Make consumer delegates policy and propagates validation failures.'
+echo 'Build-plan Make consumer runs once and propagates validation failures.'

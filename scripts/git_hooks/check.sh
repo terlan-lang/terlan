@@ -27,21 +27,34 @@ export TERLC="$terlc"
 raw_plan="${changes%.txt}.raw-plan"
 preflight_plan="${changes%.txt}.preflight-plan"
 plan="${changes%.txt}.plan"
+prechecked_terlan="${changes%.txt}.prechecked-terlan.txt"
 "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
 sed -n 's/^preflight://p' "$raw_plan" > "$preflight_plan"
 rg -v '^preflight:' "$raw_plan" > "$plan"
+: > "$prechecked_terlan"
 preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
 
 release_tools_ready=false
+optimized_compiler_ready=false
 quality_tools_ready=false
 orchestrator_ready=false
+ensure_optimized_compiler() {
+  if [[ "$optimized_compiler_ready" == false ]]; then
+    echo 'pre-commit: build optimized compiler once'
+    cargo build --release --locked -p terlan --bin terlc --bin terlan-vm
+    optimized_compiler_ready=true
+  fi
+  terlc="$CARGO_TARGET_DIR/release/terlc"
+  export TERLC="$terlc"
+}
 ensure_release_tools() {
   if [[ "$release_tools_ready" == false ]]; then
     echo 'pre-commit: build required release tools once'
     cargo build --release --locked -p terlan \
       --bin terlc --bin terlan-vm --bin terlan-native-worker
     release_tools_ready=true
+    optimized_compiler_ready=true
   fi
   terlc="$CARGO_TARGET_DIR/release/terlc"
   export TERLC="$terlc"
@@ -244,23 +257,44 @@ while IFS= read -r lane; do
     workspace)
       bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets
       ;;
+    test-orchestrator)
+      cargo test --locked -p terlan-test-orchestrator
+      ;;
     editor)
       (cd tree-sitter-terlan && npm ci && npm run check && npm run check:cli)
       ;;
     terlan)
-      bash scripts/git_hooks/terlan.sh "$changes" "$base" "$terlc" "$typed_css_checked"
+      bash scripts/git_hooks/terlan.sh \
+        "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan"
       ;;
     workflow)
       go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
       ;;
     release-contract)
-      ensure_release_tools
+      ensure_optimized_compiler
+      ensure_quality_tools
       ensure_orchestrator
       "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
-      make --no-print-directory vm-release-install-validation-check
+      repository_validator_dir="$CARGO_TARGET_DIR/terlan-validators/repository-validation"
+      repository_validator_common="$repository_validator_dir/common.inputs.sha256"
+      repository_validator_image="$repository_validator_dir/vm/scripts_self_validation_RepositoryValidation.tvm"
+      repository_validator_identity=$("$terlc" build --print-toolchain-identity)
+      TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$repository_validator_identity" \
+        bash scripts/build_typed_validator.sh fingerprint \
+          "$repository_validator_common" "$terlc" std
+      bash scripts/build_typed_validator.sh \
+        "$repository_validator_image" \
+        "$repository_validator_common" scripts/self_validation/RepositoryValidation.terls -- \
+        "$terlc" build --incremental \
+          scripts/self_validation/RepositoryValidation.terls \
+          --target terlan-vm --out-dir "$repository_validator_dir"
+      make --no-print-directory vm-release-install-validation-check \
+        TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+        "TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality"
       make --no-print-directory repository-build-release-contract-check \
         TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-        "TERLAN_REPOSITORY_VALIDATION=\"$terlc\" run scripts/self_validation/RepositoryValidation.terls --"
+        "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/release/terlan-vm run $repository_validator_image --script-eval --"
+      printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
       "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
       ;;
     '') ;;
