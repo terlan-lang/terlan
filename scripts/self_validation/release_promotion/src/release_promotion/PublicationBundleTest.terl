@@ -1,0 +1,70 @@
+/**
+ * Publication bundle construction, fail-closed inputs, and immutable output.
+ */
+module release_promotion.PublicationBundleTest.
+
+import release_promotion.PublicationBundle.
+import std.core.Result.{Ok}.
+import std.core.Unit.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+artifact(path: String, contents: String): Json ->
+    Json.object()
+        .put("path", Json.string(path))
+        .put("size_bytes", Json.int(contents.byte_size()))
+        .put("sha256", Json.string("sha256:" + Hash.sha256(contents))).
+
+plan(contents: String): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.publication-plan.v1"))
+        .put("version", Json.string("0.0.10"))
+        .put("source_revision", Json.string("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+        .put("candidate_seal", Json.string("sha256:fixture"))
+        .put("artifacts", Json.array().push(artifact("dist/archive.tar.gz", contents))).
+
+@test
+pub publication_is_complete_immutable_and_content_addressed(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-publication-bundle-test-") else {
+        _ -> false
+    };
+    (let output = root + "/target/publication-bundle";
+let contents = "archive";
+(let {
+    Ok(Unit) <- Directory.create_all(root + "/dist");
+    Ok(Unit) <- File.write_text(root + "/dist/archive.tar.gz", contents)
+} else {
+    _ -> false
+};
+(let first = PublicationBundle.seal_plan(root, plan(contents), output);
+let files = Directory.files_recursive(output);
+let manifest = File.read_text(output + "/bundle.sha256");
+let second = not PublicationBundle.seal_plan(root, plan(contents), output);
+let preserved = File.read_text(output + "/dist/archive.tar.gz") == Ok(contents);
+let cleaned = Directory.remove_all(root) == Ok(Unit);
+case {files, manifest} {
+    {Ok(paths), Ok(checksums)} ->
+        first
+            and paths == [output + "/bundle.sha256", output + "/dist/archive.tar.gz", output + "/publication-plan.json"]
+            and checksums.contains(Hash.sha256(contents) + "  ./dist/archive.tar.gz")
+            and checksums.contains("  ./publication-plan.json")
+            and second
+            and preserved
+            and cleaned;
+    _ -> false
+}))).
+
+@test
+pub malformed_or_drifting_artifacts_never_publish_output(): Bool ->
+    let Ok(root) <- Directory.create_temporary("terlan-publication-bundle-invalid-") else {
+        _ -> false
+    };
+    (let output = root + "/target/publication-bundle";
+(let {
+    Ok(Unit) <- Directory.create_all(root + "/dist");
+    Ok(Unit) <- File.write_text(root + "/dist/archive.tar.gz", "changed")
+} else {
+    _ -> false
+};
+(let rejected = not PublicationBundle.seal_plan(root, plan("expected"), output); let absent = not File.exists(output + "/publication-plan.json"); let cleaned = Directory.remove_all(root) == Ok(Unit); rejected and absent and cleaned))).

@@ -4,7 +4,7 @@
 module release_promotion.Main.
 
 import release_promotion.CandidateFiles.{basename}.
-import release_promotion.{CandidateEvidenceTest, CandidateFixture, CandidateInputs, EvidenceReportsTest, Preflight, PreparationCommands, PreparationGraphTest, PreparationOwnerTest, ProcessActivityTest, PublicationCacheTest, PublicationChecks, PublicationPlan, Readiness}.
+import release_promotion.{CandidateEvidenceTest, CandidateFixture, CandidateInputs, EvidenceReportsTest, Preflight, PreparationCommands, PreparationGraphTest, PreparationOwnerTest, ProcessActivityTest, PublicationBundle, PublicationCacheTest, PublicationChecks, PublicationPlan, Readiness}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -408,6 +408,13 @@ contract_text(makefile: String, publisher: String): Bool ->
         and String.contains(publisher, "uploaded asset set does not exactly match the sealed candidate")
         and not String.contains(publisher, "find dist").
 
+publication_bundle(root: String, candidate: Json): Bool ->
+    case PublicationPlan.build(root, candidate) {
+        Ok(plan) ->
+            PublicationBundle.seal_plan(root, plan, child(root, "target/publication-bundle"));
+        Err(_reason) -> false
+    }.
+
 self_test(root: String, report: Bool): Bool ->
     case Directory.create_temporary("terlan-release-promotion-") {
         Err(reason) -> fail(reason.message);
@@ -431,6 +438,7 @@ self_test(root: String, report: Bool): Bool ->
                     true -> false
                 };
             let exported = verified.valid and PublicationPlan.self_test(fixture, verified.document);
+            let bundled = verified.valid and publication_bundle(fixture, verified.document);
             let reported =
                 if {
                     report and verified.valid -> write_report(root, verified.document, true);
@@ -518,6 +526,7 @@ self_test(root: String, report: Bool): Bool ->
                 and verified.valid
                 and bookkeeping_ignored
                 and exported
+                and bundled
                 and paths == ["dist/terlc-linux-x86_64.tar.gz", "dist/terlc-linux-x86_64.tar.gz.sha256"]
                 and changed
                 and restored
@@ -635,6 +644,14 @@ publication_entry(root: String, command: String): Bool ->
                 candidate.valid -> PublicationPlan.emit(root, candidate.document);
                 true -> fail(candidate.message)
             };
+        "publication-bundle" ->
+            let candidate = verify(root, version);
+            if {
+                not candidate.valid -> fail(candidate.message);
+                publication_bundle(root, candidate.document) -> let _printed = println("sealed publication bundle created");
+                true;
+                true -> fail("cannot construct sealed publication bundle")
+            };
         "list" ->
             let candidate = verify(root, version);
             if {
@@ -666,6 +683,6 @@ publication_entry(root: String, command: String): Bool ->
             };
         _ ->
             fail(
-                "expected seal, readiness, attest-existing, preflight, preflight-self-test, verify, publication-plan, dry-run, list, digest, contract, or self-test",
+                "expected seal, readiness, attest-existing, preflight, preflight-self-test, verify, publication-plan, publication-bundle, dry-run, list, digest, contract, or self-test",
             )
     }.

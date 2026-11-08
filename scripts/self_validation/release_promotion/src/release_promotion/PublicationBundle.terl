@@ -1,0 +1,143 @@
+/**
+ * Publishes one verified release plan and its exact artifacts as an immutable
+ * content-addressed directory. Shell code never owns bundle construction.
+ */
+module release_promotion.PublicationBundle.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.{Directory, File}.
+
+import type std.data.Json.
+import type std.data.Json.RequiredFieldRow.
+import type std.io.File.CopyPlan.
+
+child(parent: String, relative: String): String ->
+    if {
+        parent.ends_with("/") -> parent + relative;
+        true -> parent + "/" + relative
+    }.
+
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+artifact_path(path: String): Bool ->
+    let suffix =
+        if {
+            path.starts_with("dist/") -> path.utf8_slice(5, path.byte_size() - 5);
+            true -> ""
+        };
+    suffix != "" and not suffix.contains("/") and not path.contains("..").
+
+artifact_plans(
+    root: String,
+    staging: String,
+    regular_files: List[String],
+    rows: List[RequiredFieldRow],
+    output: List[CopyPlan],
+): Result[List[CopyPlan], String] ->
+    case rows {
+        [] -> Ok(output);
+        [row | rest] ->
+            case {row.strings, row.ints} {
+                {[path, digest], [size]} ->
+                    let source = child(root, path);
+                    let destination = child(staging, path);
+                    let {
+                        true <- artifact_path(path);
+                        true <- contains(regular_files, source);
+                        Ok(actual_size) <- File.size(source);
+                        true <- actual_size == size;
+                        Ok(actual_digest) <- Hash.sha256_file(source);
+                        true <- digest == "sha256:" + actual_digest
+                    } else {
+                        _ ->
+                            Err(
+                                "publication plan artifact does not match a regular release file: " + path,
+                            )
+                    };
+                    artifact_plans(
+                        root,
+                        staging,
+                        regular_files,
+                        rest,
+                        List.concat(output, [File.copy_plan(source, destination)]),
+                    );
+                _ -> Err("publication plan artifact row is malformed")
+            }
+    }.
+
+manifest_rows(staging: String, paths: List[String], output: String): Result[String, String] ->
+    case paths {
+        [] -> Ok(output);
+        [path | rest] ->
+            let prefix = staging + "/";
+            let {
+                true <- path.starts_with(prefix);
+                Ok(digest) <- Hash.sha256_file(path)
+            } else {
+                _ -> Err("cannot hash sealed publication bundle")
+            };
+            (let relative = path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()); manifest_rows(staging, rest, output + digest + "  ./" + relative + "\n"))
+    }.
+
+stage(root: String, staging: String, plan: Json): Result[Unit, String] ->
+    let {
+        Ok(schema) <- plan.get("schema");
+        Ok(schema_name) <- schema.as_string();
+        true <- schema_name == "terlan.publication-plan.v1";
+        Ok(rows) <- plan.get("artifacts");
+        Ok(values) <- Json.required_field_rows(rows, ["path", "sha256"], ["size_bytes"], []);
+        true <- not List.is_empty(values);
+        Ok(regular_files) <- Directory.files_recursive(child(root, "dist"));
+        Ok(plans) <- artifact_plans(root, staging, regular_files, values, []);
+        Ok(plan_source) <- Json.stringify(plan);
+        Ok(_plan) <- File.write_text(child(staging, "publication-plan.json"), plan_source + "\n");
+        Ok(_artifacts) <- File.copy_many(plans);
+        Ok(paths) <- Directory.files_recursive(staging);
+        Ok(manifest) <- manifest_rows(staging, paths, "");
+        Ok(_manifest) <- File.write_text(child(staging, "bundle.sha256"), manifest)
+    } else {
+        _ -> Err("cannot construct sealed publication bundle")
+    };
+    Ok(Unit).
+
+/**
+ * Builds in private temporary storage and publishes only into an absent output
+ * directory. Failed staging and existing destinations never receive partial
+ * files.
+ */
+pub seal_plan(root: String, plan: Json, output: String): Bool ->
+    case Directory.create_temporary("terlan-publication-bundle-") {
+        Err(_reason) -> false;
+        Ok(staging) ->
+            let staged =
+                case stage(root, staging, plan) {
+                    Ok(Unit) -> true;
+                    Err(_reason) -> false
+                };
+            let parent_ready =
+                case Directory.create_all(child(root, "target")) {
+                    Ok(Unit) -> true;
+                    Err(_reason) -> false
+                };
+            let published =
+                staged
+                    and parent_ready
+                    and case Directory.copy_tree_excluding(staging, output, []) {
+    Ok(Unit) -> true;
+    Err(_reason) -> false
+};
+            let cleaned =
+                case Directory.remove_all(staging) {
+                    Ok(Unit) -> true;
+                    Err(_reason) -> false
+                };
+            staged and published and cleaned
+    }.

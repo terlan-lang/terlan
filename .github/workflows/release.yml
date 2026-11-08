@@ -417,32 +417,10 @@ jobs:
       - name: Seal publication bundle
         shell: bash
         run: |
-          bundle=target/publication-bundle
-          test ! -e "$bundle"
-          mkdir -p "$bundle/dist"
           TERLAN_RELEASE_ROOT="$PWD" \
             target/debug/terlan-vm run \
               target/self-validation/release-promotion/vm/scripts_ReleasePromotion.tvm \
-              --script-eval -- publication-plan --version "$VERSION" \
-              > "$bundle/publication-plan.json"
-          jq -e --arg version "$VERSION" '
-            .schema == "terlan.publication-plan.v1" and .version == $version
-            and (.source_revision | test("^[0-9a-f]{12,40}$"))
-            and (.artifacts | type == "array" and length > 1)
-          ' "$bundle/publication-plan.json" >/dev/null
-          while IFS= read -r artifact; do
-            [[ "$artifact" == dist/* && "$artifact" != *..* && "$artifact" != dist/*/* ]]
-            test -f "$artifact"
-            test ! -L "$artifact"
-            cp -p "$artifact" "$bundle/$artifact"
-          done < <(jq -r '.artifacts[].path' "$bundle/publication-plan.json")
-          (
-            cd "$bundle"
-            find . -type f ! -name bundle.sha256 -print0 \
-              | LC_ALL=C sort -z \
-              | xargs -0 sha256sum > bundle.sha256
-            sha256sum --check --strict bundle.sha256
-          )
+              --script-eval -- publication-bundle --version "$VERSION"
 
       - name: Attest sealed publication bundle
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
