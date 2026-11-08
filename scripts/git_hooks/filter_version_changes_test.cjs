@@ -5,6 +5,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  containsOnlySelectedReplacements,
   filterPaths,
   pairedPath,
   replaceAll,
@@ -42,6 +43,28 @@ test("mixed changes retain their normal semantic path", () => {
   assert.deepEqual(
     filterPaths(["Makefile"], "base", "tree", "0.10.0", "0.0.10", reader),
     { paths: ["Makefile"], versionOnly: [] },
+  );
+});
+
+test("unrelated matching dependency versions may remain unchanged", () => {
+  const oldSource = [
+    'name = "convert_case"',
+    'version = "0.10.0"',
+    'name = "terlan"',
+    'version = "0.10.0"',
+    "",
+  ].join("\n");
+  const newSource = oldSource.replace(
+    'name = "terlan"\nversion = "0.10.0"',
+    'name = "terlan"\nversion = "0.0.10"',
+  );
+  assert.equal(
+    containsOnlySelectedReplacements(oldSource, newSource, "0.10.0", "0.0.10"),
+    true,
+  );
+  assert.equal(
+    containsOnlySelectedReplacements(oldSource, `${newSource}changed\n`, "0.10.0", "0.0.10"),
+    false,
   );
 });
 

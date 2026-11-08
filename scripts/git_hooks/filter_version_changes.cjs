@@ -14,6 +14,30 @@ function replaceAll(source, before, after) {
   return source.split(before).join(after);
 }
 
+function containsOnlySelectedReplacements(source, candidate, before, after) {
+  let sourceOffset = 0;
+  let candidateOffset = 0;
+  let replacements = 0;
+  while (sourceOffset < source.length && candidateOffset < candidate.length) {
+    if (source.startsWith(before, sourceOffset)
+      && candidate.startsWith(after, candidateOffset)) {
+      sourceOffset += before.length;
+      candidateOffset += after.length;
+      replacements += 1;
+      continue;
+    }
+    if (source[sourceOffset] === candidate[candidateOffset]) {
+      sourceOffset += 1;
+      candidateOffset += 1;
+      continue;
+    }
+    return false;
+  }
+  return replacements > 0
+    && sourceOffset === source.length
+    && candidateOffset === candidate.length;
+}
+
 function blob(revision, path) {
   try {
     return execFileSync("git", ["show", `${revision}:${path}`], {
@@ -43,7 +67,7 @@ function filterPaths(paths, base, tree, before, after, reader = blob) {
     const oldSource = reader(base, path);
     const newSource = reader(tree, path);
     if (oldSource !== null && newSource !== null
-      && replaceAll(oldSource, before, after) === newSource) {
+      && containsOnlySelectedReplacements(oldSource, newSource, before, after)) {
       versionOnly.add(path);
       continue;
     }
@@ -51,7 +75,8 @@ function filterPaths(paths, base, tree, before, after, reader = blob) {
     const newPath = pairedPath(path, beforeFile, afterFile);
     if (oldSource !== null && newSource === null && newPath && pathSet.has(newPath)) {
       const renamedSource = reader(tree, newPath);
-      if (renamedSource !== null && replaceAll(oldSource, before, after) === renamedSource) {
+      if (renamedSource !== null
+        && containsOnlySelectedReplacements(oldSource, renamedSource, before, after)) {
         versionOnly.add(path);
         versionOnly.add(newPath);
       }
@@ -86,4 +111,10 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { filterPaths, pairedPath, replaceAll, workspaceVersion };
+module.exports = {
+  containsOnlySelectedReplacements,
+  filterPaths,
+  pairedPath,
+  replaceAll,
+  workspaceVersion,
+};
