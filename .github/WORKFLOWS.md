@@ -257,6 +257,12 @@ an unrelated push. Its final successful status is withheld until the complete
 publication bundle has been prepared, attested, and retained. The local AOT
 validation command remains available for focused development:
 
+Release validation first reuses successful exact-revision Compiler CI evidence,
+then audits the locked Rust and Node dependency graphs. Platform and sanitizer
+jobs cannot start until both gates pass. `make publish` performs the same locked
+dependency audit locally before dispatching hosted release validation, so a
+new advisory fails before consuming platform runners.
+
 ```sh
 make tvm-aot-release-closeout-check
 ```

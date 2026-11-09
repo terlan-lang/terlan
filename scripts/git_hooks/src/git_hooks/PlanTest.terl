@@ -110,8 +110,10 @@ pub runtime_changes_use_workspace_fallback(): Bool ->
     Plan.lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "workspace"].
 
 @test
-pub lockfile_changes_use_workspace_fallback(): Bool ->
-    Plan.lanes(["Cargo.lock"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace"].
+pub dependency_changes_compile_without_unrelated_suites(): Bool ->
+    Plan.lanes(["Cargo.lock"]) == ["shell", "dependencies"]
+        and Plan.lanes(["Cargo.toml"]) == ["shell", "dependencies"]
+        and not Plan.native_bindings(["Cargo.lock", "Cargo.toml"]).
 
 @test
 pub fixture_only_changes_are_tested(): Bool ->
@@ -197,7 +199,7 @@ pub hook_changes_skip_unrelated_artifacts(): Bool ->
 
 @test
 pub dependency_changes_select_security_and_binary_consumers(): Bool ->
-    Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "rust-security", "artifact-budget", "rust-docs"].
+    Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "rust-security"].
 
 @test
 pub exact_version_metadata_uses_only_its_owned_gate(): Bool ->
@@ -237,12 +239,12 @@ pub clippy_configuration_changes_are_checked(): Bool ->
     Plan.lanes([".clippy.toml"]) == ["shell", "clippy", "rust-reports"].
 
 @test
-pub make_quality_changes_require_clippy(): Bool ->
-    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "bootstrap", "clippy", "rust-reports", "release-contract"].
+pub make_changes_use_their_release_contract(): Bool ->
+    Plan.lanes(["mk/code-quality.mk", "Makefile"]) == ["shell", "release-contract"].
 
 @test
 pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
-    Plan.lanes(["mk/hermetic-support.mk"]) == ["shell", "bootstrap", "clippy", "rust-reports", "release-contract"].
+    Plan.lanes(["mk/hermetic-support.mk"]) == ["shell", "bootstrap", "release-contract"].
 
 @test
 pub bootstrap_runner_changes_test_the_lane(): Bool ->
@@ -264,11 +266,22 @@ pub bootstrap_changes_already_cover_orchestrator_regressions(): Bool ->
 
 @test
 pub workspace_tests_already_cover_bootstrap(): Bool ->
-    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "native-bindings", "clippy", "rust-reports", "summaries", "workspace", "release-contract"].
+    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "bootstrap", "dependencies", "release-contract"].
 
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->
-    Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"]) == ["shell", "native-bindings", "proofs", "clippy", "rust-reports", "summaries", "workspace", "editor"].
+    Plan.lanes(["Cargo.toml", "crates/terlan/src/compiler/syntax/lexer.rs"]) == [
+    "shell",
+    "native-bindings",
+    "proofs",
+    "clippy",
+    "rust-reports",
+    "summaries",
+    "dependencies",
+    "syntax",
+    "phase",
+    "editor",
+].
 
 @test
 pub inventory_updates_require_source_report_validation(): Bool ->

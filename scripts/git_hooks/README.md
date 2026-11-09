@@ -209,7 +209,7 @@ summary generation batches the independent CSS property modules separately.
 | Staged changes | Local checks |
 | --- | --- |
 | Grammar/parser inputs, Lean proofs and metadata, compiler/runtime specifications, standard-library inputs, native-boundary sources, or proof validators | Check EBNF/LALRPOP/Lean fingerprints and replay the complete Lean proof track against the staged snapshot; requires the pinned Lean toolchain and, on Linux, Bubblewrap |
-| Rust source, compiler/grammar inputs, Cargo/toolchain/config, Make recipes | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
+| Rust source or compiler/grammar inputs | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
 | The above inputs, checked Rust quality reports, or their validators | Enforce Rust size and test-layout rules; regenerate AST and Cargo metadata evidence; check API-boundary inventory and dependency-impact report without updating tracked files |
 | Rust/compiler/grammar inputs, stdlib sources and summaries, or summary generators | Check native and JavaScript/DOM summaries against temporary regenerated output; requires Node/npm |
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
@@ -217,11 +217,13 @@ summary generation batches the independent CSS property modules separately.
 | Phase-contract fixtures alone | Exact phase-contract golden test |
 | Compiler command Rust source | Owning command-module tests (with a `commands::` fallback); artifact size and Rust documentation only when their inputs changed |
 | Rust boundary-audit source | Boundary-audit crate tests and report validation |
-| Other Rust source, Cargo manifests/lockfile, Rust toolchain/config | Workspace tests, including binary and integration targets |
-| Root Makefile, isolated bootstrap Makefile, or hook runner | On Linux, run the real sandbox bootstrap integration suite; requires Bubblewrap and working user namespaces |
+| Other Rust source | Workspace tests, including binary and integration targets |
+| Cargo manifests/lockfile, Rust toolchain/config | Compile every workspace target without rerunning unchanged tests or unrelated native-binding suites |
+| Isolated bootstrap Makefile or hook runner | On Linux, run the real sandbox bootstrap integration suite; requires Bubblewrap and working user namespaces |
+| Root Makefile and other Make fragments | Validate the release/build contract without rerunning unrelated Rust suites |
 | Other `tests/fixtures/` inputs | Workspace tests; negative fixtures are validated by their owning tests |
 | Typed CSS library, generator, bundler, or validation script | Complete typed CSS generation, type, native-value, rejection, and browser-build checks |
-| Terlan source and manifests | Build affected packages with their configured source roots; check standalone files; run changed or adjacent `*Test.terl` files |
+| Terlan source and manifests | Lint and format only changed Terlan files; build affected packages with their configured source roots; check standalone files; run changed or adjacent `*Test.terl` files |
 | Editor source | Tree-sitter package, generation, and corpus checks; requires Node/npm |
 | GitHub workflows/actions | Pinned actionlint, as in CI; requires Go |
 | Shell scripts/hooks | Bash syntax checks |
@@ -232,6 +234,10 @@ Rust compiler identities and executable bytes.
 The hook stores a two-line, content-addressed receipt outside the disposable
 snapshot and rejects malformed receipts. A failed check never seals a receipt;
 set `TERLAN_TEST_FORCE_RERUN=1` to deliberately repeat an identical result.
+
+Owning workflow, hook-policy, and release-contract gates record the Terlan
+sources they already compiled. The generic Terlan lane treats that record as
+terminal and does not rebuild, reformat, or retest those files.
 
 For Terlan files, Git plumbing compares the staged bytes with the staged
 compiler's formatting of the same file at the commit's original base. Exact

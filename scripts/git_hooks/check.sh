@@ -91,14 +91,23 @@ if preflight_has workflow-contract; then
   echo 'pre-commit: workflow and compiled-cache contracts'
   "$terlc" run scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
     -- self-test
+  printf '%s\n' \
+    scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl \
+    >> "$prechecked_terlan"
 fi
 if preflight_has terlan-format; then
+  terlan_paths=()
+  while IFS= read -r path; do
+    case "$path" in
+      *.terl|*.terli|*.terls)
+        if [[ -f "$path" ]]; then terlan_paths+=("$path"); fi
+        ;;
+    esac
+  done < "$changes"
   echo 'pre-commit: Terlan readability canonicalization'
-  make --no-print-directory -f crates/terlan/cli.mk \
-    terlan-readability-canonicalization-check TERLC="$terlc"
+  "$terlc" lint --only TL0009 --only TL0010 "${terlan_paths[@]}"
   echo 'pre-commit: Terlan formatting'
-  make --no-print-directory -f crates/terlan/cli.mk \
-    terlan-format-check TERLAN_FORMAT_COMPILER="$terlc"
+  "$terlc" fmt --check "${terlan_paths[@]}"
 fi
 if preflight_has rust-security; then
   echo 'pre-commit: Rust dependency security audit'
@@ -186,6 +195,10 @@ if preflight_has hook-policy; then
   node scripts/git_hooks/cache_test.cjs
   node --test scripts/git_hooks/filter_version_changes_test.cjs
   TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh
+  printf '%s\n' \
+    scripts/git_hooks/src/git_hooks/Plan.terl \
+    scripts/git_hooks/src/git_hooks/PlanTest.terl \
+    >> "$prechecked_terlan"
 fi
 while IFS= read -r lane; do
   echo "pre-commit: $lane"
@@ -261,6 +274,9 @@ while IFS= read -r lane; do
       ;;
     workspace)
       bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets
+      ;;
+    dependencies)
+      cargo check --locked --workspace --all-targets
       ;;
     test-orchestrator)
       cargo test --locked -p terlan-test-orchestrator

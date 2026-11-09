@@ -933,9 +933,11 @@ build_release_contract(repository: String): Bool ->
         "refusing to regenerate immutable publication inputs",
         "release-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check",
         "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",
+        "rust-security-audit-check:",
+        "cargo-audit audit --deny warnings",
         "node-security-audit-check:",
         "npm audit --prefix \"$$package_dir\" --package-lock-only --audit-level=moderate",
-        "publish-local-check: publish-release-input-check",
+        "publish-local-check: publish-release-input-check rust-security-audit-check node-security-audit-check",
         "ReleasePayloadInputTest.terl \\",
         "--coverage --coverage-threshold 100",
     ];
@@ -1027,7 +1029,7 @@ if {
     [
         "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
         "node-version: 24",
-        "cargo-audit audit --deny warnings",
+        "make --no-print-directory rust-security-audit-check",
         "make --no-print-directory node-security-audit-check",
     ],
 ) -> failure(

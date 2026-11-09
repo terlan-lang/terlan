@@ -106,7 +106,7 @@ jobs:
   platform:
     name: release AOT (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
-    needs: revision
+    needs: [revision, dependency-audit]
     timeout-minutes: ${{ matrix.target == 'macos-x86_64' && 150 || 90 }}
     # LLVM's optimized Terlan codegen can exhaust rustc's default worker stack
     # on the Intel macOS runner. Keep one explicit envelope for validation and
@@ -193,7 +193,7 @@ jobs:
   thread-sanitizer:
     name: release AOT ThreadSanitizer
     runs-on: ubuntu-24.04
-    needs: revision
+    needs: [revision, dependency-audit]
     timeout-minutes: 60
 
     steps:
@@ -232,7 +232,7 @@ jobs:
   multicore-thread-sanitizer:
     name: release VM multicore ThreadSanitizer
     runs-on: ubuntu-24.04
-    needs: revision
+    needs: [revision, dependency-audit]
     timeout-minutes: 60
 
     steps:

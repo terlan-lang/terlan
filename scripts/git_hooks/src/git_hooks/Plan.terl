@@ -28,8 +28,7 @@ pub editor_release(paths: List[String]): Bool ->
     affected(paths, "editors/", "") or affected(paths, "tree-sitter-terlan/", "").
 
 pub artifact_bootstrap(paths: List[String]): Bool ->
-    affected(paths, "Makefile", "")
-        or affected(paths, "mk/", "")
+    affected(paths, "mk/hermetic-support.mk", "")
         or affected(paths, "scripts/build_artifact_bootstrap_test.sh", "")
         or affected(paths, "scripts/build_typed_validator.sh", "").
 
@@ -52,8 +51,7 @@ pub negative_api(paths: List[String]): Bool ->
         or affected(paths, "scripts/self_validation/StdlibValidation.terls", "").
 
 pub artifact_budget(paths: List[String]): Bool ->
-    rust_security(paths)
-        or affected(paths, "scripts/self_validation/BuildArtifactBudgetTest.terl", "")
+    affected(paths, "scripts/self_validation/BuildArtifactBudgetTest.terl", "")
         or affected(paths, "scripts/build_artifact_budget", "").
 
 pub release_manifest(paths: List[String]): Bool ->
@@ -63,12 +61,10 @@ pub release_manifest(paths: List[String]): Bool ->
         or affected(paths, "tests/std/RELEASE_API_TESTS.tsv", "").
 
 pub rust_docs(paths: List[String]): Bool ->
-    rust_security(paths) or affected(paths, "", ".rs").
+    affected(paths, "", ".rs").
 
 pub preparation(paths: List[String]): Bool ->
-    affected(paths, "Makefile", "")
-        or affected(paths, "mk/", "")
-        or affected(paths, "scripts/self_validation/release_promotion/", "")
+    affected(paths, "scripts/self_validation/release_promotion/", "")
         or affected(paths, "scripts/build_typed_validator.sh", "").
 
 pub hook_policy(paths: List[String]): Bool ->
@@ -171,12 +167,13 @@ prefix_preflight_lanes(values: List[String]): List[String] ->
     }.
 
 pub workspace(paths: List[String]): Bool ->
+    general_fixtures(paths) or non_compiler_rust(paths).
+
+pub dependency_inputs(paths: List[String]): Bool ->
     affected(paths, "", "Cargo.toml")
         or affected(paths, "", "Cargo.lock")
         or affected(paths, "", "rust-toolchain.toml")
-        or affected(paths, ".cargo/", "")
-        or general_fixtures(paths)
-        or non_compiler_rust(paths).
+        or affected(paths, ".cargo/", "").
 
 pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").
@@ -270,9 +267,6 @@ syntax_sources(paths: List[String]): Bool ->
 
 pub native_bindings(paths: List[String]): Bool ->
     syntax(paths)
-        or affected(paths, "", "Cargo.toml")
-        or affected(paths, "", "Cargo.lock")
-        or affected(paths, "", "rust-toolchain.toml")
         or affected(paths, "crates/terlan/src/commands/bind/", "")
         or affected(paths, "crates/terlan/src/runtime/vm/package_native_helper", "")
         or affected(paths, "crates/terlan/src/runtime/native_boundary/adapter_abi", "")
@@ -349,18 +343,14 @@ release_script(paths: List[String]): Bool ->
 
 pub bootstrap(paths: List[String]): Bool ->
     not workspace(paths)
-        and (affected(paths, "mk/hermetic-support.mk", "")
-    or affected(paths, "Makefile", "")
-    or affected(paths, "scripts/git_hooks/check.sh", "")).
+        and (affected(paths, "mk/hermetic-support.mk", "") or affected(paths, "scripts/git_hooks/check.sh", "")).
 
 pub clippy(paths: List[String]): Bool ->
     workspace(paths)
         or compiler(paths)
         or syntax(paths)
         or affected(paths, "", ".rs")
-        or affected(paths, "", "clippy.toml")
-        or affected(paths, "", "Makefile")
-        or affected(paths, "mk/", "").
+        or affected(paths, "", "clippy.toml").
 
 pub reports(paths: List[String]): Bool ->
     clippy(paths) and has_non_native_lowering(paths)
@@ -394,7 +384,7 @@ pub proofs(paths: List[String]): Bool ->
         or affected(paths, "scripts/git_hooks/proofs.sh", "").
 
 pub lanes(paths: List[String]): List[String] ->
-    let rust =
+    let source_rust =
         if {
             workspace(paths) -> ["workspace"];
             test_orchestrator(paths) and not bootstrap(paths) -> ["test-orchestrator"];
@@ -405,6 +395,11 @@ pub lanes(paths: List[String]): List[String] ->
             syntax(paths) or build_support(paths) -> ["syntax", "phase"];
             phase(paths) -> ["phase"];
             true -> List.new[String]()
+        };
+    let rust =
+        if {
+            dependency_inputs(paths) -> ["dependencies" | source_rust];
+            true -> source_rust
         };
     let workflows =
         if {

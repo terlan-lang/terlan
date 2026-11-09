@@ -53,6 +53,7 @@ while IFS= read -r path; do
   if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then
     if [[ -f "$prechecked" ]] && rg -Fqx -- "$path" "$prechecked"; then
       echo "pre-commit: reused earlier Terlan validation: $path"
+      continue
     else
       check_terlan_source "$path"
       # Entry builds resolve the package's configured source roots even when

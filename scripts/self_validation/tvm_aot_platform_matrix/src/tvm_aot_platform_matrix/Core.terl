@@ -741,6 +741,9 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
 pub compiler_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [changes, source-preflight, check]") == 3.
 
+pub release_audit_before_platform_text_valid(workflow: String): Bool ->
+    occurrences(workflow, "needs: [revision, dependency-audit]") == 3.
+
 pub compiled_cache_text_valid(action: String): Bool ->
     fragments_present(
         action,
@@ -886,6 +889,7 @@ pub workflow_contract(): Bool ->
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
         not source_preflight_text_valid(source_preflight, makefile) -> failure("workflow", "generated-artifact source preflight drifted");
         not compiler_before_platform_text_valid(ci) -> failure("workflow", "platform validation must follow compiler validation");
+        not release_audit_before_platform_text_valid(release) -> failure("workflow", "release platform validation must follow dependency auditing");
         not native_setup_text_valid(native_setup) -> failure("workflow", "target-native dependency action drifted");
         not compiled_cache_text_valid(rust_setup) -> failure("workflow", "compiled Rust cache contract drifted");
         not compiled_cache_preservation_text_valid(ci) -> failure("workflow", "compiled Rust cache preservation drifted");

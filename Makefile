@@ -5559,7 +5559,7 @@ publish-release-input-check: | terlan-compiler-bootstrap
 		scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl \
 		--coverage --coverage-threshold 100
 
-publish-local-check: publish-release-input-check
+publish-local-check: publish-release-input-check rust-security-audit-check node-security-audit-check
 	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/ci --coverage --coverage-threshold 100
 	bash scripts/publication_process_preflight_test.sh
 	go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
