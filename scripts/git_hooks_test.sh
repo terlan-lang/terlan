@@ -373,6 +373,12 @@ grep -Fq '"$terlc" test scripts/ci --coverage --coverage-threshold 100' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compiler; no compiler inputs changed' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'repository_root=$(git remote get-url origin)' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse compatible compiler $terlc' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'terlc="$target_terlc"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'cargo fmt --all' "$(dirname "$driver")/git_hooks/check.sh"; then
   echo 'Hook redundantly formats unchanged Rust sources' >&2; exit 1
 fi

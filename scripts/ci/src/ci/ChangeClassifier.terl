@@ -11,6 +11,7 @@ pub struct Classification {
     source: Bool,
     compiler: Bool,
     dependencies: Bool,
+    generated: Bool,
     rust_format: Bool,
     rust_format_all: Bool,
     changed_count: Int,
@@ -68,6 +69,21 @@ pub is_dependency_file(path: String): Bool ->
         or String.ends_with(path, "/package-lock.json")
         or String.ends_with(path, "/requirements.txt").
 
+pub is_generated_artifact_input(path: String): Bool ->
+    starts_with_any(path, ["std/", "tree-sitter-terlan/", "crates/terlan/src/compiler/"])
+        or contains(
+    [
+        "Makefile",
+        "editors/editor.mk",
+        "std/stdlib.mk",
+        "docs/release/GENERATED_ARTIFACTS.json",
+        "scripts/self_validation/BuildInterfacesTest.terl",
+        "scripts/self_validation/JsBindingsDriftTest.terl",
+        "scripts/self_validation/NativeArtifactsTest.terl",
+    ],
+    path,
+).
+
 any_product(paths: List[String]): Bool ->
     case paths {
         [] -> false;
@@ -84,6 +100,12 @@ any_dependency(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] -> is_dependency_file(path) or any_dependency(rest)
+    }.
+
+any_generated_artifact_input(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> is_generated_artifact_input(path) or any_generated_artifact_input(rest)
     }.
 
 unique_nonempty(paths: List[String], seen: List[String]): List[String] ->
@@ -103,6 +125,7 @@ pub classify(paths: List[String], force_full: Bool): Classification ->
         source = force_full or any_product(normalized),
         compiler = force_full or any_compiler(normalized),
         dependencies = force_full or any_dependency(normalized),
+        generated = force_full or any_generated_artifact_input(normalized),
         rust_format = RustFormatting.required(normalized, force_full),
         rust_format_all = force_full or RustFormatting.requires_all(normalized),
         changed_count = List.length(normalized),
@@ -140,6 +163,8 @@ pub render_outputs(value: Classification): String ->
             boolean(value.compiler),
             "\ndependencies=",
             boolean(value.dependencies),
+            "\ngenerated=",
+            boolean(value.generated),
             "\nrust-format=",
             boolean(value.rust_format),
             "\nrust-format-all=",

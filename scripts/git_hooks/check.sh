@@ -3,17 +3,29 @@
 set -euo pipefail
 changes=$1
 base=$2
-terlc="$CARGO_TARGET_DIR/debug/terlc"
+target_terlc="$CARGO_TARGET_DIR/debug/terlc"
+terlc="$target_terlc"
 export TERLC="$terlc"
 raw_plan="${changes%.txt}.raw-plan"
 preflight_plan="${changes%.txt}.preflight-plan"
 plan="${changes%.txt}.plan"
 prechecked_terlan="${changes%.txt}.prechecked-terlan.txt"
 compiler_build=false
-if [[ ! -x "$terlc" ]]; then
-  compiler_build=true
+if [[ -x "$terlc" ]] && "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"; then
+  :
 else
-  "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
+  repository_root=$(git remote get-url origin)
+  reusable_terlc="$repository_root/target/debug/terlc"
+  if [[ "$repository_root" == /* && -f "$reusable_terlc" && -x "$reusable_terlc" && ! -L "$reusable_terlc" ]] \
+    && "$reusable_terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"; then
+    terlc="$reusable_terlc"
+    export TERLC="$terlc"
+    echo "pre-commit: reuse compatible compiler $terlc"
+  else
+    compiler_build=true
+  fi
+fi
+if [[ "$compiler_build" == false ]]; then
   if rg -qx 'preflight:compiler-build' "$raw_plan"; then compiler_build=true; fi
 fi
 if [[ "$compiler_build" == true ]]; then
@@ -36,6 +48,8 @@ if [[ "$compiler_build" == true ]]; then
   # Use the quality superset once. Building without it and the report binary
   # with it would alternate two `terlan` feature graphs.
   cargo build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools
+  terlc="$target_terlc"
+  export TERLC="$terlc"
   "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
 else
   echo 'pre-commit: reuse compiler; no compiler inputs changed'

@@ -8,6 +8,7 @@ pub workflow_and_documentation_changes_avoid_compiler_validation(): Bool ->
     not result.compiler
         and not result.source
         and not result.dependencies
+        and not result.generated
         and not result.rust_format
         and not result.rust_format_all
         and result.changed_count == 2.
@@ -18,6 +19,7 @@ pub compiler_sources_select_compiler_validation(): Bool ->
     result.compiler
         and result.source
         and not result.dependencies
+        and result.generated
         and result.rust_format
         and not result.rust_format_all.
 
@@ -31,6 +33,7 @@ pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
     result.compiler
         and result.source
         and result.dependencies
+        and not result.generated
         and not result.rust_format
         and not result.rust_format_all
         and ChangeClassifier.is_dependency_file("scripts/peers/requirements.txt").
@@ -41,6 +44,7 @@ pub manual_and_indeterminate_dispatches_force_all_validation(): Bool ->
     result.compiler
         and result.source
         and result.dependencies
+        and result.generated
         and result.rust_format
         and result.rust_format_all
         and result.changed_count == 0.
@@ -55,6 +59,7 @@ pub classification_ignores_duplicate_and_empty_paths(): Bool ->
     result.source
         and not result.compiler
         and not result.dependencies
+        and result.generated
         and not result.rust_format
         and not result.rust_format_all
         and result.changed_count == 2.
@@ -75,6 +80,7 @@ pub release_tooling_receives_source_checks_without_compiler_replay(): Bool ->
     result.source
         and not result.compiler
         and not result.dependencies
+        and result.generated
         and not result.rust_format
         and not result.rust_format_all.
 
@@ -86,6 +92,21 @@ pub rust_formatting_scope_is_independent_of_compiler_scope(): Bool ->
         and not source.rust_format_all
         and configuration.rust_format
         and configuration.rust_format_all.
+
+@test
+pub generated_artifact_scope_excludes_unrelated_automation(): Bool ->
+    let automation =
+        ChangeClassifier.classify(
+            ["scripts/ci/src/ci/ChangeClassifier.terl", ".github/workflows/ci.yml"],
+            false,
+        );
+    let generator = ChangeClassifier.classify(["std/core/Int.terl"], false);
+    not automation.generated
+        and automation.source
+        and generator.generated
+        and ChangeClassifier.is_generated_artifact_input("tree-sitter-terlan/grammar.js")
+        and ChangeClassifier.is_generated_artifact_input("crates/terlan/src/compiler/typeck/expression.rs")
+        and not ChangeClassifier.is_generated_artifact_input("crates/terlan/src/runtime/vm.rs").
 
 @test
 pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
@@ -100,4 +121,4 @@ pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
 pub github_outputs_are_complete_and_stable(): Bool ->
     ChangeClassifier.render_outputs(
     ChangeClassifier.classify(["crates/terlan/src/main.rs", "Cargo.lock"], false),
-) == "source=true\ncompiler=true\ndependencies=true\nrust-format=true\nrust-format-all=false\nchanged-count=2\n".
+) == "source=true\ncompiler=true\ndependencies=true\ngenerated=false\nrust-format=true\nrust-format-all=false\nchanged-count=2\n".

@@ -20,6 +20,10 @@ on:
         description: Whether Rust formatting inputs changed
         required: true
         type: boolean
+      generated:
+        description: Whether committed generated-artifact inputs changed
+        required: true
+        type: boolean
       rust_format_all:
         description: Whether the global Rust formatting contract changed
         required: true
@@ -51,7 +55,7 @@ jobs:
         with:
           node-version: 24
       - name: Check every generated artifact for drift
-        if: ${{ inputs.mode == 'full' }}
+        if: ${{ inputs.generated }}
         run: |
           make --no-print-directory source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=${{ steps.script-runner.outputs.terlc }}
           git diff --exit-code

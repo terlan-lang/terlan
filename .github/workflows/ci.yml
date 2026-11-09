@@ -95,6 +95,7 @@ jobs:
       source: ${{ steps.classify.outputs.source }}
       compiler: ${{ steps.classify.outputs.compiler }}
       dependencies: ${{ steps.classify.outputs.dependencies }}
+      generated: ${{ steps.classify.outputs.generated }}
       rust-format: ${{ steps.classify.outputs.rust-format }}
       rust-format-all: ${{ steps.classify.outputs.rust-format-all }}
     steps:
@@ -128,6 +129,7 @@ jobs:
     uses: ./.github/workflows/source-preflight.yml
     with:
       mode: ${{ needs.changes.outputs.source == 'true' && 'full' || 'contracts' }}
+      generated: ${{ needs.changes.outputs.generated == 'true' }}
       base_revision: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
       head_revision: ${{ github.event.pull_request.head.sha || github.sha }}
       rust_format: ${{ needs.changes.outputs.rust-format == 'true' }}
