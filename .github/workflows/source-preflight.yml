@@ -139,7 +139,8 @@ jobs:
       - name: Install release-tool test dependencies
         if: ${{ inputs.hooks }}
         run: |
-          command -v rg
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ripgrep
           rg --version
       - name: Check build-plan integration contract
         if: ${{ inputs.release_tooling }}

@@ -34,5 +34,4 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
         and String.contains(runner, "steps.restored.outputs.usable != 'true'")
         and not String.contains(preflight, "cargo fmt --all")
         and not String.contains(preflight, "terlan-readability-canonicalization-check")
-        and not String.contains(preflight, "sudo apt-get")
         and not String.contains(hook, "cargo fmt --all").
