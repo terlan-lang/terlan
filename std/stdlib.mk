@@ -55,17 +55,17 @@ stdlib-summary-inventory-check:
 
 stdlib-summary-drift-check:
 	@TERLAN_SUMMARY_DRIFT_ROOT="$(CURDIR)" \
-	TERLAN_SUMMARY_DRIFT_TERLC="$(CURDIR)/target/debug/terlc" \
+	TERLAN_SUMMARY_DRIFT_TERLC="$(TERLC)" \
 	TERLAN_SUMMARY_DRIFT_GENERATOR="$(CURDIR)/scripts/self_validation/BuildInterfacesTest.terl" \
-		target/debug/terlc test scripts/self_validation/SummaryDriftTest.terl
+		$(TERLC) test scripts/self_validation/SummaryDriftTest.terl
 
 stdlib-embedded-interface-contract-check:
 	@target/debug/terlc test scripts/self_validation/EmbeddedInterfaceContractsTest.terl
 
 stdlib-js-bindings-drift-check:
 	@TERLAN_JS_BINDINGS_ROOT="$(CURDIR)" \
-	TERLAN_JS_BINDINGS_TERLC="$(CURDIR)/target/debug/terlc" \
-		target/debug/terlc test scripts/self_validation/JsBindingsDriftTest.terl
+	TERLAN_JS_BINDINGS_TERLC="$(TERLC)" \
+		$(TERLC) test scripts/self_validation/JsBindingsDriftTest.terl
 
 stdlib-js-review-surface-check:
 	@TERLAN_JS_REVIEW_ROOT="$(CURDIR)" \
@@ -73,8 +73,8 @@ stdlib-js-review-surface-check:
 
 stdlib-release-manifest-check:
 	@TERLAN_RELEASE_MANIFEST_ROOT="$(CURDIR)" \
-	TERLAN_RELEASE_MANIFEST_TERLC="$(CURDIR)/target/debug/terlc" \
-		target/debug/terlc test std/scripts/ReleaseManifestTest.terl
+	TERLAN_RELEASE_MANIFEST_TERLC="$(TERLC)" \
+		$(TERLC) test std/scripts/ReleaseManifestTest.terl
 
 stdlib-rust-backed-manifest-check: stdlib-native-artifacts-check
 	@TERLAN_RUST_BACKED_MANIFEST_ROOT="$(CURDIR)" \
@@ -84,8 +84,8 @@ stdlib-rust-backed-manifest-check: stdlib-native-artifacts-check
 
 stdlib-native-artifacts-check:
 	@TERLAN_NATIVE_ARTIFACTS_ROOT="$(CURDIR)" \
-	TERLAN_NATIVE_ARTIFACTS_TERLC="$(CURDIR)/target/debug/terlc" \
-		target/debug/terlc test scripts/self_validation/NativeArtifactsTest.terl
+	TERLAN_NATIVE_ARTIFACTS_TERLC="$(TERLC)" \
+		$(TERLC) test scripts/self_validation/NativeArtifactsTest.terl
 
 stdlib-validation-self-test: | terlan-stdlib-validation-bootstrap
 	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \

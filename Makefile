@@ -4543,12 +4543,18 @@ release-gate-report-schema-check: release-gate-duration-budget-check
 release-failure-reproduction-check: release-gate-report-schema-check
 	$(TERLAN_QUALITY) release-failure-reproduction
 
-RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES := \
+GENERATED_ARTIFACT_FRESHNESS_GATES := \
 	stdlib-summary-drift-check \
 	stdlib-js-bindings-drift-check \
 	stdlib-native-artifacts-check \
 	stdlib-release-manifest-check \
 	tree-sitter-cli-check
+
+RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES := $(GENERATED_ARTIFACT_FRESHNESS_GATES)
+
+.PHONY: source-generated-artifacts-check
+source-generated-artifacts-check: $(GENERATED_ARTIFACT_FRESHNESS_GATES)
+	@echo "[source-preflight] every generated artifact is current"
 
 .PHONY: release-generated-artifacts-before release-generated-artifacts-freshness-pass release-generated-artifacts-check
 

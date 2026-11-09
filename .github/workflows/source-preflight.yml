@@ -16,7 +16,7 @@ jobs:
   source-preflight:
     name: Source and release-tool checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -26,13 +26,19 @@ jobs:
         env:
           PREFLIGHT_MODE: ${{ inputs.mode }}
         run: '[[ "$PREFLIGHT_MODE" == full || "$PREFLIGHT_MODE" == contracts ]]'
-      - name: Install Node for editor contract checks
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
       - name: Setup Terlan script runner
         id: script-runner
         uses: ./.github/actions/setup-terlan-script-runner
+      - name: Install Node for generated and editor checks
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Check every generated artifact for drift
+        if: ${{ inputs.mode == 'full' }}
+        run: |
+          make --no-print-directory source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=${{ steps.script-runner.outputs.terlc }}
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
       - name: Test CI change classification
         run: ${{ steps.script-runner.outputs.terlc }} test scripts/ci --coverage --coverage-threshold 100
       - name: Check editor release contracts

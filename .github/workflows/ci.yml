@@ -149,7 +149,7 @@ jobs:
         uses: ./.github/actions/security-audit
 
   direct-aot-platform:
-    needs: [changes, source-preflight]
+    needs: [changes, source-preflight, check]
     name: Direct AOT (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
     if: ${{ needs.changes.outputs.compiler == 'true' && github.ref_name != 'main' && !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
@@ -247,7 +247,7 @@ jobs:
           retention-days: 90
 
   aot-thread-sanitizer:
-    needs: [changes, source-preflight]
+    needs: [changes, source-preflight, check]
     name: Direct AOT ThreadSanitizer
     runs-on: ubuntu-24.04
     if: ${{ needs.changes.outputs.compiler == 'true' && github.ref_name != 'main' && !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}
@@ -287,7 +287,7 @@ jobs:
           retention-days: 90
 
   multicore-thread-sanitizer:
-    needs: [changes, source-preflight]
+    needs: [changes, source-preflight, check]
     name: VM multicore ThreadSanitizer
     runs-on: ubuntu-24.04
     if: ${{ needs.changes.outputs.compiler == 'true' && github.ref_name != 'main' && !startsWith(github.head_ref || github.ref_name, 'release-validation/') }}

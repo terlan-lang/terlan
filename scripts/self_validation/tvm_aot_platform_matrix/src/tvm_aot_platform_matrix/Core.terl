@@ -713,6 +713,34 @@ pub workflow_text_valid(workflow: String): Bool ->
         )
     }.
 
+source_preflight_order_valid(workflow: String): Bool ->
+    let {
+        Some({_before, after_compiler}) <- String.split_once(workflow, "name: Setup Terlan script runner");
+        Some({_before_node, after_node}) <- String.split_once(after_compiler, "name: Install Node for generated and editor checks")
+    } else {
+        _ -> false
+    };
+    after_node.contains("name: Check every generated artifact for drift").
+
+pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
+    let normalized_workflow = String.replace(workflow, "\r\n", "\n");
+    occurrences(normalized_workflow, "name: Check every generated artifact for drift") == 1
+        and source_preflight_order_valid(normalized_workflow)
+        and fragments_present(
+    normalized_workflow,
+    [
+        "timeout-minutes: 30",
+        "if: \${{ inputs.mode == 'full' }}",
+        "source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=\${{ steps.script-runner.outputs.terlc }}",
+        "git diff --exit-code",
+        "git status --porcelain --untracked-files=all",
+    ],
+)
+        and makefile.contains("source-generated-artifacts-check: $(GENERATED_ARTIFACT_FRESHNESS_GATES)").
+
+pub compiler_before_platform_text_valid(workflow: String): Bool ->
+    occurrences(workflow, "needs: [changes, source-preflight, check]") == 3.
+
 pub compiled_cache_text_valid(action: String): Bool ->
     fragments_present(
         action,
@@ -839,6 +867,7 @@ pub workflow_contract(): Bool ->
     let root = Environment.current_directory();
     let {
         Ok(ci) <- read_text(child(root, ".github/workflows/ci.yml"));
+        Ok(source_preflight) <- read_text(child(root, ".github/workflows/source-preflight.yml"));
         Ok(release) <- read_text(child(root, ".github/workflows/release.yml"));
         Ok(native_setup) <- read_text(child(root, ".github/actions/setup-native-dependencies/action.yml"));
         Ok(rust_setup) <- read_text(child(root, ".github/actions/setup-rust/action.yml"));
@@ -855,6 +884,8 @@ pub workflow_contract(): Bool ->
     };
     if {
         not workflow_text_valid(ci) or not workflow_text_valid(release) -> failure("workflow", "native platform matrix workflow drifted");
+        not source_preflight_text_valid(source_preflight, makefile) -> failure("workflow", "generated-artifact source preflight drifted");
+        not compiler_before_platform_text_valid(ci) -> failure("workflow", "platform validation must follow compiler validation");
         not native_setup_text_valid(native_setup) -> failure("workflow", "target-native dependency action drifted");
         not compiled_cache_text_valid(rust_setup) -> failure("workflow", "compiled Rust cache contract drifted");
         not compiled_cache_preservation_text_valid(ci) -> failure("workflow", "compiled Rust cache preservation drifted");

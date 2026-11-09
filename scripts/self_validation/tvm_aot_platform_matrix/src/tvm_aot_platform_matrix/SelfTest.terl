@@ -10,7 +10,7 @@ import std.data.Json.
 import std.io.Console.{eprintln, println}.
 import std.io.File.{read_text}.
 import std.system.Environment.
-import tvm_aot_platform_matrix.Core.{build_matrix, compiled_cache_preservation_text_valid, compiled_cache_text_valid, hosted_matrix_valid, json_string, matrix_schema, native_setup_text_valid, official_repository, platform_runner_text_valid, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, release_trigger_valid, report, string_array, targets, workflow_contract, workflow_text_valid}.
+import tvm_aot_platform_matrix.Core.{build_matrix, compiled_cache_preservation_text_valid, compiled_cache_text_valid, compiler_before_platform_text_valid, hosted_matrix_valid, json_string, matrix_schema, native_setup_text_valid, official_repository, platform_runner_text_valid, provenance, provenance_input, put_execution_fields, put_target_artifact, put_target_identity, release_trigger_valid, report, source_preflight_text_valid, string_array, targets, workflow_contract, workflow_text_valid}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -314,6 +314,7 @@ pub self_test(): Bool ->
     let root = Environment.current_directory();
     case {
         read_text(String.append(root, "/.github/workflows/ci.yml")),
+        read_text(String.append(root, "/.github/workflows/source-preflight.yml")),
         read_text(String.append(root, "/.github/workflows/release.yml")),
         read_text(String.append(root, "/.github/actions/setup-native-dependencies/action.yml")),
         read_text(String.append(root, "/.github/actions/setup-rust/action.yml")),
@@ -323,8 +324,9 @@ pub self_test(): Bool ->
                 "/scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl",
             ),
         ),
+        read_text(String.append(root, "/Makefile")),
     } {
-        {Ok(ci), Ok(release), Ok(native_setup), Ok(rust_setup), Ok(platform_runner)} ->
+        {Ok(ci), Ok(source_preflight), Ok(release), Ok(native_setup), Ok(rust_setup), Ok(platform_runner), Ok(makefile)} ->
             let missing_compiler_evidence =
                 String.replace(
                     release,
@@ -336,10 +338,41 @@ pub self_test(): Bool ->
                     release,
                     "\n  duplicate:\n    uses: ./.github/workflows/source-preflight.yml\n",
                 );
+            let drift_before_compiler =
+                source_preflight
+                    .replace(
+                        "name: Check every generated artifact for drift",
+                        "name: Generated artifact placeholder",
+                    )
+                    .replace(
+                        "name: Setup Terlan script runner",
+                        "name: Check every generated artifact for drift",
+                    )
+                    .replace(
+                        "name: Generated artifact placeholder",
+                        "name: Setup Terlan script runner",
+                    );
+            let missing_clean_tree_assertion =
+                String.replace(
+                    source_preflight,
+                    "git status --porcelain --untracked-files=all",
+                    "git status --short",
+                );
+            let early_platform =
+                String.replace(
+                    ci,
+                    "needs: [changes, source-preflight, check]",
+                    "needs: [changes, source-preflight]",
+                );
             if {
                 not release_trigger_valid(release) -> failure("release workflow rejected exact Compiler CI evidence reuse");
                 release_trigger_valid(missing_compiler_evidence) -> failure("release workflow admitted missing Compiler CI evidence reuse");
                 release_trigger_valid(duplicate_preflight) -> failure("release workflow admitted duplicate source preflight");
+                not source_preflight_text_valid(source_preflight, makefile) -> failure("source preflight rejected complete generated-artifact validation");
+                source_preflight_text_valid(drift_before_compiler, makefile) -> failure("source preflight admitted drift validation before compiler bootstrap");
+                source_preflight_text_valid(missing_clean_tree_assertion, makefile) -> failure("source preflight admitted incomplete generated-file comparison");
+                not compiler_before_platform_text_valid(ci) -> failure("compiler-first platform order rejected valid workflow");
+                compiler_before_platform_text_valid(early_platform) -> failure("compiler-first platform order admitted early platform validation");
                 true -> self_test_with_ci(ci, native_setup, rust_setup, platform_runner)
             };
         _ -> failure("cannot read platform workflow fixtures")
