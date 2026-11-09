@@ -25,9 +25,27 @@ runs:
       with:
         path: target/script-runner
         key: ${{ steps.identity.outputs.key }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-terlan-script-runner-
+
+    - name: Validate restored script runner
+      id: restored
+      shell: bash
+      run: |
+        usable=false
+        if test -x target/script-runner/terlc && test -x target/script-runner/terlan-vm; then
+          output=$(mktemp)
+          revision=$(git rev-parse HEAD)
+          if target/script-runner/terlc run scripts/ci/scripts/ClassifyChanges.terls -- \
+            "$revision" "$revision" "$output" >/dev/null 2>&1; then
+            usable=true
+          fi
+          rm -f "$output"
+        fi
+        echo "usable=$usable" >> "$GITHUB_OUTPUT"
 
     - name: Install Rust for self-bootstrap
-      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ steps.restored.outputs.usable != 'true' }}
       uses: ./.github/actions/setup-rust
       with:
         components: ""
@@ -36,7 +54,7 @@ runs:
         cache-profile: compiler-bootstrap
 
     - name: Build candidate script runner
-      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ steps.restored.outputs.usable != 'true' }}
       shell: bash
       run: |
         cargo build --locked -p terlan --bin terlc --bin terlan-vm

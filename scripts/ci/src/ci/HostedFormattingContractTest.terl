@@ -9,6 +9,7 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
     let {
         Ok(ci) <- File.read_text(".github/workflows/ci.yml");
         Ok(preflight) <- File.read_text(".github/workflows/source-preflight.yml");
+        Ok(runner) <- File.read_text(".github/actions/setup-terlan-script-runner/action.yml");
         Ok(hook) <- File.read_text("scripts/git_hooks/check.sh");
         Ok(plan) <- File.read_text("scripts/git_hooks/src/git_hooks/Plan.terl")
     } else {
@@ -20,5 +21,7 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
         and String.contains(preflight, "scripts/ci/scripts/CheckRustFormatting.terls")
         and String.contains(hook, "CheckRustFormatting.terls -- --paths-file \"$changes\"")
         and String.contains(plan, "RustFormatting.required(paths, false)")
+        and String.contains(runner, "restore-keys:")
+        and String.contains(runner, "steps.restored.outputs.usable != 'true'")
         and not String.contains(preflight, "cargo fmt --all")
         and not String.contains(hook, "cargo fmt --all").
