@@ -337,9 +337,9 @@ bootstrap_body=$(sed -n '/^    bootstrap)/,/^      ;;/p' \
 publication_test_pattern='cargo '
 publication_test_pattern+='test --locked -p terlan-test-orchestrator --test publish_preflight'
 grep -Fq "$publication_test_pattern" <<< "$bootstrap_body"
-grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body"
 grep -Fq 'ensure_quality_tools' <<< "$release_contract_body"
-if grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
+if grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body" \
+  || grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
   echo 'Release contract rebuilt optimized compiler tools unnecessarily' >&2; exit 1
 fi
 grep -Fq 'TERLAN_VALIDATION_BOOTSTRAPPED=1' <<< "$release_contract_body"
@@ -347,6 +347,8 @@ grep -Fq 'TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality' <<< "$release_c
 grep -Fq 'prechecked_terlan' <<< "$release_contract_body"
 grep -Fq 'build_typed_validator.sh' <<< "$release_contract_body"
 grep -Fq 'repository_validator_image' <<< "$release_contract_body"
+grep -Fq 'TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run' \
+  <<< "$release_contract_body"
 if grep -Fq 'TERLAN_REPOSITORY_VALIDATION=\"$terlc\" run' <<< "$release_contract_body"; then
   echo 'Release contract recompiles the repository validator on every run' >&2; exit 1
 fi

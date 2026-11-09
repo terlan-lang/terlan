@@ -14,7 +14,7 @@ import std.io.File.{read_text}.
 import std.regex.Regex.
 import std.system.Environment.
 import std.vcs.Git.{source_tree_identity}.
-import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, string_array, write_json}.
+import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, release_audit_before_platform_text_valid, string_array, write_json}.
 import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
 
 import type std.core.Option.
@@ -196,9 +196,10 @@ pub validate_workflow(workflow: String): Bool ->
         {"name: release-vm-multicore-thread-sanitizer", 2},
         {"run: make release-hosted-validation-check", 1},
         {"release-validation-identity:", 0},
-        {"    needs: revision", 4},
+        {"    needs: revision", 1},
     ],
 ) -> false;
+        not release_audit_before_platform_text_valid(workflow) -> false;
         not fragments_present(
     workflow,
     [

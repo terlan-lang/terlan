@@ -937,8 +937,9 @@ build_release_contract(repository: String): Bool ->
         "cargo-audit audit --deny warnings",
         "node-security-audit-check:",
         "npm audit --prefix \"$$package_dir\" --package-lock-only --audit-level=moderate",
-        "publish-local-check: publish-release-input-check rust-security-audit-check node-security-audit-check",
+        "publish-local-check: publish-release-input-check publish-workflow-input-check rust-security-audit-check node-security-audit-check",
         "ReleasePayloadInputTest.terl \\",
+        "WorkflowContractTest.terl \\",
         "--coverage --coverage-threshold 100",
     ];
 let release_fragments =

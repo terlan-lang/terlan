@@ -39,25 +39,14 @@ preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
 
 release_tools_ready=false
-optimized_compiler_ready=false
 quality_tools_ready=false
 orchestrator_ready=false
-ensure_optimized_compiler() {
-  if [[ "$optimized_compiler_ready" == false ]]; then
-    echo 'pre-commit: build optimized compiler once'
-    cargo build --release --locked -p terlan --bin terlc --bin terlan-vm
-    optimized_compiler_ready=true
-  fi
-  terlc="$CARGO_TARGET_DIR/release/terlc"
-  export TERLC="$terlc"
-}
 ensure_release_tools() {
   if [[ "$release_tools_ready" == false ]]; then
     echo 'pre-commit: build required release tools once'
     cargo build --release --locked -p terlan \
       --bin terlc --bin terlan-vm --bin terlan-native-worker
     release_tools_ready=true
-    optimized_compiler_ready=true
   fi
   terlc="$CARGO_TARGET_DIR/release/terlc"
   export TERLC="$terlc"
@@ -91,8 +80,13 @@ if preflight_has workflow-contract; then
   echo 'pre-commit: workflow and compiled-cache contracts'
   "$terlc" run scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
     -- self-test
+  "$terlc" test \
+    scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/WorkflowContractTest.terl \
+    --coverage --coverage-threshold 100
   printf '%s\n' \
     scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl \
+    scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/MulticoreRelease.terl \
+    scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/WorkflowContractTest.terl \
     >> "$prechecked_terlan"
 fi
 if preflight_has terlan-format; then
@@ -292,7 +286,6 @@ while IFS= read -r lane; do
       go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
       ;;
     release-contract)
-      ensure_optimized_compiler
       ensure_quality_tools
       ensure_orchestrator
       "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
@@ -314,7 +307,7 @@ while IFS= read -r lane; do
         "TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality"
       make --no-print-directory repository-build-release-contract-check \
         TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-        "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/release/terlan-vm run $repository_validator_image --script-eval --"
+        "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run $repository_validator_image --script-eval --"
       printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
       "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
       ;;
