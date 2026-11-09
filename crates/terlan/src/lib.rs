@@ -587,7 +587,13 @@ fn command_local_help_request(args: &[String]) -> Option<&str> {
 fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
     fn arg_error(msg: &str) -> (CliState, CliCommand) {
         eprintln!("{msg}");
-        (CliState::default(), CliCommand { verb: None, args: vec![] })
+        (
+            CliState::default(),
+            CliCommand {
+                verb: None,
+                args: vec![],
+            },
+        )
     }
 
     let mut state = CliState {
@@ -693,10 +699,7 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
                 state.native_policy = match NativePolicy::from_cli(args[i + 1].as_str()) {
                     Some(policy) => policy,
                     None => {
-                        return arg_error(&format!(
-                            "unsupported native policy: {}",
-                            &args[i + 1]
-                        ));
+                        return arg_error(&format!("unsupported native policy: {}", &args[i + 1]));
                     }
                 };
                 i += 2;

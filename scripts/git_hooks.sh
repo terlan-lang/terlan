@@ -25,6 +25,24 @@ case "${1:-check}" in
   *) echo 'Usage: bash scripts/git_hooks.sh [install|check]' >&2; exit 2 ;;
 esac
 
+# Publication validation is tied to one exact main revision. Share the final
+# publication lease with every worktree so a commit cannot silently invalidate
+# an hours-long candidate while `make publish` is waiting for hosted evidence.
+git_common=$(git rev-parse --path-format=absolute --git-common-dir)
+publication_lock="$git_common/terlan-publication.lock"
+if [[ ! -d "$git_common" || -L "$git_common"
+  || -L "$publication_lock"
+  || ( -e "$publication_lock" && ! -f "$publication_lock" ) ]]; then
+  echo 'pre-commit: invalid shared publication lease path' >&2
+  exit 1
+fi
+exec 7>>"$publication_lock"
+if ! flock --exclusive --nonblock 7; then
+  echo 'pre-commit: publication owns main; wait for it to finish' >&2
+  exit 1
+fi
+[[ /dev/fd/7 -ef "$publication_lock" ]] || exit 1
+
 git diff --cached --check
 tree=$(git write-tree)
 base=$(git rev-parse --verify HEAD 2>/dev/null || git hash-object -w -t tree /dev/null)

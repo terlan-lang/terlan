@@ -6,7 +6,7 @@ mkdir -p "$root/target"
 temporary=$(mktemp -d "$root/target/publish-command-test.XXXXXX")
 trap 'status=$?; if (( status != 0 )); then cat "$temporary"/*.log >&2; fi; rm -rf "$temporary"' EXIT
 while IFS= read -r variable; do unset "$variable"; done < <(git rev-parse --local-env-vars)
-for mode in ready failed dirty staged untracked drift head-drift version dry-run locked; do
+for mode in ready failed dirty staged untracked drift head-drift version dry-run locked shared-locked; do
   fixture="$temporary/$mode"
   git init --quiet --initial-branch=main "$fixture"
   (
@@ -55,6 +55,7 @@ SH
       untracked) touch keep.txt ;;
       version) version=0.0.8 ;;
       locked) mkdir -p target/quality; exec 8>target/quality/release-control.lock; flock 8 ;;
+      shared-locked) exec 9>.git/terlan-publication.lock; flock 9 ;;
     esac
     arguments=(--no-print-directory publish "VERSION=$version")
     if [[ "$mode" == dry-run ]]; then arguments=(-n "${arguments[@]}"); fi
@@ -71,7 +72,7 @@ SH
     if [[ "$mode" == untracked ]]; then test -f keep.txt; fi
   )
 done
-echo 'Publication command regressions passed (10 scenarios).'
+echo 'Publication command regressions passed (11 scenarios).'
 
 # The public entry point owns the clean-tree preflight once. The Terlan
 # controller guards the source again before dispatch and submission, so the

@@ -101,7 +101,7 @@ fn fixture() -> Fixture {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let source = fs::read_to_string(repository.join("Makefile")).unwrap();
     let start = source
-        .find("RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES :=")
+        .find("GENERATED_ARTIFACT_FRESHNESS_GATES :=")
         .unwrap();
     let end = source[start..].find("\npackage-test-exec-check:").unwrap() + start;
     let mut make = source[start..end].to_owned();

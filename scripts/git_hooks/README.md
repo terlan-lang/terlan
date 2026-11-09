@@ -92,6 +92,9 @@ resets, stages, or cleans the working repository. Partial staging, deleted and
 renamed paths, and the alternate index used by `git commit --only` are supported.
 Changes to the real index or HEAD during validation reject the commit. Checks
 that alter tracked snapshot files also fail; fixes must be reviewed and staged.
+The hook also shares the repository-wide publication lease used by
+`make publish`. A publication wait therefore blocks commits from every local
+worktree until its exact candidate is submitted or the publisher exits.
 
 The Cargo resolver cache defaults to `target/git-hooks/cargo-home`, keeping
 unrelated packages in the global Cargo cache out of staged validation. An

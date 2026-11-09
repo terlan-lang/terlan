@@ -50,6 +50,17 @@ test "$(cat tracked.txt)" = unstaged
 test "$(cat keep.txt)" = untracked
 test "$(git show :tracked.txt)" = good
 
+# A publication wait owns one exact main revision across every worktree. The
+# hook must reject a concurrent commit before starting staged validation.
+exec 7>>.git/terlan-publication.lock
+flock --exclusive 7
+if bash "$driver" check > "$temporary/publication-lock.log" 2>&1; then
+  echo 'Hook ignored the active shared publication lease' >&2; exit 1
+fi
+grep -q 'publication owns main' "$temporary/publication-lock.log"
+flock --unlock 7
+exec 7>&-
+
 # Default Cargo inputs are isolated; explicit relative overrides remain supported.
 env -u CARGO_HOME EXPECTED_HOOK_CARGO_HOME="$PWD/target/git-hooks/cargo-home" \
   bash "$driver" check > "$temporary/cargo-default.log" 2>&1

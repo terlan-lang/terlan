@@ -5527,10 +5527,18 @@ release-control-check: | terlan-release-control-bootstrap
 
 .PHONY: publish publish-local publish-local-check publish-release-input-check publish-upload browser-release-check
 publish: publish-source-preflight
-	@test "$$(git branch --show-current)" = main || { echo 'publish requires main' >&2; exit 1; }
-	@test "$(VERSION)" = "$(RELEASE_VERSION)" || { echo 'VERSION must match workspace.package.version' >&2; exit 1; }
-	bash scripts/publication_process_preflight.sh "$(CURDIR)"
 	@set -eu; \
+	git_common=$$(git rev-parse --path-format=absolute --git-common-dir); \
+	test -d "$$git_common" && test ! -L "$$git_common"; \
+	publication_lock="$$git_common/terlan-publication.lock"; \
+	test ! -L "$$publication_lock"; \
+	test ! -e "$$publication_lock" || test -f "$$publication_lock"; \
+	exec 7>>"$$publication_lock"; \
+	flock --exclusive --nonblock 7 || { echo 'another publication or commit owns this repository' >&2; exit 1; }; \
+	test /dev/fd/7 -ef "$$publication_lock"; \
+	test "$$(git branch --show-current)" = main || { echo 'publish requires main' >&2; exit 1; }; \
+	test "$(VERSION)" = "$(RELEASE_VERSION)" || { echo 'VERSION must match workspace.package.version' >&2; exit 1; }; \
+	bash scripts/publication_process_preflight.sh "$(CURDIR)"; \
 	case "$${MAKEFLAGS%% *}" in *n*) $(MAKE) --no-print-directory -n publish-local VERSION="$(VERSION)" PUBLISH_REVISION="$$(git rev-parse HEAD)"; exit ;; esac; \
 	test ! -L target && test ! -L target/quality; \
 	mkdir -p target/quality; \

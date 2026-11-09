@@ -478,7 +478,7 @@ no publication and is not an AOT completion dependency.
 Run publication from a clean `main` checkout after committing the release contents:
 
 ```sh
-make publish VERSION=0.0.9
+make publish VERSION=0.0.10
 ```
 
 This entry point runs lightweight local publication-contract checks, dispatches
@@ -490,6 +490,13 @@ resets them. The Make clean-tree preflight runs once; the Terlan controller then
 guards the exact clean revision before dispatch and again before atomic tag
 submission without replaying that Make target. `make release` aliases the same
 command.
+
+The command holds a lease in Git's common directory for the complete local
+preflight, hosted-validation wait, and submission interval. Installed commit
+hooks in every worktree acquire that same lease, so another local task cannot
+replace `main` and invalidate an in-flight candidate. The final upload reuses
+the lease; non-hook remote pushes are still rejected by the exact-revision
+guard rather than published as stale evidence.
 
 The preflight rejects tags outside `main` history, mismatched local or remote
 tags, stale candidate evidence, and a missing or non-successful validation

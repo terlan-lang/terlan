@@ -866,6 +866,7 @@ build_release_contract(repository: String): Bool ->
             "scripts/clean_build_outputs.sh",
             "scripts/download_validated_release_artifacts.sh",
             "scripts/publish_release_from_dist.sh",
+            "scripts/git_hooks.sh",
         ];
     let {
         true <- all_files_exist(repository, required);
@@ -889,6 +890,7 @@ build_release_contract(repository: String): Bool ->
         Some(cleanup) <- read(repository, "scripts/clean_build_outputs.sh");
         Some(downloader) <- read(repository, "scripts/download_validated_release_artifacts.sh");
         Some(publisher) <- read(repository, "scripts/publish_release_from_dist.sh");
+        Some(git_hook) <- read(repository, "scripts/git_hooks.sh");
         Ok(workflows) <-
             File.read_text_tree_matching(
                 child(repository, ".github"),
@@ -976,6 +978,11 @@ if {
         or String.contains(makefile, "$(MAKE) --no-print-directory publish-source-preflight") -> failure(
         "build_release.duplicate_publish_preflight",
         "the public publish entry point must own the Make clean-tree preflight once",
+    );
+    not String.contains(makefile, "publication_lock=\"$$git_common/terlan-publication.lock\"")
+        or not String.contains(git_hook, "publication_lock=\"$git_common/terlan-publication.lock\"") -> failure(
+        "build_release.publication_commit_lease",
+        "publication and commit validation must share the Git common-directory lease",
     );
     String.contains(String.append(makefile, quality), "\n\tcargo ")
         or String.contains(String.append(makefile, quality), "\n\t@cargo ") -> failure(
