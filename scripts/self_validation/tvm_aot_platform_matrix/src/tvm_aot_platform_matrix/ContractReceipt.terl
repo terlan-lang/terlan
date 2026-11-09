@@ -26,7 +26,7 @@ write(path: String, command: String): Bool ->
             .put("schema", Json.string("terlan.validator-contract-receipt.v1"))
             .put("decision", Json.string("pass"))
             .put("command", Json.string(command));
-    let {
+    if {
         Ok(source) <- Json.stringify_pretty(report);
         Ok(_written) <- File.write_text(path, String.append(source, "\n"))
     } else {

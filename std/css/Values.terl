@@ -191,53 +191,53 @@ pub rgb(red: Int, green: Int, blue: Int): Option[Color] ->
 /**
  * Serializes a length without accepting arbitrary CSS text.
  */
-pub length_css(value: Length): String ->
+pub (value: Length) length_css(): String ->
     float_text(value.#amount) + Atom.to_string(value.#unit).
 
 /**
  * Reads a length's magnitude for generated range checks.
  */
-pub length_amount(value: Length): Float ->
+pub (value: Length) length_amount(): Float ->
     value.#amount.
 
 /**
  * Serializes a percentage.
  */
-pub percentage_css(value: Percentage): String ->
+pub (value: Percentage) percentage_css(): String ->
     float_text(value.#amount) + "%".
 
 /**
  * Reads a percentage's magnitude for generated range checks.
  */
-pub percentage_amount(value: Percentage): Float ->
+pub (value: Percentage) percentage_amount(): Float ->
     value.#amount.
 
 /**
  * Serializes a color.
  */
-pub color_css(value: Color): String ->
+pub (value: Color) color_css(): String ->
     value.#css.
 
 /**
  * Serializes an angle.
  */
-pub angle_css(value: Angle): String ->
+pub (value: Angle) angle_css(): String ->
     float_text(value.#amount) + Atom.to_string(value.#unit).
 
 /**
  * Reads an angle's magnitude for generated range checks.
  */
-pub angle_amount(value: Angle): Float ->
+pub (value: Angle) angle_amount(): Float ->
     value.#amount.
 
 /**
  * Serializes a time.
  */
-pub time_css(value: Time): String ->
+pub (value: Time) time_css(): String ->
     float_text(value.#amount) + Atom.to_string(value.#unit).
 
 /**
  * Reads a time's magnitude for generated range checks.
  */
-pub time_amount(value: Time): Float ->
+pub (value: Time) time_amount(): Float ->
     value.#amount.

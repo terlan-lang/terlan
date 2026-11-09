@@ -15,13 +15,15 @@ pub case_entry(): Entry[Envelope[Int]] ->
     Process.entry[Envelope[Int]](9_013).
 
 receive_observer(): Process[Int] ->
-    let AttachObserver(peer) = Message.unwrap[Envelope[Int]](Process.receive[Envelope[Int]]());
-    peer.
+    case Message.unwrap[Envelope[Int]](Process.receive[Envelope[Int]]()) {
+        AttachObserver(peer) -> peer
+    }.
 
 pub spawn_9012(): Unit ->
     let peer = receive_observer();
-    let _ = Process.send[Int](peer, Message.wrap[Int](42));
-    Unit.
+    case Process.send[Int](peer, Message.wrap[Int](42)) {
+        _ -> Unit
+    }.
 
 stored_value(): Result[Int, String] ->
     Ok(41).
@@ -33,5 +35,6 @@ pub spawn_9013(): Unit ->
             Err(_error) -> 0
         };
     let peer = receive_observer();
-    let _ = Process.send[Int](peer, Message.wrap[Int](recovered));
-    Unit.
+    case Process.send[Int](peer, Message.wrap[Int](recovered)) {
+        _ -> Unit
+    }.

@@ -87,7 +87,7 @@ pub opaque type Timer.
 /// Transformation: creates the VM resource row and cleanup handle without
 /// exposing a host pointer or numeric identity.
 
-pub acquire[K](kind: ResourceKind[K]): Resource[K].
+pub (kind: ResourceKind[K]) acquire[K](): Resource[K].
 
 /// Returns the VM background scheduling class.
 
@@ -100,7 +100,7 @@ pub background(): SchedulingClass.
 /// Transformation: keeps termination, cleanup, and pre-resume cancellation
 /// precedence in the VM scheduler.
 
-pub cancel[T](target: Process[T]): Unit.
+pub (target: Process[T]) cancel[T](): Unit.
 
 /// Returns the typed handle for the currently executing process.
 ///
@@ -119,7 +119,7 @@ pub current[T](): Process[T].
 /// Transformation: the VM authenticates monitor ownership; application code
 /// cannot cancel another process's monitor by guessing its numeric identity.
 
-pub demonitor[T](monitor: Monitor[T]): Bool.
+pub (monitor: Monitor[T]) demonitor[T](): Bool.
 
 /// Builds an image-local typed process entry.
 ///
@@ -145,7 +145,7 @@ pub exit_reason(code: Int): ExitReason.
 /// Transformation: centralizes link propagation, monitor delivery, timer
 /// cleanup, resource cleanup, and supervision restart in the VM exit pipeline.
 
-pub fail(reason: ExitReason): Unit.
+pub (reason: ExitReason) fail(): Unit.
 
 /// Links the current process to one live peer.
 ///
@@ -154,7 +154,7 @@ pub fail(reason: ExitReason): Unit.
 /// Transformation: preserves link cleanup and abnormal-exit propagation in the
 /// VM without exposing numeric process identities.
 
-pub link[T](peer: Process[T]): Unit.
+pub (peer: Process[T]) link[T](): Unit.
 
 /// Monitors one live VM process from the current process.
 ///
@@ -163,7 +163,7 @@ pub link[T](peer: Process[T]): Unit.
 /// Transformation: keeps monitor identity, DOWN delivery, and cleanup in the VM
 /// failure runtime.
 
-pub monitor[T](peer: Process[T]): Monitor[T].
+pub (peer: Process[T]) monitor[T](): Monitor[T].
 
 /// Returns the VM normal scheduling class.
 
@@ -244,7 +244,7 @@ pub receive_where[T](predicate: (T) -> Bool): std.vm.Message[T].
 /// Transformation: validates ownership and performs the same cleanup that an
 /// owning process exit would perform, without exposing the resource identity.
 
-pub release[K](resource: Resource[K]): Bool.
+pub (resource: Resource[K]) release[K](): Bool.
 
 /// Builds a typed application resource kind.
 ///
@@ -261,7 +261,7 @@ pub resource_kind[K](tag: Int): ResourceKind[K].
 /// Transformation: keeps queue ownership, weighted selection, and reduction
 /// accounting in the VM scheduler without exposing numeric class tags.
 
-pub schedule(class: SchedulingClass): Unit.
+pub (class: SchedulingClass) schedule(): Unit.
 
 /// Sends one typed message to a process descriptor.
 ///
@@ -270,7 +270,7 @@ pub schedule(class: SchedulingClass): Unit.
 /// Transformation: transfers the typed payload into the recipient mailbox and
 /// never exposes its actor-local representation to the sender.
 
-pub send[T]<ActorMessage[T]>(process: Process[T], message: std.vm.Message[T]): Unit.
+pub (process: Process[T]) send[T]<ActorMessage[T]>(message: std.vm.Message[T]): Unit.
 
 /// Sends one finite image-owned Atom through the typed direct-AOT mailbox boundary.
 ///
@@ -325,7 +325,7 @@ pub send_string(recipient: Int, payload: String): Unit.
 /// Transformation: keeps clock ordering, parking, and continuation wakeup in
 /// the VM scheduler.
 
-pub sleep(timer: Timer): Unit.
+pub (timer: Timer) sleep(): Unit.
 
 /// Starts a local VM process.
 ///
@@ -334,7 +334,7 @@ pub sleep(timer: Timer): Unit.
 /// Transformation: spawns a scheduler-visible child without exposing its
 /// numeric process identity to source code.
 
-pub spawn[T](entry: Entry[T]): Process[T].
+pub (entry: Entry[T]) spawn[T](): Process[T].
 
 /// Builds a VM timer descriptor.
 ///
@@ -351,7 +351,7 @@ pub timer(ticks: Int): Timer.
 /// Transformation: validates ownership and updates both link endpoints before
 /// the current continuation resumes.
 
-pub unlink[T](peer: Process[T]): Bool.
+pub (peer: Process[T]) unlink[T](): Bool.
 
 /// Voluntarily yields the current process at an AOT continuation boundary.
 ///

@@ -90,7 +90,8 @@ export function renderProperty(property, definitions, adoptedAtoms, context) {
       const selected=parameters.slice(0,count);
       const fourSides=['margin','padding','inset','border-color','border-width','border-style','scroll-margin','scroll-padding'].includes(property.name);
       const meaning=fourSides?['Applies to all four sides.','First sets top/bottom; second sets left/right.','First sets top; second sets left/right; third sets bottom.','Sets top, right, bottom, and left in that order.'][count-1]:`Supplies ${count} components in grammar order.`;
-      functions.push(`${comment(meaning)}\npub ${arities[count-1]}(${selected.map(p=>`${p}: Component`).join(', ')}): Checked ->\n    Checked({Atom["css_parts"], [${selected.map(name=>hasCheck?'component_value('+name+')':name).join(', ')}]}).`);
+      const [receiver,...arguments_]=selected;
+      functions.push(`${comment(meaning)}\npub (${receiver}: Component) ${arities[count-1]}(${arguments_.map(p=>`${p}: Component`).join(', ')}): Checked ->\n    Checked({Atom["css_parts"], [${selected.map(name=>hasCheck?'component_value('+name+')':name).join(', ')}]}).`);
     }
   }
   if(grouped){
@@ -105,7 +106,7 @@ export function renderProperty(property, definitions, adoptedAtoms, context) {
       tupleValues.push(hasCheck?`${parameter}_value(${parameter})`:parameter);
     }
     payloads.push(`{Atom["css_parts"], {${tupleTypes.join(', ')}}}`);
-    functions.push(`${comment(`Combines ${grouped.groups.map(g=>g.name).join(', ')} for ${property.name}. Each parameter accepts its own keyword or typed unit choices directly.`)}\npub compose(${parameters.join(', ')}): Checked ->\n    Checked({Atom["css_parts"], {${tupleValues.join(', ')}}}).`);
+    functions.push(`${comment(`Combines ${grouped.groups.map(g=>g.name).join(', ')} for ${property.name}. Each parameter accepts its own keyword or typed unit choices directly.`)}\npub (${parameters[0]}) compose(${parameters.slice(1).join(', ')}): Checked ->\n    Checked({Atom["css_parts"], {${tupleValues.join(', ')}}}).`);
   }
   if(payloads.length)declarations.push(`pub opaque type Checked = ${unique(payloads).join(' | ')}.`);
   const fieldChoices=unique([...choices(atoms,null),...globals,...(payloads.length?['Checked']:[])]);

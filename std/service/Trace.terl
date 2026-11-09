@@ -13,11 +13,11 @@ pub struct Span {
 pub begin(name: String): Span ->
     Span(name = name, status = Atom["active"]).
 
-pub finish(span: Span): Unit ->
+pub (span: Span) finish(): Unit ->
     Unit.
 
-pub cancel(span: Span): Unit ->
+pub (span: Span) cancel(): Unit ->
     Unit.
 
-pub time_out(span: Span): Unit ->
+pub (span: Span) time_out(): Unit ->
     Unit.

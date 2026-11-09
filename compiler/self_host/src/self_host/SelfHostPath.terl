@@ -12,7 +12,7 @@ import std.io.Path.
  * Returns the lexical parent without discarding an absolute path root.
  */
 pub parent(path: String): String ->
-    let {
+    if {
         Ok(value) <- Path.from_string(path);
         Some(directory) <- value.parent()
     } else {

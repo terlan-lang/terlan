@@ -14,7 +14,9 @@ invalid(root: String, values: List[String]): Bool ->
     case values {
         [] -> true;
         [value | rest] ->
-            let true <- write(root, "proofs/lean/ci/a.json", value) else {
+            if {
+                true <- write(root, "proofs/lean/ci/a.json", value)
+            } else {
                 _ -> false
             };
             case ProofInputs.replay(root) {
@@ -24,7 +26,7 @@ invalid(root: String, values: List[String]): Bool ->
     }.
 
 run(root: String): Bool ->
-    let {
+    if {
         Ok(_proofs) <- Directory.create_all(OwnerStorage.child(root, "proofs/lean/ci"));
         Ok(_generated) <- Directory.create_all(OwnerStorage.child(root, "target/generated"));
         true <-
@@ -71,7 +73,9 @@ run(root: String): Bool ->
     ).
 
 pub self_test(): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-proof-inputs-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-proof-inputs-")
+    } else {
         _ -> false
     };
     (let valid = run(root);

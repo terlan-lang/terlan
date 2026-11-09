@@ -143,7 +143,7 @@ artifact_inventory_at(
         [path | rest] ->
             if {
                 not is_test_executable_path(path, prefix) -> artifact_inventory_at(rest, prefix, inventory);
-                true -> let {
+                true -> if {
                     Ok(bytes) <- size(path);
                     Ok(times) <- timestamps(path)
                 } else {
@@ -441,7 +441,7 @@ cleanup_prefixed_targets(
     }.
 
 remove_owned_path(path: String): Bool ->
-    let {
+    if {
         Err(_directory_reason) <- remove_all(path);
         Err(_file_reason) <- delete(path)
     } else {
@@ -686,7 +686,7 @@ write_report(target_root: String, report_path: String): Bool ->
     let artifacts = workspace_artifact_summary(target_root);
     if {
         debug_bytes < 0 or not artifacts.valid -> false;
-        true -> let {
+        true -> if {
             Ok(Unit) <- create_all(child(target_root, "quality"));
             Ok(Unit) <- write_text(report_path, report_text(debug_bytes, artifacts))
         } else {
@@ -841,7 +841,7 @@ run_self_test(workspace: String): Bool ->
     let shared = clean_shared_debug(target_root);
     let retained_after_shared = read_text(child(debug, "preserved"));
     let removed = remove_all(workspace);
-    let {
+    if {
         Ok(Unit) <- made_isolated;
         Ok(Unit) <- artifact;
         Ok(Unit) <- made_coverage;

@@ -15,7 +15,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -38,7 +38,7 @@ strip_object(value: Json, mut output: Json, keys: List[String]): Bool ->
         [key | rest] ->
             if {
                 key == "span" -> strip_object(value, output, rest);
-                true -> let {
+                true -> if {
                     Ok(field) <- value.get(key);
                     Ok(clean) <- without_spans(field)
                 } else {
@@ -51,7 +51,7 @@ strip_object(value: Json, mut output: Json, keys: List[String]): Bool ->
 strip_array(value: Json, mut output: Json, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(field) <- value.at(index);
             Ok(clean) <- without_spans(field)
         } else {
@@ -114,7 +114,9 @@ pub kind(payload: Json): String ->
  */
 pub identity(artifact: Json, module_name: String, payload: Json): Result[String, Failure] ->
     let entity_kind = kind(payload);
-    let true <- entity_kind != "" else {
+    if {
+        true <- entity_kind != ""
+    } else {
         _ ->
             Err(
                 Failure(
@@ -123,7 +125,9 @@ pub identity(artifact: Json, module_name: String, payload: Json): Result[String,
                 ),
             )
     };
-    (let Ok(clean) <- without_spans(payload) else {
+    (if {
+    Ok(clean) <- without_spans(payload)
+} else {
     Err(reason) -> Err(reason)
 };
 Ok(
@@ -143,7 +147,7 @@ pub entity(
     artifact_digest: String,
     row: Json,
 ): Result[Json, Failure] ->
-    let {
+    if {
         Ok(payload) <- row.get("payload");
         Ok(id) <- identity(artifact, module_name, payload);
         Ok(span) <- row.get("span");
@@ -194,7 +198,7 @@ project(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -212,10 +216,14 @@ project(
                 index + 1,
                 count,
             );
-            true -> let Ok(projected) <- entity(artifact, module_name, snapshot, artifact_digest, row) else {
+            true -> if {
+                Ok(projected) <- entity(artifact, module_name, snapshot, artifact_digest, row)
+            } else {
                 _ -> false
             };
-            (let true <- text(projected, "name") != "" and not seen.contains(text(projected, "entity_id")) else {
+            (if {
+    true <- text(projected, "name") != "" and not seen.contains(text(projected, "entity_id"))
+} else {
     _ -> false
 };
 (let _remembered = seen.add(text(projected, "entity_id")); let _entity = output.push(projected); project(output, seen, artifact, module_name, snapshot, artifact_digest, rows, index + 1, count)))
@@ -228,7 +236,9 @@ project(
  * invalidates it. This does not claim an ABI identity or generated-origin map.
  */
 pub declarations(store: String, snapshot: String): Result[Json, Failure] ->
-    let Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot) else {
+    if {
+        Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot)
+    } else {
         Err(reason) -> Err(reason)
     };
     from_artifact(artifact, snapshot).
@@ -237,9 +247,11 @@ pub declarations(store: String, snapshot: String): Result[Json, Failure] ->
  * Projects one already admitted compiler unit without rereading the store.
  */
 pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
-    let true <-
-        module_name(artifact) != ""
-            and (text(artifact, "status") == "checked" or text(artifact, "status") == "interface_only") else {
+    if {
+        true <-
+            module_name(artifact) != ""
+                and (text(artifact, "status") == "checked" or text(artifact, "status") == "interface_only")
+    } else {
         _ ->
             Err(
                 Failure(
@@ -248,7 +260,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
                 ),
             )
     };
-    (let {
+    (if {
     Ok(rows) <- artifact.get("source_declarations");
     Ok(count) <- rows.length()
 } else {
@@ -261,18 +273,20 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
         )
 };
 (let output = Json.array();
-(let true <-
-    project(
-        output,
-        Set.new(),
-        artifact,
-        module_name(artifact),
-        snapshot,
-        Hash.sha256(Json.to_string(artifact)),
-        rows,
-        0,
-        count,
-    ) else {
+(if {
+    true <-
+        project(
+            output,
+            Set.new(),
+            artifact,
+            module_name(artifact),
+            snapshot,
+            Hash.sha256(Json.to_string(artifact)),
+            rows,
+            0,
+            count,
+        )
+} else {
     _ ->
         Err(
             Failure(

@@ -214,7 +214,7 @@ option(value: Int): Option[Int] ->
     if { value == 0 -> None; true -> Some(value) }.
 
 pub evaluate(value: Int, enabled: Bool): Int ->
-    let {
+    if {
         true <- enabled;
         Ok(actual) <- result(value);
         Some(selected) <- option(actual)

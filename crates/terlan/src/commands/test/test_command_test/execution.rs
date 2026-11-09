@@ -891,7 +891,7 @@ fn focused_native_import_nested_generic_test_uses_reachable_closure() {
             "import type std.core.Result.{Result}.\n\n",
             "@test\n",
             "pub nested_result_preserves_nominal_payload(): Bool ->\n",
-            "    let {\n",
+            "    if {\n",
             "        Ok(Some(batch)) <- sample();\n",
             "        [bar] <- batch.completed_bars()\n",
             "    } else {\n",

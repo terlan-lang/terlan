@@ -60,8 +60,9 @@ pub unwrap_positive(Positive(value): Dynamic): Int ->
     value.
 
 pub assert_positive(input: Int): Int ->
-    let Positive(value) = input;
-    value.
+    case input {
+        Positive(value) -> value
+    }.
 
 pub is_selected(value: Int): Bool ->
     value == 2 or value == 4.
@@ -109,7 +110,7 @@ pub is_ready(value: Dynamic): Bool ->
     }.
 
 pub add_positive(left: Int, right: Int): Int ->
-    let {
+    if {
         Positive(first) <- left;
         Positive(second) <- right
     } else {

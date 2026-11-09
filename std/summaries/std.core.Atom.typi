@@ -69,8 +69,8 @@ pub equal[T](left: T, right: T): Bool.
 /// pub type Ready = Atom["ready"].
 ///
 /// pub demo(): String ->
-///    std.core.Atom.to_string(Ready).
+///    Ready.to_string().
 /// ```
 
 @pure
-pub to_string(value: Atom): String.
+pub (value: Atom) to_string(): String.

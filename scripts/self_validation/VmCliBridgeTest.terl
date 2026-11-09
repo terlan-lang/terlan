@@ -74,7 +74,7 @@ reset_directory(path: String): Bool ->
 
 write_package(work: String, source: String): Bool ->
     let source_root = child(work, "src/app");
-    let {
+    if {
         Ok(_created) <- Directory.create_all(source_root);
         Ok(_manifest) <-
             write_text(
@@ -96,7 +96,7 @@ compiler_output(root: String, work: String): Option[String] ->
 
 vm_image_output(root: String, work: String): Option[String] ->
     let output = child(work, "vm-build");
-    let {
+    if {
         Some(_built) <-
             run_output(
                 child(root, "target/debug/terlc"),
@@ -142,7 +142,7 @@ pub standalone_vm_runs_source_artifact(): Bool ->
 bridge_output_holds(root: String): Bool ->
     let work = "/tmp/terlan_vm_compiler_bridge_check";
     let prepared = reset_directory(work) and write_package(work, bridge_source());
-    let {
+    if {
         Some(compiler) <- compiler_output(root, work);
         Some(vm) <- vm_image_output(root, work)
     } else {

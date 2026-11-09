@@ -56,7 +56,7 @@ candidate_id(version: String, revision: String, triple: String): String ->
     Hash.sha256_nul_separated([version, revision, triple]).
 
 payload_hashes(values: List[Payload]): Option[Json] ->
-    let {
+    if {
         Some(stdlib) <- ReleasePayload.tree_hash(values, "share/terlan/std/");
         Some(editor) <- ReleasePayload.tree_hash(values, "share/terlan/editors/");
         Some(tree_sitter) <- ReleasePayload.tree_hash(values, "share/terlan/tree-sitter-terlan/");
@@ -123,7 +123,7 @@ base_value(
     payloads: List[Payload],
     binaries: List[Payload],
 ): Option[Json] ->
-    let {
+    if {
         Some(version) <- ReleasePlatform.cargo_version(root);
         Some(features) <- ReleasePlatform.release_features(root);
         Some(hashes) <- payload_hashes(payloads);
@@ -156,7 +156,7 @@ pub value_with_native(
     binaries: List[Payload],
     native_json: String,
 ): Option[Json] ->
-    let {
+    if {
         Some(metadata) <- base_value(root, platform, payloads, binaries);
         Ok(native) <- Json.parse(native_json)
     } else {
@@ -169,7 +169,7 @@ pub value_with_native(
  */
 pub write(root: String, value: Json): Option[String] ->
     let path = ReleasePayload.child(ReleasePayload.child(root, "dist"), "terlan-release.json");
-    let {
+    if {
         Ok(rendered) <- Json.stringify_pretty(value);
         Ok(Unit) <- File.write_text(path, String.append(rendered, "\n"))
     } else {
@@ -181,7 +181,7 @@ pub write(root: String, value: Json): Option[String] ->
  * Prints exact release metadata without requiring compiled binaries.
  */
 pub print(root: String): Bool ->
-    let {
+    if {
         Some(platform) <- ReleasePlatform.detect();
         Some(payloads) <- ReleasePayload.all(root);
         Some(metadata) <- value(root, platform, payloads, []);

@@ -66,8 +66,8 @@ capture(
                 Process.environment_entry("TERLAN_BUILD_JOBS", "8"),
             ],
         );
-    let bounded = Process.with_timeout_ms(configured, 1200000);
-    let limited = Process.with_output_limit_bytes(bounded, 8388608);
+    let bounded = Process.with_timeout_ms(configured, 1_200_000);
+    let limited = Process.with_output_limit_bytes(bounded, 8_388_608);
     let started_unix = unix_time_ns();
     let started = monotonic_time_ns();
     let result = Process.run(limited);
@@ -153,17 +153,19 @@ successful(result: Option[Completion]): Bool ->
     }.
 
 build(session: Session, name: String, reference: Bool, expected: Int): Bool ->
-    let Some(removed) <-
-        CacheControl.prepare(
-            String.append(
-                session.cache,
-                if {
-                    reference -> "-reference";
-                    true -> ""
-                },
-            ),
-            session.retain_checked_reuse,
-        ) else {
+    if {
+        Some(removed) <-
+            CacheControl.prepare(
+                String.append(
+                    session.cache,
+                    if {
+                        reference -> "-reference";
+                        true -> ""
+                    },
+                ),
+                session.retain_checked_reuse,
+            )
+    } else {
         _ -> false
     };
     (let _removed = session.report.put(String.append(name, "_removed_reuse_indices"), Json.int(removed));
@@ -175,7 +177,7 @@ build(session: Session, name: String, reference: Bool, expected: Int): Bool ->
 }).
 
 same_artifact(session: Session, phase: String): Bool ->
-    let {
+    if {
         Ok(incremental) <- sha256_file(binary(session, false));
         Ok(reference) <- sha256_file(binary(session, true))
     } else {
@@ -233,7 +235,7 @@ diagnostic_cycle(session: Session): Bool ->
 
 run_sample(session: Session, count: Int, width: Int, records: Bool): Bool ->
     let expected = count * width;
-    let {
+    if {
         true <- Corpus.generate(session.project, count, width, records);
         Ok(source_hash) <- sha256_tree(session.project);
         Ok(compiler_hash) <- sha256_file(session.compiler);
@@ -246,7 +248,7 @@ let _compiler = session.report.put("compiler_sha256", Json.string(compiler_hash)
 let _stdlib = session.report.put("stdlib_source_and_summary_sha256", Json.string(stdlib_hash));
 let _host = session.report.put("host_before", Evidence.host_snapshot());
 let _cwd = session.report.put("working_directory", Json.string(Environment.current_directory()));
-(let {
+(if {
     true <- successful(capture(session, "compiler-version", session.compiler, ["--version"]));
     true <- toolchain(session);
     true <- build(session, "build-cold", false, expected);
@@ -301,11 +303,13 @@ pub run_with_reuse(
     records: Bool,
     retain_checked_reuse: Bool,
 ): Bool ->
-    let valid_input = count > 0 and count <= 1024 and width > 0 and width <= 256;
+    let valid_input = count > 0 and count <= 1_024 and width > 0 and width <= 256;
     if {
         not valid_input or exists(directory) -> let _error = eprintln("Benchmark requires positive bounded dimensions and a new output directory.");
         false;
-        true -> let Ok(_) <- create_all(directory) else {
+        true -> if {
+            Ok(_) <- create_all(directory)
+        } else {
             _ -> false
         };
         (let report = Json.object();
@@ -375,7 +379,7 @@ passed and cleaned and _written)
  * Captures compiler, backend, ABI, target, and exact linker identities.
  */
 toolchain(session: Session): Bool ->
-    let {
+    if {
         Some(output) <-
             capture(
                 session,

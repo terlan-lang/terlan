@@ -52,7 +52,7 @@ pub start(attempt: String, operation: String): String ->
  * Confirms the native fixture and one complete real producer observation coexist.
  */
 pub owned_log(source: String, native: String): Bool ->
-    let {
+    if {
         Ok(report) <- NativeActivity.inspect(source);
         Ok(processes) <- report.get("process_inventory");
         Ok(launches) <- processes.get("launches");
@@ -92,7 +92,7 @@ pub failed_link(): String ->
 
 inspect_failure(): Bool ->
     let source = String.append(object("completed-before-failure"), failed_link());
-    let {
+    if {
         Ok(report) <- NativeActivity.inspect(source);
         Some("failed") <- OwnerStorage.text(report, "decision");
         Ok(completed) <- report.get("completed_work");
@@ -107,7 +107,7 @@ inspect_failure(): Bool ->
     rejected(source) and rejected(start("interrupted", "module-object")).
 
 accepted(source: String, spawns: Int, completed: Int, failed: Int): Bool ->
-    let {
+    if {
         Ok(report) <- NativeActivity.validate(source);
         Ok(spawn_value) <- report.get("native_link_launches");
         Ok(actual_spawns) <- spawn_value.as_int();

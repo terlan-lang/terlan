@@ -34,7 +34,7 @@ fn reject_success_binding_references(
             clause_references_later_binding(clause, &success_bindings, &outer_bindings)
         {
             errors.push(format!(
-                "let else fallback cannot reference success binding `{name}`"
+                "refutable fallback cannot reference success binding `{name}`"
             ));
         }
     }
@@ -88,7 +88,7 @@ fn infer_fallback_clause(
         refine_by_syntax_guard(guard, &mut clause_locals, ctx.aliases, &mut clause_subst);
         super::super::check_clause_guard_purity(
             guard,
-            "let else guard",
+            "refutable fallback guard",
             &clause_locals,
             ctx,
             &clause_subst,
@@ -96,7 +96,7 @@ fn infer_fallback_clause(
         );
         check_clause_guard_type(
             guard,
-            "let else guard",
+            "refutable fallback guard",
             &clause_locals,
             ctx,
             &mut clause_subst,

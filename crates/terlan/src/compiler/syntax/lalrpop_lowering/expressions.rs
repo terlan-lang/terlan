@@ -3,7 +3,7 @@ use super::{
         lalrpop_syntax::{LalrpopSyntaxNode, LalrpopSyntaxNodeKind},
         parse_tree::{
             BinaryLayoutField, BinaryOp, CaseClause, Expr, FunctionClause, IfClause, LetBinding,
-            ListComprehensionGenerator, MapExprField, TryAfterClause, TypeExpr, UnaryOp,
+            ListComprehensionGenerator, MapExprField, Pattern, TryAfterClause, TypeExpr, UnaryOp,
         },
     },
     binary_layout,
@@ -94,6 +94,7 @@ pub(super) fn lower_expression(
         Kind::Quote => Ok(Expr::Quote(Box::new(only_child(context, node)?))),
         Kind::Unquote => Ok(Expr::Unquote(Box::new(only_child(context, node)?))),
         Kind::Let => lower_let(context, node),
+        Kind::Refutable => lower_refutable(context, node),
         Kind::Case => lower_case(context, node),
         Kind::Try => lower_try(context, node),
         Kind::If => lower_if(context, node),
@@ -335,52 +336,56 @@ fn lower_let(
     context: &LalrpopLoweringContext<'_>,
     node: &LalrpopSyntaxNode,
 ) -> LalrpopLoweringResult<Expr> {
-    if node.text.as_deref() != Some("refutable_group") {
-        require_children(context, node, 3)?;
-        let first = LetBinding {
-            pattern: lower_pattern(context, &node.children[0])?,
-            value: lower_expression(context, &node.children[1])?,
-        };
-        let body = lower_expression(context, &node.children[2])?;
-        if let Expr::Let {
-            mut bindings,
-            else_clauses,
-            body,
-        } = body
-        {
-            if else_clauses.is_empty() {
-                bindings.insert(0, first);
-                return Ok(Expr::Let {
-                    bindings,
-                    else_clauses,
-                    body,
-                });
-            }
+    require_children(context, node, 3)?;
+    let first = LetBinding {
+        pattern: lower_pattern(context, &node.children[0])?,
+        value: lower_expression(context, &node.children[1])?,
+    };
+    let body = lower_expression(context, &node.children[2])?;
+    if let Expr::Let {
+        mut bindings,
+        else_clauses,
+        body,
+    } = body
+    {
+        if else_clauses.is_empty() {
+            bindings.insert(0, first);
             return Ok(Expr::Let {
-                bindings: vec![first],
-                else_clauses: Vec::new(),
-                body: Some(Box::new(Expr::Let {
-                    bindings,
-                    else_clauses,
-                    body,
-                })),
+                bindings,
+                else_clauses,
+                body,
             });
         }
         return Ok(Expr::Let {
             bindings: vec![first],
             else_clauses: Vec::new(),
-            body: Some(Box::new(body)),
+            body: Some(Box::new(Expr::Let {
+                bindings,
+                else_clauses,
+                body,
+            })),
         });
     }
+    Ok(Expr::Let {
+        bindings: vec![first],
+        else_clauses: Vec::new(),
+        body: Some(Box::new(body)),
+    })
+}
+
+fn lower_refutable(
+    context: &LalrpopLoweringContext<'_>,
+    node: &LalrpopSyntaxNode,
+) -> LalrpopLoweringResult<Expr> {
     let body_index = node
         .children
         .iter()
         .rposition(|child| child.kind != LalrpopSyntaxNodeKind::Clause)
-        .ok_or_else(|| context.error(node, "refutable let is missing its body"))?;
+        .ok_or_else(|| context.error(node, "refutable expression is missing its continuation"))?;
     let mut bindings = Vec::new();
     let mut clauses = Vec::new();
     for child in &node.children[..body_index] {
-        if child.kind == LalrpopSyntaxNodeKind::Let {
+        if child.kind == LalrpopSyntaxNodeKind::Refutable {
             require_children(context, child, 2)?;
             bindings.push(LetBinding {
                 pattern: lower_pattern(context, &child.children[0])?,
@@ -389,6 +394,15 @@ fn lower_let(
         } else if child.kind == LalrpopSyntaxNodeKind::Clause {
             clauses.push(lower_case_clause(context, child)?);
         }
+    }
+    if clauses.is_empty() {
+        // A bare refutable step propagates the unmatched value unchanged.
+        let name = "__propagated__".to_string();
+        clauses.push(CaseClause {
+            pattern: Pattern::Var(name.clone()),
+            guard: None,
+            body: Expr::Var(name),
+        });
     }
     Ok(Expr::Let {
         bindings,

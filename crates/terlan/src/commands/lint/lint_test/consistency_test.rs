@@ -477,3 +477,73 @@ pub value(): Int ->
         "impl methods must not be treated as top-level functions: {diagnostics:?}"
     );
 }
+
+#[test]
+fn lint_reports_free_function_owned_by_local_type() {
+    let diagnostics = lint_source(
+        Path::new("Counter.terl"),
+        r#"
+module sample.Counter.
+
+pub struct Counter {
+    value: Int,
+}.
+
+pub increment(counter: Counter, amount: Int): Counter ->
+    Counter {value: counter.value + amount}.
+"#,
+    );
+
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.rule_id == "TL0507"
+            && diagnostic.rule_name == "consistency.receiver-capability-ownership"
+    }));
+}
+
+#[test]
+fn lint_accepts_receiver_owned_capability() {
+    let diagnostics = lint_source(
+        Path::new("Counter.terl"),
+        r#"
+module sample.Counter.
+
+pub struct Counter {
+    value: Int,
+}.
+
+pub (counter: Counter) increment(amount: Int): Counter ->
+    Counter {value: counter.value + amount}.
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0507"),
+        "receiver capabilities must satisfy ownership linting: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_accepts_factory_without_existing_owned_value() {
+    let diagnostics = lint_source(
+        Path::new("Counter.terl"),
+        r#"
+module sample.Counter.
+
+pub struct Counter {
+    value: Int,
+}.
+
+pub from_int(value: Int): Counter ->
+    Counter {value: value}.
+"#,
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.rule_id != "TL0507"),
+        "factories without an owned input must remain module functions: {diagnostics:?}"
+    );
+}

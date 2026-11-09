@@ -71,7 +71,7 @@ test('generation excludes proposed keywords from both complete values and groupe
   ]);
   const border = generateProperty({ name: 'border', syntax: '<line-width> || <line-style> || <color>', href: 'spec' }, definitions,
     [{ kind: 'keyword', name: 'thin' }, { kind: 'keyword', name: 'solid' }, { kind: 'primitive', name: 'length' }, { kind: 'primitive', name: 'color' }]);
-  assert.match(border.source, /pub compose\(/);
+  assert.match(border.source, /pub \(line_width: LineWidthPart\) compose\(/);
   assert.doesNotMatch(border.source, /pub type Hairline =/);
 });
 

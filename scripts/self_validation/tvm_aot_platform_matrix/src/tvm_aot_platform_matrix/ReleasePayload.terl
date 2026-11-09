@@ -200,7 +200,7 @@ all_roots(roots: List[PayloadRoot], values: List[Payload]): Option[List[Payload]
     case roots {
         [] -> Some(values);
         [root | rest] ->
-            let {
+            if {
                 Ok(paths) <-
                     Directory.files_recursive_excluding(
                         root.source,
@@ -258,7 +258,7 @@ reverse_labeled_files(values: List[LabeledFile], reversed: List[LabeledFile]): L
  */
 pub tree_hash(values: List[Payload], prefix: String): Option[String] ->
     let files = labeled_files(values, prefix, std.collections.List.new[LabeledFile]());
-    let {
+    if {
         _ <- files;
         Ok(digest) <- Hash.sha256_labeled_file_digests(files)
     } else {
@@ -326,7 +326,7 @@ pub write_install_metadata(
             .put("version", Json.string(version))
             .put("target_triple", Json.string(target_triple(platform)))
             .put("files", all_paths);
-    let {
+    if {
         Some(checksum_text) <- ReleaseChecksums.render(labeled_files(entries, "", []));
         Ok(rendered) <- Json.stringify_pretty(manifest);
         Ok(Unit) <- File.write_text(checksum_path, checksum_text);

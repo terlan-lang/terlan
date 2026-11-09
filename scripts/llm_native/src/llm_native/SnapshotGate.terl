@@ -92,7 +92,7 @@ expected_test_count(remaining: List[String]): Int ->
     }.
 
 load(path: String): Result[Json, Bool] ->
-    let {
+    if {
         Ok(source) <- File.read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -132,7 +132,9 @@ capture(
 native_sources(rows: Json, prefix: String, index: Int, count: Int, seen: Int): Bool ->
     if {
         index == count -> seen > 0;
-        true -> let Ok(row) <- rows.at(index) else {
+        true -> if {
+            Ok(row) <- rows.at(index)
+        } else {
             _ -> false
         };
         (let path = Evidence.text(row, "source_file");
@@ -147,7 +149,7 @@ if {
  * Rejects stale compiled service sources even when all test names passed.
  */
 pub current_sources(report: Json, root: String): Bool ->
-    let {
+    if {
         Ok(evidence) <- report.get("native_callable_evidence");
         Ok(rows) <- evidence.get("declarations");
         Ok(count) <- rows.length()
@@ -226,7 +228,7 @@ pub admit_peer(
     catalog_digest: String,
     fixture_digest: String,
 ): Bool ->
-    let {
+    if {
         Ok(validator) <- report.get("validator");
         Ok(kinds) <- report.get("entity_kinds");
         Ok(count) <- kinds.length()
@@ -248,7 +250,7 @@ live_case(host: String, bootstrap: String, root: String, output: String): Bool -
     let fixture = root + "/tests/fixtures/llm_native/semantic/sources.json";
     let snapshot_path = output + "/live-snapshot.json";
     let catalog_path = output + "/live-catalog.json";
-    let {
+    if {
         Ok(capture_result) <-
             capture(
                 host,
@@ -272,7 +274,7 @@ live_case(host: String, bootstrap: String, root: String, output: String): Bool -
     } else {
         _ -> false
     };
-    (let {
+    (if {
     Ok(catalog_result) <-
         capture(
             host,
@@ -316,7 +318,7 @@ live_case(host: String, bootstrap: String, root: String, output: String): Bool -
 (let logs =
     File.write_text(output + "/live-peer.stdout", completion.stdout) == Ok(Unit)
         and File.write_text(output + "/live-peer.stderr", completion.stderr) == Ok(Unit);
-(let {
+(if {
     Ok(peer) <- load(output + "/live-schema-evidence.json");
     Ok(snapshot_digest) <- Hash.sha256_file(snapshot_path);
     Ok(catalog_digest) <- Hash.sha256_file(catalog_path);
@@ -332,7 +334,9 @@ artifact_rows(paths: List[String], prefix: String, mut output: Json): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            let Ok(digest) <- Hash.sha256_file(path) else {
+            if {
+                Ok(digest) <- Hash.sha256_file(path)
+            } else {
                 _ -> false
             };
             (let _row =
@@ -359,7 +363,7 @@ pub run(host: String, root: String, output: String): Bool ->
             Some(value) -> value;
             _ -> root + "/target/debug/terlc"
         };
-    let {
+    if {
         Ok(true) <- File.is_executable(bootstrap);
         Ok(bootstrap_digest) <- Hash.sha256_file(bootstrap)
     } else {

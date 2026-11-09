@@ -296,7 +296,7 @@ reference_pages(references: Json, offset: Int, analysis: SourceAnalysis): Source
     }.
 
 pub analyze(report: Json): SourceAnalysis ->
-    let {
+    if {
         Ok(files) <- Json.get(report, "source_files");
         Ok(references) <- Json.get(report, "crate_references")
     } else {

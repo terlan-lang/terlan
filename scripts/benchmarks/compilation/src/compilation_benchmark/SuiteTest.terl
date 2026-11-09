@@ -14,12 +14,14 @@ import std.io.File.{exists}.
 pub median_preserves_units_and_handles_unordered_samples(): Bool ->
     Suite.median([]) == None
         and Suite.median([42]) == Some(42)
-        and Suite.median([9000000000, 1000000000, 5000000000]) == Some(5000000000)
+        and Suite.median([9_000_000_000, 1_000_000_000, 5_000_000_000]) == Some(5_000_000_000)
         and Suite.median([7, 2, 7, 7, 9]) == Some(7).
 
 @test
 pub invalid_repetition_count_never_starts_work(): Bool ->
-    let Ok(directory) <- create_temporary("terlan-compilation-suite-") else {
+    if {
+        Ok(directory) <- create_temporary("terlan-compilation-suite-")
+    } else {
         _ -> false
     };
     (let path = String.append(directory, "/samples");

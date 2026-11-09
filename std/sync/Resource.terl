@@ -105,7 +105,7 @@ pub deleted(value: T): Change[T] ->
  * Transformation: pattern matches the portable change tuple and returns the
  * classification field.
  */
-pub kind(change: Change[T]): ChangeKind ->
+pub (change: Change[T]) kind(): ChangeKind ->
     case change {
         Change(kind, _value) -> kind
     }.
@@ -118,7 +118,7 @@ pub kind(change: Change[T]): ChangeKind ->
  * Transformation: pattern matches the portable change tuple and returns the
  * typed value field.
  */
-pub value(change: Change[T]): T ->
+pub (change: Change[T]) value(): T ->
     case change {
         Change(_kind, value) -> value
     }.
@@ -130,7 +130,7 @@ pub value(change: Change[T]): T ->
  * Output: `true` when the event kind is `Inserted`.
  * Transformation: compares the event kind against the portable singleton.
  */
-pub is_inserted(change: Change[T]): Bool ->
+pub (change: Change[T]) is_inserted(): Bool ->
     kind(change) == Inserted.
 
 /**
@@ -140,7 +140,7 @@ pub is_inserted(change: Change[T]): Bool ->
  * Output: `true` when the event kind is `Updated`.
  * Transformation: compares the event kind against the portable singleton.
  */
-pub is_updated(change: Change[T]): Bool ->
+pub (change: Change[T]) is_updated(): Bool ->
     kind(change) == Updated.
 
 /**
@@ -150,5 +150,5 @@ pub is_updated(change: Change[T]): Bool ->
  * Output: `true` when the event kind is `Deleted`.
  * Transformation: compares the event kind against the portable singleton.
  */
-pub is_deleted(change: Change[T]): Bool ->
+pub (change: Change[T]) is_deleted(): Bool ->
     kind(change) == Deleted.

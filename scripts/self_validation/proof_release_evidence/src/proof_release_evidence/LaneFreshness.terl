@@ -35,7 +35,7 @@ family_matches(values: Json, index: Int, count: Int, family: String, digest: Str
 families_current(families: Json, replay: Json, index: Int, count: Int, seen: List[String]): Bool ->
     if {
         index >= count -> true;
-        true -> let {
+        true -> if {
             Ok(value) <- replay.at(index);
             Some(family) <- Support.json_string(value, "family");
             Some(digest) <- Support.json_string(value, "proof_digest")
@@ -51,7 +51,7 @@ families_current(families: Json, replay: Json, index: Int, count: Int, seen: Lis
 lanes_current(values: Json, checksums: Json, index: Int, count: Int, seen: List[String]): Bool ->
     if {
         index >= count -> true;
-        true -> let {
+        true -> if {
             Ok(value) <- values.at(index);
             Some(lane) <- Support.json_string(value, "lane");
             Some(digest) <- Support.json_string(value, "checksum")
@@ -65,7 +65,7 @@ lanes_current(values: Json, checksums: Json, index: Int, count: Int, seen: List[
     }.
 
 pub reports_match(track: Json, gate: Json, replay: Json, lanes: Json): Bool ->
-    let {
+    if {
         Some(families) <- Support.json_member(track, "families");
         Some(recorded) <- Support.json_member(track, "reproducibility");
         Some(sealed_families) <- Support.json_member(gate, "families");
@@ -98,7 +98,7 @@ pub reports_match(track: Json, gate: Json, replay: Json, lanes: Json): Bool ->
         and lanes_current(values, checksums, 0, lane_count, []).
 
 pub replay_sources_current(root: String, replay: Json): Bool ->
-    let {
+    if {
         Some(values) <- Support.json_member(replay, "families");
         Ok(count) <- values.length()
     } else {
@@ -109,7 +109,7 @@ pub replay_sources_current(root: String, replay: Json): Bool ->
 sources_current(root: String, values: Json, index: Int, count: Int): Bool ->
     if {
         index >= count -> true;
-        true -> let {
+        true -> if {
             Ok(value) <- values.at(index);
             Some(path) <- Support.json_string(value, "proof_path");
             Some(digest) <- Support.json_string(value, "proof_digest");
@@ -121,7 +121,7 @@ sources_current(root: String, values: Json, index: Int, count: Int): Bool ->
     }.
 
 pub current(root: String): Bool ->
-    let {
+    if {
         Some(track) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-track.json");
         Some(gate) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-gate.json");
         Some(replay) <- Support.load_json(root, "target/quality/proof-artifacts/lean-proof-repro-report.json");

@@ -18,7 +18,7 @@ stage(root: String, label: String): Bool ->
     PrepareReleaseReports.run_locked(root, "target/tools/terlan-vm", "target/tools/matrix.tvm").
 
 record(root: String, outcome: String, completed: Int, reused: Int, calls: String): Bool ->
-    let {
+    if {
         Ok(identity) <- Git.source_tree_identity(root);
         Ok(document) <-
             OwnerStorage.read_json(
@@ -44,7 +44,7 @@ record(root: String, outcome: String, completed: Int, reused: Int, calls: String
 path_count(rows: Json, path: String, index: Int, count: Int): Int ->
     if {
         index == count -> 0;
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Some(actual) <- OwnerStorage.text(row, "path")
         } else {
@@ -58,7 +58,7 @@ if {
     }.
 
 bound_parent(root: String): Bool ->
-    let {
+    if {
         Ok(identity) <- Git.source_tree_identity(root);
         Ok(ledger) <-
             OwnerStorage.read_json(
@@ -100,7 +100,7 @@ exercise(root: String, origin: String, vm: String, image: String): Bool ->
     let aot = OwnerStorage.child(root, "target/quality/tvm-aot-release-closeout-report.json");
     let multicore = OwnerStorage.child(root, "target/quality/vm-multicore-release-closeout.json");
     let sanitizer = OwnerStorage.child(root, "target/quality/tvm-aot-thread-sanitizer-report.json");
-    let {
+    if {
         true <- PreparationCandidateTest.fixture(root);
         true <- PreparationAotTest.fixture(root, origin, vm, image);
         Err(_unsafe) <- PrepareReleaseReports.declare(root, "../outside-vm", "target/tools/matrix.tvm");
@@ -143,7 +143,9 @@ exercise(root: String, origin: String, vm: String, image: String): Bool ->
     first_aot == final_aot and first_multicore == final_multicore.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-release-reports-rehearsal-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-release-reports-rehearsal-")
+    } else {
         _ -> false
     };
     (let valid = exercise(root, origin, vm, image);

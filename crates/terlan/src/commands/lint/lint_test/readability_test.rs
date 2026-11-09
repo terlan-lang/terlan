@@ -80,7 +80,7 @@ resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
         .collect::<Vec<_>>()
         .join("\n");
     assert!(rendered.contains("error[TL0009:readability.grouped-binding]"));
-    assert!(rendered.contains("should use grouped `let { ... } else { ... }` bindings"));
+    assert!(rendered.contains("should use grouped `if { ... <- ... } else { ... }` bindings"));
     assert!(!rendered.contains("[fix available]"));
 }
 
@@ -144,7 +144,7 @@ fn lint_accepts_grouped_refutable_bindings() {
 module sample.
 
 resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
-    let {
+    if {
         Some(left) <- first;
         Some(right) <- second
     } else {
@@ -330,8 +330,7 @@ fn lint_reports_unused_destructured_let_binding() {
 module sample.
 
 pub label(pair: {Int, String}): String ->
-    let {id, label} = pair;
-    label.
+    case pair { {id, label} -> label }.
 "#,
     );
 
@@ -360,8 +359,7 @@ fn lint_accepts_underscore_prefixed_destructured_let_binding() {
 module sample.
 
 pub label(pair: {Int, String}): String ->
-    let {_id, label} = pair;
-    label.
+    case pair { {_id, label} -> label }.
 "#,
     );
 
@@ -382,8 +380,7 @@ fn lint_accepts_used_destructured_let_bindings() {
 module sample.
 
 pub render(pair: {Int, String}): String ->
-    let {id, label} = pair;
-    id.to_string() + label.
+    case pair { {id, label} -> id.to_string() + label }.
 "#,
     );
 
@@ -400,7 +397,7 @@ fn lint_counts_grouped_binding_uses_in_later_initializers() {
     let source = r#"
 module sample.
 value(input: Result[Int, String]): Int ->
-    let {
+    if {
         Ok(first) <- input;
         Ok(second) <- next(first)
     } else {
@@ -422,7 +419,7 @@ fn lint_counts_grouped_binding_uses_in_later_boolean_guards() {
     let source = r#"
 module sample.
 value(input: Result[Int, String]): Int ->
-    let {
+    if {
         Ok(first) <- input;
         true <- first > 0
     } else {
@@ -444,7 +441,7 @@ fn lint_keeps_genuinely_unused_grouped_binding_diagnostics() {
     let source = r#"
 module sample.
 value(unused: Int): Int ->
-    let {
+    if {
         Ok(unused) <- next(unused);
         Ok(second) <- next(1)
     } else {

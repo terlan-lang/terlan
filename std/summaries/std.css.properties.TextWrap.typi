@@ -64,4 +64,4 @@ pub type TextWrapStylePart =
 /// Combines text-wrap-mode, text-wrap-style for text-wrap. Each parameter accepts its own keyword or
 /// typed unit choices directly.
 
-pub compose(text_wrap_mode: TextWrapModePart, text_wrap_style: TextWrapStylePart): Checked.
+pub (text_wrap_mode: TextWrapModePart) compose(text_wrap_style: TextWrapStylePart): Checked.

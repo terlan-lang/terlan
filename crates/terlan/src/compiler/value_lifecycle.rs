@@ -738,7 +738,7 @@ impl Evaluator {
             if !match_pattern(&expr.patterns[index], &value, &mut scope) {
                 return Err(diagnostic(
                     "CONST_MATCH_ASSERTION_FAILED",
-                    "refutable let pattern failed during constant evaluation",
+                    "refutable pattern failed during constant evaluation",
                     expr.span,
                 ));
             }

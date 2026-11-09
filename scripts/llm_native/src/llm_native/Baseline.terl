@@ -125,7 +125,7 @@ manifest_fields(files: List[File.TextFile], fields: List[String]): Option[List[S
     case files {
         [] -> Some(fields);
         [file | rest] ->
-            let {
+            if {
                 Ok(value) <- Json.parse(file.contents);
                 Ok(source) <- value.get("source_hash");
                 Ok(interface_hash) <- value.get("interface_hash");
@@ -153,7 +153,7 @@ source_bytes(files: List[File.TextFile]): Int ->
  * Registers future acceptance cases without claiming those cases have passed.
  */
 pub property_inventory(root: String): Bool ->
-    let {
+    if {
         Ok(source) <- File.read_text(String.append(root, "/tests/fixtures/llm_native/property-cases.json"));
         Ok(value) <- Json.parse(source);
         true <- Evidence.text(value, "schema") == "terlan.llm-native.property-cases.v1";
@@ -184,7 +184,7 @@ List.length(ids) == 10
  * Requires a complete fresh manifest set before comparing public contracts.
  */
 pub phase_digest(directory: String, expected_count: Int): Option[String] ->
-    let {
+    if {
         Ok(files) <- File.read_text_directory(directory);
         true <- std.collections.List.length(files) == expected_count;
         Some(fields) <- manifest_fields(files, [])
@@ -290,7 +290,9 @@ workload(
             .put("leaf_modules", Json.int(leaves))
             .put("functions_per_leaf", Json.int(width))
             .put("feature_mix", Json.string("records, generics, shared call graph"));
-    let Ok(_) <- Directory.create_all(directory) else {
+    if {
+        Ok(_) <- Directory.create_all(directory)
+    } else {
         _ -> report.put("status", Json.string("failed"))
     };
     (let generated =
@@ -349,7 +351,9 @@ let passed =
         and Evidence.text(reference, "status") == "passed"
         and Evidence.text(reference, "public_contract_digest") == expected
         and source_digest != "";
-(let Ok(source_files) <- File.read_text_tree_excluding(String.append(directory, "/project/src"), []) else {
+(if {
+    Ok(source_files) <- File.read_text_tree_excluding(String.append(directory, "/project/src"), [])
+} else {
     _ -> report.put("status", Json.string("failed"))
 };
 (let unchanged = Hash.sha256_tree(String.append(directory, "/project/src")) == Ok(source_digest);

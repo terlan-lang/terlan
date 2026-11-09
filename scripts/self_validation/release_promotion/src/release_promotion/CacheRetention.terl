@@ -86,7 +86,7 @@ validate(
     case generations {
         [] -> Ok(seen);
         [generation | rest] ->
-            let {
+            if {
                 true <- remaining > 0;
                 true <- valid_key(generation.key);
                 true <- not contains(seen, generation.key);
@@ -161,7 +161,9 @@ choose(
     now_ns: Int,
     retained: Plan,
 ): Result[Plan, String] ->
-    let true <- retained.retained_bytes <= budget.bytes and retained.retained_entries <= budget.entries else {
+    if {
+        true <- retained.retained_bytes <= budget.bytes and retained.retained_entries <= budget.entries
+    } else {
         _ -> Err("pinned or recent cache generations exceed retention budget; no eviction is safe")
     };
     case generations {
@@ -184,7 +186,7 @@ pub plan_retention(
     budget: Budget,
     now_ns: Int,
 ): Result[Plan, String] ->
-    let {
+    if {
         true <- budget.bytes >= 0 and budget.bytes <= 1_152_921_504_606_846_976;
         true <- budget.entries >= 0 and budget.entries <= 1_024;
         true <- budget.minimum_age_ns >= 0 and budget.maximum_age_ns >= budget.minimum_age_ns;

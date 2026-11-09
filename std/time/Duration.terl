@@ -82,7 +82,7 @@ pub (duration: Duration) to_seconds(): Float ->
  * Output: `Duration` whose milliseconds are the sum of both inputs.
  * Transformation: adds the portable numeric payloads.
  */
-pub add(left: Duration, right: Duration): Duration ->
+pub (left: Duration) add(right: Duration): Duration ->
     Duration(left.milliseconds + right.milliseconds).
 
 /**
@@ -92,5 +92,5 @@ pub add(left: Duration, right: Duration): Duration ->
  * Output: `Duration` whose milliseconds are `left - right`.
  * Transformation: subtracts the portable numeric payloads without clamping.
  */
-pub subtract(left: Duration, right: Duration): Duration ->
+pub (left: Duration) subtract(right: Duration): Duration ->
     Duration(left.milliseconds - right.milliseconds).

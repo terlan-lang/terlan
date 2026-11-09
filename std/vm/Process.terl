@@ -160,7 +160,7 @@ pub current[T](): Process[T] ->
  * numeric process identity to source code.
  */
 @target.vm {process_mailbox: true}
-pub spawn[T](entry: Entry[T]): Process[T] ->
+pub (entry: Entry[T]) spawn[T](): Process[T] ->
     native.
 
 /**
@@ -172,7 +172,7 @@ pub spawn[T](entry: Entry[T]): Process[T] ->
  * never exposes its actor-local representation to the sender.
  */
 @target.vm {process_mailbox: true}
-pub send[T](process: Process[T], message: Message[T])[ActorMessage[T]]: Unit ->
+pub (process: Process[T]) send[T](message: Message[T])[ActorMessage[T]]: Unit ->
     native.
 
 /**
@@ -353,7 +353,7 @@ pub timer(ticks: Int): Timer ->
  * the VM scheduler.
  */
 @target.vm {process_mailbox: true}
-pub sleep(timer: Timer): Unit ->
+pub (timer: Timer) sleep(): Unit ->
     native.
 
 /**
@@ -365,7 +365,7 @@ pub sleep(timer: Timer): Unit ->
  * VM without exposing numeric process identities.
  */
 @target.vm {process_mailbox: true}
-pub link[T](peer: Process[T]): Unit ->
+pub (peer: Process[T]) link[T](): Unit ->
     native.
 
 /**
@@ -377,7 +377,7 @@ pub link[T](peer: Process[T]): Unit ->
  * the current continuation resumes.
  */
 @target.vm {process_mailbox: true}
-pub unlink[T](peer: Process[T]): Bool ->
+pub (peer: Process[T]) unlink[T](): Bool ->
     native.
 
 /**
@@ -389,7 +389,7 @@ pub unlink[T](peer: Process[T]): Bool ->
  * failure runtime.
  */
 @target.vm {process_mailbox: true}
-pub monitor[T](peer: Process[T]): Monitor[T] ->
+pub (peer: Process[T]) monitor[T](): Monitor[T] ->
     native.
 
 /**
@@ -401,7 +401,7 @@ pub monitor[T](peer: Process[T]): Monitor[T] ->
  * cannot cancel another process's monitor by guessing its numeric identity.
  */
 @target.vm {process_mailbox: true}
-pub demonitor[T](monitor: Monitor[T]): Bool ->
+pub (monitor: Monitor[T]) demonitor[T](): Bool ->
     native.
 
 /**
@@ -424,7 +424,7 @@ pub resource_kind[K](tag: Int): ResourceKind[K] ->
  * exposing a host pointer or numeric identity.
  */
 @target.vm {process_mailbox: true}
-pub acquire[K](kind: ResourceKind[K]): Resource[K] ->
+pub (kind: ResourceKind[K]) acquire[K](): Resource[K] ->
     native.
 
 /**
@@ -436,7 +436,7 @@ pub acquire[K](kind: ResourceKind[K]): Resource[K] ->
  * owning process exit would perform, without exposing the resource identity.
  */
 @target.vm {process_mailbox: true}
-pub release[K](resource: Resource[K]): Bool ->
+pub (resource: Resource[K]) release[K](): Bool ->
     native.
 
 /**
@@ -448,7 +448,7 @@ pub release[K](resource: Resource[K]): Bool ->
  * precedence in the VM scheduler.
  */
 @target.vm {process_mailbox: true}
-pub cancel[T](target: Process[T]): Unit ->
+pub (target: Process[T]) cancel[T](): Unit ->
     native.
 
 /**
@@ -471,7 +471,7 @@ pub exit_reason(code: Int): ExitReason ->
  * cleanup, resource cleanup, and supervision restart in the VM exit pipeline.
  */
 @target.vm {process_mailbox: true}
-pub fail(reason: ExitReason): Unit ->
+pub (reason: ExitReason) fail(): Unit ->
     native.
 
 /**
@@ -504,7 +504,7 @@ pub background(): SchedulingClass ->
  * accounting in the VM scheduler without exposing numeric class tags.
  */
 @target.vm {process_mailbox: true}
-pub schedule(class: SchedulingClass): Unit ->
+pub (class: SchedulingClass) schedule(): Unit ->
     native.
 
 /**

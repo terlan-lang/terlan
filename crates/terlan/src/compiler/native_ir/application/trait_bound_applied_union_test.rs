@@ -81,14 +81,14 @@ handle_with[Handler, Message, Output, Failure](
 )[MessageHandler[Handler, Message, Output, Failure]]: Result[Output, Failure] ->
     MessageHandler.handle(handler, message).
 pub check(): Bool ->
-    (let {
+    (if {
         Ok(first_transition) <- handle_with(First(1), Open[String]("first"));
         Ok(_second_transition) <- handle_with(Second(1), Open[String]("second"))
     } else {
         _ -> false
     };
     (let next_handler = first_transition.current_handler();
-    (let Ok(closed_transition) <- handle_with(next_handler, Close[String]()) else {
+    (if { Ok(closed_transition) <- handle_with(next_handler, Close[String]()) } else {
         _ -> false
     };
     (let final_handler = closed_transition.current_handler();

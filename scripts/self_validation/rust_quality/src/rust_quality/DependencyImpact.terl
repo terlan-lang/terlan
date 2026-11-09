@@ -397,7 +397,7 @@ edited_domain(row: Json): String ->
 timing_rows(values: Json, index: Int, count: Int, output: List[TimingRow]): TimingResult ->
     if {
         index == count -> TimingResult(valid = true, rows = SourceInventory.reverse(output), message = "");
-        true -> let {
+        true -> if {
             Ok(row) <- Json.at(values, index);
             Ok(name_value) <- Json.get(row, "name");
             Ok(name) <- Json.as_string(name_value);
@@ -427,7 +427,7 @@ load_timings(root: String): TimingResult ->
             case Json.parse(source) {
                 Err(reason) -> TimingResult(valid = false, rows = [], message = reason.message);
                 Ok(document) ->
-                    let {
+                    if {
                         Ok(values) <- Json.get(document, "scenarios");
                         Ok(count) <- Json.length(values)
                     } else {
@@ -453,7 +453,7 @@ load_ast(root: String): DocumentResult ->
     }.
 
 ast_parse_diagnostics(report: Json): List[String] ->
-    let {
+    if {
         Ok(primary) <- Json.get(report, "parse_failures");
         Ok(primary_count) <- Json.length(primary);
         Ok(boundary) <- Json.get(report, "source_boundary_parse_failures");
@@ -710,7 +710,7 @@ print_diagnostics(values: List[String]): Bool ->
     }.
 
 canonical_json(source: String): Option[String] ->
-    let {
+    if {
         Ok(document) <- Json.parse(source);
         Ok(rendered) <- Json.stringify(document)
     } else {
@@ -719,7 +719,7 @@ canonical_json(source: String): Option[String] ->
     Some(rendered).
 
 same_json(left: String, right: String): Bool ->
-    let {
+    if {
         Some(left_text) <- canonical_json(left);
         Some(right_text) <- canonical_json(right)
     } else {

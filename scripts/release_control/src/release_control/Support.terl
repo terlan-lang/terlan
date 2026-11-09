@@ -21,18 +21,14 @@ pub run(program: String, arguments: List[String], timeout: Int): Result[String, 
                 Process.with_arguments(Process.command(program), arguments),
                 timeout,
             ),
-            8388608,
+            8_388_608,
         );
     case Process.run(command) {
         Err(reason) -> Err(reason.message);
         Ok(output) ->
             if {
                 output.status == 0 -> Ok(String.trim(output.stdout));
-                true -> Err(
-                    String.concat(
-                        [program, " failed: ", output.stderr, "\n", output.stdout],
-                    ),
-                )
+                true -> Err(String.concat([program, " failed: ", output.stderr, "\n", output.stdout]))
             }
     }.
 
@@ -40,7 +36,7 @@ pub run(program: String, arguments: List[String], timeout: Int): Result[String, 
  * Parses a successful GitHub CLI response as JSON.
  */
 pub github(arguments: List[String]): Result[Json, String] ->
-    case run("gh", arguments, 60000) {
+    case run("gh", arguments, 60_000) {
         Err(reason) -> Err(reason);
         Ok(source) ->
             case Json.parse(source) {
@@ -53,7 +49,7 @@ pub github(arguments: List[String]): Result[Json, String] ->
  * Reads a string field; absent or malformed fields remain visibly empty.
  */
 pub text(document: Json, key: String): String ->
-    let {
+    if {
         Ok(value) <- document.get(key);
         Ok(text) <- value.as_string()
     } else {
@@ -65,7 +61,7 @@ pub text(document: Json, key: String): String ->
  * Reads an integer field; invalid values cannot become valid workflow identifiers.
  */
 pub number(document: Json, key: String): Int ->
-    let {
+    if {
         Ok(value) <- document.get(key);
         Ok(number) <- value.as_int()
     } else {

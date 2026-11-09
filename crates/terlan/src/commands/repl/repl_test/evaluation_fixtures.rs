@@ -632,24 +632,19 @@ pub(super) fn repl_value_binding_parser_accepts_simple_binding() {
     assert_eq!(binding.value, "1 + 2");
 }
 
-/// Verifies that REPL binding syntax accepts destructuring patterns.
+/// Verifies that REPL binding syntax rejects destructuring patterns.
 ///
 /// Inputs:
 /// - A terminator-stripped REPL entry with a tuple pattern on the left side.
 ///
 /// Output:
-/// - Parsed pattern text and value expression.
+/// - No persistent binding.
 ///
 /// Transformation:
-/// - Keeps the REPL persistence parser broad enough for formal pattern
-///   validation to happen through the compiler path instead of local name
-///   filtering.
+/// - Keeps REPL declarations aligned with source `let`, which binds one name.
 #[test]
-pub(super) fn repl_value_binding_parser_accepts_tuple_pattern() {
-    let binding = parse_repl_value_binding("let {head, _} = pair").unwrap();
-
-    assert_eq!(binding.pattern, "{head, _}");
-    assert_eq!(binding.value, "pair");
+pub(super) fn repl_value_binding_parser_rejects_tuple_pattern() {
+    assert!(parse_repl_value_binding("let {head, _} = pair").is_none());
 }
 
 /// Verifies that full Terlan `let` expressions are left to source parsing.

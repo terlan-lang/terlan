@@ -46,7 +46,7 @@ pub accept(): Completed.
 /// guard decisions.
 
 @pure
-pub both(left: Completed, right: Completed): Completed.
+pub (left: Completed) both(right: Completed): Completed.
 
 /// Combines two completed guard results with boolean disjunction.
 ///
@@ -56,7 +56,7 @@ pub both(left: Completed, right: Completed): Completed.
 /// guard-result contract.
 
 @pure
-pub either(left: Completed, right: Completed): Completed.
+pub (left: Completed) either(right: Completed): Completed.
 
 /// Converts a boolean into a guard-result value.
 ///
@@ -85,7 +85,7 @@ pub reject(): Completed.
 /// boundary.
 
 @pure
-pub value(result: Completed): Bool.
+pub (result: Completed) value(): Bool.
 
 /// GuardResult declares how a deferred guard result lifts a comprehension.
 ///

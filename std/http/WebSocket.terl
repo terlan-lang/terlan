@@ -114,8 +114,10 @@ stateful_delivery(
             None ->
                 Err("error[serve.websocket.pairing]: inbound frame arrived before a peer joined");
             Some({state, role, first, second}) ->
-                let {next, first_payload, second_payload} = inbound(state, role, frame, first, second);
-                Ok({next, delivery(first_payload), delivery(second_payload)})
+                case inbound(state, role, frame, first, second) {
+                    {next, first_payload, second_payload} ->
+                        Ok({next, delivery(first_payload), delivery(second_payload)})
+                }
         }.
 
 type Matched = (String, String, String) -> {String, String}.

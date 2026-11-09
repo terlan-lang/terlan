@@ -69,8 +69,10 @@ pub shape_backed_let_pattern_reuses_binary_layout(): Bool ->
     let port = 443;
     let flags = 3;
     let packet = Binary[big] {port: UInt[16], flags: UInt[8]};
-    let Header(decoded_port, decoded_flags) = packet;
-    assert_equal(443, decoded_port) and assert_equal(3, decoded_flags).
+    case packet {
+        Header(decoded_port, decoded_flags) ->
+            assert_equal(443, decoded_port) and assert_equal(3, decoded_flags)
+    }.
 
 @test
 pub lambda_pattern_binds_binary_fields(): Bool ->
@@ -85,8 +87,10 @@ pub let_pattern_binds_binary_fields(): Bool ->
     let port = 258;
     let body = from_list([1]);
     let packet = Binary[big] {port: UInt[16], body: Rest};
-    let Binary[big] {found: UInt[16], rest: Rest} = packet;
-    assert_equal(258, found) and assert_equal([1], rest.to_list()).
+    case packet {
+        Binary[big] {found: UInt[16], rest: Rest} ->
+            assert_equal(258, found) and assert_equal([1], rest.to_list())
+    }.
 
 @test
 pub little_endian_pattern_decodes_wire_order(): Bool ->

@@ -86,7 +86,7 @@ pub (monitor: Monitor) begin_recovery(node_id: String, tick: Int, reason: String
 /// Transformation: asks the VM scheduler to produce a deterministic suspected
 /// transition when the policy threshold is exceeded.
 
-pub classify_heartbeat(policy: Policy, node_id: String, tick: Int, heartbeat_gap_ticks: Int, reason: String): Transition.
+pub (policy: Policy) classify_heartbeat(node_id: String, tick: Int, heartbeat_gap_ticks: Int, reason: String): Transition.
 
 /// Releases the monitor resource; subsequent operations fail deterministically.
 
@@ -108,7 +108,7 @@ pub (monitor: Monitor) complete(node_id: String, tick: Int, reason: String): Tra
 /// Transformation: delegates recovery completion and heartbeat refresh to the
 /// VM scheduler.
 
-pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition.
+pub (recovery: Recovery) complete_recovery(tick: Int, reason: String): Transition.
 
 /// Marks a suspected node degraded before isolation.
 
@@ -124,7 +124,7 @@ pub (monitor: Monitor) expire(node_id: String, tick: Int, reason: String): Optio
 /// Output: failure descriptor.
 /// Transformation: records deterministic recovery-window expiry diagnostics.
 
-pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: String): Failure.
+pub (policy: Policy) expire_recovery(recovery: Recovery, tick: Int, reason: String): Failure.
 
 /// Converts a rollback descriptor to a failure envelope descriptor.
 ///
@@ -133,27 +133,27 @@ pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: Strin
 /// Transformation: exposes migration rollback as the same typed diagnostic
 /// stream used by heartbeat, partition, and recovery failures.
 
-pub failure(rollback: Rollback): Failure.
+pub (rollback: Rollback) failure(): Failure.
 
 /// Returns the stable operational diagnostic represented by a failure.
 
-pub failure_diagnostic_kind(failure: Failure): String.
+pub (failure: Failure) failure_diagnostic_kind(): String.
 
 /// Returns the stable machine-readable failure kind.
 
-pub failure_kind(failure: Failure): String.
+pub (failure: Failure) failure_kind(): String.
 
 /// Returns the node associated with a failure.
 
-pub failure_node_id(failure: Failure): String.
+pub (failure: Failure) failure_node_id(): String.
 
 /// Returns the stable reason associated with a failure.
 
-pub failure_reason(failure: Failure): String.
+pub (failure: Failure) failure_reason(): String.
 
 /// Returns the scheduler tick associated with a failure.
 
-pub failure_tick(failure: Failure): Int.
+pub (failure: Failure) failure_tick(): Int.
 
 /// Replays ordered failure envelopes after an exclusive tick cursor.
 
@@ -170,7 +170,7 @@ pub (monitor: Monitor) isolate(node_id: String, tick: Int, reason: String): Opti
 /// Transformation: asks the VM scheduler to validate isolation threshold and
 /// legal state progression.
 
-pub isolate_partition(policy: Policy, node_id: String, tick: Int, heartbeat_gap_ticks: Int, reason: String): Transition.
+pub (policy: Policy) isolate_partition(node_id: String, tick: Int, heartbeat_gap_ticks: Int, reason: String): Transition.
 
 /// Builds a migration partial-commit rollback descriptor.
 ///
@@ -210,7 +210,7 @@ pub (monitor: Monitor) record_heartbeat(node_id: String, tick: Int): String.
 
 /// Resolves mismatched peer policies to the stricter threshold in each field.
 
-pub resolve_policy(local: Policy, peer: Policy): Policy.
+pub (local: Policy) resolve_policy(peer: Policy): Policy.
 
 /// Builds a typed failure for a rejected stale placement update.
 
@@ -244,27 +244,27 @@ pub (monitor: Monitor) suspect(node_id: String, tick: Int, reason: String): Opti
 
 /// Returns the stable operational diagnostic represented by a transition.
 
-pub transition_diagnostic_kind(transition: Transition): String.
+pub (transition: Transition) transition_diagnostic_kind(): String.
 
 /// Returns the state after a transition.
 
-pub transition_next_state(transition: Transition): String.
+pub (transition: Transition) transition_next_state(): String.
 
 /// Returns the node id recorded by a transition.
 
-pub transition_node_id(transition: Transition): String.
+pub (transition: Transition) transition_node_id(): String.
 
 /// Returns the state before a transition.
 
-pub transition_previous_state(transition: Transition): String.
+pub (transition: Transition) transition_previous_state(): String.
 
 /// Returns the stable reason recorded by a transition.
 
-pub transition_reason(transition: Transition): String.
+pub (transition: Transition) transition_reason(): String.
 
 /// Returns the scheduler tick recorded by a transition.
 
-pub transition_tick(transition: Transition): Int.
+pub (transition: Transition) transition_tick(): Int.
 
 /// Replays ordered transitions after an exclusive tick cursor.
 

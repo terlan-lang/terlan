@@ -20,7 +20,9 @@ directories(root: String, paths: List[String]): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            let Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, path)) else {
+            if {
+                Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, path))
+            } else {
                 _ -> fail("fixture directory creation")
             };
             directories(root, rest)
@@ -30,14 +32,16 @@ copy_sources(root: String, origin: String, paths: List[String]): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            let Ok(_copied) <- File.copy(OwnerStorage.child(origin, path), OwnerStorage.child(root, path)) else {
+            if {
+                Ok(_copied) <- File.copy(OwnerStorage.child(origin, path), OwnerStorage.child(root, path))
+            } else {
                 _ -> fail("fixture source copy")
             };
             copy_sources(root, origin, rest)
     }.
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    let {
+    if {
         true <-
             directories(
                 root,
@@ -91,18 +95,20 @@ commands(root: String, context: Context, names: List[String], reused: Bool): Boo
     case names {
         [] -> true;
         [name | rest] ->
-            let Ok(owner) <-
-                PrepareContracts.declare(
-                    root,
-                    "target/tools/vm",
-                    "target/tools/matrix.tvm",
-                    context,
-                    name,
-                ) else {
+            if {
+                Ok(owner) <-
+                    PrepareContracts.declare(
+                        root,
+                        "target/tools/vm",
+                        "target/tools/matrix.tvm",
+                        context,
+                        name,
+                    )
+            } else {
                 _ -> fail(String.append("declare ", name))
             };
             (let result = PreparationOwner.run_locked(root, owner);
-(let {
+(if {
     true <-
         if {
             result.valid and result.reused == reused -> true;
@@ -123,7 +129,9 @@ commands(root, context, rest, reused)))
     }.
 
 launches(root: String, expected: String): Bool ->
-    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/contract-launches")) else {
+    if {
+        Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/contract-launches"))
+    } else {
         _ -> fail("read contract launches")
     };
     if {
@@ -132,7 +140,7 @@ launches(root: String, expected: String): Bool ->
     }.
 
 exercise(root: String): Bool ->
-    let {
+    if {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         true <- commands(root, context, PrepareContracts.commands(), false);
         true <- commands(root, context, PrepareContracts.commands(), true)
@@ -141,7 +149,7 @@ exercise(root: String): Bool ->
     };
     (let cold = "self-test\ntsan-self-test\nrelease-self-test\nmulticore-release-self-test\n";
 let expected = String.append(cold, "tsan-self-test\n");
-(let {
+(if {
     true <- launches(root, cold);
     Ok(owner) <-
         PrepareContracts.declare(
@@ -161,7 +169,7 @@ let expected = String.append(cold, "tsan-self-test\n");
     _ -> fail("repair contract commands")
 };
 (let failed = PreparationOwner.run_locked(root, owner);
-(let {
+(if {
     false <- failed.valid;
     true <- launches(root, String.append(expected, "tsan-self-test\n"));
     Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
@@ -176,7 +184,7 @@ candidate_isolation(root, context)
     and launches(root, String.append(expected, "tsan-self-test\ntsan-self-test\n")))))).
 
 candidate_isolation(root: String, prior: Context): Bool ->
-    let {
+    if {
         Ok(old_owner) <-
             PrepareContracts.declare(
                 root,
@@ -214,7 +222,9 @@ candidate_isolation(root: String, prior: Context): Bool ->
     retained == old_bytes.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-contract-owners-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-contract-owners-")
+    } else {
         _ -> fail("temporary fixture directory")
     };
     (let passed = fixture(root, origin, vm, image) and exercise(root);

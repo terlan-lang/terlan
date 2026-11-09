@@ -323,12 +323,7 @@ pub schema_id(name: String, version: Int): SchemaId ->
  * validate before replay or snapshot restore.
  */
 @target.vm {process_mailbox: true}
-pub schema(
-    schema: SchemaId,
-    fields: List[String],
-    events: List[String],
-    mailbox_schema: SchemaId,
-): SchemaDeclaration ->
+pub (schema: SchemaId) schema(fields: List[String], events: List[String], mailbox_schema: SchemaId): SchemaDeclaration ->
     native.
 
 /**
@@ -378,11 +373,7 @@ pub durable_adapter_schema(
  * validates snapshots, events, mailboxes, timers, and resource handles.
  */
 @target.vm {process_mailbox: true}
-pub persistent_actor(
-    actor: ActorId,
-    schema: SchemaId,
-    storage_lane: String,
-): PersistentActorDeclaration ->
+pub (actor: ActorId) persistent_actor(schema: SchemaId, storage_lane: String): PersistentActorDeclaration ->
     native.
 
 /**
@@ -428,11 +419,7 @@ pub family_retention_defaults(
  * before compaction chooses a retained event suffix.
  */
 @target.vm {process_mailbox: true}
-pub audit_retention(
-    actor: ActorId,
-    policy: RetentionPolicy,
-    required_events: List[String],
-): AuditRetentionPlan ->
+pub (actor: ActorId) audit_retention(policy: RetentionPolicy, required_events: List[String]): AuditRetentionPlan ->
     native.
 
 /**
@@ -461,8 +448,7 @@ pub package_retention_policy(
  * chooses retained actor events and model-sync change stream windows.
  */
 @target.vm {process_mailbox: true}
-pub model_sync_retention_continuity(
-    actor: ActorId,
+pub (actor: ActorId) model_sync_retention_continuity(
     policy: RetentionPolicy,
     model: String,
     retained_from_version: Int,
@@ -493,12 +479,7 @@ pub redaction_policy(
  * Transformation: pairs actor state with an explicit typed schema id.
  */
 @target.vm {process_mailbox: true}
-pub snapshot[State](
-    actor: ActorId,
-    schema: SchemaId,
-    sequence: Int,
-    state: State,
-)[Persistable[State]]: SnapshotPlan ->
+pub (actor: ActorId) snapshot[State](schema: SchemaId, sequence: Int, state: State)[Persistable[State]]: SnapshotPlan ->
     native.
 
 /**
@@ -509,7 +490,7 @@ pub snapshot[State](
  * Transformation: requires restore callers to state the schema they expect.
  */
 @target.vm {process_mailbox: true}
-pub replay(actor: ActorId, expected_schema: SchemaId): ReplayPlan ->
+pub (actor: ActorId) replay(expected_schema: SchemaId): ReplayPlan ->
     native.
 
 /**
@@ -520,7 +501,7 @@ pub replay(actor: ActorId, expected_schema: SchemaId): ReplayPlan ->
  * Transformation: exposes typed resource checkpoint identity to Terlan source.
  */
 @target.vm {process_mailbox: true}
-pub resource_checkpoint(actor: ActorId, handle: String): ResourceCheckpoint ->
+pub (actor: ActorId) resource_checkpoint(handle: String): ResourceCheckpoint ->
     native.
 
 /**
@@ -531,7 +512,7 @@ pub resource_checkpoint(actor: ActorId, handle: String): ResourceCheckpoint ->
  * Transformation: pairs actor restart replay with VM-owned resource recovery.
  */
 @target.vm {process_mailbox: true}
-pub restore_resource(actor: ActorId, checkpoint: ResourceCheckpoint): ResourceRestorePlan ->
+pub (actor: ActorId) restore_resource(checkpoint: ResourceCheckpoint): ResourceRestorePlan ->
     native.
 
 /**
@@ -542,7 +523,7 @@ pub restore_resource(actor: ActorId, checkpoint: ResourceCheckpoint): ResourceRe
  * Transformation: exposes typed mailbox checkpoint identity to Terlan source.
  */
 @target.vm {process_mailbox: true}
-pub mailbox_checkpoint(actor: ActorId, sequence: Int): MailboxCheckpoint ->
+pub (actor: ActorId) mailbox_checkpoint(sequence: Int): MailboxCheckpoint ->
     native.
 
 /**
@@ -553,7 +534,7 @@ pub mailbox_checkpoint(actor: ActorId, sequence: Int): MailboxCheckpoint ->
  * Transformation: pairs actor restart replay with VM-owned mailbox recovery.
  */
 @target.vm {process_mailbox: true}
-pub restore_mailbox(actor: ActorId, checkpoint: MailboxCheckpoint): MailboxRestorePlan ->
+pub (actor: ActorId) restore_mailbox(checkpoint: MailboxCheckpoint): MailboxRestorePlan ->
     native.
 
 /**
@@ -566,8 +547,7 @@ pub restore_mailbox(actor: ActorId, checkpoint: MailboxCheckpoint): MailboxResto
  * without exposing in-flight VM migration tables.
  */
 @target.vm {process_mailbox: true}
-pub migration_rollback(
-    actor: ActorId,
+pub (actor: ActorId) migration_rollback(
     from_schema: SchemaId,
     to_schema: SchemaId,
     sequence: Int,
@@ -602,7 +582,7 @@ pub register_package_migration(
  * Transformation: exposes typed timer checkpoint identity to Terlan source.
  */
 @target.vm {process_mailbox: true}
-pub timer_checkpoint(actor: ActorId, name: String, deadline_millis: Int): TimerCheckpoint ->
+pub (actor: ActorId) timer_checkpoint(name: String, deadline_millis: Int): TimerCheckpoint ->
     native.
 
 /**
@@ -613,7 +593,7 @@ pub timer_checkpoint(actor: ActorId, name: String, deadline_millis: Int): TimerC
  * Transformation: pairs actor restart replay with VM-owned timer recovery.
  */
 @target.vm {process_mailbox: true}
-pub restore_timer(actor: ActorId, checkpoint: TimerCheckpoint): TimerRestorePlan ->
+pub (actor: ActorId) restore_timer(checkpoint: TimerCheckpoint): TimerRestorePlan ->
     native.
 
 /**
@@ -636,5 +616,5 @@ pub package_store(package_id: String, actor: ActorId, schema: SchemaId): Package
  * Transformation: gives source code a typed preflight for schema drift checks.
  */
 @target.vm {process_mailbox: true}
-pub compatible_schema(expected: SchemaId, actual: SchemaId): Bool ->
+pub (expected: SchemaId) compatible_schema(actual: SchemaId): Bool ->
     native.

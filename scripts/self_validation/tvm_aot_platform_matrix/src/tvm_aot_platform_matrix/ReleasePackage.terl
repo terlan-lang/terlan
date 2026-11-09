@@ -242,7 +242,7 @@ build_self_test(
     let packaged = ReleasePayload.child(dist(root), "release-self-test.tvm");
     let _old_source = Directory.remove_all(source_root);
     let _old_build = Directory.remove_all(build_root);
-    let {
+    if {
         Ok(Unit) <- Directory.create_all(source_root);
         Ok(Unit) <- File.write_text(source, self_test_source());
         Some(_compiled) <-
@@ -358,7 +358,7 @@ finish_package(
 ): Bool ->
     let native_entry = ReleasePayload.payload(native.image, "share/terlan/runtime/release-self-test.tvm");
     let packaged_payloads = concat(payloads, [native_entry | std.collections.List.new[Payload]()]);
-    let {
+    if {
         Some(version) <- ReleasePlatform.cargo_version(root);
         Some(metadata) <-
             ReleaseMetadata.value_with_native(
@@ -392,7 +392,7 @@ case ReleasePayload.write_install_metadata(dist(root), platform, version, checks
  * Packages the current-platform release binaries and complete shared payload.
  */
 pub package(root: String): Bool ->
-    let {
+    if {
         Some(platform) <- ReleasePlatform.detect();
         Some(binaries) <- copy_release_binaries(root, platform);
         Some(native) <- build_self_test(root, platform, binaries);

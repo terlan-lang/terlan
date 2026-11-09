@@ -1,21 +1,17 @@
-/** Minimal executable root for Phase 4 interface and semantic authority. */
+/**
+ * Minimal executable root for Phase 4 interface and semantic authority.
+ */
 module self_host.Main.
 
-import self_host.ProjectedInterfaceCatalog.
-import self_host.CanonicalToken.{CanonicalToken}.
 import self_host.ProjectedParser.{ProjectedSegment}.
+import self_host.{CanonicalLexer, CanonicalToken, ProjectedInterfaceCatalog, ProjectedParser, ProjectionAdapter, SelfHostPath}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{eprintln, println}.
-import std.io.Directory.
-import std.io.File.
+import std.io.{Directory, File}.
 import std.system.Arguments.
-import self_host.CanonicalLexer.
-import self_host.ProjectedParser.
-import self_host.ProjectionAdapter.
-import self_host.SelfHostPath.
 
 ensure_directory(path: String): Bool ->
     if {
@@ -41,28 +37,35 @@ pub main(): Unit ->
         Some("interface-diagnostics-manifest") -> main_interface_diagnostics_manifest();
         Some("token-diagnostics") -> main_token_diagnostics();
         Some("segment-diagnostics") -> main_segment_diagnostics();
-        _ -> report_unit(
-            "usage: terlan-self-host interface-unit <source.terl> <interface> | interface-diagnostics <source.terl> | interface-diagnostics-manifest <paths.manifest> | token-diagnostics <source.terl> | segment-diagnostics <source.terl>",
-        )
+        _ ->
+            report_unit(
+                "usage: terlan-self-host interface-unit <source.terl> <interface> | interface-diagnostics <source.terl> | interface-diagnostics-manifest <paths.manifest> | token-diagnostics <source.terl> | segment-diagnostics <source.terl>",
+            )
     }.
 
 main_interface_unit(): Unit ->
-    let Some(input) <- Arguments.get(1) else {
+    if {
+        Some(input) <- Arguments.get(1)
+    } else {
         None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
     };
-    let Some(output) <- Arguments.get(2) else {
-        None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
-    };
-    let _completed = ensure_directory(SelfHostPath.parent(output))
+    (if {
+    Some(output) <- Arguments.get(2)
+} else {
+    None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
+};
+(let _completed =
+    ensure_directory(SelfHostPath.parent(output))
         and ProjectedInterfaceCatalog.write_interface(input, output);
-    Unit.
+Unit)).
 
 main_interface_diagnostics(): Unit ->
-    let Some(input) <- Arguments.get(1) else {
+    if {
+        Some(input) <- Arguments.get(1)
+    } else {
         None -> report_unit("usage: terlan-self-host interface-diagnostics <source.terl>")
     };
-    let _reported = println(ProjectedInterfaceCatalog.canonical_diagnostic(input));
-    Unit.
+    (let _reported = println(ProjectedInterfaceCatalog.canonical_diagnostic(input)); Unit).
 
 report_invalid_interface(path: String, diagnostic: String, invalid: Int): Int ->
     let _reported = println(String.concat([path, "\t", diagnostic]));
@@ -75,19 +78,22 @@ manifest_diagnostics_at(paths: List[String], invalid: Int): Int ->
             let normalized = String.trim(path);
             if {
                 normalized == "" -> manifest_diagnostics_at(rest, invalid);
-                true ->
-                    let diagnostic = ProjectedInterfaceCatalog.canonical_diagnostic(normalized);
-                    let next = if {
+                true -> let diagnostic = ProjectedInterfaceCatalog.canonical_diagnostic(normalized);
+                let next =
+                    if {
                         diagnostic == "valid" -> invalid;
                         true -> report_invalid_interface(normalized, diagnostic, invalid)
                     };
-                    manifest_diagnostics_at(rest, next)
+                manifest_diagnostics_at(rest, next)
             }
     }.
 
 main_interface_diagnostics_manifest(): Unit ->
-    let Some(input) <- Arguments.get(1) else {
-        None -> report_unit("usage: terlan-self-host interface-diagnostics-manifest <paths.manifest>")
+    if {
+        Some(input) <- Arguments.get(1)
+    } else {
+        None ->
+            report_unit("usage: terlan-self-host interface-diagnostics-manifest <paths.manifest>")
     };
     case File.read_text(input) {
         Err(reason) -> report_unit(reason.message);
@@ -101,20 +107,27 @@ print_tokens(values: List[CanonicalToken]): Unit ->
     case values {
         [] -> Unit;
         [value | rest] ->
-            let _reported = println(String.concat([
-                value.terminal,
-                "\t",
-                value.text,
-                "\t",
-                Int.to_string(value.start_byte),
-                "\t",
-                Int.to_string(value.end_byte),
-            ]));
+            let _reported =
+                println(
+                    String.concat(
+                        [
+                            value.terminal,
+                            "\t",
+                            value.text,
+                            "\t",
+                            Int.to_string(value.start_byte),
+                            "\t",
+                            Int.to_string(value.end_byte),
+                        ],
+                    ),
+                );
             print_tokens(rest)
     }.
 
 main_token_diagnostics(): Unit ->
-    let Some(input) <- Arguments.get(1) else {
+    if {
+        Some(input) <- Arguments.get(1)
+    } else {
         None -> report_unit("usage: terlan-self-host token-diagnostics <source.terl>")
     };
     case File.read_text(input) {
@@ -126,20 +139,30 @@ print_segments(source: String, values: List[ProjectedSegment]): Unit ->
     case values {
         [] -> Unit;
         [value | rest] ->
-            let _reported = println(String.concat([
-                Int.to_string(value.start_byte),
-                "\t",
-                Int.to_string(value.end_byte),
-                "\t",
-                if { value.terminated -> "terminated"; true -> "unterminated" },
-                "\t",
-                source.utf8_slice(value.start_byte, value.end_byte - value.start_byte),
-            ]));
+            let _reported =
+                println(
+                    String.concat(
+                        [
+                            Int.to_string(value.start_byte),
+                            "\t",
+                            Int.to_string(value.end_byte),
+                            "\t",
+                            if {
+                                value.terminated -> "terminated";
+                                true -> "unterminated"
+                            },
+                            "\t",
+                            source.utf8_slice(value.start_byte, value.end_byte - value.start_byte),
+                        ],
+                    ),
+                );
             print_segments(source, rest)
     }.
 
 main_segment_diagnostics(): Unit ->
-    let Some(input) <- Arguments.get(1) else {
+    if {
+        Some(input) <- Arguments.get(1)
+    } else {
         None -> report_unit("usage: terlan-self-host segment-diagnostics <source.terl>")
     };
     case File.read_text(input) {

@@ -89,23 +89,23 @@ pub opaque type Version.
 /// Transformation: exposes local/incoming version metadata for explicit caller
 /// resolution.
 
-pub conflict(outcome: Outcome): Conflict.
+pub (outcome: Outcome) conflict(): Conflict.
 
 /// Returns the rejected write sequence captured when a conflict occurred.
 
-pub conflict_incoming_sequence(conflict: Conflict): Int.
+pub (conflict: Conflict) conflict_incoming_sequence(): Int.
 
 /// Returns the existing write sequence captured when a conflict occurred.
 
-pub conflict_local_sequence(conflict: Conflict): Int.
+pub (conflict: Conflict) conflict_local_sequence(): Int.
 
 /// Returns the owner node recorded in an immutable entry view.
 
-pub entry_owner(entry: Entry): String.
+pub (entry: Entry) entry_owner(): String.
 
 /// Returns the write sequence recorded in an immutable entry view.
 
-pub entry_sequence(entry: Entry): Int.
+pub (entry: Entry) entry_sequence(): Int.
 
 /// Exports a deterministic checkpoint snapshot.
 ///
@@ -131,7 +131,7 @@ pub (store: Store) get(scope: Scope): Entry.
 /// Transformation: exposes stable result classification for tests, logs, and
 /// tooling without parsing diagnostics.
 
-pub kind(outcome: Outcome): String.
+pub (outcome: Outcome) kind(): String.
 
 /// Builds a conflict policy descriptor.
 ///
@@ -149,7 +149,7 @@ pub policy(name: String): Policy.
 /// Transformation: validates duplicate scopes and version metadata during VM
 /// checkpoint replay.
 
-pub restore(snapshot: Snapshot): Store.
+pub (snapshot: Snapshot) restore(): Store.
 
 /// Builds a state scope descriptor.
 ///

@@ -41,7 +41,7 @@ notification(method: String, params: Json): String ->
     ).
 
 response(frames: List[String], expected_id: Int): Option[Json] ->
-    let {
+    if {
         [body | rest] <- frames;
         Ok(value) <- Json.parse(body)
     } else {
@@ -53,7 +53,7 @@ response(frames: List[String], expected_id: Int): Option[Json] ->
     }.
 
 edits_hold(edits: Json): Bool ->
-    let {
+    if {
         Ok(2) <- edits.length();
         Ok(first) <- edits.at(0);
         Ok(second) <- edits.at(1)
@@ -70,7 +70,7 @@ pub run(binary: String, directory: String): Json ->
     let source = "module baseline.Navigation.\npub value(input: Int): Int ->\n    let local = input + 1;\n    let label = \"local\";\n    local.\n";
     let sources = String.append(directory, "/src/baseline");
     let path = String.append(sources, "/Navigation.terl");
-    let {
+    if {
         Ok(_) <- Directory.create_all(sources);
         Ok(_) <- File.write_text(path, source);
         Ok(binary_digest) <- Hash.sha256_file(binary)
@@ -135,7 +135,7 @@ case execution {
                 and Hash.sha256_file(binary) == Ok(binary_digest)
                 and case response(output.frames, 2) {
     Some(message) ->
-        let {
+        if {
             Ok(edit) <- message.get("result");
             Ok(changes) <- edit.get("changes");
             Ok(edits) <- changes.get(uri)

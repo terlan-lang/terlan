@@ -113,7 +113,7 @@ pub (vector: Vector[T]) get(index: Int): Option[T] ->
  * value atomically across NativeBoundary.
  */
 @compiler.native {std.native.collections.vector.get}
-pub get_optional_values[T](vector: Vector[T], index: Int): List[T].
+pub (vector: Vector[T]) get_optional_values[T](index: Int): List[T].
 
 /**
  * Replaces the value at an index.

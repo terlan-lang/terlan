@@ -55,7 +55,7 @@ pub (vector: Vector[T]) get_at(index: Int): T.
 /// Transformation: uses a bridge-stable list shape to carry a generic optional
 /// value atomically across NativeBoundary.
 
-pub get_optional_values[T](vector: Vector[T], index: Int): List[T].
+pub (vector: Vector[T]) get_optional_values[T](index: Int): List[T].
 
 /// Returns the number of values in a vector.
 ///

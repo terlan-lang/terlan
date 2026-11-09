@@ -69,6 +69,23 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
                         )
                     })
                     .collect::<Vec<_>>()
+            } else if matches!(
+                (bindings.as_slice(), else_clauses.as_slice()),
+                (
+                    [_],
+                    [crate::terlan_syntax::parse_tree::CaseClause {
+                        pattern: Pattern::Var(pattern_name),
+                        guard: None,
+                        body: Expr::Var(body_name),
+                    }]
+                ) if pattern_name == body_name
+            ) {
+                let binding = &bindings[0];
+                vec![format!(
+                    "{} <- {}",
+                    pattern_to_output_text(&binding.pattern),
+                    expr_to_output_text(&binding.value)
+                )]
             } else {
                 let rendered_bindings = bindings
                     .iter()
@@ -86,13 +103,7 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
                     .map(case_clause_to_output_text)
                     .collect::<Vec<_>>()
                     .join("; ");
-                if bindings.len() == 1 {
-                    vec![format!("let {rendered_bindings} else {{ {clauses} }}")]
-                } else {
-                    vec![format!(
-                        "let {{ {rendered_bindings} }} else {{ {clauses} }}"
-                    )]
-                }
+                vec![format!("if {{ {rendered_bindings} }} else {{ {clauses} }}")]
             };
             if let Some(body) = body {
                 parts.push(expr_to_output_text(body));

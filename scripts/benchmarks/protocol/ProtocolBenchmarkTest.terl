@@ -90,7 +90,7 @@ baseline_tsv_path(): String -> "../docs/benchmark_reports/protocol/protocol-stac
 
 legacy_http_path(): String -> "../benchmarks/results/http-vm-vs-rust.latest.json".
 
-pub scales(): List[Int] -> [1, 10, 100, 1000].
+pub scales(): List[Int] -> [1, 10, 100, 1_000].
 
 phases(): List[String] -> ["cold", "warm"].
 
@@ -98,7 +98,7 @@ pub row_header(): String ->
     "runtime_lane\tprofile\tcommit\tplatform\trust_version\tworkload\tworkload_class\tphase\titerations\tconcurrency\tmean_us\tmedian_us\tp95_us\tp99_us\terror_rate_percent\ttyped_decode_failure_count\tbaseline_mean_us\twinner\tdelta_percent".
 
 string_member(value: Json, key: String): Option[String] ->
-    let {
+    if {
         Ok(member) <- value.get(key);
         Ok(text) <- member.as_string()
     } else {
@@ -107,7 +107,7 @@ string_member(value: Json, key: String): Option[String] ->
     Some(text).
 
 int_member(value: Json, key: String): Option[Int] ->
-    let {
+    if {
         Ok(member) <- value.get(key);
         Ok(number) <- member.as_int()
     } else {
@@ -116,7 +116,7 @@ int_member(value: Json, key: String): Option[Int] ->
     Some(number).
 
 float_member(value: Json, key: String): Option[Float] ->
-    let {
+    if {
         Ok(member) <- value.get(key);
         Ok(number) <- member.as_float()
     } else {
@@ -125,7 +125,7 @@ float_member(value: Json, key: String): Option[Float] ->
     Some(number).
 
 array_member(value: Json, key: String): Option[Json] ->
-    let {
+    if {
         Ok(member) <- value.get(key);
         Ok(_length) <- member.length()
     } else {
@@ -169,7 +169,7 @@ int_array_at(value: Json, expected: List[Int], index: Int): Bool ->
     case expected {
         [] -> true;
         [item | rest] ->
-            let {
+            if {
                 Ok(actual) <- value.at(index);
                 Ok(number) <- actual.as_int()
             } else {
@@ -188,7 +188,7 @@ string_array_at(value: Json, expected: List[String], index: Int): Bool ->
     case expected {
         [] -> true;
         [item | rest] ->
-            let {
+            if {
                 Ok(actual) <- value.at(index);
                 Ok(text) <- actual.as_string()
             } else {
@@ -231,7 +231,7 @@ required_values_hold(required: Json, index: Int): Bool ->
         Ok(length) ->
             if {
                 index >= length -> true;
-                true -> let {
+                true -> if {
                     Ok(item) <- required.at(index);
                     Ok(text) <- item.as_string()
                 } else {
@@ -294,12 +294,12 @@ required_coverage_declared(manifest: Json): Bool ->
  */
 pub validate_manifest(manifest: Json): Bool ->
     case {
-    string_member(manifest, "schema"),
-    array_member(manifest, "scale_points"),
-    int_member(manifest, "warm_sample_count"),
-    int_member(manifest, "deterministic_seed"),
-    array_member(manifest, "required_adversarial_coverage"),
-} {
+        string_member(manifest, "schema"),
+        array_member(manifest, "scale_points"),
+        int_member(manifest, "warm_sample_count"),
+        int_member(manifest, "deterministic_seed"),
+        array_member(manifest, "required_adversarial_coverage"),
+    } {
         {Some("terlan.protocol-benchmark-workloads.v1"), Some(scale_points), Some(3), Some(_seed), Some(required)} ->
             int_array_equals(scale_points, scales())
                 and required_adversarial_holds(required)
@@ -312,16 +312,16 @@ winner_holds(winner: String): Bool ->
 
 parse_row(value: Json): Option[BenchmarkRow] ->
     case {
-    string_member(value, "runtime_lane"),
-    string_member(value, "profile"),
-    string_member(value, "commit"),
-    string_member(value, "platform"),
-    string_member(value, "rust_version"),
-    string_member(value, "workload"),
-    string_member(value, "workload_class"),
-    string_member(value, "phase"),
-    string_member(value, "winner"),
-} {
+        string_member(value, "runtime_lane"),
+        string_member(value, "profile"),
+        string_member(value, "commit"),
+        string_member(value, "platform"),
+        string_member(value, "rust_version"),
+        string_member(value, "workload"),
+        string_member(value, "workload_class"),
+        string_member(value, "phase"),
+        string_member(value, "winner"),
+    } {
         {Some(runtime_lane), Some(profile), Some(commit), Some(platform), Some(rust_version), Some(workload), Some(workload_class), Some(phase), Some(winner)} ->
             parse_row_numbers(
                 value,
@@ -351,17 +351,17 @@ parse_row_numbers(
     winner: String,
 ): Option[BenchmarkRow] ->
     case {
-    int_member(value, "iterations"),
-    int_member(value, "concurrency"),
-    float_member(value, "mean_us"),
-    int_member(value, "median_us"),
-    int_member(value, "p95_us"),
-    int_member(value, "p99_us"),
-    float_member(value, "error_rate_percent"),
-    int_member(value, "typed_decode_failure_count"),
-    float_member(value, "baseline_mean_us"),
-    float_member(value, "delta_percent"),
-} {
+        int_member(value, "iterations"),
+        int_member(value, "concurrency"),
+        float_member(value, "mean_us"),
+        int_member(value, "median_us"),
+        int_member(value, "p95_us"),
+        int_member(value, "p99_us"),
+        float_member(value, "error_rate_percent"),
+        int_member(value, "typed_decode_failure_count"),
+        float_member(value, "baseline_mean_us"),
+        float_member(value, "delta_percent"),
+    } {
         {Some(iterations), Some(concurrency), Some(mean_us), Some(median_us), Some(p95_us), Some(p99_us), Some(error_rate_percent), Some(typed_decode_failure_count), Some(baseline_mean_us), Some(delta_percent)} ->
             Some(
                 BenchmarkRow(
@@ -472,8 +472,8 @@ base_coverage_holds(rows: List[BenchmarkRow], base: String): Bool ->
         and point_count(rows, base, 10, "warm") == 1
         and point_count(rows, base, 100, "cold") == 1
         and point_count(rows, base, 100, "warm") == 1
-        and point_count(rows, base, 1000, "cold") == 1
-        and point_count(rows, base, 1000, "warm") == 1.
+        and point_count(rows, base, 1_000, "cold") == 1
+        and point_count(rows, base, 1_000, "warm") == 1.
 
 scale_coverage_holds(rows: List[BenchmarkRow]): Bool ->
     scale_coverage_at(rows, rows).
@@ -533,7 +533,7 @@ pub validate_baseline_artifacts(manifest: Json): Bool ->
     }.
 
 validate_baseline_values(manifest: Json, report: Json, tsv: String): Bool ->
-    let {
+    if {
         {Some("terlan.protocol-stack-comparison.v1"), Some(scale_points), Some(report_phases), Some(row_values), Some(legacy)} <-
             {
                 string_member(report, "schema"),
@@ -582,7 +582,7 @@ classes_known(rows: List[BenchmarkRow]): Bool ->
  * Validates the cached AOT HTTP concurrency comparison.
  */
 pub validate_http_concurrency_artifact(report: Json): Bool ->
-    let {
+    if {
         {Some("http-vm-vs-rust"), Some("completed")} <- {string_member(report, "benchmark"), string_member(report, "status")};
         Some(lanes) <- array_member(report, "lanes")
     } else {
@@ -626,7 +626,7 @@ pub validate_anchor(anchor: String, manifest: Json): Bool ->
         and if {
     anchor == "binary_protocol_benchmark" -> let path = baseline_json_path();
     let report_result = read_json(path);
-    let {
+    if {
         Some(report) <- report_result;
         Some(values) <- array_member(report, "rows");
         Some(rows) <- parse_rows(values)
@@ -674,9 +674,9 @@ run_raw_benchmark(manifest: Json): Bool ->
                         ),
                     ],
                 ),
-                900000,
+                900_000,
             ),
-            8388608,
+            8_388_608,
         );
     case Process.run(command) {
         Err(reason) ->
@@ -712,9 +712,9 @@ git_commit(): String ->
                     ),
                     ".",
                 ),
-                10000,
+                10_000,
             ),
-            65536,
+            65_536,
         );
     case Process.run(command) {
         Ok(output) where output.status == 0 -> String.trim(output.stdout);
@@ -777,8 +777,8 @@ mean(values: List[Int]): Float ->
 
 round_three(value: Float): Float ->
     if {
-        value >= 0 -> Float.floor(value * 1000 + 0.5) / 1000;
-        true -> Float.ceil(value * 1000 - 0.5) / 1000
+        value >= 0 -> Float.floor(value * 1_000 + 0.5) / 1_000;
+        true -> Float.ceil(value * 1_000 - 0.5) / 1_000
     }.
 
 metric_row(base: ScenarioBase, phase: String, values: List[Int]): Option[BenchmarkRow] ->
@@ -820,7 +820,7 @@ int_values(value: Json): Option[List[Int]] ->
 int_values_at(value: Json, index: Int, length: Int, output: List[Int]): Option[List[Int]] ->
     if {
         index >= length -> Some(reverse_ints(output, List.new[Int]()));
-        true -> let {
+        true -> if {
             Ok(item) <- value.at(index);
             Ok(number) <- item.as_int()
         } else {
@@ -837,11 +837,11 @@ reverse_ints(values: List[Int], output: List[Int]): List[Int] ->
 
 scenario_base(value: Json, meta: Metadata): Option[ScenarioBase] ->
     case {
-    string_member(value, "id"),
-    string_member(value, "workload_class"),
-    int_member(value, "operation_count"),
-    float_member(value, "unexpected_error_rate_percent"),
-} {
+        string_member(value, "id"),
+        string_member(value, "workload_class"),
+        int_member(value, "operation_count"),
+        float_member(value, "unexpected_error_rate_percent"),
+    } {
         {Some(workload), Some(workload_class), Some(iterations), Some(error_rate)} ->
             Some(
                 ScenarioBase(
@@ -893,7 +893,7 @@ normalize_scenario(
     index: Int,
     output: List[BenchmarkRow],
 ): Option[List[BenchmarkRow]] ->
-    let {
+    if {
         {Some(base), Some(cold), Some(warm_values)} <- {scenario_base(value, meta), int_member(value, cold_key), array_member(value, warm_key)};
         Some(warm) <- int_values(warm_values);
         {Some(cold_row), Some(warm_row)} <- {metric_row(base, "cold", [cold]), metric_row(base, "warm", warm)}
@@ -903,7 +903,7 @@ normalize_scenario(
     normalize_group(values, meta, cold_key, warm_key, index + 1, [warm_row | [cold_row | output]]).
 
 normalize_raw_report(raw: Json): Option[List[BenchmarkRow]] ->
-    let {
+    if {
         Some("terlan.vm-binary-protocol-benchmark.v8") <- string_member(raw, "schema");
         {Some(scale_points), Some(scenarios), Some(transport)} <-
             {
@@ -917,7 +917,7 @@ normalize_raw_report(raw: Json): Option[List[BenchmarkRow]] ->
     if {
         not int_array_equals(scale_points, scales()) -> None;
         true -> let meta = metadata(raw);
-        let {
+        if {
             Some(source_rows) <-
                 normalize_group(
                     scenarios,
@@ -1223,7 +1223,7 @@ baseline_rows_for(blessing: Bool): Option[List[BenchmarkRow]] ->
         blessing -> Some(List.new[BenchmarkRow]());
         true -> let path = baseline_json_path();
         let report_result = read_json(path);
-        let {
+        if {
             Some(report) <- report_result;
             Some(values) <- array_member(report, "rows")
         } else {
@@ -1239,7 +1239,7 @@ publish(raw: Json, manifest: Json, rows: List[BenchmarkRow], blessing: Bool): Bo
     }.
 
 legacy_templates(manifest: Json): Option[List[LegacyLane]] ->
-    let {
+    if {
         Some(values) <- array_member(manifest, "legacy_lanes");
         Ok(length) <- values.length()
     } else {
@@ -1255,7 +1255,7 @@ legacy_templates_at(
 ): Option[List[LegacyLane]] ->
     if {
         index >= length -> Some(reverse_lanes(output, List.new[LegacyLane]()));
-        true -> let {
+        true -> if {
             Ok(value) <- values.at(index);
             Some(lane) <- legacy_template(value)
         } else {
@@ -1265,7 +1265,7 @@ legacy_templates_at(
     }.
 
 legacy_template(value: Json): Option[LegacyLane] ->
-    let {
+    if {
         {Some(lane), Some(workload), Some(status)} <-
             {
                 string_member(value, "lane"),
@@ -1308,7 +1308,7 @@ read_legacy_comparisons(
 ): Bool ->
     let path = legacy_http_path();
     let cached_result = read_json(path);
-    let {
+    if {
         Some(cached) <- cached_result;
         Some(cached_lanes) <- array_member(cached, "lanes");
         Some(lanes) <- complete_legacy_lanes(templates, cached_lanes)
@@ -1387,7 +1387,7 @@ find_cached_lane(cached: Json, group: String, index: Int): Option[LegacyComparis
     }.
 
 cached_comparison(lane: Json): Option[LegacyComparison] ->
-    let {
+    if {
         {Some(group), Some(winner), Some(delta)} <-
             {
                 string_member(lane, "group"),
@@ -1562,7 +1562,7 @@ persist_current_encoded(
     blessing: Bool,
     encoded: String,
 ): Bool ->
-    let {
+    if {
         Ok(_unit) <- create_all("target/quality");
         Ok(_unit_2) <- write_text(current_json_path(), encoded)
     } else {
@@ -1581,7 +1581,7 @@ write_current_tsv(report: Json, rows: List[BenchmarkRow], blessing: Bool, encode
     }.
 
 persist_baseline(report: Json, rows: List[BenchmarkRow], encoded: String): Bool ->
-    let {
+    if {
         Ok(_unit) <- create_all(report_directory());
         Ok(_unit_2) <- write_text(baseline_json_path(), encoded);
         Ok(_unit_3) <- write_text(baseline_tsv_path(), rows_tsv(rows))
@@ -1664,7 +1664,7 @@ feature_value(values: List[String]): String ->
 
 @test
 pub workload_manifest_preserves_adversarial_coverage(): Bool ->
-    let {
+    if {
         Ok(text) <- read_text(manifest_path());
         Ok(manifest) <- Json.parse(text)
     } else {
@@ -1675,8 +1675,8 @@ pub workload_manifest_preserves_adversarial_coverage(): Bool ->
 @test
 pub concurrency_anchor_accepts_completed_typed_lanes(): Bool ->
     case Json.parse(
-    "{\"benchmark\":\"http-vm-vs-rust\",\"status\":\"completed\",\"lanes\":[{\"group\":\"socket-crud-c100\",\"winner\":\"terlan-vm\",\"delta_percent\":1.0},{\"group\":\"socket-crud-c1000\",\"winner\":\"axum-tokio\",\"delta_percent\":-1.0}]}",
-) {
+        "{\"benchmark\":\"http-vm-vs-rust\",\"status\":\"completed\",\"lanes\":[{\"group\":\"socket-crud-c100\",\"winner\":\"terlan-vm\",\"delta_percent\":1.0},{\"group\":\"socket-crud-c1000\",\"winner\":\"axum-tokio\",\"delta_percent\":-1.0}]}",
+    ) {
         Err(_reason) -> false;
         Ok(report) -> validate_http_concurrency_artifact(report)
     }.

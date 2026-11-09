@@ -88,7 +88,7 @@ pub inserted(value: T): Change[T].
 /// Transformation: compares the event kind against the portable singleton.
 
 @pure
-pub is_deleted(change: Change[T]): Bool.
+pub (change: Change[T]) is_deleted(): Bool.
 
 /// Returns whether the event is an insertion.
 ///
@@ -97,7 +97,7 @@ pub is_deleted(change: Change[T]): Bool.
 /// Transformation: compares the event kind against the portable singleton.
 
 @pure
-pub is_inserted(change: Change[T]): Bool.
+pub (change: Change[T]) is_inserted(): Bool.
 
 /// Returns whether the event is an update.
 ///
@@ -106,7 +106,7 @@ pub is_inserted(change: Change[T]): Bool.
 /// Transformation: compares the event kind against the portable singleton.
 
 @pure
-pub is_updated(change: Change[T]): Bool.
+pub (change: Change[T]) is_updated(): Bool.
 
 /// Returns the change kind.
 ///
@@ -116,7 +116,7 @@ pub is_updated(change: Change[T]): Bool.
 /// classification field.
 
 @pure
-pub kind(change: Change[T]): ChangeKind.
+pub (change: Change[T]) kind(): ChangeKind.
 
 /// Builds an updated change event.
 ///
@@ -134,4 +134,4 @@ pub updated(value: T): Change[T].
 /// typed value field.
 
 @pure
-pub value(change: Change[T]): T.
+pub (change: Change[T]) value(): T.

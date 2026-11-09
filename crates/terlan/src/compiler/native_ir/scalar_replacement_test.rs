@@ -709,8 +709,7 @@ fn source_application_lowering_scalar_replaces_tuple_pattern() {
 module tuple_pattern.\n\
 \n\
 pub tuple_sum(): Int ->\n\
-    let {left, right} = {20, 22};\n\
-    left + right.\n",
+    case {20, 22} { {left, right} -> left + right }.\n",
     )
     .expect("tuple-pattern source");
     let resolved = resolve_syntax_module_output(&syntax).module;
@@ -748,8 +747,7 @@ module local_tuple_pattern.\n\
 \n\
 pub tuple_sum(): Int ->\n\
     let pair = {20, 22};\n\
-    let {left, right} = pair;\n\
-    left + right.\n",
+    case pair { {left, right} -> left + right }.\n",
     )
     .expect("local tuple-pattern source");
     let resolved = resolve_syntax_module_output(&syntax).module;

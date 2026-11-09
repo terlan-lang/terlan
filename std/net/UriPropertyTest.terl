@@ -52,7 +52,7 @@ pub generated_valid_uris_render_idempotently_after_parse(): Bool ->
             ],
         ),
         (text) ->
-            let {
+            if {
                 Ok(uri) <- parse(text);
                 Ok(roundtrip) <- parse(uri.to_string())
             } else {
@@ -83,7 +83,7 @@ pub generated_uri_components_survive_render_and_reparse(): Bool ->
             ],
         ),
         (text) ->
-            let {
+            if {
                 Ok(uri) <- parse(text);
                 Ok(roundtrip) <- parse(uri.to_string())
             } else {

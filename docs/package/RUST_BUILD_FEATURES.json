@@ -4,7 +4,8 @@
   "version": "0.0.7",
   "default_features": [
     "native-codegen",
-    "postgres-libpq"
+    "registry-network",
+    "service-foundation"
   ],
   "features": [
     {
@@ -28,8 +29,16 @@
       "classification": "default"
     },
     {
-      "name": "postgres-libpq",
+      "name": "registry-network",
       "classification": "default"
+    },
+    {
+      "name": "service-foundation",
+      "classification": "default"
+    },
+    {
+      "name": "postgres-libpq",
+      "classification": "optional"
     },
     {
       "name": "axum-baseline",

@@ -177,7 +177,7 @@ json_value(value: Json, field: String): Option[Json] ->
     }.
 
 json_string(value: Json, field: String): Option[String] ->
-    let {
+    if {
         Some(member) <- json_value(value, field);
         Ok(text) <- member.as_string()
     } else {
@@ -186,7 +186,7 @@ json_string(value: Json, field: String): Option[String] ->
     Some(text).
 
 json_int(value: Json, field: String): Option[Int] ->
-    let {
+    if {
         Some(member) <- json_value(value, field);
         Ok(number) <- member.as_int()
     } else {
@@ -195,7 +195,7 @@ json_int(value: Json, field: String): Option[Int] ->
     Some(number).
 
 json_bool(value: Json, field: String): Option[Bool] ->
-    let {
+    if {
         Some(member) <- json_value(value, field);
         Ok(flag) <- member.as_bool()
     } else {
@@ -212,7 +212,7 @@ parse_output(output: Output, context: String): Option[Json] ->
     }.
 
 write_json(path: String, value: Json): Bool ->
-    let {
+    if {
         Ok(rendered) <- Json.stringify_pretty(value);
         Ok(_written) <- write_text(path, String.append(rendered, "\n"))
     } else {
@@ -225,7 +225,7 @@ write_json(path: String, value: Json): Bool ->
     true.
 
 metadata_matches_host(metadata: Json, abi: HostAbi): Bool ->
-    let {
+    if {
         Some(object_format) <- json_string(metadata, "object_format");
         Some(architecture) <- json_string(metadata, "architecture");
         Some(operating_system) <- json_string(metadata, "operating_system");
@@ -285,7 +285,7 @@ compile_image(
     let source_directory = child(temporary, "source");
     let source = child(source_directory, "Main.terl");
     let build = child(temporary, "build");
-    let {
+    if {
         Ok(_source_directory) <- create_all(source_directory);
         Ok(_source) <- write_text(source, fixture_source());
         Some(_build) <-
@@ -309,7 +309,7 @@ case images {
                     Int.to_string(length(images)),
                 ),
             );
-            true -> let {
+            true -> if {
                 Some(metadata_output) <-
                     run_success(
                         root,
@@ -343,7 +343,7 @@ case images {
 }).
 
 support_value_ok(left: Json, right: Json): Bool ->
-    let {
+    if {
         Some(schema) <- json_string(left, "schema");
         Some(native) <- json_value(left, "nativeImage");
         Some(compiler) <- json_string(right, "compiler");
@@ -381,7 +381,7 @@ if {
 
 check_support_bundle(root: String, vm: String, fixture: ImageFixture, temporary: String): Bool ->
     let arguments = ["support-bundle", fixture.image];
-    let {
+    if {
         Some(first) <- run_success(root, vm, arguments);
         Some(second) <- run_success(root, vm, arguments);
         Some(bundle) <- parse_output(first, "native support bundle")
@@ -471,7 +471,7 @@ check_direct_admission_rejections(
     let third_party = child(temporary, "third-party.tvm");
     if {
         not check_sidecars(root, vm, image, sidecars) -> false;
-        true -> let {
+        true -> if {
             Ok(_copied) <- copy(vm, third_party);
             Some(output) <- run_failure(root, vm, ["run", third_party, "--entry", entry_name(), "--test-eval"])
         } else {
@@ -499,7 +499,7 @@ write_archive_package(temporary: String, image: String, metadata: Json): Option[
     let package = child(temporary, "archive");
     let destination = child(package, String.append("share/terlan/", package_image_path()));
     let parent = child(package, "share/terlan/runtime");
-    let {
+    if {
         Ok(_parent) <- create_all(parent);
         Ok(_image) <- copy(image, destination);
         Some(release) <- release_metadata(metadata)
@@ -512,7 +512,7 @@ write_archive_package(temporary: String, image: String, metadata: Json): Option[
     }.
 
 validate_success(root: String, vm: String, package: String): Bool ->
-    let {
+    if {
         Some(output) <- run_success(root, vm, ["validate-package", package]);
         Some(report) <- parse_output(output, "validate-package output");
         Some(entry) <- json_string(report, "entry")
@@ -554,7 +554,7 @@ clone_package(source: String, temporary: String, name: String): Option[String] -
 
 load_release(package: String): Option[Json] ->
     let path = child(package, "terlan-release.json");
-    let {
+    if {
         Ok(source) <- read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -563,7 +563,7 @@ load_release(package: String): Option[Json] ->
     Some(value).
 
 mutate_native_field(package: String, field: String, value: String): Bool ->
-    let {
+    if {
         Some(release) <- load_release(package);
         Some(native) <- json_value(release, "native_self_test")
     } else {
@@ -583,7 +583,7 @@ mutate_release_field(package: String, field: String, value: String): Bool ->
 
 check_installed_layout(archive: String, temporary: String, root: String, vm: String): Bool ->
     let installed = child(temporary, "installed");
-    let {
+    if {
         Ok(_tree) <- copy_tree_excluding(child(archive, "share/terlan"), installed, []);
         Ok(_release) <- copy(child(archive, "terlan-release.json"), child(installed, "terlan-release.json"))
     } else {
@@ -845,7 +845,7 @@ self_test(): Bool ->
         Json.object()
             .put("schema", Json.string("terlan.vm.native-support-bundle.v1"))
             .put("generationEpoch", Json.int(1));
-    let {
+    if {
         Ok(encoded) <- Json.stringify(sample);
         Ok(decoded) <- Json.parse(encoded);
         Some(schema) <- json_string(decoded, "schema");

@@ -33,11 +33,11 @@ pub error(id: std.data.Json, code: Int, message: String): std.data.Json.
 /// Handles one parsed MCP message. Requests may be dispatched only after the
 /// standard initialization exchange; notifications never receive responses.
 
-pub handle(session: Session, message: std.data.Json): Event.
+pub (session: Session) handle(message: std.data.Json): Event.
 
 /// Invalid JSON produces the standard parse error, without reflecting payloads.
 
-pub parse(session: Session, source: String): Event.
+pub (session: Session) parse(source: String): Event.
 
 @pure
 pub protocol_version(): String.

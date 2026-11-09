@@ -45,4 +45,4 @@ pub milliseconds(value: Int): Timeout.
 /// elapsed counts fail the guarded match, including for unbounded waits.
 
 @pure
-pub wakes_after(timeout: Timeout, elapsed_ms: Int): Bool.
+pub (timeout: Timeout) wakes_after(elapsed_ms: Int): Bool.

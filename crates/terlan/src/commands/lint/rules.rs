@@ -7,8 +7,10 @@ use super::diagnostic::{LintDiagnostic, Severity};
 use actor_vm::actor_vm_diagnostics;
 use complexity::{file_size_diagnostics, function_size_diagnostics, match_arm_size_diagnostics};
 use consistency::{
-    declaration_order_diagnostics, import_order_diagnostics, module_order_diagnostic,
-    named_atom_literal_diagnostics, single_module_diagnostics, std_module_path_diagnostics,
+    declaration_order_diagnostics, fix_receiver_capability_ownership, import_order_diagnostics,
+    module_order_diagnostic, named_atom_literal_diagnostics,
+    receiver_capability_ownership_diagnostics, single_module_diagnostics,
+    std_module_path_diagnostics,
 };
 use generated::{
     generated_lint_suppression_diagnostics, generated_skip_manifest_diagnostics,
@@ -66,14 +68,27 @@ const SEMICOLON_CHAIN_RULE_ID: &str = "TL0001";
 const SEMICOLON_CHAIN_RULE_NAME: &str = "readability.semicolon-chain";
 
 /// Applies only safe source-text fixes.
-pub(super) fn apply_safe_fixes(paths: &[PathBuf]) -> Result<(), SafeFixError> {
+pub(super) fn apply_safe_fixes(
+    paths: &[PathBuf],
+    only_rules: &[String],
+) -> Result<(), SafeFixError> {
     for path in paths {
         let source = fs::read_to_string(path).map_err(|source| SafeFixError {
             operation: "read",
             path: path.clone(),
             source,
         })?;
-        let fixed = fix_pipe_candidates(path, &fix_semicolon_chains(&source));
+        let fix_all = only_rules.is_empty();
+        let mut fixed = source.clone();
+        if fix_all || only_rules.iter().any(|rule| rule == "TL0001") {
+            fixed = fix_semicolon_chains(&fixed);
+        }
+        if fix_all || only_rules.iter().any(|rule| rule == "TL1002") {
+            fixed = fix_pipe_candidates(path, &fixed);
+        }
+        if fix_all || only_rules.iter().any(|rule| rule == "TL0507") {
+            fixed = fix_receiver_capability_ownership(path, &fixed);
+        }
         if fixed != source {
             fs::write(path, fixed).map_err(|source| SafeFixError {
                 operation: "write",
@@ -132,6 +147,7 @@ pub(super) fn lint_source(path: &Path, source: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(declaration_order_diagnostics(path, source));
     diagnostics.extend(std_module_path_diagnostics(path, source));
     diagnostics.extend(named_atom_literal_diagnostics(path, source));
+    diagnostics.extend(receiver_capability_ownership_diagnostics(path, source));
     diagnostics.extend(deep_expression_diagnostics(path, source));
     diagnostics.extend(grouped_binding_diagnostics(path, source));
     diagnostics.extend(function_reference_diagnostics(path, source));
@@ -170,6 +186,9 @@ pub(super) fn lint_source_only(path: &Path, source: &str, rule_id: &str) -> Vec<
     }
     if rule_id == "TL0010" {
         return function_reference_diagnostics(path, source);
+    }
+    if rule_id == "TL0507" {
+        return receiver_capability_ownership_diagnostics(path, source);
     }
     lint_source(path, source)
         .into_iter()

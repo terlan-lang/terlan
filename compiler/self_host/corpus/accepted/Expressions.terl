@@ -5,66 +5,90 @@ pub struct Person {
     age: Int,
 }.
 
-pub arithmetic() -> 1 + 2 * 3.
+pub arithmetic(): Dynamic ->
+    1 + 2 * 3.
 
-pub tuple_value() -> {1, 2, 3}.
+pub tuple_value(): Dynamic -> {1, 2, 3}.
 
-pub list_value() -> [1, 2, 3].
+pub list_value(): Dynamic -> [1, 2, 3].
 
-pub cons_value(tail) -> [1 | tail].
+pub cons_value(tail: Dynamic): Dynamic ->
+    [1 | tail].
 
-pub array_value() -> #[1, 2, 3].
+pub array_value(): Dynamic -> #[1, 2, 3].
 
-pub keyed_value() -> {name: "Ada", age: 42}.
+pub keyed_value(): Dynamic ->
+    {name: "Ada", age: 42}.
 
-pub nominal_value() -> Person{name: "Ada", age: 42}.
+pub nominal_value(): Dynamic ->
+    Person {name: "Ada", age: 42}.
 
-pub atom_value() -> Atom["ready"].
+pub atom_value(): Dynamic -> Atom["ready"].
 
-pub named_call() -> render(name = "Ada", age = 42).
+pub named_call(): Dynamic ->
+    render(name = "Ada", age = 42).
 
-pub method_call(value) -> value.render("compact").
+pub method_call(value: Dynamic): Dynamic ->
+    value.render("compact").
 
-pub dynamic_call(function) -> function(42).
+pub dynamic_call(function: Dynamic): Dynamic ->
+    function(42).
 
-pub record_access(person) -> person#Person.name.
+pub record_access(person: Dynamic): Dynamic ->
+    person#Person.name.
 
-pub record_update(person) -> person#Person{name = "Grace"}.
+pub record_update(person: Dynamic): Dynamic ->
+    person#Person{name: "Grace"}.
 
-pub constructor_chain() -> prepare() with finish().
+pub constructor_chain(): Dynamic ->
+    prepare() with finish().
 
-pub quoted(value) -> quote render(unquote(value)).
+pub quoted(value: Dynamic): Dynamic ->
+    quote render(unquote(value)).
 
-pub lambda_value() -> (value) -> value.
+pub lambda_value(): Dynamic ->
+    (value) -> value.
 
-pub comprehension(values) -> [value * 2 | value <- values, value > 0].
+pub comprehension(values: Dynamic): Dynamic ->
+    [value * 2 | value <- values, value > 0].
 
-pub conditional(value) -> if {
-    value > 0 -> value;
-    true -> 0
-}.
+pub conditional(value: Dynamic): Dynamic ->
+    if {
+        value > 0 -> value;
+        true -> 0
+    }.
 
-pub case_value(value) -> case value {
-    0 -> "zero";
-    _ -> "other"
-}.
+pub case_value(value: Dynamic): Dynamic ->
+    case value {
+        0 -> "zero";
+        _ -> "other"
+    }.
 
-pub try_value(value) -> try value {
-    result -> result
-    catch reason -> reason
-    after 0 -> Unit
-}.
+pub try_value(value: Dynamic): Dynamic ->
+    try value {
+        result -> result
+        catch reason -> reason
+        after 0 -> Unit
+    }.
 
-pub let_value(value) ->
+pub let_value(value: Dynamic): Dynamic ->
     let doubled = value * 2;
     doubled.
 
-pub refutable(value) ->
-    let Some(inner) <- value else {
+pub refutable(value: Dynamic): Dynamic ->
+    if {
+        Some(inner) <- value
+    } else {
         None -> 0
     };
     inner.
 
-pub html_value() -> html {<article data-kind="example">Terlan</article>}.
+pub html_value(): Dynamic ->
+    html {
+        <article data-kind="example">
+            Terlan
+        </article>
+    }.
 
-pub raw_macro_value() -> sql{select * from examples where active = true}.
+pub raw_macro_value(): Dynamic ->
+    sql {select * from examples where active = true}.

@@ -20,7 +20,7 @@ path(root: String, name: String): String ->
 
 wrapper(root: String, tool: String, vm: String, image: String): Bool ->
     let output = path(root, String.append("bin/", tool));
-    let {
+    if {
         Ok(_unit) <-
             File.write_text(
                 output,
@@ -62,7 +62,7 @@ scenario(
             Some(value) -> value;
             _ -> "/usr/bin:/bin"
         };
-    let {
+    if {
         Ok(_created) <- Directory.create_all(path(root, "bin"));
         true <- wrapper(root, "git", vm, image);
         true <- wrapper(root, "gh", vm, image);

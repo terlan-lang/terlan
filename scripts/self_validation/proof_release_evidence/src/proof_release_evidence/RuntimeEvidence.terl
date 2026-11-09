@@ -22,7 +22,7 @@ find_repro(values: List[Repro], family: String): Option[Repro] ->
     }.
 
 pub replay_json(config: Json, repros: List[Repro]): Option[Json] ->
-    let {
+    if {
         Some(values) <- Support.json_member(config, "replay_families");
         Some(families) <- Support.json_array_strings(values)
     } else {

@@ -81,7 +81,9 @@ calls(index: Int, count: Int, accumulated: String): String ->
     }.
 
 pub generate(root: String, count: Int, width: Int, records: Bool): Bool ->
-    let Ok(_) <- create_all(String.append(root, "/src/app")) else {
+    if {
+        Ok(_) <- create_all(String.append(root, "/src/app"))
+    } else {
         _ -> false
     };
     (let manifest = "[package]\nname = \"app\"\nversion = \"0.0.1\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n";

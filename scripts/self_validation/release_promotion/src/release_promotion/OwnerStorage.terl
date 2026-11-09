@@ -36,7 +36,7 @@ safe_bytes(value: String, index: Int): Bool ->
     }.
 
 pub text(value: Json, key: String): Option[String] ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(source) <- field.as_string()
     } else {
@@ -45,7 +45,7 @@ pub text(value: Json, key: String): Option[String] ->
     Some(source).
 
 pub read_json(path: String): Result[Json, String] ->
-    let {
+    if {
         Ok(size) <- File.size(path);
         true <- size <= 16_777_216
     } else {
@@ -81,7 +81,9 @@ file_row(root: String, path: String, optional: Bool): Result[Json, String] ->
                 true -> Err(String.append("cannot hash owner input: ", path))
             };
         Ok(digest) ->
-            let Ok(size) <- File.size(child(root, path)) else {
+            if {
+                Ok(size) <- File.size(child(root, path))
+            } else {
                 _ -> Err(String.append("cannot size owner input: ", path))
             };
             Ok(row.put("sha256", Json.string(digest)).put("size_bytes", Json.int(size)))
@@ -97,7 +99,7 @@ files_at(
     case paths {
         [] -> Ok(rows);
         [path | rest] ->
-            let {
+            if {
                 true <- remaining > 0;
                 Ok(row) <- file_row(root, path, optional)
             } else {
@@ -131,7 +133,7 @@ pub command(root: String, program: String, args: List[String]): Bool ->
  */
 pub atomic_json(root: String, path: String, value: Json): Bool ->
     let pending = String.append(path, ".pending");
-    let {
+    if {
         Ok(source) <- Json.stringify_pretty(value);
         true <- source.byte_size() < 16_777_216;
         Ok(_written) <- File.write_text(child(root, pending), String.append(source, "\n"))

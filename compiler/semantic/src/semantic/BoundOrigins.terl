@@ -36,7 +36,7 @@ local(
                 message = "Local bound origin selection exhausted its checked-record inspection budget.",
             ),
         );
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -50,14 +50,16 @@ local(
         };
         if {
             EntityLookup.text(payload, "kind") == "trait"
-                and EntityLookup.text(payload, "name") == name -> let Ok(entity) <-
-                DeclarationEntities.entity(
-                    selection.artifact,
-                    EntityLookup.module_name(selection.artifact),
-                    EntityLookup.text(selection.entity, "snapshot_id"),
-                    Hash.sha256(Json.to_string(selection.artifact)),
-                    row,
-                ) else {
+                and EntityLookup.text(payload, "name") == name -> if {
+                Ok(entity) <-
+                    DeclarationEntities.entity(
+                        selection.artifact,
+                        EntityLookup.module_name(selection.artifact),
+                        EntityLookup.text(selection.entity, "snapshot_id"),
+                        Hash.sha256(Json.to_string(selection.artifact)),
+                        row,
+                    )
+            } else {
                 Err(reason) -> Err(reason)
             };
             Ok(Found(found = true, entity = entity, binding = Json.null(), used = used + 1));
@@ -66,12 +68,14 @@ local(
     }.
 
 origin(selection: Selection, name: String, used: Int, maximum: Int): Result[Found, Failure] ->
-    let Ok(imported) <- ImportOrigins.resolve_kind(selection, name, "trait", "trait", used, maximum) else {
+    if {
+        Ok(imported) <- ImportOrigins.resolve_kind(selection, name, "trait", "trait", used, maximum)
+    } else {
         Err(reason) -> Err(reason)
     };
     if {
         imported.found or not imported.binding.is_null() -> Ok(imported);
-        true -> let {
+        true -> if {
             Ok(rows) <- selection.artifact.get("source_declarations");
             Ok(count) <- rows.length()
         } else {
@@ -103,7 +107,9 @@ scan(
                 message = "Bound origin traversal exhausted its checked-record inspection budget.",
             ),
         );
-        true -> let Ok(bound) <- bounds.at(index) else {
+        true -> if {
+            Ok(bound) <- bounds.at(index)
+        } else {
             _ ->
                 Err(
                     Failure(code = "semantic.query.artifact", message = "Checked bound is missing."),
@@ -112,7 +118,9 @@ scan(
         if {
             EntityLookup.text(bound, "kind") != "trait" -> scan(selection, bounds, index + 1, count, output, used + 1, maximum);
             true -> let name = EntityLookup.text(bound, "trait_name");
-            let Ok(found) <- origin(selection, name, used + 1, maximum) else {
+            if {
+                Ok(found) <- origin(selection, name, used + 1, maximum)
+            } else {
                 Err(reason) -> Err(reason)
             };
             (let status =
@@ -144,7 +152,7 @@ pub resolve(
     used: Int,
     maximum: Int,
 ): Result[Selected, Failure] ->
-    let {
+    if {
         Ok(bounds) <- requirement.get("bounds");
         Ok(count) <- bounds.length()
     } else {

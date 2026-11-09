@@ -87,10 +87,10 @@ pub type Comparison = Lt | Eq | Gt.
  * module comparison_compare_example.
  *
  * pub demo(): Comparison ->
- *    std.core.Ordering.compare(Lt, Gt).
+ *    Lt.compare(Gt).
  * ```
  */
-pub compare(left: Comparison, right: Comparison): Comparison ->
+pub (left: Comparison) compare(right: Comparison): Comparison ->
     case left == right {
         true -> Eq;
         false ->
@@ -118,10 +118,10 @@ pub compare(left: Comparison, right: Comparison): Comparison ->
  * module comparison_to_string_example.
  *
  * pub demo(): String ->
- *    std.core.Ordering.to_string(Lt).
+ *    Lt.to_string().
  * ```
  */
-pub to_string(value: Comparison): String ->
+pub (value: Comparison) to_string(): String ->
     case value {
         Lt -> "lt";
         Eq -> "eq";

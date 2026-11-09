@@ -14,7 +14,7 @@ write(root: String, path: String, contents: String): Bool ->
     }.
 
 pub fixture(root: String): Bool ->
-    let {
+    if {
         Ok(_proofs) <- Directory.create_all(OwnerStorage.child(root, "proofs/lean/ci"));
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         true <- write(root, ".gitignore", "/target/\n");
@@ -66,7 +66,7 @@ exercise(root: String): Bool ->
             "target/quality/proof-artifacts/lean-proof-track.json",
             "target/quality/proof-artifacts/lean-proof-baseline.tsv",
         ];
-    let {
+    if {
         true <- stage(root, true, false);
         true <- stage(root, true, true);
         true <- calls(root, "run\n");
@@ -94,7 +94,7 @@ exercise(root: String): Bool ->
     }.
 
 parent_recovery(root: String): Bool ->
-    let {
+    if {
         Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         true <- write(root, "target/quality/proof-artifacts", "blocked parent");
         true <- stage(root, false, false);
@@ -108,7 +108,9 @@ parent_recovery(root: String): Bool ->
     calls(root, "run\n").
 
 scenario(recover_parent: Bool): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-proof-track-owner-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-proof-track-owner-")
+    } else {
         _ -> false
     };
     (let valid =

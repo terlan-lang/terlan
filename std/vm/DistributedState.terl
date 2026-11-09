@@ -187,7 +187,7 @@ pub (store: Store) get(scope: Scope): Entry.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub conflict(outcome: Outcome): Conflict.
+pub (outcome: Outcome) conflict(): Conflict.
 
 /**
  * Exports a deterministic checkpoint snapshot.
@@ -210,7 +210,7 @@ pub (store: Store) export_snapshot(): Snapshot.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub restore(snapshot: Snapshot): Store.
+pub (snapshot: Snapshot) restore(): Store.
 
 /**
  * Returns the textual write outcome kind.
@@ -222,32 +222,32 @@ pub restore(snapshot: Snapshot): Store.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub kind(outcome: Outcome): String.
+pub (outcome: Outcome) kind(): String.
 
 /**
  * Returns the owner node recorded in an immutable entry view.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub entry_owner(entry: Entry): String.
+pub (entry: Entry) entry_owner(): String.
 
 /**
  * Returns the write sequence recorded in an immutable entry view.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub entry_sequence(entry: Entry): Int.
+pub (entry: Entry) entry_sequence(): Int.
 
 /**
  * Returns the existing write sequence captured when a conflict occurred.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub conflict_local_sequence(conflict: Conflict): Int.
+pub (conflict: Conflict) conflict_local_sequence(): Int.
 
 /**
  * Returns the rejected write sequence captured when a conflict occurred.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub conflict_incoming_sequence(conflict: Conflict): Int.
+pub (conflict: Conflict) conflict_incoming_sequence(): Int.

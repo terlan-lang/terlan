@@ -194,7 +194,7 @@ validation_rejects(report: String, declarations: String): Bool ->
 
 @test
 pub generated_value_contract_is_valid(): Bool ->
-    let {
+    if {
         Ok(report) <- read_text("target/quality/accelerator-value-contract.json");
         Ok(declarations) <- read_text("target/quality/generated/AcceleratorValue.terl")
     } else {

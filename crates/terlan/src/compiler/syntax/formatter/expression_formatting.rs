@@ -489,7 +489,9 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
             )
         }),
         Expr::Case { scrutinee, clauses } => {
-            if let Some(grouped) = super::grouped_cases::format_as_grouped_let(expr, indent) {
+            if let Some(grouped) =
+                super::grouped_cases::format_as_grouped_refutable_if(expr, indent)
+            {
                 return grouped;
             }
             let mut out = String::new();

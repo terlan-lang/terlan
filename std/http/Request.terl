@@ -93,10 +93,12 @@ last_value(pairs: List[{String, String}], name: String, initial: Option[String])
         pairs,
         initial,
         (found: Option[String], pair: {String, String}) ->
-            let {key, value} = pair;
-            if {
-                key == name -> Some(value);
-                true -> found
+            case pair {
+                {key, value} ->
+                    if {
+                        key == name -> Some(value);
+                        true -> found
+                    }
             },
     ).
 

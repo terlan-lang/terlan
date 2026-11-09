@@ -20,7 +20,7 @@ struct Context {
 }.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -29,7 +29,7 @@ text(value: Json, key: String): String ->
     result.
 
 pub position(origin: Json, value: Json): Json ->
-    let {
+    if {
         Ok(span) <- value.get("span");
         {Ok(start), Ok(end)} <- {span.get("start"), span.get("end")}
     } else {
@@ -51,7 +51,7 @@ pattern_fields(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(field) <- rows.at(index);
             Ok(value) <- field.get("value")
         } else {
@@ -73,7 +73,9 @@ patterns(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let Ok(value) <- rows.at(index) else {
+        true -> if {
+            Ok(value) <- rows.at(index)
+        } else {
             _ -> false
         };
         pattern(output, context, origin, path + "/" + Json.to_string(Json.int(index)), value)
@@ -111,7 +113,7 @@ pub entity(
         .put("expanded_from", Json.array()).
 
 pattern(mut output: Json, context: Context, origin: Json, path: String, value: Json): Bool ->
-    let {
+    if {
         Ok(children) <- value.get("children");
         Ok(child_count) <- children.length();
         Ok(fields) <- value.get("fields");
@@ -120,7 +122,9 @@ pattern(mut output: Json, context: Context, origin: Json, path: String, value: J
         _ -> false
     };
     (let kind = text(value, "kind");
-(let true <- kind != "" else {
+(if {
+    true <- kind != ""
+} else {
     _ -> false
 };
 (let _pattern =
@@ -142,7 +146,9 @@ walk_array(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let Ok(value) <- rows.at(index) else {
+        true -> if {
+            Ok(value) <- rows.at(index)
+        } else {
             _ -> false
         };
         walk(output, context, origin, path + "/" + Json.to_string(Json.int(index)), value)
@@ -160,7 +166,9 @@ walk_object(
     case keys {
         [] -> true;
         [key | rest] ->
-            let Ok(field) <- value.get(key) else {
+            if {
+                Ok(field) <- value.get(key)
+            } else {
                 _ -> false
             };
             (let child_path = path + "/" + key;
@@ -189,7 +197,7 @@ walk(mut output: Json, context: Context, origin: Json, path: String, value: Json
 materialize(mut output: Json, context: Context, rows: Json, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(origin) <- row.get("origin");
             Ok(value) <- row.get("value");
@@ -238,7 +246,7 @@ collect_declaration(
                 .put("path", Json.string(text(artifact, "source_name")))
                 .put("start_byte", Json.int(0))
                 .put("end_byte", Json.int(0));
-        let {
+        if {
             true <- walk(raw, context, position(origin, row), "", payload);
             Ok(count) <- raw.length()
         } else {
@@ -246,7 +254,9 @@ collect_declaration(
         };
         if {
             count == 0 -> true;
-            true -> let Ok(owner) <- DeclarationEntities.identity(artifact, module_name, payload) else {
+            true -> if {
+                Ok(owner) <- DeclarationEntities.identity(artifact, module_name, payload)
+            } else {
                 _ -> false
             };
             materialize(
@@ -276,7 +286,7 @@ declarations(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -292,7 +302,9 @@ visited
  * retain the nearest compiler span; no token precision or coverage is inferred.
  */
 pub index(store: String, snapshot: String): Result[Json, Failure] ->
-    let Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot) else {
+    if {
+        Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot)
+    } else {
         Err(reason) -> Err(reason)
     };
     from_artifact(artifact, snapshot).
@@ -301,7 +313,9 @@ pub index(store: String, snapshot: String): Result[Json, Failure] ->
  * Projects one already admitted compiler unit without rereading the store.
  */
 pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
-    let true <- text(artifact, "status") == "checked" else {
+    if {
+        true <- text(artifact, "status") == "checked"
+    } else {
         _ ->
             Err(
                 Failure(
@@ -310,7 +324,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
                 ),
             )
     };
-    (let {
+    (if {
     Ok(core) <- artifact.get("core");
     Ok(rows) <- artifact.get("source_declarations");
     Ok(count) <- rows.length()
@@ -324,17 +338,19 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
         )
 };
 (let output = Json.array();
-(let true <-
-    declarations(
-        output,
-        artifact,
-        text(core, "module"),
-        snapshot,
-        Hash.sha256(Json.to_string(artifact)),
-        rows,
-        0,
-        count,
-    ) else {
+(if {
+    true <-
+        declarations(
+            output,
+            artifact,
+            text(core, "module"),
+            snapshot,
+            Hash.sha256(Json.to_string(artifact)),
+            rows,
+            0,
+            count,
+        )
+} else {
     _ ->
         Err(
             Failure(

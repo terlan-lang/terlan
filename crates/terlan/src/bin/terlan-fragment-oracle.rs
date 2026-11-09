@@ -55,6 +55,7 @@ fn normalized_kind(kind: LalrpopSyntaxNodeKind) -> &'static str {
         Quote => "quote",
         Unquote => "unquote",
         Let => "let",
+        Refutable => "refutable",
         Case => "case",
         Try => "try",
         If => "if",

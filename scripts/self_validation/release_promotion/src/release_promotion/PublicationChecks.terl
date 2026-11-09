@@ -51,7 +51,7 @@ remote_asset(name: String, digest: String): Json ->
         .put("digest", Json.string(digest)).
 
 write_json(path: String, value: Json): Bool ->
-    let {
+    if {
         Ok(source) <- Json.stringify(value);
         Ok(_written) <- File.write_text(path, source)
     } else {
@@ -100,7 +100,7 @@ prepare(root: String, mode: String): Bool ->
             .put("databaseId", Json.int(42))
             .put("isDraft", Json.bool(mode != "public-mismatch" and mode != "public-matching"))
             .put("body", Json.string("Human-written release announcement.\n"));
-    let {
+    if {
         Ok(_scripts) <- Directory.create_all(child(root, "scripts"));
         Ok(_git_common) <- Directory.create_all(child(root, "git-common"));
         Ok(_bin) <- Directory.create_all(child(root, "bin"));
@@ -139,7 +139,7 @@ exercise(root: String, mode: String, status: Int, calls: String): Bool ->
     prepare(root, mode) and invoke(root, mode, status, calls).
 
 invoke(root: String, mode: String, status: Int, calls: String): Bool ->
-    let {
+    if {
         Some(path) <- Environment.get("PATH");
         Ok(output) <-
             Process.run(
@@ -171,7 +171,9 @@ invoke(root: String, mode: String, status: Int, calls: String): Bool ->
 
 curated_notes(root: String, mode: String, status: Int): Bool ->
     if {
-        status == 0 and mode != "public-matching" -> let Ok(notes) <- File.read_text(child(root, "rendered-notes.md")) else {
+        status == 0 and mode != "public-matching" -> if {
+            Ok(notes) <- File.read_text(child(root, "rendered-notes.md"))
+        } else {
             _ -> false
         };
         notes == "\nRelease fixture.\n";
@@ -179,11 +181,15 @@ curated_notes(root: String, mode: String, status: Int): Bool ->
     }.
 
 scenario(mode: String, status: Int, calls: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-publication-retry-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-publication-retry-")
+    } else {
         _ -> false
     };
     (let passed = exercise(root, mode, status, calls);
-(let Ok(_removed) <- Directory.remove_all(root) else {
+(if {
+    Ok(_removed) <- Directory.remove_all(root)
+} else {
     _ -> false
 };
 passed)).
@@ -201,7 +207,7 @@ public_release_mismatch_is_never_mutated(): Bool ->
     scenario("public-mismatch", 1, "plan\n").
 
 draft_state(root: String, expected: Bool): Bool ->
-    let {
+    if {
         Ok(source) <- File.read_text(child(root, "release.json"));
         Ok(release) <- Json.parse(source);
         Ok(draft) <- Json.get(release, "isDraft");
@@ -212,7 +218,7 @@ draft_state(root: String, expected: Bool): Bool ->
     actual == expected.
 
 interrupted_upload_retry(root: String): Bool ->
-    let {
+    if {
         true <- prepare(root, "interrupted-upload");
         true <- invoke(root, "interrupted-upload", 27, "plan\nupload\n");
         true <- draft_state(root, true);
@@ -232,7 +238,9 @@ unknown_publication_retry(root: String): Bool ->
         and not File.exists(child(root, "uploaded-names")).
 
 retry_scenario(upload: Bool): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-publication-resume-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-publication-resume-")
+    } else {
         _ -> false
     };
     (let passed =
@@ -240,7 +248,9 @@ retry_scenario(upload: Bool): Bool ->
         upload -> interrupted_upload_retry(root);
         true -> unknown_publication_retry(root)
     };
-(let Ok(_removed) <- Directory.remove_all(root) else {
+(if {
+    Ok(_removed) <- Directory.remove_all(root)
+} else {
     _ -> false
 };
 passed)).
@@ -268,7 +278,9 @@ write_cache(root: String, names: List[String]): Bool ->
     case names {
         [] -> true;
         [name | rest] ->
-            let Ok(_written) <- File.write_text(child(root, name), "cached") else {
+            if {
+                Ok(_written) <- File.write_text(child(root, name), "cached")
+            } else {
                 _ -> false
             };
             write_cache(root, rest)
@@ -285,7 +297,9 @@ has_retired_candidate(paths: List[String]): Bool ->
         [] -> false;
         [path | rest] ->
             if {
-                String.ends_with(path, "/release-candidate.json") -> let Ok(contents) <- File.read_text(path) else {
+                String.ends_with(path, "/release-candidate.json") -> if {
+                    Ok(contents) <- File.read_text(path)
+                } else {
                     _ -> false
                 };
                 contents == "a";
@@ -308,7 +322,7 @@ exercise_cache(root: String, corrupt: Bool): Bool ->
             "SHA256SUMS",
             "terlan-install-manifest.json",
         ];
-    let {
+    if {
         true <- prepare(root, "matching");
         Ok(_created) <- Directory.create_all(cache);
         true <- write_cache(cache, names);
@@ -364,11 +378,15 @@ exercise_cache(root: String, corrupt: Bool): Bool ->
     }.
 
 cache_scenario(corrupt: Bool): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-publication-cache-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-publication-cache-")
+    } else {
         _ -> false
     };
     (let passed = exercise_cache(root, corrupt);
-(let Ok(_removed) <- Directory.remove_all(root) else {
+(if {
+    Ok(_removed) <- Directory.remove_all(root)
+} else {
     _ -> false
 };
 passed)).

@@ -234,7 +234,7 @@ pub command(program: String): Command ->
 /**
  * Replaces the ordered child argument vector.
  */
-pub with_arguments(command: Command, arguments: List[String]): Command ->
+pub (command: Command) with_arguments(arguments: List[String]): Command ->
     Command(
         program = command.program,
         arguments = arguments,
@@ -249,7 +249,7 @@ pub with_arguments(command: Command, arguments: List[String]): Command ->
 /**
  * Selects the child working directory.
  */
-pub with_working_directory(command: Command, path: String): Command ->
+pub (command: Command) with_working_directory(path: String): Command ->
     Command(
         program = command.program,
         arguments = command.arguments,
@@ -264,7 +264,7 @@ pub with_working_directory(command: Command, path: String): Command ->
 /**
  * Replaces the environment overlay without clearing inherited variables.
  */
-pub with_environment(command: Command, environment: List[EnvironmentEntry]): Command ->
+pub (command: Command) with_environment(environment: List[EnvironmentEntry]): Command ->
     Command(
         program = command.program,
         arguments = command.arguments,
@@ -281,7 +281,7 @@ pub with_environment(command: Command, environment: List[EnvironmentEntry]): Com
  * Entries supplied by `with_environment` are applied afterward and therefore
  * remain authoritative when the same key appears in both lists.
  */
-pub without_environment(command: Command, keys: List[String]): Command ->
+pub (command: Command) without_environment(keys: List[String]): Command ->
     Command(
         program = command.program,
         arguments = command.arguments,
@@ -296,7 +296,7 @@ pub without_environment(command: Command, keys: List[String]): Command ->
 /**
  * Supplies bounded UTF-8 standard input.
  */
-pub with_stdin(command: Command, stdin: String): Command ->
+pub (command: Command) with_stdin(stdin: String): Command ->
     Command(
         program = command.program,
         arguments = command.arguments,
@@ -311,7 +311,7 @@ pub with_stdin(command: Command, stdin: String): Command ->
 /**
  * Selects a wall-clock timeout from 1 through `maximum_timeout_ms(limits())`.
  */
-pub with_timeout_ms(command: Command, timeout_ms: Int): Command ->
+pub (command: Command) with_timeout_ms(timeout_ms: Int): Command ->
     Command(
         program = command.program,
         arguments = command.arguments,
@@ -326,7 +326,7 @@ pub with_timeout_ms(command: Command, timeout_ms: Int): Command ->
 /**
  * Selects a capture bound from 1 through `maximum_output_bytes(limits())`.
  */
-pub with_output_limit_bytes(command: Command, limit: Int): Command ->
+pub (command: Command) with_output_limit_bytes(limit: Int): Command ->
     Command(
         program = command.program,
         arguments = command.arguments,
@@ -348,7 +348,7 @@ pub with_output_limit_bytes(command: Command, limit: Int): Command ->
  * beyond the deadline; terminating that peer is not guaranteed by this API.
  */
 @compiler.intrinsic
-pub run(command: Command): Result[Output, ProcessError] ->
+pub (command: Command) run(): Result[Output, ProcessError] ->
     Err(
         ProcessError(
             code = InvalidRequest,
@@ -372,7 +372,7 @@ pub batch(commands: List[Command], max_concurrency: Int): BatchRequest ->
  * Executes one nominal bounded batch request through the VM capability.
  */
 @compiler.intrinsic
-pub run_many(request: BatchRequest): Result[BatchOutput, ProcessError] ->
+pub (request: BatchRequest) run_many(): Result[BatchOutput, ProcessError] ->
     Err(
         ProcessError(
             code = InvalidRequest,
@@ -395,18 +395,14 @@ pub exchange(input: String, expected_frames: Int): FramedExchange ->
  * after the last exchange. `length_header` names the case-insensitive decimal
  * byte-length header; header blocks use CRLF and terminate with an empty line.
  */
-pub length_framed(
-    command: Command,
-    exchanges: List[FramedExchange],
-    length_header: String,
-): FramedRequest ->
+pub (command: Command) length_framed(exchanges: List[FramedExchange], length_header: String): FramedRequest ->
     FramedRequest(command = command, exchanges = exchanges, length_header = length_header).
 
 /**
  * Executes one VM-owned phased length-framed child session.
  */
 @compiler.intrinsic
-pub run_length_framed(request: FramedRequest): Result[FramedOutput, ProcessError] ->
+pub (request: FramedRequest) run_length_framed(): Result[FramedOutput, ProcessError] ->
     Err(
         ProcessError(
             code = InvalidRequest,

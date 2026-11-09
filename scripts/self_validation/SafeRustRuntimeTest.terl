@@ -37,7 +37,7 @@ cargo_bin_paths(lines: List[String], in_bin: Bool, root: String): List[String] -
             if {
                 compact == "[[bin]]" -> cargo_bin_paths(rest, true, root);
                 String.starts_with(compact, "[") -> cargo_bin_paths(rest, false, root);
-                in_bin and String.starts_with(compact, "path=") -> let {
+                in_bin and String.starts_with(compact, "path=") -> if {
                     Some({_, after_open}) <- String.split_once(line, "\"");
                     Some({path, _}) <- String.split_once(after_open, "\"")
                 } else {

@@ -769,6 +769,10 @@
           "named": true
         },
         {
+          "type": "refutable_expression",
+          "named": true
+        },
+        {
           "type": "string",
           "named": true
         },
@@ -1288,12 +1292,12 @@
     "type": "let_binding",
     "named": true,
     "fields": {
-      "pattern": {
+      "name": {
         "multiple": false,
         "required": true,
         "types": [
           {
-            "type": "pattern",
+            "type": "identifier",
             "named": true
           }
         ]
@@ -1324,10 +1328,6 @@
         },
         {
           "type": "let_binding",
-          "named": true
-        },
-        {
-          "type": "refutable_let_expression",
           "named": true
         }
       ]
@@ -1773,7 +1773,7 @@
     }
   },
   {
-    "type": "refutable_let_binding",
+    "type": "refutable_binding",
     "named": true,
     "fields": {
       "pattern": {
@@ -1799,7 +1799,7 @@
     }
   },
   {
-    "type": "refutable_let_expression",
+    "type": "refutable_expression",
     "named": true,
     "fields": {
       "binding": {
@@ -1807,7 +1807,7 @@
         "required": true,
         "types": [
           {
-            "type": "refutable_let_binding",
+            "type": "refutable_binding",
             "named": true
           }
         ]
@@ -1825,7 +1825,7 @@
     },
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "case_arm",

@@ -13,7 +13,7 @@ import std.vcs.Git.
 import type std.data.Json.
 
 pub fixture(root: String): Bool ->
-    let {
+    if {
         Ok(_source) <- Directory.create_all(OwnerStorage.child(root, "crates/terlan/src"));
         Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         Ok(_ignore) <- File.write_text(OwnerStorage.child(root, ".gitignore"), "/target/\n");
@@ -57,7 +57,9 @@ stage(root: String, label: String): Bool ->
     PrepareManagedList.run_locked(root).
 
 count(root: String, expected: String): Bool ->
-    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls")) else {
+    if {
+        Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
         _ -> false
     };
     actual == expected.
@@ -67,7 +69,7 @@ count(root: String, expected: String): Bool ->
  * Failed attempt logs remain evidence alongside the later successful receipt.
  */
 checkpoint(root: String, outcome: String): Bool ->
-    let {
+    if {
         Ok(identity) <- Git.source_tree_identity(root);
         Ok(ledger) <-
             OwnerStorage.read_json(
@@ -101,7 +103,7 @@ checkpoint(root: String, outcome: String): Bool ->
             },
         ],
     );
-(let {
+(if {
     Ok(expected) <-
         ledger
             .get(
@@ -135,7 +137,7 @@ expected_hash == actual_hash
 })).
 
 successful_launch(ledger: Json): Bool ->
-    let {
+    if {
         Ok(launch) <- ledger.get("subprocess");
         Some("cargo") <- OwnerStorage.text(launch, "program");
         Ok(status) <- launch.get("exit_status");
@@ -147,7 +149,7 @@ successful_launch(ledger: Json): Bool ->
 
 tampered_evidence_is_rejected(root: String): Bool ->
     let report = OwnerStorage.child(root, "target/quality/tvm-managed-list-profile.json");
-    let {
+    if {
         Ok(identity) <- Git.source_tree_identity(root);
         Ok(original) <- File.read_text(report);
         Ok(_changed) <- File.write_text(report, "{}\n");
@@ -163,7 +165,7 @@ tampered_evidence_is_rejected(root: String): Bool ->
             ["target/quality/preparation/", identity.revision, "/managed-list-profile.native.jsonl"],
         ),
     );
-(let {
+(if {
     Ok(original_native) <- File.read_text(native);
     Ok(_changed_native) <- File.write_text(native, "corrupt native inventory\n");
     false <- checkpoint(root, "pass");
@@ -174,7 +176,7 @@ tampered_evidence_is_rejected(root: String): Bool ->
 checkpoint(root, "pass") and count(root, "run\nrun\nrun\nrun\n"))).
 
 exercise(root: String): Bool ->
-    let {
+    if {
         true <- fixture(root);
         true <- stage(root, "[preparation rehearsal] cold execution");
         true <- count(root, "run\n");
@@ -214,7 +216,9 @@ exercise(root: String): Bool ->
     checkpoint(root, "pass") and tampered_evidence_is_rejected(root).
 
 pub self_test(): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-preparation-candidate-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-preparation-candidate-")
+    } else {
         _ -> false
     };
     (let valid = exercise(root);

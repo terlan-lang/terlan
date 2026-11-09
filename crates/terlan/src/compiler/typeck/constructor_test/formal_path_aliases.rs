@@ -12,8 +12,7 @@ fields(value: Viewport): {Float, Extent, Scale} -> value.
 pub make(extent: Extent, scale: Scale): Viewport ->
     Viewport({1.0, extent, scale}).
 pub width(value: Viewport): Float ->
-    let {width, _extent, _scale} = fields(value);
-    width.
+    case fields(value) { {width, _extent, _scale} -> width }.
 "#,
     );
     assert!(diagnostics.is_empty(), "{diagnostics:?}");

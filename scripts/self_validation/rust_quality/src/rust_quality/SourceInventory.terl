@@ -180,7 +180,7 @@ package_roots_at(
 ): Option[List[String]] ->
     if {
         index == count -> Some(reverse(output));
-        true -> let {
+        true -> if {
             Ok(package) <- Json.at(packages, index);
             Ok(manifest_value) <- Json.get(package, "manifest_path");
             Ok(manifest) <- Json.as_string(manifest_value);
@@ -193,7 +193,7 @@ package_roots_at(
 
 workspace_roots(root: String): Option[List[String]] ->
     let metadata = CargoMetadata.load_precomputed(root);
-    let {
+    if {
         true <- metadata.valid;
         Some(packages) <- CargoMetadata.workspace_packages(metadata.document);
         Ok(count) <- Json.length(packages)
@@ -479,7 +479,7 @@ load_paths(root: String, paths: List[String], output: List[RustSource]): SourceL
     }.
 
 pub discover(root: String): SourceDiscovery ->
-    let {
+    if {
         Some(packages) <- workspace_roots(root);
         Some(paths) <- workspace_paths(root, packages)
     } else {

@@ -1213,6 +1213,7 @@ Expression: LalrpopSyntaxNode = {
 
 AssignmentExpression: LalrpopSyntaxNode = {
     LambdaExpression,
+    RefutableExpression,
     LetExpression,
     NonLetAssignmentExpression,
 };
@@ -1256,27 +1257,30 @@ LambdaPattern: LalrpopSyntaxNode = {
 };
 
 LetExpression: LalrpopSyntaxNode = {
-    <start:@L> "let" <binding:RefutableLetBinding>
-        "else" "{" <first_fallback:CaseClause>
-        <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
+    <start:@L> "let" <pattern:BindingPattern> "=" <value:AssignmentExpression>
+        ";" <body:AssignmentExpression> <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Let,
+            start,
+            end,
+            None,
+            vec![pattern, value, body],
+        ),
+};
+
+RefutableExpression: LalrpopSyntaxNode = {
+    <start:@L> <binding:RefutableBinding> ";"
         <body:AssignmentExpression> <end:@R>
-        => {
-            let mut children = Vec::with_capacity(3 + fallbacks.len());
-            children.push(binding);
-            children.push(first_fallback);
-            children.extend(fallbacks);
-            children.push(body);
-            LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Let,
-                start,
-                end,
-                Some("refutable_group".to_string()),
-                children,
-            )
-        },
-    <start:@L> "let" "{"
-        <first:RefutableLetBinding>
-        <rest:(";" <RefutableLetBinding>)*> "closing-semicolon"?
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Refutable,
+            start,
+            end,
+            None,
+            vec![binding, body],
+        ),
+    <start:@L> "refutable-if-{"
+        <first:RefutableBinding>
+        <rest:(";" <RefutableBinding>)*> "closing-semicolon"?
         "}" "else" "{" <first_fallback:CaseClause>
         <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
         <body:AssignmentExpression> <end:@R>
@@ -1289,22 +1293,13 @@ LetExpression: LalrpopSyntaxNode = {
             children.extend(fallbacks);
             children.push(body);
             LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Let,
+                LalrpopSyntaxNodeKind::Refutable,
                 start,
                 end,
-                Some("refutable_group".to_string()),
+                None,
                 children,
             )
         },
-    <start:@L> "let" <pattern:Pattern> "=" <value:AssignmentExpression>
-        ";" <body:AssignmentExpression> <end:@R>
-        => LalrpopSyntaxNode::branch(
-            LalrpopSyntaxNodeKind::Let,
-            start,
-            end,
-            None,
-            vec![pattern, value, body],
-        ),
 };
 
 NonLetAssignmentExpression: LalrpopSyntaxNode = {
@@ -1339,7 +1334,7 @@ QuoteExpression: LalrpopSyntaxNode = {
 };
 
 LambdaBody: LalrpopSyntaxNode = {
-    LambdaRefutableLetExpression,
+    LambdaRefutableExpression,
     LambdaLeadingLetExpression,
     LambdaExpression,
     QuoteExpression,
@@ -1347,28 +1342,19 @@ LambdaBody: LalrpopSyntaxNode = {
     LambdaConstructorBody,
 };
 
-LambdaRefutableLetExpression: LalrpopSyntaxNode = {
-    <start:@L> "let" <binding:RefutableLetBinding>
-        "else" "{" <first_fallback:CaseClause>
-        <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
+LambdaRefutableExpression: LalrpopSyntaxNode = {
+    <start:@L> <binding:RefutableBinding> ";"
         <body:LambdaLeadingLetBody> <end:@R>
-        => {
-            let mut children = Vec::with_capacity(3 + fallbacks.len());
-            children.push(binding);
-            children.push(first_fallback);
-            children.extend(fallbacks);
-            children.push(body);
-            LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Let,
-                start,
-                end,
-                Some("refutable_group".to_string()),
-                children,
-            )
-        },
-    <start:@L> "let" "{"
-        <first:RefutableLetBinding>
-        <rest:(";" <RefutableLetBinding>)*> "closing-semicolon"?
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Refutable,
+            start,
+            end,
+            None,
+            vec![binding, body],
+        ),
+    <start:@L> "refutable-if-{"
+        <first:RefutableBinding>
+        <rest:(";" <RefutableBinding>)*> "closing-semicolon"?
         "}" "else" "{" <first_fallback:CaseClause>
         <fallbacks:(";" <CaseClause>)*> "closing-semicolon"? "}" ";"
         <body:LambdaLeadingLetBody> <end:@R>
@@ -1381,10 +1367,10 @@ LambdaRefutableLetExpression: LalrpopSyntaxNode = {
             children.extend(fallbacks);
             children.push(body);
             LalrpopSyntaxNode::branch(
-                LalrpopSyntaxNodeKind::Let,
+                LalrpopSyntaxNodeKind::Refutable,
                 start,
                 end,
-                Some("refutable_group".to_string()),
+                None,
                 children,
             )
         },
@@ -1406,7 +1392,7 @@ LambdaIndexAssignment: LalrpopSyntaxNode = {
 };
 
 LambdaLeadingLetExpression: LalrpopSyntaxNode = {
-    <start:@L> "let" <pattern:Pattern> "=" <value:AssignmentExpression>
+    <start:@L> "let" <pattern:BindingPattern> "=" <value:AssignmentExpression>
         ";" <body:LambdaLeadingLetBody> <end:@R>
         => LalrpopSyntaxNode::branch(
             LalrpopSyntaxNodeKind::Let,
@@ -1418,7 +1404,7 @@ LambdaLeadingLetExpression: LalrpopSyntaxNode = {
 };
 
 LambdaLeadingLetBody: LalrpopSyntaxNode = {
-    LambdaRefutableLetExpression,
+    LambdaRefutableExpression,
     LambdaLeadingLetExpression,
     LambdaConstructorBody,
 };
@@ -1450,15 +1436,31 @@ LambdaSequenceElement: LalrpopSyntaxNode = {
     ConstructorChainExpression,
 };
 
-RefutableLetBinding: LalrpopSyntaxNode = {
-    <start:@L> <pattern:Pattern> "<-" <value:AssignmentExpression> <end:@R>
+RefutableBinding: LalrpopSyntaxNode = {
+    <start:@L> <pattern:RefutablePatternPrefix>
+        <value:AssignmentExpression> <end:@R>
         => LalrpopSyntaxNode::branch(
-            LalrpopSyntaxNodeKind::Let,
+            LalrpopSyntaxNodeKind::Refutable,
             start,
             end,
-            Some("refutable_binding".to_string()),
+            None,
             vec![pattern, value],
         ),
+};
+
+RefutablePatternPrefix: LalrpopSyntaxNode = {
+    <start:@L> "refutable-binding-prefix" <end:@R> => {
+        let prefix = source_index.text(source, start, end);
+        let arrow = prefix.rfind("<-").expect("projected refutable prefix contains <-");
+        let pattern_end = start + prefix[..arrow].trim_end().len();
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            pattern_end,
+            Some("projected_refutable_pattern".to_string()),
+            Vec::new(),
+        )
+    },
 };
 
 ConstructorChainExpression: LalrpopSyntaxNode = {
@@ -2154,7 +2156,7 @@ ComprehensionQualifier: LalrpopSyntaxNode = {
 };
 
 ComprehensionGenerator: LalrpopSyntaxNode = {
-    <start:@L> <pattern:AssignmentExpression> "<-"
+    <start:@L> <pattern:RefutablePatternPrefix>
         <source_expression:AssignmentExpression> <end:@R>
         => LalrpopSyntaxNode::branch(
             LalrpopSyntaxNodeKind::Generator,
@@ -2423,6 +2425,17 @@ PatternName: String = {
     <start:@L> NameToken <end:@R> => source_index.text(source, start, end).to_string(),
 };
 
+BindingPattern: LalrpopSyntaxNode = {
+    <start:@L> LocalNameToken <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            Vec::new(),
+        ),
+};
+
 // Canonical comma lists accept the trailing separator emitted by `terlc fmt`.
 Comma<T>: Vec<T> = {
     <mut items:(<T> ",")*> <last:T?> => {
@@ -2453,37 +2466,44 @@ Semicolon<T>: Vec<T> = {
 };
 
 NameToken: () = {
-    "atom",
+    LocalNameToken,
     "upper-ident",
+    "Bool",
+    "false",
+    "Float",
+    "Int",
+    "Name",
+    "String",
+    "true",
+    "Type",
+};
+
+// One canonical lower/local identifier category is shared by ordinary `let`
+// bindings and the broader name grammar. Keep contextual keyword additions
+// here so binding sites cannot drift from expression names.
+LocalNameToken: () = {
+    "atom",
     "annotation",
     "applies_to",
     "as",
-    "Bool",
     "config",
     "css",
     "default",
     "exists",
-    "false",
     "file",
-    "Float",
     "from",
     "function",
     "html",
-    "Int",
     "machine",
     "markdown",
     "method",
     "mut",
-    "Name",
     "opaque_type",
     "repeatable",
     "required",
     "shape",
     "static",
-    "String",
     "target",
-    "true",
-    "Type",
 };
 
 ModulePathTail: (usize, usize) = {
@@ -2633,6 +2653,8 @@ Terminal: &'static str = {
     "tight-dot" => ".",
     "lambda-(" => "(",
     "typed-lambda-pattern" => "pattern: Type",
+    "refutable-binding-prefix" => "pattern <-",
+    "refutable-if-{" => "if {",
     "head-constraints" => "<Constraint[T]>",
     "lambda-sequence-semicolon" => ";",
     "if-clause-semicolon" => ";",
@@ -2731,6 +2753,8 @@ extern {
         "function-body-arrow" => LalrpopToken::FunctionBodyArrow,
         "lambda-(" => LalrpopToken::LambdaLParen,
         "typed-lambda-pattern" => LalrpopToken::TypedLambdaPattern,
+        "refutable-binding-prefix" => LalrpopToken::RefutableBindingPrefix,
+        "refutable-if-{" => LalrpopToken::RefutableIfLBrace,
         "head-constraints" => LalrpopToken::HeadConstraintList,
         "lambda-sequence-semicolon" => LalrpopToken::LambdaSequenceSemicolon,
         "if-clause-semicolon" => LalrpopToken::IfClauseSemicolon,

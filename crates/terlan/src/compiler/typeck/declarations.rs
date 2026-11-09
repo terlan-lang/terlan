@@ -8,8 +8,9 @@ use self::alias_implications::{
     check_callable_alias_implications, check_non_callable_alias_implications,
 };
 use self::purity::{
-    collect_effectful_imported_calls, collect_effectful_local_calls, effectful_call_facts,
-    receiver_method_requires_pure_body, ImportedEffectFacts,
+    collect_conditional_pure_local_calls, collect_effectful_imported_calls,
+    collect_effectful_local_calls, effectful_call_facts, receiver_method_requires_pure_body,
+    ImportedEffectFacts,
 };
 use self::trait_impl::{check_trait_impl_methods, TraitImplCheckContext};
 use super::expression::{
@@ -54,12 +55,15 @@ pub(super) fn check_syntax_module_functions(
     let mut diagnostics = atom_aliases::check(module, expr_ctx.interface_map);
     let effectful_imported_calls = collect_effectful_imported_calls(expr_ctx);
     timings.mark("effectful-imports");
+    let conditional_local_calls =
+        collect_conditional_pure_local_calls(module, function_signatures, aliases);
     let effectful_local_calls = collect_effectful_local_calls(
         module,
         function_signatures,
         aliases,
         expr_ctx,
         &effectful_imported_calls,
+        &conditional_local_calls,
     );
     timings.mark("effectful-locals");
     let mut trait_inheritance_cache = HashMap::new();
@@ -170,6 +174,7 @@ pub(super) fn check_syntax_module_functions(
                         aliases,
                         expr_ctx,
                         effectful_local_calls: &effectful_local_calls,
+                        conditional_local_calls: &conditional_local_calls,
                         imported_effects: &effectful_imported_calls,
                     },
                     &mut diagnostics,
@@ -196,6 +201,7 @@ pub(super) fn check_syntax_module_functions(
                         local_aliases,
                         expr_ctx,
                         effectful_local_calls: &effectful_local_calls,
+                        conditional_local_calls: &conditional_local_calls,
                         effectful_imported_calls: &effectful_imported_calls,
                     },
                     &mut trait_inheritance_cache,
@@ -280,6 +286,7 @@ pub(super) fn check_syntax_module_functions(
                         aliases,
                         expr_ctx,
                         effectful_local_calls: &effectful_local_calls,
+                        conditional_local_calls: &conditional_local_calls,
                         imported_effects: &effectful_imported_calls,
                     },
                     &mut diagnostics,
@@ -314,6 +321,7 @@ pub(super) fn check_syntax_module_functions(
                         if let Some(default_body) = &method.default_body {
                             let facts = effectful_call_facts(
                                 &effectful_local_calls,
+                                &conditional_local_calls,
                                 &effectful_imported_calls,
                             );
                             let mut errors = Vec::new();
@@ -860,6 +868,7 @@ struct CallableCheckEnvironment<'a> {
     aliases: &'a HashMap<String, TypeAlias>,
     expr_ctx: &'a ExprInferContext<'a>,
     effectful_local_calls: &'a HashSet<(String, usize)>,
+    conditional_local_calls: &'a HashSet<(String, usize)>,
     imported_effects: &'a ImportedEffectFacts,
 }
 

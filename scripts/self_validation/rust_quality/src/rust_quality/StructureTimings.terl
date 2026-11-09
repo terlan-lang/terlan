@@ -135,7 +135,7 @@ valid_sha256(value: String): Bool ->
     value.byte_size() == 64 and hex_at(value, 0).
 
 policy_from(document: Json): Option[Policy] ->
-    let {
+    if {
         Ok(value) <- document.get("policy");
         Ok(fields) <-
             value
@@ -184,7 +184,7 @@ rows_from(values: List[RequiredFieldRow], output: List[TimingRow]): Option[List[
     }.
 
 scenario_rows(document: Json): Option[List[TimingRow]] ->
-    let {
+    if {
         Ok(values) <- document.get("scenarios");
         Ok(rows) <-
             Json.required_field_rows(
@@ -295,7 +295,7 @@ artifact_diagnostics(
 provenance_diagnostics(document: Json, schema: Int, diagnostics: List[String]): List[String] ->
     if {
         schema == 1 -> diagnostics;
-        true -> let {
+        true -> if {
             Ok(provenance) <- document.get("provenance");
             Ok(fields) <-
                 provenance
@@ -322,7 +322,7 @@ provenance_diagnostics(document: Json, schema: Int, diagnostics: List[String]): 
     }.
 
 parse(source: String): Report ->
-    let {
+    if {
         Ok(document) <- Json.parse(source);
         Ok(schema_value) <- document.get("schema_version");
         Ok(schema) <- schema_value.as_int();
@@ -411,7 +411,7 @@ comparison_rows(
 ): List[String] ->
     if {
         index == count -> diagnostics;
-        true -> let {
+        true -> if {
             Ok(value) <- values.at(index);
             Ok(fields) <- value.required_fields(["name"], ["baseline_ms", "closeout_ms", "delta_ms"], []);
             Ok(ratio_value) <- value.get("ratio");
@@ -421,7 +421,7 @@ comparison_rows(
         };
         case {fields.strings, fields.ints} {
             {[name], [baseline_ms, closeout_ms, delta_ms]} ->
-                let {
+                if {
                     Some(baseline_row) <- find_row(baseline, name);
                     Some(closeout_row) <- find_row(closeout, name)
                 } else {
@@ -462,7 +462,7 @@ closeout_diagnostics(baseline: Report, closeout: Report): List[String] ->
             same_policy(baseline.policy, closeout.policy) -> initial;
             true -> ["closeout timing policy changed" | initial]
         };
-    let {
+    if {
         Ok(comparison) <- closeout.document.get("comparison");
         Ok(report_value) <- comparison.get("baseline_report");
         Ok(report) <- report_value.as_string();
@@ -611,7 +611,7 @@ copy_artifact(
     let source = SourceInventory.child(root, "target/cq0-timings/cargo-timings/cargo-timing.html");
     let relative = String.concat([artifact_directory, "/", scenario.name, ".html"]);
     let destination = SourceInventory.child(root, relative);
-    let {
+    if {
         Ok(_created) <- Directory.create_all(SourceInventory.child(root, artifact_directory));
         Ok(_copied) <- File.copy(source, destination);
         Ok(digest) <- Hash.sha256_file(destination)

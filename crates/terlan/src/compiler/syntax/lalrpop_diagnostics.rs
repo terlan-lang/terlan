@@ -322,16 +322,16 @@ pub(super) fn module_preflight(source: &str) -> Option<LalrpopBoundaryError> {
 }
 
 fn repeated_let_diagnostic(source: &str) -> Option<LalrpopBoundaryError> {
-    if let Some(start) = source.find("let {}") {
+    if let Some(start) = source.find("if {} else") {
         return Some(diagnostic(
-            "refutable let group requires at least one binding",
+            "refutable if requires at least one binding",
             start,
-            start + 6,
+            start + 5,
         ));
     }
     if let Some(start) = source.find("else {}") {
         return Some(diagnostic(
-            "let else requires at least one fallback clause",
+            "refutable if requires at least one fallback clause",
             start,
             start + 7,
         ));
@@ -373,18 +373,18 @@ fn repeated_let_diagnostic(source: &str) -> Option<LalrpopBoundaryError> {
             }
         }
     }
-    if let Some((start, close)) = refutable_let_group(source) {
-        let body = &source[start + "let {".len()..close];
+    if let Some((start, close)) = refutable_if_group(source) {
+        let body = &source[start + "if {".len()..close];
         if body.matches("<-").count() > 1 && has_top_level_comma(body) {
             return Some(diagnostic(
-                "local bindings must be separated by `; let`, not commas",
+                "refutable bindings must be separated by `;`, not commas",
                 start,
                 close + 1,
             ));
         }
         if source[close + 1..].trim_start().starts_with(';') {
             return Some(diagnostic(
-                "refutable let group requires an else fallback",
+                "grouped refutable if requires an else fallback",
                 start,
                 start + 5,
             ));
@@ -494,7 +494,7 @@ fn trivia_spans(source: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
-fn refutable_let_group(source: &str) -> Option<(usize, usize)> {
+fn refutable_if_group(source: &str) -> Option<(usize, usize)> {
     let tokens = lex(source).ok()?;
     let significant = tokens
         .iter()
@@ -510,7 +510,7 @@ fn refutable_let_group(source: &str) -> Option<(usize, usize)> {
         })
         .collect::<Vec<_>>();
     for index in 0..significant.len().saturating_sub(1) {
-        if significant[index].kind != TokenKind::Let
+        if significant[index].kind != TokenKind::If
             || significant[index + 1].kind != TokenKind::LBrace
         {
             continue;

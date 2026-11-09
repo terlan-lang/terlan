@@ -140,6 +140,10 @@ Initial rules:
   validators, generated-value behavior, and collection invariants.
 - `TL0503 std.example-coverage`: require executable examples or tests for
   public std APIs.
+- `TL0507 consistency.receiver-capability-ownership`: require public operations whose
+  first value determines behavior to be declared as receiver methods on that
+  value's type. Exempt constructors, factories, constants, target-directed
+  parsing, and genuinely cross-shape algorithms.
 
 ### Effects
 

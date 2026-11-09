@@ -69,7 +69,7 @@ pub parse_and_to_string_roundtrip_relative_path(): Bool ->
 
 @test
 pub join_and_components_are_lexical(): Bool ->
-    let {
+    if {
         Ok(base) <- Path.from_string("src");
         Ok(joined) <- base.join("main.terl")
     } else {

@@ -55,7 +55,7 @@ pub forever(): Timeout ->
  * VM validation without sleeping or delegating to a host runtime. Negative
  * elapsed counts fail the guarded match, including for unbounded waits.
  */
-pub wakes_after(timeout: Timeout, elapsed_ms: Int): Bool ->
+pub (timeout: Timeout) wakes_after(elapsed_ms: Int): Bool ->
     case elapsed_ms {
         elapsed where elapsed >= 0 ->
             case timeout.#milliseconds {

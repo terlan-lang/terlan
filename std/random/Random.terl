@@ -68,7 +68,7 @@ pub entropy(): Generator.
  * state with the drawn integer.
  */
 @compiler.native
-pub int(generator: Generator): {Generator, Int}.
+pub (generator: Generator) int(): {Generator, Int}.
 
 /**
  * Draws one bounded random integer.
@@ -80,7 +80,7 @@ pub int(generator: Generator): {Generator, Int}.
  * support.
  */
 @compiler.native
-pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, Int}, RandomError].
+pub (generator: Generator) bounded_int(min: Int, max: Int): Result[{Generator, Int}, RandomError].
 
 /**
  * Draws one random float.
@@ -91,7 +91,7 @@ pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, In
  * float.
  */
 @compiler.native
-pub float(generator: Generator): {Generator, Float}.
+pub (generator: Generator) float(): {Generator, Float}.
 
 /**
  * Draws one random boolean.
@@ -101,7 +101,7 @@ pub float(generator: Generator): {Generator, Float}.
  * Transformation: advances explicit generator state and returns a boolean.
  */
 @compiler.native
-pub bool(generator: Generator): {Generator, Bool}.
+pub (generator: Generator) bool(): {Generator, Bool}.
 
 /**
  * Chooses one value from a non-empty list.
@@ -113,7 +113,7 @@ pub bool(generator: Generator): {Generator, Bool}.
  * and returns the selected VM value unchanged.
  */
 @compiler.native
-pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, RandomError].
+pub (generator: Generator) choice[T](values: List[T]): Result[{Generator, T}, RandomError].
 
 /**
  * Shuffles a list.
@@ -125,7 +125,7 @@ pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, Ran
  * support and reorders VM values by the generated indices.
  */
 @compiler.native
-pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]}.
+pub (generator: Generator) shuffle[T](values: List[T]): {Generator, List[T]}.
 
 /**
  * Samples values without replacement.
@@ -137,8 +137,4 @@ pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]}.
  * returns the requested prefix without mutating the source list.
  */
 @compiler.native
-pub sample[T](
-    generator: Generator,
-    values: List[T],
-    count: Int,
-): Result[{Generator, List[T]}, RandomError].
+pub (generator: Generator) sample[T](values: List[T], count: Int): Result[{Generator, List[T]}, RandomError].

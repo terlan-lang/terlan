@@ -27,15 +27,13 @@ pub total(value: Int): Int ->
     (expression
       (let_expression
         (let_binding
-          (pattern
-            (identifier))
+          (identifier)
           (expression
             (identifier)))
         (expression
           (let_expression
             (let_binding
-              (pattern
-                (identifier))
+              (identifier)
               (expression
                 (binary_expression
                   (expression
@@ -46,13 +44,13 @@ pub total(value: Int): Int ->
               (identifier))))))))
 
 ==================
-grouped refutable let bindings
+grouped refutable if bindings
 ==================
 
 module app.GroupedLetElse.
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
-  let {
+  if {
       Ok(left) <- first;
       Ok(right) <- second
   } else {
@@ -95,57 +93,58 @@ pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int
         (type_expression
           (type_identifier))))
     (expression
-      (let_expression
-        (refutable_let_expression
-          (refutable_let_binding
-            (pattern
-              (constructor_pattern
-                (type_identifier)
-                (pattern
-                  (identifier))))
-            (expression
-              (identifier)))
-          (refutable_let_binding
-            (pattern
-              (constructor_pattern
-                (type_identifier)
-                (pattern
-                  (identifier))))
-            (expression
-              (identifier)))
-          (case_arm
-            (pattern
-              (constructor_pattern
-                (type_identifier)
-                (pattern
-                  (identifier))))
-            (expression
-              (call_expression
-                (type_identifier)
-                (arguments
-                  (argument
-                    (expression
-                      (identifier)))))))
+      (refutable_expression
+        (refutable_binding
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
+          (expression
+            (identifier)))
+        (refutable_binding
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
+          (expression
+            (identifier)))
+        (case_arm
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
           (expression
             (call_expression
               (type_identifier)
               (arguments
                 (argument
                   (expression
-                    (binary_expression
-                      (expression
-                        (identifier))
-                      (expression
-                        (identifier)))))))))))))
+                    (identifier)))))))
+        (expression
+          (call_expression
+            (type_identifier)
+            (arguments
+              (argument
+                (expression
+                  (binary_expression
+                    (expression
+                      (identifier))
+                    (expression
+                      (identifier))))))))))))
 
 ==================
-single unbraced refutable let binding
+single grouped refutable binding
 ==================
 
 module app.SingleLetElse.
 
 pub resolve(value: Result[Int, String]): Result[Int, String] ->
-  let Ok(result) <- value else {
+  if {
+      Ok(result) <- value
+  } else {
       Err(reason) -> Err(reason)
   };
   Ok(result).
@@ -176,33 +175,85 @@ pub resolve(value: Result[Int, String]): Result[Int, String] ->
         (type_expression
           (type_identifier))))
     (expression
-      (let_expression
-        (refutable_let_expression
-          (refutable_let_binding
-            (pattern
-              (constructor_pattern
-                (type_identifier)
-                (pattern
-                  (identifier))))
-            (expression
-              (identifier)))
-          (case_arm
-            (pattern
-              (constructor_pattern
-                (type_identifier)
-                (pattern
-                  (identifier))))
-            (expression
-              (call_expression
-                (type_identifier)
-                (arguments
-                  (argument
-                    (expression
-                      (identifier)))))))
+      (refutable_expression
+        (refutable_binding
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
+          (expression
+            (identifier)))
+        (case_arm
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
           (expression
             (call_expression
               (type_identifier)
               (arguments
                 (argument
                   (expression
-                    (identifier)))))))))))
+                    (identifier)))))))
+        (expression
+          (call_expression
+            (type_identifier)
+            (arguments
+              (argument
+                (expression
+                  (identifier))))))))))
+
+==================
+single bare refutable binding
+==================
+
+module app.SingleLetWithoutElse.
+
+pub resolve(value: Result[Int, String]): Result[Int, String] ->
+  Ok(result) <- value;
+  Ok(result).
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (generic_type
+            (type_identifier)
+            (type_expression
+              (type_identifier))
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (generic_type
+        (type_identifier)
+        (type_expression
+          (type_identifier))
+        (type_expression
+          (type_identifier))))
+    (expression
+      (refutable_expression
+        (refutable_binding
+          (pattern
+            (constructor_pattern
+              (type_identifier)
+              (pattern
+                (identifier))))
+          (expression
+            (identifier)))
+        (expression
+          (call_expression
+            (type_identifier)
+            (arguments
+              (argument
+                (expression
+                  (identifier))))))))))

@@ -702,6 +702,7 @@ pub(super) fn check_syntax_receiver_methods(
         let primitive_owner = matches!(
             (module.module_name.as_str(), receiver_head.as_str()),
             ("std.core.Bool", "Bool")
+                | ("std.core.Atom", "Atom")
                 | ("std.core.Int", "Int")
                 | ("std.core.Float", "Float")
                 | ("std.core.String", "String")

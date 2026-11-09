@@ -13,7 +13,7 @@ import type std.collections.List.
 import type std.regex.Regex.
 
 repository_contract_holds(root: String): Bool ->
-    let {
+    if {
         Ok(pattern) <- Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\s*\\(");
         Ok(files) <- files_recursive_excluding(root, [".git", "target", "node_modules", "__pycache__"])
     } else {

@@ -65,7 +65,7 @@ pub (list: List[T]) first(): std.core.Option[T].
 /// This ordinary Terlan implementation is also the semantic target for list
 /// comprehension desugaring; no backend-specific comprehension runtime exists.
 
-pub flat_map[A, B](values: List[A], callback: (A) -> List[B]): List[B].
+pub (values: List[A]) flat_map[A, B](callback: (A) -> List[B]): List[B].
 
 /// Returns whether a list contains no values.
 ///

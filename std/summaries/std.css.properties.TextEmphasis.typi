@@ -68,4 +68,4 @@ pub type TextEmphasisStylePart =
 /// Combines text-emphasis-style, text-emphasis-color for text-emphasis. Each parameter accepts its
 /// own keyword or typed unit choices directly.
 
-pub compose(text_emphasis_style: TextEmphasisStylePart, text_emphasis_color: TextEmphasisColorPart): Checked.
+pub (text_emphasis_style: TextEmphasisStylePart) compose(text_emphasis_color: TextEmphasisColorPart): Checked.

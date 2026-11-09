@@ -156,7 +156,7 @@ fn inferred_binding_types_preserve_shadowed_names() {
 
 #[test]
 fn inferred_binding_types_follow_destructuring_and_case_constraints() {
-    let value = checked("module sample.\npub value(input: {Int, Bool}): Int -> let {number, flag} = input; case flag { true -> let result = number + 1; result; false -> number }.\n");
+    let value = checked("module sample.\npub value(input: {Int, Bool}): Int -> case input { {number, flag} -> case flag { true -> let result = number + 1; result; false -> number } }.\n");
     for (name, expected) in [("number", "Int"), ("flag", "Bool"), ("result", "Int")] {
         let rows = binding_types(&value, name);
         assert_eq!(rows.len(), 1, "{name}: {rows:?}");

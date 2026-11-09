@@ -16,7 +16,8 @@ fn fmt_migrates_implicit_repeated_let_bindings() {
 module sample.
 
 pub total(price: Int, tax: Int): Int ->
-    let {whole, fraction} = {price, tax};
+    let whole = price;
+    let fraction = tax;
     subtotal = whole + fraction;
     values = [subtotal];
     values[0] = subtotal;
@@ -25,7 +26,8 @@ pub total(price: Int, tax: Int): Int ->
     )
     .expect("legacy let sequence should migrate");
 
-    assert!(formatted.contains("let {whole, fraction} = {price, tax};"));
+    assert!(formatted.contains("let whole = price;"));
+    assert!(formatted.contains("let fraction = tax;"));
     assert!(formatted.contains("let subtotal = whole + fraction;"));
     assert!(formatted.contains("let values = [subtotal];"));
     assert!(formatted.contains("values[0] = subtotal;"));

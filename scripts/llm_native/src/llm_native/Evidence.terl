@@ -27,7 +27,7 @@ pub contains(values: List[String], value: String): Bool ->
  * Returns a required JSON string or a sentinel that cannot satisfy a contract.
  */
 pub text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -39,7 +39,7 @@ pub text(value: Json, key: String): String ->
  * Returns a required JSON integer, with -1 for missing or incorrectly typed data.
  */
 pub number(value: Json, key: String): Int ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_int()
     } else {
@@ -108,7 +108,7 @@ digest_fields(root: String, paths: List[String]): Option[List[String]] ->
     case paths {
         [] -> Some([]);
         [path | rest] ->
-            let {
+            if {
                 Ok(digest) <- Hash.sha256_file(String.concat([root, "/", path]));
                 Some(tail) <- digest_fields(root, rest)
             } else {
@@ -148,7 +148,9 @@ collect_ids(
 ): Option[List[String]] ->
     if {
         index == count -> Some(seen);
-        true -> let Ok(row) <- rows.at(index) else {
+        true -> if {
+            Ok(row) <- rows.at(index)
+        } else {
             _ -> None
         };
         (let id = text(row, key);
@@ -171,7 +173,7 @@ all_passed(rows: Json, index: Int, count: Int): Bool ->
  * Requires the exact registered cases and input digest from the schema peer.
  */
 pub schema_report(report: Json, expected_digest: String, expected_ids: List[String]): Bool ->
-    let {
+    if {
         Ok(rows) <- report.get("cases");
         Some(actual_ids) <- ids(rows, "case_id");
         Ok(peers) <- report.get("peer_versions")
@@ -195,7 +197,7 @@ pub schema_report(report: Json, expected_digest: String, expected_ids: List[Stri
  * Rejects empty test selections, missing cases, and skipped or failed tests.
  */
 pub test_report(report: Json, expected_names: List[String]): Bool ->
-    let {
+    if {
         Ok(rows) <- report.get("tests");
         Some(actual_names) <- ids(rows, "name")
     } else {
@@ -212,7 +214,9 @@ pub test_report(report: Json, expected_names: List[String]): Bool ->
 compiled_rows(rows: Json, expected_source: String, index: Int, count: Int, seen: Bool): Bool ->
     if {
         index == count -> seen;
-        true -> let Ok(row) <- rows.at(index) else {
+        true -> if {
+            Ok(row) <- rows.at(index)
+        } else {
             _ -> false
         };
         (let source = text(row, "source_file");
@@ -229,7 +233,7 @@ if {
  * All retained source hashes must be current, including the authored suite.
  */
 pub compiled_sources(report: Json, expected_source: String): Bool ->
-    let {
+    if {
         Ok(evidence) <- report.get("native_callable_evidence");
         Ok(rows) <- evidence.get("declarations");
         Ok(count) <- rows.length()
@@ -242,7 +246,9 @@ pub compiled_sources(report: Json, expected_source: String): Bool ->
         and compiled_rows(rows, expected_source, 0, count, false).
 
 pub matching_cases(rows: Json, expected_ids: List[String], key: String): Bool ->
-    let Some(actual) <- ids(rows, key) else {
+    if {
+        Some(actual) <- ids(rows, key)
+    } else {
         _ -> false
     };
     not List.is_empty(expected_ids)
@@ -254,7 +260,7 @@ pub matching_cases(rows: Json, expected_ids: List[String], key: String): Bool ->
  * Validates the independently SDK-checked wire/model fixture inventory.
  */
 pub wire_report(report: Json, expected_ids: List[String]): Bool ->
-    let {
+    if {
         Ok(rows) <- report.get("wire_cases");
         Some(actual_ids) <- ids(rows, "case_id")
     } else {

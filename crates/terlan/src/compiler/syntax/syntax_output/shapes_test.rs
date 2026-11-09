@@ -285,15 +285,14 @@ mod tests {
     }
 
     #[test]
-    fn expands_guarded_shape_in_let_pattern_as_case_assertion() {
+    fn expands_guarded_shape_in_case_pattern() {
         let output = parse_module_as_syntax_output(
             "module guarded_shape_let.\n\
              shape Positive(value) = value where value > 0.\n\
              pub read(input: Int): Int ->\n\
-                 let Positive(value) = input;\n\
-                 value.\n",
+                 case input { Positive(value) -> value }.\n",
         )
-        .expect("guarded shape let should become a match assertion");
+        .expect("guarded shape case should preserve its match guard");
 
         let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[1].payload
         else {
@@ -315,7 +314,7 @@ mod tests {
             "module guarded_shape_grouped_let.\n\
              shape Positive(value) = value where value > 0.\n\
              pub add(left: Int, right: Int): Int ->\n\
-                 let {\n\
+                 if {\n\
                      Positive(first) <- left;\n\
                      Positive(second) <- right\n\
                  } else {\n\

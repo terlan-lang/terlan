@@ -98,7 +98,7 @@ pub struct Property {
 /// Combines outline-width, outline-style, outline-color for outline. Each parameter accepts its own
 /// keyword or typed unit choices directly.
 
-pub compose(outline_width: OutlineWidthPart, outline_style: OutlineStylePart, outline_color: OutlineColorPart): Checked.
+pub (outline_width: OutlineWidthPart) compose(outline_style: OutlineStylePart, outline_color: OutlineColorPart): Checked.
 
 /// Checks the outline length range. Returns Some when amount >= 0; otherwise returns None.
 

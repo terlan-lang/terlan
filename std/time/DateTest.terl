@@ -26,7 +26,7 @@ invalid_date(source: String): Bool ->
 
 @test
 pub leap_days_and_day_differences_are_exact(): Bool ->
-    let {
+    if {
         Some(start) <- Date.parse_iso("2024-02-28");
         Some(leap_day) <- Date.parse_iso("2024-02-29");
         Some(end) <- Date.parse_iso("2024-03-01")

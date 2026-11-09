@@ -23,11 +23,11 @@ import std.core.Ordering.{*}.
 /// module bool_compare_example.
 ///
 /// pub demo(): std.core.Ordering.Comparison ->
-///    std.core.Bool.compare(false, true).
+///    false.compare(true).
 /// ```
 
 @pure
-pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison.
+pub (left: Bool) compare(right: Bool): std.core.Ordering.Comparison.
 
 /// Returns whether two `Bool` values are equal.
 ///
@@ -44,15 +44,15 @@ pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison.
 /// ```terlan
 /// module bool_equal_example.
 ///
-/// pub equal(Left: Bool, Right: Bool): Bool ->
+/// pub (Left: Bool) equal(Right: Bool): Bool ->
 ///    Left == Right.
 ///
 /// pub demo(Value: Bool): Bool ->
-///    equal(Value, Value).
+///    Value.equal(Value).
 /// ```
 
 @pure
-pub equal(Left: Bool, Right: Bool): Bool.
+pub (Left: Bool) equal(Right: Bool): Bool.
 
 /// Parses a canonical UTF-8 `String` into a `Bool`.
 ///
@@ -81,11 +81,11 @@ pub from_string(value: String): Option[Bool].
 /// module bool_is_false_example.
 ///
 /// pub demo(value: Bool): Bool ->
-///     std.core.Bool.is_false(value).
+///     value.is_false().
 /// ```
 
 @pure
-pub is_false(value: Bool): Bool.
+pub (value: Bool) is_false(): Bool.
 
 /// Returns whether a `Bool` value is true.
 ///
@@ -98,11 +98,11 @@ pub is_false(value: Bool): Bool.
 /// module bool_is_true_example.
 ///
 /// pub demo(value: Bool): Bool ->
-///     std.core.Bool.is_true(value).
+///     value.is_true().
 /// ```
 
 @pure
-pub is_true(value: Bool): Bool.
+pub (value: Bool) is_true(): Bool.
 
 /// Renders a `Bool` as its canonical UTF-8 `String`.
 ///
@@ -115,8 +115,8 @@ pub is_true(value: Bool): Bool.
 /// module bool_to_string_example.
 ///
 /// pub demo(): String ->
-///    std.core.Bool.to_string(true).
+///    true.to_string().
 /// ```
 
 @pure
-pub to_string(value: Bool): String.
+pub (value: Bool) to_string(): String.

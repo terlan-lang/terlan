@@ -72,7 +72,7 @@ test_reports(): Json ->
         ).
 
 test_matches(bundle: Json): Bool ->
-    let {
+    if {
         Some(track) <- Support.json_member(bundle, "track");
         Some(gate) <- Support.json_member(bundle, "gate");
         Some(replay) <- Support.json_member(bundle, "replay");
@@ -89,7 +89,9 @@ pub coherent_seal_is_accepted(): Bool ->
 @test
 pub stale_parser_gate_is_rejected(): Bool ->
     let bundle = test_reports();
-    let Some(gate) <- Support.json_member(bundle, "gate") else {
+    if {
+        Some(gate) <- Support.json_member(bundle, "gate")
+    } else {
         _ -> false
     };
     test_matches(bundle)
@@ -98,7 +100,9 @@ pub stale_parser_gate_is_rejected(): Bool ->
 @test
 pub inconsistent_replay_digest_is_rejected(): Bool ->
     let bundle = test_reports();
-    let Some(replay) <- Support.json_member(bundle, "replay") else {
+    if {
+        Some(replay) <- Support.json_member(bundle, "replay")
+    } else {
         _ -> false
     };
     not test_matches(bundle.put("replay", replay.put("families", test_replay("old")))).
@@ -106,7 +110,9 @@ pub inconsistent_replay_digest_is_rejected(): Bool ->
 @test
 pub stale_lane_checksum_is_rejected(): Bool ->
     let bundle = test_reports();
-    let Some(gate) <- Support.json_member(bundle, "gate") else {
+    if {
+        Some(gate) <- Support.json_member(bundle, "gate")
+    } else {
         _ -> false
     };
     not test_matches(
@@ -116,7 +122,9 @@ pub stale_lane_checksum_is_rejected(): Bool ->
 @test
 pub missing_lane_is_rejected(): Bool ->
     let bundle = test_reports();
-    let Some(lanes) <- Support.json_member(bundle, "lanes") else {
+    if {
+        Some(lanes) <- Support.json_member(bundle, "lanes")
+    } else {
         _ -> false
     };
     not test_matches(bundle.put("lanes", lanes.put("lanes", Json.array()))).
@@ -124,7 +132,9 @@ pub missing_lane_is_rejected(): Bool ->
 @test
 pub review_age_does_not_change_seal_identity(): Bool ->
     let bundle = test_reports();
-    let Some(gate) <- Support.json_member(bundle, "gate") else {
+    if {
+        Some(gate) <- Support.json_member(bundle, "gate")
+    } else {
         _ -> false
     };
     test_matches(
@@ -141,25 +151,37 @@ pub review_age_does_not_change_seal_identity(): Bool ->
 
 @test
 pub replay_digest_must_match_current_proof_bytes(): Bool ->
-    let Ok(directory) <- create_temporary("proof-lane-freshness.") else {
+    if {
+        Ok(directory) <- create_temporary("proof-lane-freshness.")
+    } else {
         _ -> false
     };
     (let result = source_test(directory); let _removed = remove_all(directory); result).
 
 source_test(directory: String): Bool ->
-    let Ok(_written) <-
-        write_text(
-            Support.root_path(directory, "proof.lean"),
-            "theorem current : True := by trivial\n",
-        ) else {
+    if {
+        Ok(_written) <-
+            write_text(
+                Support.root_path(directory, "proof.lean"),
+                "theorem current : True := by trivial\n",
+            )
+    } else {
         _ -> false
     };
-    (let Some(digest) <- Support.file_digest(directory, "proof.lean") else {
+    (if {
+    Some(digest) <- Support.file_digest(directory, "proof.lean")
+} else {
     _ -> false
 };
 (let report = Json.object().put("families", test_replay(digest));
 let current = LaneFreshness.replay_sources_current(directory, report);
-(let Ok(_changed) <- write_text(Support.root_path(directory, "proof.lean"), "theorem changed : True := by trivial\n") else {
+(if {
+    Ok(_changed) <-
+        write_text(
+            Support.root_path(directory, "proof.lean"),
+            "theorem changed : True := by trivial\n",
+        )
+} else {
     _ -> false
 };
 current and not LaneFreshness.replay_sources_current(directory, report)))).

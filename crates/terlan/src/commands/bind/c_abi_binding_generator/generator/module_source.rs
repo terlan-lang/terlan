@@ -87,8 +87,18 @@ pub(super) fn render_module_source(
     }
     for function in &module.functions {
         let visibility = if function.is_public() { "pub " } else { "" };
+        let receiver = function.args.first().filter(|argument| {
+            argument.default.is_none() && module.types.iter().any(|ty| ty.name == argument.ty)
+        });
+        let (receiver_prefix, arguments) = match receiver {
+            Some(receiver) => (
+                format!("({}) ", render_args(std::slice::from_ref(receiver))),
+                &function.args[1..],
+            ),
+            None => (String::new(), function.args.as_slice()),
+        };
         source.push_str(&format!(
-            "/** {} */\n{}\n{visibility}{}({}): {}.\n",
+            "/** {} */\n{}\n{visibility}{receiver_prefix}{}({}): {}.\n",
             function.documentation,
             crate::compiler::native_bindings::annotation(
                 &module.module,
@@ -96,7 +106,7 @@ pub(super) fn render_module_source(
                 &function.operation
             ),
             function.name,
-            render_args(&function.args),
+            render_args(arguments),
             crate::terlan_hir::public_type_text(&function.returns)
         ));
     }

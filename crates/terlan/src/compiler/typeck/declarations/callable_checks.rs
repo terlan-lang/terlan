@@ -22,6 +22,7 @@ pub(super) fn check_syntax_callable_clauses(
         aliases,
         expr_ctx,
         effectful_local_calls,
+        conditional_local_calls,
         imported_effects,
     } = environment;
     requirement_observations::record(
@@ -95,9 +96,18 @@ pub(super) fn check_syntax_callable_clauses(
             })
             .map(|(name, _)| name.clone())
             .collect::<HashSet<_>>();
-        let mut facts = effectful_call_facts(effectful_local_calls, imported_effects);
-        facts.function_values = Some(&function_values);
+        let mut facts = effectful_call_facts(
+            effectful_local_calls,
+            conditional_local_calls,
+            imported_effects,
+        );
+        if requires_pure_body {
+            facts.conditional_function_values = Some(&function_values);
+        } else {
+            facts.function_values = Some(&function_values);
+        }
         let mut local_expr_ctx = expr_ctx_with_current_bounds(expr_ctx, &instantiated.bounds);
+        local_expr_ctx.effectful_calls = facts;
         let mut proven_pure_receiver_calls = Vec::new();
         if requires_pure_body {
             collect_proven_pure_receiver_calls(
@@ -108,8 +118,8 @@ pub(super) fn check_syntax_callable_clauses(
                 &mut proven_pure_receiver_calls,
             );
             facts.proven_pure_receiver_calls = Some(&proven_pure_receiver_calls);
+            local_expr_ctx.effectful_calls = facts;
         }
-        local_expr_ctx.effectful_calls = facts;
         let mut local_errors = Vec::new();
         if let Some(guard) = clause.guard.as_ref() {
             refine_by_syntax_guard(guard, &mut locals, aliases, &mut subst);

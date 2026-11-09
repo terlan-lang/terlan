@@ -15,7 +15,7 @@ write(root: String, path: String, source: String): Bool ->
     }.
 
 fixture(root: String): Bool ->
-    let {
+    if {
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"))
     } else {
@@ -35,7 +35,7 @@ fixture(root: String): Bool ->
 
 exercise(root: String): Bool ->
     let source = "target/quality/proof-artifacts/lean-proof-lanes.json";
-    let {
+    if {
         true <- fixture(root);
         Ok(history) <- OwnerHistory.capture(root, "candidate", "proof-lanes", source);
         Ok(initial) <- File.read_text(OwnerStorage.child(root, history))
@@ -53,7 +53,7 @@ let owner = PrepareProofLanes.declare(root, "target/tools/compiler", context, hi
 let nodes = [PreparationGraph.declare_node(owner, [])];
 let cold = PreparationGraph.run_locked(root, "proof-lanes", nodes);
 let warm = PreparationGraph.run_locked(root, "proof-lanes", nodes);
-(let {
+(if {
     true <- cold.valid and cold.completed == 1 and warm.valid and warm.reused == 1;
     Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"));
     Ok(same_history) <- OwnerHistory.capture(root, "candidate", "proof-lanes", source);
@@ -87,7 +87,9 @@ let warm = PreparationGraph.run_locked(root, "proof-lanes", nodes);
 true)).
 
 pub self_test(): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-proof-lanes-owner-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-proof-lanes-owner-")
+    } else {
         _ -> false
     };
     (let valid = exercise(root);

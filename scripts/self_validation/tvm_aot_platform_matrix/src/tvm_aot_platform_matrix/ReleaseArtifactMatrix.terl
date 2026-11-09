@@ -36,7 +36,7 @@ failure(code: String, message: String): Bool ->
     false.
 
 payload_hashes(payloads: List[Payload]): Option[PayloadHashes] ->
-    let {
+    if {
         Some(stdlib) <- ReleasePayload.tree_hash(payloads, "share/terlan/std/");
         Some(editor) <- ReleasePayload.tree_hash(payloads, "share/terlan/editors/");
         Some(tree_sitter) <- ReleasePayload.tree_hash(payloads, "share/terlan/tree-sitter-terlan/");
@@ -78,7 +78,7 @@ extract_evidence(
     actual: String,
 ): Option[HostEvidence] ->
     let extracted = ReleasePayload.child(temporary, "extracted");
-    let {
+    if {
         Ok(Unit) <- Archive.extract(artifact, extracted);
         Ok(true) <- Hash.verify_sha256_manifest(extracted, ReleasePayload.child(extracted, "SHA256SUMS"));
         Ok(files) <- Directory.files_recursive(extracted)
@@ -100,7 +100,7 @@ host_evidence(root: String, platform: ReleasePlatform): Option[HostEvidence] ->
     let relative = ReleasePayload.child("dist", platform.artifact);
     let artifact = ReleasePayload.child(root, relative);
     let sidecar = String.append(artifact, ".sha256");
-    let {
+    if {
         true <- ReleaseSmoke.smoke(root);
         Ok(sidecar_text) <- File.read_text(sidecar);
         Some(expected) <- first_token(sidecar_text);
@@ -155,7 +155,7 @@ target_row(
         .put("host_validation", host_validation_json(platform, host, evidence)).
 
 platforms(): Option[List[ReleasePlatform]] ->
-    let {
+    if {
         Some(linux_x86) <- ReleasePlatform.resolve("linux", "x86_64");
         Some(linux_arm) <- ReleasePlatform.resolve("linux", "aarch64");
         Some(macos_x86) <- ReleasePlatform.resolve("macos", "x86_64");
@@ -193,7 +193,7 @@ checksum_corruption_rejected(): Bool ->
         Ok(temporary) ->
             let payload = ReleasePayload.child(temporary, "payload");
             let manifest = ReleasePayload.child(temporary, "SHA256SUMS");
-            let {
+            if {
                 Ok(Unit) <- File.write_text(payload, "original");
                 Ok(digest) <- Hash.sha256_file(payload);
                 Ok(Unit) <- File.write_text(manifest, String.concat([digest, "  payload\n"]));
@@ -211,7 +211,7 @@ tree_mutation_detected(): Bool ->
         Ok(temporary) ->
             let first = ReleasePayload.child(temporary, "first.terl");
             let second = ReleasePayload.child(temporary, "second.terl");
-            let {
+            if {
                 {Ok(Unit), Ok(Unit)} <-
                     {
                         File.write_text(first, "module std.example.First.\n"),
@@ -317,7 +317,7 @@ report_value(
  * Writes deterministic six-target release artifact evidence.
  */
 pub run(root: String): Bool ->
-    let {
+    if {
         Some(host) <- ReleasePlatform.detect();
         Some(values) <- platforms();
         Some(payloads) <- ReleasePayload.all(root);
@@ -329,7 +329,7 @@ pub run(root: String): Bool ->
         _ -> failure("inputs", "cannot collect release artifact matrix evidence")
     };
     (let report = report_value(root, host, values, payloads, hashes, evidence, version);
-(let {
+(if {
     Ok(rendered) <- Json.stringify_pretty(report);
     Ok(_created) <- Directory.create_all(ReleasePayload.child(root, "target/quality"));
     Ok(Unit) <-

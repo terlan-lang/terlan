@@ -9,10 +9,12 @@ import std.system.Environment.
 import tvm_aot_platform_matrix.ReleasePayload.
 
 manifest_fixture(source: String, include_second: Bool, expected: Bool): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-release-payload-inputs.") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-release-payload-inputs.")
+    } else {
         _ -> false
     };
-    (let {
+    (if {
     Ok(Unit) <- Directory.create_all(root + "/docs/release");
     Ok(Unit) <- File.write_text(root + "/docs/release/PUBLISHABLE_DOCUMENTATION.tsv", source);
     Ok(Unit) <- File.write_text(root + "/docs/a.md", "a")

@@ -110,7 +110,7 @@ clippy_fixture(root: String): Bool ->
 
 write_binary_crate(root: String, body: String): Bool ->
     let source = child(root, "src");
-    let {
+    if {
         Ok(Unit) <- create_all(source);
         Ok(Unit) <-
             write_text(

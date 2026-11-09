@@ -13,7 +13,7 @@ import type std.data.Json.
 inputs(rows: Json, index: Int, count: Int): Result[List[Input], Bool] ->
     if {
         index == count -> Ok([]);
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(path_value) <- row.get("path");
             Ok(path) <- path_value.as_string();
@@ -29,7 +29,7 @@ inputs(rows: Json, index: Int, count: Int): Result[List[Input], Bool] ->
     }.
 
 entry(): Bool ->
-    let {
+    if {
         true <- count() == 3;
         Some(compiler) <- get(0);
         Some(manifest) <- get(1);

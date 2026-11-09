@@ -21,7 +21,7 @@ compiler(): String ->
     }.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -33,7 +33,7 @@ source(): String ->
     "module sample.\npub type UserId = Int.\npub trait Equal[A] { equal(left: A, right: A): Bool. }.\npub value(input: Int): Int -> input.\n".
 
 capture(root: String, source: String): Result[Json, Bool] ->
-    let {
+    if {
         Ok(_) <- File.write_text(root + "/sample.terl", source);
         Ok(snapshot) <-
             Snapshot.capture_file(
@@ -50,7 +50,7 @@ capture(root: String, source: String): Result[Json, Bool] ->
 
 @test
 pub checked_types_traits_and_functions_have_distinct_handles(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-declaration-kinds-");
         Ok(rows) <- capture(root, source());
         Ok(count) <- rows.length();
@@ -73,7 +73,7 @@ kinds and distinct and cleaned).
 
 @test
 pub unrelated_insertion_preserves_declaration_identity(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-declaration-stability-");
         Ok(first) <- capture(root, source());
         Ok(second) <- capture(root, source().replace("pub type", "pub unrelated(): Int -> 0.\npub type"));
@@ -97,7 +97,7 @@ stable and changed and cleaned).
 @test
 pub same_name_and_arity_overloads_have_distinct_handles(): Bool ->
     let source = "module sample.\npub value(input: Int): Int -> input.\npub value(input: Float): Float -> input.\n";
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-declaration-overloads-");
         Ok(rows) <- capture(root, source);
         Ok(count) <- rows.length();
@@ -115,7 +115,7 @@ distinct and cleaned).
 
 @test
 pub semantic_payload_change_invalidates_declaration_handle(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-declaration-change-");
         Ok(first) <- capture(root, "module sample.\npub value(): Int -> 1.\n");
         Ok(second) <- capture(root, "module sample.\npub value(): Int -> 2.\n");
@@ -128,7 +128,7 @@ pub semantic_payload_change_invalidates_declaration_handle(): Bool ->
 
 @test
 pub duplicate_checked_rows_are_rejected_before_catalog_publication(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-declaration-duplicate-");
         Ok(_) <- File.write_text(root + "/sample.terl", source());
         Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");

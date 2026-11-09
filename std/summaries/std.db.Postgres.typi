@@ -70,7 +70,7 @@ pub (row: Row) bool(name: String): Result[Bool, std.core.Error].
 /// adapter without exposing driver state to source code. URL validation happens
 /// immediately; network and authentication failures can occur on the first query.
 
-pub connect(config: Config): Result[Pool, std.core.Error].
+pub (config: Config) connect(): Result[Pool, std.core.Error].
 
 /// Runs a SQL command and returns the affected row count.
 ///
@@ -80,7 +80,7 @@ pub connect(config: Config): Result[Pool, std.core.Error].
 /// Transformation: delegates command execution to the adapter and exposes only
 /// the portable affected-row count.
 
-pub execute(target: Pool | Connection, sql: String, params: List[std.data.Json]): Result[Int, std.core.Error].
+pub (target: Pool | Connection) execute(sql: String, params: List[std.data.Json]): Result[Int, std.core.Error].
 
 /// Reads an integer column by name.
 ///
@@ -109,7 +109,7 @@ pub (row: Row) json(name: String): Result[std.data.Json, std.core.Error].
 /// Transformation: delegates SQL execution and row decoding to the Postgres
 /// adapter while preserving a portable row handle surface.
 
-pub query(target: Pool | Connection, sql: String, params: List[std.data.Json]): Result[List[Row], std.core.Error].
+pub (target: Pool | Connection) query(sql: String, params: List[std.data.Json]): Result[List[Row], std.core.Error].
 
 /// Runs a SQL query and returns at most one row.
 ///
@@ -119,7 +119,7 @@ pub query(target: Pool | Connection, sql: String, params: List[std.data.Json]): 
 /// Transformation: delegates SQL execution to the adapter and normalizes the
 /// single-row result shape into `Option`.
 
-pub query_one(target: Pool | Connection, sql: String, params: List[std.data.Json]): Result[Option[Row], std.core.Error].
+pub (target: Pool | Connection) query_one(sql: String, params: List[std.data.Json]): Result[Option[Row], std.core.Error].
 
 /// Reads a string column by name.
 ///
@@ -142,4 +142,4 @@ pub (row: Row) string(name: String): Result[String, std.core.Error].
 /// closes the worker and its database connections. The connection handle expires
 /// after either terminal attempt.
 
-pub transaction[T](pool: Pool, body: (Connection) -> Result[T, std.core.Error]): Result[T, std.core.Error].
+pub (pool: Pool) transaction[T](body: (Connection) -> Result[T, std.core.Error]): Result[T, std.core.Error].

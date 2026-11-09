@@ -38,8 +38,9 @@ pub conversions(): Bool ->
         _ -> false
     }.
 pub path(): Bool ->
-    let "assets/${bucket}/${file}.txt" = "assets/docs/readme.txt";
-    bucket + "/" + file == "docs/readme".
+    case "assets/docs/readme.txt" {
+        "assets/${bucket}/${file}.txt" -> bucket + "/" + file == "docs/readme"
+    }.
 pub render_path(): Bool ->
     let render = (("docs/${section}/${slug}.html") -> section + "/" + slug);
     render("docs/api/http.html") == "api/http".

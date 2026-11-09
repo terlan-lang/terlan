@@ -73,19 +73,19 @@ component_value(
 /**
  * Applies to all four sides.
  */
-pub single(first: Component): Checked ->
+pub (first: Component) single(): Checked ->
     Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
  * First sets top/bottom; second sets left/right.
  */
-pub pair(first: Component, second: Component): Checked ->
+pub (first: Component) pair(second: Component): Checked ->
     Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).
 
 /**
  * First sets top; second sets left/right; third sets bottom.
  */
-pub triple(first: Component, second: Component, third: Component): Checked ->
+pub (first: Component) triple(second: Component, third: Component): Checked ->
     Checked(
         {
             Atom["css_parts"],
@@ -96,7 +96,7 @@ pub triple(first: Component, second: Component, third: Component): Checked ->
 /**
  * Sets top, right, bottom, and left in that order.
  */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+pub (first: Component) quad(second: Component, third: Component, fourth: Component): Checked ->
     Checked(
         {
             Atom["css_parts"],

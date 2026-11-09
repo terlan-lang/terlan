@@ -63,7 +63,7 @@ add_unique(values: List[String], value: String): List[String] ->
 strings_at(array: Json, index: Int, count: Int, result: List[String]): Option[List[String]] ->
     if {
         index == count -> Some(result);
-        true -> let {
+        true -> if {
             Ok(value) <- array.at(index);
             Ok(text) <- value.as_string()
         } else {
@@ -79,7 +79,7 @@ json_strings(array: Json): Option[List[String]] ->
     }.
 
 artifact_at(value: Json): Option[Artifact] ->
-    let {
+    if {
         Ok(fields) <- value.string_fields(["id", "classification", "regenerate", "freshness_gate", "owner"]);
         [Some(id), Some(classification), Some(regenerate), Some(freshness_gate), Some(owner)] <- fields;
         Ok(paths_value) <- value.get("paths");
@@ -106,7 +106,7 @@ artifacts_at(
 ): Option[List[Artifact]] ->
     if {
         index == count -> Some(result);
-        true -> let {
+        true -> if {
             Ok(value) <- array.at(index);
             Some(artifact) <- artifact_at(value)
         } else {
@@ -121,7 +121,7 @@ artifacts_at(
     }.
 
 parse_inventory(source: String): Option[List[Artifact]] ->
-    let {
+    if {
         Ok(inventory) <- Json.parse(source);
         Ok(schema_fields) <- inventory.string_fields(["schema"]);
         [Some(actual_schema)] <- schema_fields;
@@ -297,7 +297,7 @@ snapshot(root: String, artifacts: List[Artifact], inventory_source: String): Opt
     }.
 
 load_inventory(root: String): Option[{String, List[Artifact]}] ->
-    let {
+    if {
         Ok(source) <- File.read_text(child(root, inventory_relative()));
         Some(artifacts) <- parse_inventory(source)
     } else {
@@ -306,7 +306,7 @@ load_inventory(root: String): Option[{String, List[Artifact]}] ->
     Some({source, artifacts}).
 
 current_snapshot(root: String): Option[{String, List[Artifact], Snapshot}] ->
-    let {
+    if {
         Some({source, artifacts}) <- load_inventory(root);
         Some(targets) <- repository_targets(root)
     } else {
@@ -321,7 +321,7 @@ current_snapshot(root: String): Option[{String, List[Artifact], Snapshot}] ->
     }.
 
 write_json(path: String, value: Json): Bool ->
-    let {
+    if {
         Ok(rendered) <- Json.stringify_pretty(value);
         Ok(Unit) <- File.write_text(path, String.append(rendered, "\n"))
     } else {
@@ -337,7 +337,7 @@ snapshot_json(value: Snapshot): Json ->
         .put("digest", Json.string(value.digest)).
 
 read_snapshot(root: String): Option[Snapshot] ->
-    let {
+    if {
         Ok(source) <- File.read_text(child(root, snapshot_relative()));
         Ok(value) <- Json.parse(source);
         Ok(fields) <- value.required_fields(["schema", "digest", "inventory_sha256"], ["file_count"], []);
@@ -449,7 +449,7 @@ report_json(artifacts: List[Artifact], before: Snapshot, after_snapshot: Snapsho
         .put("decision", Json.string("pass")).
 
 pub finalize(root: String): Bool ->
-    let {
+    if {
         Some(before) <- read_snapshot(root);
         Some({_source, artifacts, after_snapshot}) <- current_snapshot(root)
     } else {
@@ -469,7 +469,7 @@ fixture_inventory(): String ->
     "{\"schema\":\"terlan.release-generated-artifacts.v1\",\"artifacts\":[{\"id\":\"fixture\",\"classification\":\"committed\",\"paths\":[\"fixture.txt\"],\"regenerate\":\"make fixture-check\",\"freshness_gate\":\"fixture-check\",\"owner\":\"release-tooling\"}]}".
 
 self_test_snapshots(root: String, fixture: String, inventory: String): Bool ->
-    let {
+    if {
         true <- record(root);
         true <- finalize(root);
         Ok(Unit) <- File.write_text(fixture, "changed generated artifact\n")
@@ -477,14 +477,14 @@ self_test_snapshots(root: String, fixture: String, inventory: String): Bool ->
         _ -> failure("cannot establish generated-artifact comparison fixture")
     };
     (let rejects_output_change = not finalize(root);
-(let {
+(if {
     Ok(Unit) <- File.write_text(fixture, "portable generated artifact\n");
     Ok(Unit) <- File.write_text(inventory, String.append(fixture_inventory(), "\n"))
 } else {
     _ -> failure("cannot establish changed-inventory fixture")
 };
 (let rejects_inventory_change = not finalize(root);
-(let {
+(if {
     Ok(Unit) <- File.write_text(inventory, fixture_inventory());
     true <- record(root);
     true <- finalize(root)
@@ -497,7 +497,7 @@ self_test_in(root: String): Bool ->
     let fixture = child(root, "fixture.txt");
     let inventory = child(root, inventory_relative());
     let makefile = child(root, "Makefile");
-    let {
+    if {
         Ok(Unit) <- Directory.create_all(child(root, "docs/release"));
         Ok(Unit) <- Directory.create_all(child(root, "crates/terlan"));
         Ok(Unit) <- Directory.create_all(child(root, "editors"));
@@ -514,7 +514,7 @@ self_test_in(root: String): Bool ->
     } else {
         _ -> failure("cannot create generated-artifact self-test fixture")
     };
-    (let {
+    (if {
     true <- self_test_snapshots(root, fixture, inventory);
     Some({_source, _artifacts, _snapshot}) <- current_snapshot(root);
     Ok(Unit) <- File.write_text(fixture, "generated by /home/alice/project/terlc\n");

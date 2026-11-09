@@ -130,13 +130,7 @@ fn specialize_application_generics(
     budget: &mut super::specialization_budget::SpecializationBudget,
     retain_generic_templates: bool,
 ) -> Result<(), String> {
-    let nominal_parameters = nominal_parameter_catalog(cores);
-    for core in cores.iter_mut() {
-        for function in &mut core.functions {
-            function.generic_params =
-                generic_parameters_with_nominals(function, &nominal_parameters);
-        }
-    }
+    materialize_nominal_parameters(cores);
     let mut templates = CallableTemplates::new(cores);
     constructor_signatures::collect(cores, &mut templates);
     for core in cores.iter() {
@@ -163,6 +157,30 @@ fn specialize_application_generics(
         specialize_core(core, &templates, budget, retain_generic_templates)?;
     }
     Ok(())
+}
+
+/// Persists receiver-owned nominal parameters before transparent aliases erase
+/// the receiver's declaration identity.
+///
+/// A method such as `(keys: Gen[K]) map_of[V](values: Gen[V])` owns `K`
+/// through `Gen` and declares `V` directly. Once `Gen[K]` expands to its tuple
+/// storage, later specialization can no longer recover that ownership from the
+/// parameter type. Materializing both parameters while the nominal receiver is
+/// still present keeps receiver and qualified-call inference equivalent.
+pub(in crate::compiler::native_ir) fn materialize_nominal_parameters(cores: &mut [CoreModule]) {
+    let nominal_parameters = nominal_parameter_catalog(cores);
+    for core in cores.iter_mut() {
+        let mut scoped_parameters = nominal_parameters.clone();
+        for declaration in &core.types {
+            if !declaration.params.is_empty() {
+                scoped_parameters.insert(declaration.name.clone(), declaration.params.clone());
+            }
+        }
+        for function in &mut core.functions {
+            function.generic_params =
+                generic_parameters_with_nominals(function, &scoped_parameters);
+        }
+    }
 }
 
 fn rewrite_expr(

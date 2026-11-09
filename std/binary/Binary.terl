@@ -294,14 +294,15 @@ pub decoded_protocol(fields: List[DecodedField], body: std.vm.Bytes): DecodedPro
 /**
  * Returns decoded protocol fields in declaration order.
  */
-pub decoded_protocol_fields(decoded: DecodedProtocol): List[DecodedField] ->
-    let {fields, _body} = decoded;
-    fields.
+pub (decoded: DecodedProtocol) decoded_protocol_fields(): List[DecodedField] ->
+    case decoded {
+        {fields, _body} -> fields
+    }.
 
 /**
  * Returns one named decoded value when present.
  */
-pub decoded_protocol_value(decoded: DecodedProtocol, name: String): Option[DecodedValue] ->
+pub (decoded: DecodedProtocol) decoded_protocol_value(name: String): Option[DecodedValue] ->
     decode_protocol_value(decoded_protocol_fields(decoded), name).
 
 /**
@@ -333,7 +334,7 @@ pub decode_protocol_value(fields: List[DecodedField], name: String): Option[Deco
 /**
  * Returns one named integer field when its runtime tag matches.
  */
-pub decoded_protocol_int_value(decoded: DecodedProtocol, name: String): Option[Int] ->
+pub (decoded: DecodedProtocol) decoded_protocol_int_value(name: String): Option[Int] ->
     decode_protocol_int_value(decoded_protocol_fields(decoded), name).
 
 /**
@@ -356,7 +357,7 @@ pub decode_protocol_int_value(fields: List[DecodedField], name: String): Option[
 /**
  * Returns one named exact bitstring field when its runtime tag matches.
  */
-pub decoded_protocol_bits_value(decoded: DecodedProtocol, name: String): Option[std.vm.BitString] ->
+pub (decoded: DecodedProtocol) decoded_protocol_bits_value(name: String): Option[std.vm.BitString] ->
     decode_protocol_bits_value(decoded_protocol_fields(decoded), name).
 
 /**
@@ -379,7 +380,7 @@ pub decode_protocol_bits_value(fields: List[DecodedField], name: String): Option
 /**
  * Returns one named immutable byte field when its runtime tag matches.
  */
-pub decoded_protocol_bytes_value(decoded: DecodedProtocol, name: String): Option[std.vm.Bytes] ->
+pub (decoded: DecodedProtocol) decoded_protocol_bytes_value(name: String): Option[std.vm.Bytes] ->
     decode_protocol_bytes_value(decoded_protocol_fields(decoded), name).
 
 /**
@@ -402,9 +403,10 @@ pub decode_protocol_bytes_value(fields: List[DecodedField], name: String): Optio
 /**
  * Returns the immutable byte suffix after decoded fields.
  */
-pub decoded_protocol_remaining_bytes(decoded: DecodedProtocol): std.vm.Bytes ->
-    let {_fields, body} = decoded;
-    body.
+pub (decoded: DecodedProtocol) decoded_protocol_remaining_bytes(): std.vm.Bytes ->
+    case decoded {
+        {_fields, body} -> body
+    }.
 
 /**
  * TruncatedPayload reports that input ended before a descriptor was satisfied.
@@ -579,7 +581,7 @@ pub protocol_shape_set(
 /**
  * Validates a protocol shape set and all exact aliases.
  */
-pub validate_protocol_shape_set(set: ProtocolShapeSet): Result[ProtocolShapeSet, BinaryDecodeError] ->
+pub (set: ProtocolShapeSet) validate_protocol_shape_set(): Result[ProtocolShapeSet, BinaryDecodeError] ->
     let shapes = set.shapes;
     if {
         set.name.is_empty() -> Err(InvalidShapeSet);
@@ -641,10 +643,7 @@ pub validate_protocol_shape_aliases(
 /**
  * Resolves one exact direct name or alias from a validated shape set.
  */
-pub protocol_shape_set_resolve(
-    set: ProtocolShapeSet,
-    name: String,
-): Result[ProtocolShape, BinaryDecodeError] ->
+pub (set: ProtocolShapeSet) protocol_shape_set_resolve(name: String): Result[ProtocolShape, BinaryDecodeError] ->
     case validate_protocol_shape_set(set) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
@@ -710,8 +709,7 @@ pub resolve_named_protocol_shape(
  * canonical descriptor decoder. Unknown names remain typed `UnknownShape`
  * failures rather than falling back to a prefix or default layout.
  */
-pub protocol_shape_set_decode(
-    set: ProtocolShapeSet,
+pub (set: ProtocolShapeSet) protocol_shape_set_decode(
     name: String,
     payload: std.vm.Bytes,
 ): Result[DecodedProtocol, BinaryDecodeError] ->
@@ -723,8 +721,7 @@ pub protocol_shape_set_decode(
 /**
  * Encodes a complete frame through one direct or aliased shape-set name.
  */
-pub protocol_shape_set_encode_exact(
-    set: ProtocolShapeSet,
+pub (set: ProtocolShapeSet) protocol_shape_set_encode_exact(
     name: String,
     value: DecodedProtocol,
 ): Result[std.vm.Bytes, BinaryConstructError] ->
@@ -736,8 +733,7 @@ pub protocol_shape_set_encode_exact(
 /**
  * Encodes only the fixed prefix through one direct or aliased shape-set name.
  */
-pub protocol_shape_set_encode_prefix(
-    set: ProtocolShapeSet,
+pub (set: ProtocolShapeSet) protocol_shape_set_encode_prefix(
     name: String,
     value: DecodedProtocol,
 ): Result[std.vm.Bytes, BinaryConstructError] ->
@@ -755,7 +751,7 @@ pub protocol_shape_set_encode_prefix(
  * Transformation: enforces the std.binary descriptor invariant before runtime
  * binary construction and matching are implemented.
  */
-pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, BinaryDecodeError] ->
+pub (descriptor: BinaryDescriptor) validate_descriptor(): Result[BinaryDescriptor, BinaryDecodeError] ->
     case descriptor.kind {
         RestSegment ->
             if {
@@ -780,7 +776,7 @@ pub validate_descriptor(descriptor: BinaryDescriptor): Result[BinaryDescriptor, 
  * Transformation: scans fields in declaration order with explicit iterator
  * state so the metadata contract stays backend-neutral.
  */
-pub validate_protocol_shape(shape: ProtocolShape): Result[ProtocolShape, BinaryDecodeError] ->
+pub (shape: ProtocolShape) validate_protocol_shape(): Result[ProtocolShape, BinaryDecodeError] ->
     let fields = shape.fields;
     if {
         shape.name.is_empty() -> Err(UnknownDescriptor);
@@ -912,7 +908,7 @@ pub compact_frame_shape(): ProtocolShape ->
  * Transformation: exposes the final typed Result shape without enabling binary
  * execution or accepting raw host errors.
  */
-pub decode_exact(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDecodeError] ->
+pub (descriptor: BinaryDescriptor) decode_exact(payload: T): Result[T, BinaryDecodeError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -923,7 +919,7 @@ pub decode_exact(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDeco
  * Transformation: keeps future partial-decode callers on the same typed error
  * surface as exact decoding.
  */
-pub decode_prefix(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDecodeError] ->
+pub (descriptor: BinaryDescriptor) decode_prefix(payload: T): Result[T, BinaryDecodeError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -934,7 +930,7 @@ pub decode_prefix(descriptor: BinaryDescriptor, payload: T): Result[T, BinaryDec
  * Transformation: lets user code typecheck against the future construction API
  * while preserving explicit unsupported-runtime behavior.
  */
-pub construct(descriptor: BinaryDescriptor, value: T): Result[T, BinaryConstructError] ->
+pub (descriptor: BinaryDescriptor) construct(value: T): Result[T, BinaryConstructError] ->
     Err(UnsupportedRuntime).
 
 /**
@@ -945,10 +941,7 @@ pub construct(descriptor: BinaryDescriptor, value: T): Result[T, BinaryConstruct
  * Transformation: copies inert descriptor metadata only; no payload is decoded
  * or constructed at runtime.
  */
-pub compose_header_body(
-    header: ProtocolShape,
-    body: ProtocolShape,
-): Result[ProtocolShape, BinaryConstructError] ->
+pub (header: ProtocolShape) compose_header_body(body: ProtocolShape): Result[ProtocolShape, BinaryConstructError] ->
     case validate_protocol_shape(header) {
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(_header) -> compose_valid_header_body(header, body)
@@ -989,8 +982,7 @@ pub split_header_body(
  * terminal rest segment, requires byte alignment, and delegates slicing to the
  * canonical checked byte splitter.
  */
-pub split_protocol_header(
-    shape: ProtocolShape,
+pub (shape: ProtocolShape) split_protocol_header(
     payload: std.vm.Bytes,
 ): Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
@@ -1044,10 +1036,7 @@ pub protocol_shape_fixed_bits(fields: List[ProtocolField], total: Int): Int ->
 /**
  * Validates the body and enforces shape-composition invariants.
  */
-pub compose_valid_header_body(
-    header: ProtocolShape,
-    body: ProtocolShape,
-): Result[ProtocolShape, BinaryConstructError] ->
+pub (header: ProtocolShape) compose_valid_header_body(body: ProtocolShape): Result[ProtocolShape, BinaryConstructError] ->
     case validate_protocol_shape(body) {
         Err(reason) -> Err(binary_construct_error(reason));
         Ok(_body) ->
@@ -1061,7 +1050,7 @@ pub compose_valid_header_body(
 /**
  * Builds one composed descriptor after both input shapes are validated.
  */
-pub composed_protocol_shape(header: ProtocolShape, body: ProtocolShape): ProtocolShape ->
+pub (header: ProtocolShape) composed_protocol_shape(body: ProtocolShape): ProtocolShape ->
     let fields = List.new[ProtocolField]();
     compose_protocol_header_fields(
         header.fields,
@@ -1124,7 +1113,7 @@ pub copy_protocol_fields(
 /**
  * Maps descriptor validation failures onto the construction error surface.
  */
-pub binary_construct_error(reason: BinaryDecodeError): BinaryConstructError ->
+pub (reason: BinaryDecodeError) binary_construct_error(): BinaryConstructError ->
     case reason {
         TruncatedPayload -> UnknownDescriptor;
         InvalidWidth -> InvalidWidth;
@@ -1150,8 +1139,7 @@ pub binary_construct_error(reason: BinaryDecodeError): BinaryConstructError ->
  * Transformation: delegates to the canonical protocol-header splitter when
  * callers need the original encoded header rather than decoded field values.
  */
-pub decode_fixed_header(
-    shape: ProtocolShape,
+pub (shape: ProtocolShape) decode_fixed_header(
     payload: std.vm.Bytes,
 ): Result[{std.vm.Bytes, std.vm.Bytes}, BinaryDecodeError] ->
     split_protocol_header(shape, payload).
@@ -1166,10 +1154,7 @@ pub decode_fixed_header(
  * endian policy to integer descriptors, slices byte descriptors, and preserves
  * a byte-aligned suffix without exposing backend binary syntax.
  */
-pub decode_prefixed_body(
-    shape: ProtocolShape,
-    payload: std.vm.Bytes,
-): Result[DecodedProtocol, BinaryDecodeError] ->
+pub (shape: ProtocolShape) decode_prefixed_body(payload: std.vm.Bytes): Result[DecodedProtocol, BinaryDecodeError] ->
     case validate_protocol_shape(shape) {
         Err(reason) -> Err(reason);
         Ok(validated) ->
@@ -1347,10 +1332,7 @@ pub decode_protocol_tail(
  * segments under the shape endian policy, preserves fixed bytes, and appends
  * the body only when the shape declares terminal `Rest`.
  */
-pub encode_exact(
-    shape: ProtocolShape,
-    value: DecodedProtocol,
-): Result[std.vm.Bytes, BinaryConstructError] ->
+pub (shape: ProtocolShape) encode_exact(value: DecodedProtocol): Result[std.vm.Bytes, BinaryConstructError] ->
     encode_protocol(shape, value, true).
 
 /**
@@ -1361,17 +1343,13 @@ pub encode_exact(
  * Transformation: applies the same checked field packing as `encode_exact`
  * while deliberately omitting the decoded protocol body.
  */
-pub encode_prefix(
-    shape: ProtocolShape,
-    value: DecodedProtocol,
-): Result[std.vm.Bytes, BinaryConstructError] ->
+pub (shape: ProtocolShape) encode_prefix(value: DecodedProtocol): Result[std.vm.Bytes, BinaryConstructError] ->
     encode_protocol(shape, value, false).
 
 /**
  * Validates one shape and starts its owner-local bitstring accumulator.
  */
-pub encode_protocol(
-    shape: ProtocolShape,
+pub (shape: ProtocolShape) encode_protocol(
     value: DecodedProtocol,
     include_rest: Bool,
 ): Result[std.vm.Bytes, BinaryConstructError] ->
@@ -1453,8 +1431,7 @@ pub encode_protocol_fields(
 /**
  * Validates and appends one unsigned field without recursing over the shape.
  */
-pub encode_protocol_uint_value(
-    endian: EndianPolicy,
+pub (endian: EndianPolicy) encode_protocol_uint_value(
     decoded: DecodedProtocol,
     encoded: std.vm.BitString,
     name: String,
@@ -1479,8 +1456,7 @@ pub encode_protocol_uint_value(
 /**
  * Validates and appends one signed field without recursing over the shape.
  */
-pub encode_protocol_int_value(
-    endian: EndianPolicy,
+pub (endian: EndianPolicy) encode_protocol_int_value(
     decoded: DecodedProtocol,
     encoded: std.vm.BitString,
     name: String,
@@ -1507,8 +1483,7 @@ pub encode_protocol_int_value(
 /**
  * Validates and appends one fixed byte field without recursing over the shape.
  */
-pub encode_protocol_bytes_value(
-    decoded: DecodedProtocol,
+pub (decoded: DecodedProtocol) encode_protocol_bytes_value(
     encoded: std.vm.BitString,
     name: String,
     width: Int,
@@ -1526,8 +1501,7 @@ pub encode_protocol_bytes_value(
 /**
  * Validates and appends one exact bit field without recursing over the shape.
  */
-pub encode_protocol_bits_value(
-    decoded: DecodedProtocol,
+pub (decoded: DecodedProtocol) encode_protocol_bits_value(
     encoded: std.vm.BitString,
     name: String,
     width: Int,
@@ -1652,8 +1626,7 @@ pub encode_protocol_bits(
 /**
  * Appends the terminal body only for exact encoding.
  */
-pub encode_protocol_rest(
-    decoded: DecodedProtocol,
+pub (decoded: DecodedProtocol) encode_protocol_rest(
     encoded: std.vm.BitString,
     include_rest: Bool,
 ): Result[std.vm.Bytes, BinaryConstructError] ->

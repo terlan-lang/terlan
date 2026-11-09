@@ -111,7 +111,7 @@ path = "src/benchmark/http_paired_benchmark.rs"
 required-features = ["benchmark-tools"]
 
 [features]
-default = ["native-codegen", "postgres-libpq", "registry-network", "service-foundation"]
+default = ["native-codegen", "registry-network", "service-foundation"]
 serve-runtime-bin = ["service-foundation"]
 registry-network = ["dep:ureq"]
 service-foundation = ["dep:terlan-service-foundation"]

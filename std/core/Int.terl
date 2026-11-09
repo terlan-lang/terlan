@@ -24,10 +24,10 @@ import type std.core.Option.
  * module int_equal_example.
  *
  * pub demo(): Bool ->
- *     std.core.Int.equal(42, 42).
+ *     42.equal(42).
  * ```
  */
-pub equal(left: Int, right: Int): Bool ->
+pub (left: Int) equal(right: Int): Bool ->
     left == right.
 
 /**
@@ -45,7 +45,7 @@ pub equal(left: Int, right: Int): Bool ->
  *     std.core.Int.min(3, 7).
  * ```
  */
-pub min(left: Int, right: Int): Int ->
+pub (left: Int) min(right: Int): Int ->
     case left <= right {
         true -> left;
         false -> right
@@ -67,7 +67,7 @@ pub min(left: Int, right: Int): Int ->
  *     std.core.Int.max(7, 3).
  * ```
  */
-pub max(left: Int, right: Int): Int ->
+pub (left: Int) max(right: Int): Int ->
     case left >= right {
         true -> left;
         false -> right
@@ -88,7 +88,7 @@ pub max(left: Int, right: Int): Int ->
  *     std.core.Int.abs(-7).
  * ```
  */
-pub abs(value: Int): Int ->
+pub (value: Int) abs(): Int ->
     case value < 0 {
         true -> 0 - value;
         false -> value
@@ -111,10 +111,10 @@ pub abs(value: Int): Int ->
  * module int_compare_example.
  *
  * pub demo(): std.core.Ordering.Comparison ->
- *    std.core.Int.compare(1, 2).
+ *    1.compare(2).
  * ```
  */
-pub compare(left: Int, right: Int): std.core.Ordering.Comparison ->
+pub (left: Int) compare(right: Int): std.core.Ordering.Comparison ->
     case left == right {
         true -> Eq;
         false ->
@@ -137,11 +137,11 @@ pub compare(left: Int, right: Int): std.core.Ordering.Comparison ->
  * module int_to_string_example.
  *
  * pub demo(): String ->
- *    std.core.Int.to_string(42).
+ *    42.to_string().
  * ```
  */
 @compiler.intrinsic
-pub to_string(value: Int): String -> "".
+pub (value: Int) to_string(): String -> "".
 
 /**
  * Renders an `Int` using an explicit base from 2 through 36.
@@ -156,11 +156,11 @@ pub to_string(value: Int): String -> "".
  * module int_to_string_base_example.
  *
  * pub demo(): Option[String] ->
- *     std.core.Int.to_string_base(255, 16).
+ *     255.to_string_base(16).
  * ```
  */
 @compiler.intrinsic
-pub to_string_base(value: Int, base: Int): Option[String] ->
+pub (value: Int) to_string_base(base: Int): Option[String] ->
     None.
 
 /**

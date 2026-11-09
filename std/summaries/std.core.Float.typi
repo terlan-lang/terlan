@@ -22,27 +22,27 @@ import std.core.Ordering.{*}.
 /// ```
 
 @pure
-pub abs(value: Float): Float.
+pub (value: Float) abs(): Float.
 
 /// Returns the principal arccosine in radians for a value in `[-1, 1]`.
 
 @pure
-pub acos(value: Float): Float.
+pub (value: Float) acos(): Float.
 
 /// Returns the inverse hyperbolic cosine of a finite value at least one.
 
 @pure
-pub acosh(value: Float): Float.
+pub (value: Float) acosh(): Float.
 
 /// Returns the principal arcsine in radians for a value in `[-1, 1]`.
 
 @pure
-pub asin(value: Float): Float.
+pub (value: Float) asin(): Float.
 
 /// Returns the inverse hyperbolic sine of a finite value.
 
 @pure
-pub asinh(value: Float): Float.
+pub (value: Float) asinh(): Float.
 
 /// Returns the principal arctangent of a finite Float in radians.
 ///
@@ -53,22 +53,22 @@ pub asinh(value: Float): Float.
 /// by `log`.
 
 @pure
-pub atan(value: Float): Float.
+pub (value: Float) atan(): Float.
 
 /// Returns the principal angle of the finite vector `(x, y)` in radians.
 
 @pure
-pub atan2(y: Float, x: Float): Float.
+pub (y: Float) atan2(x: Float): Float.
 
 /// Returns the inverse hyperbolic tangent of a finite value in `(-1, 1)`.
 
 @pure
-pub atanh(value: Float): Float.
+pub (value: Float) atanh(): Float.
 
 /// Returns the finite real cube root of a finite value.
 
 @pure
-pub cbrt(value: Float): Float.
+pub (value: Float) cbrt(): Float.
 
 /// Returns the least whole Float not less than the input.
 ///
@@ -78,13 +78,13 @@ pub cbrt(value: Float): Float.
 /// primitive intrinsic.
 
 @pure
-pub ceil(value: Float): Float.
+pub (value: Float) ceil(): Float.
 
 /// Constrains a finite value to inclusive ordered bounds.
 ///
 /// Returns `None` when `lower` is greater than `upper`.
 
-pub clamp(value: Float, lower: Float, upper: Float): Option[Float].
+pub (value: Float) clamp(lower: Float, upper: Float): Option[Float].
 
 /// Compares two supported finite `Float` values using numeric ordering.
 ///
@@ -103,26 +103,26 @@ pub clamp(value: Float, lower: Float, upper: Float): Option[Float].
 /// module float_compare_example.
 ///
 /// pub demo(): std.core.Ordering.Comparison ->
-///    std.core.Float.compare(1.5, 2.5).
+///    1.5.compare(2.5).
 /// ```
 
 @pure
-pub compare(left: Float, right: Float): std.core.Ordering.Comparison.
+pub (left: Float) compare(right: Float): std.core.Ordering.Comparison.
 
 /// Returns the cosine of a finite angle in radians.
 
 @pure
-pub cos(value: Float): Float.
+pub (value: Float) cos(): Float.
 
 /// Returns the hyperbolic cosine of a finite value.
 
 @pure
-pub cosh(value: Float): Float.
+pub (value: Float) cosh(): Float.
 
 /// Converts an angle in radians to degrees.
 
 @pure
-pub degrees(radians: Float): Float.
+pub (radians: Float) degrees(): Float.
 
 /// Returns the nearest binary64 representation of Euler's number.
 
@@ -141,26 +141,26 @@ pub e(): Float.
 /// module float_equal_example.
 ///
 /// pub demo(): Bool ->
-///     std.core.Float.equal(1.5, 1.5).
+///     1.5.equal(1.5).
 /// ```
 
 @pure
-pub equal(left: Float, right: Float): Bool.
+pub (left: Float) equal(right: Float): Bool.
 
 /// Returns `e` raised to a finite binary64 exponent.
 
 @pure
-pub exp(value: Float): Float.
+pub (value: Float) exp(): Float.
 
 /// Returns two raised to a finite binary64 exponent.
 
 @pure
-pub exp2(value: Float): Float.
+pub (value: Float) exp2(): Float.
 
 /// Returns `exp(value) - 1` without losing precision near zero.
 
 @pure
-pub expm1(value: Float): Float.
+pub (value: Float) expm1(): Float.
 
 /// Returns the greatest whole Float not greater than the input.
 ///
@@ -170,12 +170,12 @@ pub expm1(value: Float): Float.
 /// primitive intrinsic.
 
 @pure
-pub floor(value: Float): Float.
+pub (value: Float) floor(): Float.
 
 /// Returns the signed fractional component of a finite value.
 
 @pure
-pub fract(value: Float): Float.
+pub (value: Float) fract(): Float.
 
 /// Parses a canonical UTF-8 `String` into `Float`.
 ///
@@ -198,7 +198,7 @@ pub from_string(value: String): Option[Float].
 /// Returns the finite Euclidean length of a two-dimensional finite vector.
 
 @pure
-pub hypot(x: Float, y: Float): Float.
+pub (x: Float) hypot(y: Float): Float.
 
 /// Returns the nearest binary64 representation of the natural log of ten.
 
@@ -219,22 +219,22 @@ pub ln2(): Float.
 /// diagnostic instead of terminating the runtime.
 
 @pure
-pub log(value: Float): Float.
+pub (value: Float) log(): Float.
 
 /// Returns the base-ten logarithm of a positive finite value.
 
 @pure
-pub log10(value: Float): Float.
+pub (value: Float) log10(): Float.
 
 /// Returns `log(1 + value)` without losing precision near zero.
 
 @pure
-pub log1p(value: Float): Float.
+pub (value: Float) log1p(): Float.
 
 /// Returns the base-two logarithm of a positive finite value.
 
 @pure
-pub log2(value: Float): Float.
+pub (value: Float) log2(): Float.
 
 /// Returns the logarithm of `value` in the supplied positive base.
 ///
@@ -242,7 +242,7 @@ pub log2(value: Float): Float.
 /// the same finite-scalar contract as the primitive logarithms.
 
 @pure
-pub log_base(value: Float, base: Float): Float.
+pub (value: Float) log_base(base: Float): Float.
 
 /// Returns the larger of two finite `Float` values.
 ///
@@ -260,7 +260,7 @@ pub log_base(value: Float, base: Float): Float.
 /// ```
 
 @pure
-pub max(left: Float, right: Float): Float.
+pub (left: Float) max(right: Float): Float.
 
 /// Returns the smaller of two finite `Float` values.
 ///
@@ -277,7 +277,7 @@ pub max(left: Float, right: Float): Float.
 /// ```
 
 @pure
-pub min(left: Float, right: Float): Float.
+pub (left: Float) min(right: Float): Float.
 
 /// Returns the nearest binary64 representation of pi.
 
@@ -287,17 +287,17 @@ pub pi(): Float.
 /// Raises a finite base to a finite exponent and requires a finite real result.
 
 @pure
-pub pow(base: Float, exponent: Float): Float.
+pub (base: Float) pow(exponent: Float): Float.
 
 /// Converts an angle in degrees to radians.
 
 @pure
-pub radians(degrees: Float): Float.
+pub (degrees: Float) radians(): Float.
 
 /// Returns the multiplicative inverse of a non-zero finite value.
 
 @pure
-pub reciprocal(value: Float): Float.
+pub (value: Float) reciprocal(): Float.
 
 /// Returns the finite remainder after truncating `dividend / divisor`.
 ///
@@ -305,7 +305,7 @@ pub reciprocal(value: Float): Float.
 /// finite-scalar arithmetic contract.
 
 @pure
-pub remainder(dividend: Float, divisor: Float): Float.
+pub (dividend: Float) remainder(divisor: Float): Float.
 
 /// Returns the positive real `degree`th root of a non-negative value.
 ///
@@ -313,27 +313,27 @@ pub remainder(dividend: Float, divisor: Float): Float.
 /// must be supported.
 
 @pure
-pub root(value: Float, degree: Float): Float.
+pub (value: Float) root(degree: Float): Float.
 
 /// Returns the nearest whole binary64 value, with halfway cases away from zero.
 
 @pure
-pub round(value: Float): Float.
+pub (value: Float) round(): Float.
 
 /// Returns `-1.0`, `0.0`, or `1.0` according to a finite value's sign.
 
 @pure
-pub signum(value: Float): Float.
+pub (value: Float) signum(): Float.
 
 /// Returns the sine of a finite angle in radians.
 
 @pure
-pub sin(value: Float): Float.
+pub (value: Float) sin(): Float.
 
 /// Returns the hyperbolic sine of a finite value.
 
 @pure
-pub sinh(value: Float): Float.
+pub (value: Float) sinh(): Float.
 
 /// Returns the principal square root of a non-negative finite Float.
 ///
@@ -344,7 +344,7 @@ pub sinh(value: Float): Float.
 /// diagnostic used by `log`.
 
 @pure
-pub sqrt(value: Float): Float.
+pub (value: Float) sqrt(): Float.
 
 /// Returns the nearest binary64 representation of the square root of two.
 
@@ -361,17 +361,17 @@ pub sqrt_half(): Float.
 /// The finite `Float` contract rejects an overflowing result.
 
 @pure
-pub square(value: Float): Float.
+pub (value: Float) square(): Float.
 
 /// Returns the tangent of a finite angle in radians.
 
 @pure
-pub tan(value: Float): Float.
+pub (value: Float) tan(): Float.
 
 /// Returns the hyperbolic tangent of a finite value.
 
 @pure
-pub tanh(value: Float): Float.
+pub (value: Float) tanh(): Float.
 
 /// Returns the nearest binary64 representation of tau.
 
@@ -400,13 +400,13 @@ pub (value: Float) to_int_exact(): Option[Int].
 /// module float_to_string_example.
 ///
 /// pub demo(): String ->
-///    std.core.Float.to_string(1.5).
+///    1.5.to_string().
 /// ```
 
 @pure
-pub to_string(value: Float): String.
+pub (value: Float) to_string(): String.
 
 /// Removes the fractional component of a finite binary64 value.
 
 @pure
-pub trunc(value: Float): Float.
+pub (value: Float) trunc(): Float.

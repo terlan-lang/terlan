@@ -128,7 +128,7 @@ pub child_spec[P](id: Int, value: P, restart_class: RestartClass, order: Int, in
 
 /// Resolves the current replacement using the original typed declaration.
 
-pub current_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]]): Result[std.vm.Process[T], SupervisorError].
+pub (supervisor: Supervisor) current_child[T](spec: ChildSpec[std.vm.Process.Entry[T]]): Result[std.vm.Process[T], SupervisorError].
 
 /// Builds the durable store and recovery-entry binding for one child.
 
@@ -153,12 +153,12 @@ pub scale_backoff(delay: Int, attempt: Int): Int.
 /// Selects one child under one-for-one, one-for-all, or rest-for-one.
 
 @pure
-pub selects_child(strategy: RestartStrategy, failed_order: Int, candidate_order: Int): Bool.
+pub (strategy: RestartStrategy) selects_child(failed_order: Int, candidate_order: Int): Bool.
 
 /// Selects whether a child class restarts for a normal or abnormal exit.
 
 @pure
-pub should_restart(restart_class: RestartClass, abnormal: Bool): Bool.
+pub (restart_class: RestartClass) should_restart(abnormal: Bool): Bool.
 
 /// Decides whether an ordered shutdown deadline has expired.
 
@@ -167,21 +167,21 @@ pub shutdown_expired(start_tick: Int, timeout: Int, now_tick: Int): Bool.
 
 /// Reads actual children, replacement identities, and restart decisions.
 
-pub snapshot(supervisor: Supervisor): Result[SupervisorSnapshot, SupervisorError].
+pub (supervisor: Supervisor) snapshot(): Result[SupervisorSnapshot, SupervisorError].
 
 /// Admits and starts an image entry in the calling actor's supervision tree.
 /// Names are local to that owner. Time policies use monotonic VM clock ticks.
 /// Ordinary Process.spawn remains unsupervised.
 
-pub start_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]]): Result[std.vm.Process[T], SupervisorError].
+pub (supervisor: Supervisor) start_child[T](spec: ChildSpec[std.vm.Process.Entry[T]]): Result[std.vm.Process[T], SupervisorError].
 
 /// Registers a durable child with distinct initial and recovery entry points.
 
-pub start_persistent_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]], recovery: Recovery[T]): Result[std.vm.Process[T], SupervisorError].
+pub (supervisor: Supervisor) start_persistent_child[T](spec: ChildSpec[std.vm.Process.Entry[T]], recovery: Recovery[T]): Result[std.vm.Process[T], SupervisorError].
 
 /// Requests shutdown and suppresses future restarts for this declaration.
 
-pub stop_child[T](supervisor: Supervisor, spec: ChildSpec[std.vm.Process.Entry[T]]): Result[Unit, SupervisorError].
+pub (supervisor: Supervisor) stop_child[T](spec: ChildSpec[std.vm.Process.Entry[T]]): Result[Unit, SupervisorError].
 
 /// Enforces a finite restart-intensity budget before escalation.
 

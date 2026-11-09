@@ -99,7 +99,7 @@ required_targets(): List[FeatureTarget] ->
 package_named(packages: Json, index: Int, count: Int, expected: String): Option[Json] ->
     if {
         index == count -> None;
-        true -> let {
+        true -> if {
             Ok(package) <- Json.at(packages, index);
             Ok(name_value) <- Json.get(package, "name");
             Ok(name) <- Json.as_string(name_value)
@@ -115,7 +115,7 @@ package_named(packages: Json, index: Int, count: Int, expected: String): Option[
 target_has_feature(targets: Json, index: Int, count: Int, expected: FeatureTarget): Bool ->
     if {
         index == count -> false;
-        true -> let {
+        true -> if {
             Ok(target) <- Json.at(targets, index);
             Ok(name_value) <- Json.get(target, "name");
             Ok(name) <- Json.as_string(name_value)
@@ -152,7 +152,7 @@ feature_findings(
     }.
 
 manifest_feature_diagnostics(metadata: Json): List[String] ->
-    let {
+    if {
         Ok(packages) <- Json.get(metadata, "packages");
         Ok(package_count) <- Json.length(packages);
         Some(package) <- package_named(packages, 0, package_count, "terlan");
@@ -166,7 +166,7 @@ manifest_feature_diagnostics(metadata: Json): List[String] ->
 ast_rows(rows: Json, index: Int, count: Int, kind: String, output: List[String]): List[String] ->
     if {
         index == count -> SourceInventory.reverse(output);
-        true -> let {
+        true -> if {
             Ok(row) <- Json.at(rows, index);
             Ok(path_value) <- Json.get(row, "path");
             Ok(path) <- Json.as_string(path_value)
@@ -176,7 +176,7 @@ ast_rows(rows: Json, index: Int, count: Int, kind: String, output: List[String])
         };
         if {
             kind == "parse" -> let message =
-                (let {
+                (if {
     Ok(value) <- Json.get(row, "error");
     Ok(text) <- Json.as_string(value)
 } else {
@@ -207,7 +207,7 @@ text);
                 [String.concat([path, ": cross-tree #[path] compilation of `", target, "`"]) | output],
             );
             true -> let message =
-                (let {
+                (if {
     Ok(value) <- Json.get(row, "message");
     Ok(text) <- Json.as_string(value)
 } else {
@@ -219,7 +219,7 @@ text);
     }.
 
 ast_array(report: Json, field: String, kind: String): List[String] ->
-    let {
+    if {
         Ok(rows) <- Json.get(report, field);
         Ok(count) <- Json.length(rows)
     } else {
@@ -240,7 +240,7 @@ ast_source_diagnostics(root: String): AstResult ->
                 Err(reason) -> AstResult(valid = false, diagnostics = [], message = reason.message);
                 Ok(report) ->
                     let schema =
-                        (let {
+                        (if {
     Ok(value) <- Json.get(report, "schema");
     Ok(text) <- Json.as_string(value)
 } else {

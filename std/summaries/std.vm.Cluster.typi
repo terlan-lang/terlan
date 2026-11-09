@@ -411,7 +411,7 @@ pub (membership: Membership) leave(node_id: String, tick: Int): Membership.
 /// Transformation: validates membership policy through the VM coordination
 /// layer before source code can join peers.
 
-pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership.
+pub (local: Profile) membership(heartbeat_timeout_ticks: Int): Membership.
 
 /// Returns the stable message id assigned to one frame.
 
@@ -446,7 +446,7 @@ pub (profile: Profile) node_id(): String.
 /// Transformation: validates profile compatibility and message-size policy
 /// through the VM distributed transport layer.
 
-pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session.
+pub (local: Profile) open(remote: Profile, max_message_bytes: Int): Session.
 
 /// Simulates loss of connectivity to one active peer.
 ///

@@ -12,7 +12,7 @@ pub type LambdaExpression.
 
 pub type LetExpression.
 
-pub type RefutableLetExpression.
+pub type RefutableExpression.
 
 pub type QuoteExpression.
 
@@ -90,7 +90,7 @@ pub type ExpressionClass =
       SequenceExpression
     | LambdaExpression
     | LetExpression
-    | RefutableLetExpression
+    | RefutableExpression
     | QuoteExpression
     | AssignmentExpression
     | ConstructorChainExpression

@@ -17,8 +17,9 @@ pub route_like_case_capture_matches_request_path(): Bool ->
 
 @test
 pub path_like_let_capture_binds_file_parts(): Bool ->
-    let "assets/${bucket}/${file}.txt" = "assets/docs/readme.txt";
-    assert_equal("docs/readme", bucket + "/" + file).
+    case "assets/docs/readme.txt" {
+        "assets/${bucket}/${file}.txt" -> assert_equal("docs/readme", bucket + "/" + file)
+    }.
 
 @test
 pub function_head_capture_clause_matches_route_shape(): Bool ->

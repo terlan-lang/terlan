@@ -48,7 +48,7 @@ run_graph(
     context: Context,
     workspace: String,
 ): Result[Summary, String] ->
-    let {
+    if {
         Ok(inputs) <- ProofInputs.replay(root);
         Ok(digest) <- PrepareProofTrack.admit_tools(root, quality, context, workspace)
     } else {
@@ -80,7 +80,7 @@ Ok(
  * reuse canonical tests requested under the enclosing Make environment.
  */
 pub prepare(root: String, quality: String, vm: String, image: String): Result[Summary, String] ->
-    let {
+    if {
         true <-
             PreparationContext.tool_path(quality)
                 and PreparationContext.tool_path(vm)
@@ -105,7 +105,9 @@ if {
 }).
 
 pub run_locked(root: String, quality: String, vm: String, image: String): Bool ->
-    let Ok(result) <- prepare(root, quality, vm, image) else {
+    if {
+        Ok(result) <- prepare(root, quality, vm, image)
+    } else {
         Err(reason) ->
             let _printed = Console.eprintln(reason);
             false

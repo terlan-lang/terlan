@@ -21,7 +21,7 @@ compiler(): String ->
     }.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -33,7 +33,7 @@ source(): String ->
     "module sample.\npub head(input: List[Int]): Int -> case input { [value | rest] -> value; _ -> 0 }.\n".
 
 capture(root: String, source: String): Result[Json, Bool] ->
-    let {
+    if {
         Ok(_) <- File.write_text(root + "/sample.terl", source);
         Ok(snapshot) <-
             Snapshot.capture_file(
@@ -49,10 +49,14 @@ capture(root: String, source: String): Result[Json, Bool] ->
     Ok(catalog).
 
 find(rows: Json, kind: String, fragment: String, index: Int, count: Int): Result[Json, Bool] ->
-    let true <- index < count else {
+    if {
+        true <- index < count
+    } else {
         _ -> Err(false)
     };
-    (let Ok(row) <- rows.at(index) else {
+    (if {
+    Ok(row) <- rows.at(index)
+} else {
     _ -> Err(false)
 };
 if {
@@ -61,7 +65,7 @@ if {
 }).
 
 selected(catalog: Json, kind: String, fragment: String): Result[Json, Bool] ->
-    let {
+    if {
         Ok(rows) <- catalog.get("entities");
         Ok(count) <- rows.length()
     } else {
@@ -84,7 +88,7 @@ count_kind(rows: Json, kind: String, index: Int, count: Int): Int ->
 
 @test
 pub nested_patterns_and_unbound_wildcards_have_owned_identities(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-catalog-patterns-");
         Ok(catalog) <- capture(root, source());
         Ok(rows) <- catalog.get("entities");
@@ -112,7 +116,7 @@ covered and owned and resolved and cleaned).
 
 @test
 pub unrelated_insertion_preserves_pattern_ids_but_rejects_stale_selection(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-catalog-stability-");
         Ok(first) <- capture(root, source());
         Ok(second) <- capture(root, source().replace("pub head", "pub unrelated(): Int -> 0.\npub head"));
@@ -138,7 +142,7 @@ stable and stale and cleaned).
 
 @test
 pub edited_patterns_invalidate_old_ids_instead_of_selecting_new_nodes(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-catalog-pattern-edit-");
         Ok(first) <- capture(root, source());
         Ok(before_pattern) <- selected(first, "pattern", "(wildcard)");
@@ -164,7 +168,7 @@ absent and cleaned).
 pub moving_a_binding_into_a_branch_invalidates_its_old_handle(): Bool ->
     let initial = "module sample.\npub value(input: Int): Int -> let local = input + 1; local.\n";
     let moved = "module sample.\npub value(input: Int): Int -> case true { true -> let local = input + 1; local; false -> input }.\n";
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-catalog-lexical-move-");
         Ok(first) <- capture(root, initial);
         Ok(before_binding) <- selected(first, "binding", "local");
@@ -190,7 +194,7 @@ different and absent and cleaned).
 
 @test
 pub entity_selection_rejects_wrong_kind_and_content(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-catalog-selection-");
         Ok(catalog) <- capture(root, source());
         Ok(entity) <- selected(catalog, "module", "sample")
@@ -224,7 +228,7 @@ wrong_kind and wrong_content and cleaned).
 
 @test
 pub rejected_source_returns_unavailable_catalog_without_typed_entities(): Bool ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-catalog-invalid-");
         Ok(catalog) <- capture(root, "module sample.\npub value(): Bool -> 1.\n");
         Ok(rows) <- catalog.get("entities");

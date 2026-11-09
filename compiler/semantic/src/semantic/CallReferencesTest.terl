@@ -31,7 +31,7 @@ text(value: Json, key: String): String ->
     EntityLookup.text(value, key).
 
 fixture(inputs: List[Input]): Result[Fixture, Bool] ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-call-query-");
         Ok(snapshot) <- SourceSet.capture(compiler(), inputs, root + "/store");
         Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
@@ -50,10 +50,12 @@ find(
     index: Int,
     count: Int,
 ): Result[Json, Bool] ->
-    let true <- index < count else {
+    if {
+        true <- index < count
+    } else {
         _ -> Err(false)
     };
-    (let {
+    (if {
     Ok(row) <- rows.at(index);
     Ok(origin) <- row.get("origin")
 } else {
@@ -79,7 +81,9 @@ selected(
     path: String,
     occurrence: Int,
 ): Result[Json, Bool] ->
-    let Ok(count) <- context.entities.length() else {
+    if {
+        Ok(count) <- context.entities.length()
+    } else {
         _ -> Err(false)
     };
     find(context.entities, kind, name, path, occurrence, 0, count).
@@ -108,7 +112,7 @@ query(context: Fixture, entity: Json, bytes: Int, work: Int, cursor: Json): Resu
     }.
 
 value(result: Json): Result[Json, Bool] ->
-    let {
+    if {
         Ok(rows) <- result.get("facts");
         Ok(row) <- rows.at(0);
         Ok(value) <- row.get("value")
@@ -118,7 +122,7 @@ value(result: Json): Result[Json, Bool] ->
     Ok(value).
 
 count(result: Json): Int ->
-    let {
+    if {
         Ok(rows) <- result.get("facts");
         Ok(n) <- rows.length()
     } else {
@@ -131,7 +135,7 @@ clean(context: Fixture): Bool ->
 
 @test
 pub local_overload_references_link_only_the_exact_selected_declaration(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 [
@@ -168,7 +172,7 @@ valid and cleaned).
 
 @test
 pub imported_aliases_and_module_calls_retain_provider_and_overload_among_decoys(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 [
@@ -217,7 +221,7 @@ valid and cleaned).
 
 @test
 pub rejected_import_provider_trials_never_publish_references(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 [
@@ -263,7 +267,7 @@ valid and cleaned).
 
 @test
 pub indirect_shadowed_calls_are_unknown_without_inventing_a_same_named_target(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 [
@@ -297,7 +301,7 @@ valid and cleaned).
 
 @test
 pub providers_outside_the_snapshot_keep_canonical_signature_without_a_fabricated_link(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 [
@@ -332,7 +336,7 @@ valid and cleaned).
 collect(rows: Json, index: Int, count: Int, mut paths: Set[String]): Result[Set[String], Bool] ->
     if {
         index == count -> Ok(paths);
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(value) <- row.get("value");
             Ok(observation) <- value.get("observation");
@@ -341,7 +345,9 @@ collect(rows: Json, index: Int, count: Int, mut paths: Set[String]): Result[Set[
             _ -> Err(false)
         };
         (let path = text(site, "path");
-(let false <- Set.contains(paths, path) else {
+(if {
+    false <- Set.contains(paths, path)
+} else {
     _ -> Err(false)
 };
 (let _added = paths.add(path); collect(rows, index + 1, count, paths))))
@@ -354,10 +360,12 @@ pages(
     paths: Set[String],
     remaining: Int,
 ): Result[Int, Bool] ->
-    let true <- remaining > 0 else {
+    if {
+        true <- remaining > 0
+    } else {
         _ -> Err(false)
     };
-    (let {
+    (if {
     Ok(result) <- query(context, entity, 4_096, 10_000, cursor);
     Ok(rows) <- result.get("facts");
     Ok(length) <- rows.length();
@@ -373,7 +381,7 @@ if {
 
 @test
 pub call_reference_pages_preserve_every_unique_site(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 [

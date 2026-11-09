@@ -249,6 +249,7 @@ pub struct User {\n\
 #[test]
 pub(super) fn primitive_defining_modules_may_declare_receiver_methods() {
     for (module, primitive) in [
+        ("std.core.Atom", "Atom"),
         ("std.core.Bool", "Bool"),
         ("std.core.Int", "Int"),
         ("std.core.Float", "Float"),

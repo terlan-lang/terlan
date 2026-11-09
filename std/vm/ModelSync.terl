@@ -163,7 +163,7 @@ pub initial_version(writer_id: String): Version ->
  * Transformation: keeps sequence advancement in one VM-validated API.
  */
 @target.vm {process_mailbox: true}
-pub next_version(current: Version, writer_id: String): Version ->
+pub (current: Version) next_version(writer_id: String): Version ->
     native.
 
 /**
@@ -174,7 +174,7 @@ pub next_version(current: Version, writer_id: String): Version ->
  * Transformation: exposes compare-and-swap write intent to Terlan code.
  */
 @target.vm {process_mailbox: true}
-pub write(key: Key, expected_version: Version, next_version: Version, value: Dynamic): Write ->
+pub (key: Key) write(expected_version: Version, next_version: Version, value: Dynamic): Write ->
     native.
 
 /**
@@ -185,7 +185,7 @@ pub write(key: Key, expected_version: Version, next_version: Version, value: Dyn
  * Transformation: exposes compare-and-swap delete intent to Terlan code.
  */
 @target.vm {process_mailbox: true}
-pub delete(key: Key, expected_version: Version, tombstone_version: Version): Delete ->
+pub (key: Key) delete(expected_version: Version, tombstone_version: Version): Delete ->
     native.
 
 /**
@@ -196,7 +196,7 @@ pub delete(key: Key, expected_version: Version, tombstone_version: Version): Del
  * Transformation: lets tools and source tests model stale writes explicitly.
  */
 @target.vm {process_mailbox: true}
-pub conflict(key: Key, current_version: Version, incoming_version: Version): Conflict ->
+pub (key: Key) conflict(current_version: Version, incoming_version: Version): Conflict ->
     native.
 
 /**
@@ -208,7 +208,7 @@ pub conflict(key: Key, current_version: Version, incoming_version: Version): Con
  * store access.
  */
 @target.vm {process_mailbox: true}
-pub stale(expected: Version, current: Version): Bool ->
+pub (expected: Version) stale(current: Version): Bool ->
     native.
 
 /**
@@ -219,7 +219,7 @@ pub stale(expected: Version, current: Version): Bool ->
  * Transformation: exposes compare-and-swap eligibility as a typed predicate.
  */
 @target.vm {process_mailbox: true}
-pub can_apply(expected: Version, current: Version): Bool ->
+pub (expected: Version) can_apply(current: Version): Bool ->
     native.
 
 /**

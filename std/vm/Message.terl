@@ -41,7 +41,7 @@ pub wrap[T](value: T): Message[T] ->
  * selected and transferred the typed mailbox envelope.
  */
 @target.vm {process_mailbox: true}
-pub unwrap[T](message: Message[T]): T ->
+pub (message: Message[T]) unwrap[T](): T ->
     native.
 
 /**

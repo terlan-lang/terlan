@@ -60,7 +60,7 @@ owner_parts(parts: List[String]): String ->
     case parts {
         [] -> "test-structure";
         ["src" | rest] ->
-            let {
+            if {
                 [owner | tail] <- rest;
                 [_next | _remaining] <- tail
             } else {
@@ -138,7 +138,7 @@ load_rows(root: String): RowsLoad ->
 parse_row(fields: List[String]): HeadroomRow ->
     case fields {
         [path, category, recorded, warning, hard, row_owner, row_milestone] ->
-            let {
+            if {
                 Some(recorded_lines) <- Int.from_string(recorded);
                 Some(headroom) <- Int.from_string(warning);
                 Some(hard_limit) <- Int.from_string(hard)

@@ -49,7 +49,7 @@ pub sha256_file_streams_the_complete_file(): Bool ->
         Ok(root) ->
             let path = String.append(root, "/value.txt");
             let result =
-                (let {
+                (if {
     Ok(_) <- write_text(path, "abc");
     Ok(digest) <- sha256_file(path)
 } else {
@@ -69,7 +69,7 @@ pub labeled_file_hash_preserves_ordered_path_digest_rows(): Bool ->
             let first = String.append(root, "/a.txt");
             let second = String.append(root, "/b.txt");
             let result =
-                (let {
+                (if {
     Ok(_first) <- write_text(first, "a");
     Ok(_second) <- write_text(second, "b");
     Ok(actual) <-
@@ -91,7 +91,7 @@ pub labeled_file_hash_rejects_parent_traversal_labels(): Bool ->
         Ok(root) ->
             let path = String.append(root, "/value.txt");
             let result =
-                (let {
+                (if {
     Ok(_written) <- write_text(path, "value");
     Err(_reason) <- sha256_labeled_file_digests(List(labeled_file(path, "../value.txt")))
 } else {
@@ -110,7 +110,7 @@ pub sha256_manifest_verification_is_bulk_and_path_contained(): Bool ->
             let manifest = String.append(root, "/SHA256SUMS");
             let digest = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
             let valid =
-                (let {
+                (if {
     Ok(_) <- write_text(payload, "abc");
     Ok(_) <- write_text(manifest, String.append(digest, "  value.txt\n"));
     Ok(verified) <- verify_sha256_manifest(root, manifest)
@@ -119,7 +119,7 @@ pub sha256_manifest_verification_is_bulk_and_path_contained(): Bool ->
 };
 verified);
             let mismatch =
-                (let {
+                (if {
     Ok(_) <- write_text(manifest, String.append(digest, "  ../value.txt\n"));
     Ok(verified) <- verify_sha256_manifest(root, manifest)
 } else {
@@ -137,7 +137,7 @@ pub sha256_tree_matches_ordered_relative_path_framing(): Bool ->
         Ok(root) ->
             let first = String.append(root, "/a.txt");
             let second = String.append(root, "/b.txt");
-            let {
+            if {
                 Ok(_) <- write_text(first, "a");
                 Ok(_) <- write_text(second, "b");
                 Ok(actual) <- sha256_tree(root)
@@ -167,7 +167,7 @@ pub selected_file_hash_streams_path_nul_content_newline_frames(): Bool ->
         Ok(root) ->
             let first = String.append(root, "/a.txt");
             let second = String.append(root, "/b.txt");
-            let {
+            if {
                 Ok(_first) <- write_text(first, "a");
                 Ok(_second) <- write_text(second, "b");
                 Ok(actual) <- sha256_selected_files(root, ["a.txt", "b.txt"])
@@ -186,7 +186,7 @@ pub labeled_file_content_hash_preserves_binary_length_framing(): Bool ->
             let first = String.append(root, "/a.txt");
             let second = String.append(root, "/b.txt");
             let result =
-                (let {
+                (if {
     Ok(_) <- write_text(first, "a");
     Ok(_) <- write_text(second, "bb");
     Ok(digest) <- sha256_labeled_file_contents([labeled_file(first, "a.txt"), labeled_file(second, "b.txt")])
@@ -207,7 +207,7 @@ pub labeled_file_audit_reports_digest_count_and_forbidden_contents(): Bool ->
             let files = [labeled_file(path, "a.txt")];
             let fragments = [];
             let result =
-                (let {
+                (if {
     Ok(_) <- write_text(path, "secret/value");
     Ok(digest) <- sha256_labeled_file_digests(files);
     Ok(clean) <- audit_labeled_files(files, fragments);
@@ -233,7 +233,7 @@ pub labeled_pattern_audit_expands_paths_and_rejects_empty_matches(): Bool ->
             let directory = String.append(root, "/inputs");
             let path = String.append(directory, "/a.txt");
             let result =
-                (let {
+                (if {
     Ok(_) <- create_all(directory);
     Ok(_) <- write_text(path, "secret/value");
     Ok(digest) <- sha256_labeled_file_digests([labeled_file(path, "source:inputs/a.txt")]);

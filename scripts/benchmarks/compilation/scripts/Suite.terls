@@ -5,7 +5,7 @@ import std.core.Option.{Some}.
 import std.system.Arguments.{get}.
 
 entry(): Bool ->
-    let {
+    if {
         Some(compiler) <- get(0);
         Some(directory) <- get(1);
         Some(count_text) <- get(2);

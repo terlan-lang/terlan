@@ -21,7 +21,7 @@ compiler_source(): String ->
     "#!/bin/sh\nset -eu\ntest \"$1\" = test\ntest \"$2\" = --incremental\ntest $# = 3\nemit() { printf '{\"schema\":\"%s\"}\\n' \"$2\" > \"$1\"; }\nmatrix() { printf 'slice_id\\tfeature_class\\tlane_id\\tcoverage_status\\towner\\tproof_family_ids\\tgap_ids\\tblocker_hash\\nSlice 1\\tcoreir\\tcoreir\\tproof_current\\tcompiler\\tproof\\t\\tnone\\n' > \"$1\"; }\ncase \"$3\" in\nscripts/self_validation/LeanProofFeatureBindingTest.terl)\n  echo matrix >> calls\n  matrix \"$TERLAN_PROOF_BINDING_MATRIX_OUTPUT\"\n  echo 'Lean proof feature binding passed: fixture'\n  ;;\nscripts/self_validation/LeanProofSnapshotTest.terl)\n  test \"$TERLAN_LEAN_SNAPSHOT_TASK\" = all\n  test -n \"$TERLAN_PROOF_BINDING_DATE\"\n  test -s target/quality/proof-artifacts/lean-proof-coverage-matrix.tsv\n  echo snapshot >> calls\n  emit \"$TERLAN_PROOF_BINDING_DIFF_OUTPUT\" terlan.lean-proof-binding-diff.v1\n  test \"$(cat input.txt)\" != fail\n  emit \"$TERLAN_PROOF_BINDING_IMPACT_OUTPUT\" terlan.lean-proof-change-impact.v1\n  emit \"$TERLAN_PROOF_BINDING_REVIEW_OUTPUT\" terlan.lean-proof-binding-review.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_INDEX_OUTPUT\" terlan.lean-proof-snapshot.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_DIFF_OUTPUT\" terlan.lean-proof-binding-diff.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_IMPACT_OUTPUT\" terlan.lean-proof-change-impact.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_REVIEW_OUTPUT\" terlan.lean-proof-binding-review.v1\n  emit \"$TERLAN_PROOF_SNAPSHOT_POLICY_OUTPUT\" terlan.lean-proof-policy-result.v1\n  matrix \"$TERLAN_PROOF_SNAPSHOT_MATRIX_OUTPUT\"\n  echo '[lean-proof-snapshot] consistency passed: fixture'\n  ;;\n*) exit 9;;\nesac\n".
 
 fixture(root: String): Bool ->
-    let {
+    if {
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"));
         true <- write(root, "input.txt", "first");
@@ -34,7 +34,9 @@ fixture(root: String): Bool ->
     OwnerStorage.command(root, "/bin/chmod", ["+x", "target/tools/compiler"]).
 
 stage(root: String, context: Context, day: String, completed: Int, reused: Int): Bool ->
-    let Ok(nodes) <- PrepareProofBinding.declare(root, "target/tools/compiler", context, day) else {
+    if {
+        Ok(nodes) <- PrepareProofBinding.declare(root, "target/tools/compiler", context, day)
+    } else {
         _ -> false
     };
     (let result = PreparationGraph.run_locked(root, "proof-binding", nodes);
@@ -66,7 +68,7 @@ exercise(root: String): Bool ->
             environment = [environment_entry("PATH", "/usr/bin:/bin")],
             runtime_tools = "fixture-v1",
         );
-    let {
+    if {
         true <- fixture(root);
         Err(_path) <- PrepareProofBinding.declare(root, "../compiler", context, "2026-09-25");
         Err(_date) <- PrepareProofBinding.declare(root, "target/tools/compiler", context, "invalid");
@@ -94,7 +96,9 @@ exercise(root: String): Bool ->
     true.
 
 pub self_test(): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-proof-binding-owner-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-proof-binding-owner-")
+    } else {
         _ -> false
     };
     (let valid = exercise(root);

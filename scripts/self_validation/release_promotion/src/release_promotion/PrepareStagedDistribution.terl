@@ -33,7 +33,7 @@ private_environment(entries: List[EnvironmentEntry], scratch: String): List[Envi
     }.
 
 binding_holds(root: String): Bool ->
-    let {
+    if {
         Ok(candidate) <- OwnerStorage.read_json(OwnerStorage.child(root, "dist/release-candidate.json"));
         Ok(seal) <- candidate.get("seal");
         Some(digest) <- OwnerStorage.text(seal, "digest");
@@ -47,10 +47,12 @@ binding_holds(root: String): Bool ->
     EvidenceReports.seal_matches(readiness, "terlan.release-readiness-attestation.v1", digest).
 
 pub declare(root: String, vm: String, image: String): Result[Owner, String] ->
-    let true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image) else {
+    if {
+        true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image)
+    } else {
         _ -> Err("preparation tools must be inside target/")
     };
-    (let {
+    (if {
     Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
     true <- binding_holds(root);
     Ok(version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], context.environment);
@@ -101,7 +103,9 @@ Ok(
 ))).
 
 pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
-    let Ok(owner) <- declare(root, vm, image) else {
+    if {
+        Ok(owner) <- declare(root, vm, image)
+    } else {
         Err(reason) -> Err(reason)
     };
     Ok(PreparationOwner.run_locked(root, owner)).

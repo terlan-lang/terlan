@@ -149,53 +149,57 @@ build_payload(root: String, inputs: Inputs): DocumentResult ->
     let version = identity.version;
     let revision = identity.revision;
     let target = identity.target;
-    let {vm, worker} = CandidateInputs.runtime_files(identity);
-    if {
-        not checksum_sidecars_hold(root, inputs.archives) -> document_failure("release archive checksum sidecars are missing, malformed, or stale");
-        not File.exists(child(root, vm)) -> document_failure(String.append("release VM binary is missing: ", vm));
-        not File.exists(child(root, worker)) -> document_failure(String.append("release native worker is missing: ", worker));
-        true -> let artifacts = file_rows(root, inputs.assets, true, Json.array());
-        let benchmarks = file_rows(root, inputs.benchmarks, false, Json.array());
-        let reports = file_rows(root, inputs.reports, false, Json.array());
-        let stdlib = tree_digest(root, inputs.components.stdlib);
-        let docs = tree_digest(root, inputs.components.docs);
-        let editor = tree_digest(root, inputs.components.editor);
-        let vm_row = file_row(root, vm, false);
-        let worker_row = file_row(root, worker, false);
-        let notes = file_row(root, "CHANGELOG.md", false);
-        if {
-            not artifacts.valid -> artifacts;
-            not benchmarks.valid -> benchmarks;
-            not reports.valid -> reports;
-            not stdlib.valid -> stdlib;
-            not docs.valid -> docs;
-            not editor.valid -> editor;
-            not vm_row.valid -> vm_row;
-            not worker_row.valid -> worker_row;
-            not notes.valid -> notes;
-            true -> DocumentResult(
-                valid = true,
-                document = Json.object()
-                    .put("schema", Json.string("terlan.release-candidate.v1"))
-                    .put("version", Json.string(version))
-                    .put("source_revision", Json.string(revision))
-                    .put("target_triples", Json.array().push(Json.string(target)))
-                    .put("artifacts", artifacts.document)
-                    .put(
-                        "component_hashes",
-                        Json.object()
-                            .put("stdlib", stdlib.document)
-                            .put("vm", vm_row.document)
-                            .put("native_worker", worker_row.document)
-                            .put("docs", docs.document)
-                            .put("editor", editor.document),
+    case CandidateInputs.runtime_files(identity) {
+        {vm, worker} ->
+            if {
+                not checksum_sidecars_hold(root, inputs.archives) -> document_failure(
+                    "release archive checksum sidecars are missing, malformed, or stale",
+                );
+                not File.exists(child(root, vm)) -> document_failure(String.append("release VM binary is missing: ", vm));
+                not File.exists(child(root, worker)) -> document_failure(String.append("release native worker is missing: ", worker));
+                true -> let artifacts = file_rows(root, inputs.assets, true, Json.array());
+                let benchmarks = file_rows(root, inputs.benchmarks, false, Json.array());
+                let reports = file_rows(root, inputs.reports, false, Json.array());
+                let stdlib = tree_digest(root, inputs.components.stdlib);
+                let docs = tree_digest(root, inputs.components.docs);
+                let editor = tree_digest(root, inputs.components.editor);
+                let vm_row = file_row(root, vm, false);
+                let worker_row = file_row(root, worker, false);
+                let notes = file_row(root, "CHANGELOG.md", false);
+                if {
+                    not artifacts.valid -> artifacts;
+                    not benchmarks.valid -> benchmarks;
+                    not reports.valid -> reports;
+                    not stdlib.valid -> stdlib;
+                    not docs.valid -> docs;
+                    not editor.valid -> editor;
+                    not vm_row.valid -> vm_row;
+                    not worker_row.valid -> worker_row;
+                    not notes.valid -> notes;
+                    true -> DocumentResult(
+                        valid = true,
+                        document = Json.object()
+                            .put("schema", Json.string("terlan.release-candidate.v1"))
+                            .put("version", Json.string(version))
+                            .put("source_revision", Json.string(revision))
+                            .put("target_triples", Json.array().push(Json.string(target)))
+                            .put("artifacts", artifacts.document)
+                            .put(
+                                "component_hashes",
+                                Json.object()
+                                    .put("stdlib", stdlib.document)
+                                    .put("vm", vm_row.document)
+                                    .put("native_worker", worker_row.document)
+                                    .put("docs", docs.document)
+                                    .put("editor", editor.document),
+                            )
+                            .put("benchmark_baselines", benchmarks.document)
+                            .put("gate_reports", reports.document)
+                            .put("release_notes", notes.document),
+                        message = "",
                     )
-                    .put("benchmark_baselines", benchmarks.document)
-                    .put("gate_reports", reports.document)
-                    .put("release_notes", notes.document),
-                message = "",
-            )
-        }
+                }
+            }
     }.
 
 sealed_payload(payload: Json): DocumentResult ->
@@ -287,7 +291,7 @@ verify(root: String, version: String): DocumentResult ->
     }.
 
 candidate_string(candidate: Json, field: String): String ->
-    let {
+    if {
         Ok(value) <- candidate.get(field);
         Ok(text) <- value.as_string()
     } else {
@@ -302,7 +306,7 @@ seal_digest(candidate: Json): String ->
     }.
 
 artifact_paths(candidate: Json): List[String] ->
-    let {
+    if {
         Ok(rows) <- candidate.get("artifacts");
         Ok(values) <- Json.required_field_rows(rows, ["path"], [], [])
     } else {
@@ -382,7 +386,7 @@ paths_json(paths: List[String], output: Json): Json ->
     }.
 
 repository_contract(root: String): Bool ->
-    let {
+    if {
         Ok(makefile) <- File.read_text(child(root, "Makefile"));
         Ok(publisher) <- File.read_text(child(root, "scripts/publish_release_from_dist.sh"))
     } else {

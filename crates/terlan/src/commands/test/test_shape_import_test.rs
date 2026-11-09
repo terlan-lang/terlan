@@ -305,7 +305,7 @@ handle_with[Implementation, Message, Output, Failure](
     Handler.handle(implementation, message).
 @test
 pub preserves_result_layout(): Bool ->
-    let Ok(output) <- handle_with(Implementation(), Message(42)) else {
+    if { Ok(output) <- handle_with(Implementation(), Message(42)) } else {
         _ -> false
     };
     output.value() == 42.

@@ -114,7 +114,7 @@ pub adapter_contract(name: String, storage_family: String, capabilities: List[Ca
 /// Output: apply predicate.
 /// Transformation: exposes compare-and-swap eligibility as a typed predicate.
 
-pub can_apply(expected: Version, current: Version): Bool.
+pub (expected: Version) can_apply(current: Version): Bool.
 
 /// Builds a model-sync adapter capability descriptor.
 ///
@@ -131,7 +131,7 @@ pub capability(name: String): Capability.
 /// Output: conflict descriptor.
 /// Transformation: lets tools and source tests model stale writes explicitly.
 
-pub conflict(key: Key, current_version: Version, incoming_version: Version): Conflict.
+pub (key: Key) conflict(current_version: Version, incoming_version: Version): Conflict.
 
 /// Builds an optimistic delete descriptor.
 ///
@@ -139,7 +139,7 @@ pub conflict(key: Key, current_version: Version, incoming_version: Version): Con
 /// Output: delete descriptor.
 /// Transformation: exposes compare-and-swap delete intent to Terlan code.
 
-pub delete(key: Key, expected_version: Version, tombstone_version: Version): Delete.
+pub (key: Key) delete(expected_version: Version, tombstone_version: Version): Delete.
 
 /// Returns the initial optimistic version for a writer.
 ///
@@ -163,7 +163,7 @@ pub key(model: String, id: String): Key.
 /// Output: next version descriptor.
 /// Transformation: keeps sequence advancement in one VM-validated API.
 
-pub next_version(current: Version, writer_id: String): Version.
+pub (current: Version) next_version(writer_id: String): Version.
 
 /// Binds a model-sync adapter contract to a package store.
 ///
@@ -190,7 +190,7 @@ pub persistent_actor_adapter(actor: std.vm.PersistentActor.ActorId, contract: Ad
 /// Transformation: exposes optimistic concurrency preflight without direct
 /// store access.
 
-pub stale(expected: Version, current: Version): Bool.
+pub (expected: Version) stale(current: Version): Bool.
 
 /// Declares one typed syncable model.
 ///
@@ -216,4 +216,4 @@ pub version(sequence: Int, writer_id: String): Version.
 /// Output: write descriptor.
 /// Transformation: exposes compare-and-swap write intent to Terlan code.
 
-pub write(key: Key, expected_version: Version, next_version: Version, value: Dynamic): Write.
+pub (key: Key) write(expected_version: Version, next_version: Version, value: Dynamic): Write.

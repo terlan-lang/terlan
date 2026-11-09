@@ -78,7 +78,7 @@ pub env(key: String, value: String): EnvVar.
 /// Transformation: asks the selected VM runtime to spawn a linked external port and
 /// normalize startup failures into the standard error channel.
 
-pub open(command: Command): Result[Port, std.core.Error].
+pub (command: Command) open(): Result[Port, std.core.Error].
 
 /// Reads bytes from the process standard output.
 ///

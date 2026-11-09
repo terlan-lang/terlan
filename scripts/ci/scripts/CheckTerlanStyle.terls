@@ -70,7 +70,7 @@ check(compiler: String, paths: List[String]): Bool ->
     }.
 
 entry(): Bool ->
-    let {
+    if {
         Some(base) <- Arguments.get(0);
         Some(head) <- Arguments.get(1);
         Some(force_all) <- Arguments.get(2);

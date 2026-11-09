@@ -44,7 +44,7 @@ pub join(fragments: List[Html]): Html.
 /// trust to any new content.
 
 @pure
-pub to_string(fragment: Html): String.
+pub (fragment: Html) to_string(): String.
 
 /// Creates a trusted HTML fragment from a string.
 ///

@@ -63,6 +63,39 @@ pub retain(value: Int): Int ->
 }
 
 #[test]
+fn ordinary_let_rejects_the_discard_target() {
+    let source = r#"
+module discard_binding.
+
+pub sequence(value: Int): Int ->
+    let _ = consume(value);
+    value.
+"#;
+
+    parse_module(source).expect_err("let must introduce a named binding");
+}
+
+#[test]
+fn bare_refutable_binding_allows_the_discard_pattern() {
+    let source = r#"
+module discard_refutable_binding.
+
+pub sequence(value: Int): Int ->
+    _ <- consume(value);
+    value.
+"#;
+
+    let module = parse_module(source).expect("discard pattern should parse with <-");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let { bindings, .. } = &function.clauses[0].body else {
+        panic!("expected refutable expression");
+    };
+    assert!(matches!(&bindings[0].pattern, Pattern::Wildcard));
+}
+
+#[test]
 fn rejects_implicit_subsequent_let_binding() {
     let source = r#"
 module implicit_let_binding.
@@ -107,7 +140,7 @@ fn parses_grouped_refutable_bindings_with_shared_else() {
 module grouped_let_else.
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
-    let {
+    if {
         Ok(left) <- first;
         Ok(right) <- second
     }
@@ -140,7 +173,7 @@ fn parses_grouped_refutable_bindings_with_multi_argument_calls() {
 module grouped_let_call_values.
 
 pub resolve(value: Dynamic): Option[Int] ->
-    let {
+    if {
         Some(left) <- read_int(value, "left");
         Some(right) <- read_int(value, "right")
     } else {
@@ -171,7 +204,7 @@ module lambda_grouped_let_else.
 
 pub resolve(values: List[Dynamic]): List[Option[Int]] ->
     values.map((value) ->
-        let {
+        if {
             Some(left) <- read_int(value, "left");
             Some(right) <- read_int(value, "right")
         } else {
@@ -191,7 +224,7 @@ module nested_let_else.
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
     let first_result = first;
-    let {
+    if {
         Ok(right) <- second
     } else {
         Err(reason) -> Err(reason)
@@ -222,7 +255,7 @@ fn rejects_grouped_let_else_without_fallback_clauses() {
 module empty_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    let {
+    if {
         Ok(result) <- value
     } else {};
     result.
@@ -231,7 +264,7 @@ pub resolve(value: Dynamic): Dynamic ->
     let error = parse_module(source).expect_err("empty let else should fail");
     assert_eq!(
         error.message,
-        "let else requires at least one fallback clause"
+        "refutable if requires at least one fallback clause"
     );
 }
 
@@ -241,17 +274,14 @@ fn rejects_empty_refutable_let_group_with_stable_diagnostic() {
 module empty_refutable_let_group.
 
 pub resolve(): Int ->
-    let {} else {
+    if {} else {
         _ -> 0
     };
     1.
 "#;
 
     let error = parse_module(source).expect_err("empty refutable let group should fail");
-    assert_eq!(
-        error.message,
-        "refutable let group requires at least one binding"
-    );
+    assert_eq!(error.message, "refutable if requires at least one binding");
 }
 
 #[test]
@@ -260,7 +290,7 @@ fn rejects_refutable_let_group_without_else() {
 module missing_refutable_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    let {
+    if {
         Ok(result) <- value
     };
     result.
@@ -269,7 +299,7 @@ pub resolve(value: Dynamic): Dynamic ->
     let error = parse_module(source).expect_err("refutable let group without else should fail");
     assert_eq!(
         error.message,
-        "refutable let group requires an else fallback"
+        "grouped refutable if requires an else fallback"
     );
 }
 
@@ -279,7 +309,7 @@ fn accepts_trailing_semicolons_in_refutable_let_blocks() {
 module trailing_refutable_let_semicolons.
 
 pub resolve(value: Dynamic): Dynamic ->
-    let {
+    if {
         Ok(result) <- value;
     } else {
         Err(reason) -> reason;
@@ -296,7 +326,7 @@ fn accepts_comments_at_refutable_let_group_boundaries() {
 module commented_refutable_let.
 
 pub resolve(value: Dynamic): Dynamic ->
-    let {
+    if {
         // Inspect the result without exposing a partial binding.
         Ok(result) <- value
     }
@@ -343,7 +373,7 @@ fn rejects_grouped_let_else_without_success_result() {
 module bodyless_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    let {
+    if {
         Ok(result) <- value
     } else {
         Err(reason) -> reason
@@ -363,7 +393,7 @@ fn rejects_comma_grouped_refutable_bindings() {
 module comma_grouped_let_else.
 
 pub resolve(first: Dynamic, second: Dynamic): Dynamic ->
-    let {
+    if {
         Ok(left) <- first, Ok(right) <- second
     } else {
         Err(reason) -> reason
@@ -372,11 +402,14 @@ pub resolve(first: Dynamic, second: Dynamic): Dynamic ->
 "#;
 
     let error = parse_module(source).expect_err("comma-grouped let else should fail");
-    assert_eq!(error.message, COMMA_GROUPED_LET_BINDING_DIAGNOSTIC);
+    assert_eq!(
+        error.message,
+        "refutable bindings must be separated by `;`, not commas"
+    );
 }
 
 #[test]
-fn ordinary_tuple_destructuring_is_not_parsed_as_a_refutable_group() {
+fn rejects_pattern_destructuring_in_let() {
     let source = r#"
 module tuple_let.
 
@@ -385,29 +418,54 @@ pub add(pair: {Int, Int}): Int ->
     left + right.
 "#;
 
-    let module = parse_module(source).expect("ordinary tuple let should parse");
-    let Decl::Function(function) = &module.declarations[0] else {
-        panic!("expected function declaration");
-    };
-    assert!(matches!(
-        &function.clauses[0].body,
-        Expr::Let { else_clauses, .. } if else_clauses.is_empty()
-    ));
+    parse_module(source).expect_err("let must bind exactly one variable");
 }
 
 #[test]
-fn parses_single_unbraced_refutable_let_form() {
+fn rejects_refutable_binding_after_let_keyword() {
+    let source = r#"
+module refutable_let_keyword.
+
+pub resolve(value: Dynamic): Dynamic ->
+    let Ok(result) <- value;
+    result.
+"#;
+
+    parse_module(source).expect_err("refutable bindings do not use let");
+}
+
+#[test]
+fn rejects_grouped_refutable_let_keyword() {
+    let source = r#"
+module grouped_refutable_let_keyword.
+
+pub resolve(value: Dynamic): Dynamic ->
+    let {
+        Ok(result) <- value
+    } else {
+        _ -> value
+    };
+    result.
+"#;
+
+    parse_module(source).expect_err("grouped refutable bindings use if");
+}
+
+#[test]
+fn parses_single_refutable_with_explicit_fallback() {
     let source = r#"
 module unbraced_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    let Ok(result) <- value else {
+    if {
+        Ok(result) <- value
+    } else {
         _ -> 0
     };
     result.
 "#;
 
-    let module = parse_module(source).expect("single unbraced refutable let should parse");
+    let module = parse_module(source).expect("single grouped refutable should parse");
     let Decl::Function(function) = &module.declarations[0] else {
         panic!("expected function declaration");
     };
@@ -422,4 +480,71 @@ pub resolve(value: Dynamic): Dynamic ->
     assert_eq!(bindings.len(), 1);
     assert_eq!(else_clauses.len(), 1);
     assert!(matches!(body.as_deref(), Some(Expr::Var(name)) if name == "result"));
+}
+
+#[test]
+fn parses_single_refutable_let_without_else() {
+    let source = r#"
+module let_without_else.
+
+pub resolve(value: Dynamic): Dynamic ->
+    Ok(result) <- value;
+    result.
+"#;
+
+    let module = parse_module(source).expect("refutable let without else should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let {
+        bindings,
+        else_clauses,
+        body,
+    } = &function.clauses[0].body
+    else {
+        panic!("expected refutable let expression");
+    };
+    assert_eq!(bindings.len(), 1);
+    assert_eq!(
+        else_clauses.len(),
+        1,
+        "omitting else should still synthesize an implicit propagate clause"
+    );
+    assert!(matches!(
+        &else_clauses[0].pattern,
+        Pattern::Var(name)
+            if matches!(&else_clauses[0].body, Expr::Var(body_name) if body_name == name)
+    ));
+    assert!(matches!(body.as_deref(), Some(Expr::Var(name)) if name == "result"));
+}
+
+#[test]
+fn chains_multiple_refutable_lets_without_else() {
+    let source = r#"
+module chained_let_without_else.
+
+pub resolve(first: Dynamic, second: Dynamic): Dynamic ->
+    Ok(left) <- first;
+    Ok(right) <- second;
+    {left, right}.
+"#;
+
+    let module = parse_module(source).expect("chained refutable lets without else should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let {
+        bindings,
+        else_clauses,
+        body,
+    } = &function.clauses[0].body
+    else {
+        panic!("expected outer refutable let expression");
+    };
+    assert_eq!(bindings.len(), 1);
+    assert_eq!(else_clauses.len(), 1);
+    assert!(matches!(
+        body.as_deref(),
+        Some(Expr::Let { else_clauses, .. }) if else_clauses.len() == 1
+    ));
 }

@@ -86,7 +86,7 @@ pub type Some[T] =
 ///      None
 ///    | Some[T].
 ///
-/// pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B] ->
+/// pub (value: Option[A]) and_then[A, B](f: (A) -> Option[B]): Option[B] ->
 ///    case value {
 ///        None ->
 ///            None;
@@ -96,10 +96,11 @@ pub type Some[T] =
 ///    }.
 ///
 /// pub demo(value: Option[Int], f: (Int) -> Option[Int]): Option[Int] ->
-///    and_then(value, f).
+///    value.and_then(f).
 /// ```
 
-pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B].
+@pure
+pub (value: Option[A]) and_then[A, B](f: (A) -> Option[B]): Option[B].
 
 /// Compares two optional values using `None < Some(_)`.
 ///
@@ -117,11 +118,12 @@ pub and_then(value: Option[A], f: (A) -> Option[B]): Option[B].
 /// pub compare_int(left: Int, right: Int): Comparison ->
 ///    std.core.Int.compare(left, right).
 ///
-/// pub demo(): Comparison ->
-///    std.core.Option.compare(None, Some(1), compare_int).
+/// pub demo(value: Option[Int]): Comparison ->
+///    value.compare(Some(1), compare_int).
 /// ```
 
-pub compare(left: Option[A], right: Option[A], value_compare: (A, A) -> std.core.Ordering.Comparison): std.core.Ordering.Comparison.
+@pure
+pub (left: Option[A]) compare(right: Option[A], value_compare: (A, A) -> std.core.Ordering.Comparison): std.core.Ordering.Comparison.
 
 /// Returns whether an optional value is missing.
 ///
@@ -134,11 +136,11 @@ pub compare(left: Option[A], right: Option[A], value_compare: (A, A) -> std.core
 /// module option_is_none_example.
 ///
 /// pub demo(value: Option[Int]): Bool ->
-///    std.core.Option.is_none(value).
+///    value.is_none().
 /// ```
 
 @pure
-pub is_none(value: Option[A]): Bool.
+pub (value: Option[A]) is_none(): Bool.
 
 /// Returns whether an optional value is present.
 ///
@@ -151,11 +153,11 @@ pub is_none(value: Option[A]): Bool.
 /// module option_is_some_example.
 ///
 /// pub demo(value: Option[Int]): Bool ->
-///    std.core.Option.is_some(value).
+///    value.is_some().
 /// ```
 
 @pure
-pub is_some(value: Option[A]): Bool.
+pub (value: Option[A]) is_some(): Bool.
 
 /// Maps a present value and leaves `None` unchanged.
 ///
@@ -172,7 +174,7 @@ pub is_some(value: Option[A]): Bool.
 ///      None
 ///    | Some[T].
 ///
-/// pub map(value: Option[A], f: (A) -> B): Option[B] ->
+/// pub (value: Option[A]) map[A, B](f: (A) -> B): Option[B] ->
 ///    case value {
 ///        None ->
 ///            None;
@@ -182,10 +184,11 @@ pub is_some(value: Option[A]): Bool.
 ///    }.
 ///
 /// pub demo(value: Option[Int], f: (Int) -> Int): Option[Int] ->
-///    map(value, f).
+///    value.map(f).
 /// ```
 
-pub map(value: Option[A], f: (A) -> B): Option[B].
+@pure
+pub (value: Option[A]) map[A, B](f: (A) -> B): Option[B].
 
 /// Extracts a present value or returns the provided default.
 ///
@@ -202,7 +205,7 @@ pub map(value: Option[A], f: (A) -> B): Option[B].
 ///      None
 ///    | Some[T].
 ///
-/// pub with_default(value: Option[A], default: A): A ->
+/// pub (value: Option[A]) with_default(default: A): A ->
 ///    case value {
 ///        None ->
 ///            default;
@@ -212,8 +215,8 @@ pub map(value: Option[A], f: (A) -> B): Option[B].
 ///    }.
 ///
 /// pub demo(value: Option[Int]): Int ->
-///    with_default(value, 0).
+///    value.with_default(0).
 /// ```
 
 @pure
-pub with_default(value: Option[A], default: A): A.
+pub (value: Option[A]) with_default(default: A): A.

@@ -4,7 +4,7 @@
 module self_host.ExpressionParser.
 
 import self_host.Delimited.
-import self_host.ExpressionSyntax.{AddExpression, AndExpression, ArrayExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, BitAndExpression, BitOrExpression, BitXorExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableLetExpression, SequenceExpression, ShiftExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
+import self_host.ExpressionSyntax.{AddExpression, AndExpression, ArrayExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, BitAndExpression, BitOrExpression, BitXorExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableExpression, SequenceExpression, ShiftExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
 import std.collections.List.
 import std.core.{Int, String}.
 
@@ -55,10 +55,13 @@ has_compare(source: String): Bool ->
         or Delimited.top_level_text(source, " in ") >= 0.
 
 @pure
-is_refutable_let(source: String): Bool ->
+is_refutable(source: String): Bool ->
     if {
-        not String.starts_with(source, "let ") -> false;
-        true -> Delimited.top_level_pair(source, 60, 45) >= 0
+        String.starts_with(source, "let ") -> false;
+        Delimited.top_level_pair(source, 60, 45) >= 0 -> true;
+        true -> String.starts_with(source, "if {")
+            and String.contains(source, "<-")
+            and String.contains(source, "} else {")
     }.
 
 @pure
@@ -379,7 +382,7 @@ classify_let(source: String, sequence: List[String]): ExpressionClass ->
 classify(source: String): ExpressionClass ->
     let sequence = Delimited.split_top_level(source, 59);
     if {
-        is_refutable_let(source) -> RefutableLetExpression;
+        is_refutable(source) -> RefutableExpression;
         true -> classify_let(source, sequence)
     }.
 

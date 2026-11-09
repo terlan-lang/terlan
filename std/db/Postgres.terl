@@ -68,7 +68,7 @@ pub type Config = {url: String}.
  * immediately; network and authentication failures can occur on the first query.
  */
 @compiler.native
-pub connect(config: Config): Result[Pool, Error].
+pub (config: Config) connect(): Result[Pool, Error].
 
 /**
  * Runs a SQL query and returns all rows.
@@ -80,7 +80,7 @@ pub connect(config: Config): Result[Pool, Error].
  * adapter while preserving a portable row handle surface.
  */
 @compiler.native
-pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[List[Row], Error].
+pub (target: Pool | Connection) query(sql: String, params: List[Json]): Result[List[Row], Error].
 
 /**
  * Runs a SQL query and returns at most one row.
@@ -92,11 +92,7 @@ pub query(target: Pool | Connection, sql: String, params: List[Json]): Result[Li
  * single-row result shape into `Option`.
  */
 @compiler.native
-pub query_one(
-    target: Pool | Connection,
-    sql: String,
-    params: List[Json],
-): Result[Option[Row], Error].
+pub (target: Pool | Connection) query_one(sql: String, params: List[Json]): Result[Option[Row], Error].
 
 /**
  * Runs a SQL command and returns the affected row count.
@@ -108,7 +104,7 @@ pub query_one(
  * the portable affected-row count.
  */
 @compiler.native
-pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[Int, Error].
+pub (target: Pool | Connection) execute(sql: String, params: List[Json]): Result[Int, Error].
 
 /**
  * Runs a transaction body.
@@ -123,7 +119,7 @@ pub execute(target: Pool | Connection, sql: String, params: List[Json]): Result[
  * closes the worker and its database connections. The connection handle expires
  * after either terminal attempt.
  */
-pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error]): Result[T, Error] ->
+pub (pool: Pool) transaction[T](body: (Connection) -> Result[T, Error]): Result[T, Error] ->
     case begin(pool) {
         Err(reason) -> Err(reason);
         Ok(connection) ->

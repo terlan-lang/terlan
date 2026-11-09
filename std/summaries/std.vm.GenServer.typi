@@ -56,15 +56,15 @@ pub await_reply[Value](request_id: Int, witness: Value): Value.
 
 /// Performs a correlated synchronous request and discards stale replies.
 
-pub call[Value](server: ServerRef[Value], request_id: Int, request: Value): Value.
+pub (server: ServerRef[Value]) call[Value](request_id: Int, request: Value): Value.
 
 /// Thin policy wrapper for VM-owned cancellation.
 
-pub cancel[Value](server: ServerRef[Value]): Unit.
+pub (server: ServerRef[Value]) cancel[Value](): Unit.
 
 /// Queues an asynchronous state-changing event.
 
-pub cast[Value](server: ServerRef[Value], event: Value): Unit.
+pub (server: ServerRef[Value]) cast[Value](event: Value): Unit.
 
 /// Converts a callback's initialization outcome into explicit service policy.
 
@@ -75,11 +75,11 @@ pub make_ref[Value](process: std.vm.Process[GenServerCommand[Value]], witness: V
 
 /// Establishes a VM-owned failure monitor; DOWN delivery remains VM policy.
 
-pub monitor[Value](server: ServerRef[Value]): Unit.
+pub (server: ServerRef[Value]) monitor[Value](): Unit.
 
 /// Thin policy wrapper for VM-owned symmetric links.
 
-pub relate_peer[Value](server: ServerRef[Value]): Unit.
+pub (server: ServerRef[Value]) relate_peer[Value](): Unit.
 
 pub send_reply[Value](reply_to: std.vm.Process[GenServerReply[Value]], request_id: Int, reply: Value): Unit.
 
@@ -103,7 +103,7 @@ pub start[Value](process: std.vm.Process[GenServerCommand[Value]], witness: Valu
 
 /// Stops the loop and returns the value produced by its terminate callback.
 
-pub stop[Value](server: ServerRef[Value], request_id: Int): Value.
+pub (server: ServerRef[Value]) stop[Value](request_id: Int): Value.
 
 /// Thin policy wrapper for VM-owned deterministic timers.
 

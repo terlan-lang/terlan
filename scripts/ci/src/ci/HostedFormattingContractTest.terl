@@ -6,7 +6,7 @@ import std.io.File.
 
 @test
 pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
-    let {
+    if {
         Ok(ci) <- File.read_text(".github/workflows/ci.yml");
         Ok(preflight) <- File.read_text(".github/workflows/source-preflight.yml");
         Ok(runner) <- File.read_text(".github/actions/setup-terlan-script-runner/action.yml");

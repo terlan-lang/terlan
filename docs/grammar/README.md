@@ -411,6 +411,26 @@ and type arguments.
 A method may only be declared in the module that defines its receiver type.
 Method identity is keyed by receiver type, method name, and method arity.
 
+Public APIs use capability ownership as their default shape. When an operation
+observes, transforms, validates, converts, iterates, or mutates an existing
+value, and that value's type determines the operation, declare the operation as
+a receiver method on that type. This keeps the type's usable vocabulary
+discoverable from the value itself. The same declaration remains callable in
+qualified receiver-first form for compatibility; do not maintain a duplicate
+free-function implementation.
+
+Keep an operation as a module function when there is no existing owning value:
+constructors, factories, constants, and target-directed parsing are the common
+cases. Keep genuinely cross-shape algorithms in traits or explicit modules,
+while projecting concrete type capabilities as receivers where useful. Public
+struct fields remain direct field access rather than zero-work accessor methods.
+
+Higher-order receiver methods are effect-polymorphic. A combinator that adds no
+effect of its own may be `@pure` even when it invokes callback parameters. Its
+call is pure only when those callbacks are proven pure; passing an effectful or
+unproven callback remains legal in ordinary code and makes the complete call
+effectful.
+
 Receiver mutability belongs to the receiver binding inside the receiver
 parentheses:
 
@@ -560,14 +580,25 @@ remain owned by their generator and are skipped during recursive formatting.
 Boolean conjunction and disjunction use the canonical keyword operators `and`
 and `or`. Symbolic aliases such as `&&` and `||` are not Terlan source syntax.
 
-A `let` expression is one explicit binding followed by a required result
-expression. Consecutive bindings are recursive let expressions, so every local
-binding repeats the `let` keyword.
+A `let` expression binds exactly one variable followed by a required result
+expression. Its left-hand side is never a pattern or discard. Consecutive
+bindings are recursive let expressions, so every local binding repeats the
+`let` keyword.
 
 ```terlan
 let x = expr; x.
 let x = 1; let y = 2; x + y.
 ```
+
+Discarding within refutable sequencing uses the wildcard pattern with `<-`:
+
+```terlan
+_ <- effect();
+continue().
+```
+
+The wildcard always succeeds, so this form evaluates the source once, discards
+its value, and continues without adding a mismatch result type.
 
 Bindings never double as return values. The final expression after the binding
 sequence is the value of the `let` expression. The retired implicit form
@@ -586,27 +617,23 @@ comprehension, or handler scope. The nested name denotes a fresh identity and
 does not alter the outer value. See
 `docs/compiler/TERLAN_BINDING_IDENTITIES.md` for the complete region contract.
 
-A refutable binding uses `<-` with an `else` fallback. Multiple bindings use
-the canonical grouped `let { ... } else { ... }` form, not a separate `with`
-construct, and share one fallback. Each right-hand side runs once from left to
-right. The first mismatch dispatches its value to the fallback clauses.
-Success-bound names are available to later bindings and the final expression,
-but not to the shared fallback. The braces delimit only the refutable binding
-group; they are not a general block-expression form.
-
-A single refutable binding omits the grouping braces:
+A bare refutable continuation uses `<-`. On success, its pattern bindings are
+available to the remaining expression. On mismatch, the unmatched value is
+returned unchanged. Consecutive refutable continuations run once from left to
+right, and each later right-hand side may use names bound by earlier steps:
 
 ```terlan
-let Ok(user) <- Users.find(id) else {
-    Err(reason) -> Err(reason)
-};
-Ok(user).
+Ok(user) <- Users.find(id);
+Ok(account) <- Accounts.find(user.account_id);
+Ok(account).
 ```
 
-Two or more refutable bindings use the grouped form:
+An explicit shared fallback uses grouped refutable `if`. The first mismatch
+dispatches its value to the fallback clauses. Success-bound names are available
+to later bindings and the final expression, but not to the shared fallback:
 
 ```terlan
-let {
+if {
     Ok(user) <- Users.find(id);
     Ok(account) <- Accounts.find(user.account_id)
 } else {
@@ -617,7 +644,8 @@ Ok(account).
 
 ## If Expressions
 
-If expressions are clause-based and do not use an `else` keyword.
+Ordinary `if` expressions are clause-based. Grouped refutable `if` is the
+distinct form described above and uses `else` for its shared fallback.
 
 ```terlan
 if {

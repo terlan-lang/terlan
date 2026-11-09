@@ -41,7 +41,7 @@ pub struct RandomError {
 /// Output: `{next_generator, value}`.
 /// Transformation: advances explicit generator state and returns a boolean.
 
-pub bool(generator: Generator): {Generator, Bool}.
+pub (generator: Generator) bool(): {Generator, Bool}.
 
 /// Draws one bounded random integer.
 ///
@@ -51,7 +51,7 @@ pub bool(generator: Generator): {Generator, Bool}.
 /// Transformation: delegates bounded sampling to maintained Rust RNG range
 /// support.
 
-pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, Int}, RandomError].
+pub (generator: Generator) bounded_int(min: Int, max: Int): Result[{Generator, Int}, RandomError].
 
 /// Chooses one value from a non-empty list.
 ///
@@ -61,7 +61,7 @@ pub bounded_int(generator: Generator, min: Int, max: Int): Result[{Generator, In
 /// Transformation: selects a list index with maintained Rust RNG range support
 /// and returns the selected VM value unchanged.
 
-pub choice[T](generator: Generator, values: List[T]): Result[{Generator, T}, RandomError].
+pub (generator: Generator) choice[T](values: List[T]): Result[{Generator, T}, RandomError].
 
 /// Creates a generator seeded from OS randomness.
 ///
@@ -79,7 +79,7 @@ pub entropy(): Generator.
 /// Transformation: advances explicit generator state and returns a finite
 /// float.
 
-pub float(generator: Generator): {Generator, Float}.
+pub (generator: Generator) float(): {Generator, Float}.
 
 /// Draws one random integer.
 ///
@@ -88,7 +88,7 @@ pub float(generator: Generator): {Generator, Float}.
 /// Transformation: advances the explicit generator state and returns the new
 /// state with the drawn integer.
 
-pub int(generator: Generator): {Generator, Int}.
+pub (generator: Generator) int(): {Generator, Int}.
 
 /// Samples values without replacement.
 ///
@@ -98,7 +98,7 @@ pub int(generator: Generator): {Generator, Int}.
 /// Transformation: shuffles indices through maintained Rust RNG support and
 /// returns the requested prefix without mutating the source list.
 
-pub sample[T](generator: Generator, values: List[T], count: Int): Result[{Generator, List[T]}, RandomError].
+pub (generator: Generator) sample[T](values: List[T], count: Int): Result[{Generator, List[T]}, RandomError].
 
 /// Creates a deterministic random generator.
 ///
@@ -118,4 +118,4 @@ pub seed(seed: Int): Result[Generator, RandomError].
 /// Transformation: delegates index permutation to maintained Rust RNG shuffle
 /// support and reorders VM values by the generated indices.
 
-pub shuffle[T](generator: Generator, values: List[T]): {Generator, List[T]}.
+pub (generator: Generator) shuffle[T](values: List[T]): {Generator, List[T]}.

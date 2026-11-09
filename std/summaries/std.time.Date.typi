@@ -17,17 +17,17 @@ pub struct Date {
 /// Returns signed whole days from `start` to `end`.
 
 @pure
-pub days_between(start: Date, end: Date): Int.
+pub (start: Date) days_between(end: Date): Int.
 
 /// Returns whether both dates identify the same civil day.
 
 @pure
-pub equal(left: Date, right: Date): Bool.
+pub (left: Date) equal(right: Date): Bool.
 
 /// Returns whether `left` is earlier than `right`.
 
 @pure
-pub is_before(left: Date, right: Date): Bool.
+pub (left: Date) is_before(right: Date): Bool.
 
 /// Constructs a validated date between years 1 and 9999.
 
@@ -41,7 +41,7 @@ pub parse_iso(source: String): Option[Date].
 /// Renders a canonical `YYYY-MM-DD` date.
 
 @pure
-pub to_iso(date: Date): String.
+pub (date: Date) to_iso(): String.
 
 /// Returns today's date in UTC through the package-owned wall clock.
 

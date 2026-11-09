@@ -57,10 +57,12 @@ calls(
 ): Result[Selected, Failure] ->
     if {
         index == count -> Ok(output);
-        true -> let Ok(next) <- CallOrigins.step(output.used, maximum) else {
+        true -> if {
+            Ok(next) <- CallOrigins.step(output.used, maximum)
+        } else {
             Err(reason) -> Err(reason)
         };
-        (let {
+        (if {
     Ok(row) <- rows.at(index);
     Ok(site) <- row.get("site");
     Ok(target) <- row.get("target")
@@ -73,10 +75,12 @@ calls(
             ),
         )
 };
-(let true <-
-    EntityLookup.text(row, "model") == "checked-call-resolution.v1"
-        and EntityLookup.text(site, "module") == EntityLookup.module_name(artifact)
-        and EntityLookup.text(site, "path") != "" else {
+(if {
+    true <-
+        EntityLookup.text(row, "model") == "checked-call-resolution.v1"
+            and EntityLookup.text(site, "module") == EntityLookup.module_name(artifact)
+            and EntityLookup.text(site, "path") != ""
+} else {
     _ ->
         Err(
             Failure(
@@ -112,7 +116,9 @@ if {
         ),
         maximum,
     );
-    true -> let Ok(origin) <- CallOrigins.resolve(selection, target, next, maximum) else {
+    true -> if {
+        Ok(origin) <- CallOrigins.resolve(selection, target, next, maximum)
+    } else {
         Err(reason) -> Err(reason)
     };
     (let is_reference = EntityLookup.text(origin.entity, "entity_id") == EntityLookup.text(selection.entity, "entity_id");
@@ -160,10 +166,12 @@ scan_units(
 ): Result[Selected, Failure] ->
     if {
         index == count -> Ok(output);
-        true -> let Ok(next) <- CallOrigins.step(output.used, maximum) else {
+        true -> if {
+            Ok(next) <- CallOrigins.step(output.used, maximum)
+        } else {
             Err(reason) -> Err(reason)
         };
-        (let {
+        (if {
     Ok(source_row) <- units.at(index);
     Ok(artifact) <- source_row.get("export")
 } else {
@@ -199,7 +207,7 @@ if {
     );
     true -> case artifact.get("call_resolution_observations") {
         Ok(capture) ->
-            let {
+            if {
                 Ok(flag) <- capture.get("truncated");
                 Ok(incomplete) <- flag.as_bool();
                 Ok(rows) <- capture.get("calls");
@@ -222,16 +230,22 @@ if {
                     Selected(rows = output.rows, used = next, incomplete = true),
                     maximum,
                 );
-                true -> let Ok(found) <-
-                    calls(
-                        selection,
-                        artifact,
-                        rows,
-                        0,
-                        length,
-                        Selected(rows = output.rows, used = next, incomplete = output.incomplete),
-                        maximum,
-                    ) else {
+                true -> if {
+                    Ok(found) <-
+                        calls(
+                            selection,
+                            artifact,
+                            rows,
+                            0,
+                            length,
+                            Selected(
+                                rows = output.rows,
+                                used = next,
+                                incomplete = output.incomplete,
+                            ),
+                            maximum,
+                        )
+                } else {
                     Err(reason) -> Err(reason)
                 };
                 scan_units(selection, units, index + 1, count, found, maximum)
@@ -251,7 +265,9 @@ if {
 
 pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
     let units = CallOrigins.units(selection);
-    let Ok(count) <- units.length() else {
+    if {
+        Ok(count) <- units.length()
+    } else {
         _ ->
             Err(
                 Failure(

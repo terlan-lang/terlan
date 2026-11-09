@@ -42,7 +42,7 @@ parent(
                 message = "Included-member origin selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -89,7 +89,7 @@ origins(
                 message = "Included-member origin traversal exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> let {
+        true -> if {
             Ok(item) <- parents.at(index);
             Ok(name) <- item.as_string()
         } else {
@@ -101,26 +101,30 @@ origins(
                     ),
                 )
         };
-        (let Ok(selected) <-
-    parent(
-        rows,
-        name,
-        0,
-        row_count,
-        Found(row = Json.null(), matches = 0, used = found.used + 1),
-        maximum,
-    ) else {
+        (if {
+    Ok(selected) <-
+        parent(
+            rows,
+            name,
+            0,
+            row_count,
+            Found(row = Json.null(), matches = 0, used = found.used + 1),
+            maximum,
+        )
+} else {
     Err(reason) -> Err(reason)
 };
 if {
-    selected.matches == 1 -> let Ok(entity) <-
-        DeclarationEntities.entity(
-            selection.artifact,
-            EntityLookup.module_name(selection.artifact),
-            EntityLookup.text(selection.entity, "snapshot_id"),
-            digest,
-            selected.row,
-        ) else {
+    selected.matches == 1 -> if {
+        Ok(entity) <-
+            DeclarationEntities.entity(
+                selection.artifact,
+                EntityLookup.module_name(selection.artifact),
+                EntityLookup.text(selection.entity, "snapshot_id"),
+                digest,
+                selected.row,
+            )
+    } else {
         Err(reason) -> Err(reason)
     };
     origins(
@@ -139,7 +143,9 @@ if {
         ),
         maximum,
     );
-    true -> let Ok(imported) <- ImportOrigins.resolve(selection, name, selected.used, maximum) else {
+    true -> if {
+        Ok(imported) <- ImportOrigins.resolve(selection, name, selected.used, maximum)
+    } else {
         Err(reason) -> Err(reason)
     };
     (let links =
@@ -175,7 +181,7 @@ origins(
  * Exact include edges, using resolver identities for imported aliases.
  */
 pub included_origins(selection: Selection, used: Int, maximum: Int): Result[Origins, Failure] ->
-    let {
+    if {
         Ok(payload) <- selection.record.get("payload");
         Ok(parents) <- payload.get("includes");
         Ok(count) <- parents.length()
@@ -190,7 +196,7 @@ pub included_origins(selection: Selection, used: Int, maximum: Int): Result[Orig
                 ),
             )
     };
-    (let {
+    (if {
     Ok(rows) <- selection.artifact.get("source_declarations");
     Ok(row_count) <- rows.length()
 } else {
@@ -231,7 +237,9 @@ scan(
                 message = "Type selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> let Ok(row) <- rows.at(index) else {
+        true -> if {
+            Ok(row) <- rows.at(index)
+        } else {
             _ ->
                 Err(
                     Failure(
@@ -260,7 +268,7 @@ scan(rows, name, qualified, index + 1, count, next, maximum))
  * A null row means no unique checked Core type; this never guesses an alias.
  */
 pub prepare(selection: Selection, maximum: Int): Result[Found, Failure] ->
-    let {
+    if {
         Ok(core) <- selection.artifact.get("core");
         Ok(rows) <- core.get("types");
         Ok(count) <- rows.length();

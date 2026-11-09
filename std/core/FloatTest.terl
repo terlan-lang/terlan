@@ -137,7 +137,7 @@ pub sqrt_returns_principal_nonnegative_root(): Bool ->
 
 @test
 pub to_int_exact_accepts_integral_in_range_values(): Bool ->
-    let {
+    if {
         Some(42) <- exact_int(42.0);
         Some(value) <- exact_int(-9000000000000000000.0)
     } else {

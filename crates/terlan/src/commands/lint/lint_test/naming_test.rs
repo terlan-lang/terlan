@@ -270,8 +270,7 @@ fn lint_reports_camel_case_let_pattern_binding() {
 module sample.
 
 pub value(input: {Int, Int}): Int ->
-    let {userId, _} = input;
-    userId.
+    case input { {userId, _} -> userId }.
 "#,
     );
 
@@ -292,8 +291,7 @@ fn lint_accepts_snake_case_value_bindings() {
 module sample.
 
 pub value(user_name: String, input: {Int, Int}): String ->
-    let {user_id, _} = input;
-    user_name.
+    case input { {user_id, _} -> user_name }.
 "#,
     );
 
@@ -314,8 +312,7 @@ fn lint_accepts_underscore_prefixed_value_bindings() {
 module sample.
 
 pub value(input: {Int, Int}): Int ->
-    let {_unused_value, kept_value} = input;
-    kept_value.
+    case input { {_unused_value, kept_value} -> kept_value }.
 "#,
     );
 

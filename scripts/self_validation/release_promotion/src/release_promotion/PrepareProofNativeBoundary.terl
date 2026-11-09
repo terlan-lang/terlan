@@ -31,7 +31,9 @@ selected(prefix: String, paths: List[String], names: List[String]): Result[List[
     case paths {
         [] -> Ok(CandidateFiles.sort_unique(names));
         [path | rest] ->
-            let true <- String.starts_with(path, prefix) else {
+            if {
+                true <- String.starts_with(path, prefix)
+            } else {
                 _ -> Err("native-boundary manifest inventory escaped its root")
             };
             (let name = path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
@@ -46,7 +48,9 @@ if {
  */
 pub manifests(root: String): Result[List[String], String] ->
     let directory = OwnerStorage.child(root, "std/summaries");
-    let Ok(paths) <- Directory.entries(directory) else {
+    if {
+        Ok(paths) <- Directory.entries(directory)
+    } else {
         _ -> Err("native-boundary source manifest inventory is unavailable")
     };
     selected(String.append(directory, "/"), paths, []).
@@ -139,7 +143,7 @@ pub declare(
     ).
 
 valid_tools(source: String): Bool ->
-    let {
+    if {
         Ok(identity) <- parse(source);
         Some("terlan.native-toolchain-identity.v1") <- OwnerStorage.text(identity, "schema");
         Some("x86_64-unknown-linux-gnu") <- OwnerStorage.text(identity, "target")
@@ -149,7 +153,7 @@ valid_tools(source: String): Bool ->
     true.
 
 native_context(root: String, compiler: String, context: Context): Result[Context, String] ->
-    let {
+    if {
         Ok(native) <-
             OwnerTools.run(
                 root,
@@ -177,7 +181,7 @@ admit(
     context: Context,
     workspace: String,
 ): Result[Summary, String] ->
-    let {
+    if {
         Ok(names) <- manifests(root);
         true <- names != [] and OwnerDirectoryContract.valid(manifest_members(names));
         Ok(inputs) <- ProofInputs.replay(root);
@@ -213,7 +217,7 @@ if {
  * the owner environment differs from the enclosing coverage requester.
  */
 pub prepare(root: String, compiler: String): Result[Summary, String] ->
-    let {
+    if {
         true <- PreparationContext.tool_path(compiler);
         Some("hosted-source") <- get("TERLAN_RUST_COVERAGE_SCOPE");
         Some(endpoint) <- get("TERLAN_RUST_COVERAGE_CONTEXT");
@@ -238,7 +242,9 @@ if {
  * The enclosing preparation command holds the kernel publication lease.
  */
 pub run_locked(root: String, compiler: String): Bool ->
-    let Ok(result) <- prepare(root, compiler) else {
+    if {
+        Ok(result) <- prepare(root, compiler)
+    } else {
         Err(reason) ->
             let _printed = Console.eprintln(reason);
             false

@@ -16,13 +16,15 @@ stage(root: String, label: String): Bool ->
     PrepareLocalReports.run_locked(root, "target/tools/terlan-vm", "target/tools/matrix.tvm").
 
 count(root: String, expected: String): Bool ->
-    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls")) else {
+    if {
+        Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
         _ -> false
     };
     actual == expected.
 
 graph(root: String, outcome: String, completed: Int, reused: Int): Bool ->
-    let {
+    if {
         Ok(identity) <- Git.source_tree_identity(root);
         Ok(document) <-
             OwnerStorage.read_json(
@@ -44,7 +46,7 @@ graph(root: String, outcome: String, completed: Int, reused: Int): Bool ->
 exercise(root: String, origin: String, vm: String, image: String): Bool ->
     let report = OwnerStorage.child(root, "target/quality/vm-multicore-release-closeout.json");
     let sanitizer = OwnerStorage.child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
-    let {
+    if {
         true <- PreparationCandidateTest.fixture(root);
         true <- PreparationMulticoreTest.fixture(root, origin, vm, image);
         true <- stage(root, "[local reports rehearsal] cold graph");
@@ -83,7 +85,9 @@ exercise(root: String, origin: String, vm: String, image: String): Bool ->
     final_report == cold.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-local-reports-rehearsal-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-local-reports-rehearsal-")
+    } else {
         _ -> false
     };
     (let valid = exercise(root, origin, vm, image);

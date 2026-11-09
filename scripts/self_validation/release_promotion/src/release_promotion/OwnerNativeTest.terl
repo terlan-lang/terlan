@@ -17,7 +17,7 @@ check(root: String, mode: String): Bool ->
             true -> NativeActivityTest.object("original")
         };
     let source = OwnerStorage.child(root, "source.jsonl");
-    let {
+    if {
         Ok(_written) <- File.write_text(source, original);
         Ok(snapshot) <- OwnerNative.read_snapshot(source);
         true <-
@@ -58,7 +58,9 @@ check(root: String, mode: String): Bool ->
     expected_hash == actual_hash.
 
 scenario(mode: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-native-snapshot-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-native-snapshot-")
+    } else {
         _ -> false
     };
     (let valid = check(root, mode);

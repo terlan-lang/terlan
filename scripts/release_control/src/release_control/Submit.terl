@@ -13,12 +13,12 @@ import std.time.Clock.
 import type std.core.Result.
 
 local_guard(revision: String, version: String): Result[Unit, String] ->
-    let {
+    if {
         Ok(source) <- File.read_text("Cargo.toml");
         true <- Tag.version_matches(source, version);
-        Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30000);
-        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
-        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000)
+        Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
+        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30_000);
+        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000)
     } else {
         _ -> Err("publication requires the validated, clean main commit and matching version")
     };
@@ -30,25 +30,25 @@ local_guard(revision: String, version: String): Result[Unit, String] ->
 annotate(revision: String, version: String): Result[String, String] ->
     let tag = String.append("v", version);
     let reference = String.append("refs/tags/", tag);
-    let {
-        Ok(existing) <- Support.run("git", ["tag", "--list", tag], 30000);
+    if {
+        Ok(existing) <- Support.run("git", ["tag", "--list", tag], 30_000);
         Ok(_tagged) <-
             if {
                 existing == "" -> Support.run(
                     "git",
                     ["tag", "--annotate", tag, revision, "--message", String.append("Terlan ", tag)],
-                    30000,
+                    30_000,
                 );
                 true -> Ok("")
             };
-        Ok(kind) <- Support.run("git", ["cat-file", "-t", reference], 30000);
-        Ok(commit) <- Support.run("git", ["rev-parse", String.append(reference, "^{commit}")], 30000);
-        Ok(object) <- Support.run("git", ["rev-parse", reference], 30000);
+        Ok(kind) <- Support.run("git", ["cat-file", "-t", reference], 30_000);
+        Ok(commit) <- Support.run("git", ["rev-parse", String.append(reference, "^{commit}")], 30_000);
+        Ok(object) <- Support.run("git", ["rev-parse", reference], 30_000);
         Ok(remote) <-
             Support.run(
                 "git",
                 ["ls-remote", "origin", reference, String.append(reference, "^{}")],
-                60000,
+                60_000,
             )
     } else {
         Err(reason) -> Err(reason)
@@ -61,7 +61,7 @@ annotate(revision: String, version: String): Result[String, String] ->
     }.
 
 wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
-    let {
+    if {
         Ok(_guarded) <- Tag.guard(revision, version);
         Ok(publication) <- Publication.observe(revision, version)
     } else {
@@ -70,7 +70,7 @@ wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
     if {
         Support.text(publication, "html_url") != "" -> let _shown = println(String.append("[publish] ", Support.text(publication, "html_url")));
         Ok(Unit);
-        true -> let {
+        true -> if {
             Ok(runs) <-
                 Support.github(
                     [
@@ -106,7 +106,7 @@ wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
                         ],
                     ),
                 );
-            case Support.run("sleep", ["30"], 35000) {
+            case Support.run("sleep", ["30"], 35_000) {
                 Err(reason) -> Err(reason);
                 Ok(_slept) -> wait(revision, version, deadline)
             }
@@ -117,11 +117,11 @@ wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
  * Local validation is owned by publish-local before this command can run.
  */
 pub run(revision: String, version: String, seconds: Int): Result[Unit, String] ->
-    let {
+    if {
         Ok(_local) <- local_guard(revision, version);
-        Ok(_authenticated) <- Support.run("gh", ["auth", "status"], 30000);
-        Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60000);
-        Ok(_ancestor) <- Support.run("git", ["merge-base", "--is-ancestor", "origin/main", revision], 30000);
+        Ok(_authenticated) <- Support.run("gh", ["auth", "status"], 30_000);
+        Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60_000);
+        Ok(_ancestor) <- Support.run("git", ["merge-base", "--is-ancestor", "origin/main", revision], 30_000);
         Ok(tag_object) <- annotate(revision, version);
         Ok(_unchanged) <- local_guard(revision, version);
         Ok(output) <-
@@ -134,9 +134,9 @@ pub run(revision: String, version: String, seconds: Int): Result[Unit, String] -
                     String.append(revision, ":refs/heads/main"),
                     String.concat([tag_object, ":refs/tags/v", version]),
                 ],
-                120000,
+                120_000,
             )
     } else {
         Err(reason) -> Err(reason)
     };
-    (let _shown = println(output); wait(revision, version, Clock.monotonic_time_ns() + seconds * 1000000000)).
+    (let _shown = println(output); wait(revision, version, Clock.monotonic_time_ns() + seconds * 1_000_000_000)).

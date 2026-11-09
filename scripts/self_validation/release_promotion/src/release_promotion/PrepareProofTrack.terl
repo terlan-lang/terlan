@@ -71,22 +71,24 @@ pub admit_tools(
     workspace: String,
 ): Result[String, String] ->
     let admission = String.append(workspace, "/tools.json");
-    let {
+    if {
         true <- OwnerStorage.clean_workspace(root, workspace);
         Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, workspace))
     } else {
         _ -> Err("cannot reserve proof tool admission workspace")
     };
-    (let Ok(digest) <-
-    OwnerTools.run(
-        root,
-        OwnerStorage.child(root, quality),
-        ["lean-proof-tool-admission", OwnerStorage.child(root, admission)],
-        context.environment,
-    ) else {
+    (if {
+    Ok(digest) <-
+        OwnerTools.run(
+            root,
+            OwnerStorage.child(root, quality),
+            ["lean-proof-tool-admission", OwnerStorage.child(root, admission)],
+            context.environment,
+        )
+} else {
     Err(reason) -> Err(reason)
 };
-(let {
+(if {
     Ok(actual) <- Hash.sha256_file(OwnerStorage.child(root, admission));
     true <- digest == String.append("sha256:", actual)
 } else {
@@ -101,7 +103,9 @@ admit(
     inputs: List[String],
     workspace: String,
 ): Result[Decision, String] ->
-    let Ok(digest) <- admit_tools(root, quality, context, workspace) else {
+    if {
+        Ok(digest) <- admit_tools(root, quality, context, workspace)
+    } else {
         Err(reason) -> Err(reason)
     };
     Ok(
@@ -116,7 +120,7 @@ admit(
  * Warm reuse still admits current tool bytes but launches no proof producer.
  */
 pub prepare(root: String, quality: String): Result[Decision, String] ->
-    let {
+    if {
         true <- PreparationContext.tool_path(quality);
         Ok(context) <-
             PreparationContext.capture(
@@ -136,7 +140,9 @@ if {
 }).
 
 pub run_locked(root: String, quality: String): Bool ->
-    let Ok(result) <- prepare(root, quality) else {
+    if {
+        Ok(result) <- prepare(root, quality)
+    } else {
         Err(reason) ->
             let _printed = Console.eprintln(reason);
             false

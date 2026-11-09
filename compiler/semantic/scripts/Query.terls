@@ -7,7 +7,7 @@ import std.io.{Console, File}.
 import std.system.Arguments.{count, get}.
 
 entry(): Bool ->
-    let {
+    if {
         true <- count() == 2;
         Some(store) <- get(0);
         Some(path) <- get(1);

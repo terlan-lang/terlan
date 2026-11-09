@@ -38,7 +38,7 @@ owner(mode: String, timeout: Int): Owner ->
     ).
 
 prepare(root: String): Bool ->
-    let {
+    if {
         Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         Ok(_input) <- File.write_text(OwnerStorage.child(root, "input.txt"), "source");
         Ok(_dependency) <- File.write_text(OwnerStorage.child(root, "dependency.txt"), "dependency");
@@ -53,7 +53,9 @@ prepare(root: String): Bool ->
     true.
 
 calls(root: String, expected: String): Bool ->
-    let Ok(source) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+    if {
+        Ok(source) <- File.read_text(OwnerStorage.child(root, "calls"))
+    } else {
         _ -> false
     };
     source == expected.
@@ -71,7 +73,7 @@ owned_file_count(root: String, paths: List[String]): Int ->
     }.
 
 outcome(root: String, expected: String): Bool ->
-    let {
+    if {
         Ok(ledger) <-
             OwnerStorage.read_json(
                 OwnerStorage.child(root, PreparationOwner.ledger_path(owner("pass", 30_000))),
@@ -119,7 +121,7 @@ checked_reuse(root: String): Bool ->
     let output = OwnerStorage.child(root, selected.output);
     let native = OwnerStorage.child(root, PreparationOwner.activity_path(selected));
     let link_target = OwnerStorage.child(root, "link-target");
-    let {
+    if {
         false <- reusable(root, selected);
         true <- PreparationOwner.run_locked(root, selected).valid;
         Ok(before) <-
@@ -189,7 +191,7 @@ checked_reuse(root: String): Bool ->
 
 admitted_execution(root: String): Bool ->
     let selected = owner("pass", 30_000);
-    let {
+    if {
         true <- PreparationOwner.run_locked(root, selected).valid;
         Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "next source");
         Some(admission) <- PreparationOwner.checked_admission(root, selected);
@@ -198,7 +200,7 @@ admitted_execution(root: String): Bool ->
         _ -> false
     };
     (let executed = PreparationOwner.run_admitted(admission);
-(let {
+(if {
     true <- executed.valid and not executed.reused;
     true <- calls(root, "run\nrun\n");
     Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output));
@@ -209,7 +211,9 @@ admitted_execution(root: String): Bool ->
     _ -> false
 };
 (let rejected = PreparationOwner.run_admitted(mutating);
-(let Ok(retained) <- File.read_text(OwnerStorage.child(root, selected.output)) else {
+(if {
+    Ok(retained) <- File.read_text(OwnerStorage.child(root, selected.output))
+} else {
     _ -> false
 };
 not rejected.valid
@@ -219,11 +223,15 @@ not rejected.valid
 
 changed(root: String): Bool ->
     let first = PreparationOwner.run_locked(root, owner("pass", 30_000));
-    let Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "new source") else {
+    if {
+        Ok(_changed) <- File.write_text(OwnerStorage.child(root, "input.txt"), "new source")
+    } else {
         _ -> false
     };
     (let second = PreparationOwner.run_locked(root, owner("pass", 30_000));
-(let Ok(_dependency) <- File.write_text(OwnerStorage.child(root, "dependency.txt"), "new dependency") else {
+(if {
+    Ok(_dependency) <- File.write_text(OwnerStorage.child(root, "dependency.txt"), "new dependency")
+} else {
     _ -> false
 };
 (let third = PreparationOwner.run_locked(root, owner("pass", 30_000));
@@ -235,12 +243,20 @@ first.valid
     and calls(root, "run\nrun\nrun\n")))).
 
 failure_preserves_output(root: String, mode: String, timeout: Int): Bool ->
-    let Ok(_prior) <- File.write_text(OwnerStorage.child(root, "target/quality/fixture.json"), "prior evidence") else {
+    if {
+        Ok(_prior) <-
+            File.write_text(
+                OwnerStorage.child(root, "target/quality/fixture.json"),
+                "prior evidence",
+            )
+    } else {
         _ -> false
     };
     (let failed = PreparationOwner.run_locked(root, owner(mode, timeout));
 let failed_recorded = outcome(root, "failed");
-(let Ok(prior) <- File.read_text(OwnerStorage.child(root, "target/quality/fixture.json")) else {
+(if {
+    Ok(prior) <- File.read_text(OwnerStorage.child(root, "target/quality/fixture.json"))
+} else {
     _ -> false
 };
 (let resumed = PreparationOwner.run_locked(root, owner("pass", 30_000));
@@ -254,7 +270,7 @@ not failed.valid
 interrupted(root: String): Bool ->
     let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
-    let {
+    if {
         Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
         true <-
             OwnerStorage.atomic_json(
@@ -269,7 +285,9 @@ interrupted(root: String): Bool ->
 
 corrupt_output(root: String): Bool ->
     let first = PreparationOwner.run_locked(root, owner("pass", 30_000));
-    let Ok(_changed) <- File.write_text(OwnerStorage.child(root, "target/quality/fixture.json"), "corrupt") else {
+    if {
+        Ok(_changed) <- File.write_text(OwnerStorage.child(root, "target/quality/fixture.json"), "corrupt")
+    } else {
         _ -> false
     };
     (let resumed = PreparationOwner.run_locked(root, owner("pass", 30_000)); first.valid and resumed.valid and not resumed.reused and calls(root, "run\nrun\n")).
@@ -277,7 +295,9 @@ corrupt_output(root: String): Bool ->
 corrupt_ledger(root: String): Bool ->
     let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
-    let Ok(_written) <- File.write_text(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)), "{") else {
+    if {
+        Ok(_written) <- File.write_text(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)), "{")
+    } else {
         _ -> false
     };
     (let resumed = PreparationOwner.run_locked(root, selected); first.valid and not resumed.valid and calls(root, "run\n")).
@@ -285,7 +305,7 @@ corrupt_ledger(root: String): Bool ->
 changed_producer(root: String): Bool ->
     let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
-    let {
+    if {
         Ok(source) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
         Ok(_written) <-
             File.write_text(
@@ -299,7 +319,7 @@ changed_producer(root: String): Bool ->
 
 configuration_changes(root: String): Bool ->
     let env = [Process.environment_entry("HOME", root)];
-    let {
+    if {
         Ok(before) <- OwnerTools.configuration(root, env);
         Ok(warm) <- OwnerTools.configuration(root, env);
         Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, ".cargo"));
@@ -317,14 +337,16 @@ configuration_changes(root: String): Bool ->
 pending_write_is_discarded(root: String): Bool ->
     let selected = owner("pass", 30_000);
     let first = PreparationOwner.run_locked(root, selected);
-    let Ok(_pending) <-
-        File.write_text(
-            OwnerStorage.child(
-                root,
-                String.append(PreparationOwner.ledger_path(selected), ".pending"),
-            ),
-            "{partial",
-        ) else {
+    if {
+        Ok(_pending) <-
+            File.write_text(
+                OwnerStorage.child(
+                    root,
+                    String.append(PreparationOwner.ledger_path(selected), ".pending"),
+                ),
+                "{partial",
+            )
+    } else {
         _ -> false
     };
     (let second = PreparationOwner.run_locked(root, selected);
@@ -335,7 +357,9 @@ first.valid
     and calls(root, "run\n")).
 
 count_completed_files(root: String): Bool ->
-    let Ok(usage) <- Directory.tree_usage(OwnerStorage.child(root, "target/quality/preparation/candidate")) else {
+    if {
+        Ok(usage) <- Directory.tree_usage(OwnerStorage.child(root, "target/quality/preparation/candidate"))
+    } else {
         _ -> false
     };
     usage.regular_file_count == 2.
@@ -343,7 +367,7 @@ count_completed_files(root: String): Bool ->
 optional_mutation(root: String, mode: String): Bool ->
     let optional = OwnerStorage.child(root, "optional.txt");
     let selected = PreparationOwner.with_optional_dependencies(owner("pass", 30_000), ["optional.txt"]);
-    let {
+    if {
         Ok(source) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
         Ok(_producer) <-
             File.write_text(
@@ -366,7 +390,7 @@ optional_mutation(root: String, mode: String): Bool ->
         _ -> false
     };
     (let first = PreparationOwner.run_locked(root, selected);
-(let {
+(if {
     true <- first.valid;
     Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output))
 } else {
@@ -377,7 +401,7 @@ optional_mutation(root: String, mode: String): Bool ->
         root,
         PreparationOwner.with_optional_dependencies(owner(mode, 30_000), ["optional.txt"]),
     );
-(let {
+(if {
     false <- changed.valid;
     Ok(preserved) <- File.read_text(OwnerStorage.child(root, selected.output));
     true <- preserved == prior
@@ -394,7 +418,9 @@ resumed.valid
     and outcome(root, "pass")))))).
 
 scenario(mode: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-owner-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-owner-")
+    } else {
         _ -> false
     };
     (let valid =
@@ -415,17 +441,23 @@ scenario(mode: String): Bool ->
     "timeout" -> failure_preserves_output(root, "timeout", 50);
     other -> failure_preserves_output(root, other, 30_000)
 };
-(let Ok(_removed) <- Directory.remove_all(root) else {
+(if {
+    Ok(_removed) <- Directory.remove_all(root)
+} else {
     _ -> false
 };
 reported(mode, valid))).
 
 native_scenario(mode: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-native-owner-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-native-owner-")
+    } else {
         _ -> false
     };
     (let valid = prepare(root) and native_owner_check(root, mode);
-(let Ok(_removed) <- Directory.remove_all(root) else {
+(if {
+    Ok(_removed) <- Directory.remove_all(root)
+} else {
     _ -> false
 };
 reported(String.append("native-", mode), valid))).
@@ -460,7 +492,7 @@ native_owner_check(root: String, mode: String): Bool ->
             mode == "missing" -> "rm -- \"$TERLAN_BUILD_ACTIVITY_LOG\"\n";
             true -> "cat -- native-input.jsonl >> \"$TERLAN_BUILD_ACTIVITY_LOG\"\n"
         };
-    let {
+    if {
         Ok(_input) <- File.write_text(OwnerStorage.child(root, "native-input.jsonl"), source);
         Ok(_prior) <-
             File.write_text(
@@ -485,7 +517,9 @@ native_owner_check(root: String, mode: String): Bool ->
 let result = PreparationOwner.run_locked(root, selected);
 if {
     mode == "warm" -> result.valid and not result.reused and native_warm(root, selected, source);
-    true -> let Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output)) else {
+    true -> if {
+        Ok(prior) <- File.read_text(OwnerStorage.child(root, selected.output))
+    } else {
         _ -> false
     };
     not result.valid
@@ -496,11 +530,13 @@ if {
 
 native_warm(root: String, selected: Owner, source: String): Bool ->
     let path = OwnerStorage.child(root, PreparationOwner.activity_path(selected));
-    let Ok(before) <- File.read_text(path) else {
+    if {
+        Ok(before) <- File.read_text(path)
+    } else {
         _ -> false
     };
     (let warm = PreparationOwner.run_locked(root, selected);
-(let {
+(if {
     true <- warm.valid and warm.reused and calls(root, "run\n");
     Ok(retained) <- File.read_text(path);
     true <- retained == before and NativeActivityTest.owned_log(retained, source);
@@ -514,7 +550,7 @@ native_warm(root: String, selected: Owner, source: String): Bool ->
     _ -> false
 };
 (let repaired = PreparationOwner.run_locked(root, selected);
-(let {
+(if {
     true <- repaired.valid and not repaired.reused and calls(root, "run\nrun\n");
     Ok(_removed) <- File.delete(path)
 } else {

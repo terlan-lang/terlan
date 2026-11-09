@@ -164,35 +164,35 @@ pub least_connections(): Policy.
 
 /// Returns the migration value from a migration transition.
 
-pub migration(result: MigrationResult): Migration.
+pub (result: MigrationResult) migration(): Migration.
 
 /// Returns the actor id tracked by a migration.
 
-pub migration_actor_id(migration: Migration): String.
+pub (migration: Migration) migration_actor_id(): String.
 
 /// Returns the source node id tracked by a migration.
 
-pub migration_from_node_id(migration: Migration): String.
+pub (migration: Migration) migration_from_node_id(): String.
 
 /// Returns the current migration phase name.
 
-pub migration_phase(migration: Migration): String.
+pub (migration: Migration) migration_phase(): String.
 
 /// Returns the updated scheduler from a migration transition.
 
-pub migration_scheduler(result: MigrationResult): Scheduler.
+pub (result: MigrationResult) migration_scheduler(): Scheduler.
 
 /// Returns the monotonic migration sequence.
 
-pub migration_sequence(migration: Migration): Int.
+pub (migration: Migration) migration_sequence(): Int.
 
 /// Reports whether a migration carries actor state.
 
-pub migration_stateful(migration: Migration): Bool.
+pub (migration: Migration) migration_stateful(): Bool.
 
 /// Returns the target node id tracked by a migration.
 
-pub migration_to_node_id(migration: Migration): String.
+pub (migration: Migration) migration_to_node_id(): String.
 
 /// Builds a distributed scheduler from a node set.
 ///
@@ -213,23 +213,23 @@ pub node(node_id: String, state: String): Node.
 
 /// Returns the terminal outcome from a migration transition.
 
-pub outcome(result: MigrationOutcomeResult): MigrationOutcome.
+pub (result: MigrationOutcomeResult) outcome(): MigrationOutcome.
 
 /// Returns `committed`, `rolled_back`, or `aborted`.
 
-pub outcome_kind(outcome: MigrationOutcome): String.
+pub (outcome: MigrationOutcome) outcome_kind(): String.
 
 /// Returns the terminal reason, or an empty String for commit.
 
-pub outcome_reason(outcome: MigrationOutcome): String.
+pub (outcome: MigrationOutcome) outcome_reason(): String.
 
 /// Returns the updated scheduler from a terminal migration transition.
 
-pub outcome_scheduler(result: MigrationOutcomeResult): Scheduler.
+pub (result: MigrationOutcomeResult) outcome_scheduler(): Scheduler.
 
 /// Returns the migration sequence associated with an outcome.
 
-pub outcome_sequence(outcome: MigrationOutcome): Int.
+pub (outcome: MigrationOutcome) outcome_sequence(): Int.
 
 /// Builds a pinned-node placement policy.
 ///
@@ -270,27 +270,27 @@ pub (scheduler: Scheduler) place_for_route(actor_id: String, route_id: String, d
 
 /// Returns the placement decision from a placement transition.
 
-pub placement(result: PlacementResult): Placement.
+pub (result: PlacementResult) placement(): Placement.
 
 /// Returns the actor id recorded by a placement decision.
 
-pub placement_actor_id(placement: Placement): String.
+pub (placement: Placement) placement_actor_id(): String.
 
 /// Reports whether placement used the policy fallback path.
 
-pub placement_fallback_used(placement: Placement): Bool.
+pub (placement: Placement) placement_fallback_used(): Bool.
 
 /// Returns the selected node id from a placement decision.
 
-pub placement_node_id(placement: Placement): String.
+pub (placement: Placement) placement_node_id(): String.
 
 /// Returns the policy name recorded by a placement decision.
 
-pub placement_policy(placement: Placement): String.
+pub (placement: Placement) placement_policy(): String.
 
 /// Returns the updated scheduler from a placement transition.
 
-pub placement_scheduler(result: PlacementResult): Scheduler.
+pub (result: PlacementResult) placement_scheduler(): Scheduler.
 
 /// Refreshes scheduler membership from a new node set.
 ///

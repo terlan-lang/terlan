@@ -20,7 +20,7 @@ dependency_paths(
 ): Result[List[String], String] ->
     if {
         index == count -> Ok(paths);
-        true -> let {
+        true -> if {
             Ok(value) <- values.at(index);
             Ok(path) <- value.as_string()
         } else {
@@ -41,7 +41,7 @@ safe(paths: List[String]): Bool ->
     }.
 
 metadata(root: String, proof: String, path: String): Result[List[String], String] ->
-    let {
+    if {
         true <- safe([proof, path]);
         Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, path));
         Ok(fingerprints) <- document.get("manifest_fingerprints");
@@ -61,7 +61,7 @@ rows(root: String, values: List[String], inputs: List[String]): Result[List[Stri
         [] -> Ok(CandidateFiles.sort_unique(inputs));
         ["" | rest] -> rows(root, rest, inputs);
         [line | rest] ->
-            let {
+            if {
                 [proof, _status, _scope, _manifests, _exit, _stderr, _digest, path, _plan] <- String.split(line, "\t");
                 Ok(selected) <- metadata(root, proof, path)
             } else {
@@ -75,7 +75,7 @@ rows(root: String, values: List[String], inputs: List[String]): Result[List[Stri
  */
 pub replay(root: String): Result[List[String], String] ->
     let inventory = "proofs/lean/ci/lean-proof-artifacts.tsv";
-    let {
+    if {
         Ok(source) <- read_text(OwnerStorage.child(root, inventory));
         [_header | entries] <- String.split(source, "\n")
     } else {
@@ -87,7 +87,9 @@ pub replay(root: String): Result[List[String], String] ->
  * Composition additionally consumes the completed upstream runtime reports.
  */
 pub collect(root: String): Result[List[String], String] ->
-    let Ok(inputs) <- replay(root) else {
+    if {
+        Ok(inputs) <- replay(root)
+    } else {
         Err(reason) -> Err(reason)
     };
     Ok(

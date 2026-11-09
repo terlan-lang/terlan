@@ -596,15 +596,22 @@ pub fn validate_syntax_contract(contract: &EbnfGrammarContract) -> Vec<SyntaxCon
     );
     require_rule_reference(contract, "ConfigDecl", "MetadataBlock", &mut diagnostics);
     require_rule_reference(contract, "Expr", "LetExpr", &mut diagnostics);
+    require_rule_reference(contract, "Expr", "RefutableExpr", &mut diagnostics);
     require_rule_reference(contract, "Expr", "AssignExpr", &mut diagnostics);
     require_rule_reference(contract, "AssignExpr", "IndexAssignExpr", &mut diagnostics);
     require_rule_reference(contract, "AssignExpr", "PipeExpr", &mut diagnostics);
     require_rule_reference(contract, "IndexAssignExpr", "PostfixExpr", &mut diagnostics);
     require_rule_reference(contract, "IndexAssignExpr", "Expr", &mut diagnostics);
-    require_rule_reference(contract, "LetExpr", "LetBinding", &mut diagnostics);
     require_rule_reference(contract, "LetExpr", "Expr", &mut diagnostics);
-    require_rule_reference(contract, "LetBinding", "Pattern", &mut diagnostics);
-    require_rule_reference(contract, "LetBinding", "Expr", &mut diagnostics);
+    require_rule_reference(
+        contract,
+        "RefutableExpr",
+        "RefutableBinding",
+        &mut diagnostics,
+    );
+    require_rule_reference(contract, "RefutableExpr", "Expr", &mut diagnostics);
+    require_rule_reference(contract, "RefutableBinding", "Pattern", &mut diagnostics);
+    require_rule_reference(contract, "RefutableBinding", "Expr", &mut diagnostics);
     require_rule_reference(contract, "PipeExpr", "OrExpr", &mut diagnostics);
     require_rule_reference(contract, "OrExpr", "AndExpr", &mut diagnostics);
     require_rule_reference(contract, "OrExpr", "OrOp", &mut diagnostics);
@@ -679,7 +686,8 @@ const REQUIRED_SYNTAX_RULES: &[&str] = &[
     "TypeExpr",
     "Expr",
     "LetExpr",
-    "LetBinding",
+    "RefutableExpr",
+    "RefutableBinding",
     "OrExpr",
     "OrOp",
     "AndExpr",

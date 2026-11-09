@@ -118,7 +118,7 @@ scan_package(
     root_matches: Int,
     mut normalized: Json,
 ): PackageScan ->
-    let {
+    if {
         {Some(name), Some(source), Some(descriptor)} <-
             {
                 string_field(entry, "package"),
@@ -217,7 +217,7 @@ requirements_are_owned(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(package) <- packages.at(index);
             Some(requirements) <- array_field(package, "requirements")
         } else {
@@ -235,7 +235,7 @@ requirements_owned(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(value) <- requirements.at(index);
             Ok(requirement) <- value.as_string()
         } else {
@@ -398,7 +398,7 @@ json_string_list_at(
 ): StringListResult ->
     if {
         index == count -> StringListResult(valid = true, values = reverse_strings(reversed, []));
-        true -> let {
+        true -> if {
             Ok(item) <- value.at(index);
             Ok(text) <- item.as_string()
         } else {
@@ -443,7 +443,7 @@ keys_are_safe(values: List[String]): Bool ->
     }.
 
 object_field(value: Json, name: String): Option[Json] ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(_) <- field.keys()
     } else {
@@ -452,7 +452,7 @@ object_field(value: Json, name: String): Option[Json] ->
     Some(field).
 
 array_field(value: Json, name: String): Option[Json] ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(_) <- field.length()
     } else {
@@ -461,7 +461,7 @@ array_field(value: Json, name: String): Option[Json] ->
     Some(field).
 
 string_field(value: Json, name: String): Option[String] ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(text) <- field.as_string()
     } else {
@@ -470,7 +470,7 @@ string_field(value: Json, name: String): Option[String] ->
     Some(text).
 
 int_field(value: Json, name: String): Option[Int] ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(number) <- field.as_int()
     } else {
@@ -532,7 +532,7 @@ build_and_validate(package_dir: String, compiler: String, temporary: String): Op
         Ok(completed) ->
             if {
                 completed.status != 0 -> invalid_result();
-                true -> let {
+                true -> if {
                     Ok(text) <- read_text(child(temporary, "terlan-package-build.json"));
                     Ok(metadata) <- Json.parse(text)
                 } else {
@@ -547,7 +547,7 @@ write_report(encoded: String, output: String): Bool ->
     let contents = String.append(encoded, "\n");
     let created = create_all("target/quality");
     let write_result = write_text(output, contents);
-    let {
+    if {
         {Ok(Unit), Ok(Unit)} <- {created, write_result};
         Ok(written) <- read_text(output)
     } else {
@@ -589,7 +589,7 @@ synthetic_metadata(owner: String, unsafe_identity: Bool): String ->
     ).
 
 metadata_text_is_valid(text: String): Bool ->
-    let {
+    if {
         Ok(metadata) <- Json.parse(text);
         Some(_) <- validate_metadata(metadata)
     } else {
@@ -631,7 +631,7 @@ pub unsafe_native_identity_is_found_at_the_document_root(): Bool ->
 
 @test
 pub unsafe_synthetic_fixture_contains_the_native_identity(): Bool ->
-    let {
+    if {
         Ok(metadata) <- Json.parse(synthetic_metadata("synthetic", true));
         Ok(value) <- metadata.get("raw_handle");
         Ok(7) <- value.as_int()
@@ -649,7 +649,7 @@ pub unsafe_synthetic_fixture_fails_the_recursive_safety_scan(): Bool ->
 
 @test
 pub unsafe_synthetic_fixture_lists_the_native_identity_key(): Bool ->
-    let {
+    if {
         Ok(metadata) <- Json.parse(synthetic_metadata("synthetic", true));
         Ok(keys) <- metadata.keys()
     } else {
@@ -659,7 +659,7 @@ pub unsafe_synthetic_fixture_lists_the_native_identity_key(): Bool ->
 
 @test
 pub unsafe_synthetic_fixture_key_list_fails_safety_scan(): Bool ->
-    let {
+    if {
         Ok(metadata) <- Json.parse(synthetic_metadata("synthetic", true));
         Ok(keys) <- metadata.keys()
     } else {

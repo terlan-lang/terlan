@@ -93,7 +93,7 @@ pub from_string_rejects_unknown_text(): Bool ->
 
 @test
 pub to_string_base_formats_signed_values_and_uppercase_digits(): Bool ->
-    let {
+    if {
         Some(hexadecimal) <- to_string_base(255, 16);
         Some(binary) <- to_string_base(-2, 2)
     } else {
@@ -107,7 +107,7 @@ pub to_string_base_rejects_out_of_range_bases(): Bool ->
 
 @test
 pub from_string_base_parses_signed_case_insensitive_digits(): Bool ->
-    let {
+    if {
         Some(uppercase) <- from_string_base("FF", 16);
         Some(lowercase) <- from_string_base("ff", 16);
         Some(signed) <- from_string_base("-10", 2)

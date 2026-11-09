@@ -130,16 +130,16 @@ pub type Vw =
 /// Reads an angle's magnitude for generated range checks.
 
 @pure
-pub angle_amount(value: Angle): Float.
+pub (value: Angle) angle_amount(): Float.
 
 /// Serializes an angle.
 
-pub angle_css(value: Angle): String.
+pub (value: Angle) angle_css(): String.
 
 /// Serializes a color.
 
 @pure
-pub color_css(value: Color): String.
+pub (value: Color) color_css(): String.
 
 /// Constructs an angle in degrees.
 
@@ -154,11 +154,11 @@ pub em(value: Float): Length.
 /// Reads a length's magnitude for generated range checks.
 
 @pure
-pub length_amount(value: Length): Float.
+pub (value: Length) length_amount(): Float.
 
 /// Serializes a length without accepting arbitrary CSS text.
 
-pub length_css(value: Length): String.
+pub (value: Length) length_css(): String.
 
 /// Constructs a time in milliseconds.
 
@@ -173,11 +173,11 @@ pub percent(value: Float): Percentage.
 /// Reads a percentage's magnitude for generated range checks.
 
 @pure
-pub percentage_amount(value: Percentage): Float.
+pub (value: Percentage) percentage_amount(): Float.
 
 /// Serializes a percentage.
 
-pub percentage_css(value: Percentage): String.
+pub (value: Percentage) percentage_css(): String.
 
 /// Constructs a pixel length.
 
@@ -206,11 +206,11 @@ pub serialize(property: String, css: String): SerializedValue.
 /// Reads a time's magnitude for generated range checks.
 
 @pure
-pub time_amount(value: Time): Float.
+pub (value: Time) time_amount(): Float.
 
 /// Serializes a time.
 
-pub time_css(value: Time): String.
+pub (value: Time) time_css(): String.
 
 /// Constructs a viewport-height-relative length.
 

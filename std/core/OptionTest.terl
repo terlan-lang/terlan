@@ -1,9 +1,9 @@
 module std.core.OptionTest.
 
-import std.core.Int.
-import std.core.Option.{None, Some, compare, is_none, is_some, with_default}.
+import std.core.Option.{None, Some}.
 import std.core.Ordering.{Eq, Gt, Lt}.
 import std.core.Result.{Err, Ok}.
+import std.core.{Int, Option}.
 import std.test.Test.{assert, assert_equal}.
 
 import type std.core.Ordering.{Comparison}.
@@ -37,6 +37,20 @@ optional_string(present: Bool): Option[String] ->
         true -> None
     }.
 
+append_marker(value: String): String ->
+    value + "!".
+
+keep_present(value: String): Option[String] ->
+    Some(value + "!").
+
+@pure
+pub pure_receiver_map(value: Option[String]): Option[String] ->
+    value.map(append_marker).
+
+@pure
+pub pure_qualified_map(value: Option[String]): Option[String] ->
+    Option.map(value, append_marker).
+
 @test
 pub returned_none_matches_missing_pattern(): Bool ->
     case optional_string(false) {
@@ -69,36 +83,64 @@ pub some_constructor_returns_some_tuple(): Bool ->
 
 @test
 pub is_some_accepts_present_value(): Bool ->
-    assert_equal(true, is_some(Some(42))).
+    assert_equal(true, Option.is_some(Some(42))).
 
 @test
 pub is_some_rejects_missing_value(): Bool ->
-    assert_equal(false, is_some(None)).
+    assert_equal(false, Option.is_some(None)).
 
 @test
 pub is_none_accepts_missing_value(): Bool ->
-    assert_equal(true, is_none(None)).
+    assert_equal(true, Option.is_none(None)).
 
 @test
 pub is_none_rejects_present_value(): Bool ->
-    assert_equal(false, is_none(Some(42))).
+    assert_equal(false, Option.is_none(Some(42))).
+
+@test
+pub receiver_is_some_accepts_present_value(): Bool ->
+    assert_equal(true, optional_string(true).is_some()).
+
+@test
+pub receiver_is_none_accepts_missing_value(): Bool ->
+    assert_equal(true, optional_string(false).is_none()).
+
+@test
+pub receiver_map_transforms_present_value(): Bool ->
+    assert_equal(Some("present!"), pure_receiver_map(optional_string(true))).
+
+@test
+pub qualified_map_preserves_conditional_purity(): Bool ->
+    assert_equal(Some("present!"), pure_qualified_map(optional_string(true))).
+
+@test
+pub receiver_and_then_chains_present_value(): Bool ->
+    assert_equal(Some("present!"), optional_string(true).and_then(keep_present)).
 
 @test
 pub with_default_uses_default_for_none(): Bool ->
-    assert_equal(7, with_default(None, 7)).
+    assert_equal(7, Option.with_default(None, 7)).
+
+@test
+pub receiver_with_default_uses_default_for_none(): Bool ->
+    assert_equal("missing", optional_string(false).with_default("missing")).
 
 @test
 pub compare_accepts_two_missing_values(): Bool ->
-    assert_equal(Eq, compare(None, None, compare_int)).
+    assert_equal(Eq, Option.compare(None, None, compare_int)).
 
 @test
 pub compare_orders_missing_before_present_value(): Bool ->
-    assert_equal(Lt, compare(None, Some(1), compare_int)).
+    assert_equal(Lt, Option.compare(None, Some(1), compare_int)).
 
 @test
 pub compare_orders_present_value_after_missing(): Bool ->
-    assert_equal(Gt, compare(Some(1), None, compare_int)).
+    assert_equal(Gt, Option.compare(Some(1), None, compare_int)).
 
 @test
 pub compare_delegates_present_value_ordering(): Bool ->
-    assert_equal(Lt, compare(Some(1), Some(2), compare_int)).
+    assert_equal(Lt, Option.compare(Some(1), Some(2), compare_int)).
+
+@test
+pub receiver_compare_delegates_present_value_ordering(): Bool ->
+    assert_equal(Lt, Some(1).compare(Some(2), compare_int)).

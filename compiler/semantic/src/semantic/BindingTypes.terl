@@ -63,7 +63,7 @@ scan(
                 message = "Binding type selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(binding) <- row.get("binding")
         } else {
@@ -78,7 +78,7 @@ scan(
         if {
             EntityLookup.text(row, "module") != EntityLookup.module_name(selection.artifact)
                 or Json.to_string(binding) != Json.to_string(selection.record) -> scan(selection, rows, index + 1, count, selected, conflict, used + 1, maximum);
-            true -> let {
+            true -> if {
                 true <- EntityLookup.text(row, "model") == "checked-binding-type.v1";
                 true <- EntityLookup.text(row, "type_encoding") == "terlan.typecheck.type.v1";
                 true <- EntityLookup.text(row, "scope") == "checked_binding_definition";
@@ -105,7 +105,9 @@ scan(selection, rows, index + 1, count, row, conflict or different, used + 1, ma
     }.
 
 pub select(selection: Selection, used: Int, maximum: Int): Result[Selected, Failure] ->
-    let true <- used < maximum else {
+    if {
+        true <- used < maximum
+    } else {
         _ ->
             Err(
                 Failure(
@@ -114,7 +116,9 @@ pub select(selection: Selection, used: Int, maximum: Int): Result[Selected, Fail
                 ),
             )
     };
-    (let Ok(capture) <- selection.artifact.get("binding_type_observations") else {
+    (if {
+    Ok(capture) <- selection.artifact.get("binding_type_observations")
+} else {
     _ ->
         Ok(
             unknown(
@@ -124,7 +128,7 @@ pub select(selection: Selection, used: Int, maximum: Int): Result[Selected, Fail
             ),
         )
 };
-(let {
+(if {
     Ok(truncated) <- capture.get("truncated");
     Ok(incomplete) <- truncated.as_bool();
     Ok(rows) <- capture.get("bindings");

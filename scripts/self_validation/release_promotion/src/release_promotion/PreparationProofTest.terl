@@ -29,7 +29,7 @@ material_paths(
 ): Result[List[String], String] ->
     if {
         index == count -> Ok(paths);
-        true -> let {
+        true -> if {
             Ok(row) <- values.at(index);
             Some(path) <- OwnerStorage.text(row, "path")
         } else {
@@ -39,7 +39,7 @@ material_paths(
     }.
 
 copy_inputs(root: String, origin: String): Bool ->
-    let {
+    if {
         Ok(document) <-
             OwnerStorage.read_json(
                 OwnerStorage.child(
@@ -72,7 +72,7 @@ write(root: String, path: String, source: String): Bool ->
     }.
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    let {
+    if {
         true <- copy_inputs(root, origin);
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         Ok(_vm) <- File.copy(OwnerStorage.child(origin, vm), OwnerStorage.child(root, "fixture-vm"));
@@ -108,13 +108,17 @@ stage(root: String, label: String, valid: Bool, reused: Bool): Bool ->
     }.
 
 calls(root: String, expected: String): Bool ->
-    let Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls")) else {
+    if {
+        Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/calls"))
+    } else {
         _ -> false
     };
     actual == expected.
 
 snapshot(root: String): Result[String, String] ->
-    let Ok(files) <- OwnerStorage.files(root, outputs()) else {
+    if {
+        Ok(files) <- OwnerStorage.files(root, outputs())
+    } else {
         Err(reason) -> Err(reason)
     };
     OwnerStorage.digest(files).
@@ -123,7 +127,7 @@ repair(root: String, paths: List[String], expected: String): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            let {
+            if {
                 Ok(prior) <- snapshot(root);
                 true <- write(root, path, "corrupt");
                 true <- stage(root, append("repair ", path), true, false);
@@ -138,7 +142,7 @@ repair(root: String, paths: List[String], expected: String): Bool ->
 
 interruption(root: String): Bool ->
     let path = "target/quality/proof-artifacts/lean-proof-lanes.json";
-    let {
+    if {
         Ok(prior) <- snapshot(root);
         Ok(lanes) <- OwnerStorage.read_json(OwnerStorage.child(root, path));
         true <- OwnerStorage.atomic_json(root, path, lanes.put("fixture_generation", int(2)));
@@ -157,7 +161,7 @@ interruption(root: String): Bool ->
     recovered == prior.
 
 exercise(root: String): Bool ->
-    let {
+    if {
         true <- stage(root, "cold composer", true, false);
         Ok(cold) <- snapshot(root);
         true <- stage(root, "zero-launch warm composer", true, true);
@@ -174,7 +178,9 @@ exercise(root: String): Bool ->
  * Executes the real image; copied evidence is a fixture, not certification.
  */
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-proof-preparation-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-proof-preparation-")
+    } else {
         _ -> false
     };
     (let passed = fixture(root, origin, vm, image) and exercise(root);

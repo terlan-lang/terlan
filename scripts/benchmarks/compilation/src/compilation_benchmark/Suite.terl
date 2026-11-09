@@ -79,7 +79,7 @@ samples(
     }.
 
 duration(commands: Json, name: String, index: Int): Option[Int] ->
-    let {
+    if {
         Ok(row) <- commands.at(index);
         Ok(label) <- row.get("name");
         Ok(text) <- label.as_string()
@@ -87,7 +87,7 @@ duration(commands: Json, name: String, index: Int): Option[Int] ->
         _ -> None
     };
     if {
-        text == name -> let {
+        text == name -> if {
             Ok(value) <- row.get("wall_time_ns");
             Ok(time) <- value.as_int()
         } else {
@@ -107,7 +107,7 @@ observations(
 ): Option[List[Int]] ->
     if {
         index > repetitions -> Some(accumulated);
-        true -> let {
+        true -> if {
             Ok(text) <- read_text(String.append(sample_path(directory, index, records), "/report.json"));
             Ok(report) <- Json.parse(text);
             Ok(passed_value) <- report.get("passed");
@@ -130,7 +130,7 @@ phase_rows(
     case phases {
         [] -> true;
         [phase | rest] ->
-            let {
+            if {
                 Some(values) <- observations(directory, records, phase, 1, repetitions, []);
                 Some(time) <- median(values)
             } else {
@@ -158,7 +158,7 @@ phase_rows(rows, directory, records, repetitions, rest))
 pub run(compiler: String, directory: String, count: Int, width: Int, repetitions: Int): Bool ->
     let valid =
         count > 0
-            and count <= 1024
+            and count <= 1_024
             and width > 0
             and width <= 256
             and repetitions > 0
@@ -166,7 +166,9 @@ pub run(compiler: String, directory: String, count: Int, width: Int, repetitions
             and repetitions rem 2 == 1;
     if {
         not valid or exists(directory) -> false;
-        true -> let Ok(_) <- create_all(directory) else {
+        true -> if {
+            Ok(_) <- create_all(directory)
+        } else {
             _ -> false
         };
         (let passed = samples(compiler, directory, count, width, 1, repetitions); summarize_result(directory, repetitions, passed))
@@ -203,7 +205,7 @@ summarize_result(directory: String, repetitions: Int, passed: Bool): Bool ->
                     "Medians describe this run only. Compare identical compiler options and host conditions; raw host and toolchain evidence is in each sample report.",
                 ),
             );
-    let {
+    if {
         Ok(text) <- Json.stringify_pretty(report);
         Ok(_) <- write_text(String.append(directory, "/summary.json"), String.append(text, "\n"))
     } else {

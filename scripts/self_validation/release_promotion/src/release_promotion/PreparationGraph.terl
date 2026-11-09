@@ -83,7 +83,9 @@ validate_at(
         [] -> Ok(true);
         [value | rest] ->
             let owner = value.producer;
-            let Ok(producer) <- validate_node(value, candidate, names, outputs, producers, remaining) else {
+            if {
+                Ok(producer) <- validate_node(value, candidate, names, outputs, producers, remaining)
+            } else {
                 Err(reason) -> Err(reason)
             };
             validate_at(
@@ -105,7 +107,7 @@ validate_node(
     remaining: Int,
 ): Result[String, String] ->
     let owner = value.producer;
-    let {
+    if {
         true <- remaining > 0;
         true <- PreparationOwner.valid_declaration(owner);
         true <- owner.candidate == candidate;
@@ -124,14 +126,20 @@ validate_node(
  * Validates the entire ordered ownership graph before any producer runs.
  */
 pub validate(nodes: List[Node]): Result[String, String] ->
-    let [first | _rest] <- nodes else {
+    if {
+        [first | _rest] <- nodes
+    } else {
         _ -> Err("preparation graph cannot be empty")
     };
     (let candidate = first.producer.candidate;
-(let Ok(_valid) <- validate_at(nodes, candidate, [], [], [], 256) else {
+(if {
+    Ok(_valid) <- validate_at(nodes, candidate, [], [], [], 256)
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <- declared_consumers(nodes, nodes) else {
+(if {
+    true <- declared_consumers(nodes, nodes)
+} else {
     _ ->
         Err("preparation graph consumes another owner's output without an explicit dependency edge")
 };
@@ -177,7 +185,7 @@ declared_consumers(remaining: List[Node], nodes: List[Node]): Bool ->
     }.
 
 parent_files(edges: List[String], done: List[Node], paths: List[String]): List[String] ->
-    let {
+    if {
         [name | rest] <- edges;
         Some(parent) <- find(done, name)
     } else {
@@ -277,7 +285,9 @@ advance_owned(
     journal: String,
     admission: Option[Admission],
 ): Summary ->
-    let true <- NativeCycle.before(root, journal, cycle, owner) else {
+    if {
+        true <- NativeCycle.before(root, journal, cycle, owner)
+    } else {
         _ -> make_summary(false, completed, reused, "cannot checkpoint active native owner")
     };
     (let _printed = Console.println(String.append("[preparation owner] ", owner.name));
@@ -386,13 +396,17 @@ recover_cycle(root: String, journal: String, cycle: Json, nodes: List[Node]): Bo
  * Only this graph's pending summary is discarded; owner evidence is preserved.
  */
 pub run_locked(root: String, graph: String, nodes: List[Node]): Summary ->
-    let true <- OwnerStorage.safe_name(graph) else {
+    if {
+        true <- OwnerStorage.safe_name(graph)
+    } else {
         _ -> make_summary(false, 0, 0, "invalid preparation graph name")
     };
-    (let Ok(candidate) <- validate(nodes) else {
+    (if {
+    Ok(candidate) <- validate(nodes)
+} else {
     Err(reason) -> make_summary(false, 0, 0, reason)
 };
-(let {
+(if {
     Ok(_directory) <-
         Directory.create_all(
             OwnerStorage.child(

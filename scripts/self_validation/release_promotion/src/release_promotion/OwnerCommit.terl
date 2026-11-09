@@ -41,7 +41,9 @@ rows(root: String, values: List[Publication], result: Json): Result[Json, String
     case values {
         [] -> Ok(result);
         [value | rest] ->
-            let Ok(output) <- publication_row(root, value, false) else {
+            if {
+                Ok(output) <- publication_row(root, value, false)
+            } else {
                 Err(reason) -> Err(reason)
             };
             rows(root, rest, result.push(output))
@@ -68,14 +70,16 @@ final_rows_at(root: String, values: List[Publication], result: Json): Result[Jso
     case values {
         [] -> Ok(result);
         [value | rest] ->
-            let Ok(output) <- publication_row(root, value, true) else {
+            if {
+                Ok(output) <- publication_row(root, value, true)
+            } else {
                 Err(reason) -> Err(reason)
             };
             final_rows_at(root, rest, result.push(output))
     }.
 
 row(root: String, staged: String, destination: String): Result[Json, String] ->
-    let {
+    if {
         Ok(rows) <- OwnerStorage.files(root, [staged]);
         Ok(value) <- rows.at(0)
     } else {
@@ -119,7 +123,7 @@ pub prepare_many(
     state: Json,
     snapshot: Snapshot,
 ): Bool ->
-    let {
+    if {
         true <- OwnerNative.publish(root, staged_native, snapshot);
         Ok(outputs) <- rows(root, artifacts, Json.array());
         Ok(native) <- row(root, staged_native, native_destination)
@@ -133,7 +137,7 @@ pub prepare_many(
     ).
 
 matches(root: String, path: String, destination: String, expected: Json): Bool ->
-    let {
+    if {
         Some(expected_path) <- OwnerStorage.text(expected, "path");
         true <- expected_path == destination;
         Ok(actual) <- row(root, path, destination);
@@ -197,7 +201,9 @@ ready_all(root: String, values: List[Publication], expected: Json, index: Int): 
     case values {
         [] -> expected.length() == Ok(index);
         [value | rest] ->
-            let Ok(output) <- expected.at(index) else {
+            if {
+                Ok(output) <- expected.at(index)
+            } else {
                 _ -> false
             };
             if {
@@ -211,7 +217,9 @@ publish_all(root: String, values: List[Publication], expected: Json, index: Int)
     case values {
         [] -> true;
         [value | rest] ->
-            let Ok(output) <- expected.at(index) else {
+            if {
+                Ok(output) <- expected.at(index)
+            } else {
                 _ -> false
             };
             if {
@@ -229,7 +237,7 @@ parents(
     case values {
         [] -> Ok(CandidateFiles.sort_unique(paths));
         [value | rest] ->
-            let {
+            if {
                 Ok(destination) <- Path.from_string(OwnerStorage.child(root, value.destination));
                 Some(parent) <- destination.parent()
             } else {
@@ -242,7 +250,9 @@ prepare_parents(paths: List[String]): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            let Ok(_directory) <- Directory.create_all(path) else {
+            if {
+                Ok(_directory) <- Directory.create_all(path)
+            } else {
                 _ -> false
             };
             prepare_parents(rest)
@@ -261,7 +271,7 @@ pub complete_many(
     state: Json,
 ): Result[Json, String] ->
     let files = concat(artifacts, [declare_publication(staged_native, native_destination)]);
-    let {
+    if {
         Some("prepared") <- OwnerStorage.text(state, "outcome");
         Ok(expected) <- state.get("outputs");
         Ok(inventory) <- state.get("native_inventory");

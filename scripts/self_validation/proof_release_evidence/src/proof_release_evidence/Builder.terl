@@ -160,7 +160,7 @@ merge_materials_at(values: List[Material], collected: List[Material]): List[Mate
     }.
 
 read_artifacts(root: String): Option[List[Artifact]] ->
-    let {
+    if {
         Ok(source) <- read_text(Support.root_path(root, "proofs/lean/ci/lean-proof-artifacts.tsv"));
         [header | rows] <- String.split(source, "\n")
     } else {
@@ -180,13 +180,13 @@ artifact_rows(
         [] -> Some(collected);
         ["" | rest] -> artifact_rows(root, rest, collected);
         [row | rest] ->
-            let {
+            if {
                 [path, _status, _scope, _manifests, _exit, _stderr, digest, metadata_path, _plan] <- String.split(row, "\t");
                 Some(metadata) <- Support.load_json(root, metadata_path)
             } else {
                 _ -> None
             };
-            (let {
+            (if {
     Some(family) <- Support.json_string(metadata, "family");
     Some(theorem_values) <- Support.json_member(metadata, "theorem_names");
     Some(theorem_ids) <- Support.json_array_strings(theorem_values);
@@ -241,7 +241,7 @@ json_array(root: String, relative: String, field: String): Option[Json] ->
     }.
 
 read_repros(root: String): Option[List[Repro]] ->
-    let {
+    if {
         Some(values) <-
             json_array(
                 root,
@@ -259,7 +259,7 @@ repro_rows(values: Json, index: Int, count: Int, collected: List[Repro]): Option
         index >= count -> Some(collected);
         true -> case values.at(index) {
             Ok(value) ->
-                let {
+                if {
                     Some(family) <- Support.json_string(value, "family");
                     Some(digest) <- Support.json_string(value, "proof_digest");
                     Some(verdict) <- Support.json_string(value, "verdict")
@@ -283,7 +283,7 @@ repro_rows(values: Json, index: Int, count: Int, collected: List[Repro]): Option
     }.
 
 read_lanes(root: String): Option[List[Lane]] ->
-    let {
+    if {
         Some(values) <- json_array(root, "target/quality/proof-artifacts/lean-proof-lanes.json", "lanes");
         Ok(count) <- values.length()
     } else {
@@ -296,7 +296,7 @@ lane_rows(values: Json, index: Int, count: Int, collected: List[Lane]): Option[L
         index >= count -> Some(collected);
         true -> case values.at(index) {
             Ok(value) ->
-                let {
+                if {
                     Some(lane) <- Support.json_string(value, "lane");
                     Some(status) <- Support.json_string(value, "status");
                     Some(coverage) <- Support.json_string(value, "coverage_status");
@@ -328,7 +328,7 @@ lane_rows(values: Json, index: Int, count: Int, collected: List[Lane]): Option[L
     }.
 
 read_semantics(root: String): Option[List[Semantic]] ->
-    let {
+    if {
         Some(values) <-
             json_array(
                 root,
@@ -351,7 +351,7 @@ semantic_rows(
         index >= count -> Some(collected);
         true -> case values.at(index) {
             Ok(value) ->
-                let {
+                if {
                     Some(family) <- Support.json_string(value, "family");
                     Some(digest) <- Support.json_string(value, "proof_digest");
                     Some(oracle) <- Support.json_member(value, "runtime_oracle")
@@ -378,7 +378,7 @@ semantic_rows(
     }.
 
 read_bindings(root: String): Option[List[Binding]] ->
-    let {
+    if {
         Some(values) <- json_array(root, "proofs/lean/feature_binding/lean_feature_slice_index.json", "records");
         Ok(count) <- values.length()
     } else {
@@ -396,12 +396,14 @@ binding_rows(
         index >= count -> Some(collected);
         true -> case values.at(index) {
             Ok(value) ->
-                let Some(coverage) <- Support.json_string(value, "coverage_status") else {
+                if {
+                    Some(coverage) <- Support.json_string(value, "coverage_status")
+                } else {
                     _ -> None
                 };
                 if {
                     coverage != "proof_current" -> binding_rows(values, index + 1, count, collected);
-                    true -> let {
+                    true -> if {
                         Some(slice_id) <- Support.json_string(value, "slice_id");
                         Some(feature_class) <- Support.json_string(value, "feature_class");
                         Some(owner) <- Support.json_string(value, "owner");
@@ -572,7 +574,7 @@ find_material(values: List[Material], path: String): Option[Material] ->
     }.
 
 material_json_at(paths: List[String], values: List[Material], result: Json): Json ->
-    let {
+    if {
         [path | rest] <- paths;
         Some(value) <- find_material(values, path)
     } else {
@@ -701,7 +703,7 @@ proof_materials(
     artifacts: List[Artifact],
     collected: List[Material],
 ): List[Material] ->
-    let {
+    if {
         [family | rest] <- proof_ids;
         Some(artifact) <- find_artifact(artifacts, family)
     } else {

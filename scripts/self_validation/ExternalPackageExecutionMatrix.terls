@@ -280,7 +280,7 @@ valid_reason_code(value: String): Bool ->
     reason_code_characters(String.characters(value), true, false).
 
 json_string(value: Json, key: String): Option[String] ->
-    let {
+    if {
         Ok(member) <- Json.get(value, key);
         Ok(text) <- Json.as_string(member)
     } else {
@@ -289,7 +289,7 @@ json_string(value: Json, key: String): Option[String] ->
     Some(text).
 
 json_bool(value: Json, key: String): Option[Bool] ->
-    let {
+    if {
         Ok(member) <- Json.get(value, key);
         Ok(boolean) <- Json.as_bool(member)
     } else {
@@ -305,7 +305,7 @@ json_strings_at(
 ): Option[List[String]] ->
     if {
         index >= total -> Some(reverse_strings(reversed, []));
-        true -> let {
+        true -> if {
             Ok(value) <- Json.at(array, index);
             Ok(text) <- Json.as_string(value)
         } else {
@@ -321,7 +321,7 @@ json_strings(value: Json): Option[List[String]] ->
     }.
 
 policy_row(value: Json): Option[PolicyRow] ->
-    let {
+    if {
         Some(default_expectation) <- json_string(value, "default");
         Some(experimental_expectation) <- json_string(value, "experimental");
         Some(fixture_id) <- json_string(value, "fixture_id");
@@ -358,7 +358,7 @@ policy_rows_at(
 ): Option[List[PolicyRow]] ->
     if {
         index >= total -> Some(reverse_rows(reversed, []));
-        true -> let {
+        true -> if {
             Ok(value) <- Json.at(array, index);
             Some(row) <- policy_row(value)
         } else {
@@ -399,7 +399,7 @@ rows_valid(rows: List[PolicyRow]): Bool ->
 
 load_policy(repository: String): Option[Policy] ->
     let policy_path = child(repository, "docs/roadmap/ROADMAP_0_0_7_EXTERNAL_PACKAGE_EXECUTION_MATRIX.json");
-    let {
+    if {
         Ok(source) <- read_text(policy_path);
         Ok(value) <- Json.parse(source);
         Some(schema) <- json_string(value, "schema")
@@ -408,7 +408,7 @@ load_policy(repository: String): Option[Policy] ->
     };
     if {
         schema != "terlan.external-package-execution-policy.v1" -> policy_failure("external_package_matrix_policy_schema", "policy schema drifted");
-        true -> let {
+        true -> if {
             Ok(allowed_value) <- Json.get(value, "allowed_reason_codes");
             Some(allowed) <- json_strings(allowed_value);
             Ok(explicit_value) <- Json.get(value, "explicit_opt_in_gates");
@@ -477,10 +477,12 @@ canonical(value: Json): Option[String] ->
     }.
 
 write_canonical(path: String, value: Json): Bool ->
-    let Some(encoded) <- canonical(value) else {
+    if {
+        Some(encoded) <- canonical(value)
+    } else {
         _ -> failure("external_package_matrix_json", "cannot encode canonical JSON")
     };
-    (let {
+    (if {
     Ok(_unit) <- write_text(path, encoded);
     Ok(read_back) <- read_text(path)
 } else {
@@ -530,7 +532,7 @@ status_from_json(
     policy: Policy,
     allow_missing: Bool,
 ): Option[Status] ->
-    let {
+    if {
         Ok(keys) <- Json.keys(value);
         Some(fixture_id) <- json_string(value, "fixture_id");
         Some(gate) <- json_string(value, "gate");
@@ -574,7 +576,7 @@ read_status(
             not exists(path) and allow_missing -> Some(synthetic_status(row, "failed", "status-artifact-missing"));
             not exists(path) -> let _failed = failure("external_package_matrix_status_missing", row.gate);
             None;
-            true -> let {
+            true -> if {
                 Ok(source) <- read_text(path);
                 Ok(value) <- Json.parse(source)
             } else {
@@ -619,7 +621,9 @@ generate_rows(
     case rows {
         [] -> Some(output);
         [row | rest] ->
-            let Some(status) <- read_status(context, policy, row, profile, allow_missing) else {
+            if {
+                Some(status) <- read_status(context, policy, row, profile, allow_missing)
+            } else {
                 _ -> None
             };
             (let matrix_row = matrix_row_json(row, status, profile);
@@ -644,15 +648,17 @@ generate(context: Context, policy: Policy, profile: String, allow_missing: Bool)
                 let _failed = failure("external_package_matrix_write", context.artifact_dir);
                 None;
             Ok(_unit) ->
-                let Some(rows) <-
-                    generate_rows(
-                        context,
-                        policy,
-                        policy.rows,
-                        profile,
-                        allow_missing,
-                        Json.array(),
-                    ) else {
+                if {
+                    Some(rows) <-
+                        generate_rows(
+                            context,
+                            policy,
+                            policy.rows,
+                            profile,
+                            allow_missing,
+                            Json.array(),
+                        )
+                } else {
                     _ -> None
                 };
                 (let matrix =
@@ -670,7 +676,7 @@ if {
 validate_matrix_rows(rows: Json, index: Int, total: Int): Bool ->
     if {
         index >= total -> true;
-        true -> let {
+        true -> if {
             Ok(row) <- Json.at(rows, index);
             Some(expectation) <- json_string(row, "expectation");
             Some(gate) <- json_string(row, "gate");
@@ -696,7 +702,7 @@ validate_matrix_rows(rows: Json, index: Int, total: Int): Bool ->
     }.
 
 validate_matrix(matrix: Json): Bool ->
-    let {
+    if {
         Ok(rows) <- Json.get(matrix, "rows");
         Ok(total) <- Json.length(rows)
     } else {
@@ -705,7 +711,7 @@ validate_matrix(matrix: Json): Bool ->
     validate_matrix_rows(rows, 0, total).
 
 cuda_baseline_is_skipped(matrix: Json): Bool ->
-    let {
+    if {
         Ok(rows) <- Json.get(matrix, "rows");
         Ok(total) <- Json.length(rows)
     } else {
@@ -716,7 +722,7 @@ cuda_baseline_is_skipped(matrix: Json): Bool ->
 cuda_baseline_is_skipped_at(rows: Json, index: Int, total: Int): Bool ->
     if {
         index >= total -> false;
-        true -> let {
+        true -> if {
             Ok(row) <- Json.at(rows, index);
             Some(gate) <- json_string(row, "gate")
         } else {
@@ -724,7 +730,7 @@ cuda_baseline_is_skipped_at(rows: Json, index: Int, total: Int): Bool ->
         };
         if {
             gate != "cuda-package-check" -> cuda_baseline_is_skipped_at(rows, index + 1, total);
-            true -> let {
+            true -> if {
                 Some(state) <- json_string(row, "state");
                 Some(reason_code) <- json_string(row, "reason_code")
             } else {
@@ -745,7 +751,7 @@ record_all(context: Context, policy: Policy, rows: List[PolicyRow]): Bool ->
 self_test_with_context(context: Context, policy: Policy): Bool ->
     if {
         not record_all(context, policy, policy.rows) -> false;
-        true -> let {
+        true -> if {
             Some(first) <- generate(context, policy, "experimental", false);
             Some(first_encoded) <- canonical(first);
             Some(second) <- generate(context, policy, "experimental", false);
@@ -810,7 +816,7 @@ generate_command(options: Options, context: Context, policy: Policy): Bool ->
             Some(matrix) ->
                 if {
                     not options.allow_missing and not validate_matrix(matrix) -> false;
-                    true -> let {
+                    true -> if {
                         Ok(rows) <- Json.get(matrix, "rows");
                         Ok(total) <- Json.length(rows)
                     } else {

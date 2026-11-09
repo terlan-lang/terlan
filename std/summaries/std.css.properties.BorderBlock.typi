@@ -114,7 +114,7 @@ pub struct Property {
 /// Combines line-width, line-style, color for border-block. Each parameter accepts its own keyword
 /// or typed unit choices directly.
 
-pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart): Checked.
+pub (line_width: LineWidthPart) compose(line_style: LineStylePart, color: ColorPart): Checked.
 
 /// Checks the border-block length range. Returns Some when amount >= 0; otherwise returns None.
 

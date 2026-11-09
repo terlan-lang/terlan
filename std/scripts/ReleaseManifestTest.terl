@@ -326,7 +326,7 @@ first_lines(lines: List[String], remaining: Int, accumulated: String): String ->
     }.
 
 source_module(source: String): String ->
-    let {
+    if {
         Ok(pattern) <- Regex.compile("(?m)^\\s*module\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*\\.\\s*$");
         Some(name) <- Regex.capture(pattern, source, 1)
     } else {

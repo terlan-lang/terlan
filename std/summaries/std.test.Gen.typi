@@ -120,7 +120,7 @@ pub booleans(): Gen[Bool].
 /// max-success limits without depending on runner internals.
 
 @pure
-pub case_count(generator: Gen[T]): Int.
+pub (generator: Gen[T]) case_count(): Int.
 
 /// Conditionally attaches one stable classification label.
 ///
@@ -185,7 +185,7 @@ pub discard_count(values: List[T], predicate: (T) -> std.test.Test.Assertion): I
 /// Transformation: compares `discarded * 100` with `total * max_percent` so
 /// ratio limits remain integer-only and deterministic.
 
-pub discard_ratio_report(generator: Gen[T], max_discard_percent: Int, predicate: (T) -> std.test.Test.Assertion): DiscardReport.
+pub (generator: Gen[T]) discard_ratio_report(max_discard_percent: Int, predicate: (T) -> std.test.Test.Assertion): DiscardReport.
 
 /// Reports whether discarded generated samples stay within a limit.
 ///
@@ -194,7 +194,7 @@ pub discard_ratio_report(generator: Gen[T], max_discard_percent: Int, predicate:
 /// Transformation: counts samples rejected by the predicate and fails when the
 /// count exceeds the explicit limit.
 
-pub discard_report(generator: Gen[T], max_discards: Int, predicate: (T) -> std.test.Test.Assertion): DiscardReport.
+pub (generator: Gen[T]) discard_report(max_discards: Int, predicate: (T) -> std.test.Test.Assertion): DiscardReport.
 
 /// Builds a generator from explicit values.
 ///
@@ -240,7 +240,7 @@ pub expect_failure(property: std.test.Test.Assertion): std.test.Test.Assertion.
 /// Transformation: filters deterministic samples in source order without
 /// hidden randomness.
 
-pub filter(generator: Gen[T], predicate: (T) -> std.test.Test.Assertion): Gen[T].
+pub (generator: Gen[T]) filter(predicate: (T) -> std.test.Test.Assertion): Gen[T].
 
 /// Filters a sample list with a predicate callback.
 ///
@@ -268,7 +268,7 @@ pub floats(): Gen[Float].
 /// Transformation: delegates to `std.test.Test.each` so property checks share
 /// table-helper assertion semantics.
 
-pub for_all(generator: Gen[T], property: (T) -> std.test.Test.Assertion): std.test.Test.Assertion.
+pub (generator: Gen[T]) for_all(property: (T) -> std.test.Test.Assertion): std.test.Test.Assertion.
 
 /// Verifies a property for at most `max_success` generated samples.
 ///
@@ -278,7 +278,7 @@ pub for_all(generator: Gen[T], property: (T) -> std.test.Test.Assertion): std.te
 /// Transformation: evaluates a deterministic prefix of generated samples so
 /// maximum-success behavior is explicit and replayable.
 
-pub for_all_limit(generator: Gen[T], max_success: Int, property: (T) -> std.test.Test.Assertion): std.test.Test.Assertion.
+pub (generator: Gen[T]) for_all_limit(max_success: Int, property: (T) -> std.test.Test.Assertion): std.test.Test.Assertion.
 
 /// Combines weighted deterministic generators.
 ///
@@ -357,7 +357,7 @@ pub last_or_default(default: T, values: List[T]): T.
 /// Transformation: establishes the first bounded list-generation rule before
 /// later sized/recursive generator slices add more list shapes.
 
-pub list_of(generator: Gen[T]): Gen[List[T]].
+pub (generator: Gen[T]) list_of(): Gen[List[T]].
 
 /// Maps generated samples through a callback.
 ///
@@ -366,7 +366,7 @@ pub list_of(generator: Gen[T]): Gen[List[T]].
 /// Transformation: lets tests build domain-specific generators from simpler
 /// primitive generators.
 
-pub map(generator: Gen[A], mapper: (A) -> B): Gen[B].
+pub (generator: Gen[A]) map[B](mapper: (A) -> B): Gen[B].
 
 /// Builds a map generator from key and value generators.
 ///
@@ -376,7 +376,7 @@ pub map(generator: Gen[A], mapper: (A) -> B): Gen[B].
 /// Transformation: establishes bounded map generation without hidden randomness
 /// or unbounded growth.
 
-pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map[K, V]].
+pub (keys: Gen[K]) map_of[V](values: Gen[V]): Gen[std.collections.Map[K, V]].
 
 /// Maps sample values through a callback.
 ///
@@ -404,7 +404,7 @@ pub none_value(): std.core.Option[T].
 /// Transformation: establishes bounded object generation on top of the
 /// map-backed `std.core.Object` surface.
 
-pub object_of(keys: Gen[String], values: Gen[V]): Gen[std.core.Object[V]].
+pub (keys: Gen[String]) object_of[V](values: Gen[V]): Gen[std.core.Object[V]].
 
 /// Wraps one value as a typed successful result value.
 ///
@@ -430,7 +430,7 @@ pub ok_values(values: List[T]): List[std.core.Result[T, E]].
 /// Transformation: preserves deterministic order without random selection.
 
 @pure
-pub one_of(left: Gen[T], right: Gen[T]): Gen[T].
+pub (left: Gen[T]) one_of(right: Gen[T]): Gen[T].
 
 /// Builds an optional-value generator from one payload generator.
 ///
@@ -440,7 +440,7 @@ pub one_of(left: Gen[T], right: Gen[T]): Gen[T].
 /// Transformation: provides deterministic option generation without hidden
 /// randomness.
 
-pub option_of(generator: Gen[T]): Gen[std.core.Option[T]].
+pub (generator: Gen[T]) option_of(): Gen[std.core.Option[T]].
 
 /// Builds pairs for one left value and every right value.
 ///
@@ -461,7 +461,7 @@ pub pair_left(left: A, right_values: List[B]): List[{A, B}].
 /// product of finite sample lists.
 
 @pure
-pub pair_of(left: Gen[A], right: Gen[B]): Gen[{A, B}].
+pub (left: Gen[A]) pair_of[B](right: Gen[B]): Gen[{A, B}].
 
 /// Builds all deterministic pairs from two sample lists.
 ///
@@ -546,7 +546,7 @@ pub reproduction_command(seed: Int): String.
 /// Transformation: provides deterministic Result generation without hidden
 /// randomness.
 
-pub result_of[T, E](ok_generator: Gen[T], err_generator: Gen[E]): Gen[std.core.Result[T, E]].
+pub (ok_generator: Gen[T]) result_of[E](err_generator: Gen[E]): Gen[std.core.Result[T, E]].
 
 /// Wraps success and error samples as one result list.
 ///
@@ -575,7 +575,7 @@ pub run_report(seed: Int, generator: Gen[T], property: (T) -> std.test.Test.Asse
 /// Transformation: unwraps the explicit generator tuple.
 
 @pure
-pub sample(generator: Gen[T]): List[T].
+pub (generator: Gen[T]) sample(): List[T].
 
 /// Shrinks the first generated failure.
 ///
@@ -585,7 +585,7 @@ pub sample(generator: Gen[T]): List[T].
 /// Transformation: makes shrink paths observable before richer property
 /// reports are introduced.
 
-pub shrink_failure(generator: Gen[T], property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): List[T].
+pub (generator: Gen[T]) shrink_failure(property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): List[T].
 
 /// Finds shrink candidates for the first failing sample.
 ///
@@ -604,7 +604,7 @@ pub shrink_failure_values(values: List[T], property: (T) -> std.test.Test.Assert
 /// Transformation: finds the first failing sample and records the last failing
 /// shrink candidate as the minimal failing input for this deterministic path.
 
-pub shrink_report(generator: Gen[T], property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): PropertyShrinkReport[T].
+pub (generator: Gen[T]) shrink_report(property: (T) -> std.test.Test.Assertion, shrinker: (T) -> List[T]): PropertyShrinkReport[T].
 
 /// Builds a shrink report from sample values.
 ///
@@ -648,7 +648,7 @@ pub some_values(values: List[T]): List[std.core.Option[T]].
 /// Transformation: evaluates only the selected prefix, reports property
 /// failures before limit exhaustion, and never depends on wall-clock time.
 
-pub step_report(generator: Gen[T], max_steps: Int, property: (T) -> std.test.Test.Assertion): StepReport.
+pub (generator: Gen[T]) step_report(max_steps: Int, property: (T) -> std.test.Test.Assertion): StepReport.
 
 /// Builds the canonical string generator.
 ///

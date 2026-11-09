@@ -15,7 +15,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -48,7 +48,7 @@ normalize_diagnostics(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Ok(diagnostic) <- row.get("diagnostic")
         } else {
@@ -65,7 +65,9 @@ normalize_diagnostics(rows, index + 1, count, physical, logical))
     }.
 
 pub normalize_export(exported: Json, physical: String, logical: String): Result[Json, Failure] ->
-    let Ok(copy) <- Json.parse(Json.to_string(exported)) else {
+    if {
+        Ok(copy) <- Json.parse(Json.to_string(exported))
+    } else {
         _ ->
             Err(
                 Failure(
@@ -75,7 +77,7 @@ pub normalize_export(exported: Json, physical: String, logical: String): Result[
             )
     };
     (let _name = copy.put("source_name", Json.string(logical));
-(let {
+(if {
     Ok(core) <- copy.get("core");
     Ok(diagnostics) <- copy.get("diagnostics");
     Ok(count) <- diagnostics.length()
@@ -91,12 +93,16 @@ pub normalize_export(exported: Json, physical: String, logical: String): Result[
 (let _core =
     if {
         core.is_null() -> copy;
-        true -> let Ok(source) <- core.get("source") else {
+        true -> if {
+            Ok(source) <- core.get("source")
+        } else {
             _ -> copy
         };
         (let _source_path = source.put("source_path", Json.string(logical)); let _source = core.put("source", source); copy.put("core", core))
     };
-(let true <- normalize_diagnostics(diagnostics, 0, count, physical, logical) else {
+(if {
+    true <- normalize_diagnostics(diagnostics, 0, count, physical, logical)
+} else {
     _ ->
         Err(
             Failure(
@@ -108,7 +114,7 @@ pub normalize_export(exported: Json, physical: String, logical: String): Result[
 (let _diagnostics = copy.put("diagnostics", diagnostics); Ok(copy)))))).
 
 dependencies(exported: Json): Result[Json, Failure] ->
-    let {
+    if {
         Ok(rows) <- exported.get("dependencies");
         Ok(count) <- rows.length()
     } else {
@@ -121,7 +127,9 @@ dependencies(exported: Json): Result[Json, Failure] ->
             )
     };
     (let result = Json.array();
-(let true <- copy_dependencies(rows, result, 0, count) else {
+(if {
+    true <- copy_dependencies(rows, result, 0, count)
+} else {
     _ ->
         Err(
             Failure(
@@ -135,7 +143,9 @@ Ok(result))).
 copy_dependencies(rows: Json, mut output: Json, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> let Ok(row) <- rows.at(index) else {
+        true -> if {
+            Ok(row) <- rows.at(index)
+        } else {
             _ -> false
         };
         (let name = text(row, "module");
@@ -157,7 +167,7 @@ manifest(
     document_version: Int,
     exported: Json,
 ): Result[Json, Failure] ->
-    let {
+    if {
         Ok(deps) <- dependencies(exported);
         Ok(syntax) <- exported.get("syntax_contract")
     } else {
@@ -271,7 +281,7 @@ capture_staged(
         };
     let physical = String.concat([stage, "/", source_filename]);
     let source_digest = Hash.sha256(source);
-    let {
+    if {
         Ok(_) <- File.write_text(physical, source);
         Ok(compiler_digest) <- Hash.sha256_file(compiler)
     } else {
@@ -283,12 +293,16 @@ capture_staged(
                 ),
             )
     };
-    (let Ok(exported) <- CompilerBridge.export_file(compiler, physical) else {
+    (if {
+    Ok(exported) <- CompilerBridge.export_file(compiler, physical)
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <-
-    Hash.sha256_file(original) == Ok(original_digest)
-        and Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+(if {
+    true <-
+        Hash.sha256_file(original) == Ok(original_digest)
+            and Hash.sha256_file(compiler) == Ok(compiler_digest)
+} else {
     _ ->
         Err(
             Failure(
@@ -297,7 +311,7 @@ capture_staged(
             ),
         )
 };
-(let {
+(if {
     Ok(normalized) <- normalize_export(exported, physical, logical);
     Ok(document) <- manifest(compiler_digest, logical, source_digest, document_version, normalized);
     Ok(id) <- SnapshotStore.identity(document, normalized)
@@ -322,7 +336,9 @@ pub capture_file(
     logical: String,
     store: String,
 ): Result[Json, Failure] ->
-    let true <- safe_logical_path(logical) else {
+    if {
+        true <- safe_logical_path(logical)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -331,7 +347,7 @@ pub capture_file(
                 ),
             )
     };
-    (let {
+    (if {
     Ok(source) <- File.read_text(path);
     Ok(stage) <- Directory.create_temporary("terlan-semantic-capture-")
 } else {
@@ -369,7 +385,9 @@ pub capture_overlay(
     source: String,
     store: String,
 ): Result[Json, Failure] ->
-    let true <- safe_logical_path(logical) and document_version > 0 else {
+    if {
+        true <- safe_logical_path(logical) and document_version > 0
+    } else {
         _ ->
             Err(
                 Failure(
@@ -378,7 +396,9 @@ pub capture_overlay(
                 ),
             )
     };
-    (let true <- Hash.sha256_file(path) == Ok(expected_disk_digest) else {
+    (if {
+    true <- Hash.sha256_file(path) == Ok(expected_disk_digest)
+} else {
     _ ->
         Err(
             Failure(
@@ -387,7 +407,9 @@ pub capture_overlay(
             ),
         )
 };
-(let Ok(stage) <- Directory.create_temporary("terlan-semantic-overlay-") else {
+(if {
+    Ok(stage) <- Directory.create_temporary("terlan-semantic-overlay-")
+} else {
     _ ->
         Err(
             Failure(

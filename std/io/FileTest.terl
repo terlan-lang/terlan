@@ -129,7 +129,7 @@ pub size_reads_metadata_without_materializing_contents(): Bool ->
 @test
 pub timestamps_restore_metadata_after_a_temporary_rewrite(): Bool ->
     let file = "target/terlan-file-timestamps-test.txt";
-    let {
+    if {
         Ok(Unit) <- write_text(file, "before");
         Ok(before) <- timestamps(file);
         Ok(Unit) <- write_text(file, "after");

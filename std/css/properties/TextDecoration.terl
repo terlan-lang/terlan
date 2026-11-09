@@ -119,8 +119,7 @@ text_decoration_thickness_value(
  * text-decoration-color for text-decoration. Each parameter accepts its own keyword or typed unit
  * choices directly.
  */
-pub compose(
-    text_decoration_line: TextDecorationLinePart,
+pub (text_decoration_line: TextDecorationLinePart) compose(
     text_decoration_thickness: TextDecorationThicknessPart,
     text_decoration_style: TextDecorationStylePart,
     text_decoration_color: TextDecorationColorPart,

@@ -39,7 +39,7 @@ pub process_scope(path: String): Result[String, String] ->
     }.
 
 pub read_snapshot(path: String): Result[Snapshot, String] ->
-    let {
+    if {
         Ok(size) <- File.size(path);
         true <- size <= 16_777_216;
         Ok(source) <- File.read_text(path);
@@ -62,7 +62,7 @@ pub inspect_file(path: String): Result[Json, String] ->
  * A producer must have an observed OS launch and reap, even without native work.
  */
 pub observed_process(report: Json): Bool ->
-    let {
+    if {
         Ok(processes) <- report.get("process_inventory");
         Ok(launches) <- processes.get("launches");
         Ok(count) <- launches.as_int();
@@ -78,7 +78,7 @@ pub observed_process(report: Json): Bool ->
  */
 pub publish(root: String, retained: String, snapshot: Snapshot): Bool ->
     let pending = append(retained, ".pending");
-    let {
+    if {
         true <- snapshot.raw.byte_size() <= 16_777_216;
         Ok(_written) <- File.write_text(OwnerStorage.child(root, pending), snapshot.raw)
     } else {
@@ -97,7 +97,9 @@ pub retain(
     state: Json,
     inspection: Result[Snapshot, String],
 ): Result[Json, String] ->
-    let Ok(snapshot) <- inspection else {
+    if {
+        Ok(snapshot) <- inspection
+    } else {
         Err(reason) -> Err(reason)
     };
     (let report =
@@ -106,7 +108,7 @@ pub retain(
         Err(reason) ->
             Json.object().put("decision", Json.string("invalid")).put("error", Json.string(reason))
     };
-(let {
+(if {
     true <- publish(root, retained, snapshot);
     Ok(outputs) <- OwnerStorage.files(root, [retained]);
     true <-

@@ -127,7 +127,7 @@ pub (map: Map[K, V]) contains_key(key: K): Bool -> false.
  */
 @pure
 @compiler.intrinsic
-pub take[K, V](map: Map[K, V], key: K): {Option[V], Map[K, V]} ->
+pub (map: Map[K, V]) take[K, V](key: K): {Option[V], Map[K, V]} ->
     {None, map}.
 
 /**

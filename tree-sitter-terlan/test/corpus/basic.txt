@@ -438,8 +438,9 @@ pub named("users/${id: Int}/${name}.json"): String ->
   name.
 
 pub bind(path: String): String ->
-  (let "users/${id: Int}/${name}.json" = path;
-  "ok").
+  case path {
+    "users/${id: Int}/${name}.json" -> "ok"
+  }.
 
 ---
 
@@ -498,13 +499,12 @@ pub bind(path: String): String ->
     (type_expression
       (type_identifier))
     (expression
-      (expression
-        (let_expression
-          (let_binding
-            (pattern
-              (string_pattern))
-            (expression
-              (identifier)))
+      (case_expression
+        (expression
+          (identifier))
+        (case_arm
+          (pattern
+            (string_pattern))
           (expression
             (string)))))))
 
@@ -600,8 +600,7 @@ pub lambda(path: String): String ->
       (expression
         (let_expression
           (let_binding
-            (pattern
-              (identifier))
+            (identifier)
             (expression
               (lambda_expression
                 (parameters

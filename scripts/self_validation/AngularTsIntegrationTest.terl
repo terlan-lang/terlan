@@ -234,7 +234,7 @@ selected_mode(): String ->
 link_external_directory(external: String, workspace: String, name: String): Bool ->
     let source = child(external, name);
     let destination = child(workspace, name);
-    let {
+    if {
         Ok(_children) <- entries(source);
         Ok(_unit) <- create_symbolic_link(source, destination)
     } else {
@@ -255,7 +255,7 @@ copy_external_workspace(root: String, external: String, workspace: String): Bool
     let created = create_all(workspace);
     let copied = copy_tree_excluding(child(root, "tests/fixtures/angular_ts/integrations"), integrations, []);
     let makefile = read_text(child(external, "Makefile"));
-    let {
+    if {
         {Ok(_created), Ok(_copied), Ok(contents)} <- {created, copied, makefile};
         Ok(_written) <- write_text(child(workspace, "Makefile"), contents)
     } else {
@@ -328,7 +328,7 @@ apply_one_root_hook(text: String, target: String, hook: String): Option[String] 
 
 @pure
 apply_root_makefile_hooks(text: String): Option[String] ->
-    let {
+    if {
         Some(first) <-
             apply_one_root_hook(
                 text,
@@ -364,7 +364,7 @@ root_makefile_wiring_holds(root: String): Bool ->
     ).
 
 patch_root_makefile(root: String): Bool ->
-    let {
+    if {
         Ok(text) <- read_text(child(root, "Makefile"));
         Some(patched) <- apply_root_makefile_hooks(text);
         Ok(_unit) <- write_text(child(root, "Makefile"), patched)
@@ -488,7 +488,7 @@ render_application_files(files: List[TextFile], fixture_root: String, patch: Str
     }.
 
 root_makefile_patch(root: String): Patch ->
-    let {
+    if {
         Ok(current) <- read_text(child(root, "Makefile"));
         Some(patched) <- apply_root_makefile_hooks(current)
     } else {
@@ -501,7 +501,7 @@ application_patch(root: String, angular_root: String): Patch ->
     let makefile_patch = root_makefile_patch(angular_root);
     if {
         not makefile_patch.valid -> invalid_patch();
-        true -> let {
+        true -> if {
             Ok(paths) <- files_recursive(fixture_root);
             Ok(files) <- read_text_many(paths)
         } else {

@@ -50,4 +50,4 @@ pub struct Property {
 /// Combines list-style-position, list-style-image, list-style-type for list-style. Each parameter
 /// accepts its own keyword or typed unit choices directly.
 
-pub compose(list_style_position: ListStylePositionPart, list_style_image: ListStyleImagePart, list_style_type: ListStyleTypePart): Checked.
+pub (list_style_position: ListStylePositionPart) compose(list_style_image: ListStyleImagePart, list_style_type: ListStyleTypePart): Checked.

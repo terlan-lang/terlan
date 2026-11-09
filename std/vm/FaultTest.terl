@@ -109,7 +109,7 @@ pub fault_monitor_close_releases_resource(): Bool ->
 pub fault_monitor_classifies_isolates_and_recovers_node(): Bool ->
     let monitor = Fault.monitor(["node-a", "node-b"], Fault.policy(2, 5, 9));
     let _heartbeat = monitor.record_heartbeat("node-a", 1);
-    let {
+    if {
         Some(suspected) <- monitor.suspect("node-a", 4, "heartbeat missed");
         Some(isolated) <- monitor.isolate("node-a", 7, "partition confirmed")
     } else {

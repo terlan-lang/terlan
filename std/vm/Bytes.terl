@@ -104,7 +104,7 @@ pub (bytes: Bytes) first_non_ascii_whitespace(): Int ->
  */
 @pure
 @target.vm {process_mailbox: true}
-pub concat(left: Bytes, right: Bytes): Bytes ->
+pub (left: Bytes) concat(right: Bytes): Bytes ->
     native.
 
 /**

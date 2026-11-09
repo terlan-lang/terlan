@@ -1,11 +1,13 @@
-/** Generic payload substitution for constructor-pattern contracts. */
+/**
+ * Generic payload substitution for constructor-pattern contracts.
+ */
 module self_host.ProjectedPatternPayloadTypes.
 
+import self_host.Delimited.
 import self_host.ProjectedPatternAuthority.{PatternConstructorContract}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.String.
-import self_host.Delimited.
 
 pub struct PatternTypeSubstitution {
     parameter: String,
@@ -14,7 +16,7 @@ pub struct PatternTypeSubstitution {
 
 pub constructor PatternTypeSubstitution {
     (parameter: String, argument: String): PatternTypeSubstitution ->
-        PatternTypeSubstitution { parameter: parameter, argument: argument }
+        PatternTypeSubstitution {parameter: parameter, argument: argument}
 }.
 
 @pure
@@ -31,36 +33,30 @@ subject_arguments(value: String): List[String] ->
     let opening = generic_open_at(text, 0);
     if {
         opening < 0 or not String.ends_with(text, "]") -> List.new[String]();
-        true -> Delimited.split_top_level(
-            text.utf8_slice(opening + 1, text.byte_size() - opening - 2),
-            44,
-        )
+        true -> Delimited.split_top_level(text.utf8_slice(opening + 1, text.byte_size() - opening - 2), 44)
     }.
 
 @pure
-bindings(
-    parameters: List[String],
-    arguments: List[String],
-): List[PatternTypeSubstitution] ->
+bindings(parameters: List[String], arguments: List[String]): List[PatternTypeSubstitution] ->
     case parameters {
         [] -> List.new[PatternTypeSubstitution]();
-        [parameter | parameter_rest] -> case arguments {
-            [] -> List.new[PatternTypeSubstitution]();
-            [argument | argument_rest] -> [PatternTypeSubstitution(
-                parameter,
-                String.trim(argument),
-            ) | bindings(parameter_rest, argument_rest)]
-        }
+        [parameter | parameter_rest] ->
+            case arguments {
+                [] -> List.new[PatternTypeSubstitution]();
+                [argument | argument_rest] ->
+                    [PatternTypeSubstitution(parameter, String.trim(argument)) | bindings(parameter_rest, argument_rest)]
+            }
     }.
 
 @pure
 replacement(name: String, values: List[PatternTypeSubstitution]): Option[String] ->
     case values {
         [] -> None;
-        [value | rest] -> if {
-            value.parameter == name -> Some(value.argument);
-            true -> replacement(name, rest)
-        }
+        [value | rest] ->
+            if {
+                value.parameter == name -> Some(value.argument);
+                true -> replacement(name, rest)
+            }
     }.
 
 @pure
@@ -78,8 +74,8 @@ substitute_arguments(
 ): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> [substitute(value, substitutions)
-            | substitute_arguments(rest, substitutions)]
+        [value | rest] ->
+            [substitute(value, substitutions) | substitute_arguments(rest, substitutions)]
     }.
 
 @pure
@@ -91,18 +87,22 @@ substitute(value: String, substitutions: List[PatternTypeSubstitution]): String 
             let opening = generic_open_at(text, 0);
             if {
                 opening < 0 or not String.ends_with(text, "]") -> text;
-                true -> String.concat([
-                    text.utf8_slice(0, opening),
-                    "[",
-                    join(substitute_arguments(
-                        Delimited.split_top_level(
-                            text.utf8_slice(opening + 1, text.byte_size() - opening - 2),
-                            44,
+                true -> String.concat(
+                    [
+                        text.utf8_slice(0, opening),
+                        "[",
+                        join(
+                            substitute_arguments(
+                                Delimited.split_top_level(
+                                    text.utf8_slice(opening + 1, text.byte_size() - opening - 2),
+                                    44,
+                                ),
+                                substitutions,
+                            ),
                         ),
-                        substitutions,
-                    )),
-                    "]",
-                ])
+                        "]",
+                    ],
+                )
             }
     }.
 
@@ -123,16 +123,15 @@ instantiate_at(
 ): List[Option[String]] ->
     case values {
         [] -> List.new[Option[String]]();
-        [value | rest] -> [instantiate_optional(value, substitutions)
-            | instantiate_at(rest, substitutions)]
+        [value | rest] ->
+            [instantiate_optional(value, substitutions) | instantiate_at(rest, substitutions)]
     }.
 
-/** Instantiates constructor payload types from a concrete subject application. */
+/**
+ * Instantiates constructor payload types from a concrete subject application.
+ */
 @pure
-pub instantiate(
-    contract: PatternConstructorContract,
-    subject_type: String,
-): List[Option[String]] ->
+pub instantiate(contract: PatternConstructorContract, subject_type: String): List[Option[String]] ->
     instantiate_at(
         contract.parameter_types,
         bindings(contract.type_parameters, subject_arguments(subject_type)),

@@ -23,7 +23,7 @@ pub opaque type Message[T].
 /// Transformation: projects the payload after VM-owned receive logic has
 /// selected and transferred the typed mailbox envelope.
 
-pub unwrap[T](message: Message[T]): T.
+pub (message: Message[T]) unwrap[T](): T.
 
 /// Wraps a source value as a typed VM message.
 ///

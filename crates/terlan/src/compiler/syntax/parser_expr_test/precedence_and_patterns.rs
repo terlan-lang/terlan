@@ -215,35 +215,34 @@ pub match_path(path: String): Int ->
     assert_typed_string_capture_pattern(&clauses[0].pattern, "test/", "id", "Id", ".txt");
 }
 
-/// Verifies string patterns parse in let destructuring.
+/// Verifies string patterns parse in bare refutable bindings.
 ///
 /// Inputs:
-/// - A let expression whose binding pattern is a planned string-pattern
-///   capture.
+/// - A bare refutable binding whose pattern is a string-pattern capture.
 ///
 /// Output:
-/// - Parsed let binding with a string capture pattern.
+/// - Parsed refutable binding with a string capture pattern.
 ///
 /// Transformation:
-/// - Confirms let binding-start detection routes string tokens through the
+/// - Confirms refutable binding-start detection routes string tokens through the
 ///   pattern parser and keeps capture metadata.
 #[test]
-fn parses_string_capture_pattern_in_let_binding() {
+fn parses_string_capture_pattern_in_bare_refutable_binding() {
     let module = parse_module(
         r#"
 module string_pattern_let_capture.
 
 pub match_path(path: String): Int ->
-    let "test/${id: Id}.txt" = path;
+    "test/${id: Id}.txt" <- path;
     1.
 "#,
     )
-    .expect("parse let string capture pattern");
+    .expect("parse bare refutable string capture pattern");
     let Decl::Function(function) = &module.declarations[0] else {
         panic!("expected function");
     };
     let Expr::Let { bindings, .. } = &function.clauses[0].body else {
-        panic!("expected let expression");
+        panic!("expected refutable expression");
     };
     assert_typed_string_capture_pattern(&bindings[0].pattern, "test/", "id", "Id", ".txt");
 }

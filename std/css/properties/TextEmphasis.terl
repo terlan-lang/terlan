@@ -66,8 +66,5 @@ pub struct Property {
  * Combines text-emphasis-style, text-emphasis-color for text-emphasis. Each parameter accepts its
  * own keyword or typed unit choices directly.
  */
-pub compose(
-    text_emphasis_style: TextEmphasisStylePart,
-    text_emphasis_color: TextEmphasisColorPart,
-): Checked ->
+pub (text_emphasis_style: TextEmphasisStylePart) compose(text_emphasis_color: TextEmphasisColorPart): Checked ->
     Checked({Atom["css_parts"], {text_emphasis_style, text_emphasis_color}}).

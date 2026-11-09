@@ -80,7 +80,7 @@ pub succeed(value: T): Effect[T] ->
  * only when the resulting description crosses `Effect.run`.
  */
 @pure
-pub map(effect: Effect[A], mapper: (A) -> B): Effect[B] ->
+pub (effect: Effect[A]) map[A, B](mapper: (A) -> B): Effect[B] ->
     Mapped(effect, mapper).
 
 /**
@@ -92,7 +92,7 @@ pub map(effect: Effect[A], mapper: (A) -> B): Effect[B] ->
  * continuation and its returned description execute only at `Effect.run`.
  */
 @pure
-pub flat_map(effect: Effect[A], next: (A) -> Effect[B]): Effect[B] ->
+pub (effect: Effect[A]) flat_map[A, B](next: (A) -> Effect[B]): Effect[B] ->
     FlatMap(effect, next).
 
 /**
@@ -126,5 +126,5 @@ pub cancelled(): Effect[T] ->
  * not executable functions or opaque resource handles.
  */
 @target.vm {process_mailbox: true}
-pub run(effect: Effect[T]): T ->
+pub (effect: Effect[T]) run(): T ->
     native.

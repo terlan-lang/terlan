@@ -4,7 +4,7 @@
 /// - Constructed from `let pattern = expr.` REPL entries.
 ///
 /// Output:
-/// - Binding pattern and source expression used to rebuild later REPL entries.
+/// - Binding name and source expression used to rebuild later REPL entries.
 ///
 /// Transformation:
 /// - Keeps user-entered source available so each later expression can go
@@ -25,10 +25,9 @@ pub(super) struct ReplValueBinding {
 /// - `None` for ordinary Terlan expressions/declarations.
 ///
 /// Transformation:
-/// - Recognizes a single pattern binding without treating full source `let`
+/// - Recognizes a single-name binding without treating full source `let`
 ///   expressions as declarations. The right-hand expression is validated later
-///   through the formal compiler path together with the pattern before the
-///   binding is persisted.
+///   through the formal compiler path before the binding is persisted.
 pub(super) fn parse_repl_value_binding(entry: &str) -> Option<ReplValueBinding> {
     let rest = entry.trim().strip_prefix("let ")?;
     if rest.contains(';') {
@@ -36,7 +35,7 @@ pub(super) fn parse_repl_value_binding(entry: &str) -> Option<ReplValueBinding> 
     }
     let (pattern, value) = rest.split_once('=')?;
     let pattern = pattern.trim();
-    if pattern.is_empty() {
+    if !is_simple_binding_name(pattern) {
         return None;
     }
     let value = value.trim();

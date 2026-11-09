@@ -154,7 +154,7 @@ run_smokes(installed: String, pending: List[Smoke]): Option[List[String]] ->
 
 fresh_parser_hash(installed: String, tree_cli: String): Option[String] ->
     let tree = Support.child(installed, Editor.tree_root());
-    let {
+    if {
         Some(before_hash) <- Support.selected_surface_hash(tree, Editor.generated_tree_files());
         Some(_output) <- Support.successful_output(tree_cli, ["generate"], tree, []);
         Some(after_hash) <- Support.selected_surface_hash(tree, Editor.generated_tree_files())
@@ -231,7 +231,7 @@ extract(): Bool ->
     let work = work_root(repository);
     let installed = installed_root(repository);
     let _removed = Directory.remove_all(work);
-    let {
+    if {
         Ok(_work) <- Directory.create_all(work);
         Some(platform) <- Artifact.detect()
     } else {
@@ -242,7 +242,7 @@ extract(): Bool ->
 surface(): Bool ->
     let repository = repository_root();
     let installed = installed_root(repository);
-    let {
+    if {
         Some(platform) <- Artifact.detect();
         Some(editor) <- Editor.validate_editor(installed);
         Some(tree) <- Editor.validate_tree(installed)
@@ -291,7 +291,7 @@ parser_freshness(): Bool ->
 
 assemble_surface(): Bool ->
     let repository = repository_root();
-    let {
+    if {
         Some(report) <- Support.read_json(base_surface_path(repository));
         Some(smoke_evidence) <- Support.read_json(smokes_path(repository));
         Some(hash_evidence) <- Support.read_json(parser_hash_path(repository));
@@ -309,7 +309,7 @@ Support.write_json(surface_path(repository), completed)).
 lsp_smoke(): Bool ->
     let repository = repository_root();
     let installed = installed_root(repository);
-    let {
+    if {
         Some(platform) <- Artifact.detect();
         Some(summary) <-
             Lsp.run_smoke(
@@ -326,7 +326,7 @@ lsp_smoke(): Bool ->
 adversarial(): Bool ->
     let repository = repository_root();
     let installed = installed_root(repository);
-    let {
+    if {
         Some(platform) <- Artifact.detect();
         Some(evidence) <-
             Adversarial.run(
@@ -343,7 +343,7 @@ adversarial(): Bool ->
 
 closeout(): Bool ->
     let repository = repository_root();
-    let {
+    if {
         Some(report) <- Support.read_json(surface_path(repository));
         Some(lsp_evidence) <- Support.read_json(lsp_path(repository));
         Some(adversarial_evidence) <- Support.read_json(adversarial_path(repository))

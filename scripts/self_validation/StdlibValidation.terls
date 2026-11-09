@@ -188,7 +188,7 @@ validate_negative_rows(
     }.
 
 negative_check(repository: String, manifest: String, io_only: Bool): Bool ->
-    let {
+    if {
         Some(rows) <- load_rows(repository, manifest);
         Some(positive) <- load_rows(repository, "tests/std/RELEASE_API_TESTS.tsv")
     } else {
@@ -313,7 +313,9 @@ backend_calls_absent(files: List[TextFile], pattern: Regex): Bool ->
 
 core_backend_check(repository: String): Bool ->
     let manifest = child(repository, "std/core/BACKEND_PRIMITIVE_CALLS.tsv");
-    let Ok(manifest_source) <- File.read_text(manifest) else {
+    if {
+        Ok(manifest_source) <- File.read_text(manifest)
+    } else {
         Err(_reason) -> failure("core.inventory", "backend primitive inventory is missing")
     };
     (let parsed = parse_rows(manifest_source);
@@ -323,7 +325,7 @@ if {
 }).
 
 core_backend_sources(repository: String): Bool ->
-    let {
+    if {
         Ok(files) <-
             File.read_text_tree_matching(
                 child(repository, "std/core"),
@@ -344,7 +346,7 @@ core_backend_sources(repository: String): Bool ->
 
 receiver_methods_check(repository: String): Bool ->
     let path = child(repository, "std/core/String.terl");
-    let {
+    if {
         Ok(source) <- File.read_text(path);
         Ok(pattern) <-
             Regex.compile(

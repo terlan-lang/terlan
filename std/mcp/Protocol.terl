@@ -108,7 +108,7 @@ respond(session: Session, id: Json, response: Json): Event ->
     event(session, "reply", response, "", Json.null(), id).
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -161,7 +161,7 @@ params_object(value: Json): Bool ->
     }.
 
 supported_version(value: Json): Bool ->
-    let {
+    if {
         Err(_) <- value.as_string();
         Err(_) <- value.as_int()
     } else {
@@ -170,7 +170,7 @@ supported_version(value: Json): Bool ->
     false.
 
 initialization_valid(params: Json): Bool ->
-    let {
+    if {
         Ok(version) <- params.get("protocolVersion");
         Ok(capabilities) <- params.get("capabilities");
         Ok(info) <- params.get("clientInfo");
@@ -262,7 +262,7 @@ notification(session: Session, method: String, params: Json): Event ->
  * Handles one parsed MCP message. Requests may be dispatched only after the
  * standard initialization exchange; notifications never receive responses.
  */
-pub handle(session: Session, message: Json): Event ->
+pub (session: Session) handle(message: Json): Event ->
     if {
         not params_object(message) or text(message, "jsonrpc") != "2.0" -> let id = readable_id(message);
         respond(session, id, error(id, -32_600, "Invalid JSON-RPC message."));
@@ -284,7 +284,9 @@ pub handle(session: Session, message: Json): Event ->
                 params_object(params) -> notification(session, method, params);
                 true -> event(session, "ignore", Json.null(), method, params, Json.null())
             };
-            true -> let Ok(id) <- message.get("id") else {
+            true -> if {
+                Ok(id) <- message.get("id")
+            } else {
                 _ ->
                     respond(
                         session,
@@ -330,7 +332,7 @@ pub handle(session: Session, message: Json): Event ->
 /**
  * Invalid JSON produces the standard parse error, without reflecting payloads.
  */
-pub parse(session: Session, source: String): Event ->
+pub (session: Session) parse(source: String): Event ->
     case Json.parse(source) {
         Ok(message) -> handle(session, message);
         _ -> respond(session, Json.null(), error(Json.null(), -32_700, "Invalid JSON."))

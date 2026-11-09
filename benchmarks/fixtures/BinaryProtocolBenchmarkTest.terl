@@ -63,7 +63,7 @@ pub fixed_header_value(): DecodedProtocol ->
 pub repeat_fixed_header(count: Int): Bool ->
     if {
         count <= 0 -> true;
-        true -> let {
+        true -> if {
             Ok(frame) <- encode_exact(fixed_header_shape(), fixed_header_value());
             Ok(decoded) <- decode_prefixed_body(fixed_header_shape(), frame)
         } else {
@@ -99,7 +99,7 @@ pub repeat_variable_body(shape: ProtocolShape, count: Int): Bool ->
         count <= 0 -> true;
         true -> let short = variable_body_value(1, Bytes.from_list([170]));
         let long = variable_body_value(4, Bytes.from_list([170, 187, 204, 221]));
-        let {
+        if {
             Ok(short_frame) <- encode_exact(shape, short);
             Ok(long_frame) <- encode_exact(shape, long);
             Ok(decoded) <- decode_prefixed_body(shape, long_frame)

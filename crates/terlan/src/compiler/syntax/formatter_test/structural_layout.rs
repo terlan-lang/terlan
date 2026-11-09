@@ -514,7 +514,8 @@ pub run(value: Int): Int ->
 /// Verifies formatter output preserves `${...}` string capture patterns.
 ///
 /// Inputs:
-/// - A module using typed and untyped string captures in `case` and `let`
+/// - A module using typed and untyped string captures in `case` and bare
+///   refutable binding positions.
 ///   pattern positions.
 ///
 /// Output:
@@ -538,14 +539,14 @@ pub route(path: String): String ->
     }.
 
 pub bind(path: String): String ->
-    let "users/${id: Int}/${name}.json" = path;
+    "users/${id: Int}/${name}.json" <- path;
     name.
 "#,
     )
     .expect("format string capture patterns");
 
     assert!(output.contains(r#""users/${id: Int}/${name}.json" where id > 0 -> name;"#));
-    assert!(output.contains(r#"let "users/${id: Int}/${name}.json" = path;"#));
+    assert!(output.contains(r#""users/${id: Int}/${name}.json" <- path;"#));
     assert!(!output.contains("#{id"));
     parse_module(&output).expect("formatted string capture patterns should parse");
 }

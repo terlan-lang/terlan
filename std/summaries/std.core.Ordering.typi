@@ -84,11 +84,11 @@ pub type Lt =
 /// module comparison_compare_example.
 ///
 /// pub demo(): Comparison ->
-///    std.core.Ordering.compare(Lt, Gt).
+///    Lt.compare(Gt).
 /// ```
 
 @pure
-pub compare(left: Comparison, right: Comparison): Comparison.
+pub (left: Comparison) compare(right: Comparison): Comparison.
 
 /// Parses a canonical UTF-8 `String` into `Comparison`.
 ///
@@ -118,11 +118,11 @@ pub from_string(value: String): Option[Comparison].
 /// module comparison_to_string_example.
 ///
 /// pub demo(): String ->
-///    std.core.Ordering.to_string(Lt).
+///    Lt.to_string().
 /// ```
 
 @pure
-pub to_string(value: Comparison): String.
+pub (value: Comparison) to_string(): String.
 
 /// Describes values that have a total ordering.
 ///

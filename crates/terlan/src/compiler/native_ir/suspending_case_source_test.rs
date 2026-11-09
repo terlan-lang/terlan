@@ -17,7 +17,7 @@ pub type Option[T] = None | Some[T].
 @compiler.native {probe.read}
 read(): Bool.
 pub evaluate(): Option[Int] ->
-    let { true <- read(); true <- read() } else { _ -> Some(1) };
+    if { true <- read(); true <- read() } else { _ -> Some(1) };
     None.
 "#;
     let syntax = parse_module_as_syntax_output(source).expect("parse grouped Option guards");
@@ -120,7 +120,7 @@ fn script_assertion_failure_survives_a_discarded_unit_check() {
 /// An outer Boolean branch must not become an input to an inner Result join.
 #[test]
 fn conditional_fallible_binding_keeps_its_join_inside_the_outer_branch() {
-    let binding = "(let Ok(value) <- if { choice -> read_left(); true -> read_right() } else { _ -> false }; value > 0)";
+    let binding = "(if { Ok(value) <- if { choice -> read_left(); true -> read_right() } } else { _ -> false }; value > 0)";
     for expression in [
         format!("if {{ enabled -> {binding}; true -> false }}"),
         format!("if {{ not enabled -> false; true -> {binding} }}"),
@@ -336,7 +336,7 @@ pub type Result[T, E] = Ok[T] | Err[E].
 read(): Result[Int, String].
 
 pub evaluate(enabled: Bool): Result[Int, String] ->
-    let {
+    if {
         true <- enabled;
         Ok(value) <- read()
     } else {

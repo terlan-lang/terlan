@@ -277,7 +277,7 @@ pub parse(text: String): Result[Json, JsonError].
  * capability while preserving the portable `String` output contract.
  */
 @compiler.native
-pub stringify(json: Json): Result[String, JsonError].
+pub (json: Json) stringify(): Result[String, JsonError].
 
 /**
  * Renders a validated JSON value as compact text.
@@ -288,7 +288,7 @@ pub stringify(json: Json): Result[String, JsonError].
  * text, rendering a validated JSON value requires no recoverable error branch.
  */
 @compiler.native
-pub to_string(json: Json): String.
+pub (json: Json) to_string(): String.
 
 /**
  * Renders a JSON value with canonical two-space indentation.
@@ -300,7 +300,7 @@ pub to_string(json: Json): String.
  * capability while retaining deterministic object-key order.
  */
 @compiler.native
-pub stringify_pretty(json: Json): Result[String, JsonError].
+pub (json: Json) stringify_pretty(): Result[String, JsonError].
 
 /**
  * Reads an object member by key.
@@ -351,7 +351,7 @@ pub (json: Json) string_fields(fields: List[String]): Result[List[Option[String]
     }.
 
 optional_string_field(json: Json, field: String): Option[String] ->
-    let {
+    if {
         Ok(value) <- json.get(field);
         Ok(text) <- value.as_string()
     } else {

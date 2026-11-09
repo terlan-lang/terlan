@@ -29,14 +29,16 @@ find(releases: Json, tag: String, index: Int, count: Int): Json ->
  */
 pub observe(revision: String, version: String): Result[Json, String] ->
     let tag = String.append("v", version);
-    let Ok(releases) <- Support.github(["api", "repos/{owner}/{repo}/releases?per_page=100"]) else {
+    if {
+        Ok(releases) <- Support.github(["api", "repos/{owner}/{repo}/releases?per_page=100"])
+    } else {
         Err(reason) -> Err(reason)
     };
     case releases.length() {
         Err(_reason) -> Err("invalid GitHub releases response");
         Ok(count) ->
             let row = find(releases, tag, 0, count);
-            let {
+            if {
                 Ok(value) <- row.get("draft");
                 Ok(false) <- value.as_bool()
             } else {
@@ -45,7 +47,7 @@ pub observe(revision: String, version: String): Result[Json, String] ->
             case Support.run(
                 "git",
                 ["ls-remote", "origin", String.concat(["refs/tags/", tag, "^{}"])],
-                60000,
+                60_000,
             ) {
                 Err(reason) -> Err(reason);
                 Ok(remote) ->

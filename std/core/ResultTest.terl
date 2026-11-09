@@ -1,6 +1,7 @@
 module std.core.ResultTest.
 
-import std.core.Result.{Err, Ok, and_then, is_err, is_ok, map, map_error, with_default}.
+import std.core.Result.
+import std.core.Result.{Err, Ok}.
 import std.test.Test.{assert, assert_equal}.
 
 import type std.core.Result.
@@ -12,6 +13,9 @@ pub error_result(): Result[Int, Problem] ->
 
 pub ok_result(): Result[Int, Problem] ->
     Ok(41).
+
+pub even_result(): Result[Int, Problem] ->
+    Ok(8).
 
 pub add_one(value: Int): Int ->
     value + 1.
@@ -27,6 +31,14 @@ pub require_even(value: Int): Result[Int, Problem] ->
         false -> Err(Problem)
     }.
 
+@pure
+pub pure_receiver_map(value: Result[Int, Problem]): Result[Int, Problem] ->
+    value.map(add_one).
+
+@pure
+pub pure_qualified_map(value: Result[Int, Problem]): Result[Int, Problem] ->
+    Result.map(value, add_one).
+
 @test
 pub ok_constructor_returns_ok_tuple(): Bool ->
     assert(Ok(42) == Ok(42)).
@@ -37,48 +49,76 @@ pub err_constructor_returns_error_tuple(): Bool ->
 
 @test
 pub is_ok_accepts_success(): Bool ->
-    assert_equal(true, is_ok(ok_result())).
+    assert_equal(true, Result.is_ok(ok_result())).
 
 @test
 pub is_ok_rejects_error(): Bool ->
-    assert_equal(false, is_ok(error_result())).
+    assert_equal(false, Result.is_ok(error_result())).
 
 @test
 pub is_err_accepts_error(): Bool ->
-    assert_equal(true, is_err(error_result())).
+    assert_equal(true, Result.is_err(error_result())).
 
 @test
 pub is_err_rejects_success(): Bool ->
-    assert_equal(false, is_err(ok_result())).
+    assert_equal(false, Result.is_err(ok_result())).
 
 @test
 pub map_transforms_success(): Bool ->
-    assert_equal(Ok(42), map(ok_result(), add_one)).
+    assert_equal(Ok(42), Result.map(ok_result(), add_one)).
 
 @test
 pub map_preserves_error(): Bool ->
-    assert_equal(Err(Problem), map(error_result(), add_one)).
+    assert_equal(Err(Problem), Result.map(error_result(), add_one)).
 
 @test
 pub map_error_preserves_success(): Bool ->
-    assert_equal(Ok(41), map_error(ok_result(), normalize_problem)).
+    assert_equal(Ok(41), Result.map_error(ok_result(), normalize_problem)).
 
 @test
 pub map_error_transforms_error(): Bool ->
-    assert_equal(Err(Atom["normalized"]), map_error(error_result(), normalize_problem)).
+    assert_equal(Err(Atom["normalized"]), Result.map_error(error_result(), normalize_problem)).
 
 @test
 pub and_then_chains_success(): Bool ->
-    assert_equal(Ok(4), and_then(Ok(8), require_even)).
+    assert_equal(Ok(4), Result.and_then(Ok(8), require_even)).
 
 @test
 pub and_then_preserves_error(): Bool ->
-    assert_equal(Err(Problem), and_then(error_result(), require_even)).
+    assert_equal(Err(Problem), Result.and_then(error_result(), require_even)).
 
 @test
 pub with_default_uses_success(): Bool ->
-    assert_equal(41, with_default(ok_result(), 42)).
+    assert_equal(41, Result.with_default(ok_result(), 42)).
 
 @test
 pub with_default_uses_default_for_error(): Bool ->
-    assert_equal(42, with_default(error_result(), 42)).
+    assert_equal(42, Result.with_default(error_result(), 42)).
+
+@test
+pub receiver_is_ok_accepts_success(): Bool ->
+    assert_equal(true, ok_result().is_ok()).
+
+@test
+pub receiver_is_err_accepts_error(): Bool ->
+    assert_equal(true, error_result().is_err()).
+
+@test
+pub receiver_map_transforms_success(): Bool ->
+    assert_equal(Ok(42), pure_receiver_map(ok_result())).
+
+@test
+pub qualified_map_preserves_conditional_purity(): Bool ->
+    assert_equal(Ok(42), pure_qualified_map(ok_result())).
+
+@test
+pub receiver_map_error_transforms_error(): Bool ->
+    assert_equal(Err(Atom["normalized"]), error_result().map_error(normalize_problem)).
+
+@test
+pub receiver_and_then_chains_success(): Bool ->
+    assert_equal(Ok(4), even_result().and_then(require_even)).
+
+@test
+pub receiver_with_default_uses_default_for_error(): Bool ->
+    assert_equal(42, error_result().with_default(42)).

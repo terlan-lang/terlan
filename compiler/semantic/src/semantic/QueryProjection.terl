@@ -40,10 +40,14 @@ single(value: Json, kind: String, used: Int): Stream ->
     stream(Json.array().push(value), kind, "complete", Json.array(), used).
 
 function_stream(selection: Selection, maximum: Int, kind: String): Result[Stream, Failure] ->
-    let Ok(matches) <- EntityLookup.core_functions(selection, maximum) else {
+    if {
+        Ok(matches) <- EntityLookup.core_functions(selection, maximum)
+    } else {
         Err(reason) -> Err(reason)
     };
-    (let Ok(count) <- matches.rows.length() else {
+    (if {
+    Ok(count) <- matches.rows.length()
+} else {
     _ ->
         Err(
             Failure(
@@ -76,7 +80,7 @@ parameter(function: Json, binding: Json): Result[Json, Bool] ->
                     _ -> ""
                 }
         };
-    let {
+    if {
         Ok(value) <- Json.parse(suffix);
         Ok(index) <- value.as_int();
         true <- index >= 0;
@@ -98,7 +102,9 @@ parameter(function: Json, binding: Json): Result[Json, Bool] ->
 type_stream(selection: Selection, maximum: Int): Result[Stream, Failure] ->
     let kind = EntityLookup.text(selection.entity, "kind");
     if {
-        kind == "type" -> let Ok(found) <- TypeQuery.prepare(selection, maximum) else {
+        kind == "type" -> if {
+            Ok(found) <- TypeQuery.prepare(selection, maximum)
+        } else {
             Err(reason) -> Err(reason)
         };
         if {
@@ -109,7 +115,9 @@ type_stream(selection: Selection, maximum: Int): Result[Stream, Failure] ->
                     "No unique containing-module Core type matches this checked declaration; interface-only sources retain their declared syntax through declaration queries.",
                 ),
             );
-            true -> let Ok(payload) <- selection.record.get("payload") else {
+            true -> if {
+                Ok(payload) <- selection.record.get("payload")
+            } else {
                 _ ->
                     Err(
                         Failure(
@@ -118,7 +126,9 @@ type_stream(selection: Selection, maximum: Int): Result[Stream, Failure] ->
                         ),
                     )
             };
-            (let Ok(origins) <- TypeQuery.included_origins(selection, found.used, maximum) else {
+            (if {
+    Ok(origins) <- TypeQuery.included_origins(selection, found.used, maximum)
+} else {
     Err(reason) -> Err(reason)
 };
 (let value =
@@ -156,7 +166,9 @@ Ok(
 )))
         };
         kind == "function" -> function_stream(selection, maximum, "function_type");
-        kind == "binding" -> let Ok(prepared) <- function_stream(selection, maximum, "binding_type") else {
+        kind == "binding" -> if {
+            Ok(prepared) <- function_stream(selection, maximum, "binding_type")
+        } else {
             Err(reason) -> Err(reason)
         };
         (let parameter_type =
@@ -167,7 +179,9 @@ Ok(
 case parameter_type {
     Ok(value) -> Ok(single(value, "binding_type", prepared.work_used));
     _ ->
-        let Ok(observed) <- BindingTypes.select(selection, prepared.work_used, maximum) else {
+        if {
+            Ok(observed) <- BindingTypes.select(selection, prepared.work_used, maximum)
+        } else {
             Err(reason) -> Err(reason)
         };
         if {
@@ -193,12 +207,16 @@ case parameter_type {
     }.
 
 expected_values(selection: Selection, maximum: Int): Result[Stream, Failure] ->
-    let Ok(types) <- type_stream(selection, maximum) else {
+    if {
+        Ok(types) <- type_stream(selection, maximum)
+    } else {
         Err(reason) -> Err(reason)
     };
     if {
         types.status == "unavailable" -> Ok(types);
-        true -> let Ok(row) <- types.rows.at(0) else {
+        true -> if {
+            Ok(row) <- types.rows.at(0)
+        } else {
             _ ->
                 Err(
                     Failure(
@@ -259,12 +277,16 @@ if {
  * The checked interface's purity classification is not a full effect set.
  */
 effects(selection: Selection, maximum: Int): Result[Stream, Failure] ->
-    let Ok(functions) <- function_stream(selection, maximum, "function_type") else {
+    if {
+        Ok(functions) <- function_stream(selection, maximum, "function_type")
+    } else {
         Err(reason) -> Err(reason)
     };
     if {
         functions.status == "unavailable" -> Ok(functions);
-        true -> let Ok(function) <- functions.rows.at(0) else {
+        true -> if {
+            Ok(function) <- functions.rows.at(0)
+        } else {
             _ ->
                 Err(
                     Failure(
@@ -273,7 +295,9 @@ effects(selection: Selection, maximum: Int): Result[Stream, Failure] ->
                     ),
                 )
         };
-        (let Ok(contracts) <- EffectsQuery.select(selection.artifact, function, functions.work_used, maximum) else {
+        (if {
+    Ok(contracts) <- EffectsQuery.select(selection.artifact, function, functions.work_used, maximum)
+} else {
     Err(reason) -> Err(reason)
 };
 if {
@@ -284,7 +308,9 @@ if {
             "No unique checked interface purity contract matches this exact function signature; absent metadata is not proof of purity.",
         ),
     );
-    true -> let Ok(contract) <- contracts.rows.at(0) else {
+    true -> if {
+        Ok(contract) <- contracts.rows.at(0)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -318,12 +344,16 @@ Ok(
     }.
 
 coverage(selection: Selection, maximum: Int): Result[Stream, Failure] ->
-    let Ok(functions) <- function_stream(selection, maximum, "function_type") else {
+    if {
+        Ok(functions) <- function_stream(selection, maximum, "function_type")
+    } else {
         Err(reason) -> Err(reason)
     };
     if {
         functions.status == "unavailable" -> Ok(functions);
-        true -> let Ok(function) <- functions.rows.at(0) else {
+        true -> if {
+            Ok(function) <- functions.rows.at(0)
+        } else {
             _ ->
                 Err(
                     Failure(
@@ -332,7 +362,9 @@ coverage(selection: Selection, maximum: Int): Result[Stream, Failure] ->
                     ),
                 )
         };
-        (let Ok(found) <- CoverageQuery.select(selection.artifact, function, functions.work_used, maximum) else {
+        (if {
+    Ok(found) <- CoverageQuery.select(selection.artifact, function, functions.work_used, maximum)
+} else {
     Err(reason) -> Err(reason)
 };
 if {
@@ -419,7 +451,7 @@ pub prepare(selection: Selection, fact: String, maximum: Int): Result[Stream, Fa
             );
         "references" ->
             if {
-                kind == "binding" -> let {
+                kind == "binding" -> if {
                     Ok(core) <- selection.artifact.get("core");
                     Ok(evidence) <- core.get("binding_identities");
                     Ok(rows) <- evidence.get("references")
@@ -447,7 +479,9 @@ pub prepare(selection: Selection, fact: String, maximum: Int): Result[Stream, Fa
                         selection.work_used,
                     ),
                 );
-                kind == "function" or kind == "module" -> let Ok(found) <- CallReferences.select(selection, maximum) else {
+                kind == "function" or kind == "module" -> if {
+                    Ok(found) <- CallReferences.select(selection, maximum)
+                } else {
                     Err(reason) -> Err(reason)
                 };
                 Ok(
@@ -539,7 +573,9 @@ pub prepare(selection: Selection, fact: String, maximum: Int): Result[Stream, Fa
                 )
             };
         "conformance" ->
-            let Ok(selected) <- RelationsQuery.select(selection, maximum) else {
+            if {
+                Ok(selected) <- RelationsQuery.select(selection, maximum)
+            } else {
                 Err(reason) -> Err(reason)
             };
             if {
@@ -651,7 +687,7 @@ project_value(selection: Selection, prepared: Stream, row: Json): Result[Json, F
     let kind = prepared.format;
     case kind {
         "binding_reference" ->
-            let {
+            if {
                 Ok(target) <- row.get("binding");
                 Ok(binding) <- selection.record.get("id")
             } else {
@@ -665,7 +701,7 @@ project_value(selection: Selection, prepared: Stream, row: Json): Result[Json, F
             };
             if {
                 Json.to_string(target) != Json.to_string(binding) -> Ok(Json.null());
-                true -> let {
+                true -> if {
                     Ok(start) <- row.get("span_start");
                     Ok(end) <- row.get("span_end")
                 } else {
@@ -712,7 +748,7 @@ project_value(selection: Selection, prepared: Stream, row: Json): Result[Json, F
                     ),
             );
         "function_type" ->
-            let {
+            if {
                 Ok(params) <- row.get("params");
                 Ok(result_type) <- row.get("core_return_type");
                 Ok(origin) <- row.get("source")
@@ -756,7 +792,9 @@ project_value(selection: Selection, prepared: Stream, row: Json): Result[Json, F
     }.
 
 pub project(selection: Selection, prepared: Stream, row: Json): Result[Json, Failure] ->
-    let Ok(value) <- project_value(selection, prepared, row) else {
+    if {
+        Ok(value) <- project_value(selection, prepared, row)
+    } else {
         Err(reason) -> Err(reason)
     };
     if {

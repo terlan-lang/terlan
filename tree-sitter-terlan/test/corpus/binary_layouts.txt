@@ -21,8 +21,9 @@ pub decode_lambda(value: Dynamic): Int ->
   decode(value).
 
 pub decode_let(value: Dynamic): Int ->
-  let Binary[big] { prefix: Bytes[2], flags: Bits[3], body: Rest } = value;
-  flags.bit_length().
+  case value {
+    Binary[big] { prefix: Bytes[2], flags: Bits[3], body: Rest } -> flags.bit_length()
+  }.
 
 ---
 
@@ -132,8 +133,7 @@ pub decode_let(value: Dynamic): Int ->
     (expression
       (let_expression
         (let_binding
-          (pattern
-            (identifier))
+          (identifier)
           (expression
             (expression
               (lambda_expression
@@ -170,8 +170,10 @@ pub decode_let(value: Dynamic): Int ->
     (type_expression
       (type_identifier))
     (expression
-      (let_expression
-        (let_binding
+      (case_expression
+        (expression
+          (identifier))
+        (case_arm
           (pattern
             (binary_layout_pattern
               (binary_layout_endian)
@@ -189,10 +191,8 @@ pub decode_let(value: Dynamic): Int ->
                 (identifier)
                 (binary_layout_descriptor))))
           (expression
-            (identifier)))
-        (expression
-          (method_call_expression
-            (expression
-              (identifier))
-            (field_identifier)
-            (arguments)))))))
+            (method_call_expression
+              (expression
+                (identifier))
+              (field_identifier)
+              (arguments))))))))

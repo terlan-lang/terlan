@@ -31,8 +31,10 @@ pub answer(): Int ->
     let head_plus_tail = (([head | tail]) ->
         case tail { [next] -> head + next; _ -> 0 });
     let score = ((Pair(_id, size)) -> size * 10);
-    let Pair(_id, bonus) = Pair(0, 2);
-    add({4, 5}) + head_plus_tail([3, 4]) + score(Pair(7, 3)) + bonus.
+    case Pair(0, 2) {
+        Pair(_id, bonus) ->
+            add({4, 5}) + head_plus_tail([3, 4]) + score(Pair(7, 3)) + bonus
+    }.
 "#,
     );
     let modules = NativeModule::lower_application(&[&module]).expect("lower aggregate lambdas");
@@ -66,14 +68,14 @@ pub type None = Atom["none"].
 pub type Some[T] = {Atom["some"], value: T}.
 pub type Option[T] = None | Some[T].
 pub select(enabled: Bool): Option[Int] ->
-    let {count, selected} =
-        if {
+    case if {
             enabled -> {3, Some(7)};
             true -> {0, None}
-        };
-    if {
-        count == 3 -> selected;
-        true -> None
+        } {
+        {count, selected} -> if {
+            count == 3 -> selected;
+            true -> None
+        }
     }.
 "#,
     );
@@ -108,19 +110,19 @@ source(): Result[Source, Unit] ->
 build(source: Source, count: Int, average: Option[Price]): Result[Observation, Unit] ->
     Ok(Observation(source, count, average)).
 pub select(current: Option[Int]): Option[Observation] ->
-    let {
+    if {
         Ok(source) <- source()
     } else {
         _ -> None
     };
-    let {count, average} =
-        case current {
+    case case current {
             None -> {0, None};
             Some(value) -> {3, Some(Price { micros: value })}
-        };
-    case build(source, count, average) {
-        Ok(value) -> Some(value);
-        _ -> None
+        } {
+        {count, average} -> case build(source, count, average) {
+            Ok(value) -> Some(value);
+            _ -> None
+        }
     }.
 pub answer(): Int ->
     case select(Some(7)) {

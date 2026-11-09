@@ -1,13 +1,11 @@
-/** Byte-exact canonical lexer for the self-hosted frontend. */
+/**
+ * Byte-exact canonical lexer for the self-hosted frontend.
+ */
 module self_host.CanonicalLexer.
 
-import std.core.String.
-
 import self_host.CanonicalToken.{BinaryToken, CanonicalLexError, CanonicalLexOutput, CanonicalToken, CommentToken, ContextualKeywordToken, DocCommentToken, EndToken, FloatToken, IntegerToken, KeywordToken, LowerIdentifierToken, ModuleDocCommentToken, OperatorToken, PunctuationToken, StringToken, TokenCategory, UpperIdentifierToken}.
-
 import std.collections.List.
 import std.core.{Int, String}.
-
 
 struct Scan {
     index: Int,
@@ -17,11 +15,7 @@ struct Scan {
 
 constructor Scan {
     (index: Int, tokens: List[CanonicalToken], errors: List[CanonicalLexError]): Scan ->
-        Scan {
-            index: index,
-            tokens: tokens,
-            errors: errors,
-        }
+        Scan {index: index, tokens: tokens, errors: errors}
 }.
 
 @pure
@@ -49,7 +43,13 @@ slice(source: String, start: Int, end: Int): String ->
     source.utf8_slice(start, end - start).
 
 @pure
-token(category: TokenCategory, terminal: String, source: String, start: Int, end: Int): CanonicalToken ->
+token(
+    category: TokenCategory,
+    terminal: String,
+    source: String,
+    start: Int,
+    end: Int,
+): CanonicalToken ->
     CanonicalToken(category, terminal, slice(source, start, end), start, end).
 
 @pure
@@ -58,22 +58,31 @@ advance(scan: Scan, index: Int, value: CanonicalToken): Scan ->
 
 @pure
 fail(scan: Scan, index: Int, end: Int, message: String): Scan ->
-    Scan(index = end, tokens = scan.tokens, errors = [CanonicalLexError(message, index, end) | scan.errors]).
+    Scan(
+        index = end,
+        tokens = scan.tokens,
+        errors = [CanonicalLexError(message, index, end) | scan.errors],
+    ).
 
 @pure
-is_space(byte: Int): Bool -> byte == 32 or byte == 9 or byte == 10 or byte == 13.
+is_space(byte: Int): Bool ->
+    byte == 32 or byte == 9 or byte == 10 or byte == 13.
 
 @pure
-is_digit(byte: Int): Bool -> byte >= 48 and byte <= 57.
+is_digit(byte: Int): Bool ->
+    byte >= 48 and byte <= 57.
 
 @pure
-is_alpha(byte: Int): Bool -> (byte >= 65 and byte <= 90) or (byte >= 97 and byte <= 122).
+is_alpha(byte: Int): Bool ->
+    byte >= 65 and byte <= 90 or byte >= 97 and byte <= 122.
 
 @pure
-is_identifier_start(byte: Int): Bool -> is_alpha(byte) or byte == 95.
+is_identifier_start(byte: Int): Bool ->
+    is_alpha(byte) or byte == 95.
 
 @pure
-is_identifier_continue(byte: Int): Bool -> is_identifier_start(byte) or is_digit(byte).
+is_identifier_continue(byte: Int): Bool ->
+    is_identifier_start(byte) or is_digit(byte).
 
 @pure
 line_end(source: String, index: Int): Int ->
@@ -103,7 +112,8 @@ digits_end(source: String, index: Int): Int ->
     }.
 
 @pure
-is_alphanumeric(byte: Int): Bool -> is_alpha(byte) or is_digit(byte) or byte == 95.
+is_alphanumeric(byte: Int): Bool ->
+    is_alpha(byte) or is_digit(byte) or byte == 95.
 
 @pure
 alphanumeric_end(source: String, index: Int): Int ->
@@ -201,11 +211,17 @@ binary_end(source: String, index: Int, quote_byte: Int, escaped: Bool): Int ->
 
 @pure
 is_canonical_keyword(text: String): Bool ->
-    String.contains("|module|pub|const|macro|constructor|export|import|type|nominal|opaque|trait|impl|implements|includes|for|template|where|extends|struct|case|of|end|try|catch|after|fun|let|if|when|with|and|in|or|div|rem|", String.concat(["|", text, "|"])).
+    String.contains(
+        "|module|pub|const|macro|constructor|export|import|type|nominal|opaque|trait|impl|implements|includes|for|template|where|extends|struct|case|of|end|try|catch|after|fun|let|if|when|with|and|in|or|div|rem|",
+        String.concat(["|", text, "|"]),
+    ).
 
 @pure
 is_contextual_keyword(text: String): Bool ->
-    String.contains("|annotation|applies_to|as|Bool|config|css|default|else|exists|false|file|Float|from|function|html|Int|machine|markdown|method|mut|Name|not|opaque_type|quote|repeatable|required|shape|static|String|target|true|Type|unquote|", String.concat(["|", text, "|"])).
+    String.contains(
+        "|annotation|applies_to|as|Bool|config|css|default|else|exists|false|file|Float|from|function|html|Int|machine|markdown|method|mut|Name|not|opaque_type|quote|repeatable|required|shape|static|String|target|true|Type|unquote|",
+        String.concat(["|", text, "|"]),
+    ).
 
 @pure
 identifier_category(text: String): TokenCategory ->
@@ -255,8 +271,7 @@ number_exponent_end(source: String, fraction_end: Int, sign_end: Int): Int ->
 number_after_fraction(source: String, fraction_end: Int): Int ->
     if {
         fraction_end >= source.byte_size() -> fraction_end;
-        source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69 ->
-                number_exponent_end(source, fraction_end, number_sign_end(source, fraction_end));
+        source.utf8_byte_at(fraction_end) == 101 or source.utf8_byte_at(fraction_end) == 69 -> number_exponent_end(source, fraction_end, number_sign_end(source, fraction_end));
         true -> fraction_end
     }.
 
@@ -270,13 +285,15 @@ number_end(source: String, start: Int): Int ->
     if {
         start + 2 >= source.byte_size() -> decimal_number_end(source, start);
         source.utf8_byte_at(start) != 48 -> decimal_number_end(source, start);
-        source.utf8_byte_at(start + 1) == 98 or source.utf8_byte_at(start + 1) == 111 or source.utf8_byte_at(start + 1) == 120 ->
-                alphanumeric_end(source, start + 2);
+        source.utf8_byte_at(start + 1) == 98
+            or source.utf8_byte_at(start + 1) == 111
+            or source.utf8_byte_at(start + 1) == 120 -> alphanumeric_end(source, start + 2);
         true -> decimal_number_end(source, start)
     }.
 
 @pure
-is_float_text(text: String): Bool -> String.contains(text, ".") or String.contains(text, "e") or String.contains(text, "E").
+is_float_text(text: String): Bool ->
+    String.contains(text, ".") or String.contains(text, "e") or String.contains(text, "E").
 
 @pure
 operator_after_greater_equal(source: String, index: Int): String ->
@@ -287,59 +304,120 @@ operator_after_greater_equal(source: String, index: Int): String ->
 
 @pure
 operator_after_less_equal(source: String, index: Int): String ->
-    if { starts(source, ">=", index) -> ">="; true -> operator_after_greater_equal(source, index) }.
+    if {
+        starts(source, ">=", index) -> ">=";
+        true -> operator_after_greater_equal(source, index)
+    }.
 
 @pure
 operator_after_not_equal(source: String, index: Int): String ->
-    if { starts(source, "<=", index) -> "<="; true -> operator_after_less_equal(source, index) }.
+    if {
+        starts(source, "<=", index) -> "<=";
+        true -> operator_after_less_equal(source, index)
+    }.
 
 @pure
 operator_after_equal(source: String, index: Int): String ->
-    if { starts(source, "!=", index) -> "!="; true -> operator_after_not_equal(source, index) }.
+    if {
+        starts(source, "!=", index) -> "!=";
+        true -> operator_after_not_equal(source, index)
+    }.
 
 @pure
 operator_after_fat_arrow(source: String, index: Int): String ->
-    if { starts(source, "==", index) -> "=="; true -> operator_after_equal(source, index) }.
+    if {
+        starts(source, "==", index) -> "==";
+        true -> operator_after_equal(source, index)
+    }.
 
 @pure
 operator_after_arrow(source: String, index: Int): String ->
-    if { starts(source, String.append("=", ">"), index) -> String.append("=", ">"); true -> operator_after_fat_arrow(source, index) }.
+    if {
+        starts(source, String.append("=", ">"), index) -> String.append("=", ">");
+        true -> operator_after_fat_arrow(source, index)
+    }.
 
 @pure
 operator_after_pipe(source: String, index: Int): String ->
-    if { starts(source, "->", index) -> "->"; true -> operator_after_arrow(source, index) }.
+    if {
+        starts(source, "->", index) -> "->";
+        true -> operator_after_arrow(source, index)
+    }.
 
 @pure
 operator_after_range(source: String, index: Int): String ->
-    if { starts(source, "|>", index) -> "|>"; true -> operator_after_pipe(source, index) }.
+    if {
+        starts(source, "|>", index) -> "|>";
+        true -> operator_after_pipe(source, index)
+    }.
 
 @pure
 operator_after_strict_not(source: String, index: Int): String ->
-    if { starts(source, "..", index) -> ".."; true -> operator_after_range(source, index) }.
+    if {
+        starts(source, "..", index) -> "..";
+        true -> operator_after_range(source, index)
+    }.
 
 @pure
 operator_after_strict_equal(source: String, index: Int): String ->
-    if { starts(source, "!==", index) -> "!=="; true -> operator_after_strict_not(source, index) }.
+    if {
+        starts(source, "!==", index) -> "!==";
+        true -> operator_after_strict_not(source, index)
+    }.
 
 @pure
 operator_after_ellipsis(source: String, index: Int): String ->
-    if { starts(source, "===", index) -> "==="; true -> operator_after_strict_equal(source, index) }.
+    if {
+        starts(source, "===", index) -> "===";
+        true -> operator_after_strict_equal(source, index)
+    }.
 
 @pure
 operator_at(source: String, index: Int): String ->
-    if { starts(source, "...", index) -> "..."; true -> operator_after_ellipsis(source, index) }.
+    if {
+        starts(source, "...", index) -> "...";
+        true -> operator_after_ellipsis(source, index)
+    }.
 
 @pure
-is_single_operator(byte: Int): Bool -> byte == 124 or byte == 43 or byte == 45 or byte == 42 or byte == 47 or byte == 61 or byte == 33 or byte == 60 or byte == 62.
+is_single_operator(byte: Int): Bool ->
+    byte == 124
+        or byte == 43
+        or byte == 45
+        or byte == 42
+        or byte == 47
+        or byte == 61
+        or byte == 33
+        or byte == 60
+        or byte == 62.
 
 @pure
 is_punctuation(byte: Int): Bool ->
-    byte == 40 or byte == 41 or byte == 91 or byte == 93 or byte == 123 or byte == 125
-        or byte == 35 or byte == 44 or byte == 46 or byte == 58 or byte == 59
-        or byte == 63 or byte == 36 or byte == 64.
+    byte == 40
+        or byte == 41
+        or byte == 91
+        or byte == 93
+        or byte == 123
+        or byte == 125
+        or byte == 35
+        or byte == 44
+        or byte == 46
+        or byte == 58
+        or byte == 59
+        or byte == 63
+        or byte == 36
+        or byte == 64.
 
 @pure
-completed_token(scan: Scan, source: String, index: Int, end: Int, category: TokenCategory, terminal: String, error: String): Scan ->
+completed_token(
+    scan: Scan,
+    source: String,
+    index: Int,
+    end: Int,
+    category: TokenCategory,
+    terminal: String,
+    error: String,
+): Scan ->
     if {
         end < 0 -> fail(scan, index, source.byte_size(), error);
         true -> advance(scan, end, token(category, terminal, source, index, end))
@@ -347,23 +425,37 @@ completed_token(scan: Scan, source: String, index: Int, end: Int, category: Toke
 
 @pure
 number_category(text: String): TokenCategory ->
-    if { is_float_text(text) -> FloatToken; true -> IntegerToken }.
+    if {
+        is_float_text(text) -> FloatToken;
+        true -> IntegerToken
+    }.
 
 @pure
 number_terminal(text: String): String ->
-    if { is_float_text(text) -> "float"; true -> "int" }.
+    if {
+        is_float_text(text) -> "float";
+        true -> "int"
+    }.
 
 @pure
 scan_after_single_operator(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        is_punctuation(byte) -> advance(scan, index + 1, token(PunctuationToken, slice(source, index, index + 1), source, index, index + 1));
+        is_punctuation(byte) -> advance(
+            scan,
+            index + 1,
+            token(PunctuationToken, slice(source, index, index + 1), source, index, index + 1),
+        );
         true -> fail(scan, index, index + 1, "unrecognized source byte")
     }.
 
 @pure
 scan_after_operator(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        is_single_operator(byte) -> advance(scan, index + 1, token(OperatorToken, slice(source, index, index + 1), source, index, index + 1));
+        is_single_operator(byte) -> advance(
+            scan,
+            index + 1,
+            token(OperatorToken, slice(source, index, index + 1), source, index, index + 1),
+        );
         true -> scan_after_single_operator(source, scan, index, byte)
     }.
 
@@ -371,90 +463,121 @@ scan_after_operator(source: String, scan: Scan, index: Int, byte: Int): Scan ->
 scan_after_identifier(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     let operator = operator_at(source, index);
     if {
-        operator != "" -> advance(scan, index + operator.byte_size(), token(OperatorToken, operator, source, index, index + operator.byte_size()));
+        operator != "" -> advance(
+            scan,
+            index + operator.byte_size(),
+            token(OperatorToken, operator, source, index, index + operator.byte_size()),
+        );
         true -> scan_after_operator(source, scan, index, byte)
     }.
 
 @pure
 scan_after_number(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        is_identifier_start(byte) ->
-            let end = identifier_end(source, index + 1);
-            let text = slice(source, index, end);
-            advance(scan, end, token(identifier_category(text), identifier_terminal(text), source, index, end));
+        is_identifier_start(byte) -> let end = identifier_end(source, index + 1);
+        let text = slice(source, index, end);
+        advance(
+            scan,
+            end,
+            token(identifier_category(text), identifier_terminal(text), source, index, end),
+        );
         true -> scan_after_identifier(source, scan, index, byte)
     }.
 
 @pure
 scan_after_binary(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        is_digit(byte) ->
-            let end = number_end(source, index);
-            let text = slice(source, index, end);
-            advance(scan, end, token(number_category(text), number_terminal(text), source, index, end));
+        is_digit(byte) -> let end = number_end(source, index);
+        let text = slice(source, index, end);
+        advance(scan, end, token(number_category(text), number_terminal(text), source, index, end));
         true -> scan_after_number(source, scan, index, byte)
     }.
 
 @pure
 scan_after_string(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        starts(source, "<<", index) ->
-            let end = binary_end(source, index + 2, 0, false);
-            completed_token(scan, source, index, end, BinaryToken, "binary", "unterminated binary literal");
+        starts(source, "<<", index) -> let end = binary_end(source, index + 2, 0, false);
+        completed_token(
+            scan,
+            source,
+            index,
+            end,
+            BinaryToken,
+            "binary",
+            "unterminated binary literal",
+        );
         true -> scan_after_binary(source, scan, index, byte)
     }.
 
 @pure
 scan_after_comment(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        byte == 34 or byte == 39 ->
-            let end = string_end(source, index + 1, byte, false);
-            completed_token(scan, source, index, end, StringToken, "string", "unterminated string literal");
+        byte == 34 or byte == 39 -> let end = string_end(source, index + 1, byte, false);
+        completed_token(
+            scan,
+            source,
+            index,
+            end,
+            StringToken,
+            "string",
+            "unterminated string literal",
+        );
         true -> scan_after_string(source, scan, index, byte)
     }.
 
 @pure
 scan_after_module_doc(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        starts(source, "//", index) or byte == 37 ->
-            let end = line_end(source, index + 1);
-            advance(scan, end, token(CommentToken, "comment", source, index, end));
+        starts(source, "//", index) or byte == 37 -> let end = line_end(source, index + 1);
+        advance(scan, end, token(CommentToken, "comment", source, index, end));
         true -> scan_after_comment(source, scan, index, byte)
     }.
 
 @pure
 scan_after_doc_line(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        starts(source, "//!", index) ->
-            let end = line_end(source, index + 3);
-            advance(scan, end, token(ModuleDocCommentToken, "module-doc", source, index, end));
+        starts(source, "//!", index) -> let end = line_end(source, index + 3);
+        advance(scan, end, token(ModuleDocCommentToken, "module-doc", source, index, end));
         true -> scan_after_module_doc(source, scan, index, byte)
     }.
 
 @pure
 scan_after_block_comment(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        starts(source, "///", index) ->
-            let end = line_end(source, index + 3);
-            advance(scan, end, token(DocCommentToken, "doc", source, index, end));
+        starts(source, "///", index) -> let end = line_end(source, index + 3);
+        advance(scan, end, token(DocCommentToken, "doc", source, index, end));
         true -> scan_after_doc_line(source, scan, index, byte)
     }.
 
 @pure
 scan_after_doc_block(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        starts(source, "/*", index) ->
-            let end = block_end(source, index + 2);
-            completed_token(scan, source, index, end, CommentToken, "comment", "unterminated block comment");
+        starts(source, "/*", index) -> let end = block_end(source, index + 2);
+        completed_token(
+            scan,
+            source,
+            index,
+            end,
+            CommentToken,
+            "comment",
+            "unterminated block comment",
+        );
         true -> scan_after_block_comment(source, scan, index, byte)
     }.
 
 @pure
 scan_after_space(source: String, scan: Scan, index: Int, byte: Int): Scan ->
     if {
-        starts(source, "/**", index) ->
-            let end = block_end(source, index + 3);
-            completed_token(scan, source, index, end, DocCommentToken, "doc-block", "unterminated documentation block comment");
+        starts(source, "/**", index) -> let end = block_end(source, index + 3);
+        completed_token(
+            scan,
+            source,
+            index,
+            end,
+            DocCommentToken,
+            "doc-block",
+            "unterminated documentation block comment",
+        );
         true -> scan_after_doc_block(source, scan, index, byte)
     }.
 
@@ -469,11 +592,28 @@ scan_one(source: String, scan: Scan): Scan ->
 
 @pure
 scan_all(source: String, scan: Scan): Scan ->
-    if { scan.index == source.byte_size() -> scan; true -> scan_all(source, scan_one(source, scan)) }.
+    if {
+        scan.index == source.byte_size() -> scan;
+        true -> scan_all(source, scan_one(source, scan))
+    }.
 
-/** Tokenizes complete Terlan source and always appends an EOF token. */
+/**
+ * Tokenizes complete Terlan source and always appends an EOF token.
+ */
 @pure
 pub lex(source: String): CanonicalLexOutput ->
-    let scanned = scan_all(source, Scan(index = 0, tokens = List.new[CanonicalToken](), errors = List.new[CanonicalLexError]()));
+    let scanned =
+        scan_all(
+            source,
+            Scan(
+                index = 0,
+                tokens = List.new[CanonicalToken](),
+                errors = List.new[CanonicalLexError](),
+            ),
+        );
     let eof = CanonicalToken(EndToken, "eof", "", source.byte_size(), source.byte_size());
-    CanonicalLexOutput(List.is_empty(scanned.errors), reverse_at([eof | scanned.tokens], List.new[CanonicalToken]()), reverse_at(scanned.errors, List.new[CanonicalLexError]())).
+    CanonicalLexOutput(
+        List.is_empty(scanned.errors),
+        reverse_at([eof | scanned.tokens], List.new[CanonicalToken]()),
+        reverse_at(scanned.errors, List.new[CanonicalLexError]()),
+    ).

@@ -307,10 +307,12 @@ fn collect_nominal_parameters(
         CoreType::Apply { constructor, args } => {
             if let Some(parameters) = nominal_parameters.get(constructor) {
                 for (parameter, argument) in parameters.iter().zip(args) {
-                    if argument == &CoreType::Named(parameter.clone())
-                        && !inherited.contains(parameter)
-                    {
-                        inherited.push(parameter.clone());
+                    if let CoreType::Named(argument) = argument {
+                        let receiver_parameter = argument == parameter
+                            || (argument.len() == 1 && argument.as_bytes()[0].is_ascii_uppercase());
+                        if receiver_parameter && !inherited.contains(argument) {
+                            inherited.push(argument.clone());
+                        }
                     }
                 }
             }

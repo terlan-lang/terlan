@@ -206,7 +206,7 @@ all_contract_files_exist(files: List[String]): Bool ->
     }.
 
 check_contract(): Bool ->
-    let {
+    if {
         true <- all_contract_files_exist(public_modules());
         Some(field_source) <- read("std/log/Field.terl");
         Some(rust_source) <- read("crates/terlan-service-foundation/src/lib.rs")
@@ -222,7 +222,7 @@ check_contract(): Bool ->
     }.
 
 check_runtime(): Bool ->
-    let {
+    if {
         Some(glue) <- read("crates/terlan/src/service_foundation.rs");
         Some(dispatch) <- read("crates/terlan/src/commands/serve/server_lifecycle.rs");
         Some(request) <- read("crates/terlan/src/commands/serve/request_dispatch.rs")
@@ -238,7 +238,7 @@ check_runtime(): Bool ->
     }.
 
 adapter_report(): Option[Json] ->
-    let {
+    if {
         Some(manifest) <- read("crates/terlan-foundations-adapter/Cargo.toml");
         Some(tree) <- dependency_tree("terlan-foundations-adapter")
     } else {
@@ -305,7 +305,7 @@ if {
 }).
 
 pruning_report(): Option[Json] ->
-    let {
+    if {
         Some(core) <- dependency_tree("terlan-service-foundation");
         Some(compiler) <- dependency_tree("terlan")
     } else {
@@ -342,7 +342,7 @@ artifact_hashes(files: List[String], output: Json): Option[Json] ->
     }.
 
 build_report(): Option[Json] ->
-    let {
+    if {
         true <- check_contract();
         true <- check_runtime();
         Some(adapter) <- adapter_report();
@@ -521,7 +521,7 @@ build_report(): Option[Json] ->
     ).
 
 write_report(): Bool ->
-    let {
+    if {
         Some(report) <- build_report();
         Ok(rendered) <- Json.stringify_pretty(report);
         Ok(Unit) <- Directory.create_all(child(root(), "docs/runtime"));

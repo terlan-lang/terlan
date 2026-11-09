@@ -43,7 +43,7 @@ pub type RangeError =
 /// Transformation: checks bounds first, then performs bounded step alignment.
 
 @pure
-pub contains(range: Range, value: Int): Bool.
+pub (range: Range) contains(value: Int): Bool.
 
 /// Creates an exclusive range.
 ///
@@ -66,7 +66,7 @@ pub inclusive(start: Int, stop: Int): Range.
 /// Returns whether a range produces no values.
 
 @pure
-pub is_empty(range: Range): Bool.
+pub (range: Range) is_empty(): Bool.
 
 /// Returns an iterator over a range.
 ///
@@ -75,7 +75,7 @@ pub is_empty(range: Range): Bool.
 /// Transformation: delegates through `to_list().iterator()` until the VM owns
 /// a direct range iterator lowering path.
 
-pub iterator(range: Range): std.collections.Iterator[Int].
+pub (range: Range) iterator(): std.collections.Iterator[Int].
 
 /// Returns the number of values produced by a range.
 ///
@@ -85,7 +85,7 @@ pub iterator(range: Range): std.collections.Iterator[Int].
 /// condition is reached.
 
 @pure
-pub length(range: Range): Int.
+pub (range: Range) length(): Int.
 
 /// Creates a checked stepped range.
 ///
@@ -103,7 +103,7 @@ pub stepped(start: Int, stop: Int, step: Int, inclusive: Bool): std.core.Result[
 /// Transformation: appends every generated value to a portable list.
 
 @pure
-pub to_list(range: Range): List[Int].
+pub (range: Range) to_list(): List[Int].
 
 /// Constructs a range from explicit fields.
 ///

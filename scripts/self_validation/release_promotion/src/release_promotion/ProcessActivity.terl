@@ -83,14 +83,16 @@ error_name(reason: String, offset: Int): Bool ->
 valid_code(code: Json, success: Bool): Bool ->
     if {
         code.is_null() -> not success;
-        true -> let Ok(number) <- code.as_int() else {
+        true -> if {
+            Ok(number) <- code.as_int()
+        } else {
             _ -> false
         };
         number >= -2_147_483_648 and number <= 2_147_483_647 and success == (number == 0)
     }.
 
 outcome(document: Json, phase: String): Result[Bool, String] ->
-    let {
+    if {
         Ok(code) <- document.get("exit_code");
         Ok(success) <- document.get("exit_success");
         Ok(error) <- document.get("error_kind")
@@ -98,14 +100,14 @@ outcome(document: Json, phase: String): Result[Bool, String] ->
         _ -> Err("missing process outcome fields")
     };
     if {
-        phase == "reaped" -> let {
+        phase == "reaped" -> if {
             Ok(passed) <- success.as_bool();
             true <- error.is_null() and valid_code(code, passed)
         } else {
             _ -> Err("invalid reaped process outcome")
         };
         Ok(not passed);
-        phase == "spawn_failed" -> let {
+        phase == "spawn_failed" -> if {
             Ok(reason) <- error.as_string();
             true <- reason.byte_size() <= 64 and error_name(reason, 0);
             true <- code.is_null() and success.is_null()
@@ -120,7 +122,7 @@ outcome(document: Json, phase: String): Result[Bool, String] ->
     }.
 
 parse(document: Json): Result[Event, String] ->
-    let {
+    if {
         Ok(11) <- document.object_length();
         Some("terlan.process-activity.v1") <- OwnerStorage.text(document, "schema");
         Some(attempt) <- OwnerStorage.text(document, "attempt");
@@ -188,7 +190,9 @@ save(inventory: ProcessInventory, event: Event, fresh: Bool): ProcessInventory -
  * Admits exactly one valid state transition with stable attempt identity.
  */
 pub accept(inventory: ProcessInventory, document: Json): Result[ProcessInventory, String] ->
-    let Ok(event) <- parse(document) else {
+    if {
+        Ok(event) <- parse(document)
+    } else {
         Err(reason) -> Err(reason)
     };
     case inventory.attempts.get(event.attempt) {

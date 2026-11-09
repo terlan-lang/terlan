@@ -2,6 +2,98 @@
 
 use super::token::{Token, TokenKind};
 
+/// Finds each pattern immediately followed by `<-`, including the arrow.
+/// Collapsing this prefix keeps bare refutable continuations LR(1); lowering
+/// reparses the retained pattern source through the canonical pattern parser.
+pub(super) fn refutable_pattern_ranges(tokens: &[Token]) -> Vec<(usize, usize)> {
+    let mut ranges = Vec::new();
+    for (arrow, token) in tokens.iter().enumerate() {
+        if token.kind != TokenKind::LtMinus {
+            continue;
+        }
+        let Some(last) = (0..arrow)
+            .rev()
+            .find(|&index| !is_trivia(&tokens[index].kind))
+        else {
+            continue;
+        };
+        let mut parens = 0usize;
+        let mut brackets = 0usize;
+        let mut braces = 0usize;
+        let mut boundary = None;
+        for index in (0..=last).rev() {
+            let kind = &tokens[index].kind;
+            if is_trivia(kind) {
+                continue;
+            }
+            match kind {
+                TokenKind::RParen => parens += 1,
+                TokenKind::RBracket => brackets += 1,
+                TokenKind::RBrace => braces += 1,
+                TokenKind::LParen if parens > 0 => parens -= 1,
+                TokenKind::LBracket if brackets > 0 => brackets -= 1,
+                TokenKind::LBrace if braces > 0 => braces -= 1,
+                TokenKind::LParen | TokenKind::LBracket | TokenKind::LBrace
+                    if parens == 0 && brackets == 0 && braces == 0 =>
+                {
+                    boundary = Some(index);
+                    break;
+                }
+                TokenKind::Semicolon
+                | TokenKind::Pipe
+                | TokenKind::Comma
+                | TokenKind::Arrow
+                | TokenKind::FatArrow
+                | TokenKind::Equals
+                    if parens == 0 && brackets == 0 && braces == 0 =>
+                {
+                    boundary = Some(index);
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let search_start = boundary.map_or(0, |index| index + 1);
+        if let Some(start) = (search_start..arrow).find(|&index| !is_trivia(&tokens[index].kind)) {
+            ranges.push((start, arrow));
+        }
+    }
+    ranges.sort_unstable();
+    ranges.dedup();
+    ranges
+}
+
+/// Returns the opening brace of `if { pattern <- value; ... } else { ... }`.
+pub(super) fn refutable_if_open(tokens: &[Token], index: usize) -> Option<usize> {
+    if tokens.get(index)?.kind != TokenKind::If {
+        return None;
+    }
+    let opening =
+        (index + 1..tokens.len()).find(|&candidate| !is_trivia(&tokens[candidate].kind))?;
+    if tokens[opening].kind != TokenKind::LBrace {
+        return None;
+    }
+    let mut depth = 0usize;
+    let mut has_refutable = false;
+    for candidate in opening..tokens.len() {
+        match tokens[candidate].kind {
+            TokenKind::LBrace => depth += 1,
+            TokenKind::RBrace => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    let next = (candidate + 1..tokens.len())
+                        .find(|&next| !is_trivia(&tokens[next].kind))?;
+                    return (has_refutable && tokens[next].text == "else").then_some(opening);
+                }
+            }
+            TokenKind::LtMinus if depth == 1 => has_refutable = true,
+            TokenKind::EOF => return None,
+            _ => {}
+        }
+    }
+    None
+}
+
 /// Returns the closing `>` for a constraint list that follows square-bracket
 /// generic parameters and immediately precedes a callable parameter list.
 pub(super) fn head_constraint_list_end(tokens: &[Token], index: usize) -> Option<usize> {
@@ -272,16 +364,24 @@ pub(super) fn lambda_sequence_semicolon_indices(
     tokens: &[Token],
     openings: &[usize],
 ) -> Vec<usize> {
+    let refutable_starts = refutable_pattern_ranges(tokens)
+        .into_iter()
+        .map(|(start, _)| start)
+        .collect::<Vec<_>>();
     let mut separators = Vec::new();
     for &opening in openings {
         let Some(body_start) = lambda_body_start(tokens, opening) else {
             continue;
         };
-        let body_starts_with_let = tokens[body_start..]
+        let body_start_index = tokens[body_start..]
             .iter()
-            .find(|token| !is_trivia(&token.kind))
-            .is_some_and(|token| token.kind == TokenKind::Let);
-        let mut leave_let_separator = body_starts_with_let;
+            .position(|token| !is_trivia(&token.kind))
+            .map(|offset| body_start + offset);
+        let mut leave_binding_separator = body_start_index.is_some_and(|index| {
+            tokens[index].kind == TokenKind::Let
+                || refutable_starts.binary_search(&index).is_ok()
+                || refutable_if_open(tokens, index).is_some()
+        });
         let mut parens = 0usize;
         let mut brackets = 0usize;
         let mut braces = 0usize;
@@ -307,11 +407,16 @@ pub(super) fn lambda_sequence_semicolon_indices(
                     }
                 }
                 TokenKind::Semicolon if parens == 0 && brackets == 0 && braces == 0 => {
-                    if leave_let_separator {
-                        leave_let_separator = tokens[index + 1..]
+                    if leave_binding_separator {
+                        let next_index = tokens[index + 1..]
                             .iter()
-                            .find(|next| !is_trivia(&next.kind))
-                            .is_some_and(|next| next.kind == TokenKind::Let);
+                            .position(|next| !is_trivia(&next.kind))
+                            .map(|offset| index + 1 + offset);
+                        leave_binding_separator = next_index.is_some_and(|next| {
+                            tokens[next].kind == TokenKind::Let
+                                || refutable_starts.binary_search(&next).is_ok()
+                                || refutable_if_open(tokens, next).is_some()
+                        });
                     } else {
                         separators.push(index);
                     }

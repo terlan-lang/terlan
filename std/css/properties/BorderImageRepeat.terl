@@ -45,11 +45,11 @@ pub struct Property {
 /**
  * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Checked ->
+pub (first: Component) single(): Checked ->
     Checked({Atom["css_parts"], [first]}).
 
 /**
  * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Checked ->
+pub (first: Component) pair(second: Component): Checked ->
     Checked({Atom["css_parts"], [first, second]}).

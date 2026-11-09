@@ -84,7 +84,7 @@ pub fail(error: E): Effect[T].
 /// continuation and its returned description execute only at `Effect.run`.
 
 @pure
-pub flat_map(effect: Effect[A], next: (A) -> Effect[B]): Effect[B].
+pub (effect: Effect[A]) flat_map[A, B](next: (A) -> Effect[B]): Effect[B].
 
 /// Maps the eventual value inside an effect description.
 ///
@@ -94,7 +94,7 @@ pub flat_map(effect: Effect[A], next: (A) -> Effect[B]): Effect[B].
 /// only when the resulting description crosses `Effect.run`.
 
 @pure
-pub map(effect: Effect[A], mapper: (A) -> B): Effect[B].
+pub (effect: Effect[A]) map[A, B](mapper: (A) -> B): Effect[B].
 
 /// Declares the VM-owned execution boundary for an effect description.
 ///
@@ -108,7 +108,7 @@ pub map(effect: Effect[A], mapper: (A) -> B): Effect[B].
 /// Dynamic execution is not. Failure payloads must be materializable VM values,
 /// not executable functions or opaque resource handles.
 
-pub run(effect: Effect[T]): T.
+pub (effect: Effect[T]) run(): T.
 
 /// Lifts a plain value into an effect description.
 ///

@@ -12,7 +12,7 @@ import std.io.File.{exists, read_text, write_text}.
 
 @test
 pub existing_output_is_never_overwritten(): Bool ->
-    let {
+    if {
         Ok(directory) <- create_temporary("terlan-compilation-benchmark-owner-");
         Ok(_) <- write_text(String.append(directory, "/sentinel"), "preserve")
     } else {
@@ -22,14 +22,18 @@ pub existing_output_is_never_overwritten(): Bool ->
 
 @test
 pub invalid_dimensions_do_not_create_output(): Bool ->
-    let Ok(directory) <- create_temporary("terlan-compilation-benchmark-bounds-") else {
+    if {
+        Ok(directory) <- create_temporary("terlan-compilation-benchmark-bounds-")
+    } else {
         _ -> false
     };
     (let child = String.append(directory, "/output"); let zero = not Runner.run("missing-compiler", child, 0, 1, false); let excessive = not Runner.run("missing-compiler", child, 1, 257, false); let absent = not exists(child); let removed = remove_all(directory) == Ok(Unit); zero and excessive and absent and removed).
 
 @test
 pub native_activity_counts_attempts_and_rejects_malformed_logs(): Bool ->
-    let Ok(directory) <- create_temporary("terlan-compilation-benchmark-evidence-") else {
+    if {
+        Ok(directory) <- create_temporary("terlan-compilation-benchmark-evidence-")
+    } else {
         _ -> false
     };
     (let path = String.append(directory, "/activity.jsonl");
@@ -61,7 +65,7 @@ event(state: String): String ->
 
 @test
 pub stdlib_identity_tracks_source_and_ignores_disposable_sidecars(): Bool ->
-    let {
+    if {
         Ok(directory) <- create_temporary("terlan-compilation-stdlib-");
         Ok(_) <- create_all(String.append(directory, "/std"));
         Ok(_) <- write_text(String.append(directory, "/std/Source.terl"), "module std.Source.\n");
@@ -83,7 +87,7 @@ changed and original == current and edited and updated != original and removed).
 
 @test
 pub comparison_control_preserves_objects_and_frontend_cache(): Bool ->
-    let {
+    if {
         Ok(directory) <- create_temporary("terlan-compilation-control-");
         true <- CacheControl.prepare(directory, false) == Some(0);
         Ok(_) <- create_all(String.append(directory, "/native-aot"));

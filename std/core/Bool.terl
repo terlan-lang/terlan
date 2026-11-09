@@ -27,14 +27,14 @@ import type std.core.Option.
  * ```terlan
  * module bool_equal_example.
  *
- * pub equal(Left: Bool, Right: Bool): Bool ->
+ * pub (Left: Bool) equal(Right: Bool): Bool ->
  *    Left == Right.
  *
  * pub demo(Value: Bool): Bool ->
- *    equal(Value, Value).
+ *    Value.equal(Value).
  * ```
  */
-pub equal(Left: Bool, Right: Bool): Bool ->
+pub (Left: Bool) equal(Right: Bool): Bool ->
     Left == Right.
 
 /**
@@ -49,10 +49,10 @@ pub equal(Left: Bool, Right: Bool): Bool ->
  * module bool_is_true_example.
  *
  * pub demo(value: Bool): Bool ->
- *     std.core.Bool.is_true(value).
+ *     value.is_true().
  * ```
  */
-pub is_true(value: Bool): Bool ->
+pub (value: Bool) is_true(): Bool ->
     value.
 
 /**
@@ -66,10 +66,10 @@ pub is_true(value: Bool): Bool ->
  * module bool_is_false_example.
  *
  * pub demo(value: Bool): Bool ->
- *     std.core.Bool.is_false(value).
+ *     value.is_false().
  * ```
  */
-pub is_false(value: Bool): Bool ->
+pub (value: Bool) is_false(): Bool ->
     value == false.
 
 /**
@@ -89,10 +89,10 @@ pub is_false(value: Bool): Bool ->
  * module bool_compare_example.
  *
  * pub demo(): std.core.Ordering.Comparison ->
- *    std.core.Bool.compare(false, true).
+ *    false.compare(true).
  * ```
  */
-pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison ->
+pub (left: Bool) compare(right: Bool): std.core.Ordering.Comparison ->
     case left == right {
         true -> Eq;
         false ->
@@ -114,10 +114,10 @@ pub compare(left: Bool, right: Bool): std.core.Ordering.Comparison ->
  * module bool_to_string_example.
  *
  * pub demo(): String ->
- *    std.core.Bool.to_string(true).
+ *    true.to_string().
  * ```
  */
-pub to_string(value: Bool): String ->
+pub (value: Bool) to_string(): String ->
     case value {
         true -> "true";
         false -> "false"

@@ -87,9 +87,6 @@ fn parse_args(args: &[String]) -> Result<LintOptions, String> {
         }
     }
 
-    if fix && !only_rules.is_empty() {
-        return Err("--fix and --only cannot be combined".to_string());
-    }
     for rule_id in &only_rules {
         if !KNOWN_RULE_IDS.contains(&rule_id.as_str()) {
             return Err(format!("unknown lint rule ID: {rule_id}"));
@@ -108,9 +105,9 @@ fn parse_args(args: &[String]) -> Result<LintOptions, String> {
 
 const KNOWN_RULE_IDS: &[&str] = &[
     "TL0001", "TL0002", "TL0003", "TL0004", "TL0005", "TL0006", "TL0007", "TL0008", "TL0009",
-    "TL0010", "TL0101", "TL0201", "TL0301", "TL0401", "TL0501", "TL0506", "TL0601", "TL0701",
-    "TL0702", "TL0801", "TL0804", "TL0805", "TL0901", "TL0902", "TL0903", "TL0907", "TL1001",
-    "TL1002", "TL1003",
+    "TL0010", "TL0101", "TL0201", "TL0301", "TL0401", "TL0501", "TL0506", "TL0507", "TL0601",
+    "TL0701", "TL0702", "TL0801", "TL0804", "TL0805", "TL0901", "TL0902", "TL0903", "TL0907",
+    "TL1001", "TL1002", "TL1003",
 ];
 
 /// Runs lint analysis and optional safe fixes over one path.
@@ -153,7 +150,7 @@ fn run_lint_rules_many(
     paths.sort();
     paths.dedup();
     if fix {
-        apply_safe_fixes(&paths).map_err(|error| error.to_string())?;
+        apply_safe_fixes(&paths, only_rules).map_err(|error| error.to_string())?;
     }
 
     let mut diagnostics = Vec::new();

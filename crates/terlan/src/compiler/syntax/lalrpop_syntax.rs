@@ -123,8 +123,10 @@ pub enum LalrpopSyntaxNodeKind {
     Quote,
     /// Unquoted source expression.
     Unquote,
-    /// Pattern-binding expression.
+    /// Single-name binding expression.
     Let,
+    /// Refutable pattern continuation, optionally with a shared fallback.
+    Refutable,
     /// Case expression.
     Case,
     /// Try/catch/after expression.

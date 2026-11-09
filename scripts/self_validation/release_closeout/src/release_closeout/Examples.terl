@@ -26,7 +26,7 @@ test_source(module_name: String, body: String): String ->
 write_example(candidate: Candidate, name: String, contents: String): String ->
     let directory = Support.child(candidate.workspace, name);
     let path = Support.child(directory, "ExampleTest.terl");
-    let {
+    if {
         Ok(Unit) <- Directory.create_all(directory);
         Ok(Unit) <- File.write_text(path, contents)
     } else {
@@ -115,19 +115,25 @@ reproducible_init(candidate: Candidate): {Bool, List[CommandResult]} ->
     let second_parent = Support.child(candidate.workspace, "init-second");
     let _first_parent = Directory.create_all(first_parent);
     let _second_parent = Directory.create_all(second_parent);
-    let {first_hash, first} = init_commands(candidate, "init-first/project");
-    let {second_hash, second} = init_commands(candidate, "init-second/project");
-    let first_root = Support.child(first_parent, "project");
-    let second_root = Support.child(second_parent, "project");
-    let required =
-        File.exists(Support.child(first_root, ".gitignore"))
-            and File.exists(Support.child(first_root, "terlan.toml"))
-            and File.exists(Support.child(first_root, "Makefile"))
-            and File.exists(Support.child(first_root, "src/project/Main.terl"))
-            and File.exists(Support.child(first_root, "tests/project/MainTest.terl"));
-    {
-        required and Support.all_succeeded(List.concat(first, second)) and first_hash == second_hash,
-        List.concat(first, second),
+    case init_commands(candidate, "init-first/project") {
+        {first_hash, first} ->
+            case init_commands(candidate, "init-second/project") {
+                {second_hash, second} ->
+                    let first_root = Support.child(first_parent, "project");
+                    let second_root = Support.child(second_parent, "project");
+                    let required =
+                        File.exists(Support.child(first_root, ".gitignore"))
+                            and File.exists(Support.child(first_root, "terlan.toml"))
+                            and File.exists(Support.child(first_root, "Makefile"))
+                            and File.exists(Support.child(first_root, "src/project/Main.terl"))
+                            and File.exists(Support.child(first_root, "tests/project/MainTest.terl"));
+                    {
+                        required
+                            and Support.all_succeeded(List.concat(first, second))
+                            and first_hash == second_hash,
+                        List.concat(first, second),
+                    }
+            }
     }.
 
 specialized_commands(candidate: Candidate): List[CommandResult] ->
@@ -318,25 +324,35 @@ pub check(root: String): Bool ->
         Some(candidate) ->
             let positive = positive_examples(candidate);
             let specialized = specialized_commands(candidate);
-            let {reproducible, initialized} = reproducible_init(candidate);
-            let commands = List.concat(positive, List.concat(specialized, initialized));
-            let negatives = negative_examples(candidate);
-            let validated =
-                Support.candidate_identity_holds(candidate)
-                    and reproducible
-                    and Support.all_succeeded(commands)
-                    and all_failed_with_diagnostics(negatives);
-            let cleaned = Support.cleanup(candidate, true);
-            let passed = validated and cleaned;
-            let written =
-                Support.write_report(
-                    root,
-                    "release-example-projects-report.json",
-                    report(root, candidate, commands, negatives, reproducible, cleaned, passed),
-                );
-            if {
-                passed and written -> let _printed = println("installed release example projects passed");
-                true;
-                true -> false
+            case reproducible_init(candidate) {
+                {reproducible, initialized} ->
+                    let commands = List.concat(positive, List.concat(specialized, initialized));
+                    let negatives = negative_examples(candidate);
+                    let validated =
+                        Support.candidate_identity_holds(candidate)
+                            and reproducible
+                            and Support.all_succeeded(commands)
+                            and all_failed_with_diagnostics(negatives);
+                    let cleaned = Support.cleanup(candidate, true);
+                    let passed = validated and cleaned;
+                    let written =
+                        Support.write_report(
+                            root,
+                            "release-example-projects-report.json",
+                            report(
+                                root,
+                                candidate,
+                                commands,
+                                negatives,
+                                reproducible,
+                                cleaned,
+                                passed,
+                            ),
+                        );
+                    if {
+                        passed and written -> let _printed = println("installed release example projects passed");
+                        true;
+                        true -> false
+                    }
             }
     }.

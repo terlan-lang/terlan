@@ -35,7 +35,7 @@ pub opaque type Bytes.
 /// byte lists through portable collection code.
 
 @pure
-pub concat(left: Bytes, right: Bytes): Bytes.
+pub (left: Bytes) concat(right: Bytes): Bytes.
 
 /// Returns whether this buffer contains the complete needle buffer.
 

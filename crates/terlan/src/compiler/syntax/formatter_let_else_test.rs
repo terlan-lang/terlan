@@ -1,21 +1,21 @@
 use super::format_source_module;
 
 #[test]
-fn formatter_canonicalizes_grouped_let_else_and_is_idempotent() {
+fn formatter_canonicalizes_grouped_refutable_if_and_is_idempotent() {
     let source = r#"
 module let_else_format.
 
 pub type Result[T, E] = Ok[T] | Err[E].
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
-    let { Ok(left)<-first; Ok(right)<-second } else { Err(reason)->Err(reason) }; Ok(left+right).
+    if { Ok(left)<-first; Ok(right)<-second } else { Err(reason)->Err(reason) }; Ok(left+right).
 "#;
     let expected = r#"module let_else_format.
 
 pub type Result[T, E] = Ok[T] | Err[E].
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
-    let {
+    if {
         Ok(left) <- first;
         Ok(right) <- second
     } else {
@@ -46,21 +46,23 @@ pub total(first: Int, second: Int): Int ->
 }
 
 #[test]
-fn formatter_canonicalizes_single_refutable_let_without_grouping_braces() {
+fn formatter_keeps_explicit_fallback_in_grouped_if() {
     let source = r#"
 module single_let_else_format.
 
 pub type Result[T, E] = Ok[T] | Err[E].
 
 pub resolve(value: Result[Int, String]): Result[Int, String] ->
-    let { Ok(result) <- value } else { Err(reason) -> Err(reason) }; Ok(result).
+    if { Ok(result) <- value } else { Err(reason) -> Err(reason) }; Ok(result).
 "#;
     let expected = r#"module single_let_else_format.
 
 pub type Result[T, E] = Ok[T] | Err[E].
 
 pub resolve(value: Result[Int, String]): Result[Int, String] ->
-    let Ok(result) <- value else {
+    if {
+        Ok(result) <- value
+    } else {
         Err(reason) -> Err(reason)
     };
     Ok(result).
@@ -75,7 +77,34 @@ pub resolve(value: Result[Int, String]): Result[Int, String] ->
 }
 
 #[test]
-fn formatter_rewrites_linear_case_pyramid_as_grouped_let_else() {
+fn formatter_omits_else_for_single_binding_without_fallback_and_is_idempotent() {
+    let source = r#"
+module let_without_else_format.
+
+pub type Result[T, E] = Ok[T] | Err[E].
+
+pub resolve(value: Result[Int, String]): Result[Int, String] ->
+    Ok(result) <- value; Ok(result).
+"#;
+    let expected = r#"module let_without_else_format.
+
+pub type Result[T, E] = Ok[T] | Err[E].
+
+pub resolve(value: Result[Int, String]): Result[Int, String] ->
+    Ok(result) <- value;
+    Ok(result).
+"#;
+
+    let formatted = format_source_module(source).expect("format let without else");
+    assert_eq!(formatted, expected);
+    assert_eq!(
+        format_source_module(&formatted).expect("format let without else twice"),
+        expected
+    );
+}
+
+#[test]
+fn formatter_rewrites_linear_case_pyramid_as_grouped_refutable_if() {
     let source = r#"
 module grouped_case_format.
 
@@ -95,7 +124,7 @@ pub resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
 pub type Option[T] = Some[T] | None.
 
 pub resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
-    let {
+    if {
         Some(left) <- first;
         Some(right) <- second
     } else {
@@ -149,7 +178,7 @@ pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int
     let formatted = format_source_module(source).expect("format dependent case pyramid");
     assert!(formatted.contains("case first"));
     assert!(formatted.contains("case second"));
-    assert!(!formatted.contains("let {"));
+    assert!(!formatted.contains("if {\n        Ok(left) <-"));
 }
 
 #[test]
@@ -175,7 +204,7 @@ pub resolve(values: List[Option[Int]]): List[Option[Int]] ->
     assert!(formatted.contains("Some(left) <- first;"));
     assert!(formatted.contains("Some(right) <- first"));
     assert_eq!(
-        format_source_module(&formatted).expect("reparse formatted lambda grouped let"),
+        format_source_module(&formatted).expect("reparse formatted lambda grouped refutable if"),
         formatted
     );
 }
@@ -220,4 +249,23 @@ pub property(): Bool ->
 
     let formatted = format_source_module(source).expect("format transformed lambda");
     assert!(formatted.contains("(width) -> generated(width + 1)"));
+}
+
+#[test]
+fn formatter_keeps_discard_as_a_refutable_pattern() {
+    let source = r#"
+module discard_format.
+
+pub sequence(value: Int): Int ->
+    _ <- consume(value);
+    value.
+"#;
+
+    let formatted = format_source_module(source).expect("format discard pattern");
+    assert!(formatted.contains("_ <- consume(value);"));
+    assert!(!formatted.contains("let _ = consume(value)"));
+    assert_eq!(
+        format_source_module(&formatted).expect("format discard pattern twice"),
+        formatted
+    );
 }

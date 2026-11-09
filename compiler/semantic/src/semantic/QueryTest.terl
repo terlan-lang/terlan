@@ -37,7 +37,7 @@ text(value: Json, key: String): String ->
     }.
 
 fixture(source: String): Result[Fixture, Bool] ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-query-test-");
         Ok(_) <- File.write_text(root + "/sample.terl", source);
         Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");
@@ -56,10 +56,14 @@ find(
     index: Int,
     count: Int,
 ): Result[Json, Bool] ->
-    let true <- index < count else {
+    if {
+        true <- index < count
+    } else {
         _ -> Err(false)
     };
-    (let Ok(row) <- rows.at(index) else {
+    (if {
+    Ok(row) <- rows.at(index)
+} else {
     _ -> Err(false)
 };
 if {
@@ -71,7 +75,9 @@ if {
 }).
 
 selected(context: Fixture, kind: String, name: String, occurrence: Int): Result[Json, Bool] ->
-    let Ok(count) <- context.entities.length() else {
+    if {
+        Ok(count) <- context.entities.length()
+    } else {
         _ -> Err(false)
     };
     find(context.entities, kind, name, occurrence, 0, count).
@@ -110,7 +116,7 @@ run(
     }.
 
 first_value(result: Json): Result[Json, Bool] ->
-    let {
+    if {
         Ok(facts) <- result.get("facts");
         Ok(first) <- facts.at(0);
         Ok(value) <- first.get("value")
@@ -124,7 +130,7 @@ clean(context: Fixture): Bool ->
 
 @test
 pub typed_queries_distinguish_same_name_and_arity_overloads(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\npub value(input: Int): Int -> input.\npub value(input: Float): Float -> input.\n",
@@ -151,7 +157,7 @@ exact and cleaned).
 @test
 pub reference_queries_keep_shadowed_bindings_distinct(): Bool ->
     let source = "module sample.\npub value(input: Int): Int -> let local = input; let nested = case true { true -> let local = input + 1; local; false -> input }; local + nested.\n";
-    let {
+    if {
         Ok(context) <- fixture(source);
         Ok(outer) <- selected(context, "binding", "local", 0);
         Ok(inner) <- selected(context, "binding", "local", 1);
@@ -181,7 +187,7 @@ pages(
     remaining: Int,
     collected: Int,
 ): Result[Int, Bool] ->
-    let {
+    if {
         true <- remaining > 0;
         Ok(result) <- run(context, entity, "references", 16_384, 5, cursor);
         Ok(rows) <- result.get("facts");
@@ -202,7 +208,7 @@ repeated_source(): String ->
 
 @test
 pub work_limited_pages_continue_without_omitting_references(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(repeated_source());
         Ok(entity) <- selected(context, "binding", "input", 0);
         Ok(total) <- pages(context, entity, Json.null(), 10, 0)
@@ -213,7 +219,7 @@ pub work_limited_pages_continue_without_omitting_references(): Bool ->
 
 @test
 pub cursor_is_bound_to_question_and_detects_storage_tampering(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(repeated_source());
         Ok(entity) <- selected(context, "binding", "input", 0);
         Ok(result) <- run(context, entity, "references", 16_384, 5, Json.null());
@@ -238,7 +244,7 @@ wrong_question and changed and corrupt and cleaned).
 
 @test
 pub byte_accounting_is_exact_and_tiny_budgets_fail_explicitly(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(repeated_source());
         Ok(entity) <- selected(context, "binding", "input", 0);
         Ok(result) <- run(context, entity, "references", 2_000, 1_000, Json.null());
@@ -257,14 +263,16 @@ exact and tiny and cleaned).
 
 @test
 pub stale_selection_and_insufficient_work_never_return_successful_facts(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(repeated_source());
         Ok(entity) <- selected(context, "binding", "input", 0)
     } else {
         _ -> false
     };
     (let document = request(context, entity, "references", 16_384, 1_000, Json.null());
-(let Ok(target) <- document.get("target") else {
+(if {
+    Ok(target) <- document.get("target")
+} else {
     _ -> false
 };
 (let _digest =
@@ -289,7 +297,7 @@ stale and work and cleaned))).
 
 @test
 pub inferred_local_types_are_checked_and_ownership_remains_unavailable(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture("module sample.\npub value(input: Int): Int -> let local = input + 1; local.\n");
         Ok(entity) <- selected(context, "binding", "local", 0);
         Ok(types) <- run(context, entity, "type", 16_384, 1_000, Json.null());
@@ -315,7 +323,7 @@ unknown and cleaned).
 
 @test
 pub inferred_types_keep_nested_shadowed_bindings_distinct(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\npub value(input: Int): Int -> let local = input + 1; let nested = (let local = true; local); local.\n",
@@ -343,7 +351,7 @@ distinct and cleaned).
 
 @test
 pub expected_values_separate_type_inhabitants_from_program_legality(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture("module sample.\npub flag(): Bool -> true.\n");
         Ok(entity) <- selected(context, "function", "flag", 0);
         Ok(result) <- run(context, entity, "expected_values", 16_384, 1_000, Json.null());
@@ -362,14 +370,16 @@ scoped and cleaned).
 
 @test
 pub schema_integer_limits_accept_whole_numbers_and_reject_extra_fields(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(repeated_source());
         Ok(entity) <- selected(context, "binding", "input", 0)
     } else {
         _ -> false
     };
     (let document = request(context, entity, "references", 16_384, 1_000, Json.null());
-(let Ok(limits) <- Json.parse("{\"max_bytes\":16384.0,\"max_work\":1000.0}") else {
+(if {
+    Ok(limits) <- Json.parse("{\"max_bytes\":16384.0,\"max_work\":1000.0}")
+} else {
     _ -> false
 };
 (let _limits = document.put("limits", limits);
@@ -391,10 +401,14 @@ pattern_source(): String ->
     "module sample.\npub head(input: List[Int]): Int -> case input { [value | rest] -> value; _ -> 0 }.\n".
 
 pattern_selected(context: Fixture, fragment: String, index: Int, count: Int): Result[Json, Bool] ->
-    let true <- index < count else {
+    if {
+        true <- index < count
+    } else {
         _ -> Err(false)
     };
-    (let Ok(row) <- context.entities.at(index) else {
+    (if {
+    Ok(row) <- context.entities.at(index)
+} else {
     _ -> Err(false)
 };
 if {
@@ -405,12 +419,14 @@ if {
 check_pattern_rows(context: Fixture, index: Int, count: Int, observed: Int): Bool ->
     if {
         index == count -> observed == 5;
-        true -> let Ok(row) <- context.entities.at(index) else {
+        true -> if {
+            Ok(row) <- context.entities.at(index)
+        } else {
             _ -> false
         };
         if {
             text(row, "kind") != "pattern" -> check_pattern_rows(context, index + 1, count, observed);
-            true -> let {
+            true -> if {
                 Ok(declaration) <- run(context, row, "declaration", 16_384, 100_000, Json.null());
                 Ok(value) <- first_value(declaration);
                 Ok(payload) <- value.get("payload");
@@ -430,7 +446,7 @@ check_pattern_rows(context: Fixture, index: Int, count: Int, observed: Int): Boo
 
 @test
 pub nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(pattern_source());
         Ok(count) <- context.entities.length()
     } else {
@@ -440,7 +456,7 @@ pub nested_pattern_queries_select_the_same_records_and_origins_as_the_catalog():
 
 @test
 pub pattern_selection_enforces_work_budget_and_rejects_stale_handles(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(pattern_source());
         Ok(count) <- context.entities.length();
         Ok(wildcard) <- pattern_selected(context, "(wildcard)", 0, count)
@@ -468,7 +484,7 @@ limited and rejected and cleaned).
 
 @test
 pub pattern_core_queries_link_the_owner_by_compiler_declaration_origin(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture(pattern_source());
         Ok(count) <- context.entities.length();
         Ok(wildcard) <- pattern_selected(context, "(wildcard)", 0, count);
@@ -491,7 +507,7 @@ linked and cleaned).
 
 @test
 pub type_queries_retain_struct_include_edges_and_original_field_metadata(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\npub struct Base { code: Int = 7 }.\npub struct Leaf includes Base { name: String }.\n",
@@ -525,7 +541,7 @@ preserved and cleaned).
 
 @test
 pub type_queries_expose_core_alias_payload_without_inventing_constructor_inhabitants(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture("module sample.\npub type Flag = Enabled | Disabled.\n");
         Ok(entity) <- selected(context, "type", "Flag", 0);
         Ok(result) <- run(context, entity, "type", 16_384, 10_000, Json.null());
@@ -544,7 +560,7 @@ let cleaned = clean(context);
 typed and cleaned).
 
 source_fixture(inputs: List[Input]): Result[Fixture, Bool] ->
-    let {
+    if {
         Ok(root) <- Directory.create_temporary("terlan-import-query-test-");
         Ok(snapshot) <- SourceSet.capture(compiler(), inputs, root + "/store");
         Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
@@ -556,7 +572,7 @@ source_fixture(inputs: List[Input]): Result[Fixture, Bool] ->
 
 @test
 pub imported_include_aliases_resolve_to_exact_provider_snapshot_entities(): Bool ->
-    let {
+    if {
         Ok(context) <-
             source_fixture(
                 [
@@ -602,7 +618,7 @@ linked and budgeted and cleaned).
 
 @test
 pub include_origins_outside_snapshot_remain_partial_with_resolved_alias_evidence(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\nimport type std.core.Error.{Error}.\npub struct LocalError includes Error { detail: String }.\n",
@@ -629,7 +645,7 @@ bounded and cleaned).
 
 @test
 pub effect_queries_expose_checked_purity_without_claiming_a_complete_effect_set(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\nimport std.io.Console.\n@pure\npub identity(value: Int): Int -> value.\npub write(value: String): Unit -> Console.println(value).\n",
@@ -659,7 +675,7 @@ scoped and cleaned).
 
 @test
 pub effect_queries_match_overloads_by_exact_checked_signature(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\nimport std.io.Console.\n@pure\npub pick(value: Int): Int -> value.\npub pick(value: String): Int -> let printed = Console.println(value); 0.\n",
@@ -681,7 +697,7 @@ pub effect_queries_match_overloads_by_exact_checked_signature(): Bool ->
 
 @test
 pub effect_contract_scans_count_against_the_query_work_budget(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture("module sample.\n@pure\npub identity(value: Int): Int -> value.\n");
         Ok(entity) <- selected(context, "function", "identity", 0);
         Ok(result) <- run(context, entity, "effects", 16_384, 10_000, Json.null());
@@ -698,7 +714,7 @@ let cleaned = clean(context);
 limited and cleaned).
 
 coverage_value(rows: Json, subject: String, index: Int, count: Int): Result[Json, Bool] ->
-    let {
+    if {
         true <- index < count;
         Ok(fact) <- rows.at(index);
         Ok(value) <- fact.get("value")
@@ -711,7 +727,7 @@ coverage_value(rows: Json, subject: String, index: Int, count: Int): Result[Json
     }.
 
 coverage_observation(result: Json, subject: String): Result[Json, Bool] ->
-    let {
+    if {
         Ok(rows) <- result.get("facts");
         Ok(count) <- rows.length()
     } else {
@@ -721,7 +737,7 @@ coverage_observation(result: Json, subject: String): Result[Json, Bool] ->
 
 @test
 pub coverage_queries_return_checked_case_verdicts_and_guard_assumptions(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\npub value(flag: Bool): Bool -> case flag { true where false -> false; true -> true; false -> false }.\n",
@@ -750,7 +766,7 @@ checked and cleaned).
 
 @test
 pub coverage_queries_preserve_missing_function_head_alternatives(): Bool ->
-    let {
+    if {
         Ok(context) <- fixture("module sample.\npub value({true, _}: {Bool, Bool}): Bool -> true.\n");
         Ok(entity) <- selected(context, "function", "value", 0);
         Ok(result) <- run(context, entity, "pattern_coverage", 32_768, 10_000, Json.null());
@@ -771,7 +787,7 @@ checked and cleaned).
 
 @test
 pub coverage_queries_keep_overloaded_origins_separate_and_charge_scans(): Bool ->
-    let {
+    if {
         Ok(context) <-
             fixture(
                 "module sample.\npub value({true, _}: {Bool, Bool}): Bool -> true.\npub value(number: Int): Int -> number.\n",

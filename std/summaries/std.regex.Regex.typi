@@ -46,7 +46,7 @@ pub struct RegexError {
 /// Transformation: validates capture presence without exposing backend capture
 /// storage.
 
-pub capture(regex: Regex, text: String, index: Int): Option[String].
+pub (regex: Regex) capture(text: String, index: Int): Option[String].
 
 /// Compiles a regex pattern.
 ///
@@ -71,7 +71,7 @@ pub escape(text: String): String.
 /// Output: `Some(match)` for the first match, otherwise `None`.
 /// Transformation: returns matched text without exposing backend span values.
 
-pub find(regex: Regex, text: String): Option[String].
+pub (regex: Regex) find(text: String): Option[String].
 
 /// Returns all non-overlapping regex matches.
 ///
@@ -79,7 +79,7 @@ pub find(regex: Regex, text: String): Option[String].
 /// Output: a list of matched text values in source order.
 /// Transformation: materializes backend match iteration into a portable list.
 
-pub find_all(regex: Regex, text: String): List[String].
+pub (regex: Regex) find_all(text: String): List[String].
 
 /// Returns whether a regex matches text.
 ///
@@ -87,7 +87,7 @@ pub find_all(regex: Regex, text: String): List[String].
 /// Output: `true` when the regex matches anywhere in the text.
 /// Transformation: delegates matching to the selected target regex engine.
 
-pub is_match(regex: Regex, text: String): Bool.
+pub (regex: Regex) is_match(text: String): Bool.
 
 /// Returns the one-based numbers of every matching text line.
 ///
@@ -96,7 +96,7 @@ pub is_match(regex: Regex, text: String): Bool.
 /// Transformation: performs line iteration inside the selected regex adapter,
 /// avoiding one runtime transition and one actor-heap allocation per line.
 
-pub matching_line_numbers(regex: Regex, text: String): List[Int].
+pub (regex: Regex) matching_line_numbers(text: String): List[Int].
 
 /// Returns one named capture group when present.
 ///
@@ -106,7 +106,7 @@ pub matching_line_numbers(regex: Regex, text: String): List[Int].
 /// Transformation: resolves named capture storage through the selected target
 /// regex engine.
 
-pub named_capture(regex: Regex, text: String, name: String): Option[String].
+pub (regex: Regex) named_capture(text: String, name: String): Option[String].
 
 /// Replaces every regex match with replacement text.
 ///
@@ -115,7 +115,7 @@ pub named_capture(regex: Regex, text: String, name: String): Option[String].
 /// Transformation: delegates replacement expansion to the selected target regex
 /// engine.
 
-pub replace(regex: Regex, text: String, replacement: String): String.
+pub (regex: Regex) replace(text: String, replacement: String): String.
 
 /// Splits text around regex matches.
 ///
@@ -123,4 +123,4 @@ pub replace(regex: Regex, text: String, replacement: String): String.
 /// Output: list of split text segments.
 /// Transformation: materializes backend split iteration into a portable list.
 
-pub split(regex: Regex, text: String): List[String].
+pub (regex: Regex) split(text: String): List[String].

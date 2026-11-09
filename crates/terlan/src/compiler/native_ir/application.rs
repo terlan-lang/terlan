@@ -202,6 +202,7 @@ impl NativeModule {
         timings.mark("source-constructors");
         super::nominal_identity::qualify_application_nominal_types(&mut normalized_cores);
         super::atom_alias_values::lower_atom_alias_values(&mut normalized_cores);
+        super::generic_specialization::materialize_nominal_parameters(&mut normalized_cores);
         timings.mark("nominal-and-atom-identities");
         // Resolve source receiver names before overloads rename their declarations.
         // Otherwise a method sharing a name with a free function loses its target.

@@ -178,7 +178,7 @@ hover_requests(
     case cases {
         [] -> Some(session);
         [item | rest] ->
-            let {
+            if {
                 Some(at) <- position(source, item);
                 Some(uri_json) <- quoted(uri)
             } else {
@@ -208,7 +208,7 @@ hover_requests(
     }.
 
 session(source: String, workspace: String, uri: String): Option[List[FramedExchange]] ->
-    let {
+    if {
         Some(root_uri) <- quoted(file_uri(workspace));
         Some(source_uri) <- quoted(uri);
         Some(source_json) <- quoted(source)
@@ -259,7 +259,7 @@ parse_frame_bodies(frames: List[String], messages: List[Json]): Option[List[Json
     }.
 
 message_id(message: Json): Option[Int] ->
-    let {
+    if {
         Ok(value) <- message.get("id");
         Ok(id) <- value.as_int()
     } else {
@@ -288,7 +288,7 @@ has_response(messages: List[Json], expected_id: Int): Bool ->
     }.
 
 initialize_holds(messages: List[Json]): Bool ->
-    let {
+    if {
         Some(message) <- response(messages, 1);
         Ok(result) <- message.get("result");
         Ok(capabilities) <- result.get("capabilities");
@@ -308,7 +308,7 @@ hover_responses_hold(
     case cases {
         [] -> Some(Support.sort_strings(categories));
         [item | rest] ->
-            let {
+            if {
                 Some(message) <- response(messages, request_id);
                 Ok(result) <- message.get("result");
                 Ok(rendered) <- Json.stringify(result)
@@ -324,7 +324,7 @@ hover_responses_hold(
 prepare_workspace(installed: String, workspace: String): Option[String] ->
     let summaries = Support.child(workspace, "std/summaries");
     let source = Support.child(workspace, "Hover.terl");
-    let {
+    if {
         Ok(_root) <- Directory.create_all(summaries);
         Ok(std_summary) <- read_text(Support.child(installed, "share/terlan/std/summaries/std.core.Bool.typi"));
         Ok(_std) <- write_text(Support.child(summaries, "std.core.Bool.typi"), std_summary);
@@ -353,7 +353,7 @@ pub run_smoke(
     workspace: String,
     environment: List[EnvironmentEntry],
 ): Option[LspSummary] ->
-    let {
+    if {
         Some(source) <- prepare_workspace(installed, workspace);
         Some(exchanges) <- session(source_text(), workspace, file_uri(source))
     } else {

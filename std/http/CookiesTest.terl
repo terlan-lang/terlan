@@ -104,22 +104,24 @@ pub source_cookie_policy_normalizes_case_and_preserves_age_omission(): Bool ->
             ),
         ],
         (sample: Row[{String, Int, Bool}, String]) ->
-            let {_name, {policy, age, include_age}, expected} = sample;
-            assert_equal(
-                expected,
-                set_header_with_options(
-                    "sid",
-                    "value",
-                    "/",
-                    "",
-                    age,
-                    include_age,
-                    "",
-                    false,
-                    false,
-                    policy,
-                ),
-            ),
+            case sample {
+                {_name, {policy, age, include_age}, expected} ->
+                    assert_equal(
+                        expected,
+                        set_header_with_options(
+                            "sid",
+                            "value",
+                            "/",
+                            "",
+                            age,
+                            include_age,
+                            "",
+                            false,
+                            false,
+                            policy,
+                        ),
+                    )
+            },
     ).
 
 @test
@@ -163,14 +165,16 @@ pub raw_headers_decode_only_wire_syntax_and_preserve_source_precedence(): Bool -
             row("whitespace and invalid pair", "invalid; sid= value ; sid=last", "value"),
         ],
         (sample: Row[String, String]) ->
-            let {_name, header, expected} = sample;
-            let jar = Cookies.parse(header);
-            let actual =
-                case jar.get("sid") {
-                    Some(value) -> value;
-                    None -> "<missing>"
-                };
-            assert_equal(expected, actual) and assert_equal([], jar.headers()),
+            case sample {
+                {_name, header, expected} ->
+                    let jar = Cookies.parse(header);
+                    let actual =
+                        case jar.get("sid") {
+                            Some(value) -> value;
+                            None -> "<missing>"
+                        };
+                    assert_equal(expected, actual) and assert_equal([], jar.headers())
+            },
     ).
 
 @test

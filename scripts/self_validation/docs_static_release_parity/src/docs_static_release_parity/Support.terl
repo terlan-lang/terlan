@@ -145,7 +145,7 @@ pub commands(): List[String] ->
     ].
 
 json_string(value: Json, field: String): Option[String] ->
-    let {
+    if {
         Ok(member) <- value.get(field);
         Ok(text) <- member.as_string()
     } else {
@@ -154,7 +154,7 @@ json_string(value: Json, field: String): Option[String] ->
     Some(text).
 
 json_array_length(value: Json, field: String): Int ->
-    let {
+    if {
         Ok(array) <- value.get(field);
         Ok(count) <- array.length()
     } else {
@@ -163,7 +163,7 @@ json_array_length(value: Json, field: String): Int ->
     count.
 
 json_int(value: Json, field: String): Option[Int] ->
-    let {
+    if {
         Ok(member) <- value.get(field);
         Ok(number) <- member.as_int()
     } else {
@@ -197,7 +197,7 @@ recursive_file_count(root: String): Int ->
     }.
 
 first_string(values: List[Option[String]], fallback: String): String ->
-    let {
+    if {
         [value | _] <- values;
         Some(text) <- value
     } else {
@@ -206,7 +206,7 @@ first_string(values: List[Option[String]], fallback: String): String ->
     text.
 
 second_string(values: List[Option[String]], fallback: String): String ->
-    let {
+    if {
         [_ | [value | _]] <- values;
         Some(text) <- value
     } else {
@@ -349,7 +349,7 @@ pub site_summary_json(summary: SiteSummary): Json ->
     value.
 
 coverage_from_json(value: Json): Option[Coverage] ->
-    let {
+    if {
         Some(modules) <- json_int(value, "modules");
         Some(structs) <- json_int(value, "structs");
         Some(shapes) <- json_int(value, "shapes");
@@ -367,7 +367,7 @@ coverage_from_json(value: Json): Option[Coverage] ->
  * Restores an exact site summary written by `site_summary_json`.
  */
 pub site_summary_from_json(value: Json): Option[SiteSummary] ->
-    let {
+    if {
         Some(version) <- json_string(value, "version");
         Some(modules) <- json_int(value, "module_pages");
         Some(files) <- json_int(value, "generated_files");
@@ -420,15 +420,10 @@ search_module_rows(
                 true -> let name = first_string(module_value.values, "");
                 let page = String.append(version, String.append("/api/", String.append(name, ".html")));
                 let with_module = [["module", name, name, page] | reversed];
-                let {with_declarations, after_declarations} =
-                    search_declaration_rows(
-                        module_value.children,
-                        name,
-                        page,
-                        with_module,
-                        total + 1,
-                    );
-                search_module_rows(rest, version, with_declarations, after_declarations)
+                case search_declaration_rows(module_value.children, name, page, with_module, total + 1) {
+                    {with_declarations, after_declarations} ->
+                        search_module_rows(rest, version, with_declarations, after_declarations)
+                }
             }
     }.
 
@@ -469,25 +464,27 @@ project_site_pages(
                         true -> remaining
                     };
                 let next_totals = module_counts(rows, totals);
-                let {reversed, page_entries} = search_module_rows(rows, version, [], 0);
-                case Json.string_object_rows(
-                    ["kind", "module", "name", "url"],
-                    reverse_search_rows(reversed, []),
-                ) {
-                    Err(_reason) -> None;
-                    Ok(page) ->
-                        if {
-                            page_count <= 0 -> None;
-                            true -> let _extended = search.extend(page);
-                            project_site_pages(
-                                modules,
-                                index + page_count,
-                                total,
-                                version,
-                                next_totals,
-                                search,
-                                entries + page_entries,
-                            )
+                case search_module_rows(rows, version, [], 0) {
+                    {reversed, page_entries} ->
+                        case Json.string_object_rows(
+                            ["kind", "module", "name", "url"],
+                            reverse_search_rows(reversed, []),
+                        ) {
+                            Err(_reason) -> None;
+                            Ok(page) ->
+                                if {
+                                    page_count <= 0 -> None;
+                                    true -> let _extended = search.extend(page);
+                                    project_site_pages(
+                                        modules,
+                                        index + page_count,
+                                        total,
+                                        version,
+                                        next_totals,
+                                        search,
+                                        entries + page_entries,
+                                    )
+                                }
                         }
                 }
         }
@@ -497,7 +494,7 @@ project_site_pages(
  * Projects a large API model through bounded VM-owned pages.
  */
 pub build_site_projection(model: Json, share: String, version: String): Option[SiteProjection] ->
-    let {
+    if {
         Ok(modules) <- model.get("modules");
         Ok(total) <- modules.length()
     } else {
@@ -587,7 +584,7 @@ pub cli_help_contract_holds(help: Json, version: String): Bool ->
     }.
 
 pub cli_help(compiler: String, cwd: String, installed: String, version: String): Option[Json] ->
-    let {
+    if {
         Some(reported) <- command_output(compiler, ["--version"], cwd, installed);
         Some(top_level) <- command_output(compiler, ["--help"], cwd, installed)
     } else {
@@ -617,7 +614,7 @@ pub validate_readme(path: String, version: String): Bool ->
     }.
 
 pub write_json(path: String, value: Json): Bool ->
-    let {
+    if {
         Ok(source) <- Json.stringify_pretty(value);
         Ok(_unit) <- write_text(path, String.append(source, "\n"))
     } else {
@@ -703,7 +700,7 @@ validate_href(page: String, site: String, href: String): Bool ->
     let target = href_file(href_target(href));
     if {
         external_href(target) or target == "" -> true;
-        true -> let {
+        true -> if {
             Ok(page_path) <- Path.from_string(page);
             Ok(site_path) <- Path.from_string(site);
             Some(parent) <- page_path.parent();
@@ -779,7 +776,7 @@ pub validate_links(site: String, repository: String): Option[Int] ->
 pub hover_categories_hold(report: Json): Bool ->
     case report.get("hover_doc_coverage") {
         Ok(categories) ->
-            let {
+            if {
                 Err(_reason) <- categories.keys();
                 Ok(7) <- categories.length()
             } else {
@@ -823,7 +820,7 @@ push_strings(mut result: Json, values: List[String]): Bool ->
     }.
 
 pub json_equal(left: Json, right: Json): Bool ->
-    let {
+    if {
         Ok(first) <- Json.stringify(left);
         Ok(second) <- Json.stringify(right)
     } else {

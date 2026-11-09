@@ -23,7 +23,7 @@ pub hex(value: String, offset: Int): Bool ->
  * Reads a required nonnegative observation counter.
  */
 pub integer(document: Json, name: String): Result[Int, String] ->
-    let {
+    if {
         Ok(value) <- document.get(name);
         Ok(number) <- value.as_int();
         true <- number >= 0
@@ -36,7 +36,9 @@ pub integer(document: Json, name: String): Result[Int, String] ->
  * Uses -1 only for an explicitly null nonnegative field.
  */
 pub nullable(document: Json, name: String): Result[Int, String] ->
-    let Ok(value) <- document.get(name) else {
+    if {
+        Ok(value) <- document.get(name)
+    } else {
         _ -> Err(String.append("missing inventory field: ", name))
     };
     if {

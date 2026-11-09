@@ -37,21 +37,21 @@ pub await_reply[T](request_id: Int, witness: T): T.
 
 /// Requests cooperative task shutdown without host-runtime task machinery.
 
-pub cancel[T](task: Task[T]): Unit.
+pub (task: Task[T]) cancel[T](): Unit.
 
 pub make_task[T](process: std.vm.Process[TaskCommand[T]], witness: T): Task[T].
 
 /// Thin policy wrapper for VM-owned failure monitoring.
 
-pub monitor[T](task: Task[T]): Unit.
+pub (task: Task[T]) monitor[T](): Unit.
 
 /// Thin policy wrapper for VM-owned symmetric links.
 
-pub relate_peer[T](task: Task[T]): Unit.
+pub (task: Task[T]) relate_peer[T](): Unit.
 
 /// Waits for a correlated task value and discards stale replies.
 
-pub result[T](task: Task[T], request_id: Int): T.
+pub (task: Task[T]) result[T](request_id: Int): T.
 
 /// Publishes a completed value until the owner reads or cancels the task.
 

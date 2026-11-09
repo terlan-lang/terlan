@@ -112,19 +112,19 @@ component_value(value: Component): Atom["auto"] | SerializedValue ->
 /**
  * Supplies 1 components in grammar order.
  */
-pub single(first: Component): Checked ->
+pub (first: Component) single(): Checked ->
     Checked({Atom["css_parts"], [component_value(first)]}).
 
 /**
  * Supplies 2 components in grammar order.
  */
-pub pair(first: Component, second: Component): Checked ->
+pub (first: Component) pair(second: Component): Checked ->
     Checked({Atom["css_parts"], [component_value(first), component_value(second)]}).
 
 /**
  * Supplies 3 components in grammar order.
  */
-pub triple(first: Component, second: Component, third: Component): Checked ->
+pub (first: Component) triple(second: Component, third: Component): Checked ->
     Checked(
         {
             Atom["css_parts"],
@@ -135,7 +135,7 @@ pub triple(first: Component, second: Component, third: Component): Checked ->
 /**
  * Supplies 4 components in grammar order.
  */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+pub (first: Component) quad(second: Component, third: Component, fourth: Component): Checked ->
     Checked(
         {
             Atom["css_parts"],

@@ -94,7 +94,7 @@ build_with[M, First, Second](model: M)[Builder[M, First, Second]]: Option[Pair[F
     Builder.build(model).
 same[T](left: T, right: T): Bool -> left == right.
 pub check(): Bool ->
-    let Some(pair) <- build_with(Model()) else { _ -> false };
+    if { Some(pair) <- build_with(Model()) } else { _ -> false };
     same(true, pair.second()).
 "#,
         r#"
@@ -126,5 +126,31 @@ pub constructor Model { (): Model -> Model {} }.
 pub (model: Model) build(): Option[Pair[Int, Bool]] -> Some(Pair(42, true)).
 "#,
         include_str!("../../../../../../std/core/Option.terl"),
+    ]);
+}
+
+#[test]
+fn qualified_generic_receivers_recover_parameters_before_transparent_alias_expansion() {
+    check_sources(&[
+        r#"
+module transparent_receiver_consumer.
+import app.GenericBox.
+pub check(): Bool ->
+    GenericBox.unwrap(
+        GenericBox.pair(GenericBox.wrap("left"), GenericBox.wrap(42))
+    ) == {"left", 42}.
+"#,
+        r#"
+module app.GenericBox.
+pub type Box[T] = {Atom["box"], T}.
+pub wrap[T](value: T): Box[T] -> {Atom["box"], value}.
+pub (left: Box[K]) pair[V](right: Box[V]): Box[{K, V}] ->
+    case {left, right} {
+        {{_left_tag, left_value}, {_right_tag, right_value}} ->
+            {Atom["box"], {left_value, right_value}}
+    }.
+pub (box: Box[T]) unwrap(): T ->
+    case box { {_tag, value} -> value }.
+"#,
     ]);
 }

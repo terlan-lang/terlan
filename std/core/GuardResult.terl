@@ -88,7 +88,7 @@ pub reject(): Completed -> {Atom["guard_result"], false}.
  * Transformation: unwraps the descriptor without crossing a runtime execution
  * boundary.
  */
-pub value(result: Completed): Bool ->
+pub (result: Completed) value(): Bool ->
     case result {
         {Atom["guard_result"], decision} -> decision
     }.
@@ -101,7 +101,7 @@ pub value(result: Completed): Bool ->
  * Transformation: preserves ordinary comprehension filter ordering for pure
  * guard decisions.
  */
-pub both(left: Completed, right: Completed): Completed ->
+pub (left: Completed) both(right: Completed): Completed ->
     {Atom["guard_result"], value(left) and value(right)}.
 
 /**
@@ -112,5 +112,5 @@ pub both(left: Completed, right: Completed): Completed ->
  * Transformation: preserves ordinary boolean guard composition inside the
  * guard-result contract.
  */
-pub either(left: Completed, right: Completed): Completed ->
+pub (left: Completed) either(right: Completed): Completed ->
     {Atom["guard_result"], value(left) or value(right)}.

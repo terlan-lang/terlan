@@ -251,11 +251,11 @@ AtomTypeLiteral ::= "Atom" "[" StringLiteral "]" .
 ConstraintList ::= "[" Constraint { "," Constraint } "]" .
 Constraint ::= TraitRef .
 
-Expr ::= LetExpr | AssignExpr .
+Expr ::= LetExpr | RefutableExpr | AssignExpr .
 
-LetExpr ::= "let" ( LetBinding ";" Expr | RefutableLetBinding "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr | "{" RefutableLetBinding { ";" RefutableLetBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr ) .
-LetBinding ::= Pattern "=" Expr .
-RefutableLetBinding ::= Pattern "<-" Expr .
+LetExpr ::= "let" LowerIdent "=" Expr ";" Expr .
+RefutableExpr ::= RefutableBinding ";" Expr | "if" "{" RefutableBinding { ";" RefutableBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr .
+RefutableBinding ::= Pattern "<-" Expr .
 AssignExpr ::= IndexAssignExpr | PipeExpr .
 IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 

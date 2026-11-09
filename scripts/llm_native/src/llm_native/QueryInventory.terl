@@ -42,7 +42,9 @@ pub names_json(names: List[String]): Json ->
 find(rows: Json, name: String, index: Int, count: Int): Option[Json] ->
     if {
         index == count -> None;
-        true -> let Ok(row) <- rows.at(index) else {
+        true -> if {
+            Ok(row) <- rows.at(index)
+        } else {
             _ -> None
         };
         if {
@@ -52,7 +54,7 @@ find(rows: Json, name: String, index: Int, count: Int): Option[Json] ->
     }.
 
 pub suite(inventory: Json, name: String): Option[Json] ->
-    let {
+    if {
         Ok(rows) <- inventory.get("suites");
         Ok(count) <- rows.length()
     } else {
@@ -61,7 +63,7 @@ pub suite(inventory: Json, name: String): Option[Json] ->
     find(rows, name, 0, count).
 
 pub tests(inventory: Json, name: String): Option[List[String]] ->
-    let {
+    if {
         Some(row) <- suite(inventory, name);
         Ok(rows) <- row.get("tests")
     } else {
@@ -70,14 +72,16 @@ pub tests(inventory: Json, name: String): Option[List[String]] ->
     Evidence.ids(rows, "name").
 
 pub mcp_names(inventory: Json, large: Bool): Option[List[String]] ->
-    let Ok(rows) <-
-        inventory
-            .get(
-                if {
-                    large -> "large_mcp_cases";
-                    true -> "mcp_cases"
-                },
-            ) else {
+    if {
+        Ok(rows) <-
+            inventory
+                .get(
+                    if {
+                        large -> "large_mcp_cases";
+                        true -> "mcp_cases"
+                    },
+                )
+    } else {
         _ -> None
     };
     Evidence.ids(rows, "id").
@@ -86,7 +90,7 @@ valid_suites(inventory: Json, names: List[String]): Bool ->
     case names {
         [] -> true;
         [name | rest] ->
-            let {
+            if {
                 Some(row) <- suite(inventory, name);
                 Some(expected) <- tests(inventory, name)
             } else {
@@ -98,7 +102,7 @@ valid_suites(inventory: Json, names: List[String]): Bool ->
     }.
 
 pub valid(inventory: Json): Bool ->
-    let {
+    if {
         Ok(rows) <- inventory.get("suites");
         Some(actual) <- Evidence.ids(rows, "suite");
         Some(base) <- mcp_names(inventory, false);
@@ -136,7 +140,7 @@ pub valid(inventory: Json): Bool ->
         and Evidence.number(inventory, "large_constant_functions") == 1_500.
 
 pub load(root: String): Result[Json, Bool] ->
-    let {
+    if {
         Ok(contents) <- File.read_text(root + "/tests/fixtures/llm_native/semantic/query-gate.json");
         Ok(inventory) <- Json.parse(contents);
         true <- valid(inventory)
@@ -146,7 +150,7 @@ pub load(root: String): Result[Json, Bool] ->
     Ok(inventory).
 
 test_count(inventory: Json, names: List[String]): Int ->
-    let {
+    if {
         [name | rest] <- names;
         Some(expected) <- tests(inventory, name)
     } else {

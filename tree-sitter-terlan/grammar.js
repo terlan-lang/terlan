@@ -26,8 +26,11 @@ module.exports = grammar({
     [$.identifier, $.raw_macro_expression],
     [$.expression, $._name_ref],
     [$.expression, $.pattern],
+    [$.expression, $.record_pattern],
     [$._list_element_expression, $.pattern],
+    [$.bare_refutable_pattern, $.pattern],
     [$.constructor_pattern, $._name_ref],
+    [$.expression, $.constructor_pattern, $._name_ref],
     [$.list_expression, $.list_pattern],
     [$.shape_pattern, $.tuple_pattern],
     [$.shape_pattern, $.list_pattern],
@@ -392,6 +395,7 @@ module.exports = grammar({
     expression: ($) =>
       choice(
         $.let_expression,
+        $.refutable_expression,
         $.case_expression,
         $.if_expression,
         $.lambda_expression,
@@ -472,42 +476,83 @@ module.exports = grammar({
       ),
 
     let_expression: ($) =>
+      prec.dynamic(
+        1,
+        prec.right(3, seq(repeat1(seq("let", $.let_binding)), $.expression))
+      ),
+
+    let_binding: ($) => seq(field("name", $.identifier), "=", $.expression, ";"),
+
+    refutable_expression: ($) =>
       choice(
-        prec.dynamic(2, $.refutable_let_expression),
         prec.dynamic(
-          1,
-          prec.right(3, seq(repeat1(seq("let", $.let_binding)), $.expression))
-        )
-      ),
-
-    let_binding: ($) => seq(field("pattern", $.pattern), "=", $.expression, ";"),
-
-    refutable_let_expression: ($) =>
-      prec.right(
-        4,
-        seq(
-          "let",
-          choice(
-            field("binding", $.refutable_let_binding),
+          2,
+          prec.right(
+            -1,
             seq(
-              "{",
-              field("binding", $.refutable_let_binding),
-              repeat(seq(";", field("binding", $.refutable_let_binding))),
-              optional(";"),
-              "}"
+            field("binding", alias($.bare_refutable_binding, $.refutable_binding)),
+            ";",
+            field("body", $.expression)
             )
-          ),
-          "else",
-          "{",
-          repeat1($.case_arm),
-          "}",
-          ";",
-          field("body", $.expression)
+          )
+        ),
+        prec.dynamic(
+          2,
+          prec.right(
+            4,
+          seq(
+            "if",
+            "{",
+            field("binding", $.refutable_binding),
+            repeat(seq(";", field("binding", $.refutable_binding))),
+            optional(";"),
+            "}",
+            "else",
+            "{",
+            repeat1($.case_arm),
+            "}",
+            ";",
+            field("body", $.expression)
+          )
+          )
         )
       ),
 
-    refutable_let_binding: ($) =>
-      seq(field("pattern", $.pattern), "<-", field("value", $.expression)),
+    bare_refutable_binding: ($) =>
+      prec(
+        -1,
+        seq(
+          field("pattern", alias($.bare_refutable_pattern, $.pattern)),
+          "<-",
+          field("value", $.expression)
+        )
+      ),
+
+    // String captures share the same lexical shape as interpolated strings.
+    // Treat them as ordinary string patterns here; the compiler remains the
+    // authority that distinguishes capture semantics after seeing `<-`.
+    bare_refutable_pattern: ($) =>
+      choice(
+        $.tuple_pattern,
+        $.list_pattern,
+        $.map_pattern,
+        $.record_pattern,
+        $.binary_layout_pattern,
+        $.constructor_pattern,
+        $.identifier,
+        $.type_identifier,
+        $.private_field_identifier,
+        $.atom_literal,
+        "_",
+        $.number,
+        $.string
+      ),
+
+    refutable_binding: ($) =>
+      prec(
+        -1,
+        seq(field("pattern", $.pattern), "<-", field("value", $.expression))
+      ),
 
     case_expression: ($) =>
       seq("case", $.expression, "{", repeat1($.case_arm), "}"),

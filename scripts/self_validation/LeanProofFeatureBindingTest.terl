@@ -374,7 +374,9 @@ matrix_output(root: String): String ->
     ).
 
 write_matrix(root: String, gaps: String): Bool ->
-    let Ok(Unit) <- create_all(child(root, "target/quality/proof-artifacts")) else {
+    if {
+        Ok(Unit) <- create_all(child(root, "target/quality/proof-artifacts"))
+    } else {
         _ -> fail("coverage matrix directory could not be created")
     };
     case write_text(matrix_output(root), current_expected_matrix(gaps)) {

@@ -505,6 +505,18 @@ pub(crate) fn infer_syntax_let_expr(
     if expr.clauses.is_empty() {
         return success_type;
     }
+    if expr.patterns.iter().enumerate().all(|(index, pattern)| {
+        pattern.kind == SyntaxPatternKind::Wildcard
+            && expr
+                .let_guards
+                .get(index)
+                .and_then(Option::as_deref)
+                .is_none()
+    }) {
+        // `_ <- value; body` is exhaustive sequencing. Its synthesized
+        // propagation branch is unreachable and must not widen the body type.
+        return success_type;
+    }
 
     infer_syntax_let_else(
         expr,

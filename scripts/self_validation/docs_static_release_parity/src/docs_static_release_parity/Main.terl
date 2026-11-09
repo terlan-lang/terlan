@@ -73,7 +73,7 @@ artifact_image_relative_path(): String ->
 artifact_size_maximum_bytes(): Int -> 134_217_728.
 
 json_string(value: Json, name: String): Option[String] ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(text) <- field.as_string()
     } else {
@@ -82,7 +82,7 @@ json_string(value: Json, name: String): Option[String] ->
     Some(text).
 
 read_json(path: String): Option[Json] ->
-    let {
+    if {
         Ok(source) <- read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -91,7 +91,7 @@ read_json(path: String): Option[Json] ->
     Some(value).
 
 copy_text(source: String, destination: String): Bool ->
-    let {
+    if {
         Ok(contents) <- read_text(source);
         Ok(_unit) <- write_text(destination, contents)
     } else {
@@ -264,7 +264,7 @@ site_from_model(
     metadata: Json,
     model: Json,
 ): Option[SiteSummary] ->
-    let {
+    if {
         Some(projection) <- Support.build_site_projection(model, share, version);
         Some(help) <- Support.cli_help(compiler, work, installed, version);
         Some(inspect_source) <- Support.command_output(compiler, ["inspect", work, "--snapshot"], work, installed)
@@ -314,7 +314,7 @@ case Json.parse(inspect_source) {
 
 generate_site(installed: String, destination: String): Option[SiteSummary] ->
     let share = Support.child(installed, "share/terlan");
-    let {
+    if {
         Some(metadata) <- read_json(Support.child(installed, "terlan-release.json"));
         Some(version) <- json_string(metadata, "version");
         Some(platform) <- Artifact.detect()
@@ -329,7 +329,7 @@ let work = Support.child(destination, ".work");
 case Directory.create_all(work) {
     Err(_reason) -> None;
     Ok(_unit) ->
-        let {
+        if {
             Some(_html) <-
                 Support.command_output(
                     compiler,
@@ -508,7 +508,7 @@ closeout_sites(
     second_summary: SiteSummary,
     adversarial: Json,
 ): Option[SiteSummary] ->
-    let {
+    if {
         Some(first_hash) <- Support.hash_tree(first);
         Some(second_hash) <- Support.hash_tree(second);
         Some(links) <- Support.validate_links(first, repository)
@@ -588,7 +588,7 @@ prepare(): Bool ->
     let repository = repository_root();
     let root = work_root(repository);
     let _removed = Directory.remove_all(root);
-    let {
+    if {
         Ok(_unit) <- Directory.create_all(root);
         Some(platform) <- Artifact.detect()
     } else {
@@ -618,7 +618,7 @@ generate_second(): Bool ->
  */
 adversarial(): Bool ->
     let repository = repository_root();
-    let {
+    if {
         Some(summary) <- read_summary(first_summary_path(repository));
         Some(evidence) <- adversarial_checks(repository, first_root(repository), summary.version)
     } else {
@@ -631,7 +631,7 @@ adversarial(): Bool ->
  */
 closeout(): Bool ->
     let repository = repository_root();
-    let {
+    if {
         Some(platform) <- Artifact.detect();
         Some(first_summary) <- read_summary(first_summary_path(repository));
         Some(second_summary) <- read_summary(second_summary_path(repository));

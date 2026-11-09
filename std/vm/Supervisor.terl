@@ -136,34 +136,28 @@ pub struct SupervisorSnapshot {
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.supervisor.start_child}
-pub start_child[T](
-    supervisor: Supervisor,
-    spec: ChildSpec[Entry[T]],
-): Result[Process[T], SupervisorError].
+pub (supervisor: Supervisor) start_child[T](spec: ChildSpec[Entry[T]]): Result[Process[T], SupervisorError].
 
 /**
  * Resolves the current replacement using the original typed declaration.
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.supervisor.current_child}
-pub current_child[T](
-    supervisor: Supervisor,
-    spec: ChildSpec[Entry[T]],
-): Result[Process[T], SupervisorError].
+pub (supervisor: Supervisor) current_child[T](spec: ChildSpec[Entry[T]]): Result[Process[T], SupervisorError].
 
 /**
  * Requests shutdown and suppresses future restarts for this declaration.
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.supervisor.stop_child}
-pub stop_child[T](supervisor: Supervisor, spec: ChildSpec[Entry[T]]): Result[Unit, SupervisorError].
+pub (supervisor: Supervisor) stop_child[T](spec: ChildSpec[Entry[T]]): Result[Unit, SupervisorError].
 
 /**
  * Reads actual children, replacement identities, and restart decisions.
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.supervisor.snapshot}
-pub snapshot(supervisor: Supervisor): Result[SupervisorSnapshot, SupervisorError].
+pub (supervisor: Supervisor) snapshot(): Result[SupervisorSnapshot, SupervisorError].
 
 /**
  * Durable recovery binding. The restore entry runs after a restart and calls
@@ -189,8 +183,7 @@ pub recovery[T](path: String, schema: String, version: Int, restore_entry: Entry
  */
 @target.vm {process_mailbox: true}
 @compiler.native {std.vm.supervisor.start_persistent_child}
-pub start_persistent_child[T](
-    supervisor: Supervisor,
+pub (supervisor: Supervisor) start_persistent_child[T](
     spec: ChildSpec[Entry[T]],
     recovery: Recovery[T],
 ): Result[Process[T], SupervisorError].
@@ -237,7 +230,7 @@ pub restore(): Result[RecoveryState, SupervisorError].
 /**
  * Selects whether a child class restarts for a normal or abnormal exit.
  */
-pub should_restart(restart_class: RestartClass, abnormal: Bool): Bool ->
+pub (restart_class: RestartClass) should_restart(abnormal: Bool): Bool ->
     if {
         restart_class == Permanent -> true;
         restart_class == Transient -> abnormal;
@@ -247,7 +240,7 @@ pub should_restart(restart_class: RestartClass, abnormal: Bool): Bool ->
 /**
  * Selects one child under one-for-one, one-for-all, or rest-for-one.
  */
-pub selects_child(strategy: RestartStrategy, failed_order: Int, candidate_order: Int): Bool ->
+pub (strategy: RestartStrategy) selects_child(failed_order: Int, candidate_order: Int): Bool ->
     if {
         strategy == OneForAll -> true;
         strategy == RestForOne -> candidate_order >= failed_order;

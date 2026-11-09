@@ -70,7 +70,7 @@ pub generated_non_positive_widths_are_rejected(): Bool ->
  * a suspension continuation.
  */
 pub generated_non_positive_width_is_rejected(width: Int): Bool ->
-    let {
+    if {
         Err(uint_reason) <- validate_descriptor(make_uint(width));
         Err(int_reason) <- validate_descriptor(make_int_bits(width));
         Err(byte_reason) <- validate_descriptor(make_byte_span(width));
@@ -141,7 +141,7 @@ pub generated_protocol_aliases_resolve_exact_targets(): Bool ->
 pub generated_protocol_alias_resolves_exact_target(alias_name: String): Bool ->
     let frame = protocol_shape("frame", BigEndian, List(protocol_field("kind", make_uint(8))), false);
     let frame_v2 = protocol_shape("frame_v2", BigEndian, List(protocol_field("kind", make_uint(16))), false);
-    let {
+    if {
         Ok(set) <-
             protocol_shape_set(
                 "frames",
@@ -210,7 +210,7 @@ pub generated_protocol_alias_roundtrip(alias_name: String, version: Int): Bool -
             ),
             Bytes.from_list([version]),
         );
-    let {
+    if {
         Ok(set) <-
             protocol_shape_set(
                 "frames",
@@ -299,7 +299,7 @@ pub generated_payloads_keep_descriptor_runtime_unsupported(): Bool ->
     for_all(
         strings(),
         (payload) ->
-            let {
+            if {
                 Err(exact_reason) <- decode_exact(make_rest(), payload);
                 Err(prefix_reason) <- decode_prefix(make_rest(), payload);
                 Err(construct_reason) <- construct(make_rest(), payload)

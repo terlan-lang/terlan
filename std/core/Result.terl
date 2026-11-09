@@ -79,7 +79,7 @@ pub type Result[T, E] = Ok[T] | Err[E].
  * Transformation: pattern matches the result shape without inspecting the
  * success value or error value.
  */
-pub is_ok(value: Result[A, E]): Bool ->
+pub (value: Result[A, E]) is_ok(): Bool ->
     case value {
         Ok(_x) -> true;
         Err(_reason) -> false
@@ -93,7 +93,7 @@ pub is_ok(value: Result[A, E]): Bool ->
  * Transformation: pattern matches the result shape without inspecting the
  * success value or error value.
  */
-pub is_err(value: Result[A, E]): Bool ->
+pub (value: Result[A, E]) is_err(): Bool ->
     case value {
         Ok(_x) -> false;
         Err(_reason) -> true
@@ -108,7 +108,7 @@ pub is_err(value: Result[A, E]): Bool ->
  * import std.core.Result.{Err, Ok}.
  * import type std.core.Result.
  *
- * pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
+ * pub (value: Result[A, E]) map[A, E, B](f: (A) -> B): Result[B, E] ->
  *    case value {
  *        Ok(x) ->
  *            Ok(f(x));
@@ -118,10 +118,11 @@ pub is_err(value: Result[A, E]): Bool ->
  *    }.
  *
  * pub demo(value: Result[Int, E], f: (Int) -> Int): Result[Int, E] ->
- *    map(value, f).
+ *    value.map(f).
  * ```
  */
-pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
+@pure
+pub (value: Result[A, E]) map[A, E, B](f: (A) -> B): Result[B, E] ->
     case value {
         Ok(x) -> Ok(f(x));
         Err(reason) -> Err(reason)
@@ -136,7 +137,7 @@ pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
  * import std.core.Result.{Err, Ok}.
  * import type std.core.Result.
  *
- * pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
+ * pub (value: Result[A, E]) map_error[A, E, G](f: (E) -> G): Result[A, G] ->
  *    case value {
  *        Ok(x) ->
  *            Ok(x);
@@ -146,10 +147,11 @@ pub map(value: Result[A, E], f: (A) -> B): Result[B, E] ->
  *    }.
  *
  * pub demo(value: Result[Int, Int], f: (Int) -> Int): Result[Int, Int] ->
- *    map_error(value, f).
+ *    value.map_error(f).
  * ```
  */
-pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
+@pure
+pub (value: Result[A, E]) map_error[A, E, G](f: (E) -> G): Result[A, G] ->
     case value {
         Ok(x) -> Ok(x);
         Err(reason) -> Err(f(reason))
@@ -168,7 +170,7 @@ pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
  * import std.core.Result.{Err, Ok}.
  * import type std.core.Result.
  *
- * pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
+ * pub (value: Result[A, E]) and_then[A, E, B](f: (A) -> Result[B, E]): Result[B, E] ->
  *    case value {
  *        Ok(x) ->
  *            f(x);
@@ -178,10 +180,11 @@ pub map_error(value: Result[A, E], f: (E) -> G): Result[A, G] ->
  *    }.
  *
  * pub demo(value: Result[Int, E], f: (Int) -> Result[Int, E]): Result[Int, E] ->
- *    and_then(value, f).
+ *    value.and_then(f).
  * ```
  */
-pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
+@pure
+pub (value: Result[A, E]) and_then[A, E, B](f: (A) -> Result[B, E]): Result[B, E] ->
     case value {
         Ok(x) -> f(x);
         Err(reason) -> Err(reason)
@@ -196,7 +199,7 @@ pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
  * import std.core.Result.{Err, Ok}.
  * import type std.core.Result.
  *
- * pub with_default(value: Result[A, E], default: A): A ->
+ * pub (value: Result[A, E]) with_default(default: A): A ->
  *    case value {
  *        Ok(x) ->
  *            x;
@@ -206,10 +209,10 @@ pub and_then(value: Result[A, E], f: (A) -> Result[B, E]): Result[B, E] ->
  *    }.
  *
  * pub demo(value: Result[Int, E]): Int ->
- *    with_default(value, 0).
+ *    value.with_default(0).
  * ```
  */
-pub with_default(value: Result[A, E], default: A): A ->
+pub (value: Result[A, E]) with_default(default: A): A ->
     case value {
         Ok(x) -> x;
         Err(_reason) -> default

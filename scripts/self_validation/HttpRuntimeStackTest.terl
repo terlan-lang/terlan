@@ -26,7 +26,7 @@ pub repository_boundary_holds(root: String): Bool ->
     }.
 
 dependencies_hold(manifest: String): Bool ->
-    let {
+    if {
         Ok(document) <- Toml.parse(manifest);
         Ok(dependencies) <- document.get("dependencies");
         Ok(_) <- dependencies.get("http");

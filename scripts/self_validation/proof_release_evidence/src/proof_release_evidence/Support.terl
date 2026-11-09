@@ -125,7 +125,7 @@ pub json_member(value: Json, field: String): Option[Json] ->
     }.
 
 pub json_string(value: Json, field: String): Option[String] ->
-    let {
+    if {
         Ok(member) <- value.get(field);
         Ok(text) <- member.as_string()
     } else {
@@ -134,7 +134,7 @@ pub json_string(value: Json, field: String): Option[String] ->
     Some(text).
 
 pub json_int(value: Json, field: String): Option[Int] ->
-    let {
+    if {
         Ok(member) <- value.get(field);
         Ok(number) <- member.as_int()
     } else {
@@ -143,7 +143,7 @@ pub json_int(value: Json, field: String): Option[Int] ->
     Some(number).
 
 pub json_bool(value: Json, field: String): Option[Bool] ->
-    let {
+    if {
         Ok(member) <- value.get(field);
         Ok(flag) <- member.as_bool()
     } else {
@@ -165,7 +165,7 @@ json_array_strings_at(
 ): Option[List[String]] ->
     if {
         index >= count -> Some(reverse_strings(collected));
-        true -> let {
+        true -> if {
             Ok(item) <- value.at(index);
             Ok(text) <- item.as_string()
         } else {
@@ -186,7 +186,7 @@ json_string_array_at(values: List[String], result: Json): Json ->
     }.
 
 pub load_json(root: String, relative: String): Option[Json] ->
-    let {
+    if {
         Ok(source) <- read_text(root_path(root, relative));
         Ok(value) <- Json.parse(source)
     } else {
@@ -217,7 +217,7 @@ pub file_digest(root: String, relative: String): Option[String] ->
 
 pub write_json(root: String, relative: String, value: Json): Bool ->
     let destination = output_path(root, relative);
-    let {
+    if {
         Ok(source) <- Json.stringify_pretty(value);
         Ok(parsed) <- Path.from_string(destination);
         Some(parent) <- parsed.parent();
@@ -278,7 +278,7 @@ rustc_target(lines: List[String]): Option[String] ->
     }.
 
 pub rust_identity(root: String): RustIdentity ->
-    let {
+    if {
         {Some(version), Some(verbose)} <- {command_stdout(root, "rustc", ["--version"]), command_stdout(root, "rustc", ["-vV"])};
         Some(target) <- rustc_target(String.split(verbose, "\n"))
     } else {

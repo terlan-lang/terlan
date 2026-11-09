@@ -15,7 +15,7 @@ import type release_promotion.PreparationGraph.Summary.
  * Runs the owned local reports after Make has completed their prerequisite gates.
  */
 pub run_locked(root: String, vm: String, image: String): Bool ->
-    let {
+    if {
         Ok(context) <-
             PreparationContext.capture(
                 root,

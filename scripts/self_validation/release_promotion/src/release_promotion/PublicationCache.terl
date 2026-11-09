@@ -50,7 +50,7 @@ safe_root(root: String): Bool ->
 
 generation(root: String, key: String): Result[Generation, String] ->
     let path = OwnerStorage.child(cache_root(root), key);
-    let {
+    if {
         true <- CacheRetention.valid_key(key);
         Ok(usage) <- Directory.tree_usage(path);
         true <- usage.symbolic_link_count == 0;
@@ -67,7 +67,9 @@ generation(root: String, key: String): Result[Generation, String] ->
 
 entry_generation(root: String, path: String): Result[Generation, String] ->
     let prefix = String.append(cache_root(root), "/");
-    let true <- String.starts_with(path, prefix) and path.byte_size() > prefix.byte_size() else {
+    if {
+        true <- String.starts_with(path, prefix) and path.byte_size() > prefix.byte_size()
+    } else {
         _ -> Err("cache entry escaped its owned root")
     };
     generation(root, path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size())).
@@ -88,7 +90,7 @@ inventory_entry(
     rest: List[String],
     remaining: Int,
 ): Result[List[Generation], String] ->
-    let {
+    if {
         true <- remaining > 0;
         Ok(value) <- entry_generation(root, path);
         Ok(values) <- inventory(root, rest, remaining - 1)
@@ -141,11 +143,13 @@ drain_retired(root: String, paths: List[String], remaining: Int): Result[Int, St
     case paths {
         [] -> Ok(0);
         [path | rest] ->
-            let true <- remaining > 0 else {
+            if {
+                true <- remaining > 0
+            } else {
                 _ -> Err("cache cleanup inventory exceeds 1024 entries")
             };
             if {
-                disposable_entry(root, path) -> let {
+                disposable_entry(root, path) -> if {
                     Ok(bytes) <- discard_retired(root, path);
                     Ok(later) <- drain_retired(root, rest, remaining - 1)
                 } else {
@@ -160,7 +164,7 @@ drain_retired(root: String, paths: List[String], remaining: Int): Result[Int, St
  * A durable retirement name proves that a previous owner committed eviction.
  */
 discard_retired(root: String, path: String): Result[Int, String] ->
-    let {
+    if {
         true <- safe_root(root) and disposable_entry(root, path);
         Ok(usage) <- Directory.tree_usage(path);
         true <- usage.allocated_bytes <= 1_125_899_906_842_624;
@@ -187,7 +191,7 @@ retire(root: String, generations: List[Generation], reclaimed: Int): Result[Int,
     case generations {
         [] -> Ok(reclaimed);
         [expected | rest] ->
-            let {
+            if {
                 true <- safe_root(root);
                 Ok(actual) <- generation(root, expected.key);
                 true <- actual.bytes == expected.bytes and actual.modified_ns == expected.modified_ns;
@@ -211,7 +215,7 @@ retire(root: String, generations: List[Generation], reclaimed: Int): Result[Int,
  * from previously committed evictions can be drained independently on retry.
  */
 pub prune_locked(root: String, pinned: String, budget: Budget, now_ns: Int): Result[Int, String] ->
-    let {
+    if {
         true <- safe_root(root);
         true <- CacheRetention.valid_key(pinned);
         Ok(paths) <- cache_entries(root);
@@ -231,7 +235,7 @@ key_path(root: String, revision: String): String ->
     ).
 
 pinned_key(root: String, revision: String): Result[String, String] ->
-    let {
+    if {
         true <- CacheRetention.valid_key(String.append(revision, "000000000000000000000000"));
         Ok(size) <- File.size(key_path(root, revision));
         true <- size == 65;
@@ -244,7 +248,7 @@ pinned_key(root: String, revision: String): Result[String, String] ->
     Ok(String.trim(source)).
 
 reclaim_candidate(root: String, revision: String): Result[Int, String] ->
-    let {
+    if {
         Ok(key) <- pinned_key(root, revision);
         true <- CacheRetention.valid_key(key);
         Ok(context) <-
@@ -263,7 +267,9 @@ reclaim_candidate(root: String, revision: String): Result[Int, String] ->
  * Prunes only cache bytes; never candidate inputs, owner evidence, or source.
  */
 pub run_locked(root: String, revision: String): Bool ->
-    let Ok(reclaimed) <- reclaim_candidate(root, revision) else {
+    if {
+        Ok(reclaimed) <- reclaim_candidate(root, revision)
+    } else {
         Err(reason) -> fail(reason)
     };
     report_reclaimed(reclaimed).

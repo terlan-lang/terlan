@@ -105,18 +105,17 @@ probe(): Int -> [x | true, false].
 (source_file
   (module_declaration
     (qualified_identifier))
-  (function_declaration
+  (ERROR
     (identifier)
     (parameters)
     (type_expression
       (type_identifier))
-    (expression
-      (list_expression
-        (list_cons_body
-          (expression
-            (identifier))
-          (expression
-            (identifier)))
+    (pattern
+      (list_pattern
+        (pattern
+          (identifier))
+        (pattern
+          (identifier))
         (ERROR)))))
 
 ==================
@@ -138,21 +137,23 @@ probe(): Int -> [x | x > 0, x <- xs].
       (type_identifier))
     (expression
       (list_expression
-        (list_comprehension_body
+        (expression
+          (identifier))
+        (ERROR
           (expression
-            (identifier))
-          (ERROR
+            (binary_expression
+              (expression
+                (identifier))
+              (expression
+                (number)))))
+        (expression
+          (binary_expression
             (expression
-              (binary_expression
-                (expression
-                  (identifier))
-                (expression
-                  (number)))))
-          (comprehension_generator
-            (pattern
               (identifier))
             (expression
-              (identifier))))))))
+              (unary_expression
+                (expression
+                  (identifier))))))))))
 
 ==================
 dotted-module-call
@@ -1188,14 +1189,18 @@ probe(): Int -> sql[Row] {select $open$ } $wrong$}.
 ---
 
 (source_file
-  (module_declaration (qualified_identifier))
+  (module_declaration
+    (qualified_identifier))
   (function_declaration
     (identifier)
     (parameters)
-    (type_expression (type_identifier))
-    (expression (identifier))
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier))
     (ERROR
-      (type_expression (type_identifier))
+      (type_expression
+        (type_identifier))
       (UNEXPECTED 'o')
       (UNEXPECTED ' ')
       (UNEXPECTED 'w')
@@ -1209,14 +1214,18 @@ probe(): Int -> sql[Row] {select /* outer /* inner */ }.
 ---
 
 (source_file
-  (module_declaration (qualified_identifier))
+  (module_declaration
+    (qualified_identifier))
   (function_declaration
     (identifier)
     (parameters)
-    (type_expression (type_identifier))
-    (expression (identifier))
+    (type_expression
+      (type_identifier))
+    (expression
+      (identifier))
     (ERROR
-      (type_expression (type_identifier))
+      (type_expression
+        (type_identifier))
       (block_comment))))
 
 ==================
@@ -1227,15 +1236,18 @@ probe(): Int -> sql[Row] {select $$}$$} unexpected.
 ---
 
 (source_file
-  (module_declaration (qualified_identifier))
+  (module_declaration
+    (qualified_identifier))
   (function_declaration
     (identifier)
     (parameters)
-    (type_expression (type_identifier))
+    (type_expression
+      (type_identifier))
     (expression
       (raw_macro_expression
         (identifier)
-        (type_expression (type_identifier))))
+        (type_expression
+          (type_identifier))))
     (ERROR)))
 
 ==================
@@ -1560,7 +1572,6 @@ probe(): Int -> 1__000.
 
 ---
 
-
 (source_file
   (module_declaration
     (qualified_identifier))
@@ -1581,7 +1592,6 @@ module contract.Cases.
 probe(): Int -> 1000_.
 
 ---
-
 
 (source_file
   (module_declaration
@@ -1604,7 +1614,6 @@ probe(): Int -> 0x_FF.
 
 ---
 
-
 (source_file
   (module_declaration
     (qualified_identifier))
@@ -1626,7 +1635,6 @@ probe(): Int -> 0b10_2.
 
 ---
 
-
 (source_file
   (module_declaration
     (qualified_identifier))
@@ -1647,7 +1655,6 @@ module contract.Cases.
 probe(): Int -> 1_000.5.
 
 ---
-
 
 (source_file
   (module_declaration

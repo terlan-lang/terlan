@@ -64,7 +64,7 @@ pub serve[T](witness: T): Unit ->
     }.
 
 @target.vm {process_mailbox: true}
-pub get[T](agent: Agent[T], request_id: Int): T ->
+pub (agent: Agent[T]) get[T](request_id: Int): T ->
     let reply_to = Process.current[AgentReply[T]]();
     case agent {
         {AgentTag, process, placeholder} ->
@@ -79,7 +79,7 @@ pub get[T](agent: Agent[T], request_id: Int): T ->
     }.
 
 @target.vm {process_mailbox: true}
-pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process[AgentReply[T]]): Unit ->
+pub (agent: Agent[T]) request_get[T](request_id: Int, reply_to: std.vm.Process[AgentReply[T]]): Unit ->
     case agent {
         {AgentTag, process, placeholder} ->
             Process.send[AgentCommand[T]](
@@ -91,7 +91,7 @@ pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process[Ag
     }.
 
 @target.vm {process_mailbox: true}
-pub update[T](agent: Agent[T], value: T): Unit ->
+pub (agent: Agent[T]) update[T](value: T): Unit ->
     let reply_to = Process.current[AgentReply[T]]();
     case agent {
         {AgentTag, process, _placeholder} ->
@@ -102,7 +102,7 @@ pub update[T](agent: Agent[T], value: T): Unit ->
     }.
 
 @target.vm {process_mailbox: true}
-pub cast[T](agent: Agent[T], value: T): Unit ->
+pub (agent: Agent[T]) cast[T](value: T): Unit ->
     let reply_to = Process.current[AgentReply[T]]();
     case agent {
         {AgentTag, process, _placeholder} ->
@@ -113,7 +113,7 @@ pub cast[T](agent: Agent[T], value: T): Unit ->
     }.
 
 @target.vm {process_mailbox: true}
-pub get_and_update[T](agent: Agent[T], request_id: Int, value: T): T ->
+pub (agent: Agent[T]) get_and_update[T](request_id: Int, value: T): T ->
     let reply_to = Process.current[AgentReply[T]]();
     case agent {
         {AgentTag, process, _placeholder} ->
@@ -128,7 +128,7 @@ pub get_and_update[T](agent: Agent[T], request_id: Int, value: T): T ->
     }.
 
 @target.vm {process_mailbox: true}
-pub stop[T](agent: Agent[T], request_id: Int): Unit ->
+pub (agent: Agent[T]) stop[T](request_id: Int): Unit ->
     let reply_to = Process.current[AgentReply[T]]();
     case agent {
         {AgentTag, process, placeholder} ->

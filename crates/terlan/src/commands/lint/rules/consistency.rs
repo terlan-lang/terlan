@@ -1,6 +1,8 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 use super::super::diagnostic::{LintDiagnostic, Severity};
+use crate::terlan_syntax::SyntaxDeclarationPayload;
 
 mod named_atom;
 
@@ -16,12 +18,234 @@ const DECLARATION_ORDER_RULE_ID: &str = "TL0504";
 const DECLARATION_ORDER_RULE_NAME: &str = "consistency.declaration-order";
 const STD_MODULE_PATH_RULE_ID: &str = "TL0505";
 const STD_MODULE_PATH_RULE_NAME: &str = "consistency.std-module-path";
+const RECEIVER_CAPABILITY_RULE_ID: &str = "TL0507";
+const RECEIVER_CAPABILITY_RULE_NAME: &str = "consistency.receiver-capability-ownership";
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum DeclarationBlock {
     TypeLike,
     Impl,
     FunctionLike,
+}
+
+/// Reports public free functions whose first parameter is a type owned by the
+/// same module.
+///
+/// Such operations are capabilities of an existing value and should be
+/// declared as receiver methods. Constructors and target-directed factories
+/// have no existing owner and therefore do not match this rule.
+pub(super) fn receiver_capability_ownership_diagnostics(
+    path: &Path,
+    source: &str,
+) -> Vec<LintDiagnostic> {
+    if is_test_source(path) {
+        return Vec::new();
+    }
+    let module = match crate::terlan_syntax::parse_module_as_syntax_output(source) {
+        Ok(module) => module,
+        Err(_) => return Vec::new(),
+    };
+    let local_types = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Type { name, .. }
+            | SyntaxDeclarationPayload::Struct { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+
+    module
+        .declarations
+        .iter()
+        .filter_map(|declaration| {
+            let (params, is_public) = match &declaration.payload {
+                SyntaxDeclarationPayload::Function {
+                    params,
+                    is_public,
+                    is_macro: false,
+                    ..
+                }
+                | SyntaxDeclarationPayload::ConstFunction {
+                    params, is_public, ..
+                } => (params, *is_public),
+                _ => return None,
+            };
+            if !is_public {
+                return None;
+            }
+            let first_type = params
+                .first()
+                .and_then(|parameter| root_type_name(&parameter.annotation.text))?;
+            if !local_types.contains(first_type) {
+                return None;
+            }
+            let (line, column) = source_line_column_at(source, declaration.span.start);
+            Some(LintDiagnostic {
+                path: path.to_path_buf(),
+                line,
+                column,
+                rule_id: RECEIVER_CAPABILITY_RULE_ID,
+                rule_name: RECEIVER_CAPABILITY_RULE_NAME,
+                severity: Severity::Warning,
+                message: "declare this public type-owned operation as a receiver method",
+                fix_available: true,
+            })
+        })
+        .collect()
+}
+
+/// Rewrites public type-owned free functions into receiver declarations.
+pub(super) fn fix_receiver_capability_ownership(path: &Path, source: &str) -> String {
+    if is_test_source(path) {
+        return source.to_string();
+    }
+    let Ok(module) = crate::terlan_syntax::parse_module_as_syntax_output(source) else {
+        return source.to_string();
+    };
+    let local_types = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Type { name, .. }
+            | SyntaxDeclarationPayload::Struct { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect::<HashSet<_>>();
+    let mut edits = module
+        .declarations
+        .iter()
+        .filter_map(|declaration| {
+            let (params, is_public) = match &declaration.payload {
+                SyntaxDeclarationPayload::Function {
+                    params,
+                    is_public,
+                    is_macro: false,
+                    ..
+                }
+                | SyntaxDeclarationPayload::ConstFunction {
+                    params, is_public, ..
+                } => (params, *is_public),
+                _ => return None,
+            };
+            let first = params.first()?;
+            if !is_public
+                || first.has_default
+                || first.pattern_text.is_some()
+                || !root_type_name(&first.annotation.text)
+                    .is_some_and(|name| local_types.contains(name))
+            {
+                return None;
+            }
+            receiver_declaration_edit(
+                source,
+                declaration.span.start,
+                first.span.start,
+                first.span.end,
+            )
+        })
+        .collect::<Vec<_>>();
+    edits.sort_by_key(|(start, _, _)| std::cmp::Reverse(*start));
+    let mut fixed = source.to_string();
+    for (start, end, replacement) in edits {
+        fixed.replace_range(start..end, &replacement);
+    }
+    fixed
+}
+
+fn receiver_declaration_edit(
+    source: &str,
+    declaration_start: usize,
+    parameter_start: usize,
+    parameter_end: usize,
+) -> Option<(usize, usize, String)> {
+    let line_start = source
+        .get(..declaration_start)?
+        .rfind('\n')
+        .map_or(0, |index| index + 1);
+    let before_parameter = source.get(line_start..parameter_start)?;
+    let open_relative = before_parameter.rfind('(')?;
+    let open = line_start + open_relative;
+    let before_open = source.get(line_start..open)?;
+    let public_relative = before_open.rfind("pub ")?;
+    let public_start = line_start + public_relative;
+    let callable_head = source.get(public_start + 4..open)?.trim();
+    let parameter = source.get(parameter_start..parameter_end)?.trim();
+    let after_parameter = source.get(parameter_end..)?;
+    let whitespace = after_parameter.len() - after_parameter.trim_start().len();
+    let delimiter = parameter_end + whitespace;
+    let has_comma = source.get(delimiter..)?.starts_with(',');
+    let end = delimiter + usize::from(has_comma);
+    Some((
+        public_start,
+        end,
+        format!("pub ({parameter}) {callable_head}("),
+    ))
+}
+
+fn is_test_source(path: &Path) -> bool {
+    path.file_stem()
+        .and_then(|stem| stem.to_str())
+        .is_some_and(|stem| stem.ends_with("Test"))
+}
+
+fn root_type_name(annotation: &str) -> Option<&str> {
+    let root = annotation
+        .trim()
+        .split(|character: char| {
+            !character.is_ascii_alphanumeric() && character != '_' && character != '.'
+        })
+        .next()?;
+    (!root.is_empty() && !root.contains('.')).then_some(root)
+}
+
+fn source_line_column_at(source: &str, index: usize) -> (usize, usize) {
+    let prefix = &source[..index.min(source.len())];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let column = prefix
+        .rsplit_once('\n')
+        .map_or(prefix.len() + 1, |(_, tail)| tail.len() + 1);
+    (line, column)
+}
+
+#[cfg(test)]
+mod receiver_capability_tests {
+    use super::*;
+
+    #[test]
+    fn fix_moves_owned_first_parameter_into_receiver_position() {
+        let source = "module sample.Counter.\n\npub struct Counter { value: Int }.\n\npub increment[T](\n    counter: Counter,\n    amount: Int,\n): Counter -> counter.\n";
+        let fixed = fix_receiver_capability_ownership(Path::new("Counter.terl"), source);
+        assert!(fixed.contains(
+            "pub (counter: Counter) increment[T](\n    amount: Int,\n): Counter -> counter."
+        ));
+    }
+
+    #[test]
+    fn fix_leaves_factory_and_test_source_unchanged() {
+        let source = "module sample.Counter.\n\npub struct Counter { value: Int }.\n\npub from_int(value: Int): Counter -> Counter { value: value }.\n";
+        assert_eq!(
+            fix_receiver_capability_ownership(Path::new("Counter.terl"), source),
+            source
+        );
+        let helper = "module sample.CounterTest.\n\npub type Problem.\n\npub render(problem: Problem): String -> \"problem\".\n";
+        assert_eq!(
+            fix_receiver_capability_ownership(Path::new("CounterTest.terl"), helper),
+            helper
+        );
+    }
+
+    #[test]
+    fn foreign_qualified_type_does_not_alias_a_local_type_name() {
+        let source = "module sample.Bytes.\n\npub type Bytes = String.\n\npub split(value: std.vm.Bytes): std.vm.Bytes -> value.\n";
+        assert!(
+            receiver_capability_ownership_diagnostics(Path::new("Bytes.terl"), source).is_empty()
+        );
+        assert_eq!(
+            fix_receiver_capability_ownership(Path::new("Bytes.terl"), source),
+            source
+        );
+    }
 }
 
 /// Builds a diagnostic when the module declaration is not first after docs.

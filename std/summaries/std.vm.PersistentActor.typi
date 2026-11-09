@@ -233,7 +233,7 @@ pub actor_id(family: String, id: String): ActorId.
 /// Transformation: makes audit-preserving event-retention requirements explicit
 /// before compaction chooses a retained event suffix.
 
-pub audit_retention(actor: ActorId, policy: RetentionPolicy, required_events: List[String]): AuditRetentionPlan.
+pub (actor: ActorId) audit_retention(policy: RetentionPolicy, required_events: List[String]): AuditRetentionPlan.
 
 /// Returns true when two schema ids can be used for the same snapshot lane.
 ///
@@ -241,7 +241,7 @@ pub audit_retention(actor: ActorId, policy: RetentionPolicy, required_events: Li
 /// Output: schema compatibility predicate.
 /// Transformation: gives source code a typed preflight for schema drift checks.
 
-pub compatible_schema(expected: SchemaId, actual: SchemaId): Bool.
+pub (expected: SchemaId) compatible_schema(actual: SchemaId): Bool.
 
 /// Builds durable adapter schema metadata for a package store lane.
 ///
@@ -279,7 +279,7 @@ pub family_retention_defaults(family: String, local: RetentionPolicy, production
 /// Output: mailbox checkpoint descriptor.
 /// Transformation: exposes typed mailbox checkpoint identity to Terlan source.
 
-pub mailbox_checkpoint(actor: ActorId, sequence: Int): MailboxCheckpoint.
+pub (actor: ActorId) mailbox_checkpoint(sequence: Int): MailboxCheckpoint.
 
 /// Builds a failed schema migration rollback plan.
 ///
@@ -289,7 +289,7 @@ pub mailbox_checkpoint(actor: ActorId, sequence: Int): MailboxCheckpoint.
 /// Transformation: exposes rollback after failed migration to Terlan code
 /// without exposing in-flight VM migration tables.
 
-pub migration_rollback(actor: ActorId, from_schema: SchemaId, to_schema: SchemaId, sequence: Int, reason: String): MigrationRollbackPlan.
+pub (actor: ActorId) migration_rollback(from_schema: SchemaId, to_schema: SchemaId, sequence: Int, reason: String): MigrationRollbackPlan.
 
 /// Builds a model-sync stream retention continuity plan.
 ///
@@ -299,7 +299,7 @@ pub migration_rollback(actor: ActorId, from_schema: SchemaId, to_schema: SchemaI
 /// Transformation: makes model stream continuity explicit before compaction
 /// chooses retained actor events and model-sync change stream windows.
 
-pub model_sync_retention_continuity(actor: ActorId, policy: RetentionPolicy, model: String, retained_from_version: Int): ModelSyncRetentionContinuityPlan.
+pub (actor: ActorId) model_sync_retention_continuity(policy: RetentionPolicy, model: String, retained_from_version: Int): ModelSyncRetentionContinuityPlan.
 
 /// Binds a package-provided retention policy to a persistent actor.
 ///
@@ -326,7 +326,7 @@ pub package_store(package_id: String, actor: ActorId, schema: SchemaId): Package
 /// Transformation: exposes persistent actor declarations before VM-owned replay
 /// validates snapshots, events, mailboxes, timers, and resource handles.
 
-pub persistent_actor(actor: ActorId, schema: SchemaId, storage_lane: String): PersistentActorDeclaration.
+pub (actor: ActorId) persistent_actor(schema: SchemaId, storage_lane: String): PersistentActorDeclaration.
 
 /// Builds a persistent actor export redaction policy descriptor.
 ///
@@ -353,7 +353,7 @@ pub register_package_migration(package_id: String, actor: ActorId, from_schema: 
 /// Output: replay plan descriptor.
 /// Transformation: requires restore callers to state the schema they expect.
 
-pub replay(actor: ActorId, expected_schema: SchemaId): ReplayPlan.
+pub (actor: ActorId) replay(expected_schema: SchemaId): ReplayPlan.
 
 /// Builds a durable resource checkpoint descriptor for an actor restart.
 ///
@@ -361,7 +361,7 @@ pub replay(actor: ActorId, expected_schema: SchemaId): ReplayPlan.
 /// Output: resource checkpoint descriptor.
 /// Transformation: exposes typed resource checkpoint identity to Terlan source.
 
-pub resource_checkpoint(actor: ActorId, handle: String): ResourceCheckpoint.
+pub (actor: ActorId) resource_checkpoint(handle: String): ResourceCheckpoint.
 
 /// Builds a mailbox restore plan for an actor restart.
 ///
@@ -369,7 +369,7 @@ pub resource_checkpoint(actor: ActorId, handle: String): ResourceCheckpoint.
 /// Output: mailbox restore plan descriptor.
 /// Transformation: pairs actor restart replay with VM-owned mailbox recovery.
 
-pub restore_mailbox(actor: ActorId, checkpoint: MailboxCheckpoint): MailboxRestorePlan.
+pub (actor: ActorId) restore_mailbox(checkpoint: MailboxCheckpoint): MailboxRestorePlan.
 
 /// Builds a resource restore plan for an actor restart.
 ///
@@ -377,7 +377,7 @@ pub restore_mailbox(actor: ActorId, checkpoint: MailboxCheckpoint): MailboxResto
 /// Output: resource restore plan descriptor.
 /// Transformation: pairs actor restart replay with VM-owned resource recovery.
 
-pub restore_resource(actor: ActorId, checkpoint: ResourceCheckpoint): ResourceRestorePlan.
+pub (actor: ActorId) restore_resource(checkpoint: ResourceCheckpoint): ResourceRestorePlan.
 
 /// Builds a timer restore plan for an actor restart.
 ///
@@ -385,7 +385,7 @@ pub restore_resource(actor: ActorId, checkpoint: ResourceCheckpoint): ResourceRe
 /// Output: timer restore plan descriptor.
 /// Transformation: pairs actor restart replay with VM-owned timer recovery.
 
-pub restore_timer(actor: ActorId, checkpoint: TimerCheckpoint): TimerRestorePlan.
+pub (actor: ActorId) restore_timer(checkpoint: TimerCheckpoint): TimerRestorePlan.
 
 /// Builds a persistent actor retention policy descriptor.
 ///
@@ -403,7 +403,7 @@ pub retention_policy(retain_from_sequence: Int, schema_migration_floor: Int, aud
 /// Transformation: exposes the actor schema shape that migration planning must
 /// validate before replay or snapshot restore.
 
-pub schema(schema: SchemaId, fields: List[String], events: List[String], mailbox_schema: SchemaId): SchemaDeclaration.
+pub (schema: SchemaId) schema(fields: List[String], events: List[String], mailbox_schema: SchemaId): SchemaDeclaration.
 
 /// Builds a typed snapshot schema id descriptor.
 ///
@@ -419,7 +419,7 @@ pub schema_id(name: String, version: Int): SchemaId.
 /// Output: snapshot plan descriptor.
 /// Transformation: pairs actor state with an explicit typed schema id.
 
-pub snapshot[State]<Persistable[State]>(actor: ActorId, schema: SchemaId, sequence: Int, state: State): SnapshotPlan.
+pub (actor: ActorId) snapshot[State]<Persistable[State]>(schema: SchemaId, sequence: Int, state: State): SnapshotPlan.
 
 /// Builds a timer checkpoint descriptor for an actor restart.
 ///
@@ -427,7 +427,7 @@ pub snapshot[State]<Persistable[State]>(actor: ActorId, schema: SchemaId, sequen
 /// Output: timer checkpoint descriptor.
 /// Transformation: exposes typed timer checkpoint identity to Terlan source.
 
-pub timer_checkpoint(actor: ActorId, name: String, deadline_millis: Int): TimerCheckpoint.
+pub (actor: ActorId) timer_checkpoint(name: String, deadline_millis: Int): TimerCheckpoint.
 
 /// Persistable marks values that may enter VM-owned durable actor state.
 ///

@@ -80,7 +80,9 @@ search(
     case pending {
         [] -> Ok(missing(used));
         [current | rest] ->
-            let true <- used < maximum else {
+            if {
+                true <- used < maximum
+            } else {
                 _ ->
                     Err(
                         Failure(
@@ -108,7 +110,9 @@ case current.mode {
                     );
                 if {
                     key == "span" -> search(artifact, snapshot, digest, target, [continuation | rest], work, maximum);
-                    true -> let Ok(value) <- current.value.get(key) else {
+                    true -> if {
+                        Ok(value) <- current.value.get(key)
+                    } else {
                         _ -> Err(invalid())
                     };
                     (let mode =
@@ -131,7 +135,7 @@ search(artifact, snapshot, digest, target, [child | [continuation | rest]], work
                 }
         };
     "pattern" ->
-        let {
+        if {
             Ok(payload) <- current.declaration.get("payload");
             Ok(span) <- current.declaration.get("span");
             Ok(children) <- current.value.get("children");
@@ -152,13 +156,13 @@ search(artifact, snapshot, digest, target, [child | [continuation | rest]], work
     );
 if {
     text(entity, "entity_id") == target -> let explicit_arity =
-        let {
-            Ok(params) <- payload.get("params");
-            Ok(count) <- params.length()
-        } else {
-            _ -> 0
-        };
-        count;
+        (if {
+    Ok(params) <- payload.get("params");
+    Ok(count) <- params.length()
+} else {
+    _ -> 0
+};
+count);
     let arity =
         explicit_arity + if {
     text(payload, "kind") == "method" -> 1;
@@ -235,12 +239,16 @@ if {
                 }
         };
     _ ->
-        let Ok(count) <- current.value.length() else {
+        if {
+            Ok(count) <- current.value.length()
+        } else {
             _ -> Err(invalid())
         };
         if {
             current.index == count -> search(artifact, snapshot, digest, target, rest, work, maximum);
-            true -> let Ok(value) <- current.value.at(current.index) else {
+            true -> if {
+                Ok(value) <- current.value.at(current.index)
+            } else {
                 _ -> Err(invalid())
             };
             (let continuation =
@@ -256,7 +264,9 @@ if {
     );
 let path = current.path + "/" + Json.to_string(Json.int(current.index));
 if {
-    current.mode == "declarations" -> let Ok(payload) <- value.get("payload") else {
+    current.mode == "declarations" -> if {
+        Ok(payload) <- value.get("payload")
+    } else {
         _ -> Err(invalid())
     };
     case DeclarationEntities.identity(artifact, text(artifact, "module_name"), payload) {
@@ -278,7 +288,9 @@ if {
                 true -> Err(reason)
             }
     };
-    current.mode == "fields" -> let Ok(pattern) <- value.get("value") else {
+    current.mode == "fields" -> if {
+        Ok(pattern) <- value.get("value")
+    } else {
         _ -> Err(invalid())
     };
     (let child =
@@ -313,7 +325,9 @@ pub find(
     used: Int,
     maximum: Int,
 ): Result[Found, Failure] ->
-    let Ok(rows) <- artifact.get("source_declarations") else {
+    if {
+        Ok(rows) <- artifact.get("source_declarations")
+    } else {
         _ -> Err(invalid())
     };
     (let origin =

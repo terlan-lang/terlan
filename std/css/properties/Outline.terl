@@ -110,9 +110,5 @@ outline_width_value(
  * Combines outline-width, outline-style, outline-color for outline. Each parameter accepts its own
  * keyword or typed unit choices directly.
  */
-pub compose(
-    outline_width: OutlineWidthPart,
-    outline_style: OutlineStylePart,
-    outline_color: OutlineColorPart,
-): Checked ->
+pub (outline_width: OutlineWidthPart) compose(outline_style: OutlineStylePart, outline_color: OutlineColorPart): Checked ->
     Checked({Atom["css_parts"], {outline_width_value(outline_width), outline_style, outline_color}}).

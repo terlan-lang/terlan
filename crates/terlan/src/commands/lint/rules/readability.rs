@@ -202,7 +202,7 @@ fn collect_grouped_binding_diagnostics(
             rule_id: GROUPED_BINDING_RULE_ID,
             rule_name: GROUPED_BINDING_RULE_NAME,
             severity: Severity::Error,
-            message: "linear nested cases with one repeated fallback should use grouped `let { ... } else { ... }` bindings",
+            message: "linear nested cases with one repeated fallback should use grouped `if { ... <- ... } else { ... }` bindings",
             fix_available: false,
         });
         return;

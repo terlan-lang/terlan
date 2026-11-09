@@ -38,11 +38,11 @@ pub type Unit =
 /// module unit_compare_example.
 ///
 /// pub demo(): std.core.Ordering.Comparison ->
-///    std.core.Unit.compare(Unit, Unit).
+///    Unit.compare(Unit).
 /// ```
 
 @pure
-pub compare(_left: Unit, _right: Unit): std.core.Ordering.Comparison.
+pub (_left: Unit) compare(_right: Unit): std.core.Ordering.Comparison.
 
 /// Returns whether two `Unit` values are equal.
 ///
@@ -55,11 +55,11 @@ pub compare(_left: Unit, _right: Unit): std.core.Ordering.Comparison.
 /// module unit_equal_example.
 ///
 /// pub demo(): Bool ->
-///     std.core.Unit.equal(Unit, Unit).
+///     Unit.equal(Unit).
 /// ```
 
 @pure
-pub equal(_left: Unit, _right: Unit): Bool.
+pub (_left: Unit) equal(_right: Unit): Bool.
 
 /// Parses a canonical UTF-8 `String` into `Unit`.
 ///
@@ -89,8 +89,8 @@ pub from_string(value: String): Option[Unit].
 /// module unit_to_string_example.
 ///
 /// pub demo(): String ->
-///    std.core.Unit.to_string(Unit).
+///    Unit.to_string().
 /// ```
 
 @pure
-pub to_string(value: Unit): String.
+pub (value: Unit) to_string(): String.

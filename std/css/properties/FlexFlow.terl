@@ -57,5 +57,5 @@ pub struct Property {
  * Combines flex-direction, flex-wrap for flex-flow. Each parameter accepts its own keyword or typed
  * unit choices directly.
  */
-pub compose(flex_direction: FlexDirectionPart, flex_wrap: FlexWrapPart): Checked ->
+pub (flex_direction: FlexDirectionPart) compose(flex_wrap: FlexWrapPart): Checked ->
     Checked({Atom["css_parts"], {flex_direction, flex_wrap}}).

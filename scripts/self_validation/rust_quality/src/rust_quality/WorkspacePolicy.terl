@@ -110,7 +110,7 @@ json_get(value: Json, key: String): Option[Json] ->
 
 @pure
 json_bool(value: Json, key: String): Option[Bool] ->
-    let {
+    if {
         Some(child) <- json_get(value, key);
         Ok(selected) <- Json.as_bool(child)
     } else {
@@ -120,7 +120,7 @@ json_bool(value: Json, key: String): Option[Bool] ->
 
 @pure
 json_string(value: Json, key: String): Option[String] ->
-    let {
+    if {
         Some(child) <- json_get(value, key);
         Ok(selected) <- Json.as_string(child)
     } else {
@@ -130,7 +130,7 @@ json_string(value: Json, key: String): Option[String] ->
 
 @pure
 object_nonempty(value: Json, key: String): Bool ->
-    let {
+    if {
         Some(child) <- json_get(value, key);
         Ok(count) <- Json.object_length(child)
     } else {
@@ -142,7 +142,7 @@ object_nonempty(value: Json, key: String): Bool ->
 string_array_at(value: Json, index: Int, count: Int, output: List[String]): List[String] ->
     if {
         index == count -> sort_strings(output, List.new[String]());
-        true -> let {
+        true -> if {
             Ok(child) <- Json.at(value, index);
             Ok(selected) <- Json.as_string(child)
         } else {
@@ -153,7 +153,7 @@ string_array_at(value: Json, index: Int, count: Int, output: List[String]): List
 
 @pure
 string_array(value: Json, key: String): List[String] ->
-    let {
+    if {
         Some(array) <- json_get(value, key);
         Ok(count) <- Json.length(array)
     } else {
@@ -306,7 +306,7 @@ nested_policy_diagnostics(paths: List[String], diagnostics: List[String]): List[
 
 @pure
 workspace_dependency_names(document: Json): List[String] ->
-    let {
+    if {
         Some(workspace) <- json_get(document, "workspace");
         Some(dependencies) <- json_get(workspace, "dependencies");
         Ok(keys) <- Json.keys(dependencies)
@@ -324,7 +324,7 @@ workspace_true(value: Json): Bool ->
 
 @pure
 has_version(value: Json): Bool ->
-    let {
+    if {
         Err(_reason) <- Json.as_string(value);
         None <- json_get(value, "version")
     } else {
@@ -383,7 +383,7 @@ member_workspace_key_diagnostics(
 @pure
 member_lint_diagnostics(manifest: Manifest, diagnostics: List[String]): List[String] ->
     let valid =
-        (let {
+        (if {
     Some(lints) <- json_get(manifest.document, "lints");
     Some(true) <- json_bool(lints, "workspace")
 } else {
@@ -421,7 +421,7 @@ bin_roots(bins: Json, member: String, index: Int, roots: List[String]): List[Str
             if {
                 index == count -> roots;
                 true -> let next =
-                    (let {
+                    (if {
     Ok(bin) <- Json.at(bins, index);
     Some(path) <- json_string(bin, "path")
 } else {
@@ -499,7 +499,7 @@ member_dependencies(
                 crate_roots = List.new[String](),
             );
         [table_name | rest] ->
-            let {
+            if {
                 Some(table) <- json_get(manifest.document, table_name);
                 Ok(names) <- Json.keys(table)
             } else {
@@ -861,7 +861,7 @@ fixture_manifest(document: Json): Manifest ->
     Manifest(relative = "crates/example/Cargo.toml", member = "crates/example", document = document).
 
 pub manifest_self_test(): Bool ->
-    let {
+    if {
         Ok(root) <- Toml.parse(root_fixture());
         Ok(member) <- Toml.parse(member_fixture())
     } else {
@@ -905,7 +905,7 @@ pub member_adversarial_self_test(): Bool ->
             "[lints.rust]\nwarnings = \"deny\"",
         );
     let duplicate_dependency = String.replace(member_fixture(), "shared.workspace = true", "shared = \"1\"");
-    let {
+    if {
         Ok(root) <- Toml.parse(root_fixture());
         Ok(invalid) <- Toml.parse(invalid_lints);
         Ok(duplicate) <- Toml.parse(duplicate_dependency)

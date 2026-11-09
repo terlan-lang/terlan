@@ -32,23 +32,23 @@ pub struct Property {
 /**
  * Applies to all four sides.
  */
-pub single(first: Component): Checked ->
+pub (first: Component) single(): Checked ->
     Checked({Atom["css_parts"], [first]}).
 
 /**
  * First sets top/bottom; second sets left/right.
  */
-pub pair(first: Component, second: Component): Checked ->
+pub (first: Component) pair(second: Component): Checked ->
     Checked({Atom["css_parts"], [first, second]}).
 
 /**
  * First sets top; second sets left/right; third sets bottom.
  */
-pub triple(first: Component, second: Component, third: Component): Checked ->
+pub (first: Component) triple(second: Component, third: Component): Checked ->
     Checked({Atom["css_parts"], [first, second, third]}).
 
 /**
  * Sets top, right, bottom, and left in that order.
  */
-pub quad(first: Component, second: Component, third: Component, fourth: Component): Checked ->
+pub (first: Component) quad(second: Component, third: Component, fourth: Component): Checked ->
     Checked({Atom["css_parts"], [first, second, third, fourth]}).

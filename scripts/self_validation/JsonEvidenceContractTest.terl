@@ -29,7 +29,7 @@ fragments_hold(text: String, fragments: List[String]): Bool ->
     }.
 
 json_evidence_holds(path: String, required: String): Bool ->
-    let {
+    if {
         Ok(text) <- read_text(path);
         Ok(_document) <- Json.parse(text)
     } else {

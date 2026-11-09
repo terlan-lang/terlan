@@ -95,7 +95,9 @@ seal_cases(): Bool ->
 
 platform_cases(): Bool ->
     let targets = EvidenceReports.targets();
-    let [first | rest] <- targets else {
+    if {
+        [first | rest] <- targets
+    } else {
         _ -> false
     };
     EvidenceReports.platforms_hold(render(matrix(targets, "hash")))
@@ -150,11 +152,13 @@ write_reports(root: String, rows: List[{String, String}], seal: String): Bool ->
     case rows {
         [] -> true;
         [{path, schema} | rest] ->
-            let Ok(_written) <-
-                File.write_text(
-                    OwnerStorage.child(root, path),
-                    render(report(schema).put("candidate_seal", Json.string(seal))),
-                ) else {
+            if {
+                Ok(_written) <-
+                    File.write_text(
+                        OwnerStorage.child(root, path),
+                        render(report(schema).put("candidate_seal", Json.string(seal))),
+                    )
+            } else {
                 _ -> false
             };
             write_reports(root, rest, seal)
@@ -164,7 +168,9 @@ sealed_reports(root: String, rows: List[{String, String}], output: Json): Json -
     case rows {
         [] -> output;
         [{path, _schema} | rest] ->
-            let Ok(source) <- File.read_text(OwnerStorage.child(root, path)) else {
+            if {
+                Ok(source) <- File.read_text(OwnerStorage.child(root, path))
+            } else {
                 _ -> Json.null()
             };
             sealed_reports(
@@ -183,7 +189,7 @@ sealed_reports(root: String, rows: List[{String, String}], output: Json): Json -
     }.
 
 inventory_rejected(root: String, candidate: Json, mode: String): Bool ->
-    let {
+    if {
         Ok(copy) <- Json.parse(render(candidate));
         Ok(rows) <- copy.get("gate_reports");
         Ok(first) <- rows.at(0)
@@ -206,7 +212,7 @@ not Readiness.attest(root, altered)).
  * Populates synthetic mandatory evidence for the separate owned-graph fixture.
  */
 pub prepare_reports(root: String): Bool ->
-    let {
+    if {
         Ok(digest) <- Hash.sha256_file(OwnerStorage.child(root, "dist/terlc-linux-x86_64.tar.gz"));
         true <- write_reports(root, EvidenceReports.readiness_reports(), "fixture");
         Ok(_supply) <-
@@ -235,7 +241,7 @@ consumers(root: String): Bool ->
     let readiness_path = OwnerStorage.child(root, "target/quality/release-readiness-attestation-report.json");
     let metadata_path = OwnerStorage.child(root, "dist/terlan-release.json");
     let metadata = "{\"version\":\"0.0.9\",\"os\":\"linux\",\"arch\":\"x86_64\",\"release_candidate_id\":\"fixture\"}";
-    let {
+    if {
         Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         Ok(_dist) <- Directory.create_all(OwnerStorage.child(root, "dist"));
         Ok(_docs) <- Directory.create_all(OwnerStorage.child(root, "docs/release"));
@@ -276,7 +282,7 @@ consumers(root: String): Bool ->
                         .put("sha256", Json.string(String.append("sha256:", digest))),
                 ),
         );
-(let {
+(if {
     true <- Readiness.attest(root, candidate);
     true <- Preflight.run(root, "0.0.9", seal);
     Ok(previous) <- File.read_text(readiness_path);
@@ -326,10 +332,14 @@ consumers(root: String): Bool ->
 Preflight.run(root, "0.0.9", seal))).
 
 pub self_test(): Bool ->
-    let true <- outcome_cases() and seal_cases() and platform_cases() and hash_cases() else {
+    if {
+        true <- outcome_cases() and seal_cases() and platform_cases() and hash_cases()
+    } else {
         _ -> false
     };
-    (let Ok(root) <- Directory.create_temporary("terlan-evidence-admission-") else {
+    (if {
+    Ok(root) <- Directory.create_temporary("terlan-evidence-admission-")
+} else {
     _ -> false
 };
 (let valid = consumers(root);

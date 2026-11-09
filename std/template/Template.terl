@@ -63,5 +63,5 @@ pub join(fragments: List[Html]): Html ->
  * Transformation: exposes the package-owned representation without granting
  * trust to any new content.
  */
-pub to_string(fragment: Html): String ->
+pub (fragment: Html) to_string(): String ->
     fragment.

@@ -96,9 +96,10 @@ increment(value: Int): Int -> value + 1.
 named(): Effect[Int] -> Mapped(Effect.succeed(40), increment).
 captured(offset: Int): Effect[Int] ->
     let callback = ((value: Int) -> let _parked = Process.yield_now(); value + offset);
-    let {first, second} = {callback, callback};
-    case {first, second} {
-        {selected, _} -> Mapped(named(), selected)
+    case {callback, callback} {
+        {first, second} -> case {first, second} {
+            {selected, _} -> Mapped(named(), selected)
+        }
     }.
 run(plan: Effect[Int]): Int -> Effect.run(plan).
 pub check(): Bool -> run(captured(1)) == 42.

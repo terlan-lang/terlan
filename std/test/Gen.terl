@@ -178,7 +178,7 @@ pub atoms(): Gen[Atom] -> {Atom["gen"], [Atom["ok"], Atom["error"]]}.
  * Output: generator containing all left samples followed by all right samples.
  * Transformation: preserves deterministic order without random selection.
  */
-pub one_of(left: Gen[T], right: Gen[T]): Gen[T] ->
+pub (left: Gen[T]) one_of(right: Gen[T]): Gen[T] ->
     case left {
         {_left_tag, left_values} ->
             case right {
@@ -206,7 +206,7 @@ pub frequency(weighted: List[{Int, Gen[T]}]): Gen[T] ->
  * Transformation: filters deterministic samples in source order without
  * hidden randomness.
  */
-pub filter(generator: Gen[T], predicate: (T) -> Assertion): Gen[T] ->
+pub (generator: Gen[T]) filter(predicate: (T) -> Assertion): Gen[T] ->
     {Atom["gen"], filter_values(sample(generator), predicate)}.
 
 /**
@@ -217,7 +217,7 @@ pub filter(generator: Gen[T], predicate: (T) -> Assertion): Gen[T] ->
  * Transformation: counts samples rejected by the predicate and fails when the
  * count exceeds the explicit limit.
  */
-pub discard_report(generator: Gen[T], max_discards: Int, predicate: (T) -> Assertion): DiscardReport ->
+pub (generator: Gen[T]) discard_report(max_discards: Int, predicate: (T) -> Assertion): DiscardReport ->
     let discarded = discard_count(sample(generator), predicate);
     if {
         discarded <= max_discards -> {true, discarded, "ok"};
@@ -232,11 +232,7 @@ pub discard_report(generator: Gen[T], max_discards: Int, predicate: (T) -> Asser
  * Transformation: compares `discarded * 100` with `total * max_percent` so
  * ratio limits remain integer-only and deterministic.
  */
-pub discard_ratio_report(
-    generator: Gen[T],
-    max_discard_percent: Int,
-    predicate: (T) -> Assertion,
-): DiscardReport ->
+pub (generator: Gen[T]) discard_ratio_report(max_discard_percent: Int, predicate: (T) -> Assertion): DiscardReport ->
     let values = sample(generator);
     let discarded = discard_count(values, predicate);
     let total = count_values(values);
@@ -255,7 +251,7 @@ pub discard_ratio_report(
  * Transformation: lets tests build domain-specific generators from simpler
  * primitive generators.
  */
-pub map(generator: Gen[A], mapper: (A) -> B): Gen[B] ->
+pub (generator: Gen[A]) map[B](mapper: (A) -> B): Gen[B] ->
     {Atom["gen"], map_values(sample(generator), mapper)}.
 
 /**
@@ -304,7 +300,7 @@ pub replay(seed: Int, generator: Gen[T]): Gen[T] ->
  * Transformation: provides deterministic option generation without hidden
  * randomness.
  */
-pub option_of(generator: Gen[T]): Gen[Option[T]] ->
+pub (generator: Gen[T]) option_of(): Gen[Option[T]] ->
     {Atom["gen"], [none_value() | some_values(sample(generator))]}.
 
 /**
@@ -316,7 +312,7 @@ pub option_of(generator: Gen[T]): Gen[Option[T]] ->
  * Transformation: provides deterministic Result generation without hidden
  * randomness.
  */
-pub result_of[T, E](ok_generator: Gen[T], err_generator: Gen[E]): Gen[Result[T, E]] ->
+pub (ok_generator: Gen[T]) result_of[E](err_generator: Gen[E]): Gen[Result[T, E]] ->
     {Atom["gen"], result_values[T, E](sample(ok_generator), sample(err_generator))}.
 
 /**
@@ -347,7 +343,7 @@ pub result_values[T, E](ok_payloads: List[T], err_payloads: List[E]): List[Resul
  * Transformation: establishes the first bounded list-generation rule before
  * later sized/recursive generator slices add more list shapes.
  */
-pub list_of(generator: Gen[T]): Gen[List[T]] ->
+pub (generator: Gen[T]) list_of(): Gen[List[T]] ->
     {Atom["gen"], [List.new[T](), sample(generator)]}.
 
 /**
@@ -359,7 +355,7 @@ pub list_of(generator: Gen[T]): Gen[List[T]] ->
  * Transformation: establishes tuple generation through a bounded Cartesian
  * product of finite sample lists.
  */
-pub pair_of(left: Gen[A], right: Gen[B]): Gen[{A, B}] ->
+pub (left: Gen[A]) pair_of[B](right: Gen[B]): Gen[{A, B}] ->
     {Atom["gen"], pair_values(sample(left), sample(right))}.
 
 /**
@@ -371,7 +367,7 @@ pub pair_of(left: Gen[A], right: Gen[B]): Gen[{A, B}] ->
  * Transformation: establishes bounded map generation without hidden randomness
  * or unbounded growth.
  */
-pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map[K, V]] ->
+pub (keys: Gen[K]) map_of[V](values: Gen[V]): Gen[std.collections.Map[K, V]] ->
     {Atom["gen"], [Map.new[K, V](), Map.from_entries(pair_values(sample(keys), sample(values)))]}.
 
 /**
@@ -383,7 +379,7 @@ pub map_of(keys: Gen[K], values: Gen[V]): Gen[std.collections.Map[K, V]] ->
  * Transformation: establishes bounded object generation on top of the
  * map-backed `std.core.Object` surface.
  */
-pub object_of(keys: Gen[String], values: Gen[V]): Gen[Object[V]] ->
+pub (keys: Gen[String]) object_of[V](values: Gen[V]): Gen[Object[V]] ->
     {
         Atom["gen"],
         [std.core.Object.new[V](), from_entries(pair_values(sample(keys), sample(values)))],
@@ -396,7 +392,7 @@ pub object_of(keys: Gen[String], values: Gen[V]): Gen[Object[V]] ->
  * Output: generated sample list.
  * Transformation: unwraps the explicit generator tuple.
  */
-pub sample(generator: Gen[T]): List[T] ->
+pub (generator: Gen[T]) sample(): List[T] ->
     case generator {
         {_tag, values} -> values
     }.
@@ -409,7 +405,7 @@ pub sample(generator: Gen[T]): List[T] ->
  * Transformation: delegates to `std.test.Test.each` so property checks share
  * table-helper assertion semantics.
  */
-pub for_all(generator: Gen[T], property: (T) -> Assertion): Assertion ->
+pub (generator: Gen[T]) for_all(property: (T) -> Assertion): Assertion ->
     each(sample(generator), property).
 
 /**
@@ -420,7 +416,7 @@ pub for_all(generator: Gen[T], property: (T) -> Assertion): Assertion ->
  * Transformation: records the case count explicitly for property reports and
  * max-success limits without depending on runner internals.
  */
-pub case_count(generator: Gen[T]): Int ->
+pub (generator: Gen[T]) case_count(): Int ->
     count_values(sample(generator)).
 
 /**
@@ -432,7 +428,7 @@ pub case_count(generator: Gen[T]): Int ->
  * Transformation: evaluates a deterministic prefix of generated samples so
  * maximum-success behavior is explicit and replayable.
  */
-pub for_all_limit(generator: Gen[T], max_success: Int, property: (T) -> Assertion): Assertion ->
+pub (generator: Gen[T]) for_all_limit(max_success: Int, property: (T) -> Assertion): Assertion ->
     each(take_values(max_success, sample(generator)), property).
 
 /**
@@ -443,7 +439,7 @@ pub for_all_limit(generator: Gen[T], max_success: Int, property: (T) -> Assertio
  * Transformation: evaluates only the selected prefix, reports property
  * failures before limit exhaustion, and never depends on wall-clock time.
  */
-pub step_report(generator: Gen[T], max_steps: Int, property: (T) -> Assertion): StepReport ->
+pub (generator: Gen[T]) step_report(max_steps: Int, property: (T) -> Assertion): StepReport ->
     let values = sample(generator);
     let selected = take_values(max_steps, values);
     let executed = count_values(selected);
@@ -465,7 +461,7 @@ pub step_report(generator: Gen[T], max_steps: Int, property: (T) -> Assertion): 
  * Transformation: makes shrink paths observable before richer property
  * reports are introduced.
  */
-pub shrink_failure(generator: Gen[T], property: (T) -> Assertion, shrinker: (T) -> List[T]): List[T] ->
+pub (generator: Gen[T]) shrink_failure(property: (T) -> Assertion, shrinker: (T) -> List[T]): List[T] ->
     shrink_failure_values(sample(generator), property, shrinker).
 
 /**
@@ -477,11 +473,7 @@ pub shrink_failure(generator: Gen[T], property: (T) -> Assertion, shrinker: (T) 
  * Transformation: finds the first failing sample and records the last failing
  * shrink candidate as the minimal failing input for this deterministic path.
  */
-pub shrink_report(
-    generator: Gen[T],
-    property: (T) -> Assertion,
-    shrinker: (T) -> List[T],
-): PropertyShrinkReport[T] ->
+pub (generator: Gen[T]) shrink_report(property: (T) -> Assertion, shrinker: (T) -> List[T]): PropertyShrinkReport[T] ->
     shrink_report_values(sample(generator), property, shrinker).
 
 /**

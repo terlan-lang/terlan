@@ -397,7 +397,7 @@ pub (profile: Profile) next_epoch(): Profile.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub membership(local: Profile, heartbeat_timeout_ticks: Int): Membership.
+pub (local: Profile) membership(heartbeat_timeout_ticks: Int): Membership.
 
 /**
  * Adds a compatible peer to the membership view.
@@ -564,7 +564,7 @@ pub (membership: Membership) leader_hint(): Option[String].
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub open(local: Profile, remote: Profile, max_message_bytes: Int): Session.
+pub (local: Profile) open(remote: Profile, max_message_bytes: Int): Session.
 
 /**
  * Sends one at-most-once message frame.

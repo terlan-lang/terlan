@@ -211,7 +211,7 @@ parse_summary_at(lines: List[String], rows: List[SummaryRow]): Option[List[Summa
         [line | rest] ->
             if {
                 String.trim(line) == "" or String.starts_with(String.trim(line), "#") -> parse_summary_at(rest, rows);
-                true -> let {
+                true -> if {
                     [kind, name, raw_count] <- String.split(line, "\t");
                     Some(count) <- Int.from_string(raw_count)
                 } else {
@@ -725,7 +725,7 @@ pub check(root: String): Bool ->
     case File.read_text_many(paths) {
         Err(_reason) -> failure("cannot read one or more BEAM migration inputs");
         Ok(files) ->
-            let {
+            if {
                 [inventory_path, plan_path, status_path, file_status_path, file_summary_path, plan_summary_path, suite_summary_path, makefile_path] <- paths;
                 Some(inventory_source) <- contents_for(files, inventory_path);
                 Some(plan_source) <- contents_for(files, plan_path);
@@ -834,7 +834,7 @@ fixture_status(execution_path: String, execution_gate: String): PortStatusRow ->
     ).
 
 parse_rejection_test(): Bool ->
-    let {
+    if {
         None <- parse_inventory("only\ttwo\n");
         None <- parse_status("scheduler\tP0\tport-to-rust-vm-test\tvm-check\tpartial\tnotes\n")
     } else {

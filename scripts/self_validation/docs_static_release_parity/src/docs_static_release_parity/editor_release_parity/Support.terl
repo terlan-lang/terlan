@@ -22,7 +22,7 @@ pub child(parent: String, name: String): String ->
     Artifact.child(parent, name).
 
 pub json_string(value: Json, field: String): Option[String] ->
-    let {
+    if {
         Ok(member) <- value.get(field);
         Ok(text) <- member.as_string()
     } else {
@@ -31,7 +31,7 @@ pub json_string(value: Json, field: String): Option[String] ->
     Some(text).
 
 pub read_json(path: String): Option[Json] ->
-    let {
+    if {
         Ok(source) <- read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -40,7 +40,7 @@ pub read_json(path: String): Option[Json] ->
     Some(value).
 
 pub write_json(path: String, value: Json): Bool ->
-    let {
+    if {
         Ok(source) <- Json.stringify_pretty(value);
         Ok(_unit) <- write_text(path, String.append(source, "\n"))
     } else {

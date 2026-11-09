@@ -494,7 +494,7 @@ resolved_let_children(
     parameters: List[ProjectedParameterTree],
     bindings: List[LocalTypeBinding],
 ): InferredProjectedType ->
-    let {
+    if {
         [pattern | remaining] <- values;
         [source | rest] <- remaining
     } else {

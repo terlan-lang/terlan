@@ -24,7 +24,7 @@ pub generated_bounds_keep_bounded_int_inside_range(): Bool ->
     for_all(
         int_range(0, 5),
         (offset) ->
-            let {
+            if {
                 Ok(generator) <- Random.seed(offset);
                 Ok({_next, value}) <- Random.bounded_int(generator, offset, offset + 10)
             } else {

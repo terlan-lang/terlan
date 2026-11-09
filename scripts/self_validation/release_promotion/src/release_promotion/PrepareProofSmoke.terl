@@ -62,7 +62,9 @@ smoke_owner(root: String, quality: String, context: Context): Owner ->
  * The fixture compiler validates its actual environment before emitting reports.
  */
 pub self_test(): Bool ->
-    let Ok(root) <- Directory.create_temporary("terlan-proof-smoke-owner-") else {
+    if {
+        Ok(root) <- Directory.create_temporary("terlan-proof-smoke-owner-")
+    } else {
         _ -> false
     };
     (let valid = fixture(root);
@@ -81,7 +83,7 @@ valid
 }).
 
 fixture(root: String): Bool ->
-    let {
+    if {
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"));
         Ok(_track) <-
@@ -109,7 +111,9 @@ let owner = smoke_owner(root, "target/tools/quality", context);
 let nodes = [PreparationGraph.declare_node(owner, [])];
 let cold = PreparationGraph.run_locked(root, "proof-smoke", nodes);
 let warm = PreparationGraph.run_locked(root, "proof-smoke", nodes);
-(let Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls")) else {
+(if {
+    Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls"))
+} else {
     _ -> false
 };
 cold.valid
@@ -121,7 +125,7 @@ cold.valid
     and calls == "run\n")).
 
 pub prepare(root: String, quality: String): Result[Summary, String] ->
-    let {
+    if {
         true <- PreparationContext.tool_path(quality);
         Ok(context) <-
             PreparationContext.capture(
@@ -135,7 +139,9 @@ pub prepare(root: String, quality: String): Result[Summary, String] ->
     (let owner = smoke_owner(root, quality, context); let result = PreparationGraph.run_locked(root, "proof-smoke", [PreparationGraph.declare_node(owner, [])]); Ok(result)).
 
 pub run_locked(root: String, quality: String): Bool ->
-    let Ok(result) <- prepare(root, quality) else {
+    if {
+        Ok(result) <- prepare(root, quality)
+    } else {
         Err(reason) ->
             let _printed = Console.eprintln(reason);
             false

@@ -59,7 +59,9 @@ source(rows: List[Json]): String ->
     case rows {
         [] -> "";
         [value | rest] ->
-            let Ok(line) <- Json.stringify(value) else {
+            if {
+                Ok(line) <- Json.stringify(value)
+            } else {
                 _ -> "invalid fixture\n"
             };
             String.concat([line, "\n", source(rest)])
@@ -72,7 +74,7 @@ rejected(rows: List[Json]): Bool ->
     }.
 
 count(report: Json, name: String, expected: Int): Bool ->
-    let {
+    if {
         Ok(value) <- report.get(name);
         Ok(actual) <- value.as_int()
     } else {
@@ -95,14 +97,14 @@ outcomes(): Bool ->
             ],
         );
     let log = String.append(NativeActivityTest.object("object"), executions);
-    let {
+    if {
         Ok(report) <- NativeActivity.validate(log);
         Some("terlan.execution-inventory.v1") <- OwnerStorage.text(report, "schema");
         Ok(processes) <- report.get("process_inventory")
     } else {
         _ -> false
     };
-    (let {
+    (if {
     true <- count(processes, "launches", 2);
     true <- count(processes, "reaped", 2);
     true <- count(processes, "nonzero_exits", 1);
@@ -115,7 +117,7 @@ outcomes(): Bool ->
 true).
 
 transitions(): Bool ->
-    let {
+    if {
         true <- rejected([spawned("one")]);
         true <- rejected([started("one"), reaped("one", 0)]);
         true <- rejected([started("one"), spawned("one"), spawned("one")]);
@@ -128,7 +130,7 @@ transitions(): Bool ->
     true.
 
 terminal_transitions(): Bool ->
-    let {
+    if {
         true <- rejected([started("one"), row("one", "invented", -1, 1)]);
         true <- rejected([started("one"), row("one", "spawned", 0, 1)]);
         true <-
@@ -149,7 +151,7 @@ terminal_transitions(): Bool ->
     true.
 
 identity(): Bool ->
-    let {
+    if {
         true <- rejected([started("one"), spawned("one").put("owner_pid", Json.int(19))]);
         true <- rejected([started("one"), spawned("one").put("program_kind", Json.string("git"))]);
         true <-
@@ -180,7 +182,7 @@ identity(): Bool ->
     true.
 
 invalid_scalars(): Bool ->
-    let {
+    if {
         true <- rejected([started("one").put("owner_pid", Json.int(0))]);
         true <- rejected([started("one").put("declaration_sha256", Json.string("bad"))]);
         true <- rejected([started("one").put("attempt", Json.string("../one"))]);
@@ -192,7 +194,7 @@ invalid_scalars(): Bool ->
     true.
 
 malformed(): Bool ->
-    let {
+    if {
         true <- rejected([started("one").put("extra", Json.null())]);
         true <- rejected([started("one").put("schema", Json.string("unknown.v1"))]);
         true <- rejected([started("one").put("exit_code", Json.int(0))]);
@@ -206,7 +208,7 @@ malformed(): Bool ->
     true.
 
 invalid_results(): Bool ->
-    let {
+    if {
         true <-
             rejected(
                 [
@@ -233,7 +235,7 @@ invalid_results(): Bool ->
     true.
 
 interrupted(): Bool ->
-    let {
+    if {
         Ok(report) <- NativeActivity.inspect(source([started("pending"), spawned("pending")]));
         Some("interrupted") <- OwnerStorage.text(report, "decision");
         Ok(processes) <- report.get("process_inventory")

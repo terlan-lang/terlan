@@ -89,7 +89,7 @@ join(values: List[String], separator: String): String ->
     }.
 
 read_rows(root: String, relative: String, header: String): Option[List[String]] ->
-    let {
+    if {
         Ok(source) <- read_text(Support.root_path(root, relative));
         [actual | rows] <- String.split(source, "\n")
     } else {
@@ -136,7 +136,7 @@ concat(values: List[String]): String ->
     }.
 
 dependency_digest(root: String, paths: List[String]): Option[String] ->
-    let {
+    if {
         Ok(value) <- Json.parse("\"\\u0000\"");
         Ok(separator) <- value.as_string();
         Some(source) <- dependency_source(root, Support.sort_strings(paths), separator, [])
@@ -173,7 +173,7 @@ metadata(
     dependency_hash: String,
     proof_digest: String,
 ): Option[Json] ->
-    let {
+    if {
         Some(manifest_values) <- fingerprints(root, manifests, Json.object());
         Some(relative) <- proof_relative(proof)
     } else {
@@ -210,7 +210,7 @@ metadata(
 update_binding(records: Json, slice: String, family: String, position: Int, count: Int): Bool ->
     if {
         position >= count -> false;
-        true -> let {
+        true -> if {
             Ok(record) <- records.at(position);
             Some(candidate) <- Support.json_string(record, "slice_id")
         } else {
@@ -243,7 +243,7 @@ record_families(
         not state.valid or position >= count -> state;
         true -> case families.at(position) {
             Ok(value) ->
-                let {
+                if {
                     Some(slice) <- Support.json_string(value, "slice");
                     Some(family) <- Support.json_string(value, "family");
                     Some(proof) <- Support.json_string(value, "proof");
@@ -323,7 +323,7 @@ if {
 pub record(root: String): RecordResult ->
     let inventory_header = "path\tstatus\tsource_contract\tterlan_version\tgate\tnotes";
     let artifact_header = "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan";
-    let {
+    if {
         Some(config) <- Support.load_json(root, "proofs/lean/semantic-kernels.json");
         Some(families) <- Support.json_member(config, "families");
         Some(dependency_values) <- Support.json_member(config, "dependencies");

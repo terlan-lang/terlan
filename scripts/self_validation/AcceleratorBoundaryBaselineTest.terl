@@ -161,7 +161,7 @@ package_evidence(package_dir: String): Json ->
     }.
 
 package_evidence_from_json(contract: Json, report: Json): Json ->
-    let {
+    if {
         {Some("terlan.cuda-baseline-contract.v1"), Some("terlan.cuda-baseline-freeze.v1"), Ok(interfaces), Ok(package), Ok(consumer)} <-
             {
                 string_field(contract, "schema"),
@@ -177,7 +177,7 @@ package_evidence_from_json(contract: Json, report: Json): Json ->
     (let evidence = Json.object(); let _contract_schema = evidence.put("contract_schema", Json.string("terlan.cuda-baseline-contract.v1")); let _execution_schema = evidence.put("execution_schema", Json.string("terlan.cuda-baseline-freeze.v1")); let _interfaces = evidence.put("interfaces", string_array(interface_names)); let _package = evidence.put("package", package); evidence).
 
 string_field(value: Json, name: String): Option[String] ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(text) <- field.as_string()
     } else {

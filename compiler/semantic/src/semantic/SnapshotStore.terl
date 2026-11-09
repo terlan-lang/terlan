@@ -14,7 +14,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -38,7 +38,9 @@ pub valid_id(id: String): Bool ->
  * Identity binds the exact source manifest and normalized compiler artifact.
  */
 pub identity(document: Json, exported: Json): Result[String, Failure] ->
-    let Ok(copy) <- Json.parse(Json.to_string(document)) else {
+    if {
+        Ok(copy) <- Json.parse(Json.to_string(document))
+    } else {
         _ ->
             Err(
                 Failure(
@@ -63,7 +65,7 @@ Ok(
 )).
 
 load_json(path: String): Result[Json, Failure] ->
-    let {
+    if {
         Ok(source) <- File.read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -99,7 +101,7 @@ source_set_rows_valid(
 ): Bool ->
     if {
         index == count -> true;
-        true -> let {
+        true -> if {
             Ok(source) <- sources.at(index);
             Ok(file) <- files.at(index);
             Ok(recorded) <- file.get("source");
@@ -123,7 +125,7 @@ sources_valid(folder: String, marker: Json, document: Json, exported: Json): Boo
         (name == "source.terl" or name == "source.terli" or name == "source.terls")
             and Hash.sha256_file(folder + "/" + name) == Ok(text(marker, "source_digest"))
             and text(exported, "source_digest") == text(marker, "source_digest");
-        text(marker, "schema") == "terlan.semantic.snapshot-store.v2" -> let {
+        text(marker, "schema") == "terlan.semantic.snapshot-store.v2" -> if {
             Ok(sources) <- document.get("sources");
             Ok(count) <- sources.length();
             Ok(files) <- marker.get("files");
@@ -146,11 +148,13 @@ sources_valid(folder: String, marker: Json, document: Json, exported: Json): Boo
  * An interrupted copy is unavailable; it cannot expose partial compiler facts.
  */
 pub load(store: String, id: String): Result[Json, Failure] ->
-    let true <- valid_id(id) else {
+    if {
+        true <- valid_id(id)
+    } else {
         _ -> Err(Failure(code = "semantic.snapshot.id", message = "Malformed snapshot identity."))
     };
     (let folder = directory(store, id);
-(let {
+(if {
     Ok(marker) <- load_json(String.append(folder, "/published.json"));
     Ok(document) <- load_json(String.append(folder, "/snapshot.json"));
     Ok(exported) <- load_json(String.append(folder, "/compiler.json"));
@@ -185,7 +189,9 @@ if {
  * Returns the compiler artifact only after the complete snapshot validates.
  */
 pub compiler_artifact(store: String, id: String): Result[Json, Failure] ->
-    let Ok(document) <- load(store, id) else {
+    if {
+        Ok(document) <- load(store, id)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -194,10 +200,14 @@ pub compiler_artifact(store: String, id: String): Result[Json, Failure] ->
                 ),
             )
     };
-    (let Ok(exported) <- load_json(String.append(directory(store, id), "/compiler.json")) else {
+    (if {
+    Ok(exported) <- load_json(String.append(directory(store, id), "/compiler.json"))
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <- identity(document, exported) == Ok(id) else {
+(if {
+    true <- identity(document, exported) == Ok(id)
+} else {
     _ ->
         Err(
             Failure(
@@ -219,7 +229,9 @@ pub publish(
     exported: Json,
 ): Result[Json, Failure] ->
     let id = text(document, "snapshot_id");
-    let true <- valid_id(id) else {
+    if {
+        true <- valid_id(id)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -239,7 +251,7 @@ if {
             .put("export_digest", Json.string(Hash.sha256(Json.to_string(exported))))
             .put("source_filename", Json.string(source_filename))
             .put("source_digest", Json.string(text(exported, "source_digest")));
-    let {
+    if {
         Ok(_) <- File.write_text(String.append(stage, "/snapshot.json"), Json.to_string(document));
         Ok(_) <- File.write_text(String.append(stage, "/compiler.json"), Json.to_string(exported));
         Ok(_) <- Directory.create_all(store);
@@ -268,7 +280,9 @@ pub publish_sources(
     files: Json,
 ): Result[Json, Failure] ->
     let id = text(document, "snapshot_id");
-    let true <- valid_id(id) else {
+    if {
+        true <- valid_id(id)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -287,7 +301,7 @@ if {
             .put("document_digest", Json.string(Hash.sha256(Json.to_string(document))))
             .put("export_digest", Json.string(Hash.sha256(Json.to_string(exported))))
             .put("files", files);
-    let {
+    if {
         Ok(_) <- File.write_text(stage + "/snapshot.json", Json.to_string(document));
         Ok(_) <- File.write_text(stage + "/compiler.json", Json.to_string(exported));
         Ok(_) <- Directory.create_all(store);

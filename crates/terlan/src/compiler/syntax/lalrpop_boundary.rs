@@ -11,7 +11,8 @@ use super::{
         head_constraint_list_end, html_raw_block_end, if_clause_semicolon_indices,
         is_binary_layout_open, is_function_clause_open, is_generic_call_open,
         is_nominal_keyed_open, is_trivia, lambda_opening_indices,
-        lambda_sequence_semicolon_indices, native_raw_declaration_end,
+        lambda_sequence_semicolon_indices, native_raw_declaration_end, refutable_if_open,
+        refutable_pattern_ranges,
     },
     lalrpop_syntax::{
         normalize_lalrpop_expression, validate_lalrpop_expression, LalrpopExpressionOutput,
@@ -96,6 +97,10 @@ pub enum LalrpopToken {
     LambdaLParen,
     /// One typed identifier parameter inside a lambda head.
     TypedLambdaPattern,
+    /// A complete `Pattern <-` prefix retained for canonical pattern reparsing.
+    RefutableBindingPrefix,
+    /// Collapsed `if {` prefix for a grouped refutable expression.
+    RefutableIfLBrace,
     /// One callable-head constraint list following square generic parameters.
     HeadConstraintList,
     /// A sequence separator at the owning lambda body's delimiter depth.
@@ -244,6 +249,11 @@ fn projected_tokens(
     );
     let lambda_sequence_semicolons = lambda_sequence_semicolon_indices(&tokens, &lambda_openings);
     let typed_lambda_patterns = typed_lambda_pattern_ranges(&tokens, &lambda_openings);
+    let refutable_patterns = if classify_lambda_delimiters {
+        refutable_pattern_ranges(&tokens)
+    } else {
+        Vec::new()
+    };
     let if_clause_semicolons = if classify_lambda_delimiters {
         if_clause_semicolon_indices(&tokens)
     } else {
@@ -303,13 +313,23 @@ fn projected_tokens(
         let config_raw_end = classify_lambda_delimiters
             .then(|| config_raw_declaration_end(&tokens, index))
             .flatten();
+        let refutable_if_open = classify_lambda_delimiters
+            .then(|| refutable_if_open(&tokens, index))
+            .flatten();
         let typed_lambda_pattern_end = typed_lambda_patterns
+            .iter()
+            .find_map(|&(start, end)| (start == index).then_some(end));
+        let refutable_pattern_end = refutable_patterns
             .iter()
             .find_map(|&(start, end)| (start == index).then_some(end));
         let head_constraint_end = classify_lambda_delimiters
             .then(|| head_constraint_list_end(&tokens, index))
             .flatten();
-        let parser_token = if native_raw_end.is_some() {
+        let parser_token = if refutable_pattern_end.is_some() {
+            LalrpopToken::RefutableBindingPrefix
+        } else if refutable_if_open.is_some() {
+            LalrpopToken::RefutableIfLBrace
+        } else if native_raw_end.is_some() {
             LalrpopToken::NativeRawDeclaration
         } else if config_raw_end.is_some() {
             LalrpopToken::ConfigRawDeclaration
@@ -389,7 +409,9 @@ fn projected_tokens(
                 LalrpopToken::Contextual,
             )
         };
-        let collapsed_end = native_raw_end
+        let collapsed_end = refutable_pattern_end
+            .or(refutable_if_open)
+            .or(native_raw_end)
             .or(config_raw_end)
             .or(typed_lambda_pattern_end)
             .or(head_constraint_end)

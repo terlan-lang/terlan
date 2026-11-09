@@ -107,7 +107,7 @@ pub type TextDecorationThicknessPart =
 /// text-decoration-color for text-decoration. Each parameter accepts its own keyword or typed unit
 /// choices directly.
 
-pub compose(text_decoration_line: TextDecorationLinePart, text_decoration_thickness: TextDecorationThicknessPart, text_decoration_style: TextDecorationStylePart, text_decoration_color: TextDecorationColorPart): Checked.
+pub (text_decoration_line: TextDecorationLinePart) compose(text_decoration_thickness: TextDecorationThicknessPart, text_decoration_style: TextDecorationStylePart, text_decoration_color: TextDecorationColorPart): Checked.
 
 /// Checks the text-decoration length range. Returns Some when amount >= 0; otherwise returns None.
 

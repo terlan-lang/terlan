@@ -39,7 +39,7 @@ fixture_root(repository: String): String ->
     child(tool_root(repository), "fixtures").
 
 read_json(path: String): Option[Json] ->
-    let {
+    if {
         Ok(source) <- read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -48,7 +48,7 @@ read_json(path: String): Option[Json] ->
     Some(value).
 
 string_field_is(value: Json, name: String, expected: String): Bool ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(text) <- field.as_string()
     } else {
@@ -69,7 +69,7 @@ member_absent(value: Json, name: String): Bool ->
     }.
 
 compile_provenance_holds(metadata: Json, commands: Json): Bool ->
-    let {
+    if {
         {Ok(compile), Ok(1), Ok(command)} <- {metadata.get("compile"), commands.length(), commands.at(0)};
         {Ok(actual), Ok(expected)} <- {compile.get("arguments"), command.get("arguments")}
     } else {
@@ -80,7 +80,7 @@ compile_provenance_holds(metadata: Json, commands: Json): Bool ->
 ids_are_sorted_unique(symbols: Json, index: Int, count: Int, previous: String): Bool ->
     if {
         index >= count -> true;
-        true -> let {
+        true -> if {
             Ok(symbol) <- symbols.at(index);
             Ok(id_value) <- symbol.get("id");
             Ok(id) <- id_value.as_string()
@@ -92,7 +92,7 @@ ids_are_sorted_unique(symbols: Json, index: Int, count: Int, previous: String): 
     }.
 
 array_nonempty(value: Json, name: String): Bool ->
-    let {
+    if {
         Ok(items) <- value.get(name);
         Ok(count) <- items.length()
     } else {
@@ -101,7 +101,7 @@ array_nonempty(value: Json, name: String): Bool ->
     count > 0.
 
 int_field_above(value: Json, name: String, minimum: Int): Bool ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(number) <- field.as_int()
     } else {
@@ -110,7 +110,7 @@ int_field_above(value: Json, name: String, minimum: Int): Bool ->
     number > minimum.
 
 bool_field_is(value: Json, name: String, expected: Bool): Bool ->
-    let {
+    if {
         Ok(field) <- value.get(name);
         Ok(actual) <- field.as_bool()
     } else {
@@ -119,7 +119,7 @@ bool_field_is(value: Json, name: String, expected: Bool): Bool ->
     actual == expected.
 
 parameters_have_pointer(symbol: Json): Bool ->
-    let {
+    if {
         Ok(parameters) <- symbol.get("parameters");
         Ok(count) <- parameters.length()
     } else {
@@ -143,7 +143,7 @@ parameter_pointer_at(parameters: Json, index: Int, count: Int): Bool ->
     }.
 
 returns_reference(symbol: Json): Bool ->
-    let {
+    if {
         Ok(returns) <- symbol.get("returns");
         Ok(reference) <- returns.get("reference")
     } else {
@@ -185,7 +185,7 @@ all_required_facts(symbols: Json, count: Int, fact: Int): Bool ->
     }.
 
 symbols_hold(metadata: Json): Bool ->
-    let {
+    if {
         Ok(symbols) <- metadata.get("symbols");
         Ok(count) <- symbols.length()
     } else {
@@ -208,7 +208,7 @@ source_holds(repository: String): Bool ->
     }.
 
 offline_contract_holds(repository: String): Bool ->
-    let {
+    if {
         Some(metadata) <- read_json(child(fixture_root(repository), "expected-metadata.json"));
         Some(commands) <- read_json(child(fixture_root(repository), "compile_commands.json"))
     } else {
@@ -344,7 +344,7 @@ normalized_metadata_matches(actual_path: String, expected_path: String): Bool ->
     }.
 
 write_live_database(repository: String, database: String): Bool ->
-    let {
+    if {
         Some(commands) <- read_json(child(fixture_root(repository), "compile_commands.json"));
         Ok(command) <- commands.at(0)
     } else {
@@ -352,7 +352,7 @@ write_live_database(repository: String, database: String): Bool ->
     };
     (let _directory = command.put("directory", Json.string(fixture_root(repository)));
 let _command = commands.set(0, command);
-(let {
+(if {
     Ok(source) <- Json.stringify_pretty(commands);
     Ok(_unit) <- write_text(child(database, "compile_commands.json"), String.append(source, "\n"))
 } else {

@@ -12,87 +12,87 @@ pub opaque type QueryResult.
 
 /// Cancels work by closing the connection immediately.
 
-pub abort(connection: Connection): Unit.
+pub (connection: Connection) abort(): Unit.
 
 /// Returns command affected-row count.
 
-pub affected_rows(result: QueryResult): Int.
+pub (result: QueryResult) affected_rows(): Int.
 
 /// Clears pending query parameters.
 
-pub clear_parameters(connection: Connection): Unit.
+pub (connection: Connection) clear_parameters(): Unit.
 
 /// Returns field count.
 
-pub column_count(result: QueryResult): Int.
+pub (result: QueryResult) column_count(): Int.
 
 /// Returns the stable PostgreSQL field type OID.
 
-pub column_oid(result: QueryResult, column: Int): Int.
+pub (result: QueryResult) column_oid(column: Int): Int.
 
 /// Consumes currently readable query bytes.
 
-pub consume_input(connection: Connection): Unit.
+pub (connection: Connection) consume_input(): Unit.
 
 /// Closes and frees a libpq connection.
 
-pub dispose_connection(connection: Connection): Unit.
+pub (connection: Connection) dispose_connection(): Unit.
 
 /// Clears and frees a query result.
 
-pub dispose_result(result: QueryResult): Unit.
+pub (result: QueryResult) dispose_result(): Unit.
 
 /// Copies current driver error bytes into Rust-owned storage.
 
-pub error_bytes(connection: Connection): List[Int].
+pub (connection: Connection) error_bytes(): List[Int].
 
 /// Copies the current driver error into adapter scratch storage.
 
-pub error_length(connection: Connection): Int.
+pub (connection: Connection) error_length(): Int.
 
 /// Reports whether the current query needs more input.
 
-pub is_busy(connection: Connection): Bool.
+pub (connection: Connection) is_busy(): Bool.
 
 /// Takes the next completed query result.
 
-pub next_result(connection: Connection): QueryResult.
+pub (connection: Connection) next_result(): QueryResult.
 
 /// Advances nonblocking connection setup once.
 
-pub poll_connect(connection: Connection): Int.
+pub (connection: Connection) poll_connect(): Int.
 
 /// Appends a null query parameter.
 
-pub push_null(connection: Connection): Unit.
+pub (connection: Connection) push_null(): Unit.
 
 /// Appends a text-format query parameter.
 
-pub push_text(connection: Connection, value: String): Unit.
+pub (connection: Connection) push_text(value: String): Unit.
 
 /// Returns tuple count.
 
-pub row_count(result: QueryResult): Int.
+pub (result: QueryResult) row_count(): Int.
 
 /// Selects and copies one field name into adapter scratch storage.
 
-pub select_column_name(result: QueryResult, column: Int): Unit.
+pub (result: QueryResult) select_column_name(column: Int): Unit.
 
 /// Selects and copies one result value into adapter scratch storage.
 
-pub select_value(result: QueryResult, row: Int, column: Int): Unit.
+pub (result: QueryResult) select_value(row: Int, column: Int): Unit.
 
 /// Submits a trusted multi-statement SQL batch without parameters.
 
-pub send_batch(connection: Connection, sql: String): Unit.
+pub (connection: Connection) send_batch(sql: String): Unit.
 
 /// Submits a parameterized query without blocking.
 
-pub send_query(connection: Connection, sql: String): Unit.
+pub (connection: Connection) send_query(sql: String): Unit.
 
 /// Returns the socket watched by the VM reactor.
 
-pub socket(connection: Connection): Int.
+pub (connection: Connection) socket(): Int.
 
 /// Starts a nonblocking libpq connection.
 
@@ -100,16 +100,16 @@ pub start(url: String): Connection.
 
 /// Returns the libpq result status.
 
-pub status(result: QueryResult): Int.
+pub (result: QueryResult) status(): Int.
 
 /// Copies selected value bytes into Rust-owned storage.
 
-pub value_bytes(result: QueryResult): List[Int].
+pub (result: QueryResult) value_bytes(): List[Int].
 
 /// Reports selected SQL null state.
 
-pub value_is_null(result: QueryResult): Bool.
+pub (result: QueryResult) value_is_null(): Bool.
 
 /// Returns selected value byte length.
 
-pub value_length(result: QueryResult): Int.
+pub (result: QueryResult) value_length(): Int.

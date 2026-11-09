@@ -10,6 +10,7 @@ pub(super) struct TraitImplCheckContext<'a> {
     pub(super) local_aliases: &'a HashMap<String, TypeAlias>,
     pub(super) expr_ctx: &'a ExprInferContext<'a>,
     pub(super) effectful_local_calls: &'a HashSet<(String, usize)>,
+    pub(super) conditional_local_calls: &'a HashSet<(String, usize)>,
     pub(super) effectful_imported_calls: &'a ImportedEffectFacts,
 }
 
@@ -78,6 +79,7 @@ pub(super) fn check_trait_impl_methods(
                 aliases: ctx.aliases,
                 expr_ctx: ctx.expr_ctx,
                 effectful_local_calls: ctx.effectful_local_calls,
+                conditional_local_calls: ctx.conditional_local_calls,
                 imported_effects: ctx.effectful_imported_calls,
             },
             diagnostics,

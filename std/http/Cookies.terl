@@ -140,10 +140,12 @@ pub from_pairs(incoming: List[{String, String}]): Jar ->
             incoming,
             Map.new[String, String](),
             (values, pair) ->
-                let {name, value} = pair;
-                if {
-                    values.contains_key(name) -> values;
-                    true -> (values.put(name, value); values)
+                case pair {
+                    {name, value} ->
+                        if {
+                            values.contains_key(name) -> values;
+                            true -> (values.put(name, value); values)
+                        }
                 },
         ),
     ).

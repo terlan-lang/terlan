@@ -67,7 +67,7 @@ pub serve[T](value: T): Unit ->
  * Waits for a correlated task value and discards stale replies.
  */
 @target.vm {process_mailbox: true}
-pub result[T](task: Task[T], request_id: Int): T ->
+pub (task: Task[T]) result[T](request_id: Int): T ->
     let reply_to = Process.current[TaskReply[T]]();
     case task {
         {TaskTag, process, witness} ->
@@ -85,7 +85,7 @@ pub result[T](task: Task[T], request_id: Int): T ->
  * Requests cooperative task shutdown without host-runtime task machinery.
  */
 @target.vm {process_mailbox: true}
-pub cancel[T](task: Task[T]): Unit ->
+pub (task: Task[T]) cancel[T](): Unit ->
     let reply_to = Process.current[TaskReply[T]]();
     case task {
         {TaskTag, process, witness} ->
@@ -101,7 +101,7 @@ pub cancel[T](task: Task[T]): Unit ->
  * Thin policy wrapper for VM-owned failure monitoring.
  */
 @target.vm {process_mailbox: true}
-pub monitor[T](task: Task[T]): Unit ->
+pub (task: Task[T]) monitor[T](): Unit ->
     case task {
         {TaskTag, process, _witness} ->
             let _monitor = Process.monitor[TaskCommand[T]](process);
@@ -112,7 +112,7 @@ pub monitor[T](task: Task[T]): Unit ->
  * Thin policy wrapper for VM-owned symmetric links.
  */
 @target.vm {process_mailbox: true}
-pub relate_peer[T](task: Task[T]): Unit ->
+pub (task: Task[T]) relate_peer[T](): Unit ->
     case task {
         {TaskTag, process, _witness} -> Process.link[TaskCommand[T]](process)
     }.

@@ -101,7 +101,7 @@ command_ids_from_rows(rows: List[StringFieldRow], commands: List[String]): Optio
     }.
 
 command_ids(manifest: Json): Option[List[String]] ->
-    let {
+    if {
         Ok(contributes) <- manifest.get("contributes");
         Ok(commands) <- contributes.get("commands");
         Ok(rows) <- commands.string_field_rows(["command"]);
@@ -129,7 +129,7 @@ extension_registers(source: String, commands: List[String]): Bool ->
  */
 pub validate_editor(installed: String): Option[EditorSummary] ->
     let root = Support.child(installed, editor_root());
-    let {
+    if {
         Some(manifest) <- Support.read_json(Support.child(root, "package.json"));
         Some(version) <- Support.json_string(manifest, "version");
         Some(icon) <- Support.json_string(manifest, "icon");
@@ -166,7 +166,7 @@ pub validate_editor(installed: String): Option[EditorSummary] ->
  */
 pub validate_tree(installed: String): Option[TreeSummary] ->
     let root = Support.child(installed, tree_root());
-    let {
+    if {
         Some(package) <- Support.read_json(Support.child(root, "package.json"));
         Some(grammar) <- Support.read_json(Support.child(root, "src/grammar.json"));
         Some(package_name) <- Support.json_string(package, "name");

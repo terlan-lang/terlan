@@ -22,7 +22,7 @@ pub minimum(architecture: String): String ->
  * Numeric comparison handles glibc's historical patch-level symbol versions.
  */
 pub version_supported(required: String, baseline: String): Bool ->
-    let {
+    if {
         {[major | [minor | tail]], [base_major, base_minor]} <- {required.split("."), baseline.split(".")};
         {Some(a), Some(b), Some(x), Some(y)} <-
             {

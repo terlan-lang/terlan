@@ -13,6 +13,15 @@ pub(super) fn lower_pattern(
     context: &LalrpopLoweringContext<'_>,
     node: &LalrpopSyntaxNode,
 ) -> LalrpopLoweringResult<Pattern> {
+    if node.text.as_deref() == Some("projected_refutable_pattern") {
+        let source = context.text(node.span);
+        let parsed = crate::terlan_syntax::lalrpop_boundary::parse_lalrpop_pattern(source)
+            .map_err(|error| context.error(node, error.message))?;
+        let mut pattern = super::lower_lalrpop_pattern(source, &parsed.root)
+            .map_err(|error| context.error(node, error.message))?;
+        rebase_pattern_spans(&mut pattern, node.span.start);
+        return Ok(pattern);
+    }
     use LalrpopSyntaxNodeKind as Kind;
     match node.kind {
         Kind::Pattern
@@ -145,6 +154,50 @@ pub(super) fn lower_pattern(
             node,
             format!("generated node {:?} is not a pattern", node.kind),
         )),
+    }
+}
+
+fn rebase_pattern_spans(pattern: &mut Pattern, offset: usize) {
+    match pattern {
+        Pattern::StringSegments(segments) => {
+            for segment in segments {
+                if let StringPatternSegment::Capture(capture) = segment {
+                    if let Some(annotation) = &mut capture.annotation {
+                        annotation.span.start += offset;
+                        annotation.span.end += offset;
+                    }
+                }
+            }
+        }
+        Pattern::Tuple(items) | Pattern::List(items) => {
+            for item in items {
+                rebase_pattern_spans(item, offset);
+            }
+        }
+        Pattern::Alias { pattern, .. } => rebase_pattern_spans(pattern, offset),
+        Pattern::ListCons(head, tail) => {
+            rebase_pattern_spans(head, offset);
+            rebase_pattern_spans(tail, offset);
+        }
+        Pattern::Map(fields) | Pattern::Record { fields, .. } => {
+            for field in fields {
+                rebase_pattern_spans(&mut field.value, offset);
+            }
+        }
+        Pattern::BinaryLayout { fields, .. } => {
+            for field in fields {
+                field.descriptor.span.start += offset;
+                field.descriptor.span.end += offset;
+            }
+        }
+        Pattern::Wildcard
+        | Pattern::Var(_)
+        | Pattern::Int(_)
+        | Pattern::Float(_)
+        | Pattern::String(_)
+        | Pattern::Atom(_)
+        | Pattern::AtomLiteral(_)
+        | Pattern::NullaryConstructorCall(_) => {}
     }
 }
 

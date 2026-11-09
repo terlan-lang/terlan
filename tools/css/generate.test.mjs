@@ -79,8 +79,8 @@ test('bounded space-separated repetitions generate exactly the permitted arities
   assert.doesNotMatch(source, /ComponentCss/);
   assert.doesNotMatch(source, /pub component\(/);
   assert.doesNotMatch(source, /pub component_length\(/);
-  assert.match(source, /pub pair\(first: Component, second: Component\): Checked/);
-  assert.match(source, /pub triple\(first: Component, second: Component, third: Component\): Checked/);
+  assert.match(source, /pub \(first: Component\) pair\(second: Component\): Checked/);
+  assert.match(source, /pub \(first: Component\) triple\(second: Component, third: Component\): Checked/);
   assert.doesNotMatch(source, /pub (single|quad)\(/);
   assert.doesNotMatch(source, /pub component_(inherit|initial|unset|revert)/);
 });
@@ -121,7 +121,7 @@ test('named unordered groups produce distinct part types and a complete composit
     assert.match(source, /length_amount\(value\) >= 0 and std.css.Values.length_amount\(value\) <= 100/);
     assert.match(source, /import std\.css\.keywords\.Solid\.\{Solid\}/);
     assert.doesNotMatch(source, /pub line_style_solid\(/);
-    assert.match(source, /pub compose\(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart\): Checked/);
+    assert.match(source, /pub \(line_width: LineWidthPart\) compose\(line_style: LineStylePart, color: ColorPart\): Checked/);
     assert.match(source, /\{Atom\["css_parts"\], \{line_width_value\(line_width\), line_style, color\}\}/);
     assert.doesNotMatch(source, /pub (line_width|line_style)_(inherit|initial|unset|revert)/);
   }
@@ -144,7 +144,7 @@ test('scoped grouped aliases retain constraints and CSS-wide keywords stay out o
   assert.match(source, /pub width_number\(value: Float\): Option\[CheckedWidth\]/);
   assert.match(source, /value >= 10 and value <= 20/);
   assert.doesNotMatch(source, /pub width_inherit/);
-  assert.match(source, /pub compose\(width: WidthPart, color: ColorPart\): Checked/);
+    assert.match(source, /pub \(width: WidthPart\) compose\(color: ColorPart\): Checked/);
 });
 
 

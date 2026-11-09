@@ -11,10 +11,10 @@ pub struct Span {
 pub begin(name: String): Span.
 
 @pure
-pub cancel(span: Span): Unit.
+pub (span: Span) cancel(): Unit.
 
 @pure
-pub finish(span: Span): Unit.
+pub (span: Span) finish(): Unit.
 
 @pure
-pub time_out(span: Span): Unit.
+pub (span: Span) time_out(): Unit.

@@ -67,7 +67,7 @@ save(path: String, value: Json): Bool ->
     }.
 
 load(path: String): Option[Json] ->
-    let {
+    if {
         Ok(text) <- File.read_text(path);
         Ok(value) <- Json.parse(text)
     } else {
@@ -76,7 +76,9 @@ load(path: String): Option[Json] ->
     Some(value).
 
 own_output(path: String): Bool ->
-    let Ok(empty) <- Directory.create_temporary("terlan-llm-native-gate-") else {
+    if {
+        Ok(empty) <- Directory.create_temporary("terlan-llm-native-gate-")
+    } else {
         _ -> false
     };
     (let copied = Directory.copy_tree_excluding(empty, path, []); let removed = Directory.remove_all(empty); copied == Ok(Unit) and removed == Ok(Unit)).
@@ -108,7 +110,7 @@ wire_completion(output: String, expected_ids: List[String]): Bool ->
     }.
 
 schema_case(root: String, output: String): Bool ->
-    let {
+    if {
         Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
         Some(inventory) <- load(String.append(root, "/tests/fixtures/llm_native/contracts/cases.json"));
         Ok(cases) <- inventory.get("cases");
@@ -223,7 +225,9 @@ artifact_rows(output: String, paths: List[String], mut rows: Json): Bool ->
             let path = String.concat([output, "/", name]);
             if {
                 not File.exists(path) -> artifact_rows(output, rest, rows);
-                true -> let Ok(digest) <- Hash.sha256_file(path) else {
+                true -> if {
+                    Ok(digest) <- Hash.sha256_file(path)
+                } else {
                     _ -> false
                 };
                 (let _row = rows.push(Json.object().put("path", Json.string(name)).put("digest", Json.string(digest))); artifact_rows(output, rest, rows))
@@ -235,7 +239,7 @@ artifact_rows(output: String, paths: List[String], mut rows: Json): Bool ->
  */
 pub run(compiler: String, selector: String, output: String): Bool ->
     let root = Environment.current_directory();
-    let {
+    if {
         true <- Evidence.contains(selectors(), selector);
         Ok(true) <- File.is_executable(compiler);
         true <- not File.exists(output);

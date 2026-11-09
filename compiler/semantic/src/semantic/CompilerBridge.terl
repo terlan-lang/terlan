@@ -23,7 +23,7 @@ pub struct Failure {
 }.
 
 text(value: Json, key: String): String ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -70,7 +70,9 @@ run_bounded(
  * availability together. Invalid programs retain actual compiler diagnostics.
  */
 pub admit(source: String, expected_source_digest: String, exit_status: Int): Result[Json, Failure] ->
-    let Ok(value) <- Json.parse(source) else {
+    if {
+        Ok(value) <- Json.parse(source)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -79,7 +81,9 @@ pub admit(source: String, expected_source_digest: String, exit_status: Int): Res
                 ),
             )
     };
-    (let true <- text(value, "schema") == "terlan.semantic.core-export.v1" else {
+    (if {
+    true <- text(value, "schema") == "terlan.semantic.core-export.v1"
+} else {
     _ ->
         Err(
             Failure(
@@ -88,7 +92,9 @@ pub admit(source: String, expected_source_digest: String, exit_status: Int): Res
             ),
         )
 };
-(let true <- text(value, "source_digest") == expected_source_digest else {
+(if {
+    true <- text(value, "source_digest") == expected_source_digest
+} else {
     _ ->
         Err(
             Failure(
@@ -97,7 +103,7 @@ pub admit(source: String, expected_source_digest: String, exit_status: Int): Res
             ),
         )
 };
-(let {
+(if {
     Ok(core) <- value.get("core");
     Ok(diagnostics) <- value.get("diagnostics");
     Ok(diagnostic_count) <- diagnostics.length()
@@ -132,7 +138,7 @@ if {
  * Invokes only the compiler's read-only export, with bounded time and output.
  */
 pub export_file(compiler: String, path: String): Result[Json, Failure] ->
-    let {
+    if {
         Ok(source_digest) <- Hash.sha256_file(path);
         Ok(compiler_digest) <- Hash.sha256_file(compiler)
     } else {
@@ -149,12 +155,16 @@ pub export_file(compiler: String, path: String): Result[Json, Failure] ->
         Process.command(compiler),
         ["emit-core", path, "--diagnostic-format", "json"],
     );
-(let Ok(output) <- run_bounded(command, 30_000, 8_388_608) else {
+(if {
+    Ok(output) <- run_bounded(command, 30_000, 8_388_608)
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <-
-    Hash.sha256_file(path) == Ok(source_digest)
-        and Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+(if {
+    true <-
+        Hash.sha256_file(path) == Ok(source_digest)
+            and Hash.sha256_file(compiler) == Ok(compiler_digest)
+} else {
     _ ->
         Err(
             Failure(
@@ -188,7 +198,7 @@ admit_units(
 ): Result[Bool, Failure] ->
     if {
         index == count -> Ok(true);
-        true -> let {
+        true -> if {
             Ok(row) <- units.at(index);
             Ok(exported) <- row.get("export");
             Ok(syntax) <- exported.get("syntax_contract");
@@ -203,7 +213,9 @@ admit_units(
                 )
         };
         (let path = text(row, "path");
-(let true <- path.compare(previous_path) == Gt else {
+(if {
+    true <- path.compare(previous_path) == Gt
+} else {
     _ ->
         Err(
             Failure(
@@ -213,10 +225,12 @@ admit_units(
         )
 };
 (let expected = source_digest(sources, path, 0, count);
-(let true <-
-    expected != ""
-        and text(exported, "compiler_version") == text(bundle, "compiler_version")
-        and Json.to_string(syntax) == Json.to_string(bundle_syntax) else {
+(if {
+    true <-
+        expected != ""
+            and text(exported, "compiler_version") == text(bundle, "compiler_version")
+            and Json.to_string(syntax) == Json.to_string(bundle_syntax)
+} else {
     _ ->
         Err(
             Failure(
@@ -226,18 +240,22 @@ admit_units(
         )
 };
 (let unit_invalid = text(exported, "status") == "invalid";
-(let Ok(_) <-
-    admit(
-        Json.to_string(exported),
-        expected,
-        if {
-            unit_invalid -> 1;
-            true -> 0
-        },
-    ) else {
+(if {
+    Ok(_) <-
+        admit(
+            Json.to_string(exported),
+            expected,
+            if {
+                unit_invalid -> 1;
+                true -> 0
+            },
+        )
+} else {
     Err(reason) -> Err(reason)
 };
-(let Ok(rest_checked) <- admit_units(bundle, units, sources, path, index + 1, count) else {
+(if {
+    Ok(rest_checked) <- admit_units(bundle, units, sources, path, index + 1, count)
+} else {
     Err(reason) -> Err(reason)
 };
 Ok(not unit_invalid and rest_checked))))))))
@@ -247,7 +265,9 @@ Ok(not unit_invalid and rest_checked))))))))
  * Checks every exported unit against the exact frozen source inventory.
  */
 pub admit_sources(source: String, sources: Json, exit_status: Int): Result[Json, Failure] ->
-    let Ok(bundle) <- Json.parse(source) else {
+    if {
+        Ok(bundle) <- Json.parse(source)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -256,7 +276,9 @@ pub admit_sources(source: String, sources: Json, exit_status: Int): Result[Json,
                 ),
             )
     };
-    (let true <- text(bundle, "schema") == "terlan.semantic.core-bundle.v1" else {
+    (if {
+    true <- text(bundle, "schema") == "terlan.semantic.core-bundle.v1"
+} else {
     _ ->
         Err(
             Failure(
@@ -265,7 +287,7 @@ pub admit_sources(source: String, sources: Json, exit_status: Int): Result[Json,
             ),
         )
 };
-(let {
+(if {
     Ok(units) <- bundle.get("units");
     Ok(count) <- units.length();
     Ok(source_count) <- sources.length()
@@ -278,7 +300,9 @@ pub admit_sources(source: String, sources: Json, exit_status: Int): Result[Json,
             ),
         )
 };
-(let true <- count > 0 and count == source_count else {
+(if {
+    true <- count > 0 and count == source_count
+} else {
     _ ->
         Err(
             Failure(
@@ -287,7 +311,9 @@ pub admit_sources(source: String, sources: Json, exit_status: Int): Result[Json,
             ),
         )
 };
-(let Ok(checked) <- admit_units(bundle, units, sources, "", 0, count) else {
+(if {
+    Ok(checked) <- admit_units(bundle, units, sources, "", 0, count)
+} else {
     Err(reason) -> Err(reason)
 };
 (let valid_status =
@@ -309,7 +335,9 @@ if {
  * Exports a frozen source root through the compiler's shared interface graph.
  */
 pub export_sources(compiler: String, root: String, sources: Json): Result[Json, Failure] ->
-    let Ok(compiler_digest) <- Hash.sha256_file(compiler) else {
+    if {
+        Ok(compiler_digest) <- Hash.sha256_file(compiler)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -323,10 +351,14 @@ pub export_sources(compiler: String, root: String, sources: Json): Result[Json, 
         Process.command(compiler),
         ["emit-core", root, "--diagnostic-format", "json"],
     );
-(let Ok(output) <- run_bounded(command, 420_000, 16_777_216) else {
+(if {
+    Ok(output) <- run_bounded(command, 420_000, 16_777_216)
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <- Hash.sha256_file(compiler) == Ok(compiler_digest) else {
+(if {
+    true <- Hash.sha256_file(compiler) == Ok(compiler_digest)
+} else {
     _ ->
         Err(
             Failure(

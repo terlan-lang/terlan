@@ -381,7 +381,7 @@ pub string_object_rows(fields: List[String], rows: List[List[String]]): Result[J
 /// Transformation: delegates serialization to the selected target JSON
 /// capability while preserving the portable `String` output contract.
 
-pub stringify(json: Json): Result[String, JsonError].
+pub (json: Json) stringify(): Result[String, JsonError].
 
 /// Renders a JSON value with canonical two-space indentation.
 ///
@@ -391,7 +391,7 @@ pub stringify(json: Json): Result[String, JsonError].
 /// Transformation: delegates pretty serialization to the selected target JSON
 /// capability while retaining deterministic object-key order.
 
-pub stringify_pretty(json: Json): Result[String, JsonError].
+pub (json: Json) stringify_pretty(): Result[String, JsonError].
 
 /// Renders a validated JSON value as compact text.
 ///
@@ -400,4 +400,4 @@ pub stringify_pretty(json: Json): Result[String, JsonError].
 /// Transformation: uses the maintained value renderer; unlike parsing arbitrary
 /// text, rendering a validated JSON value requires no recoverable error branch.
 
-pub to_string(json: Json): String.
+pub (json: Json) to_string(): String.

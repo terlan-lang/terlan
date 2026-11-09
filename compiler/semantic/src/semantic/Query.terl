@@ -26,7 +26,7 @@ struct Page {
  * Canonical JSON byte size includes this field itself, excluding a wire newline.
  */
 size(mut document: Json, remaining: Int): Result[Json, Failure] ->
-    let {
+    if {
         Ok(field) <- document.get("result_bytes");
         Ok(recorded) <- field.as_int()
     } else {
@@ -83,22 +83,26 @@ page_limit(): Json ->
  * Reserve a continuation envelope before adding payload, with no silent overrun.
  */
 payload_budget(request: Request, limits: Json): Result[Int, Failure] ->
-    let Ok(copy) <- Json.parse(Json.to_string(limits)) else {
+    if {
+        Ok(copy) <- Json.parse(Json.to_string(limits))
+    } else {
         _ ->
             Err(
                 Failure(code = "semantic.query.result", message = "Cannot copy result limitations."),
             )
     };
     (let _limit = copy.push(page_limit());
-(let Ok(envelope) <-
-    result(
-        request,
-        Json.array(),
-        "partial",
-        copy,
-        Json.string("c:0000000000000000000000000000000000000000000000000000000000000000"),
-        request.limits.max_work,
-    ) else {
+(if {
+    Ok(envelope) <-
+        result(
+            request,
+            Json.array(),
+            "partial",
+            copy,
+            Json.string("c:0000000000000000000000000000000000000000000000000000000000000000"),
+            request.limits.max_work,
+        )
+} else {
     Err(reason) -> Err(reason)
 };
 (let bytes = Json.to_string(envelope).byte_size();
@@ -126,7 +130,7 @@ scan(
     if {
         index == count -> Ok(Page(facts = facts, offset = index, work_used = used, truncated = false));
         used == request.limits.max_work -> Ok(Page(facts = facts, offset = index, work_used = used, truncated = true));
-        true -> let {
+        true -> if {
             Ok(row) <- prepared.rows.at(index);
             Ok(projected) <- QueryProjection.project(selection, prepared, row)
         } else {
@@ -150,7 +154,9 @@ scan(
                 payload_bytes,
                 maximum_payload,
             );
-            true -> let Ok(length) <- facts.length() else {
+            true -> if {
+                Ok(length) <- facts.length()
+            } else {
                 _ ->
                     Err(
                         Failure(
@@ -196,7 +202,9 @@ continuation(
     mut limits: Json,
 ): Result[Json, Failure] ->
     if {
-        page.truncated -> let Ok(id) <- QueryCursor.save(store, request, projection, page.offset) else {
+        page.truncated -> if {
+            Ok(id) <- QueryCursor.save(store, request, projection, page.offset)
+        } else {
             Err(reason) -> Err(reason)
         };
         (let _limit = limits.push(page_limit()); Ok(Json.string(id)));
@@ -207,7 +215,9 @@ continuation(
  * Typed callers receive the same validation as JSON/MCP/CLI callers.
  */
 pub execute(store: String, request: Request): Result[Json, Failure] ->
-    let true <- QueryRequest.valid(request) else {
+    if {
+        true <- QueryRequest.valid(request)
+    } else {
         _ ->
             Err(
                 Failure(
@@ -216,7 +226,7 @@ pub execute(store: String, request: Request): Result[Json, Failure] ->
                 ),
             )
     };
-    (let {
+    (if {
     Ok(snapshot) <- SnapshotStore.load(store, request.snapshot_id);
     Ok(artifact) <- SnapshotStore.compiler_artifact(store, request.snapshot_id)
 } else {
@@ -228,10 +238,14 @@ pub execute(store: String, request: Request): Result[Json, Failure] ->
             ),
         )
 };
-(let Ok(selection) <- EntityLookup.resolve(artifact, request) else {
+(if {
+    Ok(selection) <- EntityLookup.resolve(artifact, request)
+} else {
     Err(reason) -> Err(reason)
 };
-(let Ok(prepared) <- QueryProjection.prepare(selection, request.fact, request.limits.max_work) else {
+(if {
+    Ok(prepared) <- QueryProjection.prepare(selection, request.fact, request.limits.max_work)
+} else {
     Err(reason) -> Err(reason)
 };
 (let projection =
@@ -244,10 +258,14 @@ pub execute(store: String, request: Request): Result[Json, Failure] ->
             Json.to_string(prepared.limitations),
         ],
     );
-(let Ok(offset) <- QueryCursor.load(store, request, projection) else {
+(if {
+    Ok(offset) <- QueryCursor.load(store, request, projection)
+} else {
     Err(reason) -> Err(reason)
 };
-(let Ok(count) <- prepared.rows.length() else {
+(if {
+    Ok(count) <- prepared.rows.length()
+} else {
     _ ->
         Err(
             Failure(
@@ -256,7 +274,9 @@ pub execute(store: String, request: Request): Result[Json, Failure] ->
             ),
         )
 };
-(let true <- offset <= count else {
+(if {
+    true <- offset <= count
+} else {
     _ ->
         Err(
             Failure(
@@ -265,7 +285,9 @@ pub execute(store: String, request: Request): Result[Json, Failure] ->
             ),
         )
 };
-(let Ok(limits) <- Json.parse(Json.to_string(prepared.limitations)) else {
+(if {
+    Ok(limits) <- Json.parse(Json.to_string(prepared.limitations))
+} else {
     _ ->
         Err(
             Failure(
@@ -290,24 +312,30 @@ let _invalid =
             );
         true -> limits
     };
-(let Ok(maximum_payload) <- payload_budget(request, limits) else {
+(if {
+    Ok(maximum_payload) <- payload_budget(request, limits)
+} else {
     Err(reason) -> Err(reason)
 };
-(let Ok(page) <-
-    scan(
-        selection,
-        prepared,
-        request,
-        Json.array(),
-        offset,
-        count,
-        prepared.work_used,
-        0,
-        maximum_payload,
-    ) else {
+(if {
+    Ok(page) <-
+        scan(
+            selection,
+            prepared,
+            request,
+            Json.array(),
+            offset,
+            count,
+            prepared.work_used,
+            0,
+            maximum_payload,
+        )
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <- not page.truncated or page.offset > offset else {
+(if {
+    true <- not page.truncated or page.offset > offset
+} else {
     _ ->
         Err(
             Failure(
@@ -316,7 +344,9 @@ let _invalid =
             ),
         )
 };
-(let Ok(cursor) <- continuation(store, request, projection, page, limits) else {
+(if {
+    Ok(cursor) <- continuation(store, request, projection, page, limits)
+} else {
     Err(reason) -> Err(reason)
 };
 (let status =
@@ -325,10 +355,14 @@ let _invalid =
         page.truncated or invalid_context -> "partial";
         true -> prepared.status
     };
-(let Ok(document) <- result(request, page.facts, status, limits, cursor, page.work_used) else {
+(if {
+    Ok(document) <- result(request, page.facts, status, limits, cursor, page.work_used)
+} else {
     Err(reason) -> Err(reason)
 };
-(let true <- Json.to_string(document).byte_size() <= request.limits.max_bytes else {
+(if {
+    true <- Json.to_string(document).byte_size() <= request.limits.max_bytes
+} else {
     _ ->
         Err(
             Failure(
@@ -340,7 +374,9 @@ let _invalid =
 Ok(document))))))))))))))))).
 
 pub run(store: String, value: Json): Result[Json, Failure] ->
-    let Ok(request) <- QueryRequest.parse(value) else {
+    if {
+        Ok(request) <- QueryRequest.parse(value)
+    } else {
         Err(reason) -> Err(reason)
     };
     execute(store, request).

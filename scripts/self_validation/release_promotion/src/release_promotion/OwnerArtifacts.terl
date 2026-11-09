@@ -302,7 +302,7 @@ validates(path: String, value: Artifact): Bool ->
         value.members != [] -> OwnerDirectoryContract.schemas(path, value.members);
         true -> case value.header {
             None ->
-                let {
+                if {
                     Ok(document) <- OwnerStorage.read_json(path);
                     Some(schema) <- OwnerStorage.text(document, "schema")
                 } else {
@@ -310,7 +310,7 @@ validates(path: String, value: Artifact): Bool ->
                 };
                 schema == value.schema;
             Some(header) ->
-                let {
+                if {
                     Ok(size) <- File.size(path);
                     true <- size > 0 and size <= 1_048_576;
                     Ok(source) <- File.read_text(path);

@@ -1,6 +1,9 @@
-/** Minimal executable root for Phase 5 Core IR and optimizer authority. */
+/**
+ * Minimal executable root for Phase 5 Core IR and optimizer authority.
+ */
 module self_host.Main.
 
+import self_host.{ProjectedInterfaceCatalog, SelfHostCoreOptimizeEvidenceTool, SelfHostCoreOptimizeRuntimeTool, SelfHostPath}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -8,11 +11,6 @@ import std.core.{String, Unit}.
 import std.io.Console.eprintln.
 import std.io.Directory.
 import std.system.Arguments.
-import self_host.ProjectedInterfaceCatalog.
-import self_host.SelfHostCoreOptimizeEvidenceTool.
-import self_host.SelfHostCoreOptimizeRuntimeTool.
-import self_host.SelfHostPath.
-
 
 report_false(message: String): Bool ->
     let _reported = eprintln(message);
@@ -37,14 +35,31 @@ backend_usage(): Unit ->
     ).
 
 main_backend_unit(): Unit ->
-    let Some(source) <- Arguments.get(1) else { None -> backend_usage() };
-    let Some(interfaces) <- Arguments.get(2) else { None -> backend_usage() };
-    let Some(output) <- Arguments.get(3) else { None -> backend_usage() };
-    let Some(diagnostics) <- Arguments.get(4) else { None -> backend_usage() };
-    let _completed = ensure_directory(SelfHostPath.parent(output))
+    if {
+        Some(source) <- Arguments.get(1)
+    } else {
+        None -> backend_usage()
+    };
+    (if {
+    Some(interfaces) <- Arguments.get(2)
+} else {
+    None -> backend_usage()
+};
+(if {
+    Some(output) <- Arguments.get(3)
+} else {
+    None -> backend_usage()
+};
+(if {
+    Some(diagnostics) <- Arguments.get(4)
+} else {
+    None -> backend_usage()
+};
+(let _completed =
+    ensure_directory(SelfHostPath.parent(output))
         and ensure_directory(SelfHostPath.parent(diagnostics))
         and ProjectedInterfaceCatalog.write_backend(source, interfaces, output, diagnostics);
-    Unit.
+Unit)))).
 
 optimizer_usage(): Unit ->
     report_unit(
@@ -52,13 +67,26 @@ optimizer_usage(): Unit ->
     ).
 
 main_optimizer_evidence(): Unit ->
-    let Some(root) <- Arguments.get(1) else { None -> optimizer_usage() };
-    let Some(output) <- Arguments.get(2) else { None -> optimizer_usage() };
-    let Some(marker) <- Arguments.get(3) else { None -> optimizer_usage() };
-    let _completed = ensure_directory(SelfHostPath.parent(output))
+    if {
+        Some(root) <- Arguments.get(1)
+    } else {
+        None -> optimizer_usage()
+    };
+    (if {
+    Some(output) <- Arguments.get(2)
+} else {
+    None -> optimizer_usage()
+};
+(if {
+    Some(marker) <- Arguments.get(3)
+} else {
+    None -> optimizer_usage()
+};
+(let _completed =
+    ensure_directory(SelfHostPath.parent(output))
         and ensure_directory(SelfHostPath.parent(marker))
         and SelfHostCoreOptimizeEvidenceTool.write(root, output, marker);
-    Unit.
+Unit))).
 
 optimizer_artifacts_usage(): Unit ->
     report_unit(
@@ -66,34 +94,81 @@ optimizer_artifacts_usage(): Unit ->
     ).
 
 main_optimizer_artifacts(): Unit ->
-    let Some(source) <- Arguments.get(1) else { None -> optimizer_artifacts_usage() };
-    let Some(interfaces) <- Arguments.get(2) else { None -> optimizer_artifacts_usage() };
-    let Some(output) <- Arguments.get(3) else { None -> optimizer_artifacts_usage() };
-    let _completed = ProjectedInterfaceCatalog.write_optimizer_artifacts(source, interfaces, output);
-    Unit.
+    if {
+        Some(source) <- Arguments.get(1)
+    } else {
+        None -> optimizer_artifacts_usage()
+    };
+    (if {
+    Some(interfaces) <- Arguments.get(2)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(if {
+    Some(output) <- Arguments.get(3)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(let _completed = ProjectedInterfaceCatalog.write_optimizer_artifacts(source, interfaces, output); Unit))).
 
 main_optimizer_runtime(): Unit ->
-    let Some(root) <- Arguments.get(1) else { None -> optimizer_artifacts_usage() };
-    let Some(publisher) <- Arguments.get(2) else { None -> optimizer_artifacts_usage() };
-    let Some(vm) <- Arguments.get(3) else { None -> optimizer_artifacts_usage() };
-    let Some(entry) <- Arguments.get(4) else { None -> optimizer_artifacts_usage() };
-    let _completed = SelfHostCoreOptimizeRuntimeTool.write(root, publisher, vm, entry);
-    Unit.
+    if {
+        Some(root) <- Arguments.get(1)
+    } else {
+        None -> optimizer_artifacts_usage()
+    };
+    (if {
+    Some(publisher) <- Arguments.get(2)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(if {
+    Some(vm) <- Arguments.get(3)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(if {
+    Some(entry) <- Arguments.get(4)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(let _completed = SelfHostCoreOptimizeRuntimeTool.write(root, publisher, vm, entry); Unit)))).
 
 main_optimizer_cross_target(): Unit ->
-    let Some(source) <- Arguments.get(1) else { None -> optimizer_artifacts_usage() };
-    let Some(interfaces) <- Arguments.get(2) else { None -> optimizer_artifacts_usage() };
-    let Some(target_a) <- Arguments.get(3) else { None -> optimizer_artifacts_usage() };
-    let Some(target_b) <- Arguments.get(4) else { None -> optimizer_artifacts_usage() };
-    let Some(output) <- Arguments.get(5) else { None -> optimizer_artifacts_usage() };
-    let _completed = ProjectedInterfaceCatalog.write_optimizer_cross_target(
+    if {
+        Some(source) <- Arguments.get(1)
+    } else {
+        None -> optimizer_artifacts_usage()
+    };
+    (if {
+    Some(interfaces) <- Arguments.get(2)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(if {
+    Some(target_a) <- Arguments.get(3)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(if {
+    Some(target_b) <- Arguments.get(4)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(if {
+    Some(output) <- Arguments.get(5)
+} else {
+    None -> optimizer_artifacts_usage()
+};
+(let _completed =
+    ProjectedInterfaceCatalog.write_optimizer_cross_target(
         source,
         interfaces,
         target_a,
         target_b,
         output,
     );
-    Unit.
+Unit))))).
 
 pub main(): Unit ->
     case Arguments.get(0) {
@@ -102,7 +177,8 @@ pub main(): Unit ->
         Some("optimizer-runtime") -> main_optimizer_runtime();
         Some("optimizer-cross-target") -> main_optimizer_cross_target();
         Some("optimizer-evidence") -> main_optimizer_evidence();
-        _ -> report_unit(
-            "usage: terlan-self-host backend-unit ... | optimizer-artifacts ... | optimizer-evidence ...",
-        )
+        _ ->
+            report_unit(
+                "usage: terlan-self-host backend-unit ... | optimizer-artifacts ... | optimizer-evidence ...",
+            )
     }.

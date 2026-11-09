@@ -44,15 +44,15 @@ pub type AgentUpdate =
 
 pub await_reply[T](request_id: Int, witness: T): T.
 
-pub cast[T](agent: Agent[T], value: T): Unit.
+pub (agent: Agent[T]) cast[T](value: T): Unit.
 
-pub get[T](agent: Agent[T], request_id: Int): T.
+pub (agent: Agent[T]) get[T](request_id: Int): T.
 
-pub get_and_update[T](agent: Agent[T], request_id: Int, value: T): T.
+pub (agent: Agent[T]) get_and_update[T](request_id: Int, value: T): T.
 
 pub make_agent[T](process: std.vm.Process[AgentCommand[T]], initial: T): Agent[T].
 
-pub request_get[T](agent: Agent[T], request_id: Int, reply_to: std.vm.Process[AgentReply[T]]): Unit.
+pub (agent: Agent[T]) request_get[T](request_id: Int, reply_to: std.vm.Process[AgentReply[T]]): Unit.
 
 pub send_reply[T](reply_to: std.vm.Process[AgentReply[T]], request_id: Int, value: T): Unit.
 
@@ -62,6 +62,6 @@ pub serve_state[T](state: T): Unit.
 
 pub start[T](process: std.vm.Process[AgentCommand[T]], initial: T): Agent[T].
 
-pub stop[T](agent: Agent[T], request_id: Int): Unit.
+pub (agent: Agent[T]) stop[T](request_id: Int): Unit.
 
-pub update[T](agent: Agent[T], value: T): Unit.
+pub (agent: Agent[T]) update[T](value: T): Unit.

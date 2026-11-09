@@ -71,7 +71,24 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::FunctionCall => core_function_call_expr_from_syntax(expr),
         SyntaxExprKind::Case if expr.children.len() == 1 => {
             let scrutinee = Box::new(core_expr_from_syntax(&expr.children[0])?);
-            let clauses = core_case_clauses_from_syntax(expr)?;
+            let mut clauses = core_case_clauses_from_syntax(expr)?;
+            // A checked one-clause tuple case is an irrefutable product
+            // destructuring. Preserve it as the internal binding form so
+            // scalar replacement keeps working after pattern syntax was
+            // removed from source-level `let`.
+            if clauses.len() == 1
+                && clauses[0].guard.is_none()
+                && matches!(clauses[0].pattern, CorePattern::Tuple(_))
+            {
+                let clause = clauses.pop()?;
+                return Some(CoreExpr::Let {
+                    bindings: vec![CoreLetBinding {
+                        pattern: clause.pattern,
+                        value: *scrutinee,
+                    }],
+                    body: Box::new(clause.body),
+                });
+            }
             Some(CoreExpr::Case { scrutinee, clauses })
         }
         SyntaxExprKind::Try => core_try_expr_from_syntax(expr),
@@ -548,6 +565,12 @@ fn core_let_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
             .into_iter()
             .rev()
             .try_fold(body, |continuation, (binding, guard)| {
+                if matches!(&binding.pattern, CorePattern::Wildcard) && guard.is_none() {
+                    return Some(CoreExpr::Let {
+                        bindings: vec![binding],
+                        body: Box::new(continuation),
+                    });
+                }
                 let mut clauses = Vec::with_capacity(fallback_clauses.len() + 1);
                 clauses.push(CoreCaseClause {
                     pattern: binding.pattern,

@@ -399,7 +399,9 @@ write_report(root: String, source: String, exit_code: Int): Bool ->
     }.
 
 persist_report(root: String, rendered: String): Bool ->
-    let Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts")) else {
+    if {
+        Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts"))
+    } else {
         _ -> fail("counterexample report directory could not be created")
     };
     case write_text(

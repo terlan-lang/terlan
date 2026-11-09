@@ -74,7 +74,7 @@ samples(
 pub run(compiler: String, directory: String, count: Int, width: Int, repetitions: Int): Bool ->
     let valid =
         count > 0
-            and count <= 1024
+            and count <= 1_024
             and width > 0
             and width <= 256
             and repetitions > 0
@@ -82,7 +82,7 @@ pub run(compiler: String, directory: String, count: Int, width: Int, repetitions
             and repetitions rem 2 == 1;
     if {
         not valid or exists(directory) -> false;
-        true -> let {
+        true -> if {
             Ok(compiler_hash) <- sha256_file(compiler);
             Some(stdlib_hash) <- Evidence.stdlib_digest(Environment.current_directory());
             Ok(_) <- create_all(String.append(directory, "/control"));

@@ -76,6 +76,209 @@ pub (box: Box) value(): Int.\n\
 }
 
 #[test]
+fn accepts_pure_receiver_combinator_with_pure_callback() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.receiver_callback_pure.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+@pure\n\
+increment(value: Int): Int -> value + 1.\n\
+\n\
+@pure\n\
+pub transform(box: Box): Box ->\n\
+    box.map(increment).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+\n\
+@pure\n\
+pub (box: Box) map(callback: (Int) -> Int): Box.\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
+fn rejects_pure_receiver_combinator_with_effectful_callback() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.receiver_callback_effectful.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+effectful(value: Int): Int -> Box.observe(value).\n\
+\n\
+@pure\n\
+pub transform(box: Box): Box ->\n\
+    box.map(effectful).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+\n\
+@pure\n\
+pub (box: Box) map(callback: (Int) -> Int): Box.\n\
+pub observe(value: Int): Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("effectful imported receiver method call")),
+        "diagnostics: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn accepts_pure_receiver_combinator_forwarding_conditional_callback() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.receiver_callback_forwarded.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+@pure\n\
+pub transform(box: Box, callback: (Int) -> Int): Box ->\n\
+    box.map(callback).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+\n\
+@pure\n\
+pub (box: Box) map(callback: (Int) -> Int): Box.\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
+fn accepts_qualified_receiver_combinator_with_pure_callback() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.qualified_receiver_callback_pure.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+@pure\n\
+increment(value: Int): Int -> value + 1.\n\
+\n\
+@pure\n\
+pub transform(box: Box): Box ->\n\
+    Box.map(box, increment).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+\n\
+@pure\n\
+pub (box: Box) map(callback: (Int) -> Int): Box.\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
+fn rejects_qualified_receiver_combinator_with_effectful_callback() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.qualified_receiver_callback_effectful.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+effectful(value: Int): Int -> Box.observe(value).\n\
+\n\
+@pure\n\
+pub transform(box: Box): Box ->\n\
+    Box.map(box, effectful).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+\n\
+@pure\n\
+pub (box: Box) map(callback: (Int) -> Int): Box.\n\
+pub observe(value: Int): Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("effectful imported function call")),
+        "diagnostics: {diagnostics:?}"
+    );
+}
+
+#[test]
+fn accepts_local_combinator_with_pure_callback() {
+    let diagnostics = super::test_support::check_syntax_output(
+        "\
+module purity.local_callback_pure.\n\
+\n\
+@pure\n\
+apply(callback: (Int) -> Int, value: Int): Int -> callback(value).\n\
+\n\
+@pure\n\
+increment(value: Int): Int -> value + 1.\n\
+\n\
+@pure\n\
+pub execute(value: Int): Int -> apply(increment, value).\n\
+",
+    );
+
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+}
+
+#[test]
+fn rejects_local_combinator_with_effectful_callback() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.local_callback_effectful.\n\
+\n\
+import provider.Box.\n\
+\n\
+@pure\n\
+apply(callback: (Int) -> Int, value: Int): Int -> callback(value).\n\
+\n\
+effectful(value: Int): Int -> Box.observe(value).\n\
+\n\
+@pure\n\
+pub execute(value: Int): Int -> apply(effectful, value).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub observe(value: Int): Int.\n\
+",
+    );
+
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("effectful local function call")),
+        "diagnostics: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn accepts_type_resolved_pure_receiver_despite_impure_name_collision() {
     let diagnostics = check_syntax_output_with_interface(
         "\

@@ -79,7 +79,7 @@ pub command(executable: String, arguments: List[String], environment: List[EnvVa
  * normalize startup failures into the standard error channel.
  */
 @target.vm {process_mailbox: true}
-pub open(command: Command): Result[Port, Error] ->
+pub (command: Command) open(): Result[Port, Error] ->
     native.
 
 /**

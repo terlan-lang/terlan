@@ -14,7 +14,7 @@ import std.regex.Regex.
  */
 pub repository_boundary_holds(root: String): Bool ->
     let static_root = String.append(root, "/crates/terlan/src/commands/static_site");
-    let {
+    if {
         Ok(readme) <- read_text(String.append(static_root, "/README.md"));
         Ok(routes) <- read_text(String.append(static_root, "/routes.rs"))
     } else {

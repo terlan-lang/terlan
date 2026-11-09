@@ -970,7 +970,7 @@ import std.collections.List.\n\
 import std.data.Json.\n\
 import std.core.Result.{Err, Ok}.\n\
 pub count(): Int ->\n\
-    let Ok(keys) <- Json.object().keys() else { _ -> -1 };\n\
+    if { Ok(keys) <- Json.object().keys() } else { _ -> -1 };\n\
     List.length(keys).\n",
         "std/data/Json.terl",
     );

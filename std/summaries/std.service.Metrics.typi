@@ -19,4 +19,4 @@ pub declared_histogram(name: String, label_keys: List[String], cardinality_limit
 /// Records a value. Hosts reject undeclared names or a mismatched label shape.
 
 @pure
-pub record(instrument: Instrument, value: Float, labels: List[String]): Unit.
+pub (instrument: Instrument) record(value: Float, labels: List[String]): Unit.

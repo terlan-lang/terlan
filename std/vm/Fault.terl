@@ -111,7 +111,7 @@ pub policy(
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub resolve_policy(local: Policy, peer: Policy): Policy.
+pub (local: Policy) resolve_policy(peer: Policy): Policy.
 
 /**
  * Classifies distributed compatibility as `supported`,
@@ -210,77 +210,77 @@ pub (monitor: Monitor) close(): Unit.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub transition_node_id(transition: Transition): String.
+pub (transition: Transition) transition_node_id(): String.
 
 /**
  * Returns the state before a transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub transition_previous_state(transition: Transition): String.
+pub (transition: Transition) transition_previous_state(): String.
 
 /**
  * Returns the state after a transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub transition_next_state(transition: Transition): String.
+pub (transition: Transition) transition_next_state(): String.
 
 /**
  * Returns the scheduler tick recorded by a transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub transition_tick(transition: Transition): Int.
+pub (transition: Transition) transition_tick(): Int.
 
 /**
  * Returns the stable reason recorded by a transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub transition_reason(transition: Transition): String.
+pub (transition: Transition) transition_reason(): String.
 
 /**
  * Returns the stable operational diagnostic represented by a transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub transition_diagnostic_kind(transition: Transition): String.
+pub (transition: Transition) transition_diagnostic_kind(): String.
 
 /**
  * Returns the stable machine-readable failure kind.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub failure_kind(failure: Failure): String.
+pub (failure: Failure) failure_kind(): String.
 
 /**
  * Returns the node associated with a failure.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub failure_node_id(failure: Failure): String.
+pub (failure: Failure) failure_node_id(): String.
 
 /**
  * Returns the scheduler tick associated with a failure.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub failure_tick(failure: Failure): Int.
+pub (failure: Failure) failure_tick(): Int.
 
 /**
  * Returns the stable reason associated with a failure.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub failure_reason(failure: Failure): String.
+pub (failure: Failure) failure_reason(): String.
 
 /**
  * Returns the stable operational diagnostic represented by a failure.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub failure_diagnostic_kind(failure: Failure): String.
+pub (failure: Failure) failure_diagnostic_kind(): String.
 
 /**
  * Builds a fault state descriptor.
@@ -304,8 +304,7 @@ pub state(node_id: String, state: String): State.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub classify_heartbeat(
-    policy: Policy,
+pub (policy: Policy) classify_heartbeat(
     node_id: String,
     tick: Int,
     heartbeat_gap_ticks: Int,
@@ -322,8 +321,7 @@ pub classify_heartbeat(
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub isolate_partition(
-    policy: Policy,
+pub (policy: Policy) isolate_partition(
     node_id: String,
     tick: Int,
     heartbeat_gap_ticks: Int,
@@ -352,7 +350,7 @@ pub start_recovery(node_id: String, tick: Int, reason: String): Recovery.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition.
+pub (recovery: Recovery) complete_recovery(tick: Int, reason: String): Transition.
 
 /**
  * Expires one recovery attempt.
@@ -363,7 +361,7 @@ pub complete_recovery(recovery: Recovery, tick: Int, reason: String): Transition
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub expire_recovery(policy: Policy, recovery: Recovery, tick: Int, reason: String): Failure.
+pub (policy: Policy) expire_recovery(recovery: Recovery, tick: Int, reason: String): Failure.
 
 /**
  * Builds a migration-timeout rollback descriptor.
@@ -417,7 +415,7 @@ pub migration_partial_commit(
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub failure(rollback: Rollback): Failure.
+pub (rollback: Rollback) failure(): Failure.
 
 /**
  * Builds a typed failure for a rejected stale placement update.

@@ -136,7 +136,7 @@ pub opaque type TransactionalBatchProof.
 /// Transformation: exposes schema migration diagnostics without exposing
 /// adapter internals.
 
-pub actual_schema(outcome: Outcome): Int.
+pub (outcome: Outcome) actual_schema(): Int.
 
 /// Returns the actual sequence for compare-and-swap token mismatch outcomes.
 ///
@@ -146,7 +146,7 @@ pub actual_schema(outcome: Outcome): Int.
 /// Transformation: exposes stale writer diagnostics without exposing adapter
 /// internals.
 
-pub actual_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) actual_sequence(): Int.
 
 /// Creates a storage adapter from a policy.
 ///
@@ -154,7 +154,7 @@ pub actual_sequence(outcome: Outcome): Int.
 /// Output: closed adapter descriptor.
 /// Transformation: binds lifecycle operations to one VM-owned backend policy.
 
-pub adapter(policy: Policy): Adapter.
+pub (policy: Policy) adapter(): Adapter.
 
 /// Appends a storage snapshot.
 ///
@@ -182,7 +182,7 @@ pub (adapter: Adapter) atomic_append_proof(): AtomicAppendProof.
 /// Transformation: exposes all-or-nothing batch conformance without exposing
 /// adapter internals.
 
-pub batch_committed_count(proof: TransactionalBatchProof): Int.
+pub (proof: TransactionalBatchProof) batch_committed_count(): Int.
 
 /// Returns the first sequence covered by a transactional batch proof.
 ///
@@ -191,7 +191,7 @@ pub batch_committed_count(proof: TransactionalBatchProof): Int.
 /// Transformation: exposes all-or-nothing batch conformance without exposing
 /// adapter internals.
 
-pub batch_first_sequence(proof: TransactionalBatchProof): Int.
+pub (proof: TransactionalBatchProof) batch_first_sequence(): Int.
 
 /// Returns the last sequence covered by a transactional batch proof.
 ///
@@ -200,7 +200,7 @@ pub batch_first_sequence(proof: TransactionalBatchProof): Int.
 /// Transformation: exposes all-or-nothing batch conformance without exposing
 /// adapter internals.
 
-pub batch_last_sequence(proof: TransactionalBatchProof): Int.
+pub (proof: TransactionalBatchProof) batch_last_sequence(): Int.
 
 /// Returns whether an adapter can perform cluster replication.
 ///
@@ -228,7 +228,7 @@ pub checkpoint(checkpoint_id: String, sequence: Int, state: std.vm.DistributedSt
 /// Transformation: exposes stable checkpoint metadata for diagnostics and
 /// recovery without exposing snapshot internals.
 
-pub checkpoint_id(outcome: Outcome): String.
+pub (outcome: Outcome) checkpoint_id(): String.
 
 /// Returns the application schema tag of a created or loaded checkpoint.
 ///
@@ -237,7 +237,7 @@ pub checkpoint_id(outcome: Outcome): String.
 /// Transformation: lets callers select application-level restore handling
 /// without conflating their schema with the VM's versioned logical encoding.
 
-pub checkpoint_schema(snapshot: Snapshot): Int.
+pub (snapshot: Snapshot) checkpoint_schema(): Int.
 
 /// Builds a logical checkpoint with an explicit application schema version.
 ///
@@ -256,7 +256,7 @@ pub checkpoint_with_schema(checkpoint_id: String, sequence: Int, schema: Int, st
 /// Transformation: exposes checksum metadata for audit and validation without
 /// leaking the snapshot representation.
 
-pub checksum(outcome: Outcome): Int.
+pub (outcome: Outcome) checksum(): Int.
 
 /// Closes a storage adapter.
 ///
@@ -328,7 +328,7 @@ pub (adapter: Adapter) durable_flush_proof(): DurableFlushProof.
 /// Transformation: exposes fsync/equivalent conformance without exposing
 /// adapter internals.
 
-pub durable_flush_sequence(proof: DurableFlushProof): Int.
+pub (proof: DurableFlushProof) durable_flush_sequence(): Int.
 
 /// Returns the expected checksum for checksum-mismatch outcomes.
 ///
@@ -338,7 +338,7 @@ pub durable_flush_sequence(proof: DurableFlushProof): Int.
 /// Transformation: exposes checksum mismatch diagnostics without exposing the
 /// snapshot representation.
 
-pub expected_checksum(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_checksum(): Int.
 
 /// Returns the expected entry count for partial-write outcomes.
 ///
@@ -349,7 +349,7 @@ pub expected_checksum(outcome: Outcome): Int.
 /// writes and return zero. An indeterminate commit is not a measured partial
 /// write; zero does not establish that an unacknowledged write rolled back.
 
-pub expected_entries(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_entries(): Int.
 
 /// Returns the expected schema version for schema migration failures.
 ///
@@ -359,7 +359,7 @@ pub expected_entries(outcome: Outcome): Int.
 /// Transformation: exposes schema migration diagnostics without exposing
 /// adapter internals.
 
-pub expected_schema(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_schema(): Int.
 
 /// Returns the expected sequence for compare-and-swap token mismatch outcomes.
 ///
@@ -369,7 +369,7 @@ pub expected_schema(outcome: Outcome): Int.
 /// Transformation: exposes stale writer diagnostics without exposing adapter
 /// internals.
 
-pub expected_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_sequence(): Int.
 
 /// Flushes pending storage writes.
 ///
@@ -397,7 +397,7 @@ pub force_local(): Policy.
 /// Output: incoming sequence number, or zero when the outcome is not stale.
 /// Transformation: exposes rejected checkpoint ordering as typed metadata.
 
-pub incoming_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) incoming_sequence(): Int.
 
 /// Returns whether an outcome represents a failed storage operation.
 ///
@@ -407,7 +407,7 @@ pub incoming_sequence(outcome: Outcome): Int.
 /// Transformation: exposes success/failure branching as typed metadata instead
 /// of requiring string comparisons.
 
-pub is_failure(outcome: Outcome): Bool.
+pub (outcome: Outcome) is_failure(): Bool.
 
 /// Returns whether an outcome represents a successful storage operation.
 ///
@@ -417,7 +417,7 @@ pub is_failure(outcome: Outcome): Bool.
 /// Transformation: exposes success branching as typed metadata instead of
 /// requiring callers to negate failure state.
 
-pub is_success(outcome: Outcome): Bool.
+pub (outcome: Outcome) is_success(): Bool.
 
 /// Returns the checkpoint id covered by a snapshot isolation proof.
 ///
@@ -426,7 +426,7 @@ pub is_success(outcome: Outcome): Bool.
 /// Transformation: exposes stable snapshot identity without exposing adapter
 /// internals.
 
-pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String.
+pub (proof: SnapshotIsolationProof) isolation_checkpoint_id(): String.
 
 /// Returns the checksum covered by a snapshot isolation proof.
 ///
@@ -435,7 +435,7 @@ pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String.
 /// Transformation: exposes stable snapshot integrity evidence without exposing
 /// adapter internals.
 
-pub isolation_checksum(proof: SnapshotIsolationProof): Int.
+pub (proof: SnapshotIsolationProof) isolation_checksum(): Int.
 
 /// Returns the sequence covered by a snapshot isolation proof.
 ///
@@ -444,7 +444,7 @@ pub isolation_checksum(proof: SnapshotIsolationProof): Int.
 /// Transformation: exposes stable snapshot ordering without exposing adapter
 /// internals.
 
-pub isolation_sequence(proof: SnapshotIsolationProof): Int.
+pub (proof: SnapshotIsolationProof) isolation_sequence(): Int.
 
 /// Returns the textual lifecycle outcome kind.
 ///
@@ -453,7 +453,7 @@ pub isolation_sequence(proof: SnapshotIsolationProof): Int.
 /// Transformation: exposes storage result classification for tests, logs, and
 /// tools.
 
-pub kind(outcome: Outcome): String.
+pub (outcome: Outcome) kind(): String.
 
 /// Loads a checkpoint by id.
 ///
@@ -472,7 +472,7 @@ pub (adapter: Adapter) load_snapshot(checkpoint_id: String): Outcome.
 /// Transformation: keeps snapshot extraction typed and avoids diagnostic
 /// parsing.
 
-pub loaded_snapshot(outcome: Outcome): Snapshot.
+pub (outcome: Outcome) loaded_snapshot(): Snapshot.
 
 /// Builds the local-only storage mode.
 ///
@@ -489,7 +489,7 @@ pub local_only(): Mode.
 /// Transformation: exposes stale replay diagnostics without exposing adapter
 /// state.
 
-pub local_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) local_sequence(): Int.
 
 /// Migrates the adapter schema when the expected version is current.
 ///
@@ -508,7 +508,7 @@ pub (adapter: Adapter) migrate_schema(expected_schema: Int, next_schema: Int): O
 /// Transformation: exposes resource recovery diagnostics without exposing
 /// adapter internals.
 
-pub missing_resource_handle(outcome: Outcome): String.
+pub (outcome: Outcome) missing_resource_handle(): String.
 
 /// Returns the storage mode kind associated with an outcome.
 ///
@@ -518,7 +518,7 @@ pub missing_resource_handle(outcome: Outcome): String.
 /// Transformation: exposes backend class metadata for capability decisions
 /// without exposing adapter state.
 
-pub mode_kind(outcome: Outcome): String.
+pub (outcome: Outcome) mode_kind(): String.
 
 /// Opens a storage adapter.
 ///
@@ -536,7 +536,7 @@ pub (adapter: Adapter) open(): Outcome.
 /// Transformation: exposes capability/failure operation metadata without
 /// exposing backend internals or debug text.
 
-pub operation_kind(outcome: Outcome): String.
+pub (outcome: Outcome) operation_kind(): String.
 
 /// Returns the persisted entry count for partial-write outcomes.
 ///
@@ -547,7 +547,7 @@ pub operation_kind(outcome: Outcome): String.
 /// than guessing partial progress. For indeterminate commits, reconcile stored
 /// checkpoint identities; this getter is not evidence of rollback.
 
-pub persisted_entries(outcome: Outcome): Int.
+pub (outcome: Outcome) persisted_entries(): Int.
 
 /// Builds a storage policy descriptor.
 ///
@@ -565,7 +565,7 @@ pub policy(name: String, mode: Mode, available: Bool): Policy.
 /// Transformation: exposes deterministic backend availability for validation
 /// without opening the adapter.
 
-pub policy_available(policy: Policy): Bool.
+pub (policy: Policy) policy_available(): Bool.
 
 /// Returns whether an adapter's selected backend is available.
 ///
@@ -583,7 +583,7 @@ pub (adapter: Adapter) policy_available(): Bool.
 /// Transformation: exposes deterministic capability checks before adapter
 /// lifecycle calls.
 
-pub policy_can_cluster_replicate(policy: Policy): Bool.
+pub (policy: Policy) policy_can_cluster_replicate(): Bool.
 
 /// Returns the stable policy mode kind.
 ///
@@ -592,7 +592,7 @@ pub policy_can_cluster_replicate(policy: Policy): Bool.
 /// Transformation: exposes adapter mode selection without leaking backend
 /// internals.
 
-pub policy_mode_kind(policy: Policy): String.
+pub (policy: Policy) policy_mode_kind(): String.
 
 /// Returns the policy mode kind attached to an adapter.
 ///
@@ -610,7 +610,7 @@ pub (adapter: Adapter) policy_mode_kind(): String.
 /// Transformation: exposes adapter selection identity without leaking backend
 /// internals.
 
-pub policy_name(policy: Policy): String.
+pub (policy: Policy) policy_name(): String.
 
 /// Returns the policy name attached to an adapter.
 ///
@@ -628,7 +628,7 @@ pub (adapter: Adapter) policy_name(): String.
 /// Transformation: exposes atomic append conformance without exposing adapter
 /// internals.
 
-pub proof_sequence(proof: AtomicAppendProof): Int.
+pub (proof: AtomicAppendProof) proof_sequence(): Int.
 
 /// Returns the stable failure reason associated with an outcome.
 ///
@@ -638,7 +638,7 @@ pub proof_sequence(proof: AtomicAppendProof): Int.
 /// Transformation: exposes machine-readable storage diagnostics without
 /// leaking backend-specific error messages.
 
-pub reason(outcome: Outcome): String.
+pub (outcome: Outcome) reason(): String.
 
 /// Returns the recovery action associated with a failure outcome.
 ///
@@ -648,7 +648,7 @@ pub reason(outcome: Outcome): String.
 /// Transformation: exposes recovery routing as typed storage metadata instead
 /// of coupling migration or fault code to diagnostic strings.
 
-pub recovery_action(outcome: Outcome): String.
+pub (outcome: Outcome) recovery_action(): String.
 
 /// Registers a supervisor-authorized resource name with the adapter.
 ///
@@ -747,7 +747,7 @@ pub (adapter: Adapter) require_transactional_batch(): Outcome.
 /// Transformation: separates recovery-required failures from ordinary
 /// capability or lookup outcomes without string comparisons.
 
-pub requires_recovery(outcome: Outcome): Bool.
+pub (outcome: Outcome) requires_recovery(): Bool.
 
 /// Returns the count covered by a resource handle validation proof.
 ///
@@ -756,7 +756,7 @@ pub requires_recovery(outcome: Outcome): Bool.
 /// Transformation: exposes resource validation conformance without exposing
 /// adapter internals.
 
-pub resource_handle_count(proof: ResourceHandleValidationProof): Int.
+pub (proof: ResourceHandleValidationProof) resource_handle_count(): Int.
 
 /// Returns the storage sequence covered by a resource validation proof.
 ///
@@ -765,7 +765,7 @@ pub resource_handle_count(proof: ResourceHandleValidationProof): Int.
 /// Transformation: binds resource validation to replay ordering without
 /// exposing adapter internals.
 
-pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int.
+pub (proof: ResourceHandleValidationProof) resource_handle_sequence(): Int.
 
 /// Returns the current resource handle validation proof.
 ///
@@ -794,7 +794,7 @@ pub (snapshot: Snapshot) restore(): std.vm.DistributedState.Store.
 /// Transformation: exposes deterministic compaction progress without exposing
 /// adapter log internals.
 
-pub retained_snapshots(outcome: Outcome): Int.
+pub (outcome: Outcome) retained_snapshots(): Int.
 
 /// Returns the current schema migration proof.
 ///
@@ -812,7 +812,7 @@ pub (adapter: Adapter) schema_migration_proof(): SchemaMigrationProof.
 /// Transformation: binds schema evolution to replay ordering without exposing
 /// adapter internals.
 
-pub schema_sequence(proof: SchemaMigrationProof): Int.
+pub (proof: SchemaMigrationProof) schema_sequence(): Int.
 
 /// Returns the schema version covered by a schema migration proof.
 ///
@@ -821,7 +821,7 @@ pub schema_sequence(proof: SchemaMigrationProof): Int.
 /// Transformation: exposes schema evolution conformance without exposing
 /// adapter internals.
 
-pub schema_version(proof: SchemaMigrationProof): Int.
+pub (proof: SchemaMigrationProof) schema_version(): Int.
 
 /// Returns the sequence associated with a lifecycle outcome.
 ///
@@ -830,7 +830,7 @@ pub schema_version(proof: SchemaMigrationProof): Int.
 /// Transformation: exposes deterministic checkpoint ordering for diagnostics
 /// without exposing backend internals.
 
-pub sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) sequence(): Int.
 
 /// Returns a snapshot isolation proof for a checkpoint.
 ///
@@ -880,4 +880,4 @@ pub (adapter: Adapter) validate_resource_handles(handles: List[String]): Outcome
 /// Transformation: exposes resource validation metadata for conformance tests
 /// and replay diagnostics.
 
-pub validated_resource_count(outcome: Outcome): Int.
+pub (outcome: Outcome) validated_resource_count(): Int.

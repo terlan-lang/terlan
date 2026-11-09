@@ -1,7 +1,7 @@
 {
   "schema": "terlan-syntax-contract-v1",
   "fingerprint_algorithm": "fnv1a64",
-  "fingerprint": "fnv1a64:7937bf2288692ede",
+  "fingerprint": "fnv1a64:d6c3a83660a6c73d",
   "format_version": 1,
   "entry_rule": "SyntaxSpec",
   "rule_count": 250

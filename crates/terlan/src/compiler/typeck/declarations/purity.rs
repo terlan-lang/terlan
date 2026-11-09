@@ -34,6 +34,7 @@ pub(super) fn collect_effectful_local_calls(
     aliases: &HashMap<String, TypeAlias>,
     expr_ctx: &ExprInferContext<'_>,
     imported_effects: &ImportedEffectFacts,
+    conditional_local_calls: &HashSet<(String, usize)>,
 ) -> HashSet<(String, usize)> {
     let no_effectful_locals = HashSet::new();
     let mut effectful = module
@@ -74,6 +75,8 @@ pub(super) fn collect_effectful_local_calls(
                         &no_effectful_locals,
                         &function_values,
                         imported_effects,
+                        conditional_local_calls,
+                        conditional_local_calls.contains(&identity),
                     )
                 })
                 .then_some(identity)
@@ -110,6 +113,8 @@ pub(super) fn collect_effectful_local_calls(
                     &effectful,
                     &function_values,
                     imported_effects,
+                    conditional_local_calls,
+                    conditional_local_calls.contains(&identity),
                 )
             }) {
                 changed |= effectful.insert(identity);
@@ -129,9 +134,21 @@ fn clause_has_effects(
     effectful_local_calls: &HashSet<(String, usize)>,
     function_values: &HashSet<String>,
     imported_effects: &ImportedEffectFacts,
+    conditional_local_calls: &HashSet<(String, usize)>,
+    conditionally_pure: bool,
 ) -> bool {
-    let mut facts = effectful_call_facts(effectful_local_calls, imported_effects);
-    facts.function_values = Some(function_values);
+    let mut facts = effectful_call_facts(
+        effectful_local_calls,
+        conditional_local_calls,
+        imported_effects,
+    );
+    if conditionally_pure {
+        facts.conditional_function_values = Some(function_values);
+    } else {
+        facts.function_values = Some(function_values);
+    }
+    let mut local_expr_ctx = *expr_ctx;
+    local_expr_ctx.effectful_calls = facts;
     let mut proven_pure_receiver_calls = Vec::new();
     if let Some(scheme) = scheme {
         let instantiated = instantiate_function_scheme(scheme);
@@ -151,7 +168,7 @@ fn clause_has_effects(
             collect_proven_pure_receiver_calls(
                 guard,
                 &locals,
-                expr_ctx,
+                &local_expr_ctx,
                 &subst,
                 &mut proven_pure_receiver_calls,
             );
@@ -159,7 +176,7 @@ fn clause_has_effects(
         collect_proven_pure_receiver_calls(
             &clause.body,
             &locals,
-            expr_ctx,
+            &local_expr_ctx,
             &subst,
             &mut proven_pure_receiver_calls,
         );
@@ -194,11 +211,14 @@ fn function_value_param_names(
 
 pub(super) fn effectful_call_facts<'a>(
     local: &'a HashSet<(String, usize)>,
+    conditional_local: &'a HashSet<(String, usize)>,
     imported: &'a ImportedEffectFacts,
 ) -> EffectfulCallFacts<'a> {
     EffectfulCallFacts {
         local: Some(local),
+        conditional_local: Some(conditional_local),
         function_values: None,
+        conditional_function_values: None,
         imported: Some(&imported.selected),
         qualified: Some(&imported.qualified),
         imported_receiver: Some(&imported.receiver_methods),
@@ -207,6 +227,38 @@ pub(super) fn effectful_call_facts<'a>(
         module_aliases: Some(&imported.module_aliases),
         proven_pure_receiver_calls: None,
     }
+}
+
+pub(super) fn collect_conditional_pure_local_calls(
+    module: &SyntaxModuleOutput,
+    function_signatures: &HashMap<(String, usize), Vec<FunctionScheme>>,
+    aliases: &HashMap<String, TypeAlias>,
+) -> HashSet<(String, usize)> {
+    module
+        .declarations
+        .iter()
+        .filter(|declaration| declaration_has_marker_annotation(declaration, &["pure"]))
+        .filter_map(|declaration| {
+            let SyntaxDeclarationPayload::Function { name, params, .. } = &declaration.payload
+            else {
+                return None;
+            };
+            let identity = (name.clone(), params.len());
+            function_signatures
+                .get(&identity)
+                .is_some_and(|schemes| {
+                    schemes.iter().any(|scheme| {
+                        scheme.params.iter().any(|parameter| {
+                            matches!(
+                                expand_type_aliases(parameter, aliases),
+                                Type::Function { .. }
+                            )
+                        })
+                    })
+                })
+                .then_some(identity)
+        })
+        .collect()
 }
 
 /// Collects selected imported calls lacking an explicit purity proof.
@@ -256,7 +308,16 @@ pub(super) fn collect_effectful_imported_calls(expr_ctx: &ExprInferContext) -> I
         .values()
         .flat_map(|interface| interface.function_overloads.values())
         .flat_map(|signatures| signatures.iter())
-        .filter(|signature| signature.public && signature.receiver_method && !signature.pure)
+        .filter(|signature| {
+            signature.public
+                && signature.receiver_method
+                && (!signature.pure
+                    || signature
+                        .params
+                        .iter()
+                        .skip(1)
+                        .any(|parameter| parameter.annotation.contains("->")))
+        })
         .filter_map(|signature| {
             signature
                 .params
@@ -303,9 +364,14 @@ pub(super) fn collect_effectful_imported_calls(expr_ctx: &ExprInferContext) -> I
 }
 
 fn signatures_have_unproven_purity(signatures: &[FunctionSignature]) -> bool {
-    signatures
-        .iter()
-        .any(|signature| signature.public && !signature.receiver_method && !signature.pure)
+    signatures.iter().any(|signature| {
+        signature.public
+            && (!signature.pure
+                || signature
+                    .params
+                    .iter()
+                    .any(|parameter| parameter.annotation.contains("->")))
+    })
 }
 
 /// Reports whether the implemented trait method requires a proven-pure body.

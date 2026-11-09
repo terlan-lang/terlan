@@ -128,7 +128,7 @@ continued_values(lines: List[String], current: String): Option[List[String]] ->
             value == "" -> Some([]);
             true -> Some([value])
         };
-        true -> let {
+        true -> if {
             [next | rest] <- lines;
             Some(values) <- continued_values(rest, next)
         } else {
@@ -299,7 +299,9 @@ validate_local_evidence(name: String, value: Json): Bool ->
             "managed_list" -> "terlan.tvm.managed-list-profile.v1";
             _ -> ""
         };
-    let Some(actual_schema) <- json_string(value, "schema") else {
+    if {
+        Some(actual_schema) <- json_string(value, "schema")
+    } else {
         _ -> false
     };
     if {
@@ -323,7 +325,7 @@ evidence_entry(path: String): Option[Json] ->
 
 validated_evidence(root: String, name: String, relative: String): Option[Json] ->
     let path = child(root, relative);
-    let {
+    if {
         Some(value) <- load_json(path);
         Some(entry) <- evidence_entry(relative)
     } else {
@@ -349,7 +351,7 @@ host_contract(root: String, revision: String): Option[Json] ->
         Some(target) ->
             let relative = String.concat(["target/quality/tvm-aot-platform/", target.id, ".json"]);
             let path = child(root, relative);
-            let {
+            if {
                 Some(report) <- load_json(path);
                 Some(source_revision) <- json_string(report, "source_revision");
                 Some(digest) <- file_digest(path)
@@ -386,7 +388,7 @@ sanitizer_evidence(root: String, revision: String): Option[Json] ->
                     ),
                 ),
         );
-        true -> let {
+        true -> if {
             Some(report) <- load_json(path);
             Some(source_revision) <- json_string(report, "source_revision");
             Some(digest) <- file_digest(path)
@@ -408,7 +410,7 @@ sanitizer_evidence(root: String, revision: String): Option[Json] ->
 inventory_evidence(root: String): Option[Json] ->
     let relative = "docs/runtime/TVM_AOT_PIVOT_INVENTORY.md";
     let path = child(root, relative);
-    let {
+    if {
         Ok(markdown) <- read_text(path);
         Some(counts) <- inventory_counts(markdown);
         Some(digest) <- file_digest(path)
@@ -423,7 +425,7 @@ inventory_evidence(root: String): Option[Json] ->
     ).
 
 retained_evidence(root: String): Option[Json] ->
-    let {
+    if {
         Some(managed) <- validated_evidence(root, "managed_list", "target/quality/tvm-managed-list-profile.json");
         Some(inventory) <- inventory_evidence(root)
     } else {
@@ -489,7 +491,7 @@ write_closeout(root: String, report: Json, revision: String): Bool ->
  */
 pub record_local(): Bool ->
     let root = Environment.current_directory();
-    let {
+    if {
         Ok(identity) <- source_tree_identity(root);
         Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
         Some(cargo) <- command_output(root, "cargo", ["--version"]);
@@ -513,7 +515,7 @@ pub record_local(): Bool ->
 write_closeout(root, report, identity.revision)).
 
 local_report(root: String): Option[Json] ->
-    let {
+    if {
         Ok(identity) <- source_tree_identity(root);
         true <- identity.clean;
         Some(rustc) <- command_output(root, "rustc", ["--version", "--verbose"]);
@@ -542,7 +544,7 @@ local_report(root: String): Option[Json] ->
  */
 pub verify_local(): Bool ->
     let root = Environment.current_directory();
-    let {
+    if {
         Some(actual) <- load_json(child(root, "target/quality/tvm-aot-release-closeout-report.json"));
         Some(expected) <- local_report(root)
     } else {

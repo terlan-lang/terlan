@@ -41,4 +41,4 @@ pub type VisualBoxPart =
 /// Combines visual-box, length for overflow-clip-margin. Each parameter accepts its own keyword or
 /// typed unit choices directly.
 
-pub compose(visual_box: VisualBoxPart, length: LengthPart): Checked.
+pub (visual_box: VisualBoxPart) compose(length: LengthPart): Checked.

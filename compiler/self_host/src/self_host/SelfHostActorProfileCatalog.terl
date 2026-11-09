@@ -1,20 +1,19 @@
-/** Strict dependency-profile ingestion for self-hosted actor IR v2 artifacts. */
+/**
+ * Strict dependency-profile ingestion for self-hosted actor IR v2 artifacts.
+ */
 module self_host.SelfHostActorProfileCatalog.
 
-import std.core.String.
-
+import self_host.SelfHostActorCallFacts.
+import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
+import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok, Result}.
-import std.core.{Bool, Int, String}.
+import std.core.{Bool, Int, Result, String}.
 import std.data.Json.
 import std.io.File.
+
 import type std.data.Json.{Json}.
-
-import self_host.SelfHostActorCallFacts.{ActorSuspensionProfile}.
-import self_host.SelfHostActorCallPlan.{ActorCalleeEntry}.
-import self_host.SelfHostActorCallFacts.
-
 
 struct ActorOutwardEntry {
     module_name: String,
@@ -35,7 +34,6 @@ constructor ActorOutwardEntry {
         }
 }.
 
-
 @pure
 field(value: Json, name: String): Result[Json, String] ->
     case value.get(name) {
@@ -47,71 +45,95 @@ field(value: Json, name: String): Result[Json, String] ->
 string_field(value: Json, name: String): Result[String, String] ->
     case field(value, name) {
         Err(reason) -> Err(reason);
-        Ok(found) -> case found.as_string() {
-            Err(_) -> Err(String.concat(["actor profile field is not a string: ", name]));
-            Ok(text) -> Ok(text)
-        }
+        Ok(found) ->
+            case found.as_string() {
+                Err(_) -> Err(String.concat(["actor profile field is not a string: ", name]));
+                Ok(text) -> Ok(text)
+            }
     }.
 
 @pure
 int_field(value: Json, name: String): Result[Int, String] ->
     case field(value, name) {
         Err(reason) -> Err(reason);
-        Ok(found) -> case found.as_int() {
-            Err(_) -> Err(String.concat(["actor profile field is not an integer: ", name]));
-            Ok(number) -> Ok(number)
-        }
+        Ok(found) ->
+            case found.as_int() {
+                Err(_) -> Err(String.concat(["actor profile field is not an integer: ", name]));
+                Ok(number) -> Ok(number)
+            }
     }.
 
 @pure
 bool_field(value: Json, name: String): Result[Bool, String] ->
     case field(value, name) {
         Err(reason) -> Err(reason);
-        Ok(found) -> case found.as_bool() {
-            Err(_) -> Err(String.concat(["actor profile field is not a boolean: ", name]));
-            Ok(flag) -> Ok(flag)
-        }
+        Ok(found) ->
+            case found.as_bool() {
+                Err(_) -> Err(String.concat(["actor profile field is not a boolean: ", name]));
+                Ok(flag) -> Ok(flag)
+            }
     }.
 
 @pure
 entry(value: Json): Result[ActorCalleeEntry, String] ->
-    let Ok(has_export) <- bool_field(value, "has_export_identity") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(export_identity) <- string_field(value, "export_identity") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(continuation_identity) <- string_field(value, "continuation_identity") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(capture_count) <- int_field(value, "capture_count") else {
-        Err(reason) -> Err(reason)
-    };
     if {
-        has_export != (export_identity != "") ->
-            Err("actor profile entry has inconsistent export identity presence");
-        true -> Ok(ActorCalleeEntry(
-            if { has_export -> Some(export_identity); true -> None },
+        Ok(has_export) <- bool_field(value, "has_export_identity")
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    (if {
+    Ok(export_identity) <- string_field(value, "export_identity")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(continuation_identity) <- string_field(value, "continuation_identity")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(capture_count) <- int_field(value, "capture_count")
+} else {
+    Err(reason) -> Err(reason)
+};
+if {
+    has_export != (export_identity != "") -> Err("actor profile entry has inconsistent export identity presence");
+    true -> Ok(
+        ActorCalleeEntry(
+            if {
+                has_export -> Some(export_identity);
+                true -> None
+            },
             continuation_identity,
             capture_count,
-        ))
-    }.
+        ),
+    )
+}))).
 
 @pure
-entries_at(value: Json, index: Int, length: Int, output: List[ActorCalleeEntry]): Result[List[ActorCalleeEntry], String] ->
+entries_at(
+    value: Json,
+    index: Int,
+    length: Int,
+    output: List[ActorCalleeEntry],
+): Result[List[ActorCalleeEntry], String] ->
     if {
         index == length -> Ok(output);
         true -> case value.at(index) {
             Err(_) -> Err("actor profile entry index is unavailable");
-            Ok(item) -> case entry(item) {
-                Err(reason) -> Err(reason);
-                Ok(decoded) -> entries_at(value, index + 1, length, [decoded | output])
-            }
+            Ok(item) ->
+                case entry(item) {
+                    Err(reason) -> Err(reason);
+                    Ok(decoded) -> entries_at(value, index + 1, length, [decoded | output])
+                }
         }
     }.
 
 @pure
-reverse_entries(values: List[ActorCalleeEntry], output: List[ActorCalleeEntry]): List[ActorCalleeEntry] ->
+reverse_entries(
+    values: List[ActorCalleeEntry],
+    output: List[ActorCalleeEntry],
+): List[ActorCalleeEntry] ->
     case values {
         [] -> output;
         [value | rest] -> reverse_entries(rest, [value | output])
@@ -121,43 +143,50 @@ reverse_entries(values: List[ActorCalleeEntry], output: List[ActorCalleeEntry]):
 entries(value: Json): Result[List[ActorCalleeEntry], String] ->
     case value.length() {
         Err(_) -> Err("actor profile entries field is not an array");
-        Ok(length) -> case entries_at(value, 0, length, List.new[ActorCalleeEntry]()) {
-            Err(reason) -> Err(reason);
-            Ok(reversed) -> Ok(reverse_entries(reversed, List.new[ActorCalleeEntry]()))
-        }
+        Ok(length) ->
+            case entries_at(value, 0, length, List.new[ActorCalleeEntry]()) {
+                Err(reason) -> Err(reason);
+                Ok(reversed) -> Ok(reverse_entries(reversed, List.new[ActorCalleeEntry]()))
+            }
     }.
 
 @pure
 profile(value: Json): Result[ActorSuspensionProfile, String] ->
-    let Ok(module_name) <- string_field(value, "module_name") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(callable_name) <- string_field(value, "callable_name") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(arity) <- int_field(value, "arity") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(runtime_owned) <- bool_field(value, "runtime_owned") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(entries_value) <- field(value, "entries") else {
-        Err(reason) -> Err(reason)
-    };
-    let Ok(decoded_entries) <- entries(entries_value) else {
-        Err(reason) -> Err(reason)
-    };
-    let decoded = ActorSuspensionProfile(
-        module_name,
-        callable_name,
-        arity,
-        runtime_owned,
-        decoded_entries,
-    );
     if {
-        SelfHostActorCallFacts.profile_valid(decoded) -> Ok(decoded);
-        true -> Err("actor suspension profile is invalid")
-    }.
+        Ok(module_name) <- string_field(value, "module_name")
+    } else {
+        Err(reason) -> Err(reason)
+    };
+    (if {
+    Ok(callable_name) <- string_field(value, "callable_name")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(arity) <- int_field(value, "arity")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(runtime_owned) <- bool_field(value, "runtime_owned")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(entries_value) <- field(value, "entries")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(decoded_entries) <- entries(entries_value)
+} else {
+    Err(reason) -> Err(reason)
+};
+(let decoded = ActorSuspensionProfile(module_name, callable_name, arity, runtime_owned, decoded_entries);
+if {
+    SelfHostActorCallFacts.profile_valid(decoded) -> Ok(decoded);
+    true -> Err("actor suspension profile is invalid")
+})))))).
 
 @pure
 same(left: ActorSuspensionProfile, right: ActorSuspensionProfile): Bool ->
@@ -173,23 +202,33 @@ profile_present(value: ActorSuspensionProfile, values: List[ActorSuspensionProfi
     }.
 
 @pure
-profiles_at(value: Json, index: Int, length: Int, output: List[ActorSuspensionProfile]): Result[List[ActorSuspensionProfile], String] ->
+profiles_at(
+    value: Json,
+    index: Int,
+    length: Int,
+    output: List[ActorSuspensionProfile],
+): Result[List[ActorSuspensionProfile], String] ->
     if {
         index == length -> Ok(output);
         true -> case value.at(index) {
             Err(_) -> Err("actor profile index is unavailable");
-            Ok(item) -> case profile(item) {
-                Err(reason) -> Err(reason);
-                Ok(decoded) -> if {
-                    profile_present(decoded, output) -> Err("actor profile catalog contains duplicate callable identities");
-                    true -> profiles_at(value, index + 1, length, [decoded | output])
+            Ok(item) ->
+                case profile(item) {
+                    Err(reason) -> Err(reason);
+                    Ok(decoded) ->
+                        if {
+                            profile_present(decoded, output) -> Err("actor profile catalog contains duplicate callable identities");
+                            true -> profiles_at(value, index + 1, length, [decoded | output])
+                        }
                 }
-            }
         }
     }.
 
 @pure
-reverse_profiles(values: List[ActorSuspensionProfile], output: List[ActorSuspensionProfile]): List[ActorSuspensionProfile] ->
+reverse_profiles(
+    values: List[ActorSuspensionProfile],
+    output: List[ActorSuspensionProfile],
+): List[ActorSuspensionProfile] ->
     case values {
         [] -> output;
         [value | rest] -> reverse_profiles(rest, [value | output])
@@ -197,36 +236,43 @@ reverse_profiles(values: List[ActorSuspensionProfile], output: List[ActorSuspens
 
 @pure
 outward_entry(value: Json): Result[Option[ActorOutwardEntry], String] ->
-    let Ok(outward) <- bool_field(value, "outward_entry") else {
+    if {
+        Ok(outward) <- bool_field(value, "outward_entry")
+    } else {
         Err(reason) -> Err(reason)
     };
     if {
         not outward -> Ok(None);
-        true -> let Ok(module_name) <- string_field(value, "source_module") else {
+        true -> if {
+            Ok(module_name) <- string_field(value, "source_module")
+        } else {
             Err(reason) -> Err(reason)
         };
-        let Ok(callable_name) <- string_field(value, "source_function") else {
-            Err(reason) -> Err(reason)
-        };
-        let Ok(arity) <- int_field(value, "source_arity") else {
-            Err(reason) -> Err(reason)
-        };
-        let Ok(identity) <- string_field(value, "id") else {
-            Err(reason) -> Err(reason)
-        };
-        let Ok(captures) <- field(value, "capture_names") else {
-            Err(reason) -> Err(reason)
-        };
-        case captures.length() {
-            Err(_) -> Err("actor outward continuation captures are not an array");
-            Ok(capture_count) -> Ok(Some(ActorOutwardEntry(
-                module_name,
-                callable_name,
-                arity,
-                identity,
-                capture_count,
-            )))
-        }
+        (if {
+    Ok(callable_name) <- string_field(value, "source_function")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(arity) <- int_field(value, "source_arity")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(identity) <- string_field(value, "id")
+} else {
+    Err(reason) -> Err(reason)
+};
+(if {
+    Ok(captures) <- field(value, "capture_names")
+} else {
+    Err(reason) -> Err(reason)
+};
+case captures.length() {
+    Err(_) -> Err("actor outward continuation captures are not an array");
+    Ok(capture_count) ->
+        Ok(Some(ActorOutwardEntry(module_name, callable_name, arity, identity, capture_count)))
+}))))
     }.
 
 @pure
@@ -240,11 +286,12 @@ outward_at(
         index == length -> Ok(output);
         true -> case value.at(index) {
             Err(_) -> Err("actor continuation index is unavailable");
-            Ok(item) -> case outward_entry(item) {
-                Err(reason) -> Err(reason);
-                Ok(None) -> outward_at(value, index + 1, length, output);
-                Ok(Some(entry)) -> outward_at(value, index + 1, length, [entry | output])
-            }
+            Ok(item) ->
+                case outward_entry(item) {
+                    Err(reason) -> Err(reason);
+                    Ok(None) -> outward_at(value, index + 1, length, output);
+                    Ok(Some(entry)) -> outward_at(value, index + 1, length, [entry | output])
+                }
         }
     }.
 
@@ -275,9 +322,9 @@ profile_entry_outward(
 ): Bool ->
     case values {
         [] -> false;
-        [outward | rest] -> (profile_matches_outward(profile, outward)
-            and entry_matches_outward(entry, outward))
-            or profile_entry_outward(profile, entry, rest)
+        [outward | rest] ->
+            profile_matches_outward(profile, outward) and entry_matches_outward(entry, outward)
+                or profile_entry_outward(profile, entry, rest)
     }.
 
 @pure
@@ -290,38 +337,34 @@ profile_entries_outward(
         profile.runtime_owned -> true;
         true -> case values {
             [] -> true;
-            [entry | rest] -> profile_entry_outward(profile, entry, outward)
-                and profile_entries_outward(profile, rest, outward)
+            [entry | rest] ->
+                profile_entry_outward(profile, entry, outward)
+                    and profile_entries_outward(profile, rest, outward)
         }
     }.
 
 @pure
-profiles_outward(
-    profiles: List[ActorSuspensionProfile],
-    outward: List[ActorOutwardEntry],
-): Bool ->
+profiles_outward(profiles: List[ActorSuspensionProfile], outward: List[ActorOutwardEntry]): Bool ->
     case profiles {
         [] -> true;
-        [profile | rest] -> profile_entries_outward(profile, profile.entries, outward)
-            and profiles_outward(rest, outward)
+        [profile | rest] ->
+            profile_entries_outward(profile, profile.entries, outward)
+                and profiles_outward(rest, outward)
     }.
 
 @pure
-outward_profiled(
-    value: ActorOutwardEntry,
-    profiles: List[ActorSuspensionProfile],
-): Bool ->
+outward_profiled(value: ActorOutwardEntry, profiles: List[ActorSuspensionProfile]): Bool ->
     case profiles {
         [] -> false;
-        [profile | rest] -> if {
-            profile.runtime_owned or not profile_matches_outward(profile, value) ->
-                outward_profiled(value, rest);
-            true -> profile_entry_outward(
-                profile,
-                ActorCalleeEntry(None, value.continuation_identity, value.capture_count),
-                [value],
-            )
-        }
+        [profile | rest] ->
+            if {
+                profile.runtime_owned or not profile_matches_outward(profile, value) -> outward_profiled(value, rest);
+                true -> profile_entry_outward(
+                    profile,
+                    ActorCalleeEntry(None, value.continuation_identity, value.capture_count),
+                    [value],
+                )
+            }
     }.
 
 @pure
@@ -331,58 +374,65 @@ all_outward_profiled(
 ): Bool ->
     case values {
         [] -> true;
-        [value | rest] -> outward_profiled(value, profiles)
-            and all_outward_profiled(rest, profiles)
+        [value | rest] ->
+            outward_profiled(value, profiles) and all_outward_profiled(rest, profiles)
     }.
 
 @pure
 decode_document(value: Json): Result[List[ActorSuspensionProfile], String] ->
-    let Ok(schema) <- string_field(value, "schema") else {
+    if {
+        Ok(schema) <- string_field(value, "schema")
+    } else {
         Err(reason) -> Err(reason)
     };
     if {
         schema != "terlan.self-host.actor-ir/v2" -> Err("unsupported actor profile catalog schema");
-        true -> let Ok(profiles_value) <- field(value, "profiles") else {
+        true -> if {
+            Ok(profiles_value) <- field(value, "profiles")
+        } else {
             Err(reason) -> Err(reason)
         };
         case profiles_value.length() {
             Err(_) -> Err("actor profiles field is not an array");
-            Ok(length) -> case profiles_at(
-                profiles_value,
-                0,
-                length,
-                List.new[ActorSuspensionProfile](),
-            ) {
-                Err(reason) -> Err(reason);
-                Ok(reversed) -> let profiles = reverse_profiles(
-                    reversed,
-                    List.new[ActorSuspensionProfile](),
-                );
-                let Ok(continuations) <- field(value, "continuations") else {
-                    Err(reason) -> Err(reason)
-                };
-                case outward_entries(continuations) {
+            Ok(length) ->
+                case profiles_at(profiles_value, 0, length, List.new[ActorSuspensionProfile]()) {
                     Err(reason) -> Err(reason);
-                    Ok(outward) -> if {
-                        not profiles_outward(profiles, outward) ->
-                            Err("actor profile entry is not an emitted outward continuation");
-                        not all_outward_profiled(outward, profiles) ->
-                            Err("actor outward continuation is absent from its profile catalog");
-                        true -> Ok(profiles)
-                    }
+                    Ok(reversed) ->
+                        let profiles = reverse_profiles(reversed, List.new[ActorSuspensionProfile]());
+                        if {
+                            Ok(continuations) <- field(value, "continuations")
+                        } else {
+                            Err(reason) -> Err(reason)
+                        };
+                        case outward_entries(continuations) {
+                            Err(reason) -> Err(reason);
+                            Ok(outward) ->
+                                if {
+                                    not profiles_outward(profiles, outward) -> Err(
+                                        "actor profile entry is not an emitted outward continuation",
+                                    );
+                                    not all_outward_profiled(outward, profiles) -> Err(
+                                        "actor outward continuation is absent from its profile catalog",
+                                    );
+                                    true -> Ok(profiles)
+                                }
+                        }
                 }
-            }
         }
     }.
 
-/** Decodes only strict actor-ir/v2 profile catalogs. */
+/**
+ * Decodes only strict actor-ir/v2 profile catalogs.
+ */
 pub decode(text: String): Result[List[ActorSuspensionProfile], String] ->
     case Json.parse(text) {
         Err(_) -> Err("actor profile catalog is not valid JSON");
         Ok(value) -> decode_document(value)
     }.
 
-/** Reads one actor sidecar and returns its validated profile catalog. */
+/**
+ * Reads one actor sidecar and returns its validated profile catalog.
+ */
 pub read(path: String): Result[List[ActorSuspensionProfile], String] ->
     case File.read_text(path) {
         Err(_) -> Err(String.concat(["cannot read actor profile catalog: ", path]));
@@ -396,16 +446,19 @@ append_unique(
 ): Result[List[ActorSuspensionProfile], String] ->
     case values {
         [] -> Ok(output);
-        [value | rest] -> if {
-            profile_present(value, output) -> Err("dependency actor profiles contain duplicate callable identities");
-            true -> case append_unique(rest, output) {
-                Err(reason) -> Err(reason);
-                Ok(remaining) -> Ok([value | remaining])
+        [value | rest] ->
+            if {
+                profile_present(value, output) -> Err("dependency actor profiles contain duplicate callable identities");
+                true -> case append_unique(rest, output) {
+                    Err(reason) -> Err(reason);
+                    Ok(remaining) -> Ok([value | remaining])
+                }
             }
-        }
     }.
 
-/** Merges local and imported profile catalogs in stable input order. */
+/**
+ * Merges local and imported profile catalogs in stable input order.
+ */
 @pure
 pub merge(
     local: List[ActorSuspensionProfile],
@@ -413,26 +466,35 @@ pub merge(
 ): Result[List[ActorSuspensionProfile], String] ->
     append_unique(local, imported).
 
-/** Reads and merges dependency actor sidecars without ambiguous identities. */
+/**
+ * Reads and merges dependency actor sidecars without ambiguous identities.
+ */
 pub read_all(paths: List[String]): Result[List[ActorSuspensionProfile], String] ->
     case paths {
         [] -> Ok(List.new[ActorSuspensionProfile]());
-        [path | rest] -> case read(path) {
-            Err(reason) -> Err(reason);
-            Ok(current) -> case read_all(rest) {
+        [path | rest] ->
+            case read(path) {
                 Err(reason) -> Err(reason);
-                Ok(remaining) -> append_unique(current, remaining)
+                Ok(current) ->
+                    case read_all(rest) {
+                        Err(reason) -> Err(reason);
+                        Ok(remaining) -> append_unique(current, remaining)
+                    }
             }
-        }
     }.
 
-/** Writes an exact gate marker after strict actor profile decoding. */
+/**
+ * Writes an exact gate marker after strict actor profile decoding.
+ */
 pub check_file(path: String, marker: String): Bool ->
-    let valid = case read(path) {
-        Err(_) -> false;
-        Ok(_) -> true
-    };
-    case File.write_text(marker, if { valid -> "valid\n"; true -> "invalid\n" }) {
+    let valid = read(path).is_ok();
+    case File.write_text(
+        marker,
+        if {
+            valid -> "valid\n";
+            true -> "invalid\n"
+        },
+    ) {
         Err(_) -> false;
         Ok(_) -> valid
     }.

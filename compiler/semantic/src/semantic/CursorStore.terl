@@ -15,7 +15,9 @@ import type std.core.Result.
 import type std.data.Json.
 
 pub save(store: String, context: String, projection: String, offset: Int): Result[String, Failure] ->
-    let true <- offset >= 0 else {
+    if {
+        true <- offset >= 0
+    } else {
         _ ->
             Err(
                 Failure(
@@ -43,7 +45,9 @@ if {
             ),
         )
     };
-    true -> let Ok(stage) <- Directory.create_temporary("terlan-semantic-cursor-") else {
+    true -> if {
+        Ok(stage) <- Directory.create_temporary("terlan-semantic-cursor-")
+    } else {
         _ ->
             Err(
                 Failure(code = "semantic.cursor.storage", message = "Cannot create a cursor stage."),
@@ -68,12 +72,14 @@ if {
 pub load(store: String, context: String, projection: String, cursor: String): Result[Int, Failure] ->
     if {
         cursor == "" -> Ok(0);
-        true -> let true <- JsonRules.id(cursor, "c:") else {
+        true -> if {
+            true <- JsonRules.id(cursor, "c:")
+        } else {
             _ -> Err(Failure(code = "semantic.cursor.id", message = "Malformed cursor identity."))
         };
         (let digest = cursor.utf8_slice(2, 64);
 let path = store + "/query-cursors/" + digest + "/cursor.json";
-(let {
+(if {
     Ok(size) <- File.size(path);
     true <- size <= 1_024;
     Ok(contents) <- File.read_text(path);
@@ -92,11 +98,13 @@ let path = store + "/query-cursors/" + digest + "/cursor.json";
             ),
         )
 };
-(let true <-
-    schema == "terlan.semantic.query-cursor.v1"
-        and recorded_context == context
-        and recorded_projection == projection
-        and offset >= 0 else {
+(if {
+    true <-
+        schema == "terlan.semantic.query-cursor.v1"
+            and recorded_context == context
+            and recorded_projection == projection
+            and offset >= 0
+} else {
     _ ->
         Err(
             Failure(

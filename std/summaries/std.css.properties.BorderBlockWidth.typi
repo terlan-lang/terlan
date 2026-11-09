@@ -60,8 +60,8 @@ pub length(value: std.css.Values.Length): Option[Checked].
 
 /// Supplies 2 components in grammar order.
 
-pub pair(first: Component, second: Component): Checked.
+pub (first: Component) pair(second: Component): Checked.
 
 /// Supplies 1 components in grammar order.
 
-pub single(first: Component): Checked.
+pub (first: Component) single(): Checked.

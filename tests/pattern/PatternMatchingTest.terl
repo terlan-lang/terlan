@@ -175,7 +175,7 @@ pub case_result_constructors_match_both_shapes(): Bool ->
             Err(_reason) -> 0
         };
     let failure =
-        (let {
+        (if {
     Err(reason) <- Err(Ready);
     Ready <- reason
 } else {
@@ -206,7 +206,7 @@ pub case_empty_list_pattern_matches_empty_list(): Bool ->
 
 @test
 pub case_list_cons_pattern_splits_head_and_tail(): Bool ->
-    let {
+    if {
         [head | tail] <- [1, 2, 3];
         [next, last] <- tail
     } else {
@@ -241,7 +241,7 @@ pub binary_protocol_shape_helpers_resolve_and_split_tcp_header(): Bool ->
         Bytes.from_list(
             [0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187],
         );
-    let {
+    if {
         Ok(set) <-
             protocol_shape_set(
                 "transport",
@@ -265,7 +265,7 @@ pub binary_protocol_shape_helpers_roundtrip_aliased_compact_frame(): Bool ->
         );
     let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
     let aliases = List(protocol_shape_alias("current", "compact_frame"));
-    let {
+    if {
         Ok(set) <- protocol_shape_set("frames", List(compact_frame_shape()), aliases);
         Ok(encoded) <- protocol_shape_set_encode_exact(set, "current", decoded);
         Ok(roundtrip) <- protocol_shape_set_decode(set, "current", encoded);
@@ -415,36 +415,43 @@ pub function_head_wildcard_pattern_ignores_expression_body_argument(): Bool ->
 
 @test
 pub let_tuple_destructuring_binds_values(): Bool ->
-    let {left, right} = {2, 5};
-    assert_equal(7, left + right).
+    case {2, 5} {
+        {left, right} -> assert_equal(7, left + right)
+    }.
 
 @test
 pub let_list_destructuring_binds_exact_entries(): Bool ->
-    let [left, right] = [3, 4];
-    assert_equal(7, left + right).
+    case [3, 4] {
+        [left, right] -> assert_equal(7, left + right)
+    }.
 
 @test
 pub let_list_cons_destructuring_binds_tail(): Bool ->
-    let [head | tail] = [3, 4, 5];
-    case tail {
-        [next, last] -> assert_equal(12, head + next + last);
-        _ -> false
+    case [3, 4, 5] {
+        [head | tail] ->
+            case tail {
+                [next, last] -> assert_equal(12, head + next + last);
+                _ -> false
+            }
     }.
 
 @test
 pub let_constructor_destructuring_binds_payloads(): Bool ->
-    let Ship(id, size) = Ship(8, 3);
-    assert_equal(11, id + size).
+    case Ship(8, 3) {
+        Ship(id, size) -> assert_equal(11, id + size)
+    }.
 
 @test
 pub let_string_literal_pattern_requires_exact_value(): Bool ->
-    let "terlan" = "terlan";
-    assert_equal("terlan", "terlan").
+    case "terlan" {
+        "terlan" -> assert_equal("terlan", "terlan")
+    }.
 
 @test
 pub let_string_capture_binds_typed_values(): Bool ->
-    let "users/${id: Int}/${name}.json" = "users/7/bob.json";
-    assert_equal(10, id + 3) and assert_equal("bob", name).
+    case "users/7/bob.json" {
+        "users/${id: Int}/${name}.json" -> assert_equal(10, id + 3) and assert_equal("bob", name)
+    }.
 
 @test
 pub lambda_variable_pattern_binds_argument(): Bool ->

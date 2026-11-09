@@ -22,7 +22,7 @@ import std.core.Ordering.{*}.
 /// ```
 
 @pure
-pub abs(value: Int): Int.
+pub (value: Int) abs(): Int.
 
 /// Compares two `Int` values using numeric total ordering.
 ///
@@ -40,11 +40,11 @@ pub abs(value: Int): Int.
 /// module int_compare_example.
 ///
 /// pub demo(): std.core.Ordering.Comparison ->
-///    std.core.Int.compare(1, 2).
+///    1.compare(2).
 /// ```
 
 @pure
-pub compare(left: Int, right: Int): std.core.Ordering.Comparison.
+pub (left: Int) compare(right: Int): std.core.Ordering.Comparison.
 
 /// Returns whether two `Int` values are equal.
 ///
@@ -58,11 +58,11 @@ pub compare(left: Int, right: Int): std.core.Ordering.Comparison.
 /// module int_equal_example.
 ///
 /// pub demo(): Bool ->
-///     std.core.Int.equal(42, 42).
+///     42.equal(42).
 /// ```
 
 @pure
-pub equal(left: Int, right: Int): Bool.
+pub (left: Int) equal(right: Int): Bool.
 
 /// Parses a canonical UTF-8 `String` into `Int`.
 ///
@@ -116,7 +116,7 @@ pub from_string_base(value: String, base: Int): Option[Int].
 /// ```
 
 @pure
-pub max(left: Int, right: Int): Int.
+pub (left: Int) max(right: Int): Int.
 
 /// Returns the smaller of two `Int` values.
 ///
@@ -133,7 +133,7 @@ pub max(left: Int, right: Int): Int.
 /// ```
 
 @pure
-pub min(left: Int, right: Int): Int.
+pub (left: Int) min(right: Int): Int.
 
 /// Renders an `Int` as its canonical UTF-8 `String`.
 ///
@@ -147,11 +147,11 @@ pub min(left: Int, right: Int): Int.
 /// module int_to_string_example.
 ///
 /// pub demo(): String ->
-///    std.core.Int.to_string(42).
+///    42.to_string().
 /// ```
 
 @pure
-pub to_string(value: Int): String.
+pub (value: Int) to_string(): String.
 
 /// Renders an `Int` using an explicit base from 2 through 36.
 ///
@@ -165,8 +165,8 @@ pub to_string(value: Int): String.
 /// module int_to_string_base_example.
 ///
 /// pub demo(): Option[String] ->
-///     std.core.Int.to_string_base(255, 16).
+///     255.to_string_base(16).
 /// ```
 
 @pure
-pub to_string_base(value: Int, base: Int): Option[String].
+pub (value: Int) to_string_base(base: Int): Option[String].

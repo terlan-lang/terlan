@@ -21,7 +21,7 @@ require(condition: Bool, message: String): Result[Bool, String] ->
 
 pub declare(root: String, vm: String, image: String, context: Context): Result[Owner, String] ->
     let env = context.environment;
-    let {
+    if {
         Ok(_paths) <-
             require(
                 PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
@@ -43,11 +43,13 @@ pub declare_with_version(
     context: Context,
     version: String,
 ): Result[Owner, String] ->
-    let Ok(_paths) <-
-        require(
-            PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
-            "preparation tools must be inside target/",
-        ) else {
+    if {
+        Ok(_paths) <-
+            require(
+                PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
+                "preparation tools must be inside target/",
+            )
+    } else {
         Err(reason) -> Err(reason)
     };
     Ok(
@@ -83,7 +85,7 @@ pub declare_with_version(
     ).
 
 pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
-    let {
+    if {
         Ok(_paths) <-
             require(
                 PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),

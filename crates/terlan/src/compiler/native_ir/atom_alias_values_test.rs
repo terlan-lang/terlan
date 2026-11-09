@@ -8,7 +8,7 @@ use super::{rewrite, rewrite_pattern, AliasValue};
 fn forwarding_tuple_constructor_patterns_keep_the_declared_atom_tag() {
     use crate::terlan_typeck::CoreExpr;
     let syntax = crate::terlan_syntax::parse_module_as_syntax_output(
-        "module fixture.Messages.\npub type Tag = Atom[\"framed\"].\npub type Frame = {Tag, Int}.\npub constructor Wrap { (value: Int): Frame -> {Tag, value} }.\npub unwrap(frame: Frame): Int -> let Wrap(value) = frame; value.\n"
+        "module fixture.Messages.\npub type Tag = Atom[\"framed\"].\npub type Frame = {Tag, Int}.\npub constructor Wrap { (value: Int): Frame -> {Tag, value} }.\npub unwrap(frame: Frame): Int -> case frame { Wrap(value) -> value }.\n"
     ).unwrap();
     let resolved = crate::terlan_hir::resolve_syntax_module_output(&syntax).module;
     let mut core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
@@ -22,11 +22,11 @@ fn forwarding_tuple_constructor_patterns_keep_the_declared_atom_tag() {
         .iter()
         .find(|function| function.name == "unwrap")
         .unwrap();
-    let Some(CoreExpr::Let { bindings, .. }) = &function.clauses[0].body.core_expr else {
-        panic!("let binding");
+    let Some(CoreExpr::Case { clauses, .. }) = &function.clauses[0].body.core_expr else {
+        panic!("case expression");
     };
     assert_eq!(
-        bindings[0].pattern,
+        clauses[0].pattern,
         CorePattern::Tuple(vec![
             CorePattern::Atom("framed".into()),
             CorePattern::Var("value".into())

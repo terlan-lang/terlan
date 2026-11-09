@@ -53,7 +53,7 @@ observe(revision: String, version: String): Result[Json, String] ->
     }.
 
 guard_main(revision: String): Result[Unit, String] ->
-    let {
+    if {
         Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30_000);
         Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
         Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000);
@@ -96,7 +96,9 @@ save(document: Json): Result[Unit, String] ->
     }.
 
 announce(document: Json): Result[Unit, String] ->
-    let Ok(_saved) <- save(document) else {
+    if {
+        Ok(_saved) <- save(document)
+    } else {
         Err(reason) -> Err(reason)
     };
     (let _shown =
@@ -190,7 +192,7 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
     }.
 
 wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
-    let {
+    if {
         Ok(_guarded) <- guard(revision);
         Ok(document) <- observe(revision, version);
         Ok(_announced) <- announce(document)
@@ -205,7 +207,9 @@ wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
         _ ->
             if {
                 Clock.monotonic_time_ns() >= deadline -> Err("release validation wait deadline reached; rerun the same command to resume");
-                true -> let Ok(_dispatched) <- dispatch_missing(document, 0) else {
+                true -> if {
+                    Ok(_dispatched) <- dispatch_missing(document, 0)
+                } else {
                     Err(reason) -> Err(reason)
                 };
                 case Support.run("sleep", ["30"], 35_000) {
@@ -224,7 +228,7 @@ stage(
 ): Result[Json, String] ->
     let revision = Support.text(document, "revision");
     let current = document.put("state", Json.string(name)).put("next_action", Json.string(next));
-    let {
+    if {
         Ok(_guarded) <- guard(revision);
         Ok(_announced) <- announce(current)
     } else {
@@ -254,7 +258,7 @@ stage(
 publish(document: Json, version: String): Result[Unit, String] ->
     if {
         Support.text(document, "state") == "published" -> Ok(Unit);
-        true -> let {
+        true -> if {
             Ok(prepared) <-
                 stage(
                     document,
@@ -285,10 +289,14 @@ publish(document: Json, version: String): Result[Unit, String] ->
     }.
 
 run(command: String, version: String): Result[Unit, String] ->
-    let true <- Version.valid(version) else {
+    if {
+        true <- Version.valid(version)
+    } else {
         _ -> Err("version must contain three canonical nonnegative numbers, without a leading v")
     };
-    (let Ok(revision) <- Support.run("git", ["rev-parse", "HEAD"], 30_000) else {
+    (if {
+    Ok(revision) <- Support.run("git", ["rev-parse", "HEAD"], 30_000)
+} else {
     Err(reason) -> Err(reason)
 };
 if {
@@ -299,7 +307,7 @@ if {
     command == "status" -> case Status.collect(revision, version) {
         Err(reason) -> Err(reason);
         Ok(document) ->
-            let {
+            if {
                 Ok(_saved) <- save(document);
                 Ok(source) <- Support.render(document)
             } else {
@@ -307,7 +315,7 @@ if {
             };
             (let _printed = println(source); Ok(Unit))
     };
-    command == "publish" or command == "wait" or command == "publish-tag" -> let {
+    command == "publish" or command == "wait" or command == "publish-tag" -> if {
         Ok(seconds) <- wait_seconds();
         Ok(_guarded) <- guard(revision);
         Ok(initial) <- observe(revision, version);
@@ -348,7 +356,7 @@ pub entry(): Bool ->
             Ok(_unit) -> true;
             Err(reason) ->
                 let document =
-                    (let {
+                    (if {
     Ok(source) <- File.read_text("target/quality/release-status.json");
     Ok(value) <- Json.parse(source)
 } else {

@@ -233,7 +233,7 @@ generated_file_count(values: List[GeneratedFile]): Int ->
     }.
 
 json_string(value: Json, key: String): Option[String] ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(text) <- field.as_string()
     } else {
@@ -242,7 +242,7 @@ json_string(value: Json, key: String): Option[String] ->
     Some(text).
 
 json_int(value: Json, key: String): Option[Int] ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(number) <- field.as_int()
     } else {
@@ -251,7 +251,7 @@ json_int(value: Json, key: String): Option[Int] ->
     Some(number).
 
 json_bool(value: Json, key: String): Option[Bool] ->
-    let {
+    if {
         Ok(field) <- value.get(key);
         Ok(flag) <- field.as_bool()
     } else {
@@ -260,7 +260,7 @@ json_bool(value: Json, key: String): Option[Bool] ->
     Some(flag).
 
 json_string_list(value: Json, key: String): Option[List[String]] ->
-    let {
+    if {
         Ok(array) <- value.get(key);
         Ok(length) <- array.length()
     } else {
@@ -276,7 +276,7 @@ json_string_list_at(
 ): Option[List[String]] ->
     if {
         index == length -> Some(reverse_strings(reversed));
-        true -> let {
+        true -> if {
             Ok(value) <- array.at(index);
             Ok(text) <- value.as_string()
         } else {
@@ -286,7 +286,7 @@ json_string_list_at(
     }.
 
 promotion_policy_holds(source: String): Bool ->
-    let {
+    if {
         Ok(policy) <- Json.parse(source);
         Some(schema) <- json_string(policy, "schema");
         Some(family) <- json_string(policy, "proof_family");
@@ -439,7 +439,7 @@ manifest_keys(): List[String] ->
     ["functions", "module", "native_policy", "scheduler", "source_module"].
 
 parse_manifest(file: TextFile): Option[SourceManifest] ->
-    let {
+    if {
         Ok(value) <- Json.parse(file.contents);
         Ok(keys) <- value.keys();
         Some(module_name) <- json_string(value, "module");
@@ -477,7 +477,7 @@ parse_functions(
 ): Option[List[FunctionRow]] ->
     if {
         index == length -> Some(reverse_functions(reversed));
-        true -> let {
+        true -> if {
             Ok(row) <- functions.at(index);
             Ok(keys) <- row.keys();
             Some(name) <- json_string(row, "name");
@@ -640,7 +640,7 @@ row_digests(rows: Json): List[String] ->
 row_digests_at(rows: Json, index: Int, length: Int, reversed: List[String]): List[String] ->
     if {
         index == length -> reverse_strings(reversed);
-        true -> let {
+        true -> if {
             Ok(row) <- rows.at(index);
             Some(digest) <- json_string(row, "row_digest")
         } else {
@@ -715,7 +715,7 @@ build_manifests_at(
                 trace_count = trace_count,
             );
         [source | rest] ->
-            let {
+            if {
                 Some(policy) <- matching_policy(source.source_module, policies);
                 Some(file) <- generated_manifest(root, proof_digest, source, policy)
             } else {
@@ -1102,7 +1102,7 @@ fail(message: String): Bool ->
     false.
 
 run_repository_check(root: String, inputs: Inputs, source_files: List[TextFile]): Bool ->
-    let {
+    if {
         Ok(promotion) <- Json.parse(inputs.promotion_policy);
         Some(policies) <- security_rows(inputs.security);
         Some(sources) <- source_manifests(source_files)
@@ -1137,7 +1137,7 @@ prepare_output(
     proof_digest: String,
     build: BuildState,
 ): Bool ->
-    let {
+    if {
         Some(binding) <- binding_file(root, proof_digest, promotion, build.files);
         true <- prepare_directory(root);
         true <- write_generated_files(root, [binding | build.files])
@@ -1258,7 +1258,9 @@ pub malformed_security_row_is_rejected(): Bool ->
 @test
 pub receiver_overloads_have_distinct_operation_identities(): Bool ->
     let source = "[{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.policy_available\"},{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.adapter_policy_available\"}]";
-    let Ok(rows) <- Json.parse(source) else {
+    if {
+        Ok(rows) <- Json.parse(source)
+    } else {
         _ -> false
     };
     case parse_functions(rows, 0, 2, []) {
@@ -1269,7 +1271,9 @@ pub receiver_overloads_have_distinct_operation_identities(): Bool ->
 @test
 pub duplicate_export_identity_is_rejected(): Bool ->
     let source = "[{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.policy_available\"},{\"arity\":1,\"name\":\"policy_available\",\"operation\":\"std.vm.distributed_storage.policy_available\"}]";
-    let Ok(rows) <- Json.parse(source) else {
+    if {
+        Ok(rows) <- Json.parse(source)
+    } else {
         _ -> false
     };
     case parse_functions(rows, 0, 2, []) {
@@ -1280,7 +1284,9 @@ pub duplicate_export_identity_is_rejected(): Bool ->
 @test
 pub operation_aliases_keep_distinct_export_identities(): Bool ->
     let source = "[{\"arity\":1,\"name\":\"length\",\"operation\":\"std.native.collections.vector.length\"},{\"arity\":1,\"name\":\"len\",\"operation\":\"std.native.collections.vector.length\"}]";
-    let Ok(rows) <- Json.parse(source) else {
+    if {
+        Ok(rows) <- Json.parse(source)
+    } else {
         _ -> false
     };
     case parse_functions(rows, 0, 2, []) {

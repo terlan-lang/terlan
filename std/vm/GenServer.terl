@@ -91,7 +91,7 @@ pub serve[Value](initial: Value): Unit ->
  * Performs a correlated synchronous request and discards stale replies.
  */
 @target.vm {process_mailbox: true}
-pub call[Value](server: ServerRef[Value], request_id: Int, request: Value): Value ->
+pub (server: ServerRef[Value]) call[Value](request_id: Int, request: Value): Value ->
     let reply_to = Process.current[GenServerReply[Value]]();
     case server {
         {GenServerTag, process, witness} ->
@@ -109,7 +109,7 @@ pub call[Value](server: ServerRef[Value], request_id: Int, request: Value): Valu
  * Queues an asynchronous state-changing event.
  */
 @target.vm {process_mailbox: true}
-pub cast[Value](server: ServerRef[Value], event: Value): Unit ->
+pub (server: ServerRef[Value]) cast[Value](event: Value): Unit ->
     let reply_to = Process.current[GenServerReply[Value]]();
     case server {
         {GenServerTag, process, _witness} ->
@@ -125,7 +125,7 @@ pub cast[Value](server: ServerRef[Value], event: Value): Unit ->
  * Stops the loop and returns the value produced by its terminate callback.
  */
 @target.vm {process_mailbox: true}
-pub stop[Value](server: ServerRef[Value], request_id: Int): Value ->
+pub (server: ServerRef[Value]) stop[Value](request_id: Int): Value ->
     let reply_to = Process.current[GenServerReply[Value]]();
     case server {
         {GenServerTag, process, witness} ->
@@ -150,7 +150,7 @@ pub timeout(ticks: Int): Unit ->
  * Thin policy wrapper for VM-owned symmetric links.
  */
 @target.vm {process_mailbox: true}
-pub relate_peer[Value](server: ServerRef[Value]): Unit ->
+pub (server: ServerRef[Value]) relate_peer[Value](): Unit ->
     case server {
         {GenServerTag, process, _witness} -> Process.link[GenServerCommand[Value]](process)
     }.
@@ -159,7 +159,7 @@ pub relate_peer[Value](server: ServerRef[Value]): Unit ->
  * Establishes a VM-owned failure monitor; DOWN delivery remains VM policy.
  */
 @target.vm {process_mailbox: true}
-pub monitor[Value](server: ServerRef[Value]): Unit ->
+pub (server: ServerRef[Value]) monitor[Value](): Unit ->
     case server {
         {GenServerTag, process, _witness} ->
             let _monitor = Process.monitor[GenServerCommand[Value]](process);
@@ -170,7 +170,7 @@ pub monitor[Value](server: ServerRef[Value]): Unit ->
  * Thin policy wrapper for VM-owned cancellation.
  */
 @target.vm {process_mailbox: true}
-pub cancel[Value](server: ServerRef[Value]): Unit ->
+pub (server: ServerRef[Value]) cancel[Value](): Unit ->
     case server {
         {GenServerTag, process, _witness} -> Process.cancel[GenServerCommand[Value]](process)
     }.

@@ -48,11 +48,13 @@ pub tool_path(path: String): Bool ->
  */
 pub capture(root: String, keys: List[String]): Result[Context, String] ->
     let host = current();
-    let true <- host.operating_system == "linux" and host.architecture == "x86_64" else {
+    if {
+        true <- host.operating_system == "linux" and host.architecture == "x86_64"
+    } else {
         _ -> Err("publication preparation requires Linux x86_64")
     };
     (let env = PreparationEnvironment.selected(keys);
-(let {
+(if {
     Ok(revision) <- OwnerTools.run(root, "git", ["rev-parse", "HEAD"], env);
     Ok(changes) <- OwnerTools.run(root, "git", ["status", "--porcelain", "--untracked-files=normal"], env);
     true <- changes == "";

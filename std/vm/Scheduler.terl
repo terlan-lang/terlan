@@ -365,130 +365,130 @@ pub (scheduler: Scheduler) events_after(last_event_sequence: Int): List[Event].
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub placement_scheduler(result: PlacementResult): Scheduler.
+pub (result: PlacementResult) placement_scheduler(): Scheduler.
 
 /**
  * Returns the placement decision from a placement transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub placement(result: PlacementResult): Placement.
+pub (result: PlacementResult) placement(): Placement.
 
 /**
  * Returns the actor id recorded by a placement decision.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub placement_actor_id(placement: Placement): String.
+pub (placement: Placement) placement_actor_id(): String.
 
 /**
  * Returns the selected node id from a placement decision.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub placement_node_id(placement: Placement): String.
+pub (placement: Placement) placement_node_id(): String.
 
 /**
  * Returns the policy name recorded by a placement decision.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub placement_policy(placement: Placement): String.
+pub (placement: Placement) placement_policy(): String.
 
 /**
  * Reports whether placement used the policy fallback path.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub placement_fallback_used(placement: Placement): Bool.
+pub (placement: Placement) placement_fallback_used(): Bool.
 
 /**
  * Returns the updated scheduler from a migration transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_scheduler(result: MigrationResult): Scheduler.
+pub (result: MigrationResult) migration_scheduler(): Scheduler.
 
 /**
  * Returns the migration value from a migration transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration(result: MigrationResult): Migration.
+pub (result: MigrationResult) migration(): Migration.
 
 /**
  * Returns the actor id tracked by a migration.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_actor_id(migration: Migration): String.
+pub (migration: Migration) migration_actor_id(): String.
 
 /**
  * Returns the source node id tracked by a migration.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_from_node_id(migration: Migration): String.
+pub (migration: Migration) migration_from_node_id(): String.
 
 /**
  * Returns the target node id tracked by a migration.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_to_node_id(migration: Migration): String.
+pub (migration: Migration) migration_to_node_id(): String.
 
 /**
  * Returns the monotonic migration sequence.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_sequence(migration: Migration): Int.
+pub (migration: Migration) migration_sequence(): Int.
 
 /**
  * Reports whether a migration carries actor state.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_stateful(migration: Migration): Bool.
+pub (migration: Migration) migration_stateful(): Bool.
 
 /**
  * Returns the current migration phase name.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub migration_phase(migration: Migration): String.
+pub (migration: Migration) migration_phase(): String.
 
 /**
  * Returns the updated scheduler from a terminal migration transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub outcome_scheduler(result: MigrationOutcomeResult): Scheduler.
+pub (result: MigrationOutcomeResult) outcome_scheduler(): Scheduler.
 
 /**
  * Returns the terminal outcome from a migration transition.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub outcome(result: MigrationOutcomeResult): MigrationOutcome.
+pub (result: MigrationOutcomeResult) outcome(): MigrationOutcome.
 
 /**
  * Returns `committed`, `rolled_back`, or `aborted`.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub outcome_kind(outcome: MigrationOutcome): String.
+pub (outcome: MigrationOutcome) outcome_kind(): String.
 
 /**
  * Returns the migration sequence associated with an outcome.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub outcome_sequence(outcome: MigrationOutcome): Int.
+pub (outcome: MigrationOutcome) outcome_sequence(): Int.
 
 /**
  * Returns the terminal reason, or an empty String for commit.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub outcome_reason(outcome: MigrationOutcome): String.
+pub (outcome: MigrationOutcome) outcome_reason(): String.

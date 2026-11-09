@@ -127,5 +127,5 @@ line_width_value(
  * Combines line-width, line-style, color for border-bottom. Each parameter accepts its own keyword
  * or typed unit choices directly.
  */
-pub compose(line_width: LineWidthPart, line_style: LineStylePart, color: ColorPart): Checked ->
+pub (line_width: LineWidthPart) compose(line_style: LineStylePart, color: ColorPart): Checked ->
     Checked({Atom["css_parts"], {line_width_value(line_width), line_style, color}}).

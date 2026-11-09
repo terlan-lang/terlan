@@ -222,7 +222,7 @@ pub policy(name: String, mode: Mode, available: Bool): Policy.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub policy_name(policy: Policy): String.
+pub (policy: Policy) policy_name(): String.
 
 /**
  * Returns the stable policy mode kind.
@@ -234,7 +234,7 @@ pub policy_name(policy: Policy): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub policy_mode_kind(policy: Policy): String.
+pub (policy: Policy) policy_mode_kind(): String.
 
 /**
  * Returns whether the selected backend is available.
@@ -246,7 +246,7 @@ pub policy_mode_kind(policy: Policy): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub policy_available(policy: Policy): Bool.
+pub (policy: Policy) policy_available(): Bool.
 
 /**
  * Returns whether a policy can perform cluster replication.
@@ -258,7 +258,7 @@ pub policy_available(policy: Policy): Bool.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub policy_can_cluster_replicate(policy: Policy): Bool.
+pub (policy: Policy) policy_can_cluster_replicate(): Bool.
 
 /**
  * Creates a storage adapter from a policy.
@@ -269,7 +269,7 @@ pub policy_can_cluster_replicate(policy: Policy): Bool.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub adapter(policy: Policy): Adapter.
+pub (policy: Policy) adapter(): Adapter.
 
 /**
  * Returns the policy name attached to an adapter.
@@ -375,7 +375,7 @@ pub checkpoint_with_schema(
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub checkpoint_schema(snapshot: Snapshot): Int.
+pub (snapshot: Snapshot) checkpoint_schema(): Int.
 
 /**
  * Opens a storage adapter.
@@ -717,7 +717,7 @@ pub (adapter: Adapter) require_cluster_replication(): Outcome.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub proof_sequence(proof: AtomicAppendProof): Int.
+pub (proof: AtomicAppendProof) proof_sequence(): Int.
 
 /**
  * Returns the checkpoint id covered by a snapshot isolation proof.
@@ -729,7 +729,7 @@ pub proof_sequence(proof: AtomicAppendProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String.
+pub (proof: SnapshotIsolationProof) isolation_checkpoint_id(): String.
 
 /**
  * Returns the sequence covered by a snapshot isolation proof.
@@ -741,7 +741,7 @@ pub isolation_checkpoint_id(proof: SnapshotIsolationProof): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub isolation_sequence(proof: SnapshotIsolationProof): Int.
+pub (proof: SnapshotIsolationProof) isolation_sequence(): Int.
 
 /**
  * Returns the checksum covered by a snapshot isolation proof.
@@ -753,7 +753,7 @@ pub isolation_sequence(proof: SnapshotIsolationProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub isolation_checksum(proof: SnapshotIsolationProof): Int.
+pub (proof: SnapshotIsolationProof) isolation_checksum(): Int.
 
 /**
  * Returns the sequence covered by a durable flush proof.
@@ -765,7 +765,7 @@ pub isolation_checksum(proof: SnapshotIsolationProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub durable_flush_sequence(proof: DurableFlushProof): Int.
+pub (proof: DurableFlushProof) durable_flush_sequence(): Int.
 
 /**
  * Returns the first sequence covered by a transactional batch proof.
@@ -777,7 +777,7 @@ pub durable_flush_sequence(proof: DurableFlushProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub batch_first_sequence(proof: TransactionalBatchProof): Int.
+pub (proof: TransactionalBatchProof) batch_first_sequence(): Int.
 
 /**
  * Returns the last sequence covered by a transactional batch proof.
@@ -789,7 +789,7 @@ pub batch_first_sequence(proof: TransactionalBatchProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub batch_last_sequence(proof: TransactionalBatchProof): Int.
+pub (proof: TransactionalBatchProof) batch_last_sequence(): Int.
 
 /**
  * Returns the number of snapshots covered by a transactional batch proof.
@@ -801,7 +801,7 @@ pub batch_last_sequence(proof: TransactionalBatchProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub batch_committed_count(proof: TransactionalBatchProof): Int.
+pub (proof: TransactionalBatchProof) batch_committed_count(): Int.
 
 /**
  * Returns the schema version covered by a schema migration proof.
@@ -813,7 +813,7 @@ pub batch_committed_count(proof: TransactionalBatchProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub schema_version(proof: SchemaMigrationProof): Int.
+pub (proof: SchemaMigrationProof) schema_version(): Int.
 
 /**
  * Returns the storage sequence covered by a schema migration proof.
@@ -825,7 +825,7 @@ pub schema_version(proof: SchemaMigrationProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub schema_sequence(proof: SchemaMigrationProof): Int.
+pub (proof: SchemaMigrationProof) schema_sequence(): Int.
 
 /**
  * Returns the count covered by a resource handle validation proof.
@@ -837,7 +837,7 @@ pub schema_sequence(proof: SchemaMigrationProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub resource_handle_count(proof: ResourceHandleValidationProof): Int.
+pub (proof: ResourceHandleValidationProof) resource_handle_count(): Int.
 
 /**
  * Returns the storage sequence covered by a resource validation proof.
@@ -849,7 +849,7 @@ pub resource_handle_count(proof: ResourceHandleValidationProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int.
+pub (proof: ResourceHandleValidationProof) resource_handle_sequence(): Int.
 
 /**
  * Returns the missing resource handle for validation failures.
@@ -861,7 +861,7 @@ pub resource_handle_sequence(proof: ResourceHandleValidationProof): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub missing_resource_handle(outcome: Outcome): String.
+pub (outcome: Outcome) missing_resource_handle(): String.
 
 /**
  * Returns the count validated by a successful resource handle check.
@@ -873,7 +873,7 @@ pub missing_resource_handle(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub validated_resource_count(outcome: Outcome): Int.
+pub (outcome: Outcome) validated_resource_count(): Int.
 
 /**
  * Extracts a loaded snapshot from a lifecycle outcome.
@@ -885,7 +885,7 @@ pub validated_resource_count(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub loaded_snapshot(outcome: Outcome): Snapshot.
+pub (outcome: Outcome) loaded_snapshot(): Snapshot.
 
 /**
  * Returns the textual lifecycle outcome kind.
@@ -897,7 +897,7 @@ pub loaded_snapshot(outcome: Outcome): Snapshot.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub kind(outcome: Outcome): String.
+pub (outcome: Outcome) kind(): String.
 
 /**
  * Returns the lifecycle operation kind associated with an outcome.
@@ -910,7 +910,7 @@ pub kind(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub operation_kind(outcome: Outcome): String.
+pub (outcome: Outcome) operation_kind(): String.
 
 /**
  * Returns the storage mode kind associated with an outcome.
@@ -923,7 +923,7 @@ pub operation_kind(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub mode_kind(outcome: Outcome): String.
+pub (outcome: Outcome) mode_kind(): String.
 
 /**
  * Returns the stable failure reason associated with an outcome.
@@ -936,7 +936,7 @@ pub mode_kind(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub reason(outcome: Outcome): String.
+pub (outcome: Outcome) reason(): String.
 
 /**
  * Returns whether an outcome represents a failed storage operation.
@@ -949,7 +949,7 @@ pub reason(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub is_failure(outcome: Outcome): Bool.
+pub (outcome: Outcome) is_failure(): Bool.
 
 /**
  * Returns whether an outcome represents a successful storage operation.
@@ -962,7 +962,7 @@ pub is_failure(outcome: Outcome): Bool.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub is_success(outcome: Outcome): Bool.
+pub (outcome: Outcome) is_success(): Bool.
 
 /**
  * Returns whether a failure outcome requires storage recovery work.
@@ -975,7 +975,7 @@ pub is_success(outcome: Outcome): Bool.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub requires_recovery(outcome: Outcome): Bool.
+pub (outcome: Outcome) requires_recovery(): Bool.
 
 /**
  * Returns the recovery action associated with a failure outcome.
@@ -988,7 +988,7 @@ pub requires_recovery(outcome: Outcome): Bool.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub recovery_action(outcome: Outcome): String.
+pub (outcome: Outcome) recovery_action(): String.
 
 /**
  * Returns the sequence associated with a lifecycle outcome.
@@ -1000,7 +1000,7 @@ pub recovery_action(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) sequence(): Int.
 
 /**
  * Returns the expected sequence for compare-and-swap token mismatch outcomes.
@@ -1013,7 +1013,7 @@ pub sequence(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub expected_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_sequence(): Int.
 
 /**
  * Returns the actual sequence for compare-and-swap token mismatch outcomes.
@@ -1026,7 +1026,7 @@ pub expected_sequence(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub actual_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) actual_sequence(): Int.
 
 /**
  * Returns the expected schema version for schema migration failures.
@@ -1039,7 +1039,7 @@ pub actual_sequence(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub expected_schema(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_schema(): Int.
 
 /**
  * Returns the actual schema version for schema migration outcomes.
@@ -1052,7 +1052,7 @@ pub expected_schema(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub actual_schema(outcome: Outcome): Int.
+pub (outcome: Outcome) actual_schema(): Int.
 
 /**
  * Returns the checkpoint id associated with a lifecycle outcome.
@@ -1065,7 +1065,7 @@ pub actual_schema(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub checkpoint_id(outcome: Outcome): String.
+pub (outcome: Outcome) checkpoint_id(): String.
 
 /**
  * Returns the local sequence for stale-snapshot outcomes.
@@ -1077,7 +1077,7 @@ pub checkpoint_id(outcome: Outcome): String.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub local_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) local_sequence(): Int.
 
 /**
  * Returns the incoming sequence for stale-snapshot outcomes.
@@ -1088,7 +1088,7 @@ pub local_sequence(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub incoming_sequence(outcome: Outcome): Int.
+pub (outcome: Outcome) incoming_sequence(): Int.
 
 /**
  * Returns the checksum associated with a lifecycle outcome.
@@ -1100,7 +1100,7 @@ pub incoming_sequence(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub checksum(outcome: Outcome): Int.
+pub (outcome: Outcome) checksum(): Int.
 
 /**
  * Returns the expected checksum for checksum-mismatch outcomes.
@@ -1113,7 +1113,7 @@ pub checksum(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub expected_checksum(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_checksum(): Int.
 
 /**
  * Returns the expected entry count for partial-write outcomes.
@@ -1127,7 +1127,7 @@ pub expected_checksum(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub expected_entries(outcome: Outcome): Int.
+pub (outcome: Outcome) expected_entries(): Int.
 
 /**
  * Returns the persisted entry count for partial-write outcomes.
@@ -1141,7 +1141,7 @@ pub expected_entries(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub persisted_entries(outcome: Outcome): Int.
+pub (outcome: Outcome) persisted_entries(): Int.
 
 /**
  * Returns the retained snapshot count for compaction outcomes.
@@ -1153,4 +1153,4 @@ pub persisted_entries(outcome: Outcome): Int.
  */
 @target.vm {process_mailbox: true}
 @compiler.native
-pub retained_snapshots(outcome: Outcome): Int.
+pub (outcome: Outcome) retained_snapshots(): Int.
