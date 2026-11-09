@@ -90,7 +90,51 @@ load(revision: String, name: String): Result[Json, String] ->
         Ok(runs) -> workflow(runs, revision, name)
     }.
 
-details(row: Json, revision: String): Result[Json, String] ->
+job_state(values: Json, name: String, index: Int, count: Int): String ->
+    if {
+        index >= count -> "missing";
+        true -> case values.at(index) {
+            Err(_reason) -> "failed";
+            Ok(job) ->
+                if {
+                    Support.text(job, "name") != name -> job_state(values, name, index + 1, count);
+                    Support.text(job, "status") != "completed" -> "waiting";
+                    Support.text(job, "conclusion") == "success" -> "success";
+                    Support.text(job, "conclusion") == "skipped" -> "missing";
+                    true -> "failed"
+                }
+        }
+    }.
+
+/**
+ * A green workflow is release evidence only when its required job ran and passed.
+ */
+pub require_job(row: Json, name: String): Json ->
+    if {
+        name == "" -> row;
+        true -> let {
+            Ok(jobs) <- row.get("jobs");
+            Ok(count) <- jobs.length()
+        } else {
+            _ -> row.put("state", Json.string("failed"))
+        };
+        (let evidence = job_state(jobs, name, 0, count);
+let current = Support.text(row, "state");
+row
+    .put(
+        "state",
+        Json.string(
+            if {
+                current == "failed" or evidence == "failed" -> "failed";
+                current != "success" or evidence == "waiting" -> "waiting";
+                evidence == "success" -> "success";
+                true -> "missing"
+            },
+        ),
+    ))
+    }.
+
+details(row: Json, revision: String, required_job: String): Result[Json, String] ->
     if {
         Support.text(row, "state") == "missing" -> Ok(row);
         true -> case Support.github(
@@ -107,7 +151,7 @@ details(row: Json, revision: String): Result[Json, String] ->
                 if {
                     Support.text(document, "headSha") != revision -> Err("workflow details changed revision");
                     true -> case document.get("jobs") {
-                        Ok(jobs) -> Ok(row.put("jobs", jobs));
+                        Ok(jobs) -> Ok(require_job(row.put("jobs", jobs), required_job));
                         _ -> Err("workflow details contain no jobs")
                     }
                 }
@@ -189,12 +233,12 @@ collect_source(revision: String, version: String, tagged: Bool): Result[Json, St
     let {
         Ok(compiler_row) <- load(revision, "ci.yml");
         Ok(release_row) <- load(revision, "release.yml");
-        Ok(compiler) <- details(compiler_row, revision);
-        Ok(release) <- details(release_row, revision);
+        Ok(compiler) <- details(compiler_row, revision, "Compiler check and test");
+        Ok(release) <- details(release_row, revision, "");
         Ok(assets) <- artifacts(release);
         Ok(publication) <- Publication.observe(revision, version);
-        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30000);
-        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30000)
+        Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30_000);
+        Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000)
     } else {
         Err(reason) -> Err(reason)
     };

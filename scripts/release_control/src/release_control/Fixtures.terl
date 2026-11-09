@@ -252,6 +252,35 @@ artifact_rows(): Json ->
                 ),
         ).
 
+compiler_jobs(): Json ->
+    let skipped = mode() == "skipped-compiler" and not File.exists("dispatched-ci.yml");
+    Json.array()
+        .push(
+            Json.object()
+                .put("name", Json.string("Compiler check and test"))
+                .put("status", Json.string("completed"))
+                .put(
+                    "conclusion",
+                    Json.string(
+                        if {
+                            skipped -> "skipped";
+                            true -> "success"
+                        },
+                    ),
+                ),
+        ).
+
+workflow_details(): Json ->
+    Json.object()
+        .put("headSha", Json.string(revision()))
+        .put(
+            "jobs",
+            if {
+                arg(4) == "17" -> compiler_jobs();
+                true -> Json.array()
+            },
+        ).
+
 dispatch_operation(workflow: String): String ->
     String.append(
         "dispatch ",
@@ -274,8 +303,7 @@ github(): Bool ->
     case {arg(2), arg(3)} {
         {"auth", "status"} -> true;
         {"run", "list"} -> workflow();
-        {"run", "view"} ->
-            json(Json.object().put("headSha", Json.string(revision())).put("jobs", Json.array()));
+        {"run", "view"} -> json(workflow_details());
         {"workflow", "run"} ->
             let workflow = arg(4);
             let exact_compiler_evidence = workflow != "release.yml" or arg(9) == "--field" and arg(10) == "compiler_run_id=17";

@@ -9,6 +9,62 @@ import std.data.Json.
 
 import type std.data.Json.
 
+job(name: String, status: String, conclusion: String): Json ->
+    Json.object()
+        .put("name", Json.string(name))
+        .put("status", Json.string(status))
+        .put("conclusion", Json.string(conclusion)).
+
+workflow_with_jobs(state: String, jobs: Json): Json ->
+    Json.object().put("state", Json.string(state)).put("jobs", jobs).
+
+@test
+pub required_release_job_must_run_and_pass(): Bool ->
+    let passed =
+        Status.require_job(
+            workflow_with_jobs(
+                "success",
+                Json.array()
+                    .push(job("other", "completed", "success"))
+                    .push(job("Compiler check and test", "completed", "success")),
+            ),
+            "Compiler check and test",
+        );
+    let skipped =
+        Status.require_job(
+            workflow_with_jobs(
+                "success",
+                Json.array().push(job("Compiler check and test", "completed", "skipped")),
+            ),
+            "Compiler check and test",
+        );
+    let running =
+        Status.require_job(
+            workflow_with_jobs(
+                "waiting",
+                Json.array().push(job("Compiler check and test", "in_progress", "")),
+            ),
+            "Compiler check and test",
+        );
+    let failed =
+        Status.require_job(
+            workflow_with_jobs(
+                "success",
+                Json.array().push(job("Compiler check and test", "completed", "failure")),
+            ),
+            "Compiler check and test",
+        );
+    Support.text(passed, "state") == "success"
+        and Support.text(skipped, "state") == "missing"
+        and Support.text(running, "state") == "waiting"
+        and Support.text(failed, "state") == "failed"
+        and Support.text(
+    Status.require_job(workflow_with_jobs("success", Json.array()), "Compiler check and test"),
+    "state",
+) == "missing"
+        and Support.text(Status.require_job(workflow_with_jobs("success", Json.array()), ""), "state") == "success"
+        and Support.text(Status.require_job(Json.object(), "Compiler check and test"), "state") == "failed".
+
 row(revision: String, status: String, conclusion: String): Json ->
     Json.array()
         .push(
@@ -34,7 +90,8 @@ pub run(): Bool ->
     let pending = state("in_progress", "");
     let failed = state("completed", "failure");
     let cancelled = state("completed", "cancelled");
-    Version.valid("0.0.9")
+    required_release_job_must_run_and_pass()
+        and Version.valid("0.0.9")
         and Tag.version_matches("[workspace.package]\nversion = \"0.0.9\"\n", "0.0.9")
         and not Tag.version_matches("[workspace.package]\nversion = \"0.0.8\"\n", "0.0.9")
         and not Tag.version_matches("[package]\nversion = \"0.0.9\"\n", "0.0.9")

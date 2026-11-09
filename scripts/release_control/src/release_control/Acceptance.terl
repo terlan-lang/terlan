@@ -179,6 +179,14 @@ pub run(vm: String, image: String): Bool ->
     vm,
     image,
 )
+            and scenario(
+    root,
+    "skipped-compiler",
+    true,
+    "dispatch ci.yml\npublish-prepare\npublish-upload\n",
+    vm,
+    image,
+)
             and scenario(root, "drift", false, "sleep\n", vm, image)
             and scenario(root, "prepare-failed", false, "publish-prepare\n", vm, image)
             and scenario(root, "published", true, "", vm, image)
