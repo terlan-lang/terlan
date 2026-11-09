@@ -1,0 +1,34 @@
+module ci.TerlanStyleTest.
+
+import ci.TerlanStyle.
+
+@test
+pub changed_sources_are_the_only_selected_paths(): Bool ->
+    TerlanStyle.select(
+    ["README.md", "std/core/Int.terl", "scripts/check.terls", "src/api.terli"],
+    ["std/core/Bool.terl"],
+    false,
+) == ["std/core/Int.terl", "scripts/check.terls", "src/api.terli"]
+        and TerlanStyle.required(["std/core/Int.terl"], false)
+        and not TerlanStyle.required(["README.md"], false)
+        and TerlanStyle.is_source("src/value.terl")
+        and TerlanStyle.is_source("src/value.terli")
+        and TerlanStyle.is_source("scripts/value.terls")
+        and not TerlanStyle.is_source("src/value.terl.bak").
+
+@test
+pub formatter_and_linter_changes_select_all_sources(): Bool ->
+    let tracked = ["std/core/Bool.terl", "README.md", "scripts/check.terls"];
+    TerlanStyle.select(["crates/terlan/src/commands/lint/rules.rs"], tracked, false) == ["std/core/Bool.terl", "scripts/check.terls"]
+        and TerlanStyle.requires_all(["crates/terlan/src/commands/fmt/mod.rs"])
+        and TerlanStyle.requires_all(["crates/terlan/src/compiler/syntax/formatter/expressions.rs"])
+        and TerlanStyle.requires_all(["crates/terlan/cli.mk"])
+        and not TerlanStyle.requires_all(["crates/terlan/src/main.rs"])
+        and TerlanStyle.changes_global_contract("crates/terlan/cli.mk")
+        and not TerlanStyle.changes_global_contract("Cargo.lock").
+
+@test
+pub indeterminate_revisions_fail_closed_to_all_sources(): Bool ->
+    TerlanStyle.select([], ["std/core/Bool.terl", "docs/guide.md"], true) == ["std/core/Bool.terl"]
+        and TerlanStyle.required([], true)
+        and TerlanStyle.sources([]) == [].

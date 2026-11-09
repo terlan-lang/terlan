@@ -1,0 +1,43 @@
+/**
+ * Selects the Terlan sources whose style contract changed.
+ */
+module ci.TerlanStyle.
+
+import std.collections.List.
+import std.core.String.
+
+pub is_source(path: String): Bool ->
+    String.ends_with(path, ".terl")
+        or String.ends_with(path, ".terli")
+        or String.ends_with(path, ".terls").
+
+pub changes_global_contract(path: String): Bool ->
+    String.starts_with(path, "crates/terlan/src/commands/lint/")
+        or String.starts_with(path, "crates/terlan/src/commands/fmt/")
+        or String.starts_with(path, "crates/terlan/src/compiler/syntax/formatter/")
+        or path == "crates/terlan/cli.mk".
+
+pub sources(paths: List[String]): List[String] ->
+    case paths {
+        [] -> [];
+        [path | rest] ->
+            if {
+                is_source(path) -> [path | sources(rest)];
+                true -> sources(rest)
+            }
+    }.
+
+pub requires_all(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> changes_global_contract(path) or requires_all(rest)
+    }.
+
+pub select(changed: List[String], tracked: List[String], force_all: Bool): List[String] ->
+    if {
+        force_all or requires_all(changed) -> sources(tracked);
+        true -> sources(changed)
+    }.
+
+pub required(paths: List[String], force_all: Bool): Bool ->
+    force_all or requires_all(paths) or sources(paths) != [].

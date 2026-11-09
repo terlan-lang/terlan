@@ -160,7 +160,15 @@ pub workflow_changes_validate_platform_contracts_early(): Bool ->
 pub platform_validator_changes_validate_themselves_early(): Bool ->
     Plan.preflight_lanes(
     ["scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"],
-) == ["inventory", "workflow-contract", "terlan-format"].
+) == ["inventory", "workflow-contract", "terlan-format"]
+        and not Plan.release_contract(
+    ["scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"],
+)
+        and Plan.release_contract(
+    [
+        "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseInstallerSmoke.terl",
+    ],
+).
 
 @test
 pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->

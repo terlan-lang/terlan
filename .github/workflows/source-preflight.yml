@@ -28,6 +28,38 @@ on:
         description: Whether the global Rust formatting contract changed
         required: true
         type: boolean
+      terlan_style:
+        description: Whether Terlan style inputs changed
+        required: true
+        type: boolean
+      terlan_style_all:
+        description: Whether the global Terlan style contract changed
+        required: true
+        type: boolean
+      ci_contracts:
+        description: Whether CI classification contracts changed
+        required: true
+        type: boolean
+      editor:
+        description: Whether editor integration inputs changed
+        required: true
+        type: boolean
+      inventory:
+        description: Whether source inventory inputs changed
+        required: true
+        type: boolean
+      release_tooling:
+        description: Whether release build-plan inputs changed
+        required: true
+        type: boolean
+      hooks:
+        description: Whether staged-hook inputs changed
+        required: true
+        type: boolean
+      workflow:
+        description: Whether hosted workflow inputs changed
+        required: true
+        type: boolean
 
 permissions:
   contents: read
@@ -51,6 +83,7 @@ jobs:
         id: script-runner
         uses: ./.github/actions/setup-terlan-script-runner
       - name: Install Node for generated and editor checks
+        if: ${{ inputs.generated || inputs.editor }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -61,8 +94,10 @@ jobs:
           git diff --exit-code
           test -z "$(git status --porcelain --untracked-files=all)"
       - name: Test CI change classification
+        if: ${{ inputs.ci_contracts }}
         run: ${{ steps.script-runner.outputs.terlc }} test scripts/ci --coverage --coverage-threshold 100
       - name: Check editor release contracts
+        if: ${{ inputs.editor }}
         run: make editor-release-contract-check
       - name: Install Rust toolchain
         if: ${{ inputs.rust_format }}
@@ -83,36 +118,47 @@ jobs:
             scripts/ci/scripts/CheckRustFormatting.terls -- \
             --revisions "$BASE_REVISION" "$HEAD_REVISION" "$FORMAT_ALL"
       - name: Validate release payload inputs
-        if: ${{ inputs.mode == 'full' }}
+        if: ${{ inputs.release_tooling }}
         run: ${{ steps.script-runner.outputs.terlc }} test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl --coverage --coverage-threshold 100
       - name: Check Terlan readability canonicalization
-        if: ${{ inputs.mode == 'full' }}
-        run: make --no-print-directory -f crates/terlan/cli.mk terlan-readability-canonicalization-check TERLC=${{ steps.script-runner.outputs.terlc }}
+        if: ${{ inputs.terlan_style }}
+        env:
+          BASE_REVISION: ${{ inputs.base_revision }}
+          HEAD_REVISION: ${{ inputs.head_revision }}
+          STYLE_ALL: ${{ inputs.terlan_style_all }}
+        run: |
+          ${{ steps.script-runner.outputs.terlc }} run \
+            scripts/ci/scripts/CheckTerlanStyle.terls -- \
+            "$BASE_REVISION" "$HEAD_REVISION" "$STYLE_ALL" \
+            "${{ steps.script-runner.outputs.terlc }}"
       - name: Check source inventory and test ownership
-        if: ${{ inputs.mode == 'full' }}
+        if: ${{ inputs.inventory }}
         run: |
           cargo test --locked -p terlan-rust-boundary-audit
           cargo test --locked -p terlan-test-orchestrator --lib
       - name: Install release-tool test dependencies
+        if: ${{ inputs.hooks }}
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends ripgrep
+          command -v rg
           rg --version
       - name: Check build-plan integration contract
-        if: ${{ inputs.mode == 'full' }}
+        if: ${{ inputs.release_tooling }}
         run: cargo test --locked -p terlan-test-orchestrator --test hosted_release_make repository_report_consumer_propagates_typed_validation_failures -- --exact
       - name: Test staged Git hook isolation
+        if: ${{ inputs.hooks }}
         run: |
           bash scripts/build_artifact_bootstrap_test.sh
           bash scripts/git_hooks_test.sh
           bash scripts/publish_command_test.sh
           bash scripts/download_publication_bundle_test.sh
       - name: Install pinned Go toolchain for actionlint
+        if: ${{ inputs.workflow }}
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.25.0"
           cache: false
       - name: Restore actionlint build cache
+        if: ${{ inputs.workflow }}
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -120,4 +166,5 @@ jobs:
             ~/.cache/go-build
           key: ${{ runner.os }}-${{ runner.arch }}-actionlint-go1.25.0-v1.7.12
       - name: Validate workflow syntax
+        if: ${{ inputs.workflow }}
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml

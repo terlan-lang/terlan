@@ -98,6 +98,14 @@ jobs:
       generated: ${{ steps.classify.outputs.generated }}
       rust-format: ${{ steps.classify.outputs.rust-format }}
       rust-format-all: ${{ steps.classify.outputs.rust-format-all }}
+      terlan-style: ${{ steps.classify.outputs.terlan-style }}
+      terlan-style-all: ${{ steps.classify.outputs.terlan-style-all }}
+      ci-contracts: ${{ steps.classify.outputs.ci-contracts }}
+      editor: ${{ steps.classify.outputs.editor }}
+      inventory: ${{ steps.classify.outputs.inventory }}
+      release-tooling: ${{ steps.classify.outputs.release-tooling }}
+      hooks: ${{ steps.classify.outputs.hooks }}
+      workflow: ${{ steps.classify.outputs.workflow }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -134,6 +142,14 @@ jobs:
       head_revision: ${{ github.event.pull_request.head.sha || github.sha }}
       rust_format: ${{ needs.changes.outputs.rust-format == 'true' }}
       rust_format_all: ${{ needs.changes.outputs.rust-format-all == 'true' }}
+      terlan_style: ${{ needs.changes.outputs.terlan-style == 'true' }}
+      terlan_style_all: ${{ needs.changes.outputs.terlan-style-all == 'true' }}
+      ci_contracts: ${{ needs.changes.outputs.ci-contracts == 'true' }}
+      editor: ${{ needs.changes.outputs.editor == 'true' }}
+      inventory: ${{ needs.changes.outputs.inventory == 'true' }}
+      release_tooling: ${{ needs.changes.outputs.release-tooling == 'true' }}
+      hooks: ${{ needs.changes.outputs.hooks == 'true' }}
+      workflow: ${{ needs.changes.outputs.workflow == 'true' }}
 
   dependency-audit:
     name: Locked dependency security audit

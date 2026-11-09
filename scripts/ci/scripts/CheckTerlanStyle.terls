@@ -1,0 +1,89 @@
+#!/usr/bin/env -S terlc run
+import ci.TerlanStyle.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.{eprintln, println}.
+import std.system.{Arguments, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+
+lines(text: String): List[String] ->
+    let trimmed = String.trim(text);
+    if {
+        trimmed == "" -> [];
+        true -> String.split(trimmed, "\n")
+    }.
+
+git_paths(arguments: List[String]): Option[List[String]] ->
+    case Process.run(Process.with_arguments(Process.command("git"), arguments)) {
+        Ok(output) ->
+            if {
+                output.status == 0 -> Some(lines(output.stdout));
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+tracked_sources(): Option[List[String]] ->
+    git_paths(["ls-files", "--", "*.terl", "*.terli", "*.terls"]).
+
+changed_sources(base: String, head: String): Option[List[String]] ->
+    git_paths(
+        [
+            "diff",
+            "--diff-filter=ACMR",
+            "--name-only",
+            base,
+            head,
+            "--",
+            "*.terl",
+            "*.terli",
+            "*.terls",
+        ],
+    ).
+
+run_check(compiler: String, arguments: List[String]): Bool ->
+    case Process.run(Process.with_arguments(Process.command(compiler), arguments)) {
+        Ok(output) ->
+            if {
+                output.status == 0 -> true;
+                true -> let _stdout = eprintln(output.stdout);
+                let _stderr = eprintln(output.stderr);
+                false
+            };
+        Err(reason) ->
+            let _printed = eprintln(reason.message());
+            false
+    }.
+
+check(compiler: String, paths: List[String]): Bool ->
+    case paths {
+        [] ->
+            let _printed = println("Terlan style skipped: no Terlan sources changed");
+            true;
+        _ ->
+            run_check(compiler, ["lint", "--only", "TL0009", "--only", "TL0010"].concat(paths))
+                and run_check(compiler, ["fmt", "--check"].concat(paths))
+    }.
+
+entry(): Bool ->
+    let {
+        Some(base) <- Arguments.get(0);
+        Some(head) <- Arguments.get(1);
+        Some(force_all) <- Arguments.get(2);
+        Some(compiler) <- Arguments.get(3);
+        Some(paths) <-
+            if {
+                force_all == "true" -> tracked_sources();
+                true -> changed_sources(base, head)
+            }
+    } else {
+        _ -> false
+    };
+    check(compiler, paths).
+
+assert(entry());
+Unit.

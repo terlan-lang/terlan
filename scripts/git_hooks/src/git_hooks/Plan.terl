@@ -340,9 +340,20 @@ pub release_contract(paths: List[String]): Bool ->
         or affected(paths, "mk/", "")
         or release_script(paths)
         or affected(paths, "scripts/self_validation/RepositoryValidation.terls", "")
-        or affected(paths, "scripts/self_validation/tvm_aot_platform_matrix/", "")
+        or platform_release_contract(paths)
         or affected(paths, "editors/editor.mk", "")
         or affected(paths, "rust-toolchain.toml", "").
+
+platform_release_contract(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.starts_with(path, "scripts/self_validation/tvm_aot_platform_matrix/")
+    and path != "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"
+    and path != "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/SelfTest.terl"
+    and path != "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/WorkflowContractTest.terl"
+                or platform_release_contract(rest)
+    }.
 
 release_script(paths: List[String]): Bool ->
     case paths {

@@ -730,7 +730,7 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
     normalized_workflow,
     [
         "timeout-minutes: 30",
-        "if: \${{ inputs.mode == 'full' }}",
+        "if: \${{ inputs.generated }}",
         "source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=\${{ steps.script-runner.outputs.terlc }}",
         "git diff --exit-code",
         "git status --porcelain --untracked-files=all",

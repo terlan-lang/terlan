@@ -3,7 +3,7 @@
  */
 module ci.ChangeClassifier.
 
-import ci.RustFormatting.
+import ci.{RustFormatting, TerlanStyle}.
 import std.collections.List.
 import std.core.{Int, String}.
 
@@ -14,6 +14,14 @@ pub struct Classification {
     generated: Bool,
     rust_format: Bool,
     rust_format_all: Bool,
+    terlan_style: Bool,
+    terlan_style_all: Bool,
+    ci_contracts: Bool,
+    editor: Bool,
+    inventory: Bool,
+    release_tooling: Bool,
+    hooks: Bool,
+    workflow: Bool,
     changed_count: Int,
 }.
 
@@ -84,6 +92,45 @@ pub is_generated_artifact_input(path: String): Bool ->
     path,
 ).
 
+pub is_ci_contract_file(path: String): Bool ->
+    starts_with_any(path, ["scripts/ci/", ".github/actions/setup-terlan-script-runner/"])
+        or contains([".github/workflows/ci.yml", ".github/workflows/source-preflight.yml"], path).
+
+pub is_editor_file(path: String): Bool ->
+    starts_with_any(path, ["editors/", "tree-sitter-terlan/"]).
+
+pub is_inventory_file(path: String): Bool ->
+    String.ends_with(path, ".rs")
+        or String.ends_with(path, ".py")
+        or starts_with_any(path, ["tools/rust_boundary_audit/", "scripts/self_validation/Inventory"]).
+
+pub is_release_tooling_file(path: String): Bool ->
+    contains(["Makefile", ".github/workflows/release.yml", ".github/workflows/publish.yml"], path)
+        or starts_with_any(
+    path,
+    [
+        "mk/",
+        "scripts/release_control/",
+        "scripts/self_validation/release_promotion/",
+        "scripts/self_validation/tvm_aot_platform_matrix/",
+        "crates/terlan-test-orchestrator/",
+    ],
+).
+
+pub is_hook_file(path: String): Bool ->
+    starts_with_any(path, [".githooks/", "scripts/git_hooks"])
+        or contains(
+    [
+        "scripts/build_artifact_bootstrap_test.sh",
+        "scripts/publish_command_test.sh",
+        "scripts/download_publication_bundle_test.sh",
+    ],
+    path,
+).
+
+pub is_workflow_file(path: String): Bool ->
+    starts_with_any(path, [".github/workflows/", ".github/actions/"]).
+
 any_product(paths: List[String]): Bool ->
     case paths {
         [] -> false;
@@ -108,6 +155,23 @@ any_generated_artifact_input(paths: List[String]): Bool ->
         [path | rest] -> is_generated_artifact_input(path) or any_generated_artifact_input(rest)
     }.
 
+any_matching(paths: List[String], kind: String): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            let matched =
+                case kind {
+                    "ci" -> is_ci_contract_file(path);
+                    "editor" -> is_editor_file(path);
+                    "inventory" -> is_inventory_file(path);
+                    "release" -> is_release_tooling_file(path);
+                    "hooks" -> is_hook_file(path);
+                    "workflow" -> is_workflow_file(path);
+                    _ -> false
+                };
+            matched or any_matching(rest, kind)
+    }.
+
 unique_nonempty(paths: List[String], seen: List[String]): List[String] ->
     case paths {
         [] -> seen;
@@ -128,6 +192,14 @@ pub classify(paths: List[String], force_full: Bool): Classification ->
         generated = force_full or any_generated_artifact_input(normalized),
         rust_format = RustFormatting.required(normalized, force_full),
         rust_format_all = force_full or RustFormatting.requires_all(normalized),
+        terlan_style = TerlanStyle.required(normalized, force_full),
+        terlan_style_all = force_full or TerlanStyle.requires_all(normalized),
+        ci_contracts = force_full or any_matching(normalized, "ci"),
+        editor = force_full or any_matching(normalized, "editor"),
+        inventory = force_full or any_matching(normalized, "inventory"),
+        release_tooling = force_full or any_matching(normalized, "release"),
+        hooks = force_full or any_matching(normalized, "hooks"),
+        workflow = force_full or any_matching(normalized, "workflow"),
         changed_count = List.length(normalized),
     ).
 
@@ -169,6 +241,22 @@ pub render_outputs(value: Classification): String ->
             boolean(value.rust_format),
             "\nrust-format-all=",
             boolean(value.rust_format_all),
+            "\nterlan-style=",
+            boolean(value.terlan_style),
+            "\nterlan-style-all=",
+            boolean(value.terlan_style_all),
+            "\nci-contracts=",
+            boolean(value.ci_contracts),
+            "\neditor=",
+            boolean(value.editor),
+            "\ninventory=",
+            boolean(value.inventory),
+            "\nrelease-tooling=",
+            boolean(value.release_tooling),
+            "\nhooks=",
+            boolean(value.hooks),
+            "\nworkflow=",
+            boolean(value.workflow),
             "\nchanged-count=",
             Int.to_string(value.changed_count),
             "\n",
