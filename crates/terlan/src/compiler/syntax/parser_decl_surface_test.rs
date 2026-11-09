@@ -44,11 +44,6 @@ module iface.
 pub macro expand(X: Expr, Y: Expr): Expr.
 pub type Flag = Bool.
 "#;
-        let tokens = crate::terlan_syntax::lexer::lex(source).unwrap();
-        for token in tokens {
-            println!("{:?} {:?} {:?}", token.kind, token.text, token.span());
-        }
-
         let module = parse_interface_module(source).expect("parse interface");
         assert_eq!(module.declarations.len(), 2);
         assert!(matches!(&module.declarations[0], Decl::Function(_)));

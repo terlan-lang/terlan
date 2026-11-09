@@ -57,6 +57,14 @@ pub struct ParseError {
     pub span: Span,
 }
 
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (at {})", self.message, self.span)
+    }
+}
+
+impl std::error::Error for ParseError {}
+
 /// Result type returned by parser operations.
 pub type ParseResult<T> = Result<T, ParseError>;
 /// Backwards-compatible parser error alias.

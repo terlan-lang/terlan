@@ -585,6 +585,11 @@ fn command_local_help_request(args: &[String]) -> Option<&str> {
 ///   unknown or command-local options to the selected command.
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
+    fn arg_error(msg: &str) -> (CliState, CliCommand) {
+        eprintln!("{msg}");
+        (CliState::default(), CliCommand { verb: None, args: vec![] })
+    }
+
     let mut state = CliState {
         no_emit: false,
         incremental: false,
@@ -629,86 +634,40 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
             }
             "--out-dir" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--out-dir requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--out-dir requires a value");
                 }
                 state.out_dir = PathBuf::from(&args[i + 1]);
                 i += 2;
             }
             "--cache-dir" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--cache-dir requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--cache-dir requires a value");
                 }
                 state.cache_dir = Some(PathBuf::from(&args[i + 1]));
                 i += 2;
             }
             "--diagnostic-format" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--diagnostic-format requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--diagnostic-format requires a value");
                 }
                 state.diagnostic_format = match args[i + 1].as_str() {
                     "text" => DiagnosticFormat::Text {
                         color: support::diagnostic_color(state.diagnostic_format),
                     },
                     "json" => DiagnosticFormat::Json,
-                    other => {
-                        eprintln!("unsupported diagnostic format: {}", other);
-                        return (
-                            CliState::default(),
-                            CliCommand {
-                                verb: None,
-                                args: vec![],
-                            },
-                        );
-                    }
+                    other => return arg_error(&format!("unsupported diagnostic format: {other}")),
                 };
                 i += 2;
             }
             "--color" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--color requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--color requires a value");
                 }
                 let color = match args[i + 1].as_str() {
                     "auto" => ColorChoice::Auto,
                     "always" => ColorChoice::Always,
                     "never" => ColorChoice::Never,
-                    other => {
-                        eprintln!("unsupported color mode: {}", other);
-                        return (
-                            CliState::default(),
-                            CliCommand {
-                                verb: None,
-                                args: vec![],
-                            },
-                        );
-                    }
+                    other => return arg_error(&format!("unsupported color mode: {other}")),
                 };
                 if matches!(state.diagnostic_format, DiagnosticFormat::Text { .. }) {
                     state.diagnostic_format = DiagnosticFormat::Text { color };
@@ -717,111 +676,52 @@ fn parse_args(args: Vec<String>) -> (CliState, CliCommand) {
             }
             "--format" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--format requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--format requires a value");
                 }
                 state.doc_format = match args[i + 1].as_str() {
                     "markdown" => DocFormat::Markdown,
                     "html" => DocFormat::Html,
                     "json" => DocFormat::Json,
-                    other => {
-                        eprintln!("unsupported doc format: {}", other);
-                        return (
-                            CliState::default(),
-                            CliCommand {
-                                verb: None,
-                                args: vec![],
-                            },
-                        );
-                    }
+                    other => return arg_error(&format!("unsupported doc format: {other}")),
                 };
                 i += 2;
             }
             "--native-policy" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--native-policy requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--native-policy requires a value");
                 }
                 state.native_policy = match NativePolicy::from_cli(args[i + 1].as_str()) {
                     Some(policy) => policy,
                     None => {
-                        let other = &args[i + 1];
-                        eprintln!("unsupported native policy: {}", other);
-                        return (
-                            CliState::default(),
-                            CliCommand {
-                                verb: None,
-                                args: vec![],
-                            },
-                        );
+                        return arg_error(&format!(
+                            "unsupported native policy: {}",
+                            &args[i + 1]
+                        ));
                     }
                 };
                 i += 2;
             }
             "--target-profile" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--target-profile requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--target-profile requires a value");
                 }
                 state.target_profile = match args[i + 1].as_str() {
                     value if value == "erlang" || value.ends_with("-erlang") => {
-                        eprintln!(
-                            "target profile `{}` was removed from the public CLI; the compiler selects the VM profile by default",
-                            value
-                        );
-                        return (
-                            CliState::default(),
-                            CliCommand {
-                                verb: None,
-                                args: vec![],
-                            },
-                        );
+                        return arg_error(&format!(
+                            "target profile `{value}` was removed from the public CLI; the compiler selects the VM profile by default"
+                        ));
                     }
                     "vm" | "terlan-vm" => TargetProfile::Vm,
                     "js" | "js.shared" => TargetProfile::JsShared,
                     "js.browser" => TargetProfile::JsBrowser,
                     "js.worker" => TargetProfile::JsWorker,
-                    other => {
-                        eprintln!("unsupported target profile: {}", other);
-                        return (
-                            CliState::default(),
-                            CliCommand {
-                                verb: None,
-                                args: vec![],
-                            },
-                        );
-                    }
+                    other => return arg_error(&format!("unsupported target profile: {other}")),
                 };
                 i += 2;
             }
             "--stdlib" => {
                 if i + 1 >= args.len() {
-                    eprintln!("--stdlib requires a value");
-                    return (
-                        CliState::default(),
-                        CliCommand {
-                            verb: None,
-                            args: vec![],
-                        },
-                    );
+                    return arg_error("--stdlib requires a value");
                 }
                 i += 2;
             }
