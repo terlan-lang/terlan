@@ -8,6 +8,22 @@ on:
         required: false
         default: full
         type: string
+      base_revision:
+        description: Base revision used to select changed formatting inputs
+        required: true
+        type: string
+      head_revision:
+        description: Exact candidate revision
+        required: true
+        type: string
+      rust_format:
+        description: Whether Rust formatting inputs changed
+        required: true
+        type: boolean
+      rust_format_all:
+        description: Whether the global Rust formatting contract changed
+        required: true
+        type: boolean
 
 permissions:
   contents: read
@@ -21,6 +37,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Validate preflight mode
         env:
@@ -44,14 +61,23 @@ jobs:
       - name: Check editor release contracts
         run: make editor-release-contract-check
       - name: Install Rust toolchain
+        if: ${{ inputs.rust_format }}
         uses: ./.github/actions/setup-rust
         with:
           components: rustfmt
           cache-build: "true"
           cache-scope: ubuntu-24.04
           cache-profile: compiler-validation
-      - name: Check Rust formatting
-        run: cargo fmt --all -- --check
+      - name: Check changed Rust formatting
+        if: ${{ inputs.rust_format }}
+        env:
+          BASE_REVISION: ${{ inputs.base_revision }}
+          HEAD_REVISION: ${{ inputs.head_revision }}
+          FORMAT_ALL: ${{ inputs.rust_format_all }}
+        run: |
+          ${{ steps.script-runner.outputs.terlc }} run \
+            scripts/ci/scripts/CheckRustFormatting.terls -- \
+            --revisions "$BASE_REVISION" "$HEAD_REVISION" "$FORMAT_ALL"
       - name: Validate release payload inputs
         if: ${{ inputs.mode == 'full' }}
         run: ${{ steps.script-runner.outputs.terlc }} test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl --coverage --coverage-threshold 100

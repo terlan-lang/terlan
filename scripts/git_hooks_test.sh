@@ -143,7 +143,7 @@ mkdir -p "$temporary/early-bindings/bin" "$temporary/early-bindings/cache/debug"
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 case "$*" in
-  'fmt --all -- --check'|'build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools') exit 0 ;;
+  'build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools') exit 0 ;;
   *'--release'*) exit 99 ;;
   *) exit 97 ;;
 esac
@@ -157,6 +157,9 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
   printf 'preflight:inventory\npreflight:release-manifest\npreflight:terlan-format\nshell\n'
+  exit 0
+fi
+if [[ "$*" == 'run scripts/ci/scripts/CheckRustFormatting.terls -- --paths-file changes.txt' ]]; then
   exit 0
 fi
 if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
@@ -360,6 +363,18 @@ repository_contract_recipe=$(awk '
 test "$(grep -Fc '$(TERLAN_REPOSITORY_VALIDATION)' <<< "$repository_contract_recipe")" = 1
 if grep -Fq '$(TERLAN_REPOSITORY_VALIDATION) build-plan-report' <<< "$repository_contract_recipe"; then
   echo 'Repository build-plan report was validated in a second compiler process' >&2; exit 1
+fi
+
+# Formatting follows changed source inputs. A commit must not silently restore
+# the former whole-workspace Rust style pass.
+grep -Fq 'CheckRustFormatting.terls -- --paths-file "$changes"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq '"$terlc" test scripts/ci --coverage --coverage-threshold 100' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse compiler; no compiler inputs changed' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+if grep -Fq 'cargo fmt --all' "$(dirname "$driver")/git_hooks/check.sh"; then
+  echo 'Hook redundantly formats unchanged Rust sources' >&2; exit 1
 fi
 
 # The executable budget owns four binaries in both profiles. Planner bootstrap

@@ -8,12 +8,18 @@ pub workflow_and_documentation_changes_avoid_compiler_validation(): Bool ->
     not result.compiler
         and not result.source
         and not result.dependencies
+        and not result.rust_format
+        and not result.rust_format_all
         and result.changed_count == 2.
 
 @test
 pub compiler_sources_select_compiler_validation(): Bool ->
     let result = ChangeClassifier.classify(["crates/terlan/src/main.rs", "std/core/Int.terl"], false);
-    result.compiler and result.source and not result.dependencies.
+    result.compiler
+        and result.source
+        and not result.dependencies
+        and result.rust_format
+        and not result.rust_format_all.
 
 @test
 pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
@@ -25,12 +31,19 @@ pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
     result.compiler
         and result.source
         and result.dependencies
+        and not result.rust_format
+        and not result.rust_format_all
         and ChangeClassifier.is_dependency_file("scripts/peers/requirements.txt").
 
 @test
 pub manual_and_indeterminate_dispatches_force_all_validation(): Bool ->
     let result = ChangeClassifier.classify([], true);
-    result.compiler and result.source and result.dependencies and result.changed_count == 0.
+    result.compiler
+        and result.source
+        and result.dependencies
+        and result.rust_format
+        and result.rust_format_all
+        and result.changed_count == 0.
 
 @test
 pub classification_ignores_duplicate_and_empty_paths(): Bool ->
@@ -39,7 +52,12 @@ pub classification_ignores_duplicate_and_empty_paths(): Bool ->
             ["Makefile", "", "Makefile", "editors/vscode/package.json"],
             false,
         );
-    result.source and not result.compiler and not result.dependencies and result.changed_count == 2.
+    result.source
+        and not result.compiler
+        and not result.dependencies
+        and not result.rust_format
+        and not result.rust_format_all
+        and result.changed_count == 2.
 
 @test
 pub root_and_prefix_contracts_are_explicit(): Bool ->
@@ -54,7 +72,20 @@ pub root_and_prefix_contracts_are_explicit(): Bool ->
 @test
 pub release_tooling_receives_source_checks_without_compiler_replay(): Bool ->
     let result = ChangeClassifier.classify(["Makefile", "scripts/release_control/Main.terl"], false);
-    result.source and not result.compiler and not result.dependencies.
+    result.source
+        and not result.compiler
+        and not result.dependencies
+        and not result.rust_format
+        and not result.rust_format_all.
+
+@test
+pub rust_formatting_scope_is_independent_of_compiler_scope(): Bool ->
+    let source = ChangeClassifier.classify(["tools/example.rs"], false);
+    let configuration = ChangeClassifier.classify(["rustfmt.toml"], false);
+    source.rust_format
+        and not source.rust_format_all
+        and configuration.rust_format
+        and configuration.rust_format_all.
 
 @test
 pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
@@ -69,4 +100,4 @@ pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
 pub github_outputs_are_complete_and_stable(): Bool ->
     ChangeClassifier.render_outputs(
     ChangeClassifier.classify(["crates/terlan/src/main.rs", "Cargo.lock"], false),
-) == "source=true\ncompiler=true\ndependencies=true\nchanged-count=2\n".
+) == "source=true\ncompiler=true\ndependencies=true\nrust-format=true\nrust-format-all=false\nchanged-count=2\n".

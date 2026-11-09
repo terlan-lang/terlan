@@ -1,0 +1,32 @@
+module ci.RustFormattingTest.
+
+import ci.RustFormatting.
+
+@test
+pub changed_sources_are_the_only_selected_paths(): Bool ->
+    RustFormatting.select(
+    ["README.md", "crates/terlan/src/main.rs", "std/core/Int.terl"],
+    ["crates/terlan/src/lib.rs"],
+    false,
+) == ["crates/terlan/src/main.rs"]
+        and RustFormatting.required(["crates/terlan/src/main.rs"], false)
+        and not RustFormatting.required(["README.md"], false)
+        and RustFormatting.is_source("src/lib.rs")
+        and not RustFormatting.is_source("src/lib.rs.bak").
+
+@test
+pub formatting_configuration_selects_all_tracked_sources(): Bool ->
+    let tracked = ["src/lib.rs", "README.md", "tools/check.rs"];
+    RustFormatting.select(["rustfmt.toml"], tracked, false) == ["src/lib.rs", "tools/check.rs"]
+        and RustFormatting.select([".rustfmt.toml"], tracked, false) == ["src/lib.rs", "tools/check.rs"]
+        and RustFormatting.select(["rust-toolchain.toml"], tracked, false) == ["src/lib.rs", "tools/check.rs"]
+        and RustFormatting.requires_all(["README.md", "rustfmt.toml"])
+        and not RustFormatting.requires_all(["README.md"])
+        and RustFormatting.changes_global_contract("rustfmt.toml")
+        and not RustFormatting.changes_global_contract("Cargo.lock").
+
+@test
+pub indeterminate_revisions_fail_closed_to_all_sources(): Bool ->
+    RustFormatting.select([], ["src/lib.rs", "docs/guide.md"], true) == ["src/lib.rs"]
+        and RustFormatting.required([], true)
+        and RustFormatting.sources([]) == [].

@@ -3,6 +3,7 @@
  */
 module ci.ChangeClassifier.
 
+import ci.RustFormatting.
 import std.collections.List.
 import std.core.{Int, String}.
 
@@ -10,6 +11,8 @@ pub struct Classification {
     source: Bool,
     compiler: Bool,
     dependencies: Bool,
+    rust_format: Bool,
+    rust_format_all: Bool,
     changed_count: Int,
 }.
 
@@ -100,6 +103,8 @@ pub classify(paths: List[String], force_full: Bool): Classification ->
         source = force_full or any_product(normalized),
         compiler = force_full or any_compiler(normalized),
         dependencies = force_full or any_dependency(normalized),
+        rust_format = RustFormatting.required(normalized, force_full),
+        rust_format_all = force_full or RustFormatting.requires_all(normalized),
         changed_count = List.length(normalized),
     ).
 
@@ -135,6 +140,10 @@ pub render_outputs(value: Classification): String ->
             boolean(value.compiler),
             "\ndependencies=",
             boolean(value.dependencies),
+            "\nrust-format=",
+            boolean(value.rust_format),
+            "\nrust-format-all=",
+            boolean(value.rust_format_all),
             "\nchanged-count=",
             Int.to_string(value.changed_count),
             "\n",

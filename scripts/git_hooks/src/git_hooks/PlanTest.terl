@@ -92,7 +92,7 @@ pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "clippy", "native-ir", "phase"]
         and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "clippy", "native-ir", "phase"]
-        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "negative-api", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "compiler-build", "rust-format", "negative-api", "rust-docs"]
         and Plan.lanes(
     [
         "crates/terlan/src/compiler/native_ir/collection_values.rs",
@@ -150,7 +150,11 @@ pub ordinary_docs_avoid_artifact_workloads(): Bool ->
 
 @test
 pub workflow_changes_validate_platform_contracts_early(): Bool ->
-    Plan.preflight_lanes([".github/actions/setup-rust/action.yml"]) == ["inventory", "workflow-contract"].
+    Plan.preflight_lanes([".github/actions/setup-rust/action.yml"]) == ["inventory", "workflow-contract"]
+        and not Plan.release_contract([".github/workflows/ci.yml"])
+        and not Plan.release_contract([".github/workflows/source-preflight.yml"])
+        and Plan.release_contract([".github/workflows/release.yml"])
+        and Plan.release_contract([".github/workflows/publish.yml"]).
 
 @test
 pub platform_validator_changes_validate_themselves_early(): Bool ->
@@ -161,7 +165,12 @@ pub platform_validator_changes_validate_themselves_early(): Bool ->
 @test
 pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "clippy", "rust-reports", "commands-doctor"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-docs"].
+
+@test
+pub rust_formatting_uses_changed_inputs_unless_configuration_changes(): Bool ->
+    Plan.preflight_lanes(["tools/example.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-docs"]
+        and Plan.preflight_lanes(["rustfmt.toml"]) == ["inventory", "rust-format"].
 
 @test
 pub javascript_emitter_changes_do_not_run_native_command_suites(): Bool ->
@@ -195,11 +204,15 @@ pub test_command_changes_use_their_owned_tests(): Bool ->
 pub hook_changes_skip_unrelated_artifacts(): Bool ->
     Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
         and not Plan.native_bindings(["scripts/git_hooks/check.sh"])
-        and not Plan.artifact_budget(["scripts/git_hooks/check.sh"]).
+        and not Plan.artifact_budget(["scripts/git_hooks/check.sh"])
+        and not Plan.release_contract(["scripts/git_hooks_test.sh"]).
 
 @test
 pub dependency_changes_select_security_and_binary_consumers(): Bool ->
-    Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "rust-security"].
+    Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "compiler-build", "rust-security"]
+        and Plan.compiler_bootstrap(["Cargo.toml"])
+        and Plan.compiler_bootstrap(["crates/terlan/src/main.rs"])
+        and not Plan.compiler_bootstrap(["README.md"]).
 
 @test
 pub exact_version_metadata_uses_only_its_owned_gate(): Bool ->

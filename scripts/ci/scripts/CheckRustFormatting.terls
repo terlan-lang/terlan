@@ -1,0 +1,121 @@
+#!/usr/bin/env -S terlc run
+import ci.RustFormatting.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.io.Console.{eprintln, println}.
+import std.io.File.
+import std.system.{Arguments, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+
+lines(text: String): List[String] ->
+    let trimmed = String.trim(text);
+    if {
+        trimmed == "" -> [];
+        true -> String.split(trimmed, "\n")
+    }.
+
+run_paths(arguments: List[String]): Option[List[String]] ->
+    case Process.run(Process.with_arguments(Process.command("git"), arguments)) {
+        Ok(output) ->
+            if {
+                output.status == 0 -> Some(lines(output.stdout));
+                true -> None
+            };
+        Err(_reason) -> None
+    }.
+
+tracked_sources(): Option[List[String]] ->
+    run_paths(["ls-files", "--", "*.rs"]).
+
+changed_sources(base: String, head: String): Option[List[String]] ->
+    run_paths(["diff", "--diff-filter=ACMR", "--name-only", base, head, "--", "*.rs"]).
+
+paths_file(path: String): Option[List[String]] ->
+    case File.read_text(path) {
+        Ok(contents) -> Some(lines(contents));
+        Err(_reason) -> None
+    }.
+
+existing(paths: List[String]): List[String] ->
+    case paths {
+        [] -> [];
+        [path | rest] ->
+            if {
+                File.exists(path) -> [path | existing(rest)];
+                true -> existing(rest)
+            }
+    }.
+
+check(paths: List[String]): Bool ->
+    case paths {
+        [] ->
+            let _printed = println("Rust formatting skipped: no Rust formatting inputs changed");
+            true;
+        _ ->
+            case Process.run(
+                Process.with_arguments(
+                    Process.command("rustfmt"),
+                    ["--edition", "2021", "--check", "--config-path", "rustfmt.toml"].concat(paths),
+                ),
+            ) {
+                Ok(output) ->
+                    if {
+                        output.status == 0 -> true;
+                        true -> let _stdout = eprintln(output.stdout);
+                        let _stderr = eprintln(output.stderr);
+                        false
+                    };
+                Err(reason) ->
+                    let _printed = eprintln(reason.message());
+                    false
+            }
+    }.
+
+from_paths_file(path: String): Bool ->
+    let {
+        Some(changed) <- paths_file(path);
+        Some(tracked) <-
+            if {
+                RustFormatting.requires_all(changed) -> tracked_sources();
+                true -> Some(List.new[String]())
+            }
+    } else {
+        _ -> false
+    };
+    check(existing(RustFormatting.select(changed, tracked, false))).
+
+from_revisions(base: String, head: String, force_all: Bool): Bool ->
+    let Some(paths) <-
+        if {
+            force_all -> tracked_sources();
+            true -> changed_sources(base, head)
+        } else {
+        _ -> false
+    };
+    check(paths).
+
+entry(): Bool ->
+    case Arguments.get(0) {
+        Some("--paths-file") ->
+            case Arguments.get(1) {
+                Some(path) -> from_paths_file(path);
+                None -> false
+            };
+        Some("--revisions") ->
+            let {
+                Some(base) <- Arguments.get(1);
+                Some(head) <- Arguments.get(2);
+                Some(force_all) <- Arguments.get(3)
+            } else {
+                _ -> false
+            };
+            from_revisions(base, head, force_all == "true");
+        _ -> false
+    }.
+
+assert(entry());
+Unit.

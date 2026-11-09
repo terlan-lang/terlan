@@ -3,6 +3,7 @@
  */
 module git_hooks.Plan.
 
+import ci.RustFormatting.
 import std.collections.List.
 import std.core.String.
 
@@ -96,51 +97,59 @@ selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
 
 pub preflight_lanes(paths: List[String]): List[String] ->
     ["inventory" | selected(
-    version_metadata(paths),
-    "version-metadata",
+    compiler_bootstrap(paths),
+    "compiler-build",
     selected(
-        platform_workflow_contract(paths),
-        "workflow-contract",
+        RustFormatting.required(paths, false),
+        "rust-format",
         selected(
-            rust_security(paths),
-            "rust-security",
+            version_metadata(paths),
+            "version-metadata",
             selected(
-                node_security(paths),
-                "node-security",
+                platform_workflow_contract(paths),
+                "workflow-contract",
                 selected(
-                    editor_release(paths),
-                    "editor-release",
+                    rust_security(paths),
+                    "rust-security",
                     selected(
-                        artifact_bootstrap(paths),
-                        "artifact-bootstrap",
+                        node_security(paths),
+                        "node-security",
                         selected(
-                            grammar(paths),
-                            "grammar",
+                            editor_release(paths),
+                            "editor-release",
                             selected(
-                                js_bindings(paths),
-                                "js-bindings",
+                                artifact_bootstrap(paths),
+                                "artifact-bootstrap",
                                 selected(
-                                    negative_api(paths),
-                                    "negative-api",
+                                    grammar(paths),
+                                    "grammar",
                                     selected(
-                                        artifact_budget(paths),
-                                        "artifact-budget",
+                                        js_bindings(paths),
+                                        "js-bindings",
                                         selected(
-                                            release_manifest(paths),
-                                            "release-manifest",
+                                            negative_api(paths),
+                                            "negative-api",
                                             selected(
-                                                rust_docs(paths),
-                                                "rust-docs",
+                                                artifact_budget(paths),
+                                                "artifact-budget",
                                                 selected(
-                                                    preparation(paths),
-                                                    "preparation",
+                                                    release_manifest(paths),
+                                                    "release-manifest",
                                                     selected(
-                                                        hook_policy(paths),
-                                                        "hook-policy",
+                                                        rust_docs(paths),
+                                                        "rust-docs",
                                                         selected(
-                                                            terlan_format(paths),
-                                                            "terlan-format",
-                                                            List.new[String](),
+                                                            preparation(paths),
+                                                            "preparation",
+                                                            selected(
+                                                                hook_policy(paths),
+                                                                "hook-policy",
+                                                                selected(
+                                                                    terlan_format(paths),
+                                                                    "terlan-format",
+                                                                    List.new[String](),
+                                                                ),
+                                                            ),
                                                         ),
                                                     ),
                                                 ),
@@ -174,6 +183,9 @@ pub dependency_inputs(paths: List[String]): Bool ->
         or affected(paths, "", "Cargo.lock")
         or affected(paths, "", "rust-toolchain.toml")
         or affected(paths, ".cargo/", "").
+
+pub compiler_bootstrap(paths: List[String]): Bool ->
+    affected(paths, "", ".rs") or dependency_inputs(paths).
 
 pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").
@@ -320,7 +332,10 @@ pub workflow(paths: List[String]): Bool ->
     affected(paths, ".github/workflows/", "") or affected(paths, ".github/actions/", "").
 
 pub release_contract(paths: List[String]): Bool ->
-    workflow(paths)
+    affected(paths, ".github/workflows/release.yml", "")
+        or affected(paths, ".github/workflows/publish.yml", "")
+        or affected(paths, ".github/actions/setup-native-dependencies/", "")
+        or affected(paths, ".github/actions/security-audit/", "")
         or affected(paths, "Makefile", "")
         or affected(paths, "mk/", "")
         or release_script(paths)
@@ -336,6 +351,7 @@ release_script(paths: List[String]): Bool ->
             String.starts_with(path, "scripts/")
     and String.ends_with(path, ".sh")
     and path != "scripts/git_hooks/check.sh"
+    and path != "scripts/git_hooks_test.sh"
     and path != "scripts/git_hooks/rust_reports.sh"
     and path != "scripts/git_hooks/stdlib_summaries.sh"
                 or release_script(rest)

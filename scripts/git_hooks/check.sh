@@ -3,40 +3,53 @@
 set -euo pipefail
 changes=$1
 base=$2
-echo 'pre-commit: Rust formatting'
-cargo fmt --all -- --check
-if [[ ${TERLAN_HOOK_SHARED_TARGET:-0} == 1 ]]; then
-  # Bootstrap this before trusting any compiler in the shared target. Cargo's
-  # dep-info can still refer to the other checkout even when files here changed.
-  cache_metadata=$(mktemp)
-  cargo metadata --locked --no-deps --format-version 1 > "$cache_metadata"
-  invalidate_workspace_cache() {
-    local result=$?
-    trap - EXIT
-    node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR" || result=1
-    rm -f "$cache_metadata"
-    exit "$result"
-  }
-  trap invalidate_workspace_cache EXIT
-  node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
-fi
-echo 'pre-commit: build the staged compiler planner'
-# Use the quality superset once. Building the planner without it and the report
-# binary with it makes Cargo alternate two `terlan` library feature graphs on
-# every commit even when no Rust input changed.
-cargo build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools
 terlc="$CARGO_TARGET_DIR/debug/terlc"
 export TERLC="$terlc"
 raw_plan="${changes%.txt}.raw-plan"
 preflight_plan="${changes%.txt}.preflight-plan"
 plan="${changes%.txt}.plan"
 prechecked_terlan="${changes%.txt}.prechecked-terlan.txt"
-"$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
+compiler_build=false
+if [[ ! -x "$terlc" ]]; then
+  compiler_build=true
+else
+  "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
+  if rg -qx 'preflight:compiler-build' "$raw_plan"; then compiler_build=true; fi
+fi
+if [[ "$compiler_build" == true ]]; then
+  if [[ ${TERLAN_HOOK_SHARED_TARGET:-0} == 1 ]]; then
+    # Cargo dep-info may point at another checkout. Invalidate workspace-owned
+    # fingerprints only when this staged tree actually needs a compiler build.
+    cache_metadata=$(mktemp)
+    cargo metadata --locked --no-deps --format-version 1 > "$cache_metadata"
+    invalidate_workspace_cache() {
+      local result=$?
+      trap - EXIT
+      node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR" || result=1
+      rm -f "$cache_metadata"
+      exit "$result"
+    }
+    trap invalidate_workspace_cache EXIT
+    node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
+  fi
+  echo 'pre-commit: build the changed staged compiler'
+  # Use the quality superset once. Building without it and the report binary
+  # with it would alternate two `terlan` feature graphs.
+  cargo build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools
+  "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
+else
+  echo 'pre-commit: reuse compiler; no compiler inputs changed'
+fi
 sed -n 's/^preflight://p' "$raw_plan" > "$preflight_plan"
 rg -v '^preflight:' "$raw_plan" > "$plan"
 : > "$prechecked_terlan"
 preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
+
+if preflight_has rust-format; then
+  echo 'pre-commit: changed Rust formatting'
+  "$terlc" run scripts/ci/scripts/CheckRustFormatting.terls -- --paths-file "$changes"
+fi
 
 release_tools_ready=false
 quality_tools_ready=false
@@ -183,6 +196,9 @@ fi
 if preflight_has hook-policy; then
   echo 'pre-commit: hook policy and snapshot regression tests'
   "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
+  "$terlc" test scripts/ci --coverage --coverage-threshold 100
+  "$terlc" run scripts/ci/scripts/CheckRustFormatting.terls -- \
+    --revisions HEAD HEAD false
   bash scripts/git_hooks_test.sh
   bash scripts/git_commit_message_test.sh
   bash scripts/publication_process_preflight_test.sh
@@ -192,6 +208,12 @@ if preflight_has hook-policy; then
   printf '%s\n' \
     scripts/git_hooks/src/git_hooks/Plan.terl \
     scripts/git_hooks/src/git_hooks/PlanTest.terl \
+    scripts/ci/src/ci/ChangeClassifier.terl \
+    scripts/ci/src/ci/ChangeClassifierTest.terl \
+    scripts/ci/src/ci/HostedFormattingContractTest.terl \
+    scripts/ci/src/ci/RustFormatting.terl \
+    scripts/ci/src/ci/RustFormattingTest.terl \
+    scripts/ci/scripts/CheckRustFormatting.terls \
     >> "$prechecked_terlan"
 fi
 while IFS= read -r lane; do

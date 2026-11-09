@@ -161,8 +161,9 @@ Standard-library API changes check the release manifest against the staged
 sources, including typed consumers for JavaScript bindings and opaque
 constructor types.
 
-Every nonempty commit checks Rust formatting, builds only the staged `terlc`
-planner, and runs the retained-source inventory. The typed plan then selects
+Every nonempty commit checks changed Rust formatting and runs the retained-source
+inventory. The hook reuses the existing `terlc` when compiler inputs are unchanged;
+Rust or Cargo/toolchain changes build the staged compiler. The typed plan then selects
 artifact owners and focused test lanes. Hook-policy and snapshot tests run only
 when their inputs change; the VM, worker, service runtime, quality tools, and
 optimized compiler are built only for selected consumers. Release
@@ -210,6 +211,7 @@ summary generation batches the independent CSS property modules separately.
 | --- | --- |
 | Grammar/parser inputs, Lean proofs and metadata, compiler/runtime specifications, standard-library inputs, native-boundary sources, or proof validators | Check EBNF/LALRPOP/Lean fingerprints and replay the complete Lean proof track against the staged snapshot; requires the pinned Lean toolchain and, on Linux, Bubblewrap |
 | Rust source or compiler/grammar inputs | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
+| Rust source | Check formatting only for changed `.rs` files; formatter or toolchain configuration changes check every tracked Rust source |
 | The above inputs, checked Rust quality reports, or their validators | Enforce Rust size and test-layout rules; regenerate AST and Cargo metadata evidence; check API-boundary inventory and dependency-impact report without updating tracked files |
 | Rust/compiler/grammar inputs, stdlib sources and summaries, or summary generators | Check native and JavaScript/DOM summaries against temporary regenerated output; requires Node/npm |
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
