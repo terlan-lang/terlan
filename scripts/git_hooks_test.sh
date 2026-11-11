@@ -169,7 +169,7 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\nworkspace\n'
+    printf 'preflight:inventory\nshell\n\nworkspace\n'
     ;;
   test\ scripts/self_validation/InventoryTest.terl\ --out-dir\ *\ --cache-dir\ *) ;;
   *) exit 96 ;;
@@ -185,7 +185,10 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/fast-admission.log" 2>&1
   grep -Eq '^admitted:inventory:[0-9a-f]+$' changes.candidate-plan
+  grep -Eq '^admitted:shell:[0-9a-f]+$' changes.candidate-plan
+  test "$(grep -Ec '^(preflight:)?shell$' changes.candidate-plan)" = 0
   grep -qx 'workspace' changes.candidate-plan
+  test "$(grep -Ec '^$' changes.candidate-plan)" = 0
   grep -Eq 'pass inventory \([0-9]+s\)' "$temporary/fast-admission.log"
   grep -q 'candidate validation deferred' "$temporary/fast-admission.log"
 )

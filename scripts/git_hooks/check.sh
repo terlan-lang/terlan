@@ -313,13 +313,21 @@ if [[ "$hook_mode" == fast ]]; then
   candidate_plan="${changes%.txt}.candidate-plan"
   {
     while IFS= read -r label; do
+      [[ -n "$label" ]] || continue
       if [[ -n ${fast_admitted_keys[$label]+present} ]]; then
         printf 'admitted:%s:%s\n' "$label" "${fast_admitted_keys[$label]}"
       else
         printf 'preflight:%s\n' "$label"
       fi
     done < "$preflight_plan"
-    cat "$plan"
+    while IFS= read -r label; do
+      [[ -n "$label" ]] || continue
+      if [[ -n ${fast_admitted_keys[$label]+present} ]]; then
+        printf 'admitted:%s:%s\n' "$label" "${fast_admitted_keys[$label]}"
+      else
+        printf '%s\n' "$label"
+      fi
+    done < "$plan"
   } > "$candidate_plan"
   echo "pre-commit: candidate validation deferred to content-addressed graph $candidate_plan"
   exit 0
