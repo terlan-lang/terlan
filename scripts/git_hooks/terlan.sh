@@ -9,7 +9,7 @@ prechecked=${5:-/dev/null}
 specialized_tests=${6:-/dev/null}
 terlan_cache_dir=${TERLAN_HOOK_TERLAN_CACHE_DIR:-}
 receipt_dir=${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-}
-receipt_schema=terlan-hook-validation-v1
+receipt_schema=terlan-hook-validation-v2
 coverage_sources_supported=false
 if "$terlc" test --help 2>&1 | rg -q -- '--coverage-source'; then
   coverage_sources_supported=true
@@ -40,9 +40,8 @@ project_root() {
     *) dirname "$path" ;;
   esac
 }
-unit_input_roots() {
+dependency_input_roots() {
   local root=$1 manifest="$1/terlan.toml" dependency resolved
-  printf '%s\n' std "$root"
   if [[ -f "$manifest" ]]; then
     while IFS= read -r dependency; do
       resolved=$(cd "$root" && cd "$dependency" 2>/dev/null && pwd -P) || continue
@@ -52,24 +51,42 @@ unit_input_roots() {
     done < <(sed -n 's/.*path[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest")
   fi
 }
+production_input_blobs() {
+  local root=$1
+  git ls-files -s -z -- "$root" \
+    ":(exclude,glob)$root/**/*Test.terl" \
+    ":(exclude,glob)$root/**/tests/**"
+  if [[ $root == std ]]; then
+    # `std.test.Test` is the assertion library, not a test module.
+    git ls-files -s -z -- std/test/Test.terl
+  fi
+}
+unit_input_blobs() {
+  local root=$1 dependency
+  git ls-files -s -z -- "$root"
+  if [[ $root != . && $root != std ]]; then
+    production_input_blobs std
+  fi
+  while IFS= read -r dependency; do
+    [[ $dependency == "$root" ]] || production_input_blobs "$dependency"
+  done < <(dependency_input_roots "$root")
+}
 unit_key() {
   local kind=$1 root=$2; shift 2
-  local compiler_hash input_root
+  local compiler_hash
   compiler_hash=$(git hash-object "$terlc")
   {
     printf '%s\n' "$receipt_schema" "$kind" "$root" "$compiler_hash"
     printf 'argument:%s\n' "$@"
-    while IFS= read -r input_root; do
-      # The staged validation checkout has a clean index. Stream indexed blob
-      # identities in bulk instead of spawning one hash process per source.
-      git ls-files -s -z -- "$input_root"
-    done < <(unit_input_roots "$root") \
-      | sort -zu
+    # The staged validation checkout has a clean index. Each unit owns its
+    # tests, while shared stdlib and path dependencies contribute production
+    # sources only. An unrelated test module cannot invalidate every project.
+    unit_input_blobs "$root" | sort -zu
   } | hash_stream
 }
 run_cached_unit() {
   local kind=$1 root=$2; shift 2
-  local key receipt temporary unit_cache=
+  local compiler_hash key receipt temporary unit_cache= unit_cache_key
   if [[ -z "$receipt_dir" ]]; then
     run_terlc "$@"
     return
@@ -77,7 +94,11 @@ run_cached_unit() {
   test ! -L "$receipt_dir"
   mkdir -p "$receipt_dir"
   key=$(unit_key "$kind" "$root" "$@")
-  if [[ -n "$terlan_cache_dir" ]]; then unit_cache="$terlan_cache_dir/$key"; fi
+  if [[ -n "$terlan_cache_dir" ]]; then
+    compiler_hash=$(git hash-object "$terlc")
+    unit_cache_key="$(printf '%s\n' terlan-project-cache-v1 "$compiler_hash" "$root" | hash_stream)"
+    unit_cache="$terlan_cache_dir/$unit_cache_key"
+  fi
   receipt="$receipt_dir/$key.passed"
   if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 \
     && -f "$receipt" \
@@ -189,31 +210,44 @@ run_terlan_test() {
   tested_terlan+=("$1")
 }
 run_queued_terlan_tests() {
-  local roots=() root index previous command sources source
+  local roots=() root index previous priority
   if [[ ${#queued_terlan[@]} -eq 0 ]]; then return 0; fi
   for root in "${queued_test_roots[@]}"; do
     for previous in "${roots[@]}"; do [[ "$previous" == "$root" ]] && continue 2; done
     roots+=("$root")
   done
-  for root in "${roots[@]}"; do
-    command=(test)
-    sources=()
-    for index in "${!queued_terlan[@]}"; do
-      if [[ ${queued_test_roots[$index]} == "$root" ]]; then
-        command+=("${queued_terlan[$index]}")
-        source=${coverage_sources[$index]}
-        for previous in "${sources[@]}"; do [[ "$previous" == "$source" ]] && continue 2; done
-        sources+=("$source")
-      fi
+  # Cheap package failures must surface before compiler self-validation. The
+  # latter can take minutes even when a later stdlib unit fails in seconds.
+  for priority in fast compiler; do
+    for root in "${roots[@]}"; do
+      case "$root" in
+        compiler/self_host|compiler/semantic)
+          [[ "$priority" == compiler ]] || continue
+          ;;
+        *) [[ "$priority" == fast ]] || continue ;;
+      esac
+      run_queued_test_root "$root"
     done
-    command+=(--coverage)
-    if [[ "$coverage_sources_supported" == true ]]; then
-      for source in "${sources[@]}"; do command+=(--coverage-source "$source"); done
-    fi
-    command+=(--coverage-threshold 100)
-    echo "pre-commit: project-scoped affected Terlan tests: $root"
-    run_cached_unit test "$root" "${command[@]}"
   done
+}
+run_queued_test_root() {
+  local root=$1 index previous source
+  local command=(test) sources=()
+  for index in "${!queued_terlan[@]}"; do
+    if [[ ${queued_test_roots[$index]} == "$root" ]]; then
+      command+=("${queued_terlan[$index]}")
+      source=${coverage_sources[$index]}
+      for previous in "${sources[@]}"; do [[ "$previous" == "$source" ]] && continue 2; done
+      sources+=("$source")
+    fi
+  done
+  command+=(--coverage)
+  if [[ "$coverage_sources_supported" == true ]]; then
+    for source in "${sources[@]}"; do command+=(--coverage-source "$source"); done
+  fi
+  command+=(--coverage-threshold 100)
+  echo "pre-commit: project-scoped affected Terlan tests: $root"
+  run_cached_unit test "$root" "${command[@]}"
 }
 check_terlan_source() {
   if [[ "$1" == *terlan.toml ]]; then

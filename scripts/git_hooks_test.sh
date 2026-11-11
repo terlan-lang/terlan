@@ -538,6 +538,7 @@ git -C "$temporary/terlan-lane" add src/Declared.terl
 )
 test "$(wc -l < "$temporary/terlan-lane.calls")" = "$((first_call_count + 2))"
 test "$(find "$temporary/terlan-lane-receipts" -type f -name '*.passed' | wc -l)" = 4
+test "$(awk '{ print $2 }' "$temporary/terlan-lane.calls" | sort -u | wc -l)" = 1
 while IFS= read -r corrupt_receipt; do
   printf 'corrupt\n' > "$corrupt_receipt"
 done < <(find "$temporary/terlan-lane-receipts" -type f -name '*.passed')
@@ -565,6 +566,108 @@ if (
   echo 'Failed Terlan validation unexpectedly passed' >&2; exit 1
 fi
 test "$(find "$temporary/terlan-lane-failure-receipts" -type f -name '*.passed' | wc -l)" = 0
+
+# A test-only edit in one standard-library project must not invalidate the
+# receipt for an unrelated project. Shared production changes still invalidate
+# both receipts.
+mkdir -p "$temporary/terlan-receipt-scope/std/alpha" \
+  "$temporary/terlan-receipt-scope/std/beta" \
+  "$temporary/terlan-receipt-scope/std/test" \
+  "$temporary/terlan-receipt-scope/scripts/git_hooks"
+cp "$(dirname "$driver")/git_hooks/formatting_only.sh" \
+  "$temporary/terlan-receipt-scope/scripts/git_hooks/"
+cp "$temporary/terlan-lane/terlc" "$temporary/terlan-receipt-scope/terlc"
+cat > "$temporary/terlan-receipt-scope/std/alpha/Alpha.terl" <<'SOURCE'
+module std.alpha.Alpha.
+SOURCE
+cat > "$temporary/terlan-receipt-scope/std/alpha/AlphaTest.terl" <<'SOURCE'
+module std.alpha.AlphaTest.
+@test
+alpha_works(): Bool -> true.
+SOURCE
+cat > "$temporary/terlan-receipt-scope/std/beta/Beta.terl" <<'SOURCE'
+module std.beta.Beta.
+SOURCE
+cat > "$temporary/terlan-receipt-scope/std/beta/BetaTest.terl" <<'SOURCE'
+module std.beta.BetaTest.
+@test
+beta_works(): Bool -> true.
+SOURCE
+cat > "$temporary/terlan-receipt-scope/std/test/Test.terl" <<'SOURCE'
+module std.test.Test.
+SOURCE
+printf '%s\n' std/alpha/AlphaTest.terl std/beta/BetaTest.terl \
+  > "$temporary/terlan-receipt-scope/changes.txt"
+chmod +x "$temporary/terlan-receipt-scope/terlc" \
+  "$temporary/terlan-receipt-scope/scripts/git_hooks/formatting_only.sh"
+git init --quiet --initial-branch=main "$temporary/terlan-receipt-scope"
+git -C "$temporary/terlan-receipt-scope" add .
+run_receipt_scope() {
+  (
+    cd "$temporary/terlan-receipt-scope"
+    TERLAN_LANE_CALLS="$temporary/terlan-receipt-scope.calls" \
+      TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-receipt-scope-receipts" \
+      bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+        changes.txt unused "$PWD/terlc" false /dev/null /dev/null \
+      >> "$temporary/terlan-receipt-scope.log" 2>&1
+  )
+}
+: > "$temporary/terlan-receipt-scope.calls"
+: > "$temporary/terlan-receipt-scope.log"
+run_receipt_scope
+test "$(wc -l < "$temporary/terlan-receipt-scope.calls")" = 2
+printf '\n// alpha test changed\n' \
+  >> "$temporary/terlan-receipt-scope/std/alpha/AlphaTest.terl"
+git -C "$temporary/terlan-receipt-scope" add std/alpha/AlphaTest.terl
+run_receipt_scope
+test "$(wc -l < "$temporary/terlan-receipt-scope.calls")" = 3
+grep -Fq 'reuse test validation for std/beta ' "$temporary/terlan-receipt-scope.log"
+printf '\n// shared production changed\n' \
+  >> "$temporary/terlan-receipt-scope/std/test/Test.terl"
+git -C "$temporary/terlan-receipt-scope" add std/test/Test.terl
+run_receipt_scope
+test "$(wc -l < "$temporary/terlan-receipt-scope.calls")" = 5
+
+# Fast package tests run before compiler self-validation even when the changed
+# path inventory lists the compiler first.
+mkdir -p "$temporary/terlan-order/compiler/self_host" \
+  "$temporary/terlan-order/std/native" \
+  "$temporary/terlan-order/scripts/git_hooks"
+cp "$(dirname "$driver")/git_hooks/formatting_only.sh" \
+  "$temporary/terlan-order/scripts/git_hooks/"
+cp "$temporary/terlan-lane/terlc" "$temporary/terlan-order/terlc"
+cat > "$temporary/terlan-order/compiler/self_host/Slow.terl" <<'SOURCE'
+module fixture.Slow.
+SOURCE
+cat > "$temporary/terlan-order/compiler/self_host/SlowTest.terl" <<'SOURCE'
+module fixture.SlowTest.
+@test
+slow_test(): Bool -> true.
+SOURCE
+cat > "$temporary/terlan-order/std/native/Fast.terl" <<'SOURCE'
+module fixture.Fast.
+SOURCE
+cat > "$temporary/terlan-order/std/native/FastTest.terl" <<'SOURCE'
+module fixture.FastTest.
+@test
+fast_test(): Bool -> true.
+SOURCE
+printf '%s\n' compiler/self_host/Slow.terl std/native/Fast.terl \
+  > "$temporary/terlan-order/changes.txt"
+chmod +x "$temporary/terlan-order/terlc" \
+  "$temporary/terlan-order/scripts/git_hooks/formatting_only.sh"
+git init --quiet --initial-branch=main "$temporary/terlan-order"
+git -C "$temporary/terlan-order" add .
+(
+  cd "$temporary/terlan-order"
+  TERLAN_LANE_CALLS="$temporary/terlan-order.calls" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false /dev/null /dev/null
+)
+test "$(sed -n '1p' "$temporary/terlan-order.calls")" = \
+  'test std/native/FastTest.terl --coverage --coverage-source std/native/Fast.terl --coverage-threshold 100'
+test "$(sed -n '2p' "$temporary/terlan-order.calls")" = \
+  'test compiler/self_host/SlowTest.terl --coverage --coverage-source compiler/self_host/Slow.terl --coverage-threshold 100'
 
 # Prebuilt workspace binaries must honor the hook's isolated Cargo target.
 # A relative target/debug path points at the staged checkout instead and made
