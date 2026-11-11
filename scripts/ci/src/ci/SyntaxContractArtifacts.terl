@@ -1,0 +1,269 @@
+/**
+ * Deterministically derives committed syntax-contract metadata.
+ */
+module ci.SyntaxContractArtifacts.
+
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.String.
+import std.data.Json.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct GeneratedArtifacts {
+    specification_summary: String,
+    artifact_summary: String,
+    fingerprint: String,
+}.
+
+json_string(value: Json, field: String): Option[String] ->
+    when {
+        Ok(member) <- value.get(field);
+        Ok(text) <- member.as_string()
+    } else {
+        _ -> None
+    };
+    Some(text).
+
+json_int(value: Json, field: String): Option[Int] ->
+    when {
+        Ok(member) <- value.get(field);
+        Ok(number) <- member.as_int()
+    } else {
+        _ -> None
+    };
+    Some(number).
+
+key_rule_names(): List[String] ->
+    [
+        "SyntaxSpec",
+        "Declaration",
+        "DeclarationCore",
+        "Annotation",
+        "AnnotationBlock",
+        "AnnotationItem",
+        "AnnotationEntry",
+        "AnnotationValue",
+        "AnnotationSchemaDecl",
+        "ShapeDecl",
+        "StructuralParameterPattern",
+        "Expr",
+        "OrExpr",
+        "AndExpr",
+        "PostfixExpr",
+        "PrimaryExpr",
+        "Pattern",
+        "ListPattern",
+        "CallExpr",
+        "ScopedCallExpr",
+        "RawMacroExpr",
+        "ConfigDecl",
+        "MetadataBlock",
+        "TypeRef",
+    ].
+
+find_rule(rules: Json, name: String, index: Int, count: Int): Option[Json] ->
+    if {
+        index >= count -> None;
+        true -> when {
+            Ok(rule) <- rules.at(index);
+            Some(found) <- json_string(rule, "name")
+        } else {
+            _ -> None
+        };
+        if {
+            found == name -> Some(rule);
+            true -> find_rule(rules, name, index + 1, count)
+        }
+    }.
+
+rule_summary(rule: Json): Option[Json] ->
+    when {
+        Some(name) <- json_string(rule, "name");
+        Some(id) <- json_string(rule, "id");
+        Ok(expression) <- rule.get("expr");
+        Some(expression_id) <- json_string(expression, "id");
+        Some(kind) <- json_string(expression, "kind")
+    } else {
+        _ -> None
+    };
+    Some(
+        Json.object()
+            .put("name", Json.string(name))
+            .put("id", Json.string(id))
+            .put("expr_id", Json.string(expression_id))
+            .put("kind", Json.string(kind)),
+    ).
+
+append_key_rules(output: Json, rules: Json, names: List[String], count: Int): Option[Json] ->
+    case names {
+        [] -> Some(output);
+        [name | rest] ->
+            when {
+                Some(rule) <- find_rule(rules, name, 0, count);
+                Some(summary) <- rule_summary(rule)
+            } else {
+                _ -> None
+            };
+            (let _appended = output.push(summary); append_key_rules(output, rules, rest, count))
+    }.
+
+render(value: Json): Option[String] ->
+    case value.stringify_pretty() {
+        Ok(source) -> Some(String.append(source, "\n"));
+        Err(_reason) -> None
+    }.
+
+/**
+ * Derives both checked-in summaries from `terlc syntax-contract --out` JSON.
+ */
+pub generate(source: String): Option[GeneratedArtifacts] ->
+    when {
+        Ok(root) <- Json.parse(source);
+        Some(schema) <- json_string(root, "schema");
+        Some(fingerprint_algorithm) <- json_string(root, "fingerprint_algorithm");
+        Some(fingerprint) <- json_string(root, "fingerprint");
+        Ok(contract) <- root.get("contract");
+        Some(format_version) <- json_int(contract, "format_version");
+        Some(entry_rule) <- json_string(contract, "entry_rule");
+        Ok(rules) <- contract.get("rules");
+        Ok(rule_count) <- rules.length();
+        Some(key_rules) <- append_key_rules(Json.array(), rules, key_rule_names(), rule_count)
+    } else {
+        _ -> None
+    };
+    (let specification =
+    Json.object()
+        .put("format_version", Json.int(format_version))
+        .put("entry_rule", Json.string(entry_rule))
+        .put("rule_count", Json.int(rule_count))
+        .put("key_rules", key_rules);
+let artifact =
+    Json.object()
+        .put("schema", Json.string(schema))
+        .put("fingerprint_algorithm", Json.string(fingerprint_algorithm))
+        .put("fingerprint", Json.string(fingerprint))
+        .put("format_version", Json.int(format_version))
+        .put("entry_rule", Json.string(entry_rule))
+        .put("rule_count", Json.int(rule_count));
+(when {
+    Some(specification_source) <- render(specification);
+    Some(artifact_source) <- render(artifact)
+} else {
+    _ -> None
+};
+Some(
+    GeneratedArtifacts(
+        specification_summary = specification_source,
+        artifact_summary = artifact_source,
+        fingerprint = fingerprint,
+    ),
+))).
+
+normalize_phase_lines(lines: List[String], fingerprint: String): List[String] ->
+    case lines {
+        [] -> [];
+        [line | rest] ->
+            let normalized =
+                if {
+                    line.starts_with("syntax_contract_fingerprint=") -> String.append("syntax_contract_fingerprint=", fingerprint);
+                    true -> line
+                };
+            [normalized | normalize_phase_lines(rest, fingerprint)]
+    }.
+
+/**
+ * Replaces the generated syntax fingerprint while preserving every other
+ * phase-contract line exactly.
+ */
+pub normalize_phase_source(source: String, fingerprint: String): String ->
+    String.join(normalize_phase_lines(source.split("\n"), fingerprint), "\n").
+
+/**
+ * Identifies phase-contract golden files owned by this generator.
+ */
+pub is_phase_golden(path: String): Bool ->
+    path.ends_with(".core.golden").
+
+/**
+ * Replaces a required generated digest marker without changing other lines.
+ */
+pub normalize_digest_marker(source: String, marker: String, digest: String): Option[String] ->
+    case source.split_once(marker) {
+        Some({prefix, tail}) ->
+            case tail.split_once("\n") {
+                Some({_previous, remainder}) ->
+                    Some(prefix.append(marker).append(digest).append("\n").append(remainder));
+                None -> Some(prefix.append(marker).append(digest))
+            };
+        None -> None
+    }.
+
+/**
+ * Returns the manifest dependency paths declared by proof replay metadata.
+ */
+pub proof_manifest_paths(source: String): Option[List[String]] ->
+    case Json.parse(source) {
+        Ok(root) ->
+            case root.get("manifest_fingerprints") {
+                Ok(manifests) ->
+                    case manifests.keys() {
+                        Ok(paths) -> Some(paths);
+                        Err(_reason) -> None
+                    };
+                Err(_reason) -> Some([])
+            };
+        Err(_reason) -> None
+    }.
+
+/**
+ * Replaces one proof manifest fingerprint with its generated file digest.
+ */
+pub normalize_proof_manifest(source: String, path: String, digest: String): Option[String] ->
+    when {
+        Ok(root) <- Json.parse(source);
+        Ok(manifests) <- root.get("manifest_fingerprints");
+        Ok(_current) <- manifests.get(path)
+    } else {
+        _ -> None
+    };
+    (let _updated = manifests.put(path, Json.string(String.append("sha256:", digest))); let _attached = root.put("manifest_fingerprints", manifests); render(root)).
+
+/**
+ * Replaces the proof-source digest in replay metadata with its generated
+ * content digest.
+ */
+pub normalize_proof_source_digest(source: String, digest: String): Option[String] ->
+    when {
+        Ok(root) <- Json.parse(source);
+        Ok(_current) <- root.get("source_digest")
+    } else {
+        _ -> None
+    };
+    (let _updated = root.put("source_digest", Json.string(String.append("sha256:", digest))); render(root)).
+
+/**
+ * Replaces the generated digest column in one proof-inventory row.
+ */
+pub normalize_proof_inventory_row(row: String, digest: String): Option[String] ->
+    case row.split("\t") {
+        [path, status, scope, manifests, exit, stderr, _previous, metadata, remediation] ->
+            Some(
+                String.join(
+                    [
+                        path,
+                        status,
+                        scope,
+                        manifests,
+                        exit,
+                        stderr,
+                        String.append("sha256:", digest),
+                        metadata,
+                        remediation,
+                    ],
+                    "\t",
+                ),
+            );
+        _ -> None
+    }.

@@ -14,8 +14,8 @@ mod tests;
 /// - Operator result type, or `Dynamic` for malformed operators.
 ///
 /// Transformation:
-/// - Infers both operands, parses the operator token, handles pipe forwarding,
-///   and delegates ordinary operators to binary type rules.
+/// - Infers both operands, parses the operator token, and delegates to binary
+///   type rules.
 pub(super) fn infer_syntax_binary_op(
     expr: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,
@@ -24,9 +24,6 @@ pub(super) fn infer_syntax_binary_op(
     errors: &mut Vec<String>,
 ) -> Type {
     let op = syntax_binary_op(expr.operator.as_deref());
-    if matches!(op, SyntaxBinaryOp::PipeForward) {
-        return infer_syntax_pipe_forward(expr, locals, ctx, subst, errors);
-    }
     let left_type = expr
         .children
         .first()
@@ -244,7 +241,6 @@ fn infer_syntax_binary_types(
             }
             Type::Bool
         }
-        SyntaxBinaryOp::PipeForward => Type::Dynamic,
     }
 }
 
@@ -564,7 +560,6 @@ enum SyntaxBinaryOp {
     In,
     And,
     Or,
-    PipeForward,
 }
 
 /// Converts syntax-output operator text into an internal operator category.
@@ -577,7 +572,7 @@ enum SyntaxBinaryOp {
 /// - Internal binary operator category.
 ///
 /// Transformation:
-/// - Maps supported arithmetic, comparison, boolean, and pipe spellings to the
+/// - Maps supported arithmetic, comparison, and boolean spellings to the
 ///   inference enum, defaulting to assignment-style equality for missing or
 ///   unknown spellings to preserve existing recovery behavior.
 fn syntax_binary_op(operator: Option<&str>) -> SyntaxBinaryOp {
@@ -605,7 +600,6 @@ fn syntax_binary_op(operator: Option<&str>) -> SyntaxBinaryOp {
         "in" => SyntaxBinaryOp::In,
         "and" => SyntaxBinaryOp::And,
         "or" => SyntaxBinaryOp::Or,
-        "|>" => SyntaxBinaryOp::PipeForward,
         _ => SyntaxBinaryOp::Eq,
     }
 }

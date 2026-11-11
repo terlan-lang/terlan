@@ -17,7 +17,7 @@ import type release_closeout.Support.{Candidate, CommandResult}.
 write_app(candidate: Candidate, name: String, feature: String): String ->
     let project = Support.child(candidate.workspace, name);
     let module_name = String.replace(name, "-", "_");
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(Support.child(project, String.concat(["src/", module_name])));
         Ok(Unit) <- Directory.create_all(Support.child(project, String.concat(["tests/", module_name])));
         Ok(Unit) <-

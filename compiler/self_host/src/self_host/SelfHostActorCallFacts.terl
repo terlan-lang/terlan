@@ -273,7 +273,7 @@ pub static_edge(
     caller_arity: Int,
     target: ActorCallTarget,
 ): Option[ActorStaticCallEdge] ->
-    if {
+    when {
         Some(callee_module) <- target.module_name;
         Some(callee_name) <- target.callable_name
     } else {
@@ -292,7 +292,7 @@ pub static_edge(
 
 @pure
 same_profile(target: ActorCallTarget, profile: ActorSuspensionProfile): Bool ->
-    if {
+    when {
         Some(module_name) <- target.module_name;
         Some(callable_name) <- target.callable_name
     } else {

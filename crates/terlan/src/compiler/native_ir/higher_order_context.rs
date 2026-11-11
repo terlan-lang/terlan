@@ -230,6 +230,13 @@ impl ContextSpecializer<'_> {
         })?;
         function.name = name.clone();
         function.public = false;
+        // The clone is a private direct-call target owned by this exact call
+        // site. Retaining source receiver metadata makes it compete with the
+        // canonical receiver implementation during the final application pass.
+        function.receiver_method = false;
+        function.receiver_mutable = false;
+        function.receiver_command = false;
+        function.trait_method = None;
         self.active.push((identity, name.clone()));
         self.rewrite_function(&mut function)?;
         self.active.pop();

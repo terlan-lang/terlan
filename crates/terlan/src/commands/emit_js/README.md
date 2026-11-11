@@ -115,8 +115,7 @@ Dependency rules:
   wildcard fallback, total if expressions with a final `true` clause, anonymous
   function values with direct variable parameters, single-generator unguarded
   list comprehensions with a direct variable pattern, unary negation, template
-  instantiation as object-like artifact values, local named calls, focused
-  pipe-forward expressions into local named calls, selected primitive
+  instantiation as object-like artifact values, local named calls, selected primitive
   intrinsics such as `core.string.contains`, `core.string.starts_with`, and
   `core.string.length`, and arithmetic/comparison expressions.
   Terlan integer division `div` lowers as `Math.trunc(left / right)` so it
@@ -139,10 +138,6 @@ Dependency rules:
   destructuring dispatch, or missing-branch behavior.
 - Anonymous function values lower to JavaScript arrow functions. Callable-value
   invocation uses Terlan's dedicated `f(args)` syntax.
-- Pipe-forward expressions lower only for the focused local-call shape
-  `value |> f(extra)` as `f(value, extra)`. General pipe targets such as
-  `value |> target` are rejected by the typechecker before backend lowering,
-  because the right side of `|>` must be a function call.
 - List comprehensions lower only for the simple `[yield | value <- source]`
   shape. The current formal grammar admits one generator and no generator
   guard. Destructuring generator patterns lower into CoreIR but remain

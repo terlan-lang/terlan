@@ -4,14 +4,13 @@
 module self_host.ExpressionParserTest.
 
 import self_host.ExpressionParser.
-import self_host.ExpressionSyntax.{ArrayExpression, BitAndExpression, BitOrExpression, BitXorExpression, IfExpression, LambdaExpression, LetExpression, ListComprehensionExpression, PipeExpression, SequenceExpression, ShiftExpression, UnaryExpression}.
+import self_host.ExpressionSyntax.{ArrayExpression, AssignmentExpression, BitAndExpression, BitOrExpression, BitXorExpression, IfExpression, LambdaExpression, LetExpression, ListComprehensionExpression, SequenceExpression, ShiftExpression, StringExpression, UnaryExpression}.
 import std.collections.List.
 
 @pure
 positive_expressions(): Bool ->
     let sequence = ExpressionParser.parse("prepare(); execute() ; finish()");
     let lambda = ExpressionParser.parse("(value: String) -> value");
-    let pipeline = ExpressionParser.parse("source |> decode() |> validate()");
     let comprehension = ExpressionParser.parse("[render(item) | item <- items, visible(item)]");
     let conditional = ExpressionParser.parse("if { ready -> run(); true -> wait() }");
     let binding = ExpressionParser.parse("let value = prepare(); consume(value)");
@@ -22,13 +21,13 @@ positive_expressions(): Bool ->
     let shift = ExpressionParser.parse("flags << width");
     let bit_not = ExpressionParser.parse("~flags");
     let bitwise_precedence = ExpressionParser.parse("flags | mask ^ bits & one << 2 + 1");
+    let quoted = ExpressionParser.parse("\"left\\\"right\"");
+    let assignment = ExpressionParser.parse("values[index] = \"right\"");
     sequence.valid
         and sequence.syntax.class == SequenceExpression
         and List.length(sequence.syntax.parts) == 3
         and lambda.valid
         and lambda.syntax.class == LambdaExpression
-        and pipeline.valid
-        and pipeline.syntax.class == PipeExpression
         and comprehension.valid
         and comprehension.syntax.class == ListComprehensionExpression
         and conditional.valid
@@ -48,13 +47,18 @@ positive_expressions(): Bool ->
         and bit_not.valid
         and bit_not.syntax.class == UnaryExpression
         and bitwise_precedence.valid
-        and bitwise_precedence.syntax.class == BitOrExpression.
+        and bitwise_precedence.syntax.class == BitOrExpression
+        and quoted.valid
+        and quoted.syntax.class == StringExpression
+        and assignment.valid
+        and assignment.syntax.class == AssignmentExpression.
 
 @pure
 negative_expressions(): Bool ->
     not ExpressionParser.parse("").valid
         and not ExpressionParser.parse("[head | middle | tail]").valid
         and not ExpressionParser.parse("call(value").valid
+        and not ExpressionParser.parse("source |> decode()").valid
         and not ExpressionParser.parse("{single}").valid
         and not ExpressionParser.parse("#[1, 2").valid.
 

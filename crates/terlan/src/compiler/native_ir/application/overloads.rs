@@ -722,6 +722,28 @@ fn select_candidate<'a>(
     current_module: &str,
     aliases: &AliasBodies,
 ) -> Result<&'a OverloadCandidate, String> {
+    if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
+        eprintln!(
+            "[native-aot overload] module={current_module} call={source_name}/{} arguments={} candidates={:?}",
+            arguments.len(),
+            argument_contract(arguments),
+            candidates
+                .iter()
+                .map(|candidate| (
+                    candidate.module.as_str(),
+                    candidate.internal_name.as_str(),
+                    candidate
+                        .parameters
+                        .iter()
+                        .map(CoreType::contract_text)
+                        .collect::<Vec<_>>(),
+                    candidate.selected_import,
+                    candidate.private_trait_impl,
+                    candidate.generic_trait_method,
+                ))
+                .collect::<Vec<_>>(),
+        );
+    }
     // A single explicit import has already been selected and typechecked by the
     // frontend. Likewise, a unique trait template's generic arguments are
     // checked by monomorphization. Neither needs overload scoring here.

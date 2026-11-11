@@ -628,12 +628,12 @@ Ok(account) <- Accounts.find(user.account_id);
 Ok(account).
 ```
 
-An explicit shared fallback uses grouped refutable `if`. The first mismatch
+An explicit shared fallback uses grouped refutable `when`. The first mismatch
 dispatches its value to the fallback clauses. Success-bound names are available
 to later bindings and the final expression, but not to the shared fallback:
 
 ```terlan
-if {
+when {
     Ok(user) <- Users.find(id);
     Ok(account) <- Accounts.find(user.account_id)
 } else {
@@ -644,7 +644,7 @@ Ok(account).
 
 ## If Expressions
 
-Ordinary `if` expressions are clause-based. Grouped refutable `if` is the
+Ordinary `if` expressions are clause-based. Grouped refutable `when` is the
 distinct form described above and uses `else` for its shared fallback.
 
 ```terlan
@@ -785,10 +785,9 @@ Reverse alias syntax such as `user = {name}: User` is rejected permanently.
 Pattern parameters also reject default values; use plain named parameters for
 defaults.
 
-Pipes prefer receiver-method resolution. `value |> method(extra)` resolves as
-`value.method(extra)` when `method` is available for `value`. If no receiver
-method exists, the pipe falls back to ordinary call insertion. If both are valid,
-semantic analysis reports an ambiguity unless the call is explicitly qualified.
+Receiver methods provide concise left-to-right composition without a second
+call syntax. Free functions remain explicit calls, optionally split by named
+bindings when a sequence needs intermediate values.
 
 ## Arrays and Lists
 

@@ -53,7 +53,7 @@ matches(totals: Map[String, Int], even: Int, odd: Int): Bool ->
     totals.get("even") == Some(even) and totals.get("odd") == Some(odd).
 
 pub run(): Bool ->
-    if {
+    when {
         None <- totals(-1);
         Some(zero) <- totals(0);
         Some(ten) <- totals(10);

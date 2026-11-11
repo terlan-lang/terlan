@@ -61,7 +61,7 @@ pub declare(
  * Clean source and exact usable tools are admitted before any output changes.
  */
 pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image);
         Ok(context) <-
             PreparationContext.capture(
@@ -81,7 +81,7 @@ pub prepare(root: String, vm: String, image: String): Result[Decision, String] -
  * Publication calls this only while holding its exclusive preparation flock.
  */
 pub run_locked(root: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(result) <- prepare(root, vm, image)
     } else {
         Err(reason) ->

@@ -121,7 +121,7 @@ int_field_is(report: Json, name: String, expected: Int): Bool ->
     }.
 
 hash_field_is(report: Json, name: String, sha256: Regex): Bool ->
-    if {
+    when {
         Ok(value) <- report.get(name);
         Ok(text) <- value.as_string()
     } else {
@@ -148,7 +148,7 @@ json_string_array_is(value: Json, index: Int, expected: List[String]): Bool ->
     }.
 
 hash_inventory_is(report: Json, name: String, expected_names: List[String], sha256: Regex): Bool ->
-    if {
+    when {
         Ok(inventory) <- report.get(name);
         Ok(names) <- inventory.keys()
     } else {
@@ -161,7 +161,7 @@ inventory_hashes_are_valid(inventory: Json, names: List[String], sha256: Regex):
     case names {
         [] -> true;
         [name | rest] ->
-            if {
+            when {
                 Ok(value) <- inventory.get(name);
                 Ok(hash) <- value.as_string()
             } else {

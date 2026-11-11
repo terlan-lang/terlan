@@ -16,9 +16,7 @@ sum_values(iterator: std.collections.Iterator[Int], sum: Int): Int ->
 @test
 pub next_yields_value_and_next_iterator(): Bool ->
     let values = [10, 20];
-    case values
-    |> iterator()
-    |> next() {
+    case values.iterator().next() {
         Some({value: first, next: rest}) -> second_value_is_expected(rest, first);
         None -> false
     }.
@@ -38,9 +36,7 @@ iterator_is_done_with_total(iterator: Iterator[Int], total: Int): Bool ->
 @test
 pub next_returns_none_when_iterator_is_exhausted(): Bool ->
     let values = [];
-    case values
-    |> iterator()
-    |> next() {
+    case values.iterator().next() {
         None -> true;
         Some(_step) -> false
     }.
@@ -48,9 +44,9 @@ pub next_returns_none_when_iterator_is_exhausted(): Bool ->
 @test
 pub each_returns_unit_after_visiting_values(): Bool ->
     let values = [1, 2, 3];
-    assert_equal(Unit, values |> iterator() |> each((_value) -> Unit)).
+    assert_equal(Unit, values.iterator().each((_value) -> Unit)).
 
 @test
 pub recursive_next_accumulates_values(): Bool ->
     let values = [1, 2, 3];
-    assert_equal(6, values |> iterator() |> sum_values(0)).
+    assert_equal(6, sum_values(values.iterator(), 0)).

@@ -177,67 +177,6 @@ pub impl IndexSet[ElementList, Int, String] for ElementList {\n\
 }
 
 #[test]
-fn syntax_output_infers_pipe_forward_on_formal_path() {
-    let diagnostics = check_syntax_output(
-        "\
-module syntax_pipe_inference.\n\
-add_one(x: Int): Int ->\n\
-    x + 1.\n\
-pub via_pipe(x: Int): Int ->\n\
-    x |> add_one().\n\
-",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-/// Verifies pipe-forward can target imported module-member calls.
-///
-/// Inputs:
-/// - A consumer module importing a provider module alias.
-/// - Pipe-forward calls into `Provider.add(...)`, including an omitted
-///   defaulted argument.
-///
-/// Output:
-/// - Test passes when the pipe input is inserted as the first remote call
-///   argument and default-argument validation still sees that slot as supplied.
-///
-/// Transformation:
-/// - Exercises the syntax-output remote-call representation used by
-///   formatter-canonicalized module-member pipe stages.
-#[test]
-fn syntax_output_infers_pipe_forward_into_imported_module_member_call() {
-    let diagnostics = check_syntax_output_with_interface(
-        "\
-module syntax_module_member_pipe_inference.\n\
-\n\
-import pipe.Provider.\n\
-\n\
-pub explicit(value: Int): Int ->\n\
-    value |> Provider.add(2).\n\
-\n\
-pub defaulted(value: Int): Int ->\n\
-    value |> Provider.add().\n\
-",
-        "\
-module pipe.Provider.\n\
-\n\
-pub add(value: Int, delta: Int = 1): Int.\n\
-",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-#[test]
 fn syntax_output_infers_binary_ops_on_formal_path() {
     let diagnostics = check_syntax_output(
         "\

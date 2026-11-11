@@ -50,27 +50,21 @@ get_bob_or_zero(values: std.collections.Map[String, Int]): Int ->
 
 @test
 pub list_each_visits_values(): Bool ->
-    assert_equal(Unit, 1 |> List(2) |> Enumerable[List].each(ignore_int)).
+    assert_equal(Unit, Enumerable[List].each(List(1, 2), ignore_int)).
 
 @test
 pub list_map_transforms_values(): Bool ->
-    let mapped =
-        2
-        |> List(3)
-        |> Enumerable[List].map(square_int);
+    let mapped = Enumerable[List].map(List(2, 3), square_int);
     assert_equal(4, first_or_zero(mapped)).
 
 @test
 pub list_filter_keeps_matching_values(): Bool ->
-    let filtered =
-        1
-        |> List(2, 3)
-        |> Enumerable[List].filter(greater_than_one);
+    let filtered = Enumerable[List].filter(List(1, 2, 3), greater_than_one);
     assert_equal(2, filtered.length()).
 
 @test
 pub list_fold_accumulates_values(): Bool ->
-    assert_equal(6, 1 |> List(2, 3) |> Enumerable[List].fold(0, sum_int)).
+    assert_equal(6, Enumerable[List].fold(List(1, 2, 3), 0, sum_int)).
 
 @test
 pub list_receiver_map_uses_enumerable_trait(): Bool ->
@@ -101,24 +95,18 @@ pub map_fold_accumulates_entries(): Bool ->
 
 @test
 pub set_each_visits_values(): Bool ->
-    assert_equal(Unit, 1 |> Set(2) |> Enumerable[Set].each(ignore_int)).
+    assert_equal(Unit, Enumerable[Set].each(Set(1, 2), ignore_int)).
 
 @test
 pub set_map_transforms_values(): Bool ->
-    let mapped =
-        1
-        |> Set(2)
-        |> Enumerable[Set].map(square_int);
+    let mapped = Enumerable[Set].map(Set(1, 2), square_int);
     assert_equal({2, true, false}, {mapped.size(), mapped.contains(4), mapped.contains(2)}).
 
 @test
 pub set_filter_keeps_matching_values(): Bool ->
-    let filtered =
-        1
-        |> Set(2, 3)
-        |> Enumerable[Set].filter(greater_than_one);
+    let filtered = Enumerable[Set].filter(Set(1, 2, 3), greater_than_one);
     assert_equal(2, filtered.size()).
 
 @test
 pub set_fold_accumulates_values(): Bool ->
-    assert_equal(6, 1 |> Set(2, 3) |> Enumerable[Set].fold(0, sum_int)).
+    assert_equal(6, Enumerable[Set].fold(Set(1, 2, 3), 0, sum_int)).

@@ -5,24 +5,20 @@ use std::num::NonZeroU16;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use super::lifecycle::{
-    VmLogicalNodeEndpoint, VmLogicalNodeLifecycle, VmLogicalNodeLifecycleError,
-    VmLogicalNodePhase,
-};
-use super::node_transport::{
-    protocol_factory, VmNodePayloadDecoder, VmNodeTransportRouter,
-};
-use super::state::ConnectionId;
-use super::transport::VmSharedEpmdState;
 use super::super::fixed_scheduler_control::VmFixedSchedulerControl;
 use super::super::protocol_task_executor::{
     start_protocol_tasks_with_topology, VmProtocolTaskServer,
 };
 use super::super::scheduler_topology::VmSchedulerTopology;
+use super::lifecycle::{
+    VmLogicalNodeEndpoint, VmLogicalNodeLifecycle, VmLogicalNodeLifecycleError, VmLogicalNodePhase,
+};
+use super::node_transport::{protocol_factory, VmNodePayloadDecoder, VmNodeTransportRouter};
+use super::state::ConnectionId;
+use super::transport::VmSharedEpmdState;
 
 const LOGICAL_NODE_CONNECTION_NAMESPACE: u64 = 1_u64 << 63;
-static NEXT_LOGICAL_NODE_CONNECTION: AtomicU64 =
-    AtomicU64::new(LOGICAL_NODE_CONNECTION_NAMESPACE);
+static NEXT_LOGICAL_NODE_CONNECTION: AtomicU64 = AtomicU64::new(LOGICAL_NODE_CONNECTION_NAMESPACE);
 
 /// Production supervisor for one discoverable logical VM node.
 pub(crate) struct VmLogicalNodeBootstrap<P: Send + 'static> {
@@ -71,9 +67,9 @@ impl<P: Send + 'static> VmLogicalNodeBootstrap<P> {
                 .acknowledge_transport_router_ready()
                 .map_err(render_lifecycle("router readiness"))?;
             let connection = next_connection_id()?;
-            let mut state = epmd.lock().map_err(|_| {
-                "error[vm.logical_node.epmd]: registry lock poisoned".to_string()
-            })?;
+            let mut state = epmd
+                .lock()
+                .map_err(|_| "error[vm.logical_node.epmd]: registry lock poisoned".to_string())?;
             lifecycle
                 .register(&mut state, connection)
                 .map_err(render_lifecycle("register"))?;
@@ -103,7 +99,6 @@ impl<P: Send + 'static> VmLogicalNodeBootstrap<P> {
             .expect("running bootstrap retains protocol server")
             .local_addr()
     }
-
 
     /// Returns the current logical-node lifecycle phase.
     pub(crate) const fn phase(&self) -> VmLogicalNodePhase {
@@ -172,9 +167,7 @@ fn next_connection_id() -> Result<ConnectionId, String> {
 }
 
 /// Adds a stable startup stage to one lifecycle failure.
-fn render_lifecycle(
-    operation: &'static str,
-) -> impl FnOnce(VmLogicalNodeLifecycleError) -> String {
+fn render_lifecycle(operation: &'static str) -> impl FnOnce(VmLogicalNodeLifecycleError) -> String {
     move |error| format!("error[vm.logical_node.{operation}]: {error}")
 }
 

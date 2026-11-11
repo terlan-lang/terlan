@@ -87,7 +87,7 @@ one_argument_options(): Options ->
     }.
 
 two_argument_options(): Options ->
-    if {
+    when {
         Some(mode) <- Arguments.get(0);
         Some(path) <- Arguments.get(1)
     } else {
@@ -131,7 +131,7 @@ json_member(value: Json, field: String): Option[Json] ->
     }.
 
 json_string(value: Json, field: String): Option[String] ->
-    if {
+    when {
         Ok(member) <- value.get(field);
         Ok(text) <- member.as_string()
     } else {
@@ -140,7 +140,7 @@ json_string(value: Json, field: String): Option[String] ->
     Some(text).
 
 json_int(value: Json, field: String): Option[Int] ->
-    if {
+    when {
         Ok(member) <- value.get(field);
         Ok(number) <- member.as_int()
     } else {
@@ -149,7 +149,7 @@ json_int(value: Json, field: String): Option[Int] ->
     Some(number).
 
 array_length(value: Json, field: String): Option[Int] ->
-    if {
+    when {
         Some(array) <- json_member(value, field);
         Ok(count) <- array.length()
     } else {
@@ -158,7 +158,7 @@ array_length(value: Json, field: String): Option[Int] ->
     Some(count).
 
 report_summary(source: String): Option[ReportSummary] ->
-    if {
+    when {
         Ok(report) <- Json.parse(String.trim(source));
         Some(schema) <- json_string(report, "schema");
         Some(definitions) <- json_int(report, "definitions");
@@ -182,7 +182,7 @@ report_summary(source: String): Option[ReportSummary] ->
     }.
 
 summary_fixture_matches(definitions: Int, source: String): Bool ->
-    if {
+    when {
         Ok(fixture) <- Json.parse(source);
         Some(version) <- json_int(fixture, "format_version");
         Some(entry_rule) <- json_string(fixture, "entry_rule");
@@ -220,7 +220,7 @@ render_count(label: String, count: Int): Unit ->
 render_findings(report: Json, field: String, heading: String, index: Int, count: Int): Bool ->
     if {
         index >= count -> true;
-        true -> if {
+        true -> when {
             Some(findings) <- json_member(report, field);
             Ok(finding) <- findings.at(index);
             Some(line) <- json_int(finding, "line");
@@ -313,7 +313,7 @@ validate(repository: String, compiler_path: String, path: String, strict: Bool):
     }.
 
 write_fixtures(directory: String): Bool ->
-    if {
+    when {
         Ok(_valid) <- write_text(join(directory, "valid.ebnf"), "Root ::= Child .\nChild ::= \"ok\" .\n");
         Ok(_undefined) <- write_text(join(directory, "undefined.ebnf"), "Root ::= Missing .\n");
         Ok(_unreachable) <-
@@ -347,7 +347,7 @@ self_test(repository: String, compiler_path: String): Bool ->
             let result =
                 if {
                     not write_fixtures(directory) -> false;
-                    true -> if {
+                    true -> when {
                         Some(valid) <-
                             validation_output(
                                 repository,

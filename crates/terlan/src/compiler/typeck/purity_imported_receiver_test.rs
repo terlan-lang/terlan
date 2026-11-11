@@ -76,6 +76,64 @@ pub (box: Box) value(): Int.\n\
 }
 
 #[test]
+fn rejects_qualified_call_to_impure_imported_receiver_method() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.qualified_receiver_impure.\n\
+\n\
+import type provider.Box.{Box}.\n\
+import provider.Box.\n\
+\n\
+@pure\n\
+pub read(box: Box): Int ->\n\
+    Box.value(box).\n\
+",
+        "\
+module provider.Box.\n\
+\n\
+pub type Box.\n\
+\n\
+@target.vm {process_mailbox: true}\n\
+pub (box: Box) value(): Int.\n\
+",
+    );
+
+    assert!(diagnostics.iter().any(|diagnostic| diagnostic
+        .message
+        .contains("effectful imported function call")));
+}
+
+#[test]
+fn rejects_qualified_effect_execution_receiver_method() {
+    let diagnostics = check_syntax_output_with_interface(
+        "\
+module purity.qualified_effect_run.\n\
+\n\
+import std.core.Effect.\n\
+\n\
+@pure\n\
+pub execute(value: Int): Int ->\n\
+    Effect.run(Effect.succeed(value)).\n\
+",
+        "\
+module std.core.Effect.\n\
+\n\
+pub type Effect[T].\n\
+\n\
+@target.vm {process_mailbox: true}\n\
+pub (effect: Effect[T]) run(): T.\n\
+\n\
+@pure\n\
+pub succeed(value: T): Effect[T].\n\
+",
+    );
+
+    assert!(diagnostics.iter().any(|diagnostic| diagnostic
+        .message
+        .contains("effectful imported function call")));
+}
+
+#[test]
 fn accepts_pure_receiver_combinator_with_pure_callback() {
     let diagnostics = check_syntax_output_with_interface(
         "\

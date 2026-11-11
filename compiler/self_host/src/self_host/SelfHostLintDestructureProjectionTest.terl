@@ -41,13 +41,22 @@ pub covers_clause_patterns(): Bool ->
 @test
 pub grouped_bindings_see_later_initializers(): Bool ->
     diagnostics(
-    "module sample.\nvalue(input: Result[Int, String]): Int -> if { Ok(first) <- input; Ok(second) <- next(first) } else { _ -> 0 }; second.\n",
+    "module sample.\nvalue(input: Result[Int, String]): Int -> when { Ok(first) <- input; Ok(second) <- next(first) } else { _ -> 0 }; second.\n",
 ) == [].
 
 @test
 pub grouped_bindings_exclude_own_initializer_and_shared_fallback(): Bool ->
     case diagnostics(
-        "module sample.\nvalue(unused: Int): Int -> if { Ok(unused) <- next(unused); Ok(second) <- next(1) } else { _ -> unused }; second.\n",
+        "module sample.\nvalue(unused: Int): Int -> when { Ok(unused) <- next(unused); Ok(second) <- next(1) } else { _ -> unused }; second.\n",
+    ) {
+        [value] -> value.rule_id == "TL0004";
+        _ -> false
+    }.
+
+@test
+pub regular_product_bindings_use_their_continuation_scope(): Bool ->
+    case diagnostics(
+        "module sample.\nlabel(pair: {Int, String}): String -> let {id, label} = pair; label.\n",
     ) {
         [value] -> value.rule_id == "TL0004";
         _ -> false

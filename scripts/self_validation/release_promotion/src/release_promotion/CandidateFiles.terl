@@ -28,9 +28,7 @@ pub child(parent: String, relative: String): String ->
  */
 @pure
 pub basename(path: String): String ->
-    path
-    |> String.split("/")
-    |> basename_parts("").
+    basename_parts(path.split("/"), "").
 
 @pure
 basename_parts(parts: List[String], output: String): String ->

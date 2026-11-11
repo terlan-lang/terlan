@@ -110,7 +110,7 @@ pub workspace_version(root: String): String ->
     }.
 
 pub prepare(root: String, label: String): Option[Candidate] ->
-    if {
+    when {
         Some({artifact_name, suffix, path_separator}) <- platform_artifact();
         Ok(temporary) <- Directory.create_temporary(String.concat(["terlan-release-", label, "."]))
     } else {
@@ -118,7 +118,7 @@ pub prepare(root: String, label: String): Option[Candidate] ->
             let _failed = fail("candidate", "cannot allocate the installed-candidate workspace");
             None
     };
-    (if {
+    (when {
     Ok(Unit) <-
         Archive.extract(
             child(root, String.append("dist/", artifact_name)),
@@ -293,7 +293,7 @@ pub write_files(rows: List[{String, String}]): Bool ->
     }.
 
 pub write_report(root: String, name: String, report: Json): Bool ->
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(child(root, "target/quality"));
         Ok(rendered) <- Json.stringify_pretty(report);
         Ok(Unit) <-

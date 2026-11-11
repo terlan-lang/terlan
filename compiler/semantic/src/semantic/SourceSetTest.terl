@@ -20,11 +20,15 @@ import type std.data.Json.
 compiler(): String ->
     case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
         Some(value) -> value;
-        _ -> Environment.current_directory() + "/target/debug/terlc"
+        _ ->
+            case Environment.get("TERLC") {
+                Some(value) -> value;
+                _ -> Environment.current_directory() + "/target/debug/terlc"
+            }
     }.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -55,12 +59,12 @@ capture(program: String, inputs: List[Input], store: String): Result[Json, Failu
     }.
 
 find(rows: Json, kind: String, name: String, index: Int, count: Int): Result[Json, Bool] ->
-    if {
+    when {
         true <- index < count
     } else {
         _ -> Err(false)
     };
-    (if {
+    (when {
     Ok(row) <- rows.at(index)
 } else {
     _ -> Err(false)
@@ -71,7 +75,7 @@ if {
 }).
 
 selected(store: String, snapshot: Json, kind: String, name: String): Result[Json, Bool] ->
-    if {
+    when {
         Ok(catalog) <- Catalog.index(store, text(snapshot, "snapshot_id"));
         Ok(rows) <- catalog.get("entities");
         Ok(count) <- rows.length()
@@ -82,7 +86,7 @@ selected(store: String, snapshot: Json, kind: String, name: String): Result[Json
 
 @test
 pub source_order_is_canonical_and_imported_declarations_remain_available(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-source-set-order-");
         Ok(first) <- capture(compiler(), [client(0), library("Int")], root + "/store");
         Ok(second) <- capture(compiler(), [library("Int"), client(0)], root + "/store");
@@ -96,7 +100,7 @@ pub source_order_is_canonical_and_imported_declarations_remain_available(): Bool
 
 @test
 pub changed_dependency_interface_rejects_stale_entity_content(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-source-set-dependency-");
         Ok(first) <- capture(compiler(), [library("Int"), client(0)], root + "/store");
         Ok(before_binding) <- selected(root + "/store", first, "binding", "input");
@@ -125,7 +129,7 @@ same_id and changed and rejected and cleaned).
 
 @test
 pub overlay_versions_change_snapshot_identity_without_mutating_prior_capture(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-source-set-versions-");
         Ok(first) <- capture(compiler(), [library("Int"), client(0)], root + "/store");
         Ok(second) <- capture(compiler(), [library("Int"), client(9)], root + "/store");
@@ -146,7 +150,7 @@ pub rejected_source_marks_the_set_invalid_and_keeps_other_facts_partial(): Bool 
             contents = "module broken.\npub bad(): Bool -> 1.\n",
             document_version = 5,
         );
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-source-set-invalid-");
         Ok(snapshot) <- capture(compiler(), [broken, library("Int"), client(0)], root + "/store");
         Ok(analysis) <- snapshot.get("analysis");
@@ -169,7 +173,7 @@ invalid and cleaned).
 
 @test
 pub changing_any_frozen_source_makes_the_set_unreadable(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-source-set-tamper-");
         Ok(snapshot) <- capture(compiler(), [library("Int"), client(0)], root + "/store")
     } else {
@@ -187,7 +191,7 @@ corrupted and rejected and cleaned).
 
 @test
 pub duplicate_escaping_and_negative_version_inputs_fail_before_compilation(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-source-set-preconditions-")
     } else {
         _ -> false

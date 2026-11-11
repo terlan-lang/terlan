@@ -21,10 +21,7 @@ pub new_starts_empty(): Bool ->
 
 @test
 pub from_list_and_to_list_roundtrip(): Bool ->
-    let values =
-        1
-        |> List(2, 3)
-        |> Vector.from_list();
+    let values = Vector.from_list(List(1, 2, 3));
     assert_equal(List(1, 2, 3), values.to_list()).
 
 @test

@@ -8,7 +8,7 @@ import tvm_aot_platform_matrix.MulticoreRelease.{validate_workflow as multicore_
 
 @test
 pub current_release_workflow_is_accepted_by_every_validator(): Bool ->
-    if {
+    when {
         Ok(source) <- read_text(".github/workflows/release.yml")
     } else {
         Err(_reason) -> false
@@ -19,7 +19,7 @@ release_audit_before_platform_text_valid(normalized)
 
 @test
 pub release_platforms_cannot_bypass_dependency_auditing(): Bool ->
-    if {
+    when {
         Ok(source) <- read_text(".github/workflows/release.yml")
     } else {
         Err(_reason) -> false

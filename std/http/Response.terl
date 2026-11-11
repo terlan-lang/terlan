@@ -423,8 +423,8 @@ without_cache_default(defaults: List[{String, String}]): List[{String, String}] 
  * target-owned mutation path.
  */
 pub (mut response: Response) with_status(code: Int): Response ->
-    response
-    |> status(code).
+    response.status(code);
+    response.
 
 /**
  * Returns a response after setting one header.
@@ -437,8 +437,8 @@ pub (mut response: Response) with_status(code: Int): Response ->
  * storage.
  */
 pub (mut response: Response) with_header(name: String, value: String): Response ->
-    response
-    |> header(name, value).
+    response.header(name, value);
+    response.
 
 /**
  * Applies typed secure response headers.
@@ -449,11 +449,9 @@ pub (mut response: Response) with_header(name: String, value: String): Response 
  * headers through the normal response metadata path.
  */
 pub (mut response: Response) security_headers(policy: SecurityHeaders): Response ->
-    response
-    |> header("X-Frame-Options", frame_options_header(policy.frame_options))
-    |> header("Referrer-Policy", referrer_policy_header(policy.referrer_policy))
-    |> optional_content_type_options_header(policy.content_type_options)
-    |> optional_hsts_header(policy.hsts_max_age, policy.hsts_include_subdomains).
+    response.header("X-Frame-Options", frame_options_header(policy.frame_options));
+    response.header("Referrer-Policy", referrer_policy_header(policy.referrer_policy));
+    let with_content_type = response.optional_content_type_options_header(policy.content_type_options); with_content_type.optional_hsts_header(policy.hsts_max_age, policy.hsts_include_subdomains).
 
 /**
  * Returns a response after applying typed secure response headers.
@@ -464,8 +462,7 @@ pub (mut response: Response) security_headers(policy: SecurityHeaders): Response
  * instead of forcing raw header calls.
  */
 pub (mut response: Response) with_security_headers(policy: SecurityHeaders): Response ->
-    response
-    |> security_headers(policy).
+    response.security_headers(policy).
 
 frame_options_header(value: FrameOptions): String ->
     case value {
@@ -510,8 +507,8 @@ hsts_header(max_age: Int, include_subdomains: Bool): String ->
  * `std.http.Cookies`.
  */
 pub (mut response: Response) set_cookie_header(value: String): Unit ->
-    response
-    |> header("Set-Cookie", value).
+    let _updated = response.header("Set-Cookie", value);
+    response.
 
 /**
  * Adds a validated `Set-Cookie` header.
@@ -530,8 +527,8 @@ pub (mut response: Response) cookie(
     http_only: Bool = false,
     secure: Bool = false,
 ): Unit ->
-    response
-    |> set_cookie_header(set_header(name, value, path, http_only, secure)).
+    let _updated = response.set_cookie_header(set_header(name, value, path, http_only, secure));
+    response.
 
 /**
  * Returns a response after adding a validated `Set-Cookie` header.
@@ -549,8 +546,8 @@ pub (mut response: Response) with_cookie(
     http_only: Bool = false,
     secure: Bool = false,
 ): Response ->
-    response
-    |> cookie(name, value, path, http_only, secure).
+    response.cookie(name, value, path, http_only, secure);
+    response.
 
 /**
  * Adds a validated `Set-Cookie` header with the full option surface.
@@ -575,21 +572,23 @@ pub (mut response: Response) cookie_with_options(
     secure: Bool = false,
     same_site: String = "",
 ): Unit ->
-    response
-    |> set_cookie_header(
-    set_header_with_options(
-        name,
-        value,
-        path,
-        domain,
-        max_age,
-        include_max_age,
-        expires,
-        http_only,
-        secure,
-        same_site,
-    ),
-).
+    let _updated =
+        response
+            .set_cookie_header(
+                set_header_with_options(
+                    name,
+                    value,
+                    path,
+                    domain,
+                    max_age,
+                    include_max_age,
+                    expires,
+                    http_only,
+                    secure,
+                    same_site,
+                ),
+            );
+    response.
 
 /**
  * Returns a response after adding a validated `Set-Cookie` header with the
@@ -615,18 +614,19 @@ pub (mut response: Response) with_cookie_options(
     same_site: String = "",
 ): Response ->
     response
-    |> cookie_with_options(
-    name,
-    value,
-    path,
-    domain,
-    max_age,
-    include_max_age,
-    expires,
-    http_only,
-    secure,
-    same_site,
-).
+    .cookie_with_options(
+        name,
+        value,
+        path,
+        domain,
+        max_age,
+        include_max_age,
+        expires,
+        http_only,
+        secure,
+        same_site,
+    );
+    response.
 
 /**
  * Adds a validated cookie deletion header.
@@ -638,8 +638,8 @@ pub (mut response: Response) with_cookie_options(
  * metadata path.
  */
 pub (mut response: Response) delete_cookie(name: String, path: String = "/"): Unit ->
-    response
-    |> set_cookie_header(delete_header(name, path)).
+    let _updated = response.set_cookie_header(delete_header(name, path));
+    response.
 
 /**
  * Returns a response after adding a validated cookie deletion header.
@@ -650,8 +650,8 @@ pub (mut response: Response) delete_cookie(name: String, path: String = "/"): Un
  * deletion path instead of requiring raw expiring header text.
  */
 pub (mut response: Response) with_deleted_cookie(name: String, path: String = "/"): Response ->
-    response
-    |> delete_cookie(name, path).
+    response.delete_cookie(name, path);
+    response.
 
 /**
  * Returns a response after applying recorded cookie jar mutations.
@@ -668,5 +668,7 @@ pub (mut response: Response) with_cookies(jar: Jar): Response ->
 apply_cookie_headers(response: Response, pending: List[String]): Response ->
     case pending {
         [] -> response;
-        [header | rest] -> apply_cookie_headers(response |> set_cookie_header(header), rest)
+        [header | rest] ->
+            let _written = response.set_cookie_header(header);
+            apply_cookie_headers(response, rest)
     }.

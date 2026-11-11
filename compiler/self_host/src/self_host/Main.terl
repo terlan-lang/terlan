@@ -423,47 +423,47 @@ actor_backend_usage(): Unit ->
     ).
 
 main_actor_backend_unit(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> actor_backend_usage()
     };
-    (if {
+    (when {
     Some(interface_manifest) <- Arguments.get(2)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(actor_profile_manifest) <- Arguments.get(3)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(actor_dynamic_evidence_manifest) <- Arguments.get(4)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(core_output) <- Arguments.get(5)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(variant_output) <- Arguments.get(6)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(actor_output) <- Arguments.get(7)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(diagnostics_output) <- Arguments.get(8)
 } else {
     None -> actor_backend_usage()
 };
-(if {
+(when {
     Some(completion_marker) <- Arguments.get(9)
 } else {
     None -> actor_backend_usage()
@@ -827,7 +827,7 @@ main_backend_units(): Unit ->
     }.
 
 parallel_worker_limit(value: String): Option[Int] ->
-    if {
+    when {
         Ok(json) <- Json.parse(value);
         Ok(limit) <- json.as_int()
     } else {
@@ -864,7 +864,7 @@ parallel_backend_usage(): Unit ->
     ).
 
 main_parallel_backend_units(): Unit ->
-    if {
+    when {
         {Some(interface_manifest), Some(limit_text)} <- {Arguments.get(1), Arguments.get(2)};
         Some(worker_limit) <- parallel_worker_limit(limit_text)
     } else {

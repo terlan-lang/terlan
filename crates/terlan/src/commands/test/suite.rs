@@ -14,7 +14,9 @@ use super::execution::{
     print_runtime_test_report, TestProjectContext,
 };
 use super::manifest::{print_validation_report, validation_report};
-use super::project_closure::compile_project_source_core_modules;
+use super::project_closure::{
+    compile_project_source_core_closure, compile_project_source_core_modules,
+};
 use super::project_context::{
     discover_test_project_context, discover_test_project_root, prepare_test_project_context,
     reachable_native_helper_environment, test_target_profile_options,
@@ -26,6 +28,25 @@ use crate::commands::build::vm_artifact::native_image::compile_test_native_image
 use crate::validation::target_profile::TargetProfile;
 use crate::CliState;
 
+#[derive(PartialEq, Eq)]
+enum TestFileGroup {
+    Project(PathBuf),
+    Standalone(PathBuf),
+}
+
+fn test_file_group(file: &Path) -> TestFileGroup {
+    discover_test_project_root(file).map_or_else(
+        || {
+            TestFileGroup::Standalone(
+                file.parent()
+                    .unwrap_or_else(|| Path::new("."))
+                    .to_path_buf(),
+            )
+        },
+        TestFileGroup::Project,
+    )
+}
+
 /// Validates a JS test directory once per owning project and reuses unchanged
 /// module validation evidence.
 pub(super) fn run_js_test_files(
@@ -35,9 +56,9 @@ pub(super) fn run_js_test_files(
     files: Vec<PathBuf>,
 ) -> ExitCode {
     state.target_profile = profile;
-    let mut groups: Vec<(Option<PathBuf>, Vec<PathBuf>)> = Vec::new();
+    let mut groups: Vec<(TestFileGroup, Vec<PathBuf>)> = Vec::new();
     for file in files {
-        let context = discover_test_project_root(&file);
+        let context = test_file_group(&file);
         if let Some((_, grouped)) = groups
             .iter_mut()
             .find(|(candidate, _)| candidate == &context)
@@ -99,7 +120,7 @@ pub(super) fn run_js_test_files(
         };
         let first_path = first.to_string_lossy().into_owned();
         let (_, project_state) =
-            match prepare_test_project_context(&first_path, state.clone(), profile) {
+            match prepare_test_project_context(&first_path, state.clone(), profile, true) {
                 Ok(result) => result,
                 Err(message) => {
                     eprintln!("{message}");
@@ -168,10 +189,11 @@ pub(super) fn run_terlan_vm_test_files(
     args: &TestArgs,
     state: CliState,
     files: Vec<PathBuf>,
+    exhaustive_project: bool,
 ) -> ExitCode {
-    let mut groups: Vec<(Option<PathBuf>, Vec<PathBuf>)> = Vec::new();
+    let mut groups: Vec<(TestFileGroup, Vec<PathBuf>)> = Vec::new();
     for file in files {
-        let context = discover_test_project_root(&file);
+        let context = test_file_group(&file);
         if let Some((_, grouped)) = groups
             .iter_mut()
             .find(|(candidate, _)| candidate == &context)
@@ -185,8 +207,13 @@ pub(super) fn run_terlan_vm_test_files(
     let mut failed = false;
     let mut coverage = args.coverage.then(DeclarationCoverage::default);
     for (_, files) in groups {
-        if run_terlan_vm_test_file_group(args, state.clone(), &files, coverage.as_mut())
-            != ExitCode::SUCCESS
+        if run_terlan_vm_test_file_group(
+            args,
+            state.clone(),
+            &files,
+            exhaustive_project,
+            coverage.as_mut(),
+        ) != ExitCode::SUCCESS
         {
             failed = true;
         }
@@ -385,6 +412,7 @@ fn run_terlan_vm_test_file_group(
     args: &TestArgs,
     state: CliState,
     files: &[PathBuf],
+    exhaustive_project: bool,
     coverage: Option<&mut DeclarationCoverage>,
 ) -> ExitCode {
     let Some(first_file) = files.first() else {
@@ -442,14 +470,18 @@ fn run_terlan_vm_test_file_group(
     }
 
     let first_path = pending[0].0.to_string_lossy().into_owned();
-    let (project_context, mut state) =
-        match prepare_test_project_context(&first_path, state, TargetProfile::Vm) {
-            Ok(result) => result,
-            Err(message) => {
-                eprintln!("{message}");
-                return ExitCode::from(1);
-            }
-        };
+    let (project_context, mut state) = match prepare_test_project_context(
+        &first_path,
+        state,
+        TargetProfile::Vm,
+        exhaustive_project,
+    ) {
+        Ok(result) => result,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    };
     state.target_profile = TargetProfile::Vm;
 
     let kind = if args.benchmark {
@@ -502,11 +534,23 @@ fn run_terlan_vm_test_file_group(
         });
     }
 
+    let test_import_roots = test_modules
+        .iter()
+        .map(|module| &module.core)
+        .collect::<Vec<_>>();
     let project_core_modules = match project_context.as_ref() {
-        Some(context) => match compile_project_source_core_modules(context, &state, files) {
-            Ok(modules) => modules,
-            Err(exit_code) => return exit_code,
-        },
+        Some(context) if exhaustive_project => {
+            match compile_project_source_core_modules(context, &state, files) {
+                Ok(modules) => modules,
+                Err(exit_code) => return exit_code,
+            }
+        }
+        Some(context) => {
+            match compile_project_source_core_closure(context, &state, files, &test_import_roots) {
+                Ok(modules) => modules,
+                Err(exit_code) => return exit_code,
+            }
+        }
         None => Vec::new(),
     };
     let std_import_roots = test_modules
@@ -622,21 +666,23 @@ fn run_terlan_vm_test_file_group(
     }
 
     if let Some(coverage) = coverage {
-        let Some(project_context) = project_context.as_ref() else {
-            eprintln!(
-                "error[test.coverage.project]: declaration coverage requires a terlan.toml project with source roots"
-            );
-            return ExitCode::from(1);
-        };
         let Some(native_image) = native_image.as_deref() else {
             eprintln!("error[test.coverage.image]: VM tests did not produce a native image");
             return ExitCode::from(1);
         };
-        if let Err(message) = coverage.record_image(
-            native_image,
-            &project_context.coverage_source_roots,
-            &covered_callables,
-        ) {
+        let standalone_root = [PathBuf::from(&args.path)];
+        let coverage_source_roots = if args.coverage_sources.is_empty() {
+            project_context
+                .as_ref()
+                .map_or(standalone_root.as_slice(), |context| {
+                    context.coverage_source_roots.as_slice()
+                })
+        } else {
+            args.coverage_sources.as_slice()
+        };
+        if let Err(message) =
+            coverage.record_image(native_image, coverage_source_roots, &covered_callables)
+        {
             eprintln!("{message}");
             return ExitCode::from(1);
         }

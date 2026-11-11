@@ -11,6 +11,16 @@ pub(crate) fn core_typed_receiver_intrinsic(
         CoreType::String => "std.core.String",
         CoreType::Int => "std.core.Int",
         CoreType::Float => "std.core.Float",
+        CoreType::Apply {
+            constructor, args, ..
+        } if args.len() == 1
+            && matches!(
+                constructor.as_str(),
+                "Iterator" | "std.collections.Iterator" | "std.collections.Iterator.Iterator"
+            ) =>
+        {
+            "std.collections.Iterator"
+        }
         _ => return None,
     };
     core_primitive_intrinsic(module, function, arity)

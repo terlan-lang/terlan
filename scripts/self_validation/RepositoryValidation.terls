@@ -190,12 +190,12 @@ last_string(values: List[String], selected: String): String ->
     }.
 
 workspace_version(repository: String): Bool ->
-    if {
+    when {
         Some(manifest) <- read(repository, "Cargo.toml")
     } else {
         None -> false
     };
-    (if {
+    (when {
     Ok(version_pattern) <- Regex.compile("(?m)^version = \"[0-9]+\\.[0-9]+\\.[0-9]+\"$");
     Ok(edition_pattern) <- Regex.compile("(?m)^edition = \"[0-9]{4}\"$");
     Ok(entries) <- Directory.entries(child(repository, "crates"))
@@ -264,7 +264,7 @@ stale_reference(files: List[TextFile], pattern: Regex): String ->
     }.
 
 source_extensions(repository: String): Bool ->
-    if {
+    when {
         Ok(paths) <-
             Directory.files_recursive_excluding(
                 repository,
@@ -343,7 +343,7 @@ first_existing_scratch(repository: String, paths: List[String]): String ->
     }.
 
 release_boundary(repository: String): Bool ->
-    if {
+    when {
         Some(tracked_output) <- run_output(repository, "git", ["ls-files"], 30_000);
         Some(untracked_output) <- run_output(repository, "git", ["ls-files", "--others", "--exclude-standard"], 30_000);
         Some(makefile) <- read(repository, "Makefile");
@@ -427,7 +427,7 @@ cargo_accelerator_dependencies_absent(files: List[TextFile], pattern: Regex): Bo
     }.
 
 accelerator_hard_contract(repository: String): Bool ->
-    if {
+    when {
         Ok(cargo_files) <-
             File.read_text_tree_matching(
                 repository,
@@ -488,7 +488,7 @@ cleanup_temporary(path: String, result: Bool): Bool ->
     }.
 
 readme_hello_world(repository: String): Bool ->
-    if {
+    when {
         Some(readme) <- read(repository, "README.md");
         Ok(temporary) <- Directory.create_temporary("terlan-readme-hello-world.")
     } else {
@@ -534,7 +534,7 @@ prepare_readme_fixture(
     home: String,
     source: String,
 ): Bool ->
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(source_dir);
         Ok(Unit) <- File.write_text(child(source_dir, "Main.terl"), source);
         Ok(Unit) <-
@@ -619,7 +619,7 @@ checksums_hold(root_path: String, archives: List[String]): Bool ->
         [] -> true;
         [archive | rest] ->
             let sidecar = child(root_path, String.append(archive, ".sha256"));
-            if {
+            when {
                 Ok(row) <- File.read_text(sidecar);
                 [expected, name] <- String.split(String.trim(row), "  ");
                 true <- name == archive;
@@ -654,7 +654,7 @@ write_release_fixture(path: String, archives: List[String]): Bool ->
         [] -> true;
         [archive | rest] ->
             let artifact = child(path, archive);
-            if {
+            when {
                 Ok(Unit) <- File.write_text(artifact, String.append("fixture:", archive));
                 Ok(digest) <- Hash.sha256_file(artifact);
                 Ok(Unit) <-
@@ -676,7 +676,7 @@ release_artifact_self_test(): Bool ->
             if {
                 not base -> cleanup_temporary(temporary, false);
                 true -> let accepted = release_artifact_set(temporary, false);
-                if {
+                when {
                     Ok(Unit) <- File.write_text(child(temporary, "unexpected.txt"), "unexpected\n");
                     Ok(paths) <- Directory.entries(temporary)
                 } else {
@@ -870,7 +870,7 @@ build_release_contract(repository: String): Bool ->
             "scripts/publish_release_from_dist.sh",
             "scripts/git_hooks.sh",
         ];
-    if {
+    when {
         true <- all_files_exist(repository, required);
         Some(toolchain) <- read(repository, "rust-toolchain.toml");
         Some(makefile) <- read(repository, "Makefile");
@@ -1151,7 +1151,7 @@ if {
 }).
 
 build_release_process_contract(repository: String): Bool ->
-    if {
+    when {
         true <- run_ok(repository, "bash", ["scripts/build_typed_validator.sh", "self-test"], 30_000);
         true <- run_ok(repository, "bash", ["scripts/clean_build_outputs.sh", "--dry-run"], 30_000);
         true <-
@@ -1366,14 +1366,14 @@ write_build_plan_report(
                 ),
             )
             .put("cargo_run_count", Json.int(count_occurrences(plan, "cargo --locked run")));
-    if {
+    when {
         Ok(rendered) <- Json.stringify_pretty(report)
     } else {
         _ -> failure("build_release.report", "cannot encode validation build-plan report")
     };
     (let path = child(repository, "target/quality/validation-build-plan-report.json");
 let expected = String.append(rendered, "\n");
-(if {
+(when {
     Ok(Unit) <- Directory.create_all(child(repository, "target/quality"));
     Ok(Unit) <- File.write_text(path, expected);
     Ok(sealed) <- File.read_text(path)
@@ -1387,7 +1387,7 @@ if {
 
 @pure
 report_integer(report: Json, name: String): Int ->
-    if {
+    when {
         Ok(value) <- report.get(name);
         Ok(number) <- value.as_int()
     } else {
@@ -1397,7 +1397,7 @@ report_integer(report: Json, name: String): Int ->
 
 @pure
 report_string_is(report: Json, name: String, expected: String): Bool ->
-    if {
+    when {
         Ok(value) <- report.get(name);
         Ok(text) <- value.as_string()
     } else {
@@ -1476,7 +1476,7 @@ duplicate_validator_output(plan: String): String ->
     duplicate_validator_rows(String.split(plan, "\n"), List.new[String](), false).
 
 rust_orchestrator_count(plan: String): Int ->
-    if {
+    when {
         Ok(pattern) <-
             Regex.compile(
                 "^(?:[A-Za-z_][A-Za-z0-9_]*=[^ \\t]+[ \\t]+)*(?:/[^ \\t]+/)?target/(?:debug|validation-tools)/terlan-test-orchestrator$",
@@ -1512,7 +1512,7 @@ duplicate_validator_rows(
             if {
                 String.ends_with(String.trim(line), " -- --measure-if-stale") -> duplicate_validator_rows(rest, seen, true);
                 not String.starts_with(line, "bash scripts/build_typed_validator.sh ") -> duplicate_validator_rows(rest, seen, after_measurement);
-                true -> if {
+                true -> when {
                     Some({_prefix, suffix}) <- String.split_once(line, "bash scripts/build_typed_validator.sh ");
                     Some({output, _arguments}) <- String.split_once(suffix, " ")
                 } else {

@@ -7,10 +7,11 @@ use super::diagnostic::{LintDiagnostic, Severity};
 use actor_vm::actor_vm_diagnostics;
 use complexity::{file_size_diagnostics, function_size_diagnostics, match_arm_size_diagnostics};
 use consistency::{
-    declaration_order_diagnostics, fix_receiver_capability_ownership, import_order_diagnostics,
-    module_order_diagnostic, named_atom_literal_diagnostics,
-    receiver_capability_ownership_diagnostics, single_module_diagnostics,
-    std_module_path_diagnostics,
+    declaration_order_diagnostics, import_order_diagnostics, module_order_diagnostic,
+    named_atom_literal_diagnostics, single_module_diagnostics, std_module_path_diagnostics,
+};
+pub(super) use consistency::{
+    fix_receiver_capability_ownership, receiver_capability_ownership_diagnostics,
 };
 use generated::{
     generated_lint_suppression_diagnostics, generated_skip_manifest_diagnostics,
@@ -28,7 +29,6 @@ use naming::{
     binding_snake_case_diagnostics, case_underscore_collision_diagnostics,
     function_snake_case_diagnostics, type_upper_camel_diagnostics,
 };
-use pipe::{fix_pipe_candidates, pipe_candidate_diagnostics};
 use readability::{
     boolean_heavy_branch_diagnostics, callback_name_diagnostics, deep_expression_diagnostics,
     doc_comment_spacing_diagnostics, function_reference_diagnostics,
@@ -45,7 +45,6 @@ mod generated;
 mod imports;
 mod maintainability;
 mod naming;
-mod pipe;
 mod readability;
 mod targets;
 mod test_rules;
@@ -82,9 +81,6 @@ pub(super) fn apply_safe_fixes(
         let mut fixed = source.clone();
         if fix_all || only_rules.iter().any(|rule| rule == "TL0001") {
             fixed = fix_semicolon_chains(&fixed);
-        }
-        if fix_all || only_rules.iter().any(|rule| rule == "TL1002") {
-            fixed = fix_pipe_candidates(path, &fixed);
         }
         if fix_all || only_rules.iter().any(|rule| rule == "TL0507") {
             fixed = fix_receiver_capability_ownership(path, &fixed);
@@ -157,7 +153,6 @@ pub(super) fn lint_source(path: &Path, source: &str) -> Vec<LintDiagnostic> {
     diagnostics.extend(public_docs_diagnostics(path, source));
     diagnostics.extend(doc_comment_spacing_diagnostics(path, source));
     diagnostics.extend(boolean_heavy_branch_diagnostics(path, source));
-    diagnostics.extend(pipe_candidate_diagnostics(path, source));
     diagnostics.extend(fake_test_diagnostics(path, source));
     diagnostics.extend(duplicate_import_diagnostics(path, source));
     diagnostics.extend(duplicate_selected_import_diagnostics(path, source));

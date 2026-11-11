@@ -34,7 +34,7 @@ selected(root: String, files: List[String], accumulated: List[String]): List[Str
 
 pub stdlib_digest(repository: String): Option[String] ->
     let root = String.append(repository, "/std");
-    if {
+    when {
         Ok(files) <- files_recursive_excluding(root, ["target", ".git", ".terlan", "native"]);
         Ok(digest) <- sha256_selected_files(root, selected(root, files, []))
     } else {
@@ -48,7 +48,7 @@ work_lines(lines: List[String], total: Int): Int ->
         [line | rest] ->
             if {
                 line == "" -> work_lines(rest, total);
-                true -> if {
+                true -> when {
                     Ok(value) <- Json.parse(line);
                     Ok(state_value) <- value.get("state");
                     Ok(state) <- state_value.as_string();

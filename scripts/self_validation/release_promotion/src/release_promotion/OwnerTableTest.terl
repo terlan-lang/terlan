@@ -136,7 +136,7 @@ bounds(root: String): Bool ->
 exercise(root: String): Bool ->
     let first = PreparationOwner.run_locked(root, selected("pass"));
     let warm = PreparationOwner.run_locked(root, selected("pass"));
-    if {
+    when {
         true <- first.valid and not first.reused and warm.valid and warm.reused;
         Ok(prior) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
         Ok("run\n") <- File.read_text(OwnerStorage.child(root, "calls"))
@@ -144,7 +144,7 @@ exercise(root: String): Bool ->
         _ -> false
     };
     (let failed = PreparationOwner.run_locked(root, selected("wrong"));
-(if {
+(when {
     false <- failed.valid;
     Ok(retained) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
     true <- OwnerStorage.digest(prior) == OwnerStorage.digest(retained)
@@ -152,14 +152,14 @@ exercise(root: String): Bool ->
     _ -> false
 };
 (let resumed = PreparationOwner.run_locked(root, selected("pass"));
-(if {
+(when {
     true <- resumed.valid and not resumed.reused;
     true <- write(root, "target/quality/baseline.tsv", "name\tstatus\ncorrupt\n")
 } else {
     _ -> false
 };
 (let repaired = PreparationOwner.run_locked(root, selected("pass"));
-(if {
+(when {
     Ok(final_outputs) <- OwnerStorage.files(root, PreparationOwner.output_paths(selected("pass")));
     Ok("run\nrun\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "calls"))
 } else {
@@ -170,7 +170,7 @@ repaired.valid
     and OwnerStorage.digest(prior) == OwnerStorage.digest(final_outputs))))))).
 
 run(root: String): Bool ->
-    if {
+    when {
         Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"))
     } else {
         _ -> false
@@ -187,7 +187,7 @@ run(root: String): Bool ->
         and exercise(root).
 
 pub self_test(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-owner-table-")
     } else {
         _ -> false

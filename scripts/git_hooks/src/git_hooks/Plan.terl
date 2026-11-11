@@ -202,6 +202,8 @@ prefix_specialized_terlan_tests(values: List[String]): List[String] ->
 @pure
 specialized_terlan_test(path: String): Bool ->
     String.starts_with(path, "scripts/self_validation/") and String.ends_with(path, "Test.terl")
+        or String.starts_with(path, "scripts/benchmarks/compilation/") and String.ends_with(path, "Test.terl")
+        or String.starts_with(path, "scripts/llm_native/") and String.ends_with(path, "Test.terl")
         or String.ends_with(path, "BenchmarkTest.terl").
 
 pub workspace(paths: List[String]): Bool ->

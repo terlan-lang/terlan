@@ -1,16 +1,14 @@
-/** Focused contracts for projected Pratt expression parsing. */
+/**
+ * Focused contracts for projected Pratt expression parsing.
+ */
 module self_host.ProjectedExpressionParserTest.
 
-
-import std.core.Option.{None, Some}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectionSyntax.{ProjectedCanonicalToken}.
-
-
+import self_host.{ProjectedExpressionParser, StructuredExpressionParser}.
 import std.collections.List.
+import std.core.Option.{None, Some}.
 import std.core.{Bool, Int, String}.
-import self_host.ProjectedExpressionParser.
-import self_host.StructuredExpressionParser.
-
 
 @pure
 token(terminal: String, text: String, start: Int, end: Int): ProjectedCanonicalToken ->
@@ -18,18 +16,21 @@ token(terminal: String, text: String, start: Int, end: Int): ProjectedCanonicalT
 
 @pure
 list_cons_argument(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("var", "reverse_at", 0, 10),
-        token("(", "(", 10, 11),
-        token("var", "rest", 11, 15),
-        token(",", ",", 15, 16),
-        token("[", "[", 17, 18),
-        token("var", "value", 18, 23),
-        token("|", "|", 24, 25),
-        token("var", "output", 26, 32),
-        token("]", "]", 32, 33),
-        token(")", ")", 33, 34),
-    ]);
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "reverse_at", 0, 10),
+                token("(", "(", 10, 11),
+                token("var", "rest", 11, 15),
+                token(",", ",", 15, 16),
+                token("[", "[", 17, 18),
+                token("var", "value", 18, 23),
+                token("|", "|", 24, 25),
+                token("var", "output", 26, 32),
+                token("]", "]", 32, 33),
+                token(")", ")", 33, 34),
+            ],
+        );
     case parsed.node {
         Some(value) -> parsed.valid and parsed.rest == [] and value.kind == "call";
         None -> false
@@ -37,26 +38,29 @@ list_cons_argument(): Bool ->
 
 @pure
 nested_if_list_argument(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("upper-ident", "String", 0, 6),
-        token(".", ".", 6, 7),
-        token("var", "concat", 7, 13),
-        token("(", "(", 13, 14),
-        token("[", "[", 14, 15),
-        token("if", "if", 16, 18),
-        token("{", "{", 19, 20),
-        token("upper-ident", "true", 21, 25),
-        token("->", "->", 26, 28),
-        token("string", "yes", 29, 34),
-        token("if-clause-semicolon", ";", 34, 35),
-        token("upper-ident", "true", 36, 40),
-        token("->", "->", 41, 43),
-        token("string", "no", 44, 48),
-        token("}", "}", 49, 50),
-        token(",", ",", 50, 51),
-        token("]", "]", 51, 52),
-        token(")", ")", 52, 53),
-    ]);
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("upper-ident", "String", 0, 6),
+                token(".", ".", 6, 7),
+                token("var", "concat", 7, 13),
+                token("(", "(", 13, 14),
+                token("[", "[", 14, 15),
+                token("if", "if", 16, 18),
+                token("{", "{", 19, 20),
+                token("upper-ident", "true", 21, 25),
+                token("->", "->", 26, 28),
+                token("string", "yes", 29, 34),
+                token("if-clause-semicolon", ";", 34, 35),
+                token("upper-ident", "true", 36, 40),
+                token("->", "->", 41, 43),
+                token("string", "no", 44, 48),
+                token("}", "}", 49, 50),
+                token(",", ",", 50, 51),
+                token("]", "]", 51, 52),
+                token(")", ")", 52, 53),
+            ],
+        );
     case parsed.node {
         Some(value) -> parsed.valid and parsed.rest == [] and value.kind == "call";
         None -> false
@@ -64,31 +68,34 @@ nested_if_list_argument(): Bool ->
 
 @pure
 nested_case_list_argument(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("upper-ident", "String", 0, 6),
-        token(".", ".", 6, 7),
-        token("var", "concat", 7, 13),
-        token("(", "(", 13, 14),
-        token("[", "[", 14, 15),
-        token("case", "case", 16, 20),
-        token("{", "{", 21, 22),
-        token("var", "value", 22, 27),
-        token(",", ",", 27, 28),
-        token("var", "other", 29, 34),
-        token("}", "}", 34, 35),
-        token("{", "{", 36, 37),
-        token("var", "_", 38, 39),
-        token("->", "->", 40, 42),
-        token("string", "yes", 43, 48),
-        token("if-clause-semicolon", ";", 48, 49),
-        token("var", "_", 50, 51),
-        token("->", "->", 52, 54),
-        token("string", "no", 55, 59),
-        token("}", "}", 60, 61),
-        token(",", ",", 61, 62),
-        token("]", "]", 62, 63),
-        token(")", ")", 63, 64),
-    ]);
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("upper-ident", "String", 0, 6),
+                token(".", ".", 6, 7),
+                token("var", "concat", 7, 13),
+                token("(", "(", 13, 14),
+                token("[", "[", 14, 15),
+                token("case", "case", 16, 20),
+                token("{", "{", 21, 22),
+                token("var", "value", 22, 27),
+                token(",", ",", 27, 28),
+                token("var", "other", 29, 34),
+                token("}", "}", 34, 35),
+                token("{", "{", 36, 37),
+                token("var", "_", 38, 39),
+                token("->", "->", 40, 42),
+                token("string", "yes", 43, 48),
+                token("if-clause-semicolon", ";", 48, 49),
+                token("var", "_", 50, 51),
+                token("->", "->", 52, 54),
+                token("string", "no", 55, 59),
+                token("}", "}", 60, 61),
+                token(",", ",", 61, 62),
+                token("]", "]", 62, 63),
+                token(")", ")", 63, 64),
+            ],
+        );
     case parsed.node {
         Some(value) -> parsed.valid and parsed.rest == [] and value.kind == "call";
         None -> false
@@ -96,77 +103,81 @@ nested_case_list_argument(): Bool ->
 
 @pure
 guarded_case_clause(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("case", "case", 0, 4),
-        token("var", "values", 5, 11),
-        token("{", "{", 12, 13),
-        token("[", "[", 14, 15),
-        token("var", "value", 15, 20),
-        token("|", "|", 21, 22),
-        token("var", "rest", 23, 27),
-        token("]", "]", 27, 28),
-        token("where", "where", 29, 34),
-        token("var", "value", 35, 40),
-        token(">", ">", 41, 42),
-        token("integer", "0", 43, 44),
-        token("->", "->", 45, 47),
-        token("var", "value", 48, 53),
-        token("if-clause-semicolon", ";", 53, 54),
-        token("var", "_", 55, 56),
-        token("->", "->", 57, 59),
-        token("integer", "0", 60, 61),
-        token("}", "}", 62, 63),
-    ]);
-    case parsed.node {
-        Some(value) -> case value.children {
-            [_subject, first, _second] -> case first.children {
-                [_pattern, guard, _body] ->
-                    parsed.valid and parsed.rest == [] and first.text == "where" and guard.kind == "binary" and guard.text == ">";
-                _ -> false
-            };
-            _ -> false
-        };
-        None -> false
-    }.
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("case", "case", 0, 4),
+                token("var", "values", 5, 11),
+                token("{", "{", 12, 13),
+                token("[", "[", 14, 15),
+                token("var", "value", 15, 20),
+                token("|", "|", 21, 22),
+                token("var", "rest", 23, 27),
+                token("]", "]", 27, 28),
+                token("where", "where", 29, 34),
+                token("var", "value", 35, 40),
+                token(">", ">", 41, 42),
+                token("integer", "0", 43, 44),
+                token("->", "->", 45, 47),
+                token("var", "value", 48, 53),
+                token("if-clause-semicolon", ";", 53, 54),
+                token("var", "_", 55, 56),
+                token("->", "->", 57, 59),
+                token("integer", "0", 60, 61),
+                token("}", "}", 62, 63),
+            ],
+        );
+    when {
+        Some(value) <- parsed.node;
+        [_subject, first, _second] <- value.children;
+        [_pattern, guard, _body] <- first.children
+    } else {
+        _ -> false
+    };
+    parsed.valid
+        and parsed.rest == []
+        and first.text == "where"
+        and guard.kind == "binary"
+        and guard.text == ">".
 
 @pure
 structured_guarded_case_clause(): Bool ->
-    let parsed = StructuredExpressionParser.parse([
-        token("case", "case", 0, 4),
-        token("var", "values", 5, 11),
-        token("{", "{", 12, 13),
-        token("[", "[", 14, 15),
-        token("var", "value", 15, 20),
-        token("|", "|", 21, 22),
-        token("var", "rest", 23, 27),
-        token("]", "]", 27, 28),
-        token("where", "where", 29, 34),
-        token("var", "value", 35, 40),
-        token(">", ">", 41, 42),
-        token("integer", "0", 43, 44),
-        token("->", "->", 45, 47),
-        token("var", "value", 48, 53),
-        token("if-clause-semicolon", ";", 53, 54),
-        token("var", "_", 55, 56),
-        token("->", "->", 57, 59),
-        token("integer", "0", 60, 61),
-        token("}", "}", 62, 63),
-    ]);
-    case parsed.node {
-        Some(value) -> case value.children {
-            [_subject, first, _second] -> case first.children {
-                [_pattern, guard, _body] ->
-                    parsed.valid
-                        and parsed.rest == []
-                        and first.text == "where"
-                        and guard.kind == "binary"
-                        and guard.text == ">";
-                _ -> false
-            };
-            _ -> false
-        };
-        None -> false
-    }.
+    let parsed =
+        StructuredExpressionParser.parse(
+            [
+                token("case", "case", 0, 4),
+                token("var", "values", 5, 11),
+                token("{", "{", 12, 13),
+                token("[", "[", 14, 15),
+                token("var", "value", 15, 20),
+                token("|", "|", 21, 22),
+                token("var", "rest", 23, 27),
+                token("]", "]", 27, 28),
+                token("where", "where", 29, 34),
+                token("var", "value", 35, 40),
+                token(">", ">", 41, 42),
+                token("integer", "0", 43, 44),
+                token("->", "->", 45, 47),
+                token("var", "value", 48, 53),
+                token("if-clause-semicolon", ";", 53, 54),
+                token("var", "_", 55, 56),
+                token("->", "->", 57, 59),
+                token("integer", "0", 60, 61),
+                token("}", "}", 62, 63),
+            ],
+        );
+    when {
+        Some(value) <- parsed.node;
+        [_subject, first, _second] <- value.children;
+        [_pattern, guard, _body] <- first.children
+    } else {
+        _ -> false
+    };
+    parsed.valid
+        and parsed.rest == []
+        and first.text == "where"
+        and guard.kind == "binary"
+        and guard.text == ">".
 
 @test
 pub self_test(): Bool ->
@@ -178,76 +189,393 @@ pub self_test(): Bool ->
 
 @test
 pub array_literals_use_array_kind(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("#", "#", 0, 1),
-        token("[", "[", 1, 2),
-        token("int", "1", 2, 3),
-        token(",", ",", 3, 4),
-        token("int", "2", 5, 6),
-        token("]", "]", 6, 7),
-    ]);
-    let unclosed = ProjectedExpressionParser.parse([
-        token("#", "#", 0, 1),
-        token("[", "[", 1, 2),
-        token("int", "1", 2, 3),
-    ]);
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("#", "#", 0, 1),
+                token("[", "[", 1, 2),
+                token("int", "1", 2, 3),
+                token(",", ",", 3, 4),
+                token("int", "2", 5, 6),
+                token("]", "]", 6, 7),
+            ],
+        );
+    let unclosed =
+        ProjectedExpressionParser.parse(
+            [token("#", "#", 0, 1), token("[", "[", 1, 2), token("int", "1", 2, 3)],
+        );
     case parsed.node {
-        Some(value) -> parsed.valid
-            and parsed.rest == []
-            and value.kind == "array"
-            and value.text == "#["
-            and value.start_byte == 0
-            and value.end_byte == 7
-            and not unclosed.valid;
+        Some(value) ->
+            parsed.valid
+                and parsed.rest == []
+                and value.kind == "array"
+                and value.text == "#["
+                and value.start_byte == 0
+                and value.end_byte == 7
+                and not unclosed.valid;
         None -> false
     }.
 
 @test
 pub parenthesized_semicolon_sequence_is_preserved(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("(", "(", 0, 1),
-        token("var", "first", 1, 6),
-        token("(", "(", 6, 7),
-        token(")", ")", 7, 8),
-        token("if-clause-semicolon", ";", 8, 9),
-        token("var", "second", 10, 16),
-        token("(", "(", 16, 17),
-        token(")", ")", 17, 18),
-        token(")", ")", 18, 19),
-    ]);
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("(", "(", 0, 1),
+                token("var", "first", 1, 6),
+                token("(", "(", 6, 7),
+                token(")", ")", 7, 8),
+                token("if-clause-semicolon", ";", 8, 9),
+                token("var", "second", 10, 16),
+                token("(", "(", 16, 17),
+                token(")", ")", 17, 18),
+                token(")", ")", 18, 19),
+            ],
+        );
+    when {
+        Some(group) <- parsed.node;
+        [sequence] <- group.children;
+        [first, second] <- sequence.children
+    } else {
+        _ -> false
+    };
+    parsed.valid
+        and parsed.rest == []
+        and group.kind == "tuple-or-group"
+        and sequence.kind == "sequence"
+        and sequence.text == ";"
+        and first.kind == "call"
+        and second.kind == "call".
+
+@test
+pub private_postfix_field_preserves_marker(): Bool ->
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "timeout", 0, 7),
+                token(".", ".", 7, 8),
+                token("#", "#", 8, 9),
+                token("var", "milliseconds", 9, 21),
+            ],
+        );
+    when {
+        Some(field) <- parsed.node;
+        [source] <- field.children
+    } else {
+        _ -> false
+    };
+    parsed.valid
+        and parsed.rest == []
+        and field.kind == "field"
+        and field.text == "#milliseconds"
+        and source.text == "timeout".
+
+@test
+pub arithmetic_precedence_is_projected(): Bool ->
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("int", "1", 0, 1),
+                token("+", "+", 2, 3),
+                token("int", "2", 4, 5),
+                token("*", "*", 6, 7),
+                token("int", "3", 8, 9),
+            ],
+        );
+    parsed.valid and parsed.rest == [].
+
+@test
+pub malformed_if_and_case_clauses_are_rejected(): Bool ->
+    let empty_if =
+        ProjectedExpressionParser.parse(
+            [token("if", "if", 0, 2), token("{", "{", 3, 4), token("}", "}", 4, 5)],
+        );
+    let malformed_if =
+        ProjectedExpressionParser.parse(
+            [
+                token("if", "if", 0, 2),
+                token("{", "{", 3, 4),
+                token("int", "1", 4, 5),
+                token("}", "}", 5, 6),
+            ],
+        );
+    let malformed_case =
+        ProjectedExpressionParser.parse(
+            [
+                token("case", "case", 0, 4),
+                token("var", "value", 5, 10),
+                token("{", "{", 11, 12),
+                token("int", "1", 12, 13),
+                token("}", "}", 13, 14),
+            ],
+        );
+    not empty_if.valid and not malformed_if.valid and not malformed_case.valid.
+
+@test
+pub keyed_values_and_named_arguments_are_projected(): Bool ->
+    let keyed =
+        ProjectedExpressionParser.parse(
+            [
+                token("upper-ident", "Point", 0, 5),
+                token("{", "{", 6, 7),
+                token("var", "x", 7, 8),
+                token(":", ":", 8, 9),
+                token("int", "1", 9, 10),
+                token(",", ",", 10, 11),
+                token("var", "y", 12, 13),
+                token(":", ":", 13, 14),
+                token("int", "2", 14, 15),
+                token("}", "}", 15, 16),
+            ],
+        );
+    let named =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "make", 0, 4),
+                token("(", "(", 4, 5),
+                token("var", "value", 5, 10),
+                token("=", "=", 11, 12),
+                token("int", "1", 13, 14),
+                token(")", ")", 14, 15),
+            ],
+        );
+    keyed.valid and named.valid.
+
+@test
+pub malformed_named_argument_and_list_cons_are_rejected(): Bool ->
+    let named =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "make", 0, 4),
+                token("(", "(", 4, 5),
+                token("var", "first", 5, 10),
+                token("var", "second", 11, 17),
+                token("=", "=", 18, 19),
+                token("int", "1", 20, 21),
+                token(")", ")", 21, 22),
+            ],
+        );
+    let cons =
+        ProjectedExpressionParser.parse(
+            [
+                token("[", "[", 0, 1),
+                token("var", "head", 1, 5),
+                token("|", "|", 6, 7),
+                token("]", "]", 7, 8),
+            ],
+        );
+    not named.valid and not cons.valid.
+
+@test
+pub lambda_and_group_forms_are_projected(): Bool ->
+    let lambda =
+        ProjectedExpressionParser.parse(
+            [
+                token("lambda-(", "(", 0, 1),
+                token("var", "left", 1, 5),
+                token(",", ",", 5, 6),
+                token("var", "right", 7, 12),
+                token(")", ")", 12, 13),
+                token("->", "->", 14, 16),
+                token("var", "left", 17, 21),
+            ],
+        );
+    let empty = ProjectedExpressionParser.parse([token("(", "(", 0, 1), token(")", ")", 1, 2)]);
+    lambda.valid and empty.valid.
+
+@test
+pub unclosed_groups_and_nominal_values_are_rejected(): Bool ->
+    let group = ProjectedExpressionParser.parse([token("(", "(", 0, 1)]);
+    let nominal_value =
+        ProjectedExpressionParser.parse(
+            [
+                token("upper-ident", "Point", 0, 5),
+                token("{", "{", 6, 7),
+                token("var", "x", 7, 8),
+                token(":", ":", 8, 9),
+                token("int", "1", 9, 10),
+            ],
+        );
+    not group.valid and not nominal_value.valid.
+
+@test
+pub index_and_dynamic_calls_are_projected(): Bool ->
+    let indexed =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "values", 0, 6),
+                token("[", "[", 6, 7),
+                token("int", "0", 7, 8),
+                token("]", "]", 8, 9),
+            ],
+        );
+    let dynamic =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "callable", 0, 8),
+                token(".", ".", 8, 9),
+                token("(", "(", 9, 10),
+                token("int", "1", 10, 11),
+                token(")", ")", 11, 12),
+            ],
+        );
+    indexed.valid and dynamic.valid.
+
+@test
+pub unclosed_index_and_dynamic_calls_are_rejected(): Bool ->
+    let indexed =
+        ProjectedExpressionParser.parse(
+            [token("var", "values", 0, 6), token("[", "[", 6, 7), token("int", "0", 7, 8)],
+        );
+    let dynamic =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "callable", 0, 8),
+                token(".", ".", 8, 9),
+                token("(", "(", 9, 10),
+                token("int", "1", 10, 11),
+            ],
+        );
+    not indexed.valid and not dynamic.valid.
+
+@test
+pub record_access_and_update_are_projected(): Bool ->
+    let access =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "value", 0, 5),
+                token("#", "#", 5, 6),
+                token("upper-ident", "Entry", 6, 11),
+                token(".", ".", 11, 12),
+                token("var", "name", 12, 16),
+            ],
+        );
+    let update =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "value", 0, 5),
+                token("#", "#", 5, 6),
+                token("upper-ident", "Entry", 6, 11),
+                token("{", "{", 11, 12),
+                token("var", "name", 12, 16),
+                token("=", "=", 17, 18),
+                token("string", "next", 19, 25),
+                token("}", "}", 25, 26),
+            ],
+        );
+    access.valid and update.valid.
+
+@test
+pub unclosed_record_update_is_rejected(): Bool ->
+    let update =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "value", 0, 5),
+                token("#", "#", 5, 6),
+                token("upper-ident", "Entry", 6, 11),
+                token("{", "{", 11, 12),
+                token("var", "name", 12, 16),
+                token("=", "=", 17, 18),
+                token("string", "next", 19, 25),
+            ],
+        );
+    not update.valid.
+
+@test
+pub unary_cast_and_constructor_chain_are_projected(): Bool ->
+    let cast =
+        ProjectedExpressionParser.parse(
+            [
+                token("-", "-", 0, 1),
+                token("var", "value", 1, 6),
+                token("as", "as", 7, 9),
+                token("upper-ident", "List", 10, 14),
+                token("[", "[", 14, 15),
+                token("upper-ident", "Int", 15, 18),
+                token("]", "]", 18, 19),
+            ],
+        );
+    let chain =
+        ProjectedExpressionParser.parse(
+            [
+                token("upper-ident", "First", 0, 5),
+                token("(", "(", 5, 6),
+                token(")", ")", 6, 7),
+                token("with", "with", 8, 12),
+                token("upper-ident", "Second", 13, 19),
+                token("(", "(", 19, 20),
+                token(")", ")", 20, 21),
+            ],
+        );
+    cast.valid and chain.valid.
+
+@test
+pub malformed_generic_cast_is_rejected(): Bool ->
+    let cast =
+        ProjectedExpressionParser.parse(
+            [
+                token("var", "value", 0, 5),
+                token("as", "as", 6, 8),
+                token("upper-ident", "List", 9, 13),
+                token("[", "[", 13, 14),
+                token("upper-ident", "Int", 14, 17),
+            ],
+        );
+    not cast.valid.
+
+@test
+pub parsing_can_continue_from_a_structured_primary(): Bool ->
+    let value = ProjectedExpressionNode("identifier", "value", 0, 5, List.new[ProjectedExpressionNode]());
+    let parsed =
+        ProjectedExpressionParser.continue_from(
+            value,
+            [token("+", "+", 6, 7), token("int", "1", 8, 9)],
+        );
+    parsed.valid and parsed.rest == [].
+
+@test
+pub structured_let_accepts_irrefutable_product_pattern(): Bool ->
+    let parsed =
+        StructuredExpressionParser.parse(
+            [
+                token("let", "let", 0, 3),
+                token("{", "{", 4, 5),
+                token("var", "left", 5, 9),
+                token(",", ",", 9, 10),
+                token("var", "right", 11, 16),
+                token("}", "}", 16, 17),
+                token("=", "=", 18, 19),
+                token("var", "pair", 20, 24),
+                token(";", ";", 24, 25),
+                token("var", "left", 26, 30),
+            ],
+        );
     case parsed.node {
-        Some(group) -> case group.children {
-            [sequence] -> case sequence.children {
-                [first, second] -> parsed.valid
-                    and parsed.rest == []
-                    and group.kind == "tuple-or-group"
-                    and sequence.kind == "sequence"
-                    and sequence.text == ";"
-                    and first.kind == "call"
-                    and second.kind == "call";
-                _ -> false
-            };
-            _ -> false
-        };
+        Some(value) ->
+            parsed.valid
+                and parsed.rest == []
+                and value.kind == "let"
+                and case value.children {
+    [pattern, _bound, _continuation] -> pattern.kind == "tuple-pattern";
+    _ -> false
+};
         None -> false
     }.
 
 @test
-pub private_postfix_field_preserves_marker(): Bool ->
-    let parsed = ProjectedExpressionParser.parse([
-        token("var", "timeout", 0, 7),
-        token(".", ".", 7, 8),
-        token("#", "#", 8, 9),
-        token("var", "milliseconds", 9, 21),
-    ]);
-    case parsed.node {
-        Some(field) -> case field.children {
-            [source] -> parsed.valid
-                and parsed.rest == []
-                and field.kind == "field"
-                and field.text == "#milliseconds"
-                and source.text == "timeout";
-            _ -> false
-        };
-        None -> false
-    }.
+pub structured_let_rejects_refutable_constructor_pattern(): Bool ->
+    let parsed =
+        StructuredExpressionParser.parse(
+            [
+                token("let", "let", 0, 3),
+                token("upper-ident", "Ok", 4, 6),
+                token("(", "(", 6, 7),
+                token("var", "value", 7, 12),
+                token(")", ")", 12, 13),
+                token("=", "=", 14, 15),
+                token("var", "result", 16, 22),
+                token(";", ";", 22, 23),
+                token("var", "value", 24, 29),
+            ],
+        );
+    not parsed.valid.

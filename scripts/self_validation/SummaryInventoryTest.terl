@@ -17,7 +17,7 @@ import type std.io.File.TextFile.
  * Returns whether every source has its reviewed API summary; caches are disposable.
  */
 pub repository_inventory_holds(root: String): Bool ->
-    if {
+    when {
         Ok(summary_paths) <- entries(String.append(root, "/std/summaries"));
         Ok(test_source) <- read_text(String.append(root, "/std/test/Test.terl"))
     } else {

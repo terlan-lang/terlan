@@ -31,10 +31,10 @@ fn syntax_output_rejects_effectful_imported_list_comprehension_filter() {
         "\
 module syntax_list_effectful_import_filter.\n\
 \n\
-import std.core.Effect.{Effect, run, succeed}.\n\
+import std.core.Effect.\n\
 \n\
 pub existing(paths: List[String]): List[String] ->\n\
-    [path | path <- paths, run(succeed(path == path))].\n\
+    [path | path <- paths, Effect.run(Effect.succeed(path == path))].\n\
 ",
         "std/core/Effect.terl",
     );
@@ -57,10 +57,10 @@ fn syntax_output_rejects_transitively_effectful_list_comprehension_filter() {
         "\
 module syntax_list_transitive_effect_filter.\n\
 \n\
-import std.core.Effect.{Effect, run, succeed}.\n\
+import std.core.Effect.\n\
 \n\
 is_existing(path: String): Bool ->\n\
-    run(succeed(path == path)).\n\
+    Effect.run(Effect.succeed(path == path)).\n\
 \n\
 pub existing(paths: List[String]): List[String] ->\n\
     [path | path <- paths, is_existing(path)].\n\
@@ -970,7 +970,7 @@ import std.collections.List.\n\
 import std.data.Json.\n\
 import std.core.Result.{Err, Ok}.\n\
 pub count(): Int ->\n\
-    if { Ok(keys) <- Json.object().keys() } else { _ -> -1 };\n\
+    when { Ok(keys) <- Json.object().keys() } else { _ -> -1 };\n\
     List.length(keys).\n",
         "std/data/Json.terl",
     );

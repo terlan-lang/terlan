@@ -89,6 +89,9 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     let paths = std::iter::once(args.path.clone())
         .chain(args.additional_paths.iter().cloned())
         .collect::<Vec<_>>();
+    if paths.len() > 1 {
+        return super::batch::run_path_batch(&args, state, &paths);
+    }
     let mut failed = false;
     for path in paths {
         let mut path_args = args.clone();
@@ -105,7 +108,7 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
     }
 }
 
-fn run_path(args: &TestArgs, state: CliState) -> ExitCode {
+pub(super) fn run_path(args: &TestArgs, state: CliState) -> ExitCode {
     let dependency_session =
         match dev_dependencies::start_project_dependencies_for_path(Path::new(&args.path)) {
             Ok(session) => Some(session),
@@ -161,7 +164,7 @@ pub(super) fn run_js_tests(args: &TestArgs, state: CliState) -> ExitCode {
         return ExitCode::from(1);
     }
 
-    let (_, state) = match prepare_test_project_context(path, state, profile) {
+    let (_, state) = match prepare_test_project_context(path, state, profile, false) {
         Ok(result) => result,
         Err(message) => {
             eprintln!("{message}");
@@ -467,19 +470,23 @@ pub(super) fn run_terlan_vm_test_file(
         }
     };
     if let Some(coverage) = coverage {
-        let Some(project_context) = project_context.as_ref() else {
-            eprintln!(
-                "error[test.coverage.project]: declaration coverage requires a terlan.toml project with source roots"
-            );
-            return ExitCode::from(1);
-        };
         let Some(native_image) = native_image.as_deref() else {
             eprintln!("error[test.coverage.image]: VM tests did not produce a native image");
             return ExitCode::from(1);
         };
+        let standalone_root = [PathBuf::from(path)];
+        let coverage_source_roots = if args.coverage_sources.is_empty() {
+            project_context
+                .as_ref()
+                .map_or(standalone_root.as_slice(), |context| {
+                    context.coverage_source_roots.as_slice()
+                })
+        } else {
+            args.coverage_sources.as_slice()
+        };
         if let Err(message) = coverage.record_image(
             native_image,
-            &project_context.coverage_source_roots,
+            coverage_source_roots,
             &report.covered_callables,
         ) {
             eprintln!("{message}");

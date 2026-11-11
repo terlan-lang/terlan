@@ -1292,12 +1292,12 @@
     "type": "let_binding",
     "named": true,
     "fields": {
-      "name": {
+      "pattern": {
         "multiple": false,
         "required": true,
         "types": [
           {
-            "type": "identifier",
+            "type": "let_binding_pattern",
             "named": true
           }
         ]
@@ -1309,6 +1309,63 @@
       "types": [
         {
           "type": "expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "let_binding_pattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "let_binding_tuple_pattern",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "let_binding_subpattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "let_binding_subpattern",
+          "named": true
+        },
+        {
+          "type": "let_binding_tuple_pattern",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "let_binding_tuple_pattern",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "let_binding_subpattern",
           "named": true
         }
       ]
@@ -2987,6 +3044,10 @@
     "named": true
   },
   {
+    "type": "when",
+    "named": false
+  },
+  {
     "type": "where",
     "named": false
   },
@@ -2996,10 +3057,6 @@
   },
   {
     "type": "|",
-    "named": false
-  },
-  {
-    "type": "|>",
     "named": false
   },
   {

@@ -118,11 +118,11 @@ fn syntax_output_rejects_effect_execution_inside_pure_function() {
         "\
 module pure_function_executes_effect.\n\
 \n\
-import std.core.Effect.{Effect, run, succeed}.\n\
+import std.core.Effect.\n\
 \n\
 @pure\n\
 pub execute(value: Int): Int ->\n\
-    run(succeed(value)).\n\
+    Effect.run(Effect.succeed(value)).\n\
 ",
         "std/core/Effect.terl",
     );

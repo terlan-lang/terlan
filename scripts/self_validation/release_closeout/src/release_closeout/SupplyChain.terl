@@ -98,7 +98,7 @@ checksum_fields_valid(values: Json, fields: List[String]): Bool ->
     case fields {
         [] -> true;
         [field | rest] ->
-            if {
+            when {
                 Ok(value) <- values.get(field);
                 Ok(digest) <- value.as_string();
                 true <- digest != ""
@@ -112,7 +112,7 @@ checksum_fields_valid(values: Json, fields: List[String]): Bool ->
  * Produces the locked Cargo SBOM, checksum set, license proof, and unsafe-file inventory.
  */
 pub provenance(root: String): Bool ->
-    if {
+    when {
         Ok(inventory) <- SupplyChainMetadata.load(root);
         Some(candidate) <- Support.prepare(root, "supply-chain")
     } else {
@@ -124,7 +124,7 @@ pub provenance(root: String): Bool ->
     candidate_provenance(root, candidate, inventory).
 
 candidate_provenance(root: String, candidate: Candidate, inventory: Inventory): Bool ->
-    if {
+    when {
         Some(artifact) <- Support.release_artifact_name();
         Some(unsafe_files) <- discover_unsafe(root)
     } else {
@@ -224,7 +224,7 @@ passing_report(root: String, relative: String, schema: String): Bool ->
 security_manifest_valid(root: String): Bool ->
     let security_path = Support.child(root, "std/NATIVE_BOUNDARY_SECURITY.tsv");
     let operations_path = Support.child(root, "std/RUST_BACKED_MANIFEST.tsv");
-    if {
+    when {
         Ok(security) <- File.read_text(security_path);
         Ok(operations) <- File.read_text(operations_path)
     } else {

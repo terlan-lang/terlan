@@ -129,7 +129,7 @@ fn top_level_usage_hides_internal_scratch_commands() {
     for public_command in [
         "terlc help [command]",
         "terlc init [project-name] [--profile default|web|static]",
-        "terlc check <file.terl|file.terli|dir>",
+        "terlc check <file.terl|file.terli|file.terls|dir>...",
         concat!(
             "terlc build [file.terl|file.terls|dir] ",
             "[--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]"
@@ -153,7 +153,8 @@ fn top_level_usage_hides_internal_scratch_commands() {
         ),
         concat!(
             "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] ",
-            "[--name <function>]... [--coverage [--coverage-threshold <0..100>]] ",
+            "[--name <function>]... [--coverage [--coverage-threshold <0..100>] ",
+            "[--coverage-source <file|dir>]...] ",
             "[--bench [--warmup <count>] [--samples <count>]]"
         ),
         "terlc static <emit|serve|check> <file.terl>",

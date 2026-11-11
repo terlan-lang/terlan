@@ -199,7 +199,7 @@ runtime_contract_holds(row: SmokeRow): Bool ->
     }.
 
 json_string(value: Json, key: String): Option[String] ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(text) <- field.as_string()
     } else {
@@ -208,7 +208,7 @@ json_string(value: Json, key: String): Option[String] ->
     Some(text).
 
 json_string_array_contains(value: Json, key: String, expected: String): Bool ->
-    if {
+    when {
         Ok(array) <- value.get(key);
         Ok(length) <- array.length()
     } else {
@@ -219,7 +219,7 @@ json_string_array_contains(value: Json, key: String, expected: String): Bool ->
 json_array_contains_at(array: Json, expected: String, index: Int, length: Int): Bool ->
     if {
         index == length -> false;
-        true -> if {
+        true -> when {
             Ok(value) <- array.at(index);
             Ok(text) <- value.as_string()
         } else {
@@ -229,7 +229,7 @@ json_array_contains_at(array: Json, expected: String, index: Int, length: Int): 
     }.
 
 gate_family(gate: Json, family: String): Option[Json] ->
-    if {
+    when {
         Ok(families) <- gate.get("families");
         Ok(length) <- families.length()
     } else {
@@ -606,7 +606,7 @@ source_signature(row: SmokeRow, files: List[TextFile], observed: String): String
     ).
 
 baseline_signature(baseline: Json, smoke_id: String): Option[String] ->
-    if {
+    when {
         Some(schema) <- json_string(baseline, "schema");
         Ok(signatures) <- baseline.get("signatures");
         Some(signature) <- json_string(signatures, smoke_id)
@@ -668,7 +668,7 @@ evaluate_at(
     case {rows, completions} {
         {[], []} -> Evaluation(valid = true, results = results, signatures = signatures);
         {[row | rest], [runtime_completion | completion_rest]} ->
-            if {
+            when {
                 Some(runtime_output) <- completion_output(runtime_completion)
             } else {
                 _ -> Evaluation(valid = false, results = results, signatures = signatures)
@@ -747,7 +747,7 @@ report(manifest: String, evaluation: Evaluation): Option[String] ->
     }.
 
 persist(root: String, manifest: String, evaluation: Evaluation): Bool ->
-    if {
+    when {
         Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts"))
     } else {
         _ -> fail("smoke report directory could not be created")
@@ -789,7 +789,7 @@ fail(message: String): Bool ->
     false.
 
 run_check(root: String, inputs: Inputs): Bool ->
-    if {
+    when {
         Some(rows) <- parse_manifest(inputs.manifest);
         Ok(gate) <- Json.parse(inputs.gate);
         Some("terlan.lean-proof-track.v1") <- json_string(gate, "schema");
@@ -804,7 +804,7 @@ run_check(root: String, inputs: Inputs): Bool ->
     }.
 
 run_commands(root: String, inputs: Inputs, rows: List[SmokeRow], baseline: Json): Bool ->
-    if {
+    when {
         Ok(proofs) <- Process.run(proof_command(root, rows))
     } else {
         Err(reason) -> fail(reason.message)
@@ -827,7 +827,7 @@ run_runtime_commands(root: String, inputs: Inputs, rows: List[SmokeRow], baselin
 
 repository_smoke_holds(): Bool ->
     let root = environment_or("TERLAN_LEAN_PROOF_ROOT", Environment.current_directory());
-    if {
+    when {
         true <- begin_attempt(root)
     } else {
         _ -> fail("current smoke attempt could not be recorded")
@@ -842,7 +842,7 @@ repository_smoke_holds(): Bool ->
     }.
 
 begin_attempt(root: String): Bool ->
-    if {
+    when {
         Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts"));
         Ok(Unit) <-
             write_text(
@@ -864,7 +864,7 @@ complete_attempt(root: String, report_source: String): Bool ->
             .put("schema", Json.string("terlan.lean-proof-smoke-attempt.v1"))
             .put("decision", Json.string("pass"))
             .put("report_sha256", Json.string(sha256(report_source)));
-    if {
+    when {
         Ok(source) <- Json.stringify(receipt);
         Ok(Unit) <-
             write_text(
@@ -969,7 +969,7 @@ pub native_signature_binds_extracted_value_definitions(): Bool ->
             expected_runtime = "pass",
             owner = "runtime",
         );
-    if {
+    when {
         Ok(root) <- create_temporary("terlan-smoke-value-binding-")
     } else {
         _ -> false
@@ -979,7 +979,7 @@ pub native_signature_binds_extracted_value_definitions(): Bool ->
 value_signature_changes(root: String, row: SmokeRow): Bool ->
     let directory = root_path(root, "crates/terlan/src/runtime/native_boundary/dispatch");
     let path = root_path(directory, "value.rs");
-    if {
+    when {
         Ok(Unit) <- create_all(directory);
         Ok(Unit) <- write_text(path, "original values");
         Ok(original) <- read_text_many([path]);

@@ -13,8 +13,8 @@ import type std.collections.List.
 import type std.regex.Regex.
 
 repository_contract_holds(root: String): Bool ->
-    if {
-        Ok(pattern) <- Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\s*\\(");
+    when {
+        Ok(pattern) <- Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\(");
         Ok(files) <- files_recursive_excluding(root, [".git", "target", "node_modules", "__pycache__"])
     } else {
         _ -> false
@@ -96,7 +96,7 @@ removed_parenthesized_call(): String ->
     String.append("(callback).", "(1)").
 
 fixture_holds(path: String, source: String): Bool ->
-    case Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\s*\\(") {
+    case Regex.compile("([A-Za-z_][A-Za-z0-9_]*|\\))\\.\\(") {
         Ok(pattern) -> source_holds(path, source, pattern);
         _ -> false
     }.
@@ -108,6 +108,10 @@ pub repository_uses_only_canonical_callable_syntax(): Bool ->
 @test
 pub ordinary_function_value_calls_are_accepted(): Bool ->
     fixture_holds("tests/accepted.terl", "callback(1).").
+
+@test
+pub prose_followed_by_parentheses_is_not_callable_syntax(): Bool ->
+    fixture_holds("std/example/Documentation.terl", "The value is clipped. (This is expected.)").
 
 @test
 pub named_dot_calls_are_rejected(): Bool ->

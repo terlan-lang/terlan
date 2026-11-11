@@ -1,4 +1,4 @@
-// canonical-ebnf-sha256: 9e180fb1195f56067fe22efe208bb9bbb8a768837a1ef6fe7993a2dfe153e42d
+// canonical-ebnf-sha256: 5750a5a775eb4eb78c7e0f274cf01a52e7d94776c8d0cdc64b286ad0e5532b2e
 //
 // This fingerprint is checked by `make lalrpop-parser-parity-check`. Any
 // canonical EBNF edit therefore requires an explicit generated-grammar audit.
@@ -1278,7 +1278,7 @@ RefutableExpression: LalrpopSyntaxNode = {
             None,
             vec![binding, body],
         ),
-    <start:@L> "refutable-if-{"
+    <start:@L> "refutable-when-{"
         <first:RefutableBinding>
         <rest:(";" <RefutableBinding>)*> "closing-semicolon"?
         "}" "else" "{" <first_fallback:CaseClause>
@@ -1352,7 +1352,7 @@ LambdaRefutableExpression: LalrpopSyntaxNode = {
             None,
             vec![binding, body],
         ),
-    <start:@L> "refutable-if-{"
+    <start:@L> "refutable-when-{"
         <first:RefutableBinding>
         <rest:(";" <RefutableBinding>)*> "closing-semicolon"?
         "}" "else" "{" <first_fallback:CaseClause>
@@ -1464,7 +1464,7 @@ RefutablePatternPrefix: LalrpopSyntaxNode = {
 };
 
 ConstructorChainExpression: LalrpopSyntaxNode = {
-    <base:PipeExpression> <extensions:("with" <PipeExpression>)*> => {
+    <base:OrExpression> <extensions:("with" <OrExpression>)*> => {
         if extensions.is_empty() {
             base
         } else {
@@ -1482,14 +1482,6 @@ ConstructorChainExpression: LalrpopSyntaxNode = {
             )
         }
     },
-};
-
-PipeExpression: LalrpopSyntaxNode = {
-    <left:OrExpression> <tail:("|>" <OrExpression>)*>
-        => LalrpopSyntaxNode::fold_binary(
-            left,
-            tail.into_iter().map(|right| ("|>".to_string(), right)).collect(),
-        ),
 };
 
 OrExpression: LalrpopSyntaxNode = {
@@ -1527,7 +1519,7 @@ BitwiseOperator: String = {
 };
 
 ListElementExpression: LalrpopSyntaxNode = {
-    <base:ListPipeExpression> <extensions:("with" <ListPipeExpression>)*> => {
+    <base:ListOrExpression> <extensions:("with" <ListOrExpression>)*> => {
         if extensions.is_empty() {
             base
         } else {
@@ -1545,14 +1537,6 @@ ListElementExpression: LalrpopSyntaxNode = {
             )
         }
     },
-};
-
-ListPipeExpression: LalrpopSyntaxNode = {
-    <left:ListOrExpression> <tail:("|>" <ListOrExpression>)*>
-        => LalrpopSyntaxNode::fold_binary(
-            left,
-            tail.into_iter().map(|right| ("|>".to_string(), right)).collect(),
-        ),
 };
 
 ListOrExpression: LalrpopSyntaxNode = {
@@ -2434,6 +2418,52 @@ BindingPattern: LalrpopSyntaxNode = {
             Some(source_index.text(source, start, end).to_string()),
             Vec::new(),
         ),
+    BindingTuplePattern,
+};
+
+BindingSubpattern: LalrpopSyntaxNode = {
+    <start:@L> LocalNameToken <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            end,
+            Some(source_index.text(source, start, end).to_string()),
+            Vec::new(),
+        ),
+    <start:@L> "placeholder" <end:@R>
+        => LalrpopSyntaxNode::leaf(
+            LalrpopSyntaxNodeKind::Pattern,
+            source,
+            source_index,
+            start,
+            end,
+        ),
+    BindingTuplePattern,
+    <start:@L> "(" <value:BindingSubpattern> ")" <end:@R>
+        => LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::Pattern,
+            start,
+            end,
+            Some("group".to_string()),
+            vec![value],
+        ),
+};
+
+BindingTuplePattern: LalrpopSyntaxNode = {
+    <start:@L> "{" <first:BindingSubpattern> "," <second:BindingSubpattern>
+        <rest:("," <BindingSubpattern>)*> ","? "}" <end:@R> => {
+        let mut children = Vec::with_capacity(rest.len() + 2);
+        children.push(first);
+        children.push(second);
+        children.extend(rest);
+        LalrpopSyntaxNode::branch(
+            LalrpopSyntaxNodeKind::PatternTuple,
+            start,
+            end,
+            None,
+            children,
+        )
+    },
 };
 
 // Canonical comma lists accept the trailing separator emitted by `terlc fmt`.
@@ -2654,7 +2684,7 @@ Terminal: &'static str = {
     "lambda-(" => "(",
     "typed-lambda-pattern" => "pattern: Type",
     "refutable-binding-prefix" => "pattern <-",
-    "refutable-if-{" => "if {",
+    "refutable-when-{" => "when {",
     "head-constraints" => "<Constraint[T]>",
     "lambda-sequence-semicolon" => ";",
     "if-clause-semicolon" => ";",
@@ -2677,7 +2707,6 @@ Terminal: &'static str = {
     "function-clause-(" => "(",
     "native-raw-declaration" => "native core module",
     "|" => "|",
-    "|>" => "|>",
     "&" => "&",
     "^" => "^",
     "~" => "~",
@@ -2754,7 +2783,7 @@ extern {
         "lambda-(" => LalrpopToken::LambdaLParen,
         "typed-lambda-pattern" => LalrpopToken::TypedLambdaPattern,
         "refutable-binding-prefix" => LalrpopToken::RefutableBindingPrefix,
-        "refutable-if-{" => LalrpopToken::RefutableIfLBrace,
+        "refutable-when-{" => LalrpopToken::RefutableWhenLBrace,
         "head-constraints" => LalrpopToken::HeadConstraintList,
         "lambda-sequence-semicolon" => LalrpopToken::LambdaSequenceSemicolon,
         "if-clause-semicolon" => LalrpopToken::IfClauseSemicolon,
@@ -2864,7 +2893,6 @@ extern {
         ":" => LalrpopToken::Canonical(super::TokenKind::Colon),
         ";" => LalrpopToken::Canonical(super::TokenKind::Semicolon),
         "|" => LalrpopToken::Canonical(super::TokenKind::Pipe),
-        "|>" => LalrpopToken::Canonical(super::TokenKind::PipeForward),
         "&" => LalrpopToken::Canonical(super::TokenKind::BitAnd),
         "^" => LalrpopToken::Canonical(super::TokenKind::BitXor),
         "~" => LalrpopToken::Canonical(super::TokenKind::BitNot),

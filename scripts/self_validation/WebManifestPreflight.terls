@@ -39,7 +39,7 @@ all_assets_exist(root: String, rows: List[RequiredFieldRow]): Bool ->
     }.
 
 has_kind(rows: List[RequiredFieldRow], expected: String): Bool ->
-    if {
+    when {
         [row | rest] <- rows;
         [kind, _path] <- row.strings
     } else {
@@ -56,7 +56,7 @@ required_asset_kinds(rows: List[RequiredFieldRow]): Bool ->
     }.
 
 validate_browser_document(root: String, document: Json): Bool ->
-    if {
+    when {
         Ok(header) <-
             document
                 .required_fields(
@@ -81,7 +81,7 @@ validate_browser_document(root: String, document: Json): Bool ->
     }.
 
 has_route(rows: List[RequiredFieldRow], method: String, route: String): Bool ->
-    if {
+    when {
         [row | rest] <- rows;
         [actual_method, actual_route] <- row.strings
     } else {
@@ -99,7 +99,7 @@ required_static_routes(rows: List[RequiredFieldRow]): Bool ->
     }.
 
 validate_web_document(document: Json): Bool ->
-    if {
+    when {
         Ok(responses) <- document.get("static_responses");
         Ok(handlers) <- document.get("handlers");
         Ok(response_rows) <- responses.required_field_rows(["method", "route"], [], []);

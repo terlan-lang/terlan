@@ -11,7 +11,7 @@ use crate::terlan_syntax::parse_tree::LetBinding;
 /// variable introduced by its failure pattern. These constraints make the
 /// wildcard `else` branch equivalent even when successive scrutinees have
 /// different types.
-pub(super) fn format_as_grouped_refutable_if(expr: &Expr, indent: usize) -> Option<String> {
+pub(super) fn format_as_grouped_refutable_when(expr: &Expr, indent: usize) -> Option<String> {
     let (fallback, mut current) = initial_linear_case(expr)?;
     let fallback_text = format_expr(fallback, 0);
     let mut bindings = Vec::new();

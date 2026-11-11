@@ -96,7 +96,7 @@ fn a_function_value_shadowing_a_function_name_stays_explicitly_unresolved() {
 #[test]
 fn pipe_selection_records_the_selected_target_without_inventing_a_call_site() {
     let value = checked(
-        "module sample.\npub pick(input: Int): Int -> input.\npub invoke(): Int -> 1 |> pick().\n",
+        "module sample.\npub pick(input: Int): Int -> input.\npub invoke(): Int -> pick(1).\n",
     );
     let rows = calls(&value);
     assert_eq!(rows.len(), 1, "{rows:?}");

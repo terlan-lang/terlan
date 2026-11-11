@@ -53,7 +53,7 @@ observe(revision: String, version: String): Result[Json, String] ->
     }.
 
 guard_main(revision: String): Result[Unit, String] ->
-    if {
+    when {
         Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30_000);
         Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
         Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000);
@@ -96,7 +96,7 @@ save(document: Json): Result[Unit, String] ->
     }.
 
 announce(document: Json): Result[Unit, String] ->
-    if {
+    when {
         Ok(_saved) <- save(document)
     } else {
         Err(reason) -> Err(reason)
@@ -192,7 +192,7 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
     }.
 
 wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
-    if {
+    when {
         Ok(_guarded) <- guard(revision);
         Ok(document) <- observe(revision, version);
         Ok(_announced) <- announce(document)
@@ -207,7 +207,7 @@ wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
         _ ->
             if {
                 Clock.monotonic_time_ns() >= deadline -> Err("release validation wait deadline reached; rerun the same command to resume");
-                true -> if {
+                true -> when {
                     Ok(_dispatched) <- dispatch_missing(document, 0)
                 } else {
                     Err(reason) -> Err(reason)
@@ -228,7 +228,7 @@ stage(
 ): Result[Json, String] ->
     let revision = Support.text(document, "revision");
     let current = document.put("state", Json.string(name)).put("next_action", Json.string(next));
-    if {
+    when {
         Ok(_guarded) <- guard(revision);
         Ok(_announced) <- announce(current)
     } else {
@@ -258,7 +258,7 @@ stage(
 publish(document: Json, version: String): Result[Unit, String] ->
     if {
         Support.text(document, "state") == "published" -> Ok(Unit);
-        true -> if {
+        true -> when {
             Ok(prepared) <-
                 stage(
                     document,
@@ -289,12 +289,12 @@ publish(document: Json, version: String): Result[Unit, String] ->
     }.
 
 run(command: String, version: String): Result[Unit, String] ->
-    if {
+    when {
         true <- Version.valid(version)
     } else {
         _ -> Err("version must contain three canonical nonnegative numbers, without a leading v")
     };
-    (if {
+    (when {
     Ok(revision) <- Support.run("git", ["rev-parse", "HEAD"], 30_000)
 } else {
     Err(reason) -> Err(reason)
@@ -304,18 +304,22 @@ if {
         Ok(seconds) -> Submit.run(argument(2, ""), version, seconds);
         Err(reason) -> Err(reason)
     };
-    command == "status" -> case Status.collect(revision, version) {
+    command == "status" or command == "predict" -> case Status.collect(revision, version) {
         Err(reason) -> Err(reason);
         Ok(document) ->
-            if {
+            when {
                 Ok(_saved) <- save(document);
                 Ok(source) <- Support.render(document)
             } else {
                 Err(reason) -> Err(reason)
             };
-            (let _printed = println(source); Ok(Unit))
+            (let _printed = println(source);
+if {
+    command == "status" or Status.publishable(document) -> Ok(Unit);
+    true -> Err(String.append("publication prediction: ", Support.text(document, "next_action")))
+})
     };
-    command == "publish" or command == "wait" or command == "publish-tag" -> if {
+    command == "publish" or command == "wait" or command == "publish-tag" -> when {
         Ok(seconds) <- wait_seconds();
         Ok(_guarded) <- guard(revision);
         Ok(initial) <- observe(revision, version);
@@ -339,7 +343,7 @@ if {
         true -> Ok(Unit)
     };
     true -> Err(
-        "usage: Release.terls status|wait|publish|publish-tag|submit <version> [validated revision] (or self-test)",
+        "usage: Release.terls status|predict|wait|publish|publish-tag|submit <version> [validated revision] (or self-test)",
     )
 }).
 
@@ -356,7 +360,7 @@ pub entry(): Bool ->
             Ok(_unit) -> true;
             Err(reason) ->
                 let document =
-                    (if {
+                    (when {
     Ok(source) <- File.read_text("target/quality/release-status.json");
     Ok(value) <- Json.parse(source)
 } else {

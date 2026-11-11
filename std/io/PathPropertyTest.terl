@@ -33,7 +33,7 @@ pub generated_paths_render_idempotently_after_parse(): Bool ->
             ],
         ),
         (text) ->
-            if {
+            when {
                 Ok(path) <- Path.from_string(text);
                 Ok(roundtrip) <- Path.from_string(path.to_string())
             } else {

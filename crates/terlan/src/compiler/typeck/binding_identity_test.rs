@@ -323,7 +323,7 @@ type Err[E] = {Atom["error"], reason: E}.
 type Result[T, E] = Ok[T] | Err[E].
 
 run(first: Result[Int, String], second: Result[Int, String]): Int ->
-    if {
+    when {
         Ok(value) <- first;
         Ok(value) <- second
     } else {

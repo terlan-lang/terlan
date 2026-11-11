@@ -11,8 +11,8 @@ use super::{
         head_constraint_list_end, html_raw_block_end, if_clause_semicolon_indices,
         is_binary_layout_open, is_function_clause_open, is_generic_call_open,
         is_nominal_keyed_open, is_trivia, lambda_opening_indices,
-        lambda_sequence_semicolon_indices, native_raw_declaration_end, refutable_if_open,
-        refutable_pattern_ranges,
+        lambda_sequence_semicolon_indices, native_raw_declaration_end, refutable_pattern_ranges,
+        refutable_when_open,
     },
     lalrpop_syntax::{
         normalize_lalrpop_expression, validate_lalrpop_expression, LalrpopExpressionOutput,
@@ -99,8 +99,8 @@ pub enum LalrpopToken {
     TypedLambdaPattern,
     /// A complete `Pattern <-` prefix retained for canonical pattern reparsing.
     RefutableBindingPrefix,
-    /// Collapsed `if {` prefix for a grouped refutable expression.
-    RefutableIfLBrace,
+    /// Collapsed `when {` prefix for a grouped refutable expression.
+    RefutableWhenLBrace,
     /// One callable-head constraint list following square generic parameters.
     HeadConstraintList,
     /// A sequence separator at the owning lambda body's delimiter depth.
@@ -313,8 +313,8 @@ fn projected_tokens(
         let config_raw_end = classify_lambda_delimiters
             .then(|| config_raw_declaration_end(&tokens, index))
             .flatten();
-        let refutable_if_open = classify_lambda_delimiters
-            .then(|| refutable_if_open(&tokens, index))
+        let refutable_when_open = classify_lambda_delimiters
+            .then(|| refutable_when_open(&tokens, index))
             .flatten();
         let typed_lambda_pattern_end = typed_lambda_patterns
             .iter()
@@ -327,8 +327,8 @@ fn projected_tokens(
             .flatten();
         let parser_token = if refutable_pattern_end.is_some() {
             LalrpopToken::RefutableBindingPrefix
-        } else if refutable_if_open.is_some() {
-            LalrpopToken::RefutableIfLBrace
+        } else if refutable_when_open.is_some() {
+            LalrpopToken::RefutableWhenLBrace
         } else if native_raw_end.is_some() {
             LalrpopToken::NativeRawDeclaration
         } else if config_raw_end.is_some() {
@@ -410,7 +410,7 @@ fn projected_tokens(
             )
         };
         let collapsed_end = refutable_pattern_end
-            .or(refutable_if_open)
+            .or(refutable_when_open)
             .or(native_raw_end)
             .or(config_raw_end)
             .or(typed_lambda_pattern_end)

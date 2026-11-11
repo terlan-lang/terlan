@@ -15,7 +15,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -48,7 +48,7 @@ normalize_diagnostics(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(diagnostic) <- row.get("diagnostic")
         } else {
@@ -65,7 +65,7 @@ normalize_diagnostics(rows, index + 1, count, physical, logical))
     }.
 
 pub normalize_export(exported: Json, physical: String, logical: String): Result[Json, Failure] ->
-    if {
+    when {
         Ok(copy) <- Json.parse(Json.to_string(exported))
     } else {
         _ ->
@@ -77,7 +77,7 @@ pub normalize_export(exported: Json, physical: String, logical: String): Result[
             )
     };
     (let _name = copy.put("source_name", Json.string(logical));
-(if {
+(when {
     Ok(core) <- copy.get("core");
     Ok(diagnostics) <- copy.get("diagnostics");
     Ok(count) <- diagnostics.length()
@@ -93,14 +93,14 @@ pub normalize_export(exported: Json, physical: String, logical: String): Result[
 (let _core =
     if {
         core.is_null() -> copy;
-        true -> if {
+        true -> when {
             Ok(source) <- core.get("source")
         } else {
             _ -> copy
         };
         (let _source_path = source.put("source_path", Json.string(logical)); let _source = core.put("source", source); copy.put("core", core))
     };
-(if {
+(when {
     true <- normalize_diagnostics(diagnostics, 0, count, physical, logical)
 } else {
     _ ->
@@ -114,7 +114,7 @@ pub normalize_export(exported: Json, physical: String, logical: String): Result[
 (let _diagnostics = copy.put("diagnostics", diagnostics); Ok(copy)))))).
 
 dependencies(exported: Json): Result[Json, Failure] ->
-    if {
+    when {
         Ok(rows) <- exported.get("dependencies");
         Ok(count) <- rows.length()
     } else {
@@ -127,7 +127,7 @@ dependencies(exported: Json): Result[Json, Failure] ->
             )
     };
     (let result = Json.array();
-(if {
+(when {
     true <- copy_dependencies(rows, result, 0, count)
 } else {
     _ ->
@@ -143,7 +143,7 @@ Ok(result))).
 copy_dependencies(rows: Json, mut output: Json, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ -> false
@@ -167,7 +167,7 @@ manifest(
     document_version: Int,
     exported: Json,
 ): Result[Json, Failure] ->
-    if {
+    when {
         Ok(deps) <- dependencies(exported);
         Ok(syntax) <- exported.get("syntax_contract")
     } else {
@@ -281,7 +281,7 @@ capture_staged(
         };
     let physical = String.concat([stage, "/", source_filename]);
     let source_digest = Hash.sha256(source);
-    if {
+    when {
         Ok(_) <- File.write_text(physical, source);
         Ok(compiler_digest) <- Hash.sha256_file(compiler)
     } else {
@@ -293,12 +293,12 @@ capture_staged(
                 ),
             )
     };
-    (if {
+    (when {
     Ok(exported) <- CompilerBridge.export_file(compiler, physical)
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     true <-
         Hash.sha256_file(original) == Ok(original_digest)
             and Hash.sha256_file(compiler) == Ok(compiler_digest)
@@ -311,7 +311,7 @@ capture_staged(
             ),
         )
 };
-(if {
+(when {
     Ok(normalized) <- normalize_export(exported, physical, logical);
     Ok(document) <- manifest(compiler_digest, logical, source_digest, document_version, normalized);
     Ok(id) <- SnapshotStore.identity(document, normalized)
@@ -336,7 +336,7 @@ pub capture_file(
     logical: String,
     store: String,
 ): Result[Json, Failure] ->
-    if {
+    when {
         true <- safe_logical_path(logical)
     } else {
         _ ->
@@ -347,7 +347,7 @@ pub capture_file(
                 ),
             )
     };
-    (if {
+    (when {
     Ok(source) <- File.read_text(path);
     Ok(stage) <- Directory.create_temporary("terlan-semantic-capture-")
 } else {
@@ -385,7 +385,7 @@ pub capture_overlay(
     source: String,
     store: String,
 ): Result[Json, Failure] ->
-    if {
+    when {
         true <- safe_logical_path(logical) and document_version > 0
     } else {
         _ ->
@@ -396,7 +396,7 @@ pub capture_overlay(
                 ),
             )
     };
-    (if {
+    (when {
     true <- Hash.sha256_file(path) == Ok(expected_disk_digest)
 } else {
     _ ->
@@ -407,7 +407,7 @@ pub capture_overlay(
             ),
         )
 };
-(if {
+(when {
     Ok(stage) <- Directory.create_temporary("terlan-semantic-overlay-")
 } else {
     _ ->

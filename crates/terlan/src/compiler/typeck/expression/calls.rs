@@ -3,7 +3,6 @@ mod function_value;
 mod imported;
 mod local;
 mod macro_call;
-mod pipe;
 mod receiver;
 mod remote;
 pub(super) use remote::qualify_imported_named_heads;
@@ -51,7 +50,6 @@ pub(super) use function_value::*;
 use imported::*;
 use local::*;
 pub(super) use macro_call::*;
-pub(super) use pipe::*;
 use receiver::*;
 pub(super) use remote::*;
 use template::*;
@@ -231,8 +229,8 @@ pub(crate) fn infer_syntax_expr_with_expected(
 /// - Resolved call return type.
 ///
 /// Transformation:
-/// - Applies call resolution without re-inferring arguments, allowing pipe and
-///   function-value callers to share dispatch.
+/// - Applies call resolution without re-inferring arguments so function-value
+///   callers share ordinary dispatch.
 fn infer_syntax_call_with_arg_types(
     expr: &SyntaxExprOutput,
     arg_types: &[Type],

@@ -374,7 +374,7 @@ matrix_output(root: String): String ->
     ).
 
 write_matrix(root: String, gaps: String): Bool ->
-    if {
+    when {
         Ok(Unit) <- create_all(child(root, "target/quality/proof-artifacts"))
     } else {
         _ -> fail("coverage matrix directory could not be created")

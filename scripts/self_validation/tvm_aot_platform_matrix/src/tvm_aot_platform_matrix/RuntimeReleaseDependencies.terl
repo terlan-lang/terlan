@@ -72,7 +72,7 @@ add_unique(values: List[String], value: String): List[String] ->
     }.
 
 quoted_after(text: String, marker: String): Option[String] ->
-    if {
+    when {
         Some({_before, rest}) <- String.split_once(text, marker);
         Some({value, _after}) <- String.split_once(rest, "\"")
     } else {
@@ -355,7 +355,7 @@ report_missing(lockfile: String, manifest: String): Bool ->
     failure(message).
 
 pub check(root: String): Bool ->
-    if {
+    when {
         Ok(lockfile) <- read_text(child(root, "Cargo.lock"));
         Ok(manifest) <- read_text(child(root, "crates/terlan/Cargo.toml"))
     } else {

@@ -172,7 +172,7 @@ package_rows(
             diagnostics = diagnostics,
             message = "",
         );
-        true -> if {
+        true -> when {
             Ok(package) <- Json.at(packages, index);
             Ok(fields) <- Json.required_fields(package, ["name", "responsibility"], [], []);
             Ok(modules_value) <- Json.get(package, "top_level_feature_modules");
@@ -223,7 +223,7 @@ package_rows(
     }.
 
 packages(document: Json): PackageRows ->
-    if {
+    when {
         Ok(values) <- Json.get(document, "packages");
         Ok(count) <- Json.length(values)
     } else {
@@ -249,7 +249,7 @@ strings_from_rows(rows: List[RequiredFieldRow], output: List[String]): Option[Li
     }.
 
 string_inventory(document: Json, field: String, member: String): Option[List[String]] ->
-    if {
+    when {
         Ok(values) <- Json.get(document, field);
         Ok(rows) <- Json.required_field_rows(values, [member], [], [])
     } else {
@@ -333,7 +333,7 @@ measurement_rows(
     }.
 
 measurements(document: Json): MeasurementRows ->
-    if {
+    when {
         Ok(values) <- Json.get(document, "measurements");
         Ok(rows) <-
             Json.required_field_rows(
@@ -357,7 +357,7 @@ policy_failure(message: String): PolicyResult ->
     PolicyResult(valid = false, diagnostics = [], message = message).
 
 validate(document: Json, nodes: List[GraphNode]): PolicyResult ->
-    if {
+    when {
         Ok(schema_value) <- Json.get(document, "schema_version");
         Ok(schema) <- Json.as_int(schema_value)
     } else {

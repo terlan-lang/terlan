@@ -28,7 +28,7 @@ member_names(paths: List[String], prefix: String, remaining: Int): Result[List[S
     case paths {
         [] -> Ok([]);
         [path | rest] ->
-            if {
+            when {
                 true <- remaining > 0 and String.starts_with(path, prefix);
                 name <- path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size());
                 true <- safe_member(name);
@@ -50,7 +50,7 @@ count(names: List[String]): Int ->
  * and special files cannot disappear silently from the sealed inventory.
  */
 pub inventory(path: String): Result[Json, String] ->
-    if {
+    when {
         Ok(entries) <- Directory.entries(path);
         Ok(names) <- member_names(entries, String.append(path, "/"), 256);
         Ok(usage) <- Directory.tree_usage(path);
@@ -69,7 +69,7 @@ pub inventory(path: String): Result[Json, String] ->
  * The final path, member names, sizes and hashes are all checkpoint-bound.
  */
 pub row(root: String, path: String, destination: String): Result[Json, String] ->
-    if {
+    when {
         Ok(files) <- inventory(OwnerStorage.child(root, path))
     } else {
         Err(reason) -> Err(reason)
@@ -84,7 +84,7 @@ sealed_row(destination: String, files: Json): Result[Json, String] ->
     Ok(identity.put("files", files)).
 
 matches(root: String, path: String, destination: String, expected: Json): Bool ->
-    if {
+    when {
         Some(bound) <- OwnerStorage.text(expected, "path");
         true <- bound == destination;
         Ok(actual) <- row(root, path, destination);

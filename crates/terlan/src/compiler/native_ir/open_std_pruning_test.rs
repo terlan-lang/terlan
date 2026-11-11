@@ -6,7 +6,7 @@ use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax
 
 use super::{
     prune_application_to_function_roots, prune_module_to_function_roots,
-    prune_unreachable_open_std_functions, resolve_scoped_call, FunctionKey,
+    prune_unreachable_open_std_functions, resolve_call, resolve_scoped_call, FunctionKey,
 };
 
 #[test]
@@ -20,6 +20,23 @@ fn unqualified_call_resolves_only_through_the_callers_imports() {
     assert_eq!(
         resolve_scoped_call("app.Main", &imported, "encode_exact", 2, &providers),
         Some(function("std.binary.Binary", "encode_exact", 2))
+    );
+}
+
+#[test]
+fn exact_trait_dispatch_precedes_canonical_default_type_path() {
+    let providers = vec![
+        function("std.core.Ordering", "compare", 2),
+        function("std.core.Ordering.Ordering", "compare", 2),
+    ];
+    let syntax = parse_module_as_syntax_output("module app.Main. pub main(): Int -> 0.")
+        .expect("parse exact dispatch caller");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let caller = lower_syntax_module_output_to_core(&syntax, &resolved);
+
+    assert_eq!(
+        resolve_call(&caller, "std.core.Ordering.Ordering.compare", 2, &providers,),
+        Some(function("std.core.Ordering.Ordering", "compare", 2)),
     );
 }
 

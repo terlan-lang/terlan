@@ -5,7 +5,7 @@ import std.io.File.
 import std.system.Arguments.{count, get}.
 
 entry(): Bool ->
-    if {
+    when {
         true <- count() == 2;
         Some(directory) <- get(0);
         Some(operation) <- get(1);

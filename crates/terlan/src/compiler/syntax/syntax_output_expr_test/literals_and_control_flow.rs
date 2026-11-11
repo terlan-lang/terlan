@@ -246,7 +246,7 @@ pub(super) fn syntax_output_includes_constructor_chain_expr_trees() {
 }
 
 #[test]
-pub(super) fn syntax_output_allows_keyword_expressions_in_operator_chains() {
+pub(super) fn syntax_output_preserves_keyword_expressions() {
     let output = parse_module_as_syntax_output(
         r#"
         module keyword_expr_chain.
@@ -255,21 +255,16 @@ pub(super) fn syntax_output_allows_keyword_expressions_in_operator_chains() {
             case option {
                 Atom["none"] -> 0;
                 value -> value
-            } |> inspect().
+            }.
         "#,
     )
-    .expect("syntax output keyword expression chain");
+    .expect("syntax output keyword expression");
 
     let SyntaxDeclarationPayload::Function { clauses, .. } = &output.declarations[0].payload else {
         panic!("expected function declaration");
     };
 
-    let pipe = &clauses[0].body;
-    assert_eq!(pipe.kind, SyntaxExprKind::BinaryOp);
-    assert_eq!(pipe.operator.as_deref(), Some("|>"));
-    assert_eq!(pipe.children.len(), 2);
-
-    let case_expr = &pipe.children[0];
+    let case_expr = &clauses[0].body;
     assert_eq!(case_expr.kind, SyntaxExprKind::Case);
     assert_eq!(case_expr.clauses.len(), 2);
     assert_eq!(
@@ -280,8 +275,6 @@ pub(super) fn syntax_output_allows_keyword_expressions_in_operator_chains() {
         case_expr.clauses[0].patterns[0].text.as_deref(),
         Some("none")
     );
-
-    assert_eq!(pipe.children[1].kind, SyntaxExprKind::Call);
 }
 
 #[test]

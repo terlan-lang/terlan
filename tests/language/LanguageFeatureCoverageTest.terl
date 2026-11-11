@@ -76,7 +76,3 @@ pub receiver_methods_execute(): Bool ->
     let presenter = CoveragePresenter {prefix: "Role: "};
     let profile = CoverageProfile {title: "Engineer"};
     assert_equal("Role: Engineer", presenter.present(profile)).
-
-@test
-pub pipe_forward_executes(): Bool ->
-    assert_equal(2, 1 |> helper()).

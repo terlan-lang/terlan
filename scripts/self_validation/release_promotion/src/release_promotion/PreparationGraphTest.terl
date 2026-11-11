@@ -54,7 +54,7 @@ write(root: String, path: String, source: String): Bool ->
     }.
 
 prepare(root: String): Bool ->
-    if {
+    when {
         Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"))
     } else {
         _ -> false
@@ -71,7 +71,7 @@ prepare(root: String): Bool ->
 ).
 
 calls(root: String, expected: String): Bool ->
-    if {
+    when {
         Ok(actual) <- File.read_text(OwnerStorage.child(root, "calls"))
     } else {
         _ -> false
@@ -79,7 +79,7 @@ calls(root: String, expected: String): Bool ->
     actual == expected.
 
 recorded(root: String, expected: String, completed: Int, reused: Int): Bool ->
-    if {
+    when {
         Ok(document) <-
             OwnerStorage.read_json(
                 OwnerStorage.child(root, PreparationGraph.ledger_path("candidate", "fixture")),
@@ -117,7 +117,7 @@ cold_warm(root: String): Bool ->
 
 changed_parent(root: String): Bool ->
     let first = PreparationGraph.run_locked(root, "fixture", nodes());
-    if {
+    when {
         true <- first.valid;
         Ok(before) <- File.read_text(OwnerStorage.child(root, "target/quality/a.json"));
         true <- write(root, "a.input", "changed upstream source")
@@ -128,7 +128,7 @@ changed_parent(root: String): Bool ->
 
 verify_changed_parent(root: String, before: String): Bool ->
     let changed = PreparationGraph.run_locked(root, "fixture", nodes());
-    if {
+    when {
         Ok(current) <- File.read_text(OwnerStorage.child(root, "target/quality/a.json"))
     } else {
         _ -> false
@@ -140,7 +140,7 @@ verify_changed_parent(root: String, before: String): Bool ->
 
 interrupted(root: String, mode: String): Bool ->
     let first = PreparationGraph.run_locked(root, "fixture", nodes());
-    if {
+    when {
         true <- first.valid;
         Ok(before) <- File.read_text(OwnerStorage.child(root, "target/quality/b.json"));
         true <- write(root, "b.input", mode)
@@ -151,7 +151,7 @@ interrupted(root: String, mode: String): Bool ->
 
 recover_interrupted(root: String, before: String): Bool ->
     let failed = PreparationGraph.run_locked(root, "fixture", nodes());
-    if {
+    when {
         true <- not failed.valid and failed.completed == 0 and failed.reused == 1;
         true <- recorded(root, "failed", 0, 1);
         true <- calls(root, "a\nb\nc\nd\nb\n");
@@ -172,7 +172,7 @@ verify_resume(root: String, completed: Int, reused: Int, expected_calls: String)
 summary_is_not_authority(root: String): Bool ->
     let first = PreparationGraph.run_locked(root, "fixture", nodes());
     let path = PreparationGraph.ledger_path("candidate", "fixture");
-    if {
+    when {
         true <- first.valid;
         true <- write(root, path, "{partial");
         true <- write(root, String.append(path, ".pending"), "{partial")
@@ -255,7 +255,7 @@ rejects_each(root: String, graphs: List[List[Node]]): Bool ->
     }.
 
 scenario(mode: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-preparation-graph-")
     } else {
         _ -> false
@@ -303,7 +303,7 @@ native_nodes(): List[Node] ->
     [node("a", []), node("b", [])].
 
 native_count(root: String, expected: Int): Bool ->
-    if {
+    when {
         Ok(document) <-
             OwnerStorage.read_json(
                 OwnerStorage.child(root, NativeCycle.path("candidate", "fixture")),
@@ -317,7 +317,7 @@ native_count(root: String, expected: Int): Bool ->
     count == expected.
 
 native_launches(root: String, expected: Int): Bool ->
-    if {
+    when {
         Ok(document) <-
             OwnerStorage.read_json(
                 OwnerStorage.child(root, NativeCycle.path("candidate", "fixture")),
@@ -337,13 +337,13 @@ native_scratch_absent(root: String): Bool ->
     }.
 
 native_warm(root: String): Bool ->
-    if {
+    when {
         true <- write(root, "a.native", NativeActivityTest.object("a"))
     } else {
         _ -> false
     };
     (let cold = PreparationGraph.run_locked(root, "fixture", native_nodes());
-(if {
+(when {
     true <- successful(cold, 2, 0) and native_count(root, 1)
 } else {
     _ -> false
@@ -351,7 +351,7 @@ native_warm(root: String): Bool ->
 (let warm = PreparationGraph.run_locked(root, "fixture", native_nodes()); successful(warm, 0, 2) and native_count(root, 0) and calls(root, "a\nb\n")))).
 
 native_duplicate(root: String): Bool ->
-    if {
+    when {
         true <- write(root, "a.native", NativeActivityTest.object("a"));
         true <- write(root, "b.native", NativeActivityTest.object("b"))
     } else {
@@ -361,7 +361,7 @@ native_duplicate(root: String): Bool ->
 
 native_commit_gap(root: String, prepared: Bool): Bool ->
     let selected = owner("a", "candidate", "target/quality/a.json", "a");
-    if {
+    when {
         true <- write(root, "a.native", NativeActivityTest.object("a"));
         true <- write(root, "b.native", NativeActivityTest.object("b"));
         Ok(_directory) <-
@@ -374,7 +374,7 @@ native_commit_gap(root: String, prepared: Bool): Bool ->
         _ -> false
     };
     (let first = PreparationOwner.run_locked(root, selected);
-(if {
+(when {
     true <- first.valid and not first.reused and (not prepared or prepared_residue(root, selected))
 } else {
     _ -> false
@@ -385,7 +385,7 @@ prepared_residue(root: String, selected: Owner): Bool ->
     let work = "target/quality/preparation/candidate/a.work";
     let staged = String.append(work, "/output.json");
     let retained = String.append(work, "/retained-native.jsonl");
-    if {
+    when {
         Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
         Ok(snapshot) <-
             OwnerNative.read_snapshot(
@@ -415,14 +415,14 @@ prepared_residue(root: String, selected: Owner): Bool ->
     OwnerCommit.publish_file(root, staged, selected.output, primary).
 
 native_resume(root: String): Bool ->
-    if {
+    when {
         true <- write(root, "a.native", NativeActivityTest.object("a"));
         true <- write(root, "b.input", "fail")
     } else {
         _ -> false
     };
     (let failed = PreparationGraph.run_locked(root, "fixture", native_nodes());
-(if {
+(when {
     true <- not failed.valid and native_count(root, 1);
     true <- write(root, "b.input", "repaired");
     true <- write(root, "b.native", NativeActivityTest.object("b"))
@@ -434,7 +434,7 @@ native_resume(root: String): Bool ->
 native_corrupt(root: String): Bool ->
     let first = PreparationGraph.run_locked(root, "fixture", native_nodes());
     let journal = NativeCycle.path("candidate", "fixture");
-    if {
+    when {
         true <- first.valid;
         Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, journal));
         Ok(body) <- document.get("body")
@@ -443,7 +443,7 @@ native_corrupt(root: String): Bool ->
     };
     (let _changed = body.put("native_link_launches", Json.int(1));
 let _updated = document.put("body", body);
-(if {
+(when {
     true <- OwnerStorage.atomic_json(root, journal, document)
 } else {
     _ -> false
@@ -457,7 +457,7 @@ failed_native_owner(root: String, gap: Bool, corrupt: Bool): Bool ->
             NativeActivityTest.object("completed-before-failure"),
             NativeActivityTest.failed_link(),
         );
-    if {
+    when {
         true <- write(root, "a.native", raw);
         true <- write(root, "a.input", "fail");
         Ok(_directory) <-
@@ -474,7 +474,7 @@ failed_native_owner(root: String, gap: Bool, corrupt: Bool): Bool ->
         gap -> not PreparationOwner.run_locked(root, selected).valid;
         true -> not PreparationGraph.run_locked(root, "fixture", [node("a", [])]).valid
     };
-(if {
+(when {
     true <- failed;
     Ok(retained) <- File.read_text(OwnerStorage.child(root, PreparationOwner.failed_activity_path(selected)));
     true <- NativeActivityTest.owned_log(retained, raw);
@@ -504,7 +504,7 @@ not resumed.valid
 pending_native_owner(root: String): Bool ->
     let selected = owner("a", "candidate", "target/quality/a.json", "a");
     let first = PreparationOwner.run_locked(root, selected);
-    if {
+    when {
         true <- first.valid;
         Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(selected)));
         Ok(_directory) <-

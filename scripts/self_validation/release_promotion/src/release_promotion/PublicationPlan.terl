@@ -18,7 +18,7 @@ import type std.data.Json.
  */
 pub build(root: String, candidate: Json): Result[Json, String] ->
     let path = String.append(root, "/dist/release-candidate.json");
-    if {
+    when {
         Ok(version) <- candidate.get("version");
         Ok(source_revision) <- candidate.get("source_revision");
         Ok(seal) <- candidate.get("seal");
@@ -59,7 +59,7 @@ pub build(root: String, candidate: Json): Result[Json, String] ->
  * Writes only machine-readable output; errors never produce a partial plan.
  */
 pub emit(root: String, candidate: Json): Bool ->
-    if {
+    when {
         Ok(plan) <- build(root, candidate);
         Ok(source_revision_value) <- plan.get("source_revision");
         Ok(source_revision) <- source_revision_value.as_string();
@@ -75,7 +75,7 @@ pub emit(root: String, candidate: Json): Bool ->
  * Checks metadata integrity and that export leaves the verified candidate intact.
  */
 pub self_test(root: String, candidate: Json): Bool ->
-    if {
+    when {
         Ok(before) <- Json.stringify(candidate);
         Ok(plan) <- build(root, candidate);
         Ok(rendered_after) <- Json.stringify(candidate);
@@ -101,7 +101,7 @@ pub self_test(root: String, candidate: Json): Bool ->
 
 rejects_changed_manifest(root: String, candidate: Json): Bool ->
     let path = String.append(root, "/dist/release-candidate.json");
-    if {
+    when {
         Ok(source) <- File.read_text(path);
         Ok(_changed) <- File.write_text(path, "{}")
     } else {
@@ -112,7 +112,7 @@ rejects_changed_manifest(root: String, candidate: Json): Bool ->
         Err(_reason) -> true;
         Ok(_plan) -> false
     };
-(if {
+(when {
     Ok(_restored) <- File.write_text(path, source)
 } else {
     _ -> false

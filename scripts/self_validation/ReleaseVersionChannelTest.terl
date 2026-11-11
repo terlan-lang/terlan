@@ -91,7 +91,7 @@ regex_find(pattern: String, source: String): Option[String] ->
     }.
 
 regex_replace(pattern: String, source: String, replacement: String): String ->
-    if {
+    when {
         Ok(regex) <- Regex.compile(pattern);
         Some(_matched) <- Regex.find(regex, source)
     } else {
@@ -188,7 +188,7 @@ text_fields(version: String): List[TextField] ->
     ].
 
 read_match(root: String, spec: TextField): String ->
-    if {
+    when {
         Ok(source) <- read_text(child(root, spec.path));
         Some(found) <- regex_find(spec.pattern, source)
     } else {
@@ -197,7 +197,7 @@ read_match(root: String, spec: TextField): String ->
     found.
 
 json_string_field(value: Json, name: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(name);
         Ok(text) <- field.as_string()
     } else {
@@ -206,7 +206,7 @@ json_string_field(value: Json, name: String): String ->
     text.
 
 json_version(root: String, relative: String): String ->
-    if {
+    when {
         Ok(source) <- read_text(child(root, relative));
         Ok(value) <- Json.parse(source)
     } else {
@@ -215,7 +215,7 @@ json_version(root: String, relative: String): String ->
     json_string_field(value, "version").
 
 json_root_package_version(root: String, relative: String): String ->
-    if {
+    when {
         Ok(source) <- read_text(child(root, relative));
         Ok(value) <- Json.parse(source);
         Ok(packages) <- value.get("packages");
@@ -226,7 +226,7 @@ json_root_package_version(root: String, relative: String): String ->
     json_string_field(package, "version").
 
 json_generator_version(root: String, relative: String): String ->
-    if {
+    when {
         Ok(source) <- read_text(child(root, relative));
         Ok(value) <- Json.parse(source);
         Ok(generator) <- value.get("generator")
@@ -265,7 +265,7 @@ json_version_fields(root: String, version: String): List[CheckedField] ->
     [vscode_package_field | [tree_package_field | [vscode_lock_field | [vscode_root_field | [tree_lock_field | [tree_root_field | [bindings_field | List.new[CheckedField]()]]]]]]].
 
 manifest_version(root: String): String ->
-    if {
+    when {
         Ok(source) <- read_text(child(root, "std/manifest.toml"));
         Some(version) <- regex_capture("(?m)^version\\s*=\\s*\"([^\"]+)\"$", source, 1)
     } else {
@@ -533,7 +533,7 @@ publish_report(path: String, report: Json): Bool ->
 
 ensure_report_directory(path: String, encoded: String): Bool ->
     let directory = parent_directory(path);
-    if {
+    when {
         Ok(Unit) <- create_all(directory);
         Ok(Unit) <- write_text(path, String.append(encoded, "\n"))
     } else {
@@ -597,7 +597,7 @@ print_mismatches(fields: List[CheckedField]): Unit ->
     }.
 
 write_json_version(path: String, lockfile: Bool, version: String): Bool ->
-    if {
+    when {
         Ok(source) <- read_text(path);
         Ok(value) <- Json.parse(source)
     } else {
@@ -607,7 +607,7 @@ write_json_version(path: String, lockfile: Bool, version: String): Bool ->
 let nested_ok =
     if {
         not lockfile -> true;
-        true -> if {
+        true -> when {
             Ok(packages) <- value.get("packages");
             Ok(package) <- packages.get("")
         } else {
@@ -617,7 +617,7 @@ let nested_ok =
     };
 if {
     not nested_ok -> false;
-    true -> if {
+    true -> when {
         Ok(encoded) <- Json.stringify_pretty(value);
         Ok(Unit) <- write_text(path, String.append(encoded, "\n"))
     } else {
@@ -627,7 +627,7 @@ if {
 }).
 
 write_json_generator_version(path: String, version: String): Bool ->
-    if {
+    when {
         Ok(source) <- read_text(path);
         Ok(value) <- Json.parse(source);
         Ok(generator) <- value.get("generator")
@@ -636,7 +636,7 @@ write_json_generator_version(path: String, version: String): Bool ->
     };
     (let _version = generator.put("version", Json.string(version));
 let _generator = value.put("generator", generator);
-(if {
+(when {
     Ok(encoded) <- Json.stringify_pretty(value);
     Ok(Unit) <- write_text(path, String.append(encoded, "\n"))
 } else {
@@ -840,7 +840,7 @@ stage_file(source_root: String, target_root: String, relative: String): Bool ->
 
 stage_file_directory(output_path: String, source: String): Bool ->
     let directory = parent_directory(output_path);
-    if {
+    when {
         Ok(Unit) <- create_all(directory);
         Ok(Unit) <- write_text(output_path, source)
     } else {

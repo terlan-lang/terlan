@@ -156,6 +156,10 @@ pub specialized_integration_tests_require_their_owning_environment(): Bool ->
         "scripts/self_validation/VmCliBridgeTest.terl",
         "benchmarks/fixtures/BinaryProtocolBenchmarkTest.terl",
         "scripts/benchmarks/protocol/ProtocolBenchmarkTest.terl",
+        "scripts/benchmarks/compilation/src/compilation_benchmark/RunnerTest.terl",
+        "scripts/benchmarks/compilation/src/compilation_benchmark/SuiteTest.terl",
+        "scripts/llm_native/src/llm_native/GateTest.terl",
+        "scripts/llm_native/src/llm_native/QueryGateTest.terl",
         "scripts/self_validation/RepositoryValidation.terls",
         "std/io/FileTest.terl",
     ],
@@ -171,6 +175,10 @@ pub specialized_integration_tests_require_their_owning_environment(): Bool ->
     "scripts/self_validation/VmCliBridgeTest.terl",
     "benchmarks/fixtures/BinaryProtocolBenchmarkTest.terl",
     "scripts/benchmarks/protocol/ProtocolBenchmarkTest.terl",
+    "scripts/benchmarks/compilation/src/compilation_benchmark/RunnerTest.terl",
+    "scripts/benchmarks/compilation/src/compilation_benchmark/SuiteTest.terl",
+    "scripts/llm_native/src/llm_native/GateTest.terl",
+    "scripts/llm_native/src/llm_native/QueryGateTest.terl",
 ]
         and Plan.prefixed_specialized_terlan_tests(["scripts/self_validation/JsonEvidenceContractTest.terl"]) == ["specialized-test:scripts/self_validation/JsonEvidenceContractTest.terl"].
 

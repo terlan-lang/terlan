@@ -175,7 +175,7 @@ pub case_result_constructors_match_both_shapes(): Bool ->
             Err(_reason) -> 0
         };
     let failure =
-        (if {
+        (when {
     Err(reason) <- Err(Ready);
     Ready <- reason
 } else {
@@ -206,7 +206,7 @@ pub case_empty_list_pattern_matches_empty_list(): Bool ->
 
 @test
 pub case_list_cons_pattern_splits_head_and_tail(): Bool ->
-    if {
+    when {
         [head | tail] <- [1, 2, 3];
         [next, last] <- tail
     } else {
@@ -216,7 +216,7 @@ pub case_list_cons_pattern_splits_head_and_tail(): Bool ->
 
 @test
 pub case_list_cons_pattern_falls_through_on_empty_list(): Bool ->
-    case [] {
+    case List.new[Int]() {
         [head | _tail] -> assert_equal(0, head);
         [] -> assert_equal(1, 1)
     }.
@@ -241,7 +241,7 @@ pub binary_protocol_shape_helpers_resolve_and_split_tcp_header(): Bool ->
         Bytes.from_list(
             [0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187],
         );
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "transport",
@@ -265,7 +265,7 @@ pub binary_protocol_shape_helpers_roundtrip_aliased_compact_frame(): Bool ->
         );
     let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
     let aliases = List(protocol_shape_alias("current", "compact_frame"));
-    if {
+    when {
         Ok(set) <- protocol_shape_set("frames", List(compact_frame_shape()), aliases);
         Ok(encoded) <- protocol_shape_set_encode_exact(set, "current", decoded);
         Ok(roundtrip) <- protocol_shape_set_decode(set, "current", encoded);

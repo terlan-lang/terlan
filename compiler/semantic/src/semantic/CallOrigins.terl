@@ -60,12 +60,12 @@ parameters(
 ): Result[Rows, Failure] ->
     if {
         index == count -> Ok(Rows(rows = types, used = used));
-        true -> if {
+        true -> when {
             Ok(next) <- step(used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(row) <- rows.at(index);
     Ok(annotation) <- row.get("annotation");
     Ok(text) <- annotation.get("text")
@@ -93,7 +93,7 @@ signature_matches(
     used: Int,
     maximum: Int,
 ): Result[Rows, Failure] ->
-    if {
+    when {
         Ok(params) <- payload.get("params");
         Ok(count) <- params.length();
         Ok(result) <- payload.get("return_type");
@@ -106,7 +106,7 @@ signature_matches(
     };
     (let kind = EntityLookup.text(payload, "kind");
 let receiver_mutable =
-    (if {
+    (when {
     Ok(receiver) <- payload.get("receiver");
     Ok(flag) <- receiver.get("is_mutable")
 } else {
@@ -115,7 +115,7 @@ let receiver_mutable =
 flag.as_bool() == Ok(true));
 let receiver_types =
     if {
-        kind == "method" -> if {
+        kind == "method" -> when {
             Ok(receiver) <- payload.get("receiver");
             Ok(annotation) <- receiver.get("annotation");
             Ok(ty) <- annotation.get("text")
@@ -125,7 +125,7 @@ let receiver_types =
         Json.array().push(ty);
         true -> Json.array()
     };
-(if {
+(when {
     Ok(types) <- parameters(params, 0, count, receiver_types, used, maximum)
 } else {
     Err(reason) -> Err(reason)
@@ -178,12 +178,12 @@ contracts(
                 used = used,
             ),
         );
-        true -> if {
+        true -> when {
             Ok(next) <- step(used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(row) <- rows.at(index)
 } else {
     _ ->
@@ -220,12 +220,12 @@ declarations(
 ): Result[Rows, Failure] ->
     if {
         index == count -> Ok(output);
-        true -> if {
+        true -> when {
             Ok(next) <- step(output.used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(row) <- rows.at(index);
     Ok(payload) <- row.get("payload");
     Ok(span) <- row.get("span")
@@ -238,7 +238,7 @@ declarations(
             ),
         )
 };
-(if {
+(when {
     Ok(matched) <-
         if {
             EntityLookup.text(target, "identity_kind") == "checked_source_declaration" -> let precise =
@@ -267,7 +267,7 @@ declarations(
     Err(reason) -> Err(reason)
 };
 if {
-    matched.rows.length() == Ok(1) -> if {
+    matched.rows.length() == Ok(1) -> when {
         Ok(entity) <-
             DeclarationEntities.entity(
                 artifact,
@@ -313,12 +313,12 @@ providers(
 ): Result[Rows, Failure] ->
     if {
         index == count -> Ok(output);
-        true -> if {
+        true -> when {
             Ok(next) <- step(output.used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(source_row) <- source_units.at(index);
     Ok(artifact) <- source_row.get("export")
 } else {
@@ -342,11 +342,11 @@ if {
         Rows(rows = output.rows, used = next),
         maximum,
     );
-    true -> if {
+    true -> when {
         Ok(admitted) <-
             if {
                 EntityLookup.text(target, "identity_kind") == "checked_source_declaration" -> Ok(Rows(rows = Json.array().push(target), used = next));
-                true -> if {
+                true -> when {
                     Ok(signature) <- target.get("signature");
                     Ok(rows) <- artifact.get("purity_contracts");
                     Ok(length) <- rows.length()
@@ -358,11 +358,11 @@ if {
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(found) <-
         if {
             admitted.rows.length() != Ok(1) -> Ok(Rows(rows = output.rows, used = admitted.used));
-            true -> if {
+            true -> when {
                 Ok(rows) <- artifact.get("source_declarations");
                 Ok(length) <- rows.length()
             } else {
@@ -394,7 +394,7 @@ providers(selection, target, source_units, index + 1, count, found, maximum))
 
 pub resolve(selection: Selection, target: Json, used: Int, maximum: Int): Result[Found, Failure] ->
     let source_units = units(selection);
-    if {
+    when {
         Ok(count) <- source_units.length()
     } else {
         _ ->
@@ -405,7 +405,7 @@ pub resolve(selection: Selection, target: Json, used: Int, maximum: Int): Result
                 ),
             )
     };
-    (if {
+    (when {
     Ok(found) <-
         providers(
             selection,

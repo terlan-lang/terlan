@@ -17,22 +17,22 @@ usage(): Unit ->
     Unit.
 
 main_backend_unit(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> usage()
     };
-    (if {
+    (when {
     Some(interfaces) <- Arguments.get(2)
 } else {
     None -> usage()
 };
-(if {
+(when {
     Some(output) <- Arguments.get(3)
 } else {
     None -> usage()
 };
-(if {
+(when {
     Some(diagnostics) <- Arguments.get(4)
 } else {
     None -> usage()
@@ -40,17 +40,17 @@ main_backend_unit(): Unit ->
 (let _completed = ProjectedInterfaceCatalog.write_backend(source, interfaces, output, diagnostics); Unit)))).
 
 main_optimizer_artifacts(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> usage()
     };
-    (if {
+    (when {
     Some(interfaces) <- Arguments.get(2)
 } else {
     None -> usage()
 };
-(if {
+(when {
     Some(output) <- Arguments.get(3)
 } else {
     None -> usage()
@@ -58,27 +58,27 @@ main_optimizer_artifacts(): Unit ->
 (let _completed = ProjectedInterfaceCatalog.write_optimizer_artifacts(source, interfaces, output); Unit))).
 
 main_optimizer_cross_target(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> usage()
     };
-    (if {
+    (when {
     Some(interfaces) <- Arguments.get(2)
 } else {
     None -> usage()
 };
-(if {
+(when {
     Some(target_a) <- Arguments.get(3)
 } else {
     None -> usage()
 };
-(if {
+(when {
     Some(target_b) <- Arguments.get(4)
 } else {
     None -> usage()
 };
-(if {
+(when {
     Some(output) <- Arguments.get(5)
 } else {
     None -> usage()

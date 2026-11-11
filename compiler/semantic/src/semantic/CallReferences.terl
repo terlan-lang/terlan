@@ -57,12 +57,12 @@ calls(
 ): Result[Selected, Failure] ->
     if {
         index == count -> Ok(output);
-        true -> if {
+        true -> when {
             Ok(next) <- CallOrigins.step(output.used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(row) <- rows.at(index);
     Ok(site) <- row.get("site");
     Ok(target) <- row.get("target")
@@ -75,7 +75,7 @@ calls(
             ),
         )
 };
-(if {
+(when {
     true <-
         EntityLookup.text(row, "model") == "checked-call-resolution.v1"
             and EntityLookup.text(site, "module") == EntityLookup.module_name(artifact)
@@ -116,7 +116,7 @@ if {
         ),
         maximum,
     );
-    true -> if {
+    true -> when {
         Ok(origin) <- CallOrigins.resolve(selection, target, next, maximum)
     } else {
         Err(reason) -> Err(reason)
@@ -166,12 +166,12 @@ scan_units(
 ): Result[Selected, Failure] ->
     if {
         index == count -> Ok(output);
-        true -> if {
+        true -> when {
             Ok(next) <- CallOrigins.step(output.used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(source_row) <- units.at(index);
     Ok(artifact) <- source_row.get("export")
 } else {
@@ -207,7 +207,7 @@ if {
     );
     true -> case artifact.get("call_resolution_observations") {
         Ok(capture) ->
-            if {
+            when {
                 Ok(flag) <- capture.get("truncated");
                 Ok(incomplete) <- flag.as_bool();
                 Ok(rows) <- capture.get("calls");
@@ -230,7 +230,7 @@ if {
                     Selected(rows = output.rows, used = next, incomplete = true),
                     maximum,
                 );
-                true -> if {
+                true -> when {
                     Ok(found) <-
                         calls(
                             selection,
@@ -265,7 +265,7 @@ if {
 
 pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
     let units = CallOrigins.units(selection);
-    if {
+    when {
         Ok(count) <- units.length()
     } else {
         _ ->

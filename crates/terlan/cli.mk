@@ -119,7 +119,7 @@ self-host-error-parity-check: target/debug/terlc
 		target/quality/self-host-error-corpus \
 		error
 
-.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check formatter-pipe-canonicalization-check terlan-lint-style-check terlan-readability-canonicalization-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
+.PHONY: cli-help cli-check cli-build cli-test cli-test-fast cli-test-full cli-test-release cli-release-artifact-current cli-release-artifact-linux cli-clean vm-artifact-check cli-terlc-build-executable-check cli-terlan-vm-compiler-bridge-check browser-package-preflight js-stdlib-smoke-check static-profile-preflight static-docs-check web-profile-preflight serve-static-smoke serve-web-smoke static-command-check http-router-check http-observability-check http-tls-check http-acme-live-check web-compose-check template-contract-check artifact-template-check typed-template-interpolation-check typed-template-interpolation-vm-check typed-template-interpolation-js-check typed-template-interpolation-tooling-check typed-template-interpolation-backend-check function-language-surface-check repeated-let-syntax-check comprehension-guards-check flexible-shape-guards-check private-field-check db-command-check terlc-debugger-check terlc-debugger-selector-inventory native-boundary-postgres-check native-boundary-http-cookie-check native-boundary-postgres-docker-check repl-check sql-form-check sql-runtime-check api-schema-check runtime-release-dependency-check terlan-format-check terlan-lint-style-check terlan-readability-canonicalization-check terlan-grouped-binding-check terlan-function-reference-check formal-cli-phase-contract-gate formal-cli-build-gate formal-cli-js-gate formal-cli-rust-gate formal-cli-doc-gate formal-cli-a0-50-template-frontend-gate formal-cli-a0-54-constructor-contract-gate formal-cli-a0-55-function-clause-contract-gate formal-cli-a0-56-primary-expression-contract-gate formal-cli-a0-57-keyword-expression-contract-gate formal-cli-a0-58-calls-and-references-contract-gate formal-cli-a0-59-data-form-contract-gate formal-cli-a0-60-pattern-contract-gate formal-cli-a0-61-lexical-and-name-contract-gate formal-cli-a0-62-template-boundary-contract-gate formal-incremental-gate formal-phase-gate formal-directory-phase-gate
 
 cli-help:
 	@echo "  make browser-package-preflight - build and validate a JS browser package"
@@ -154,7 +154,6 @@ cli-help:
 	@echo "  make api-schema-check - run API contract, OpenAPI emit, and client import regressions"
 	@echo "  make runtime-release-dependency-check - require committed live Postgres/TLS runtime dependencies"
 	@echo "  make terlan-format-check - require canonical rustfmt-style Terlan sources"
-	@echo "  make formatter-pipe-canonicalization-check - run nested first-argument pipe formatter regressions"
 	@echo "  make terlan-lint-style-check - run public lint command and style diagnostics regressions"
 	@echo "  make release-artifact-current - build and smoke-test the current platform artifact"
 	@echo "  make vm-artifact-check - build and smoke-test the standalone terlan-vm artifact"
@@ -196,17 +195,6 @@ cli-test-full:
 
 cli-test-release: cli-test-full
 
-formatter-pipe-canonicalization-selector-inventory:
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_preserves_nested_module_calls_without_pipe_promotion -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_preserves_nested_receiver_calls_without_pipe_promotion -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_preserves_nested_selected_import_calls_without_pipe_promotion -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_wraps_explicit_pipe_chains_to_one_stage_per_line -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_does_not_promote_named_argument_calls_to_pipe_chain -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_does_not_promote_function_value_calls_to_pipe_chain -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::imports_and_docs::formatter_does_not_promote_nested_call_arguments_to_pipe_chain -- --exact
-	$(TERLC_EXACT_TEST) compiler::syntax::formatter::formatter_test::structural_layout::formatter_splits_short_function_body_semicolon_sequences -- --exact
-	$(TERLC_EXACT_TEST) compiler::typeck::expression_test::assignment_templates_and_html::syntax_output_infers_pipe_forward_into_imported_module_member_call -- --exact
-
 TERLAN_FORMAT_COMPILER ?= target/debug/terlc
 
 terlan-format-check:
@@ -224,10 +212,6 @@ terlan-format-check:
 		tests/test_model/positive \
 		tests/test_model/runtime \
 		tests/std
-
-formatter-pipe-canonicalization-check:
-	$(RUST_TEST) -p terlan --lib compiler::syntax::formatter::formatter_test::
-	$(RUST_TEST) -p terlan --lib compiler::typeck::expression_test::assignment_templates_and_html::syntax_output_infers_pipe_forward_into_imported_module_member_call
 
 terlc-debugger-check: terlan-vm-run-command-check terlan-vm-test-command-check vm-diagnostics-quality-check
 	$(TERLAN_QUALITY) source-map-debug-info
@@ -1180,7 +1164,6 @@ formal-cli-a0-61-lexical-and-name-contract-gate:
 formal-cli-js-gate:
 	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_uses_core_function_exports -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_integer_division -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_pipe_forward_to_named_call -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_integer_literal_case_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_float_literal_case_expr -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::core_lowering_test::emit_core_module_to_js_handles_bool_literal_case_expr -- --exact
@@ -1224,7 +1207,6 @@ formal-cli-js-gate:
 	$(TERLC_EXACT_TEST) commands::emit_js::record_template_emit_test::emit_core_module_with_direct_oxc_ast_handles_template_instantiate -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::fallback_lowering::emit_core_module_with_direct_oxc_ast_handles_binary_operator_set -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::fallback_lowering::emit_core_module_with_direct_oxc_ast_handles_named_call -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::intrinsics_and_declarations::emit_core_module_with_direct_oxc_ast_handles_pipe_forward_to_named_call -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::fallback_lowering::emit_core_module_with_direct_oxc_ast_handles_string_contains_intrinsic -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::intrinsics_and_declarations::emit_core_module_with_direct_oxc_ast_handles_string_starts_with_intrinsic -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::emit_js_test::intrinsics_and_declarations::emit_core_module_with_direct_oxc_ast_handles_string_length_intrinsic -- --exact
@@ -1238,7 +1220,6 @@ formal-cli-js-gate:
 
 formal-cli-rust-gate:
 	$(TERLC_EXACT_TEST) commands::emit_rust::emit_rust_test::emit_core_module_to_rust_uses_core_function_visibility -- --exact
-	$(TERLC_EXACT_TEST) commands::emit_rust::emit_rust_test::emit_core_module_to_rust_compiles_pipe_forward_probe -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_rust::emit_rust_test::emit_core_module_to_rust_handles_function_value_call -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_rust::emit_rust_test::emit_core_module_to_rust_compiles_string_contains_intrinsic_probe -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_rust::emit_rust_test::emit_core_module_to_rust_compiles_string_starts_with_intrinsic_probe -- --exact

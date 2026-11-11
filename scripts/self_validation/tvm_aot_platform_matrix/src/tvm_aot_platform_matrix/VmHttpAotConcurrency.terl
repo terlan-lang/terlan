@@ -80,7 +80,7 @@ field(value: Json, name: String): Option[Json] ->
     }.
 
 string_field(value: Json, name: String): String ->
-    if {
+    when {
         Some(result) <- field(value, name);
         Ok(text) <- result.as_string()
     } else {
@@ -89,7 +89,7 @@ string_field(value: Json, name: String): String ->
     text.
 
 int_field(value: Json, name: String): Int ->
-    if {
+    when {
         Some(result) <- field(value, name);
         Ok(number) <- result.as_int()
     } else {
@@ -98,7 +98,7 @@ int_field(value: Json, name: String): Int ->
     number.
 
 bool_field(value: Json, name: String): Bool ->
-    if {
+    when {
         Some(result) <- field(value, name);
         Ok(flag) <- result.as_bool()
     } else {
@@ -121,7 +121,7 @@ positive_number_field(value: Json, name: String): Bool ->
     }.
 
 array_length_field(value: Json, name: String): Int ->
-    if {
+    when {
         Some(result) <- field(value, name);
         Ok(count) <- result.length()
     } else {
@@ -130,7 +130,7 @@ array_length_field(value: Json, name: String): Int ->
     count.
 
 object_field(value: Json, name: String): Option[Json] ->
-    if {
+    when {
         Some(result) <- field(value, name);
         Ok(_keys) <- result.keys()
     } else {
@@ -139,7 +139,7 @@ object_field(value: Json, name: String): Option[Json] ->
     Some(result).
 
 array_field(value: Json, name: String): Option[Json] ->
-    if {
+    when {
         Some(result) <- field(value, name);
         Ok(_count) <- result.length()
     } else {
@@ -149,7 +149,7 @@ array_field(value: Json, name: String): Option[Json] ->
 
 protocol_valid(lane: Json, aot: Bool): Bool ->
     if {
-        aot -> if {
+        aot -> when {
             Some(evidence) <- object_field(lane, "benchmark_evidence");
             Some(protocol) <- object_field(evidence, "protocol_validation")
         } else {
@@ -221,7 +221,7 @@ required_workloads_valid(values: Json, names: List[String]): Bool ->
     }.
 
 lifecycle_valid(lane: Json, aot: Bool): Bool ->
-    if {
+    when {
         Some(evidence) <- evidence_at(lane, aot);
         Some(lifecycle) <- object_field(evidence, "lifecycle")
     } else {
@@ -242,7 +242,7 @@ lane_valid(lane: Json, aot: Bool): Bool ->
     }.
 
 soak_valid(lane: Json, aot: Bool): Bool ->
-    if {
+    when {
         Some(evidence) <- evidence_at(lane, aot);
         Some(soak) <- object_field(evidence, "soak");
         Some(timing) <- object_field(soak, "timing")
@@ -259,7 +259,7 @@ pair_lane(pair: Json, lane_name: String): Option[Json] ->
     object_field(pair, lane_name).
 
 accepted_pair_valid(pair: Json, server_digest: String): Bool ->
-    if {
+    when {
         Some(aot) <- pair_lane(pair, "aot");
         Some(axum) <- pair_lane(pair, "axum");
         Some(hyper) <- pair_lane(pair, "hyper")
@@ -358,7 +358,7 @@ realism_workloads_valid(matrix: Json, baseline: String, names: List[String]): Bo
     }.
 
 realism_valid(report: Json): Bool ->
-    if {
+    when {
         Some(matrix) <- object_field(report, "realism_matrix");
         Ok(keys) <- matrix.keys()
     } else {
@@ -380,7 +380,7 @@ completed_isolation_named_at(values: Json, expected: String, index: Int, count: 
     }.
 
 isolation_valid(report: Json): Bool ->
-    if {
+    when {
         Some(values) <- array_field(report, "isolation");
         Ok(count) <- values.length()
     } else {
@@ -411,7 +411,7 @@ components_valid(report: Json): Bool ->
 report_valid(report: Json, server_digest: String): Bool ->
     let pair_count = int_field(report, "pair_count");
     let accepted_count = int_field(report, "accepted_pair_count");
-    if {
+    when {
         Some(configuration) <- object_field(report, "configuration");
         Some(pairs) <- array_field(report, "pairs")
     } else {

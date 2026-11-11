@@ -55,9 +55,11 @@ Successful VM results and JS validation results are content-addressed by the
 compiler revision, target, project source closure, native helpers, and the
 individual test module. Unchanged modules are skipped. Coverage, benchmarks,
 explicit `--name` selections, and `TERLAN_TEST_FORCE_RERUN=1` always execute;
-`terlc clean` removes the local result evidence. A multi-path
-request retains a separate dependency session and compilation result per path
-while amortizing compiler process startup; failure in one path does not prevent
+`terlc clean` removes the local result evidence. A multi-path file request groups
+files by project, compiles each selected test's reachable import closure into one
+native suite per project, and evaluates coverage once from the combined project
+images. Directory requests remain exhaustive over the complete project graph.
+Failure in one project does not prevent
 the remaining paths from reporting their results. Repeated `--name` flags
 select an exact `@test` subset after discovery and compile one shared source and
 native application closure. Manifest output flags require exactly one path
@@ -152,7 +154,9 @@ from production test-command sources.
 - `--coverage` reports runtime-backed source-declaration coverage for project
   source roots. Generated specializations and continuations are grouped under
   their owning declaration; `--coverage-threshold` makes the percentage a
-  command gate.
+  command gate. Repeated `--coverage-source <file|dir>` options restrict the
+  denominator to explicitly owned production sources while retaining their
+  complete transitive compilation closure.
 - `TERLAN_CALLABLE_COVERAGE_FILE` enables append-only callable hit collection
   across server and test processes so integration traffic can contribute to
   the same declaration report.

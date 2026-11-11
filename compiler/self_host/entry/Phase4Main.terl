@@ -44,12 +44,12 @@ pub main(): Unit ->
     }.
 
 main_interface_unit(): Unit ->
-    if {
+    when {
         Some(input) <- Arguments.get(1)
     } else {
         None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
     };
-    (if {
+    (when {
     Some(output) <- Arguments.get(2)
 } else {
     None -> report_unit("usage: terlan-self-host interface-unit <source.terl> <interface>")
@@ -60,7 +60,7 @@ main_interface_unit(): Unit ->
 Unit)).
 
 main_interface_diagnostics(): Unit ->
-    if {
+    when {
         Some(input) <- Arguments.get(1)
     } else {
         None -> report_unit("usage: terlan-self-host interface-diagnostics <source.terl>")
@@ -89,7 +89,7 @@ manifest_diagnostics_at(paths: List[String], invalid: Int): Int ->
     }.
 
 main_interface_diagnostics_manifest(): Unit ->
-    if {
+    when {
         Some(input) <- Arguments.get(1)
     } else {
         None ->
@@ -125,7 +125,7 @@ print_tokens(values: List[CanonicalToken]): Unit ->
     }.
 
 main_token_diagnostics(): Unit ->
-    if {
+    when {
         Some(input) <- Arguments.get(1)
     } else {
         None -> report_unit("usage: terlan-self-host token-diagnostics <source.terl>")
@@ -160,7 +160,7 @@ print_segments(source: String, values: List[ProjectedSegment]): Unit ->
     }.
 
 main_segment_diagnostics(): Unit ->
-    if {
+    when {
         Some(input) <- Arguments.get(1)
     } else {
         None -> report_unit("usage: terlan-self-host segment-diagnostics <source.terl>")

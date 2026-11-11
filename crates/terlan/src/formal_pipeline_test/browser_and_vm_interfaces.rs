@@ -119,19 +119,19 @@ fn embedded_std_interfaces_include_beam_bridge_contracts() {
         .functions
         .get(&("get".to_string(), 2))
         .expect("Agent.get source function");
-    assert!(!get.receiver_method);
+    assert!(get.receiver_method);
     assert!(!get.receiver_mutable);
     let update = agent
         .functions
         .get(&("update".to_string(), 2))
         .expect("Agent.update source function");
-    assert!(!update.receiver_method);
+    assert!(update.receiver_method);
     assert!(!update.receiver_mutable);
     let get_and_update = agent
         .functions
         .get(&("get_and_update".to_string(), 3))
         .expect("Agent.get_and_update source function");
-    assert!(!get_and_update.receiver_method);
+    assert!(get_and_update.receiver_method);
     assert!(!get_and_update.receiver_mutable);
 
     let process = interfaces
@@ -350,7 +350,7 @@ fn embedded_std_interfaces_include_beam_bridge_contracts() {
         .functions
         .get(&("selects_child".to_string(), 3))
         .expect("Supervisor.selects_child source policy");
-    assert!(!selects_child.receiver_method);
+    assert!(selects_child.receiver_method);
     assert!(!selects_child.receiver_mutable);
     assert!(supervisor.traits.contains_key("Supervised"));
 
@@ -365,19 +365,19 @@ fn embedded_std_interfaces_include_beam_bridge_contracts() {
         .functions
         .get(&("call".to_string(), 3))
         .expect("GenServer.call source function");
-    assert!(!call.receiver_method);
+    assert!(call.receiver_method);
     assert!(!call.receiver_mutable);
     let cast = gen_server
         .functions
         .get(&("cast".to_string(), 2))
         .expect("GenServer.cast source function");
-    assert!(!cast.receiver_method);
+    assert!(cast.receiver_method);
     assert!(!cast.receiver_mutable);
     let stop = gen_server
         .functions
         .get(&("stop".to_string(), 2))
         .expect("GenServer.stop source function");
-    assert!(!stop.receiver_method);
+    assert!(stop.receiver_method);
     assert!(!stop.receiver_mutable);
 
     let native_bridge = interfaces
@@ -432,13 +432,13 @@ fn embedded_std_interfaces_include_beam_bridge_contracts() {
         .functions
         .get(&("result".to_string(), 2))
         .expect("Task.result source function");
-    assert!(!result.receiver_method);
+    assert!(result.receiver_method);
     assert!(!result.receiver_mutable);
     let cancel = task
         .functions
         .get(&("cancel".to_string(), 1))
         .expect("Task.cancel source function");
-    assert!(!cancel.receiver_method);
+    assert!(cancel.receiver_method);
     assert!(!cancel.receiver_mutable);
 }
 

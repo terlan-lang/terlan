@@ -13,7 +13,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -48,7 +48,7 @@ pub module_entity(artifact: Json, module_name: String, snapshot: String): Json -
  * Invalid source never substitutes a guessed module or stale typed entities.
  */
 pub index(store: String, snapshot: String): Result[Json, Failure] ->
-    if {
+    when {
         Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot)
     } else {
         Err(reason) -> Err(reason)
@@ -61,7 +61,7 @@ implementation_catalog(artifact: Json, snapshot: String): Result[Json, Failure] 
     let limits = Json.array();
     let collected =
         if {
-            checked -> if {
+            checked -> when {
                 Ok(core) <- artifact.get("core");
                 Ok(declarations) <- DeclarationEntities.from_artifact(artifact, snapshot);
                 Ok(lexical) <- Entities.from_artifact(artifact, snapshot);
@@ -113,7 +113,7 @@ true);
                     );
             true
         };
-    if {
+    when {
         true <- collected
     } else {
         _ ->
@@ -144,7 +144,7 @@ true);
 
 interface_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
     let name = text(artifact, "module_name");
-    if {
+    when {
         true <- name != ""
     } else {
         _ ->
@@ -155,7 +155,7 @@ interface_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
                 ),
             )
     };
-    (if {
+    (when {
     Ok(declarations) <- DeclarationEntities.from_artifact(artifact, snapshot)
 } else {
     Err(reason) -> Err(reason)
@@ -186,7 +186,7 @@ Ok(
 bundle_rows(mut output: Json, units: Json, snapshot: String, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(source_row) <- units.at(index);
             Ok(artifact) <- source_row.get("export");
             Ok(catalog) <- from_artifact(artifact, snapshot);
@@ -198,7 +198,7 @@ bundle_rows(mut output: Json, units: Json, snapshot: String, index: Int, count: 
     }.
 
 bundle_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
-    if {
+    when {
         Ok(units) <- artifact.get("units");
         Ok(count) <- units.length()
     } else {
@@ -211,7 +211,7 @@ bundle_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
             )
     };
     (let rows = Json.array();
-(if {
+(when {
     true <- count > 0 and bundle_rows(rows, units, snapshot, 0, count)
 } else {
     _ ->
@@ -222,7 +222,7 @@ bundle_catalog(artifact: Json, snapshot: String): Result[Json, Failure] ->
             ),
         )
 };
-(if {
+(when {
     Ok(entity_count) <- rows.length()
 } else {
     _ ->
@@ -289,7 +289,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
     }.
 
 find(rows: Json, id: String, index: Int, count: Int): Result[Json, Failure] ->
-    if {
+    when {
         true <- index < count
     } else {
         _ ->
@@ -300,7 +300,7 @@ find(rows: Json, id: String, index: Int, count: Int): Result[Json, Failure] ->
                 ),
             )
     };
-    (if {
+    (when {
     Ok(row) <- rows.at(index)
 } else {
     _ ->
@@ -323,7 +323,7 @@ pub resolve(
     expected_kind: String,
     expected_digest: String,
 ): Result[Json, Failure] ->
-    if {
+    when {
         Ok(catalog) <- index(store, snapshot);
         Ok(rows) <- catalog.get("entities");
         Ok(count) <- rows.length()
@@ -336,12 +336,12 @@ pub resolve(
                 ),
             )
     };
-    (if {
+    (when {
     Ok(entity) <- find(rows, id, 0, count)
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     true <- text(entity, "kind") == expected_kind
 } else {
     _ ->
@@ -352,7 +352,7 @@ pub resolve(
             ),
         )
 };
-(if {
+(when {
     true <- text(entity, "digest") == expected_digest
 } else {
     _ ->

@@ -22,7 +22,7 @@ readiness(root: String, attempt: Int, decision: String): Bool ->
     ).
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         Ok(_dist) <- Directory.create_all(OwnerStorage.child(root, "dist"));
@@ -97,7 +97,7 @@ stage(root: String, label: String, reused: Bool): Bool ->
     }.
 
 count(root: String, expected: Int): Bool ->
-    if {
+    when {
         Ok(source) <- File.read_text(OwnerStorage.child(root, "target/installer-calls"))
     } else {
         _ -> false
@@ -114,7 +114,7 @@ count_lines(lines: List[String], remaining: Int): Bool ->
 exercise(root: String, origin: String, vm: String, image: String): Bool ->
     let output = OwnerStorage.child(root, PrepareStagedDistribution.output());
     let checksum = OwnerStorage.child(root, "dist/terlc-linux-x86_64.tar.gz.sha256");
-    if {
+    when {
         true <- fixture(root, origin, vm, image);
         Err(_unsafe) <- PrepareStagedDistribution.declare(root, "../outside", "target/tools/matrix.tvm");
         true <- stage(root, "[staged rehearsal] cold installed verification", false);
@@ -171,7 +171,7 @@ exercise(root: String, origin: String, vm: String, image: String): Bool ->
     cold == final and usage.directory_count == 1 and usage.regular_file_count == 3.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-staged-owner-rehearsal-")
     } else {
         _ -> false

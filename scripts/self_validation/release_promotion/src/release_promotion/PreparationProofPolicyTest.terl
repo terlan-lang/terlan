@@ -17,7 +17,7 @@ write(root: String, path: String, value: String): Bool ->
     }.
 
 fixture(root: String): Bool ->
-    if {
+    when {
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         true <- write(root, ".gitignore", "/target/\n");
         true <- write(root, "policy", "tracked policy");
@@ -43,7 +43,7 @@ stage(root: String, command: String, valid: Bool, reused: Bool): Bool ->
 
 exercise(root: String, command: String): Bool ->
     let day = Date.to_iso(Date.today_utc());
-    if {
+    when {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(tool) <- File.read_text(OwnerStorage.child(root, "target/tools/quality"));
         Ok(owner) <- PrepareProofPolicy.declare(root, "target/tools/quality", context, command, day);
@@ -74,7 +74,7 @@ exercise(root: String, command: String): Bool ->
     };
     if {
         command != "lean-proof-regression" -> true;
-        true -> if {
+        true -> when {
             Ok(prior) <-
                 PrepareProofPolicy.declare(
                     root,
@@ -94,7 +94,7 @@ exercise(root: String, command: String): Bool ->
     }.
 
 scenario(command: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-proof-policy-owner-")
     } else {
         _ -> false
@@ -137,7 +137,7 @@ batch(root: String, valid: Bool, completed: Int, reused: Int): Bool ->
     }.
 
 batch_recovery(root: String): Bool ->
-    if {
+    when {
         true <- batch(root, true, 3, 0);
         true <- batch(root, true, 0, 3);
         Ok("run\nrun\nrun\n") <- File.read_text(OwnerStorage.child(root, "target/calls"));
@@ -154,7 +154,7 @@ batch_recovery(root: String): Bool ->
     true.
 
 shared_preflight(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-proof-policies-")
     } else {
         _ -> false
@@ -175,7 +175,7 @@ valid
 }).
 
 rollover(root: String): Bool ->
-    if {
+    when {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(prior) <-
             PrepareProofPolicy.declare(
@@ -199,7 +199,7 @@ rollover(root: String): Bool ->
     true.
 
 prepared_day_rollover(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-proof-policy-rollover-")
     } else {
         _ -> false

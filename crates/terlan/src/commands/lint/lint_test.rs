@@ -3,6 +3,7 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use super::rules::lint_source_only_many;
+use super::rules::{fix_receiver_capability_ownership, receiver_capability_ownership_diagnostics};
 use super::{fix_semicolon_chains, lint_source, run, run_lint, run_lint_selected_many};
 use crate::support::test_fs::{temp_dir, write_file};
 
@@ -34,10 +35,6 @@ mod maintainability_test;
 #[path = "lint_test/naming_test.rs"]
 #[cfg(test)]
 mod naming_test;
-#[cfg(test)]
-#[path = "lint_test/pipe_test.rs"]
-#[cfg(test)]
-mod pipe_test;
 #[cfg(test)]
 #[path = "lint_test/readability_test.rs"]
 #[cfg(test)]

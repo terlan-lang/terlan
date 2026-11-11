@@ -314,7 +314,7 @@ mod tests {
             "module guarded_shape_grouped_let.\n\
              shape Positive(value) = value where value > 0.\n\
              pub add(left: Int, right: Int): Int ->\n\
-                 if {\n\
+                 when {\n\
                      Positive(first) <- left;\n\
                      Positive(second) <- right\n\
                  } else {\n\

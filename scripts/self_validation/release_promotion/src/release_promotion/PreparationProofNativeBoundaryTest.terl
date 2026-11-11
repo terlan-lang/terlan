@@ -41,7 +41,7 @@ compiler(): String ->
     ).
 
 fixture(root: String): Bool ->
-    if {
+    when {
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/debug"));
         Ok(_coverage) <- Directory.create_all(OwnerStorage.child(root, "target/validation-tools"));
         Ok(_reports) <- Directory.create_all(OwnerStorage.child(root, "target/quality/proof-artifacts"));
@@ -96,7 +96,7 @@ run(root: String, selected: Context): Summary ->
 replacement(root: String): Bool ->
     let destination = OwnerStorage.child(root, PrepareProofNativeBoundary.output());
     let selected = context("runtime-one");
-    if {
+    when {
         true <- fixture(root);
         Ok(["old.native_boundary.json"]) <- PrepareProofNativeBoundary.manifests(root);
         true <- run(root, selected).completed == 1;
@@ -118,7 +118,7 @@ replacement(root: String): Bool ->
 
 changed_selection(root: String, selected: Context): Bool ->
     let output = PrepareProofNativeBoundary.output();
-    if {
+    when {
         true <-
             OwnerStorage.command(
                 root,
@@ -148,7 +148,7 @@ changed_selection(root: String, selected: Context): Bool ->
 
 @test
 pub self_test(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-native-proof-owner-")
     } else {
         _ -> false

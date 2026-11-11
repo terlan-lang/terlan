@@ -206,7 +206,7 @@ optional_string(value: Json, field: String, fallback: String): Option[String] ->
     }.
 
 dependency_at(value: Json): Option[DependencyFeature] ->
-    if {
+    when {
         Ok(name_value) <- Json.get(value, "name");
         Ok(original_name) <- Json.as_string(name_value);
         Some(name) <- optional_string(value, "rename", original_name);
@@ -237,7 +237,7 @@ dependencies_at(
 ): Option[List[DependencyFeature]] ->
     if {
         index == count -> Some(output);
-        true -> if {
+        true -> when {
             Ok(value) <- Json.at(values, index);
             Some(dependency) <- dependency_at(value)
         } else {
@@ -247,7 +247,7 @@ dependencies_at(
     }.
 
 package_dependencies(package: Json): Option[List[DependencyFeature]] ->
-    if {
+    when {
         Ok(values) <- Json.get(package, "dependencies");
         Ok(count) <- Json.length(values)
     } else {
@@ -277,7 +277,7 @@ target_names_at(
 ): Option[List[String]] ->
     if {
         index == count -> Some(output);
-        true -> if {
+        true -> when {
             Ok(target) <- Json.at(targets, index);
             Ok(name_value) <- Json.get(target, "name");
             Ok(name) <- Json.as_string(name_value);
@@ -297,7 +297,7 @@ target_names_at(
     }.
 
 integration_targets(package: Json): Option[List[String]] ->
-    if {
+    when {
         Ok(targets) <- Json.get(package, "targets");
         Ok(count) <- Json.length(targets)
     } else {
@@ -387,7 +387,7 @@ packages_at(
 ): Option[State] ->
     if {
         index == count -> Some(state);
-        true -> if {
+        true -> when {
             Ok(package) <- Json.at(packages, index);
             Ok(fields) <- Json.required_fields(package, ["id", "name", "version"], [], [])
         } else {
@@ -422,7 +422,7 @@ pub analyze(metadata: Json): CargoAnalysis ->
     let graph = CargoMetadata.workspace_graph(metadata);
     if {
         not graph.valid -> failure(graph.message);
-        true -> if {
+        true -> when {
             Ok(member_values) <- Json.get(metadata, "workspace_members");
             Some(members) <- CargoMetadata.string_array(member_values);
             Ok(packages) <- Json.get(metadata, "packages");

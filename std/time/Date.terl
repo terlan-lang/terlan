@@ -43,7 +43,7 @@ pub new(year: Int, month: Int, day: Int): Option[Date] ->
 pub parse_iso(source: String): Option[Date] ->
     case String.split(source, "-") {
         [year_source, month_source, day_source] ->
-            if {
+            when {
                 Some(year_value) <- Int.from_string(year_source);
                 Some(month_value) <- Int.from_string(month_source);
                 Some(day_value) <- Int.from_string(day_source);

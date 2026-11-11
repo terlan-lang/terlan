@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::Instant;
 
 use crate::commands::artifacts::{collect_syntax_dependency_hashes, fingerprint};
 use crate::validation::phase_manifest::{
@@ -29,7 +30,7 @@ use crate::{CliCommand, CliState};
 ///   directory checker, and runs single-file sources through the formal compile
 ///   phase pipeline with optional phase-manifest emission.
 pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
-    let (path, phase_manifest_path, interfaces_only) = match parse_check_args(&cmd.args) {
+    let (paths, phase_manifest_path, interfaces_only) = match parse_check_args(&cmd.args) {
         Ok(result) => result,
         Err(message) => {
             eprintln!("{}", message);
@@ -41,26 +42,150 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
         state.incremental = true;
     }
 
-    if Path::new(&path).is_dir() {
-        return super::project::run(
+    if paths.len() > 1
+        && phase_manifest_path
+            .as_deref()
+            .is_some_and(|path| path.extension().is_some())
+    {
+        eprintln!("multiple check paths require a phase-manifest directory");
+        return ExitCode::from(2);
+    }
+    if paths.len() > 1 {
+        if let Some(directory) = phase_manifest_path.as_deref() {
+            if let Err(error) = std::fs::create_dir_all(directory) {
+                eprintln!("cannot create phase-manifest directory: {error}");
+                return ExitCode::from(1);
+            }
+        }
+    }
+
+    let batch = paths.len() > 1;
+    if batch && !interfaces_only && paths.iter().all(|path| !Path::new(path).is_dir()) {
+        return run_file_batch(&paths, state, phase_manifest_path.as_deref());
+    }
+    for path in paths {
+        let started = Instant::now();
+        if batch {
+            eprintln!("terlc check: started {path}");
+        }
+        let result = run_path(
             &path,
-            state,
+            state.clone(),
             phase_manifest_path.as_deref(),
             interfaces_only,
+            batch,
         );
+        if batch {
+            eprintln!(
+                "terlc check: finished {path} in {:.2}s",
+                started.elapsed().as_secs_f64()
+            );
+        }
+        if result != ExitCode::SUCCESS {
+            return result;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// Groups changed files by their compiler-owned project context.
+fn run_file_batch(
+    paths: &[String],
+    state: CliState,
+    phase_manifest_path: Option<&Path>,
+) -> ExitCode {
+    let mut project_groups: Vec<(PathBuf, Vec<String>)> = Vec::new();
+    let mut standalone = Vec::new();
+    for path in paths {
+        let source_path = Path::new(path);
+        let Some(project) = crate::commands::build::owning_project_dir_for_source(source_path)
+        else {
+            standalone.push(path.clone());
+            continue;
+        };
+        if let Some((_, selected)) = project_groups
+            .iter_mut()
+            .find(|(candidate, _)| candidate == &project)
+        {
+            selected.push(path.clone());
+        } else {
+            project_groups.push((project, vec![path.clone()]));
+        }
+    }
+
+    for (project, selected) in project_groups {
+        let started = Instant::now();
+        eprintln!(
+            "terlc check: started {} changed file(s) in {}",
+            selected.len(),
+            project.display()
+        );
+        let result =
+            super::project::run_selected(&project, &selected, state.clone(), phase_manifest_path);
+        eprintln!(
+            "terlc check: finished {} changed file(s) in {} in {:.2}s",
+            selected.len(),
+            project.display(),
+            started.elapsed().as_secs_f64()
+        );
+        if result != ExitCode::SUCCESS {
+            return result;
+        }
+    }
+    for path in standalone {
+        let started = Instant::now();
+        eprintln!("terlc check: started {path}");
+        let result = run_path(&path, state.clone(), phase_manifest_path, false, true);
+        eprintln!(
+            "terlc check: finished {path} in {:.2}s",
+            started.elapsed().as_secs_f64()
+        );
+        if result != ExitCode::SUCCESS {
+            return result;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// Checks one member of an ordered `terlc check` batch.
+///
+/// Earlier paths may publish interfaces into the shared cache for later paths.
+/// This lets one compiler process validate a project source root once and then
+/// validate all changed `.terls` entries without repeating native AOT builds.
+fn run_path(
+    path: &str,
+    state: CliState,
+    phase_manifest_path: Option<&Path>,
+    interfaces_only: bool,
+    batch: bool,
+) -> ExitCode {
+    if Path::new(path).is_dir() {
+        return run_directory_path(path, state, phase_manifest_path, interfaces_only);
     }
     if interfaces_only {
         eprintln!("--interfaces-only requires a source directory");
         return ExitCode::from(2);
     }
 
-    let source = match crate::support::read_file(&path) {
+    let batch_manifest_path = if batch {
+        let module = Path::new(path)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("source");
+        phase_manifest_path
+            .map(|root| super::directory::check_dir_phase_manifest_path(root, module))
+    } else {
+        None
+    };
+    let phase_manifest_path = batch_manifest_path.as_deref().or(phase_manifest_path);
+
+    let source = match crate::support::read_file(path) {
         Ok(source) => source,
         Err(message) => {
             eprintln!("{}", message);
             return emit_or_log_phase_manifest_error(
-                phase_manifest_path.as_deref(),
-                &path,
+                phase_manifest_path,
+                path,
                 0,
                 &[create_phase(
                     "parse",
@@ -69,7 +194,7 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
                         code: "IO_ERROR",
                         severity: "error",
                         message: message.to_string(),
-                        path: path.clone(),
+                        path: path.to_string(),
                         span_start: 0,
                         span_end: 0,
                         ..Default::default()
@@ -86,8 +211,8 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
         Err(message) => {
             eprintln!("{message}");
             return emit_or_log_phase_manifest_error(
-                phase_manifest_path.as_deref(),
-                &path,
+                phase_manifest_path,
+                path,
                 source_hash,
                 &[create_phase(
                     "target_inference",
@@ -96,7 +221,7 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
                         code: "target_inference_error",
                         severity: "error",
                         message,
-                        path: path.clone(),
+                        path: path.to_string(),
                         span_start: 0,
                         span_end: 0,
                         ..Default::default()
@@ -109,7 +234,7 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
     };
     let compile =
         crate::formal_pipeline::compile_syntax_module_through_phases_with_diagnostics_for_profile(
-            &path,
+            path,
             &source,
             state.diagnostic_format,
             state.cache_dir.as_deref(),
@@ -117,13 +242,52 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
             target_profile,
         );
 
-    finish_check(
-        &path,
-        source_hash,
-        &state,
-        phase_manifest_path.as_deref(),
-        compile,
-    )
+    finish_check(path, source_hash, &state, phase_manifest_path, compile)
+}
+
+/// Checks either a plain source directory or every configured project root.
+///
+/// Project manifests are compiler input. Keeping source-root interpretation in
+/// `terlc` prevents hooks and other callers from duplicating manifest policy.
+fn run_directory_path(
+    path: &str,
+    state: CliState,
+    phase_manifest_path: Option<&Path>,
+    interfaces_only: bool,
+) -> ExitCode {
+    let root = Path::new(path);
+    let manifest_path = root.join("terlan.toml");
+    if !manifest_path.is_file() {
+        return super::project::run(path, state, phase_manifest_path, interfaces_only);
+    }
+    let manifest =
+        match crate::commands::build::project_manifest::read_project_manifest(&manifest_path) {
+            Ok(manifest) => manifest,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
+    for source_root in manifest.source_roots {
+        let source_root = root.join(source_root);
+        if !source_root.is_dir() {
+            eprintln!(
+                "project source root does not exist: {}",
+                source_root.display()
+            );
+            return ExitCode::from(1);
+        }
+        let result = super::project::run(
+            &source_root.to_string_lossy(),
+            state.clone(),
+            phase_manifest_path,
+            interfaces_only,
+        );
+        if result != ExitCode::SUCCESS {
+            return result;
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 /// Presents a shared pipeline result without treating interface declarations as
@@ -412,15 +576,17 @@ pub(super) fn effective_check_target_profile_from_input(
 /// - `args`: command-local arguments after the `check` verb.
 ///
 /// Output:
-/// - Source path plus optional phase-manifest output path.
+/// - One or more ordered source paths plus optional phase-manifest output path.
 /// - `Err(String)` for missing path, duplicate phase-manifest flag, missing flag
 ///   value, or extra positional arguments.
 ///
 /// Transformation:
-/// - Scans positional source path and `--emit-phase-manifest <path>` while
+/// - Collects positional source paths and `--emit-phase-manifest <path>` while
 ///   rejecting unsupported argument shapes.
-pub(crate) fn parse_check_args(args: &[String]) -> Result<(String, Option<PathBuf>, bool), String> {
-    let mut path = None;
+pub(crate) fn parse_check_args(
+    args: &[String],
+) -> Result<(Vec<String>, Option<PathBuf>, bool), String> {
+    let mut paths = Vec::new();
     let mut emit_phase_manifest = None;
     let mut interfaces_only = false;
     let mut i = 0;
@@ -446,15 +612,12 @@ pub(crate) fn parse_check_args(args: &[String]) -> Result<(String, Option<PathBu
             continue;
         }
 
-        if path.is_none() {
-            path = Some(args[i].clone());
-            i += 1;
-            continue;
-        }
-
-        return Err(format!("unexpected positional argument: {}", args[i]));
+        paths.push(args[i].clone());
+        i += 1;
     }
 
-    let path = path.ok_or_else(|| "missing path argument".to_string())?;
-    Ok((path, emit_phase_manifest, interfaces_only))
+    if paths.is_empty() {
+        return Err("missing path argument".to_string());
+    }
+    Ok((paths, emit_phase_manifest, interfaces_only))
 }

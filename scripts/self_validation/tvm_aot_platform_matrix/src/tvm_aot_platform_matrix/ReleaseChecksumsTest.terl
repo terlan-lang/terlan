@@ -21,7 +21,7 @@ files(count: Int, path: String, result: List[LabeledFile]): List[LabeledFile] ->
 
 @test
 pub checksum_rows_preserve_order_and_reject_missing_inputs(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-checksum-order")
     } else {
         _ -> false
@@ -51,7 +51,7 @@ result
 
 @test
 pub release_sized_checksum_inventory_fits_the_normal_heap(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-checksum-inventory")
     } else {
         _ -> false
@@ -59,7 +59,7 @@ pub release_sized_checksum_inventory_fits_the_normal_heap(): Bool ->
     (let path = root + "/payload";
 let written = File.write_text(path, "abc");
 let result =
-    (if {
+    (when {
     Ok(_) <- written;
     Some(output) <- ReleaseChecksums.render(files(8_000, path, []))
 } else {

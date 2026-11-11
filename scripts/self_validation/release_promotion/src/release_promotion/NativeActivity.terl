@@ -56,7 +56,7 @@ empty(): Inventory ->
     ).
 
 parse(document: Json): Result[Event, String] ->
-    if {
+    when {
         Ok(field_count) <- document.object_length();
         true <- field_count == 9;
         Some(schema) <- OwnerStorage.text(document, "schema");
@@ -173,7 +173,7 @@ scan(
         [] -> Ok(summary(inventory, processes));
         [""] -> Ok(summary(inventory, processes));
         [line | rest] ->
-            if {
+            when {
                 true <- inventory.events + processes.events < 65_536 and line.byte_size() <= 4_096;
                 Ok(document) <- Json.parse(line);
                 Some(schema) <- OwnerStorage.text(document, "schema")
@@ -191,13 +191,13 @@ consume(
     schema: String,
 ): Result[Json, String] ->
     if {
-        schema == "terlan.process-activity.v1" -> if {
+        schema == "terlan.process-activity.v1" -> when {
             Ok(next) <- ProcessActivity.accept(processes, document)
         } else {
             Err(reason) -> Err(reason)
         };
         scan(lines, inventory, next);
-        true -> if {
+        true -> when {
             Ok(event) <- parse(document);
             Ok(next) <- accept(inventory, event)
         } else {
@@ -210,7 +210,7 @@ consume(
  * Empty, explicitly owned logs represent no native work; missing logs do not.
  */
 pub inspect(source: String): Result[Json, String] ->
-    if {
+    when {
         true <- source.byte_size() <= 16_777_216;
         true <- source == "" or source.ends_with("\n");
         Ok(report) <- scan(source.split("\n"), empty(), ProcessActivity.empty())
@@ -249,7 +249,7 @@ summary(inventory: Inventory, processes: ProcessInventory): Json ->
  * Inspection of failed owners never relaxes this success contract.
  */
 pub validate(source: String): Result[Json, String] ->
-    if {
+    when {
         Ok(report) <- inspect(source);
         Some("pass") <- OwnerStorage.text(report, "decision")
     } else {
@@ -262,7 +262,7 @@ pub validate(source: String): Result[Json, String] ->
  * Validates a caller-owned inventory without compiling, repairing, or deleting it.
  */
 pub read(path: String): Result[Json, String] ->
-    if {
+    when {
         Ok(size) <- File.size(path);
         true <- size <= 16_777_216;
         Ok(source) <- File.read_text(path)
@@ -280,7 +280,7 @@ pub run(path: String): Bool ->
             let _printed = Console.eprintln(String.append("native activity rejected: ", reason));
             false;
         Ok(report) ->
-            if {
+            when {
                 Ok(output) <- Json.stringify(report)
             } else {
                 _ -> false

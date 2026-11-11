@@ -34,7 +34,7 @@ enum DeclarationBlock {
 /// Such operations are capabilities of an existing value and should be
 /// declared as receiver methods. Constructors and target-directed factories
 /// have no existing owner and therefore do not match this rule.
-pub(super) fn receiver_capability_ownership_diagnostics(
+pub(in crate::commands::lint) fn receiver_capability_ownership_diagnostics(
     path: &Path,
     source: &str,
 ) -> Vec<LintDiagnostic> {
@@ -96,7 +96,10 @@ pub(super) fn receiver_capability_ownership_diagnostics(
 }
 
 /// Rewrites public type-owned free functions into receiver declarations.
-pub(super) fn fix_receiver_capability_ownership(path: &Path, source: &str) -> String {
+pub(in crate::commands::lint) fn fix_receiver_capability_ownership(
+    path: &Path,
+    source: &str,
+) -> String {
     if is_test_source(path) {
         return source.to_string();
     }
@@ -206,46 +209,6 @@ fn source_line_column_at(source: &str, index: usize) -> (usize, usize) {
         .rsplit_once('\n')
         .map_or(prefix.len() + 1, |(_, tail)| tail.len() + 1);
     (line, column)
-}
-
-#[cfg(test)]
-mod receiver_capability_tests {
-    use super::*;
-
-    #[test]
-    fn fix_moves_owned_first_parameter_into_receiver_position() {
-        let source = "module sample.Counter.\n\npub struct Counter { value: Int }.\n\npub increment[T](\n    counter: Counter,\n    amount: Int,\n): Counter -> counter.\n";
-        let fixed = fix_receiver_capability_ownership(Path::new("Counter.terl"), source);
-        assert!(fixed.contains(
-            "pub (counter: Counter) increment[T](\n    amount: Int,\n): Counter -> counter."
-        ));
-    }
-
-    #[test]
-    fn fix_leaves_factory_and_test_source_unchanged() {
-        let source = "module sample.Counter.\n\npub struct Counter { value: Int }.\n\npub from_int(value: Int): Counter -> Counter { value: value }.\n";
-        assert_eq!(
-            fix_receiver_capability_ownership(Path::new("Counter.terl"), source),
-            source
-        );
-        let helper = "module sample.CounterTest.\n\npub type Problem.\n\npub render(problem: Problem): String -> \"problem\".\n";
-        assert_eq!(
-            fix_receiver_capability_ownership(Path::new("CounterTest.terl"), helper),
-            helper
-        );
-    }
-
-    #[test]
-    fn foreign_qualified_type_does_not_alias_a_local_type_name() {
-        let source = "module sample.Bytes.\n\npub type Bytes = String.\n\npub split(value: std.vm.Bytes): std.vm.Bytes -> value.\n";
-        assert!(
-            receiver_capability_ownership_diagnostics(Path::new("Bytes.terl"), source).is_empty()
-        );
-        assert_eq!(
-            fix_receiver_capability_ownership(Path::new("Bytes.terl"), source),
-            source
-        );
-    }
 }
 
 /// Builds a diagnostic when the module declaration is not first after docs.

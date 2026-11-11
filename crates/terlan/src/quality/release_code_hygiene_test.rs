@@ -10,7 +10,7 @@ fn complete_makefile_contract() -> String {
         .map(|target| format!("{target}:\n\t@true"))
         .collect::<Vec<_>>();
     lines.push(format!(
-        "{GATE_TARGET}: \\\n\trust-warnings-check \\\n\trust-quality-check \\\n\trust-file-headroom-check \\\n\tdormant-runtime-code-check \\\n\tvm-deterministic-hashmap-check \\\n\tshared-helper-check \\\n\tterlan-lint-style-profile-check \\\n\tterlan-lint-pipe-canonicalization-check\n\t$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- release-code-hygiene"
+        "{GATE_TARGET}: \\\n\trust-warnings-check \\\n\trust-quality-check \\\n\trust-file-headroom-check \\\n\tdormant-runtime-code-check \\\n\tvm-deterministic-hashmap-check \\\n\tshared-helper-check \\\n\tterlan-lint-style-profile-check\n\t$(CARGO) run -p terlan --bin terlan-quality --features quality-tools --quiet -- release-code-hygiene"
     ));
     lines.join("\n\n")
 }
@@ -76,15 +76,14 @@ fn release_code_hygiene_rejects_missing_sub_gate_target() {
 /// Verifies the umbrella target must call the sub-gates before reporting.
 #[test]
 fn release_code_hygiene_rejects_missing_umbrella_command() {
-    let makefile =
-        complete_makefile_contract().replace("\n\tterlan-lint-pipe-canonicalization-check", "");
+    let makefile = complete_makefile_contract().replace("\n\tshared-helper-check \\", "");
 
     let diagnostics = validate_makefile_targets(&makefile);
 
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.contains("terlan-lint-pipe-canonicalization-check")),
+            .any(|diagnostic| diagnostic.contains("shared-helper-check")),
         "diagnostics should reject missing umbrella command: {diagnostics:?}"
     );
 }

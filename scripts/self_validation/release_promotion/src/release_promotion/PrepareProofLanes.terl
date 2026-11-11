@@ -69,7 +69,7 @@ pub declare(
     ).
 
 valid_identity(source: String): Bool ->
-    if {
+    when {
         Ok(identity) <- Json.parse(source);
         Some("terlan.native-toolchain-identity.v1") <- OwnerStorage.text(identity, "schema");
         Some("x86_64-unknown-linux-gnu") <- OwnerStorage.text(identity, "target")
@@ -79,7 +79,7 @@ valid_identity(source: String): Bool ->
     true.
 
 pub prepare(root: String, compiler: String): Result[Summary, String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(compiler);
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(tools) <-
@@ -105,7 +105,7 @@ pub prepare(root: String, compiler: String): Result[Summary, String] ->
     (let owner = declare(root, compiler, context, history, tools, inputs); Ok(PreparationGraph.run_locked(root, "proof-lanes", [PreparationGraph.declare_node(owner, [])]))).
 
 pub run_locked(root: String, compiler: String): Bool ->
-    if {
+    when {
         Ok(result) <- prepare(root, compiler)
     } else {
         Err(reason) ->

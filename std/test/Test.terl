@@ -263,7 +263,7 @@ pub lifecycle[Seed, Suite, Fixture](
 ): Assertion ->
     case lifecycle_result(seed, before_all, before_each, body, after_each, after_all) {
         {body_result, after_each_result, after_all_result} ->
-            if {
+            when {
                 true <- body_result;
                 true <- after_each_result
             } else {

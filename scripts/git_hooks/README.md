@@ -15,7 +15,21 @@ expected value, regenerating a baseline, or retrying CI alone does not prevent
 recurrence. Keep unresolved causes and validation limits explicit.
 
 Release commits must run the staged-source hook. Do not use `--no-verify` for
-release work; a reduced selection of tests does not replace the hook.
+release work. The hook is a bounded admission gate, not a release suite: it
+checks changed formatting, readability, grammar-derived artifacts, inventory,
+and shell syntax in parallel, with a default 60-second budget. Every gate logs
+its duration and writes a content-addressed receipt only after success. The
+deferred candidate plan refers to those admitted receipts instead of scheduling
+the same work again. Compiler, runtime, proof, browser, platform, and publication
+owners execute later in the same selected candidate graph.
+Parallel compiler invocations receive separate output and interface-cache roots;
+no gate can delete or replace another gate's artifact in a clean checkout.
+
+Commit admission uses the newest locally built `terlc` for Terlan scripts and
+source checks. This does not certify that compiler. Candidate validation builds
+and tests the staged compiler and binds its evidence to the exact source
+revision. Functionality is therefore available for self-hosted orchestration
+without conflating script execution with compiler proof.
 
 When validation shares a Cargo target with the working checkout, the hook
 invalidates workspace fingerprints before building and again on exit. Cargo can
@@ -168,11 +182,10 @@ sources, including typed consumers for JavaScript bindings and opaque
 constructor types.
 
 Every nonempty commit checks changed Rust formatting and runs the retained-source
-inventory. The hook reuses the existing `terlc` when compiler inputs are unchanged;
-Rust or Cargo/toolchain changes build the staged compiler. The typed plan then selects
-artifact owners and focused test lanes. Hook-policy and snapshot tests run only
-when their inputs change; the VM, worker, service runtime, quality tools, and
-optimized compiler are built only for selected consumers. Release
+inventory. The typed planner records affected artifact owners and focused test
+lanes, but commit admission does not execute those expensive owners. The same
+plan feeds candidate validation, where exact input/tool/output receipts permit
+reuse. Release
 publication additionally builds all JavaScript binding consumers with Terlan
 and executes the complete Playwright suite in Chromium, Firefox, and WebKit.
 Module filters are cleared; missing browsers, skipped cases, expected failures,
@@ -254,6 +267,9 @@ bound to the compiler, command, project inputs, standard library, and local path
 dependencies. Receipts live outside the disposable staged checkout, survive a
 later gate failure, reject corruption, and are replaced only after a successful
 rerun. Set `TERLAN_TEST_FORCE_RERUN=1` to bypass them deliberately.
+Project compiler caches have a separate compiler-and-project identity so a
+small source or test edit reuses unchanged module artifacts without granting a
+validation pass. Exact-content receipts remain the only source of gate reuse.
 
 For Terlan files, Git plumbing compares the staged bytes with the staged
 compiler's formatting of the same file at the commit's original base. Exact

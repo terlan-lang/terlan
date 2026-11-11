@@ -16,7 +16,6 @@ syntax routing and backend emission stay outside this module.
 - `local`: local function and constructor-adjacent call inference.
 - `function_value`: dedicated function-value invocation such as `f(args)`.
 - `imported`: selected import call inference.
-- `pipe`: pipe-forward insertion and receiver-method pipe resolution.
 - `macro_call`: source macro-call signature resolution.
 - `receiver`: receiver-method call inference.
 - `remote`: qualified remote call and explicit trait dispatch resolution.

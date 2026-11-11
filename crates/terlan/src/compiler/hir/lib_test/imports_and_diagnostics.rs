@@ -415,7 +415,7 @@ pub(super) fn std_interface_loading_discovers_release_traversal_contracts() {
         "std.core.Option[Step[T]]",
         "iterator",
         "Iterator[T]",
-        false,
+        true,
         false,
     );
     assert_trait_method_signature(

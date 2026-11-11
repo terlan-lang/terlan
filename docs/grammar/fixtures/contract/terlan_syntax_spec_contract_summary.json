@@ -1,157 +1,151 @@
 {
-  "format_version": 1,
   "entry_rule": "SyntaxSpec",
-  "rule_count": 250,
+  "format_version": 1,
   "key_rules": [
     {
-      "name": "SyntaxSpec",
-      "id": "rule:SyntaxSpec",
       "expr_id": "rule:SyntaxSpec/expr",
-      "kind": "sequence"
+      "id": "rule:SyntaxSpec",
+      "kind": "sequence",
+      "name": "SyntaxSpec"
     },
     {
-      "name": "Declaration",
-      "id": "rule:Declaration",
       "expr_id": "rule:Declaration/expr",
-      "kind": "sequence"
+      "id": "rule:Declaration",
+      "kind": "sequence",
+      "name": "Declaration"
     },
     {
-      "name": "DeclarationCore",
-      "id": "rule:DeclarationCore",
       "expr_id": "rule:DeclarationCore/expr",
-      "kind": "alternation"
+      "id": "rule:DeclarationCore",
+      "kind": "alternation",
+      "name": "DeclarationCore"
     },
     {
-      "name": "Annotation",
-      "id": "rule:Annotation",
       "expr_id": "rule:Annotation/expr",
-      "kind": "sequence"
+      "id": "rule:Annotation",
+      "kind": "sequence",
+      "name": "Annotation"
     },
     {
-      "name": "AnnotationBlock",
-      "id": "rule:AnnotationBlock",
       "expr_id": "rule:AnnotationBlock/expr",
-      "kind": "sequence"
+      "id": "rule:AnnotationBlock",
+      "kind": "sequence",
+      "name": "AnnotationBlock"
     },
     {
-      "name": "AnnotationItem",
-      "id": "rule:AnnotationItem",
       "expr_id": "rule:AnnotationItem/expr",
-      "kind": "alternation"
+      "id": "rule:AnnotationItem",
+      "kind": "alternation",
+      "name": "AnnotationItem"
     },
     {
-      "name": "AnnotationEntry",
-      "id": "rule:AnnotationEntry",
       "expr_id": "rule:AnnotationEntry/expr",
-      "kind": "sequence"
+      "id": "rule:AnnotationEntry",
+      "kind": "sequence",
+      "name": "AnnotationEntry"
     },
     {
-      "name": "AnnotationValue",
-      "id": "rule:AnnotationValue",
       "expr_id": "rule:AnnotationValue/expr",
-      "kind": "alternation"
+      "id": "rule:AnnotationValue",
+      "kind": "alternation",
+      "name": "AnnotationValue"
     },
     {
-      "name": "AnnotationSchemaDecl",
-      "id": "rule:AnnotationSchemaDecl",
       "expr_id": "rule:AnnotationSchemaDecl/expr",
-      "kind": "sequence"
+      "id": "rule:AnnotationSchemaDecl",
+      "kind": "sequence",
+      "name": "AnnotationSchemaDecl"
     },
     {
-      "name": "ShapeDecl",
-      "id": "rule:ShapeDecl",
       "expr_id": "rule:ShapeDecl/expr",
-      "kind": "sequence"
+      "id": "rule:ShapeDecl",
+      "kind": "sequence",
+      "name": "ShapeDecl"
     },
     {
-      "name": "StructuralParameterPattern",
-      "id": "rule:StructuralParameterPattern",
       "expr_id": "rule:StructuralParameterPattern/expr",
-      "kind": "alternation"
+      "id": "rule:StructuralParameterPattern",
+      "kind": "alternation",
+      "name": "StructuralParameterPattern"
     },
     {
-      "name": "Expr",
-      "id": "rule:Expr",
       "expr_id": "rule:Expr/expr",
-      "kind": "alternation"
+      "id": "rule:Expr",
+      "kind": "alternation",
+      "name": "Expr"
     },
     {
-      "name": "PipeExpr",
-      "id": "rule:PipeExpr",
-      "expr_id": "rule:PipeExpr/expr",
-      "kind": "sequence"
-    },
-    {
-      "name": "OrExpr",
-      "id": "rule:OrExpr",
       "expr_id": "rule:OrExpr/expr",
-      "kind": "sequence"
+      "id": "rule:OrExpr",
+      "kind": "sequence",
+      "name": "OrExpr"
     },
     {
-      "name": "AndExpr",
-      "id": "rule:AndExpr",
       "expr_id": "rule:AndExpr/expr",
-      "kind": "sequence"
+      "id": "rule:AndExpr",
+      "kind": "sequence",
+      "name": "AndExpr"
     },
     {
-      "name": "PostfixExpr",
-      "id": "rule:PostfixExpr",
       "expr_id": "rule:PostfixExpr/expr",
-      "kind": "sequence"
+      "id": "rule:PostfixExpr",
+      "kind": "sequence",
+      "name": "PostfixExpr"
     },
     {
-      "name": "PrimaryExpr",
-      "id": "rule:PrimaryExpr",
       "expr_id": "rule:PrimaryExpr/expr",
-      "kind": "alternation"
+      "id": "rule:PrimaryExpr",
+      "kind": "alternation",
+      "name": "PrimaryExpr"
     },
     {
-      "name": "Pattern",
-      "id": "rule:Pattern",
       "expr_id": "rule:Pattern/expr",
-      "kind": "nonterminal"
+      "id": "rule:Pattern",
+      "kind": "nonterminal",
+      "name": "Pattern"
     },
     {
-      "name": "ListPattern",
-      "id": "rule:ListPattern",
       "expr_id": "rule:ListPattern/expr",
-      "kind": "alternation"
+      "id": "rule:ListPattern",
+      "kind": "alternation",
+      "name": "ListPattern"
     },
     {
-      "name": "CallExpr",
-      "id": "rule:CallExpr",
       "expr_id": "rule:CallExpr/expr",
-      "kind": "sequence"
+      "id": "rule:CallExpr",
+      "kind": "sequence",
+      "name": "CallExpr"
     },
     {
-      "name": "ScopedCallExpr",
-      "id": "rule:ScopedCallExpr",
       "expr_id": "rule:ScopedCallExpr/expr",
-      "kind": "sequence"
+      "id": "rule:ScopedCallExpr",
+      "kind": "sequence",
+      "name": "ScopedCallExpr"
     },
     {
-      "name": "RawMacroExpr",
-      "id": "rule:RawMacroExpr",
       "expr_id": "rule:RawMacroExpr/expr",
-      "kind": "alternation"
+      "id": "rule:RawMacroExpr",
+      "kind": "alternation",
+      "name": "RawMacroExpr"
     },
     {
-      "name": "ConfigDecl",
-      "id": "rule:ConfigDecl",
       "expr_id": "rule:ConfigDecl/expr",
-      "kind": "sequence"
+      "id": "rule:ConfigDecl",
+      "kind": "sequence",
+      "name": "ConfigDecl"
     },
     {
-      "name": "MetadataBlock",
-      "id": "rule:MetadataBlock",
       "expr_id": "rule:MetadataBlock/expr",
-      "kind": "sequence"
+      "id": "rule:MetadataBlock",
+      "kind": "sequence",
+      "name": "MetadataBlock"
     },
     {
-      "name": "TypeRef",
-      "id": "rule:TypeRef",
       "expr_id": "rule:TypeRef/expr",
-      "kind": "sequence"
+      "id": "rule:TypeRef",
+      "kind": "sequence",
+      "name": "TypeRef"
     }
-  ]
+  ],
+  "rule_count": 251
 }

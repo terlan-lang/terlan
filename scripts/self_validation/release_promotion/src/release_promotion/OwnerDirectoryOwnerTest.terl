@@ -40,7 +40,7 @@ schema_rejections(root: String): Bool ->
 directory_edges(): Bool ->
     let producer = PreparationGraph.declare_node(selected("old.json"), []);
     let reader = PreparationOwner.with_dependencies(consumer(), [String.append(output(), "/old.json")]);
-    if {
+    when {
         Err(_undeclared) <- PreparationGraph.validate([producer, PreparationGraph.declare_node(reader, [])]);
         Ok(_declared) <-
             PreparationGraph.validate(
@@ -130,7 +130,7 @@ graph(root: String, name: String): Bool ->
 ).valid.
 
 replacement(root: String): Bool ->
-    if {
+    when {
         true <- fixture(root);
         true <- graph(root, "old.json");
         true <- schema_rejections(root);
@@ -160,7 +160,7 @@ replacement(root: String): Bool ->
 
 prepare_recovery(root: String): Bool ->
     let owner = selected("old.json");
-    if {
+    when {
         true <- fixture(root);
         true <- PreparationOwner.run_locked(root, owner).valid;
         Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
@@ -201,7 +201,7 @@ prepare_recovery(root: String): Bool ->
 
 recovery(root: String): Bool ->
     let owner = selected("old.json");
-    if {
+    when {
         true <- prepare_recovery(root);
         true <- PreparationOwner.run_locked(root, owner).valid;
         true <- PreparationOwner.run_locked(root, owner).reused;
@@ -214,7 +214,7 @@ recovery(root: String): Bool ->
     true.
 
 scenario(mode: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-directory-owner-")
     } else {
         _ -> false

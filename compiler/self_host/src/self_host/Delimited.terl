@@ -1,7 +1,7 @@
-/** String-aware delimiter scanning shared by nested syntax parsers. */
+/**
+ * String-aware delimiter scanning shared by nested syntax parsers.
+ */
 module self_host.Delimited.
-
-import std.core.String.
 
 import std.collections.List.
 import std.core.{Int, String}.
@@ -29,70 +29,144 @@ constructor ScanState {
 
 @pure
 initial(): ScanState ->
-    ScanState(parentheses = 0, brackets = 0, braces = 0, quote_byte = 0, escaped = false, valid = true).
+    ScanState(
+        parentheses = 0,
+        brackets = 0,
+        braces = 0,
+        quote_byte = 0,
+        escaped = false,
+        valid = true,
+    ).
 
 @pure
 outside(state: ScanState): Bool ->
-    state.quote_byte == 0
-        and state.parentheses == 0
-        and state.brackets == 0
-        and state.braces == 0.
+    state.quote_byte == 0 and state.parentheses == 0 and state.brackets == 0 and state.braces == 0.
 
 @pure
 quoted_step(state: ScanState, byte: Int): ScanState ->
     if {
-        state.escaped -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = state.quote_byte, escaped = false, valid = state.valid);
-        byte == 92 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = state.quote_byte, escaped = true, valid = state.valid);
-        byte == state.quote_byte -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        state.escaped -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets,
+            braces = state.braces,
+            quote_byte = state.quote_byte,
+            escaped = false,
+            valid = state.valid,
+        );
+        byte == 92 -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets,
+            braces = state.braces,
+            quote_byte = state.quote_byte,
+            escaped = true,
+            valid = state.valid,
+        );
+        byte == state.quote_byte -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets,
+            braces = state.braces,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid,
+        );
         true -> state
     }.
 
 @pure
 unquoted_after_open_brace(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 125 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces - 1, quote_byte = 0, escaped = false, valid = state.valid and state.braces > 0);
+        byte == 125 -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets,
+            braces = state.braces - 1,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid and state.braces > 0,
+        );
         true -> state
     }.
 
 @pure
 unquoted_after_close_bracket(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 123 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces + 1, quote_byte = 0, escaped = false, valid = state.valid);
+        byte == 123 -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets,
+            braces = state.braces + 1,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid,
+        );
         true -> unquoted_after_open_brace(state, byte)
     }.
 
 @pure
 unquoted_after_open_bracket(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 93 -> ScanState(parentheses = state.parentheses, brackets = state.brackets - 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.brackets > 0);
+        byte == 93 -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets - 1,
+            braces = state.braces,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid and state.brackets > 0,
+        );
         true -> unquoted_after_close_bracket(state, byte)
     }.
 
 @pure
 unquoted_after_close_parenthesis(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 91 -> ScanState(parentheses = state.parentheses, brackets = state.brackets + 1, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        byte == 91 -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets + 1,
+            braces = state.braces,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid,
+        );
         true -> unquoted_after_open_bracket(state, byte)
     }.
 
 @pure
 unquoted_after_open_parenthesis(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 41 -> ScanState(parentheses = state.parentheses - 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid and state.parentheses > 0);
+        byte == 41 -> ScanState(
+            parentheses = state.parentheses - 1,
+            brackets = state.brackets,
+            braces = state.braces,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid and state.parentheses > 0,
+        );
         true -> unquoted_after_close_parenthesis(state, byte)
     }.
 
 @pure
 unquoted_after_quote(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 40 -> ScanState(parentheses = state.parentheses + 1, brackets = state.brackets, braces = state.braces, quote_byte = 0, escaped = false, valid = state.valid);
+        byte == 40 -> ScanState(
+            parentheses = state.parentheses + 1,
+            brackets = state.brackets,
+            braces = state.braces,
+            quote_byte = 0,
+            escaped = false,
+            valid = state.valid,
+        );
         true -> unquoted_after_open_parenthesis(state, byte)
     }.
 
 @pure
 unquoted_step(state: ScanState, byte: Int): ScanState ->
     if {
-        byte == 34 or byte == 39 -> ScanState(parentheses = state.parentheses, brackets = state.brackets, braces = state.braces, quote_byte = byte, escaped = false, valid = state.valid);
+        byte == 34 or byte == 39 -> ScanState(
+            parentheses = state.parentheses,
+            brackets = state.brackets,
+            braces = state.braces,
+            quote_byte = byte,
+            escaped = false,
+            valid = state.valid,
+        );
         true -> unquoted_after_quote(state, byte)
     }.
 
@@ -111,13 +185,7 @@ scan_at(source: String, index: Int, state: ScanState): ScanState ->
     }.
 
 @pure
-expected_close_head(
-    source: String,
-    index: Int,
-    closer: Int,
-    rest: List[Int],
-    byte: Int,
-): Bool ->
+expected_close_head(source: String, index: Int, closer: Int, rest: List[Int], byte: Int): Bool ->
     if {
         closer == byte -> properly_nested_at(source, index + 1, rest, 0, false);
         true -> false
@@ -166,28 +234,53 @@ proper_unquoted(source: String, index: Int, expected: List[Int], byte: Int): Boo
     }.
 
 @pure
-proper_quoted_after_escape(source: String, index: Int, expected: List[Int], quote_byte: Int, byte: Int): Bool ->
+proper_quoted_after_escape(
+    source: String,
+    index: Int,
+    expected: List[Int],
+    quote_byte: Int,
+    byte: Int,
+): Bool ->
     if {
         byte == 92 -> properly_nested_at(source, index + 1, expected, quote_byte, true);
         true -> proper_quoted_after_backslash(source, index, expected, quote_byte, byte)
     }.
 
 @pure
-proper_quoted_after_backslash(source: String, index: Int, expected: List[Int], quote_byte: Int, byte: Int): Bool ->
+proper_quoted_after_backslash(
+    source: String,
+    index: Int,
+    expected: List[Int],
+    quote_byte: Int,
+    byte: Int,
+): Bool ->
     if {
         byte == quote_byte -> properly_nested_at(source, index + 1, expected, 0, false);
         true -> properly_nested_at(source, index + 1, expected, quote_byte, false)
     }.
 
 @pure
-proper_quoted(source: String, index: Int, expected: List[Int], quote_byte: Int, escaped: Bool, byte: Int): Bool ->
+proper_quoted(
+    source: String,
+    index: Int,
+    expected: List[Int],
+    quote_byte: Int,
+    escaped: Bool,
+    byte: Int,
+): Bool ->
     if {
         escaped -> properly_nested_at(source, index + 1, expected, quote_byte, false);
         true -> proper_quoted_after_escape(source, index, expected, quote_byte, byte)
     }.
 
 @pure
-proper_byte(source: String, index: Int, expected: List[Int], quote_byte: Int, escaped: Bool): Bool ->
+proper_byte(
+    source: String,
+    index: Int,
+    expected: List[Int],
+    quote_byte: Int,
+    escaped: Bool,
+): Bool ->
     let byte = source.utf8_byte_at(index);
     if {
         quote_byte != 0 -> proper_quoted(source, index, expected, quote_byte, escaped, byte);
@@ -207,7 +300,9 @@ properly_nested_at(
         true -> proper_byte(source, index, expected, quote_byte, escaped)
     }.
 
-/** True when delimiters and quoted strings are closed and correctly nested. */
+/**
+ * True when delimiters and quoted strings are closed and correctly nested.
+ */
 @pure
 pub balanced(source: String): Bool ->
     let result = scan_at(source, 0, initial());
@@ -227,14 +322,6 @@ reverse_at[T](values: List[T], output: List[T]): List[T] ->
     }.
 
 @pure
-is_pipe_forward(source: String, index: Int, delimiter: Int): Bool ->
-    if {
-        delimiter != 124 -> false;
-        index + 1 >= source.byte_size() -> false;
-        true -> source.utf8_byte_at(index + 1) == 62
-    }.
-
-@pure
 split_at(
     source: String,
     delimiter: Int,
@@ -244,22 +331,18 @@ split_at(
     output: List[String],
 ): List[String] ->
     if {
-        index == source.byte_size() ->
-            reverse_at(
-                [String.trim(source.utf8_slice(start, source.byte_size() - start)) | output],
-                List.new[String](),
-            );
-        outside(state)
-            and source.utf8_byte_at(index) == delimiter
-            and not is_pipe_forward(source, index, delimiter) ->
-                split_at(
-                    source,
-                    delimiter,
-                    index + 1,
-                    index + 1,
-                    state,
-                    [String.trim(source.utf8_slice(start, index - start)) | output],
-                );
+        index == source.byte_size() -> reverse_at(
+            [String.trim(source.utf8_slice(start, source.byte_size() - start)) | output],
+            List.new[String](),
+        );
+        outside(state) and source.utf8_byte_at(index) == delimiter -> split_at(
+            source,
+            delimiter,
+            index + 1,
+            index + 1,
+            state,
+            [String.trim(source.utf8_slice(start, index - start)) | output],
+        );
         true -> split_at(
             source,
             delimiter,
@@ -270,7 +353,9 @@ split_at(
         )
     }.
 
-/** Splits on one ASCII delimiter only at nesting depth zero and outside strings. */
+/**
+ * Splits on one ASCII delimiter only at nesting depth zero and outside strings.
+ */
 @pure
 pub split_top_level(source: String, delimiter: Int): List[String] ->
     split_at(source, delimiter, 0, 0, initial(), List.new[String]()).
@@ -280,42 +365,29 @@ top_level_byte_at(source: String, expected: Int, index: Int, state: ScanState): 
     if {
         index == source.byte_size() -> -1;
         outside(state) and source.utf8_byte_at(index) == expected -> index;
-        true -> top_level_byte_at(
-            source,
-            expected,
-            index + 1,
-            step(state, source.utf8_byte_at(index)),
-        )
+        true -> top_level_byte_at(source, expected, index + 1, step(state, source.utf8_byte_at(index)))
     }.
 
-/** Returns the first top-level ASCII byte offset, or `-1`. */
+/**
+ * Returns the first top-level ASCII byte offset, or `-1`.
+ */
 @pure
 pub top_level_byte(source: String, expected: Int): Int ->
     top_level_byte_at(source, expected, 0, initial()).
 
 @pure
-top_level_pair_at(
-    source: String,
-    first: Int,
-    second: Int,
-    index: Int,
-    state: ScanState,
-): Int ->
+top_level_pair_at(source: String, first: Int, second: Int, index: Int, state: ScanState): Int ->
     if {
         index + 1 >= source.byte_size() -> -1;
         outside(state)
             and source.utf8_byte_at(index) == first
             and source.utf8_byte_at(index + 1) == second -> index;
-        true -> top_level_pair_at(
-            source,
-            first,
-            second,
-            index + 1,
-            step(state, source.utf8_byte_at(index)),
-        )
+        true -> top_level_pair_at(source, first, second, index + 1, step(state, source.utf8_byte_at(index)))
     }.
 
-/** Returns the first top-level two-byte operator offset, or `-1`. */
+/**
+ * Returns the first top-level two-byte operator offset, or `-1`.
+ */
 @pure
 pub top_level_pair(source: String, first: Int, second: Int): Int ->
     top_level_pair_at(source, first, second, 0, initial()).
@@ -330,30 +402,17 @@ text_matches_at(source: String, expected: String, index: Int, offset: Int): Bool
     }.
 
 @pure
-top_level_text_at(
-    source: String,
-    expected: String,
-    index: Int,
-    state: ScanState,
-): Int ->
+top_level_text_at(source: String, expected: String, index: Int, state: ScanState): Int ->
     if {
         index == source.byte_size() -> -1;
-        not outside(state) -> top_level_text_at(
-            source,
-            expected,
-            index + 1,
-            step(state, source.utf8_byte_at(index)),
-        );
+        not outside(state) -> top_level_text_at(source, expected, index + 1, step(state, source.utf8_byte_at(index)));
         text_matches_at(source, expected, index, 0) -> index;
-        true -> top_level_text_at(
-            source,
-            expected,
-            index + 1,
-            step(state, source.utf8_byte_at(index)),
-        )
+        true -> top_level_text_at(source, expected, index + 1, step(state, source.utf8_byte_at(index)))
     }.
 
-/** Returns the first top-level text occurrence, or `-1`. */
+/**
+ * Returns the first top-level text occurrence, or `-1`.
+ */
 @pure
 pub top_level_text(source: String, expected: String): Int ->
     top_level_text_at(source, expected, 0, initial()).
@@ -363,7 +422,7 @@ assignment_previous(source: String, index: Int): Bool ->
     if {
         index == 0 -> true;
         true -> let byte = source.utf8_byte_at(index - 1);
-            byte != 61 and byte != 33 and byte != 60 and byte != 62
+        byte != 61 and byte != 33 and byte != 60 and byte != 62
     }.
 
 @pure
@@ -371,7 +430,7 @@ assignment_next(source: String, index: Int): Bool ->
     if {
         index + 1 == source.byte_size() -> true;
         true -> let byte = source.utf8_byte_at(index + 1);
-            byte != 61 and byte != 62
+        byte != 61 and byte != 62
     }.
 
 @pure
@@ -382,14 +441,12 @@ assignment_at(source: String, index: Int, state: ScanState): Int ->
             and source.utf8_byte_at(index) == 61
             and assignment_previous(source, index)
             and assignment_next(source, index) -> index;
-        true -> assignment_at(
-            source,
-            index + 1,
-            step(state, source.utf8_byte_at(index)),
-        )
+        true -> assignment_at(source, index + 1, step(state, source.utf8_byte_at(index)))
     }.
 
-/** Returns the first top-level assignment `=` that is not comparison/fat-arrow syntax. */
+/**
+ * Returns the first top-level assignment `=` that is not comparison/fat-arrow syntax.
+ */
 @pure
 pub top_level_assignment(source: String): Int ->
     assignment_at(source, 0, initial()).

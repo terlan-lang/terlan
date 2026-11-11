@@ -139,7 +139,7 @@ fn core_clause_patterns_match_function_params(
 ///
 /// Transformation:
 /// - Recursively emits portable scalar values, local calls, callable-value
-///   calls, pipe-forward calls, unary negation, and selected binary operators
+///   calls, unary negation, and selected binary operators
 ///   without reading source syntax or backend-specific metadata.
 fn core_expr_to_rust(expr: &CoreExpr) -> Option<String> {
     match expr {
@@ -161,9 +161,6 @@ fn core_expr_to_rust(expr: &CoreExpr) -> Option<String> {
             left,
             right,
         } => {
-            if operator == "|>" {
-                return core_pipe_forward_expr_to_rust(left, right);
-            }
             if operator == "div" {
                 return Some(format!(
                     "({} / {})",
@@ -324,51 +321,6 @@ fn core_function_call_expr_to_rust(callee: &CoreExpr, args: &[CoreExpr]) -> Opti
         .collect::<Option<Vec<_>>>()?
         .join(", ");
     Some(format!("({callee})({args})"))
-}
-
-/// Lowers a focused CoreIR pipe-forward expression into Rust call syntax.
-///
-/// Inputs:
-/// - `left`: piped CoreIR value.
-/// - `right`: CoreIR call expression receiving the piped value.
-///
-/// Output:
-/// - Rust call expression text for supported pipe targets.
-/// - `None` when the right side is not a named or function-value call.
-///
-/// Transformation:
-/// - Converts `value |> f(extra)` into `f(value, extra)` and `value |> f(extra)`
-///   into `(f)(value, extra)`.
-fn core_pipe_forward_expr_to_rust(left: &CoreExpr, right: &CoreExpr) -> Option<String> {
-    match right {
-        CoreExpr::Call { function, args, .. } => {
-            if !is_rust_identifier(function) {
-                return None;
-            }
-            let mut emitted_args = vec![core_expr_to_rust(left)?];
-            emitted_args.extend(
-                args.iter()
-                    .map(core_expr_to_rust)
-                    .collect::<Option<Vec<_>>>()?,
-            );
-            Some(format!(
-                "{}({})",
-                rust_identifier(function),
-                emitted_args.join(", ")
-            ))
-        }
-        CoreExpr::FunctionCall { callee, args } => {
-            let callee = core_expr_to_rust(callee)?;
-            let mut emitted_args = vec![core_expr_to_rust(left)?];
-            emitted_args.extend(
-                args.iter()
-                    .map(core_expr_to_rust)
-                    .collect::<Option<Vec<_>>>()?,
-            );
-            Some(format!("({callee})({})", emitted_args.join(", ")))
-        }
-        _ => None,
-    }
 }
 
 /// Maps a CoreIR type into the Rust probe type surface.

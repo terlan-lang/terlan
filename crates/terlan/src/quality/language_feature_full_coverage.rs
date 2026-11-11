@@ -34,7 +34,6 @@ const REQUIRED_FEATURES: &[&str] = &[
     "struct_declaration",
     "receiver_methods",
     "trait_impl_dispatch",
-    "pipe_forward",
     "index_assignment",
     "diagnostics",
 ];

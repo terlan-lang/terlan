@@ -26,14 +26,14 @@ plan(contents: String): Json ->
 
 @test
 pub publication_is_complete_immutable_and_content_addressed(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-publication-bundle-test-")
     } else {
         _ -> false
     };
     (let output = root + "/target/publication-bundle";
 let contents = "archive";
-(if {
+(when {
     Ok(Unit) <- Directory.create_all(root + "/dist");
     Ok(Unit) <- File.write_text(root + "/dist/archive.tar.gz", contents)
 } else {
@@ -59,13 +59,13 @@ case {files, manifest} {
 
 @test
 pub malformed_or_drifting_artifacts_never_publish_output(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-publication-bundle-invalid-")
     } else {
         _ -> false
     };
     (let output = root + "/target/publication-bundle";
-(if {
+(when {
     Ok(Unit) <- Directory.create_all(root + "/dist");
     Ok(Unit) <- File.write_text(root + "/dist/archive.tar.gz", "changed")
 } else {

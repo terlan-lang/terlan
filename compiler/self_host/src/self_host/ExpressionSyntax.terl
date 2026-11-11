@@ -20,8 +20,6 @@ pub type AssignmentExpression.
 
 pub type ConstructorChainExpression.
 
-pub type PipeExpression.
-
 pub type OrExpression.
 
 pub type AndExpression.
@@ -94,7 +92,6 @@ pub type ExpressionClass =
     | QuoteExpression
     | AssignmentExpression
     | ConstructorChainExpression
-    | PipeExpression
     | OrExpression
     | AndExpression
     | CompareExpression

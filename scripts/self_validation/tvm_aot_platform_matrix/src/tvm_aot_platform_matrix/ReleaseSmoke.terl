@@ -48,7 +48,7 @@ required_strings(values: List[Option[String]], reversed: List[String]): Option[L
 json_strings(value: Json, index: Int, count: Int, reversed: List[String]): Option[List[String]] ->
     if {
         index >= count -> Some(reverse_strings(reversed, []));
-        true -> if {
+        true -> when {
             Ok(member) <- value.at(index);
             Ok(text) <- member.as_string()
         } else {
@@ -72,7 +72,7 @@ row_paths(rows: List[StringFieldRow], reversed: List[String]): Option[List[Strin
 
 metadata_projection(source: String, platform: ReleasePlatform): Option[MetadataProjection] ->
     let names = [platform.compiler, platform.vm, platform.native_worker, platform.lsp];
-    if {
+    when {
         Ok(metadata) <- Json.parse(source);
         Ok(schema_values) <- metadata.string_fields(["schema"]);
         Some(schemas) <- required_strings(schema_values, []);
@@ -226,7 +226,7 @@ only_tvm(paths: List[String], reversed: List[String]): List[String] ->
     }.
 
 inspect_valid(source: String): Bool ->
-    if {
+    when {
         Ok(report) <- Json.parse(source);
         Ok(runtime) <- report.get("runtime");
         Ok(runtime_name) <- runtime.as_string();
@@ -249,7 +249,7 @@ verify_metadata(
     binary_paths: List[String],
 ): Bool ->
     let metadata_path = child(extracted, "terlan-release.json");
-    if {
+    when {
         Ok(source) <- File.read_text(metadata_path);
         Some(metadata) <- metadata_projection(source, platform);
         Some(features) <- ReleasePlatform.release_features(repository)
@@ -314,7 +314,7 @@ smoke_extracted(repository: String, extracted: String, platform: ReleasePlatform
     let worker = child(extracted, platform.native_worker);
     let lsp = child(extracted, platform.lsp);
     let binaries = [compiler, vm, worker, lsp];
-    if {
+    when {
         Some(version) <- ReleasePlatform.cargo_version(repository)
     } else {
         _ -> failure("version", "Cargo.toml version is unavailable")
@@ -348,7 +348,7 @@ pub all_files(paths: List[String]): Bool ->
  * Extracts and validates the current-platform artifact using only typed Terlan APIs.
  */
 pub smoke(repository: String): Bool ->
-    if {
+    when {
         Some(platform) <- ReleasePlatform.detect()
     } else {
         _ -> failure("platform", "unsupported release platform")

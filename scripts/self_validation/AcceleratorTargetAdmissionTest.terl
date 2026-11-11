@@ -71,7 +71,7 @@ backend_is_allowed(backend: String): Bool ->
 plans_contain_backend(plans: Json, index: Int, count: Int, expected: String): Bool ->
     if {
         index == count -> false;
-        true -> if {
+        true -> when {
             Ok(plan) <- plans.at(index);
             Ok(packages) <- plan.get("packages");
             Ok(package) <- packages.at(0)

@@ -39,7 +39,7 @@ stage(root: String, valid: Bool, completed: Int, reused: Int): Bool ->
     }.
 
 calls(root: String, track: String, semantic: String): Bool ->
-    if {
+    when {
         Ok(actual_track) <- File.read_text(OwnerStorage.child(root, "target/calls"));
         Ok(actual_semantic) <- File.read_text(OwnerStorage.child(root, "target/semantic-calls"))
     } else {
@@ -49,7 +49,7 @@ calls(root: String, track: String, semantic: String): Bool ->
 
 exercise(root: String): Bool ->
     let output = "target/quality/proof-artifacts/lean-semantic-kernels.json";
-    if {
+    when {
         true <- stage(root, true, 2, 0);
         Ok(before) <- File.read_text(OwnerStorage.child(root, output));
         true <- stage(root, true, 0, 2);
@@ -89,7 +89,7 @@ exercise(root: String): Bool ->
     }.
 
 recover_parent(root: String): Bool ->
-    if {
+    when {
         Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         true <- write(root, "target/quality/proof-artifacts", "blocked");
         true <- stage(root, false, 0, 0);
@@ -102,7 +102,7 @@ recover_parent(root: String): Bool ->
     calls(root, "run\n", "semantic\n").
 
 scenario(recovery: Bool): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-proof-kernels-")
     } else {
         _ -> false

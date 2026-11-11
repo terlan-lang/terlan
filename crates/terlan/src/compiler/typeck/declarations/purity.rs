@@ -69,14 +69,16 @@ pub(super) fn collect_effectful_local_calls(
                 .any(|clause| {
                     clause_has_effects(
                         clause,
-                        scheme,
-                        aliases,
-                        expr_ctx,
-                        &no_effectful_locals,
-                        &function_values,
-                        imported_effects,
-                        conditional_local_calls,
-                        conditional_local_calls.contains(&identity),
+                        ClauseEffectContext {
+                            scheme,
+                            aliases,
+                            expr_ctx,
+                            effectful_local_calls: &no_effectful_locals,
+                            function_values: &function_values,
+                            imported_effects,
+                            conditional_local_calls,
+                            conditionally_pure: conditional_local_calls.contains(&identity),
+                        },
                     )
                 })
                 .then_some(identity)
@@ -107,14 +109,16 @@ pub(super) fn collect_effectful_local_calls(
             if clauses.iter().any(|clause| {
                 clause_has_effects(
                     clause,
-                    scheme,
-                    aliases,
-                    expr_ctx,
-                    &effectful,
-                    &function_values,
-                    imported_effects,
-                    conditional_local_calls,
-                    conditional_local_calls.contains(&identity),
+                    ClauseEffectContext {
+                        scheme,
+                        aliases,
+                        expr_ctx,
+                        effectful_local_calls: &effectful,
+                        function_values: &function_values,
+                        imported_effects,
+                        conditional_local_calls,
+                        conditionally_pure: conditional_local_calls.contains(&identity),
+                    },
                 )
             }) {
                 changed |= effectful.insert(identity);
@@ -126,17 +130,31 @@ pub(super) fn collect_effectful_local_calls(
     }
 }
 
+struct ClauseEffectContext<'a, 'ctx> {
+    scheme: Option<&'a FunctionScheme>,
+    aliases: &'a HashMap<String, TypeAlias>,
+    expr_ctx: &'a ExprInferContext<'ctx>,
+    effectful_local_calls: &'a HashSet<(String, usize)>,
+    function_values: &'a HashSet<String>,
+    imported_effects: &'a ImportedEffectFacts,
+    conditional_local_calls: &'a HashSet<(String, usize)>,
+    conditionally_pure: bool,
+}
+
 fn clause_has_effects(
     clause: &SyntaxFunctionClauseOutput,
-    scheme: Option<&FunctionScheme>,
-    aliases: &HashMap<String, TypeAlias>,
-    expr_ctx: &ExprInferContext<'_>,
-    effectful_local_calls: &HashSet<(String, usize)>,
-    function_values: &HashSet<String>,
-    imported_effects: &ImportedEffectFacts,
-    conditional_local_calls: &HashSet<(String, usize)>,
-    conditionally_pure: bool,
+    context: ClauseEffectContext<'_, '_>,
 ) -> bool {
+    let ClauseEffectContext {
+        scheme,
+        aliases,
+        expr_ctx,
+        effectful_local_calls,
+        function_values,
+        imported_effects,
+        conditional_local_calls,
+        conditionally_pure,
+    } = context;
     let mut facts = effectful_call_facts(
         effectful_local_calls,
         conditional_local_calls,

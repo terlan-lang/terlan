@@ -6,14 +6,14 @@ use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
-use super::protocol::{
-    encode_alive2_validation_error_response, is_alive2_validation_error, parse_payload,
-    parse_alive2_payload_unvalidated, ALIVE2_REQ,
-};
-use super::state::{ConnectionId, ServerOptions, ServerReply, ServerState};
 use super::super::protocol_task_executor::{
     VmProtocolTaskFactory, VmProtocolTaskRoute, VmReadyStream,
 };
+use super::protocol::{
+    encode_alive2_validation_error_response, is_alive2_validation_error,
+    parse_alive2_payload_unvalidated, parse_payload, ALIVE2_REQ,
+};
+use super::state::{ConnectionId, ServerOptions, ServerReply, ServerState};
 
 /// Shared deterministic EPMD registry used by fixed protocol owners.
 pub(crate) type VmSharedEpmdState = Arc<Mutex<ServerState>>;
@@ -28,14 +28,9 @@ pub(crate) fn shared_state(options: ServerOptions) -> VmSharedEpmdState {
 #[cfg(test)]
 pub(crate) fn protocol_factory(state: VmSharedEpmdState) -> VmProtocolTaskFactory {
     Arc::new(move |stream, route| {
-        Box::pin(VmEpmdConnection::new(
-            stream,
-            route,
-            Arc::clone(&state),
-        ))
+        Box::pin(VmEpmdConnection::new(stream, route, Arc::clone(&state)))
     })
 }
-
 
 /// Incremental state of one length-prefixed EPMD connection.
 #[derive(Debug)]
@@ -45,10 +40,7 @@ enum VmEpmdConnectionPhase {
     /// Reading exactly one request payload.
     ReadingPayload { bytes: Vec<u8>, offset: usize },
     /// Writing the complete command response.
-    Writing {
-        reply: ServerReply,
-        offset: usize,
-    },
+    Writing { reply: ServerReply, offset: usize },
     /// Retaining an ALIVE2 registration until socket closure.
     HoldingRegistration,
     /// The connection and any owned registration are complete.
@@ -67,11 +59,7 @@ struct VmEpmdConnection {
 
 impl VmEpmdConnection {
     /// Creates a connection future bound to its exact protocol-task route.
-    fn new(
-        stream: VmReadyStream,
-        route: VmProtocolTaskRoute,
-        state: VmSharedEpmdState,
-    ) -> Self {
+    fn new(stream: VmReadyStream, route: VmProtocolTaskRoute, state: VmSharedEpmdState) -> Self {
         Self {
             stream,
             route,
@@ -134,7 +122,9 @@ impl VmEpmdConnection {
                             return Poll::Pending;
                         }
                         Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
-                        Err(error) => return Poll::Ready(Err(render_io("hold registration", error))),
+                        Err(error) => {
+                            return Poll::Ready(Err(render_io("hold registration", error)))
+                        }
                     }
                 }
                 VmEpmdConnectionPhase::Complete => return Poll::Ready(Ok(())),
@@ -167,9 +157,9 @@ pub(super) fn handle_payload(
         {
             let request = parse_alive2_payload_unvalidated(payload)
                 .map_err(|error| format!("error[vm.epmd.protocol]: {error:?}"))?;
-            return Ok(ServerReply::close(
-                encode_alive2_validation_error_response(request.highest_version >= 6),
-            ));
+            return Ok(ServerReply::close(encode_alive2_validation_error_response(
+                request.highest_version >= 6,
+            )));
         }
         Err(error) => return Err(format!("error[vm.epmd.protocol]: {error:?}")),
     };

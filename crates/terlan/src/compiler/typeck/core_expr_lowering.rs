@@ -97,14 +97,25 @@ pub(crate) fn core_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr>
         SyntaxExprKind::Fun if expr.clauses.len() == 1 => lambda::lower(expr),
         SyntaxExprKind::BinaryOp => {
             let operator = expr.operator.clone()?;
-            if operator == "|>" {
-                return core_pipe_forward_expr_from_syntax(expr);
-            }
             if matches!(operator.as_str(), "and" | "or") {
                 return core_logical_expr_from_syntax(expr, &operator);
             }
             let left = expr.children.first().and_then(core_expr_from_syntax)?;
             let right = expr.children.get(1).and_then(core_expr_from_syntax)?;
+            if operator == ".." {
+                return Some(CoreExpr::Call {
+                    type_args: Vec::new(),
+                    function: "std.range.Range.inclusive".to_string(),
+                    args: vec![left, right],
+                });
+            }
+            if operator == "in" {
+                return Some(CoreExpr::Call {
+                    type_args: Vec::new(),
+                    function: "std.range.Range.contains".to_string(),
+                    args: vec![right, left],
+                });
+            }
             Some(CoreExpr::BinaryOp {
                 operator,
                 left: Box::new(left),
@@ -165,51 +176,6 @@ fn core_logical_expr_from_syntax(expr: &SyntaxExprOutput, operator: &str) -> Opt
         operands = combined;
     }
     operands.pop()
-}
-
-/// Converts `left |> target(args...)` into the same CoreIR as
-/// `target(left, args...)`.
-fn core_pipe_forward_expr_from_syntax(expr: &SyntaxExprOutput) -> Option<CoreExpr> {
-    let [left, right] = expr.children.as_slice() else {
-        return None;
-    };
-    if !matches!(right.kind, SyntaxExprKind::Call) {
-        return None;
-    }
-    let (callee, args) = right.children.split_first()?;
-    if right.remote.is_none() && matches!(callee.kind, SyntaxExprKind::Var) {
-        let method = callee.text.as_deref()?;
-        if core_syntax_pipe_receiver_method(method) {
-            let mut lowered_args = Vec::with_capacity(args.len() + 1);
-            lowered_args.push(core_expr_from_syntax(left)?);
-            lowered_args.extend(
-                args.iter()
-                    .map(core_expr_from_syntax)
-                    .collect::<Option<Vec<_>>>()?,
-            );
-            return Some(CoreExpr::RemoteCall {
-                type_args: right
-                    .type_args
-                    .iter()
-                    .map(|ty| core_type_from_text(&ty.text))
-                    .collect::<Option<Vec<_>>>()?,
-                module: "__receiver__".to_string(),
-                function: method.to_string(),
-                args: lowered_args,
-            });
-        }
-    }
-    let mut lowered_call = right.clone();
-    lowered_call.children = Vec::with_capacity(right.children.len() + 1);
-    lowered_call.children.push(callee.clone());
-    lowered_call.children.push(left.clone());
-    lowered_call.children.extend(args.iter().cloned());
-    core_expr_from_syntax(&lowered_call)
-}
-
-/// Returns whether a bare pipe stage names a VM-owned receiver method.
-fn core_syntax_pipe_receiver_method(method: &str) -> bool {
-    matches!(method, "iterator")
 }
 
 /// Converts a syntax-output sequence into a CoreIR let chain.

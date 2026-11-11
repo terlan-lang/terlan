@@ -43,7 +43,7 @@ selection(identity: Json, rows: Json, truncated: Bool): Selection ->
 
 @test
 pub complete_unsigned_binding_identity_prevents_neighbor_aliasing(): Bool ->
-    if {
+    when {
         Ok(identity) <- binding("18446744073709551615");
         Ok(neighbor) <- binding("18446744073709551614");
         Ok(found) <-
@@ -67,7 +67,7 @@ pub complete_unsigned_binding_identity_prevents_neighbor_aliasing(): Bool ->
 
 @test
 pub same_id_with_a_different_region_path_or_module_is_not_a_join(): Bool ->
-    if {
+    when {
         Ok(identity) <- binding("18446744073709551615");
         Ok(other_region) <- binding("18446744073709551615");
         Ok(other_path) <- binding("18446744073709551615");
@@ -78,7 +78,7 @@ pub same_id_with_a_different_region_path_or_module_is_not_a_join(): Bool ->
     (let changed_region = other_region.put("region", Json.int(1));
 let changed_path = other_path.put("path", Json.string("another:binding:0"));
 let foreign = observation(foreign_identity, "Bool").put("module", Json.string("decoy"));
-(if {
+(when {
     Ok(found) <-
         BindingTypes.select(
             selection(
@@ -99,7 +99,7 @@ found.code == "semantic.query.local_type_not_exported" and found.rows.length() =
 
 @test
 pub conflicting_checker_visits_never_select_the_first_type(): Bool ->
-    if {
+    when {
         Ok(identity) <- binding("18446744073709551615");
         Ok(found) <-
             BindingTypes.select(
@@ -122,7 +122,7 @@ pub conflicting_checker_visits_never_select_the_first_type(): Bool ->
 
 @test
 pub truncated_capture_never_claims_a_unique_observation(): Bool ->
-    if {
+    when {
         Ok(identity) <- binding("18446744073709551615");
         Ok(found) <-
             BindingTypes.select(
@@ -137,7 +137,7 @@ pub truncated_capture_never_claims_a_unique_observation(): Bool ->
 
 @test
 pub scan_budget_must_include_every_possible_conflicting_visit(): Bool ->
-    if {
+    when {
         Ok(identity) <- binding("18446744073709551615")
     } else {
         _ -> false
@@ -157,7 +157,7 @@ pub scan_budget_must_include_every_possible_conflicting_visit(): Bool ->
 
 @test
 pub repeated_equal_visits_converge_to_one_fact(): Bool ->
-    if {
+    when {
         Ok(identity) <- binding("18446744073709551615");
         Ok(found) <-
             BindingTypes.select(

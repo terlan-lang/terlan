@@ -22,6 +22,7 @@ pub(super) struct TestArgs {
     pub(super) benchmark_samples: usize,
     pub(super) coverage: bool,
     pub(super) coverage_threshold: Option<u8>,
+    pub(super) coverage_sources: Vec<PathBuf>,
     pub(super) emit_test_manifest: Option<PathBuf>,
     pub(super) emit_test_result_manifest: Option<PathBuf>,
 }
@@ -52,6 +53,7 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
     let mut benchmark_tuning_seen = false;
     let mut coverage = false;
     let mut coverage_threshold = None;
+    let mut coverage_sources = Vec::new();
     let mut emit_test_manifest = None;
     let mut emit_test_result_manifest = None;
     let mut i = 0;
@@ -140,6 +142,18 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
                 coverage = true;
                 i += 2;
             }
+            "--coverage-source" => {
+                let Some(value) = args.get(i + 1) else {
+                    return Err("--coverage-source requires a file or directory".to_string());
+                };
+                let source = PathBuf::from(value);
+                if coverage_sources.contains(&source) {
+                    return Err(format!("duplicate --coverage-source: {value}"));
+                }
+                coverage_sources.push(source);
+                coverage = true;
+                i += 2;
+            }
             "--emit-test-manifest" => {
                 let Some(value) = args.get(i + 1) else {
                     return Err("--emit-test-manifest requires a path".to_string());
@@ -200,6 +214,7 @@ pub(super) fn parse_test_args(args: &[String]) -> Result<TestArgs, String> {
         benchmark_samples,
         coverage,
         coverage_threshold,
+        coverage_sources,
         emit_test_manifest,
         emit_test_result_manifest,
     })

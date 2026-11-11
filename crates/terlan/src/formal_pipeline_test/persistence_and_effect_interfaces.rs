@@ -413,7 +413,13 @@ fn embedded_std_interfaces_include_core_effect_contract() {
     assert!(effect.functions.contains_key(&("succeed".to_string(), 1)));
     assert!(effect.functions.contains_key(&("map".to_string(), 2)));
     assert!(effect.functions.contains_key(&("flat_map".to_string(), 2)));
-    assert!(effect.functions.contains_key(&("run".to_string(), 1)));
+    let run = effect
+        .functions
+        .get(&("run".to_string(), 1))
+        .expect("Effect.run execution boundary");
+    assert!(run.receiver_method);
+    assert!(!run.receiver_mutable);
+    assert!(!run.pure);
 }
 
 /// Verifies embedded std summaries include the core guard-result contract.

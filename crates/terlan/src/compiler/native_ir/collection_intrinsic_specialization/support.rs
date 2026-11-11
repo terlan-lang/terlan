@@ -401,12 +401,15 @@ pub(super) fn bind_pattern(
             }
         }
         CorePattern::Tuple(patterns) => {
-            let tuple = match ty {
+            let structural =
+                super::super::generic_specialization::structural_tuple_variant(patterns, ty);
+            let structural_type = structural.as_ref().unwrap_or(ty);
+            let tuple = match structural_type {
                 CoreType::Tuple(elements) => Some(elements.as_slice()),
                 CoreType::Union(_) => patterns
                     .first()
                     .and_then(pattern_atom)
-                    .and_then(|tag| tagged_union_tuple(ty, tag)),
+                    .and_then(|tag| tagged_union_tuple(structural_type, tag)),
                 _ => None,
             };
             let Some(elements) = tuple else {

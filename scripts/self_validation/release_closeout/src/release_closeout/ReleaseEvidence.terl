@@ -21,7 +21,7 @@ import type std.collections.List.
 support_fixture(project: String, diagnostic: String): Bool ->
     let manifest = "[package]\nname = \"support-project\"\nversion = \"0.0.7\"\nsecret = \"release-secret-must-not-leak\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n";
     let source = "module support_project.Main.\n\npub main(): Int -> 42.\n";
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(Support.child(project, "src/support_project"))
     } else {
         _ -> false
@@ -74,7 +74,7 @@ bundle_valid(source: String, root: String, temporary: String): Bool ->
  * Generates deterministic, redacted support bundles with the installed compiler.
  */
 pub support_bundle(root: String): Bool ->
-    if {
+    when {
         Some(candidate) <- Support.prepare(root, "support-bundle")
     } else {
         _ -> false
@@ -96,7 +96,7 @@ let malformed_result =
         malformed,
         Support.child(candidate.workspace, "support-malformed.json"),
     );
-(if {
+(when {
     Ok(first_source) <- File.read_text(first);
     Ok(second_source) <- File.read_text(second)
 } else {
@@ -112,7 +112,7 @@ let malformed_rejected =
 let fixture_directory = Support.child(root, "target/quality/release-support-bundles");
 let fixture_path = Support.child(fixture_directory, "installed-project.json");
 let fixture_written =
-    (if {
+    (when {
     Ok(Unit) <- Directory.create_all(fixture_directory);
     Ok(Unit) <- File.write_text(fixture_path, first_source)
 } else {
@@ -292,7 +292,7 @@ timed_four(
 
 performance_fixture(directory: String, source_path: String): Bool ->
     let source = "module release.PerformanceTest.\n\nimport std.collections.Map.\nimport std.core.Option.{None, Some}.\n\n@benchmark\npub map_lookup_is_correct(): Bool ->\n    case Map.get(Map({\"answer\", 42}), \"answer\") {\n        Some(value) -> value == 42;\n        None -> false\n    }.\n";
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(directory);
         Ok(Unit) <- File.write_text(source_path, source)
     } else {
@@ -325,7 +325,7 @@ pub performance(root: String): Bool ->
     performance_with_metrics(root, Platform.current_metrics()).
 
 performance_with_metrics(root: String, metrics: HostMetrics): Bool ->
-    if {
+    when {
         Some(candidate) <- Support.prepare(root, "performance")
     } else {
         _ -> false
@@ -398,7 +398,7 @@ let valid = fixture_ready and commands_ok and benchmark_output and baseline;
 let raw_directory = Support.child(root, "target/quality/release-performance");
 let raw_path = Support.child(raw_directory, "installed-benchmark-result.json");
 let copied =
-    (if {
+    (when {
     Ok(source) <- File.read_text(result_path);
     Ok(Unit) <- Directory.create_all(raw_directory);
     Ok(Unit) <- File.write_text(raw_path, Support.clean_output(source, root, candidate.temporary))
@@ -486,7 +486,7 @@ pub performance_unavailable_metrics_self_test(root: String): Bool ->
             load_5m = 0.0,
             load_15m = 0.0,
         );
-    if {
+    when {
         true <- performance_with_metrics(root, metrics);
         Ok(source) <-
             File.read_text(
@@ -511,7 +511,7 @@ adversarial_fixture(candidate: Candidate): Bool ->
     let image_path = Support.child(directory, "invalid.tvm");
     let native_path = Support.child(directory, "invalid-native.json");
     let manifest_path = Support.child(package, "terlan.toml");
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(package);
         Ok(Unit) <- File.write_text(parser_path, "module adversarial.Parser.\n\npub main(): Int -> if .\n");
         Ok(Unit) <-
@@ -627,7 +627,7 @@ read_text_or_empty(path: String): String ->
  * Replays the owned, minimized high-risk corpus with installed binaries.
  */
 pub adversarial(root: String): Bool ->
-    if {
+    when {
         Some(candidate) <- Support.prepare(root, "adversarial")
     } else {
         _ -> false
@@ -706,7 +706,7 @@ mutation_manifest_valid(source: String): Bool ->
  * Proves deterministic critical-path mutants are owned and killed.
  */
 pub mutation(root: String): Bool ->
-    if {
+    when {
         Some(candidate) <- Support.prepare(root, "mutation")
     } else {
         _ -> false
@@ -803,7 +803,7 @@ fault_manifest_valid(source: String): Bool ->
  * Aggregates installed-candidate faults with VM-owned recovery evidence.
  */
 pub fault(root: String): Bool ->
-    if {
+    when {
         Some(candidate) <- Support.prepare(root, "fault")
     } else {
         _ -> false

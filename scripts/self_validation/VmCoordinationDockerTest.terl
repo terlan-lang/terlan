@@ -228,7 +228,7 @@ result_holds(result: SimulationResult): Bool ->
     }.
 
 docker_contract_holds(): Bool ->
-    if {
+    when {
         true <- docker_compose_available();
         Some("1") <- Environment.get("TERLAN_VM_COORDINATION_DOCKER")
     } else {

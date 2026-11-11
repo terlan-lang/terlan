@@ -58,7 +58,7 @@ pub(super) fn deep_expression_diagnostics(path: &Path, source: &str) -> Vec<Lint
                             rule_id: DEEP_EXPRESSION_RULE_ID,
                             rule_name: DEEP_EXPRESSION_RULE_NAME,
                             severity: Severity::Warning,
-                            message: "deep expression tree should be split with let bindings, a pipe, or a named helper",
+                            message: "deep expression tree should use let bindings, receiver methods, or a named helper",
                             fix_available: false,
                         });
                     }
@@ -202,7 +202,7 @@ fn collect_grouped_binding_diagnostics(
             rule_id: GROUPED_BINDING_RULE_ID,
             rule_name: GROUPED_BINDING_RULE_NAME,
             severity: Severity::Error,
-            message: "linear nested cases with one repeated fallback should use grouped `if { ... <- ... } else { ... }` bindings",
+            message: "linear nested cases with one repeated fallback should use grouped `when { ... <- ... } else { ... }` bindings",
             fix_available: false,
         });
         return;

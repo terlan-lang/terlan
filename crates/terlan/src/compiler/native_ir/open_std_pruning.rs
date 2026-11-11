@@ -436,6 +436,14 @@ fn resolve_scoped_call(
     // same-named function in the whole application makes reachability depend
     // on module ordering and can prune the real imported provider.
     if name.contains('.') {
+        if let Some(exact) = providers
+            .iter()
+            .find(|(module, function, candidate_arity)| {
+                format!("{module}.{function}") == name && *candidate_arity == arity
+            })
+        {
+            return Some(exact.clone());
+        }
         return providers
             .iter()
             .find(|(module, function, candidate_arity)| {

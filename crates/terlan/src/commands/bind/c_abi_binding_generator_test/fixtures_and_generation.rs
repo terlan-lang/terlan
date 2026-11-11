@@ -526,7 +526,7 @@ pub(super) fn generated_scalar_smoke_can_defer_package_specific_operation_domain
     assert!(!consumer.contains("returned_unsqueeze"));
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("generated module");
-    assert!(source.contains("pub unsqueeze"));
+    assert!(source.contains("pub (boundary: NativeBoundary) unsqueeze"));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
@@ -571,7 +571,7 @@ pub(super) fn dispatcher_metadata_generates_owned_handle_tuple_results() {
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
     assert!(source
-        .contains("pub split_pair(boundary: NativeBoundary): {NativeBoundary, NativeBoundary}"));
+        .contains("pub (boundary: NativeBoundary) split_pair(): {NativeBoundary, NativeBoundary}"));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
@@ -790,7 +790,7 @@ pub(super) fn dispatcher_metadata_generates_owned_optional_and_integer_list_stac
         .expect("Terlan source");
     assert!(contains_ignoring_whitespace(
         &source,
-        "pub reduce_index(boundary: NativeBoundary, weight: NativeBoundary, dimensions: List[Int], dimension: Int, keep_dimension: Bool, smoothing: Float, normalization: String): NativeBoundary"
+        "pub (boundary: NativeBoundary) reduce_index(weight: NativeBoundary, dimensions: List[Int], dimension: Int, keep_dimension: Bool, smoothing: Float, normalization: String): NativeBoundary"
     ));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
@@ -879,9 +879,9 @@ pub(super) fn dispatcher_metadata_generates_owned_fixed_string_stack_values() {
     ));
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
-    assert!(source.contains("pub gelu(boundary: NativeBoundary): NativeBoundary"));
+    assert!(source.contains("pub (boundary: NativeBoundary) gelu(): NativeBoundary"));
     assert!(
-        source.contains("pub linalg_qr(boundary: NativeBoundary, mode: String): NativeBoundary")
+        source.contains("pub (boundary: NativeBoundary) linalg_qr(mode: String): NativeBoundary")
     );
     let helper = fs::read_to_string(out_dir.join("native/rust/src/bin/native_boundary_helper.rs"))
         .expect("native helper");

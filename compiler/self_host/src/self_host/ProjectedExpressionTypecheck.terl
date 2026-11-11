@@ -153,17 +153,6 @@ binary_same(left: InferredProjectedType, right: InferredProjectedType): Inferred
     }.
 
 @pure
-binary_pipe(
-    text: String,
-    left: InferredProjectedType,
-    right: InferredProjectedType,
-): InferredProjectedType ->
-    if {
-        text == "|>" -> right;
-        true -> binary_same(left, right)
-    }.
-
-@pure
 binary_boolean(
     text: String,
     left: InferredProjectedType,
@@ -171,7 +160,7 @@ binary_boolean(
 ): InferredProjectedType ->
     if {
         text == "and" or text == "or" -> known("Bool");
-        true -> binary_pipe(text, left, right)
+        true -> binary_same(left, right)
     }.
 
 @pure
@@ -460,7 +449,6 @@ resolved_binary_children(
                     or value.text == "in"
                     or value.text == "and"
                     or value.text == "or" -> known("Bool");
-                value.text == "|>" -> right;
                 true -> binary_same(left, right)
             };
         _ -> unknown()
@@ -494,7 +482,7 @@ resolved_let_children(
     parameters: List[ProjectedParameterTree],
     bindings: List[LocalTypeBinding],
 ): InferredProjectedType ->
-    if {
+    when {
         [pattern | remaining] <- values;
         [source | rest] <- remaining
     } else {

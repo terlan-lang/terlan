@@ -100,7 +100,7 @@ final_document(
  */
 pub write(root: String, version: String, candidate_seal: String, outcome_report_count: Int): Bool ->
     let docs_manifest = "docs/release/PUBLISHABLE_DOCUMENTATION.tsv";
-    if {
+    when {
         Ok(metadata) <- Json.parse(text(root, "dist/terlan-release.json"));
         Some(actual_version) <- EvidenceReports.string_field(metadata, "version");
         true <- version != "" and actual_version == version;

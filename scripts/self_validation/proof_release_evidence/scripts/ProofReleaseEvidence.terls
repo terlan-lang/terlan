@@ -20,7 +20,7 @@ root(): String ->
     }.
 
 clone_json(value: Json): Option[Json] ->
-    if {
+    when {
         Ok(source) <- Json.stringify(value);
         Ok(copy) <- Json.parse(source)
     } else {
@@ -56,7 +56,7 @@ schema_mutation_is_rejected(repository: String, document: Json): Bool ->
     }.
 
 missing_proof_mutation_is_rejected(repository: String, document: Json): Bool ->
-    if {
+    when {
         Some(mutation) <- clone_json(document);
         Some(records) <- Support.json_member(mutation, "records")
     } else {
@@ -72,7 +72,7 @@ missing_proof_mutation_is_rejected(repository: String, document: Json): Bool ->
     }.
 
 stale_material_mutation_is_rejected(repository: String, document: Json): Bool ->
-    if {
+    when {
         Some(mutation) <- clone_json(document);
         Some(materials) <- Support.json_member(mutation, "candidate_materials");
         Some(candidate) <- Support.json_member(mutation, "candidate")
@@ -102,7 +102,7 @@ stale_material_mutation_is_rejected(repository: String, document: Json): Bool ->
     }.
 
 duplicate_slice_mutation_is_rejected(repository: String, document: Json): Bool ->
-    if {
+    when {
         Some(mutation) <- clone_json(document);
         Some(records) <- Support.json_member(mutation, "records")
     } else {
@@ -117,7 +117,7 @@ duplicate_slice_mutation_is_rejected(repository: String, document: Json): Bool -
     }.
 
 lane_mutation_is_rejected(repository: String, document: Json): Bool ->
-    if {
+    when {
         Some(mutation) <- clone_json(document);
         Some(records) <- Support.json_member(mutation, "records")
     } else {
@@ -138,7 +138,7 @@ lane_mutation_is_rejected(repository: String, document: Json): Bool ->
     }.
 
 candidate_mutation_is_rejected(repository: String, document: Json): Bool ->
-    if {
+    when {
         Some(mutation) <- clone_json(document);
         Some(candidate) <- Support.json_member(mutation, "candidate")
     } else {
@@ -154,7 +154,7 @@ let _candidate = mutation.put("candidate", candidate);
 expect_code(repository, mutation, "candidate_mismatch")).
 
 cross_machine_normalization_is_stable(document: Json): Bool ->
-    if {
+    when {
         Some(mutation) <- clone_json(document);
         Some(candidate) <- Support.json_member(mutation, "candidate");
         Some(original) <- Validator.normalized_digest(document)
@@ -196,7 +196,7 @@ self_test_document(repository: String, document: Json): Bool ->
     }.
 
 record_count(document: Json): Int ->
-    if {
+    when {
         Some(records) <- Support.json_member(document, "records");
         Ok(count) <- records.length()
     } else {
@@ -205,7 +205,7 @@ record_count(document: Json): Int ->
     count.
 
 replay_count(document: Json): Int ->
-    if {
+    when {
         Some(replay) <- Support.json_member(document, "replay_corpus");
         Ok(count) <- replay.length()
     } else {
@@ -214,7 +214,7 @@ replay_count(document: Json): Int ->
     count.
 
 candidate_id(document: Json): String ->
-    if {
+    when {
         Some(candidate) <- Support.json_member(document, "candidate");
         Some(value) <- Support.json_string(candidate, "candidate_id")
     } else {
@@ -278,7 +278,7 @@ closeout(repository: String): Bool ->
     }.
 
 release_mode_document(repository: String, document: Json): Bool ->
-    if {
+    when {
         Some(config) <- Support.load_json(repository, "proofs/lean/release_evidence/release-mode.json");
         Some(local_command) <- Support.json_string(config, "local_command");
         Some(ci_command) <- Support.json_string(config, "ci_command");

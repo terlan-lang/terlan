@@ -53,7 +53,7 @@ select(paths: List[String], prefix: String): Result[List[String], String] ->
     case paths {
         [] -> Ok([]);
         [path | rest] ->
-            if {
+            when {
                 true <- String.starts_with(path, prefix);
                 Ok(tail) <- select(rest, prefix)
             } else {
@@ -88,7 +88,7 @@ pub relative_root_self_test(): Bool ->
  */
 pub paths(root: String): Result[List[String], String] ->
     let directory = directory(root.replace("\\", "/"));
-    if {
+    when {
         Ok(files) <- Directory.files_recursive_excluding(directory, [])
     } else {
         Err(reason) -> Err(String.append("cannot inventory candidate evidence: ", reason.message))

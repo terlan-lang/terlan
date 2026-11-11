@@ -34,13 +34,13 @@ version_lines(lines: List[String], version: String, inside: Bool): Bool ->
  */
 pub guard(revision: String, version: String): Result[Unit, String] ->
     let reference = String.append("refs/tags/v", version);
-    if {
+    when {
         Ok(source) <- File.read_text("Cargo.toml");
         true <- version_matches(source, version)
     } else {
         _ -> Err("tag version must equal workspace.package.version")
     };
-    (if {
+    (when {
     Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
     Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000);
     Ok(kind) <- Support.run("git", ["cat-file", "-t", reference], 30_000);

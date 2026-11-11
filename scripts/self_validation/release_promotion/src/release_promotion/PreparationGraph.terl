@@ -83,7 +83,7 @@ validate_at(
         [] -> Ok(true);
         [value | rest] ->
             let owner = value.producer;
-            if {
+            when {
                 Ok(producer) <- validate_node(value, candidate, names, outputs, producers, remaining)
             } else {
                 Err(reason) -> Err(reason)
@@ -107,7 +107,7 @@ validate_node(
     remaining: Int,
 ): Result[String, String] ->
     let owner = value.producer;
-    if {
+    when {
         true <- remaining > 0;
         true <- PreparationOwner.valid_declaration(owner);
         true <- owner.candidate == candidate;
@@ -126,18 +126,18 @@ validate_node(
  * Validates the entire ordered ownership graph before any producer runs.
  */
 pub validate(nodes: List[Node]): Result[String, String] ->
-    if {
+    when {
         [first | _rest] <- nodes
     } else {
         _ -> Err("preparation graph cannot be empty")
     };
     (let candidate = first.producer.candidate;
-(if {
+(when {
     Ok(_valid) <- validate_at(nodes, candidate, [], [], [], 256)
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     true <- declared_consumers(nodes, nodes)
 } else {
     _ ->
@@ -185,7 +185,7 @@ declared_consumers(remaining: List[Node], nodes: List[Node]): Bool ->
     }.
 
 parent_files(edges: List[String], done: List[Node], paths: List[String]): List[String] ->
-    if {
+    when {
         [name | rest] <- edges;
         Some(parent) <- find(done, name)
     } else {
@@ -285,7 +285,7 @@ advance_owned(
     journal: String,
     admission: Option[Admission],
 ): Summary ->
-    if {
+    when {
         true <- NativeCycle.before(root, journal, cycle, owner)
     } else {
         _ -> make_summary(false, completed, reused, "cannot checkpoint active native owner")
@@ -396,17 +396,17 @@ recover_cycle(root: String, journal: String, cycle: Json, nodes: List[Node]): Bo
  * Only this graph's pending summary is discarded; owner evidence is preserved.
  */
 pub run_locked(root: String, graph: String, nodes: List[Node]): Summary ->
-    if {
+    when {
         true <- OwnerStorage.safe_name(graph)
     } else {
         _ -> make_summary(false, 0, 0, "invalid preparation graph name")
     };
-    (if {
+    (when {
     Ok(candidate) <- validate(nodes)
 } else {
     Err(reason) -> make_summary(false, 0, 0, reason)
 };
-(if {
+(when {
     Ok(_directory) <-
         Directory.create_all(
             OwnerStorage.child(

@@ -42,7 +42,7 @@ parent(
                 message = "Included-member origin selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -89,7 +89,7 @@ origins(
                 message = "Included-member origin traversal exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(item) <- parents.at(index);
             Ok(name) <- item.as_string()
         } else {
@@ -101,7 +101,7 @@ origins(
                     ),
                 )
         };
-        (if {
+        (when {
     Ok(selected) <-
         parent(
             rows,
@@ -115,7 +115,7 @@ origins(
     Err(reason) -> Err(reason)
 };
 if {
-    selected.matches == 1 -> if {
+    selected.matches == 1 -> when {
         Ok(entity) <-
             DeclarationEntities.entity(
                 selection.artifact,
@@ -143,7 +143,7 @@ if {
         ),
         maximum,
     );
-    true -> if {
+    true -> when {
         Ok(imported) <- ImportOrigins.resolve(selection, name, selected.used, maximum)
     } else {
         Err(reason) -> Err(reason)
@@ -181,7 +181,7 @@ origins(
  * Exact include edges, using resolver identities for imported aliases.
  */
 pub included_origins(selection: Selection, used: Int, maximum: Int): Result[Origins, Failure] ->
-    if {
+    when {
         Ok(payload) <- selection.record.get("payload");
         Ok(parents) <- payload.get("includes");
         Ok(count) <- parents.length()
@@ -196,7 +196,7 @@ pub included_origins(selection: Selection, used: Int, maximum: Int): Result[Orig
                 ),
             )
     };
-    (if {
+    (when {
     Ok(rows) <- selection.artifact.get("source_declarations");
     Ok(row_count) <- rows.length()
 } else {
@@ -237,7 +237,7 @@ scan(
                 message = "Type selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ ->
@@ -268,7 +268,7 @@ scan(rows, name, qualified, index + 1, count, next, maximum))
  * A null row means no unique checked Core type; this never guesses an alias.
  */
 pub prepare(selection: Selection, maximum: Int): Result[Found, Failure] ->
-    if {
+    when {
         Ok(core) <- selection.artifact.get("core");
         Ok(rows) <- core.get("types");
         Ok(count) <- rows.length();

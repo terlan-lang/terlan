@@ -265,81 +265,6 @@ pub show(user: User): String ->\n\
     );
 }
 
-/// Verifies pipe-forward prefers receiver-method resolution.
-///
-/// Inputs:
-/// - A module with an immutable receiver method and a function body using
-///   `value |> method()`.
-///
-/// Output:
-/// - Test passes when typecheck resolves the pipe as a receiver-method call
-///   instead of requiring a separate receiver-first free function.
-///
-/// Transformation:
-/// - Runs the formal syntax-output typecheck path and proves receiver pipes
-///   infer through the receiver-method dispatch table.
-#[test]
-pub(super) fn syntax_output_typechecks_pipe_into_receiver_method() {
-    let diagnostics = check_syntax_output(
-        "\
-module receiver_pipe_ok.\n\
-\n\
-pub struct User {\n\
-    name: String\n\
-}.\n\
-\n\
-pub (user: User) display_name(): String ->\n\
-    user.name.\n\
-\n\
-pub show(user: User): String ->\n\
-    user |> display_name().\n\
-",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-/// Verifies receiver-method pipes accept omitted default arguments.
-///
-/// Inputs:
-/// - A receiver method with a defaulted final non-receiver parameter.
-/// - A pipe call that supplies only the required non-receiver parameter.
-///
-/// Output:
-/// - Test passes when pipe inference resolves the receiver method and fills the
-///   omitted default parameter for typechecking.
-///
-/// Transformation:
-/// - Uses default-aware receiver candidate lookup for the right side of `|>`.
-#[test]
-pub(super) fn syntax_output_typechecks_pipe_into_receiver_method_with_default_argument() {
-    let diagnostics = check_syntax_output(
-        "\
-module receiver_pipe_default_ok.\n\
-\n\
-pub struct User {\n\
-    name: String\n\
-}.\n\
-\n\
-pub (user: User) label(prefix: String, suffix: String = \"!\"): String ->\n\
-    user.name.\n\
-\n\
-pub show(user: User): String ->\n\
-    user |> label(\"User\").\n\
-",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
 #[test]
 pub(super) fn syntax_output_typechecks_inherited_receiver_method_call() {
     let diagnostics = check_syntax_output(
@@ -408,18 +333,16 @@ pub (error: Error) message_text(): String.\n\
 /// Inputs:
 /// - A provider interface exporting a wrapper type and a mutable receiver
 ///   setter method returning `Unit`.
-/// - A consumer module importing the type and using both direct receiver-call
-///   and pipe-forward forms.
+/// - A consumer module importing the type and using a direct receiver call.
 ///
 /// Output:
-/// - Test passes when direct calls type as `Unit` and mutable receiver pipes
-///   continue with the receiver type.
+/// - Test passes when the direct call types as `Unit`.
 ///
 /// Transformation:
 /// - Exercises generated-summary receiver metadata for JS-style wrappers
 ///   without requiring a local `includes` edge or hand-written adapter method.
 #[test]
-pub(super) fn syntax_output_typechecks_imported_mutable_receiver_method_call_and_pipe() {
+pub(super) fn syntax_output_typechecks_imported_mutable_receiver_method_call() {
     let diagnostics = check_syntax_output_with_interface(
         "\
 module imported_mutable_receiver_method_ok.\n\
@@ -429,9 +352,6 @@ import std.js.Dom.\n\
 \n\
 pub set_once(element: Element): Unit ->\n\
     element.set_text(\"hello\").\n\
-\n\
-pub update(element: Element): Element ->\n\
-    element |> set_text(\"hello\").\n\
 ",
         "\
 module std.js.Dom.\n\
@@ -515,160 +435,6 @@ pub (json: Json) get(name: String): Int.\n\
 }
 
 #[test]
-pub(super) fn syntax_output_typechecks_inherited_receiver_method_pipe() {
-    let diagnostics = check_syntax_output(
-        "\
-module derived_receiver_pipe_ok.\n\
-\n\
-pub struct Error {\n\
-    message: String\n\
-}.\n\
-\n\
-pub (error: Error) message_text(): String ->\n\
-    error.message.\n\
-\n\
-pub struct FileError includes Error {\n\
-    path: String\n\
-}.\n\
-\n\
-pub show(error: FileError): String ->\n\
-    error |> message_text().\n\
-",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-/// Verifies receiver-method pipe ambiguity is diagnosed.
-///
-/// Inputs:
-/// - A module with both a receiver method `label()` for `User` and an
-///   ordinary function `label(user: User)`.
-/// - A pipe expression written as `user |> label()`.
-///
-/// Output:
-/// - Test passes when typecheck reports the ambiguous pipe target instead
-///   of silently choosing the receiver method or ordinary function.
-///
-/// Transformation:
-/// - Runs receiver-method-first pipe inference and checks the explicit
-///   ambiguity rule documented for P0.2b.
-#[test]
-pub(super) fn syntax_output_rejects_ambiguous_receiver_method_pipe_target() {
-    let diagnostics = check_syntax_output(
-        "\
-module receiver_pipe_ambiguous.\n\
-\n\
-pub struct User {\n\
-    name: String\n\
-}.\n\
-\n\
-pub (user: User) label(): String ->\n\
-    user.name.\n\
-\n\
-label(user: User): String ->\n\
-    user.name.\n\
-\n\
-pub show(user: User): String ->\n\
-    user |> label().\n\
-",
-    );
-
-    assert!(
-        diagnostics.iter().any(|diag| diag.message.contains(
-            "ambiguous pipe target `label` / 0: receiver method and ordinary function both match"
-        )),
-        "diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-/// Verifies selected imported functions participate in pipe ambiguity.
-///
-/// Inputs:
-/// - A provider interface exporting `label(value: Dynamic): String`.
-/// - A consumer importing `label`, declaring a receiver method named
-///   `label`, and using `user |> label()`.
-///
-/// Output:
-/// - Test passes when typecheck reports the same ambiguity diagnostic used
-///   for local ordinary functions.
-///
-/// Transformation:
-/// - Resolves the selected import through the loaded interface during the
-///   side-effect-free ambiguity check without emitting import diagnostics.
-#[test]
-pub(super) fn syntax_output_rejects_imported_ambiguous_receiver_method_pipe_target() {
-    let interface_source = "\
-module labels.\n\
-pub label(value: Dynamic): String.\n\
-";
-    let diagnostics = check_syntax_output_with_interface(
-        "\
-module receiver_pipe_import_ambiguous.\n\
-\n\
-import labels.{label}.\n\
-\n\
-pub struct User {\n\
-    name: String\n\
-}.\n\
-\n\
-pub (user: User) label(): String ->\n\
-    user.name.\n\
-\n\
-pub show(user: User): String ->\n\
-    user |> label().\n\
-",
-        interface_source,
-    );
-
-    assert!(
-        diagnostics.iter().any(|diag| diag.message.contains(
-            "ambiguous pipe target `label` / 0: receiver method and ordinary function both match"
-        )),
-        "diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-/// Verifies an incompatible receiver method does not shadow an imported pipe target.
-#[test]
-pub(super) fn syntax_output_accepts_imported_pipe_target_when_receiver_candidate_does_not_match() {
-    let interface_source = "\
-module labels.\n\
-pub label(value: Int): String.\n\
-";
-    let diagnostics = check_syntax_output_with_interface(
-        "\
-module receiver_pipe_import_fallback.\n\
-\n\
-import labels.{label}.\n\
-\n\
-pub struct User {\n\
-    name: String\n\
-}.\n\
-\n\
-pub (user: User) label(): String ->\n\
-    user.name.\n\
-\n\
-pub show(value: Int): String ->\n\
-    value |> label().\n\
-",
-        interface_source,
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-#[test]
 pub(super) fn syntax_output_accepts_command_style_mutable_receiver_body_returning_receiver() {
     let diagnostics = check_syntax_output(
         "\
@@ -684,91 +450,6 @@ pub (mut map: Map) put(): Unit ->\n\
     );
 
     assert!(diagnostics.is_empty(), "diagnostics: {:?}", diagnostics);
-}
-
-/// Verifies mutable receiver pipe steps continue with the receiver type.
-///
-/// Inputs:
-/// - A module with a mutable receiver method returning `Unit`.
-/// - A function whose declared return type is the receiver type and whose
-///   body is `receiver |> put()`.
-///
-/// Output:
-/// - Test passes when no return-type mismatch treats the pipe as `Unit`,
-///   and no blanket mutable-receiver unsupported diagnostic is emitted.
-///
-/// Transformation:
-/// - Exercises P0.2c command-style mutable receiver checking while keeping
-///   pipe continuation typed as the receiver.
-#[test]
-pub(super) fn syntax_output_mutable_receiver_pipe_continues_with_receiver_type() {
-    let diagnostics = check_syntax_output(
-        "\
-module receiver_pipe_mutable_continuation.\n\
-\n\
-pub struct Map {\n\
-    size: Int\n\
-}.\n\
-\n\
-pub (mut map: Map) put(): Unit ->\n\
-    map.\n\
-\n\
-pub update(map: Map): Map ->\n\
-    map |> put().\n\
-",
-    );
-
-    assert!(
-        !diagnostics.iter().any(|diag| diag
-            .message
-            .contains("mutable receiver method `put` for `Map` is parsed but not supported")),
-        "diagnostics: {:?}",
-        diagnostics
-    );
-    assert!(
-        !diagnostics
-            .iter()
-            .any(|diag| diag.message.contains("expected Map found Unit")),
-        "mutable receiver pipe should continue as Map, diagnostics: {:?}",
-        diagnostics
-    );
-}
-
-/// Verifies mutable receiver pipes accept omitted default arguments.
-///
-/// Inputs:
-/// - A mutable receiver method with a defaulted final parameter.
-/// - A pipe call that omits that parameter.
-///
-/// Output:
-/// - Test passes when the mutable pipe still continues as the receiver type.
-///
-/// Transformation:
-/// - Runs receiver-method pipe inference with completed defaulted argument
-///   types before applying mutable receiver continuation semantics.
-#[test]
-pub(super) fn syntax_output_mutable_receiver_pipe_accepts_default_argument() {
-    let diagnostics = check_syntax_output(
-        "\
-module receiver_pipe_mutable_default.\n\
-\n\
-pub struct Map {\n\
-    size: Int\n\
-}.\n\
-\n\
-pub (mut map: Map) put(key: String, value: String = \"default\"): Unit ->\n\
-    map.\n\
-\n\
-pub update(map: Map): Map ->\n\
-    map |> put(\"a\").\n\
-",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
 }
 
 #[test]

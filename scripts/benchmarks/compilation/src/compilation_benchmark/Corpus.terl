@@ -81,7 +81,7 @@ calls(index: Int, count: Int, accumulated: String): String ->
     }.
 
 pub generate(root: String, count: Int, width: Int, records: Bool): Bool ->
-    if {
+    when {
         Ok(_) <- create_all(String.append(root, "/src/app"))
     } else {
         _ -> false

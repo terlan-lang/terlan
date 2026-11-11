@@ -17,11 +17,15 @@ import type std.data.Json.
 compiler(): String ->
     case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
         Some(value) -> value;
-        _ -> Environment.current_directory() + "/target/debug/terlc"
+        _ ->
+            case Environment.get("TERLC") {
+                Some(value) -> value;
+                _ -> Environment.current_directory() + "/target/debug/terlc"
+            }
     }.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -30,7 +34,7 @@ text(value: Json, key: String): String ->
     result.
 
 capture(root: String, source: String): Result[Json, Bool] ->
-    if {
+    when {
         Ok(_) <- File.write_text(root + "/sample.terl", source);
         Ok(snapshot) <-
             Snapshot.capture_file(
@@ -49,7 +53,7 @@ capture(root: String, source: String): Result[Json, Bool] ->
 @test
 pub unrelated_insertion_preserves_identity_but_requires_fresh_content(): Bool ->
     let body = "pub value(input: Int): Int -> let local = input + 1; local.\n";
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-entity-stability-");
         Ok(before) <- capture(root, "module sample.\n" + body);
         Ok(later) <- capture(root, "module sample.\npub unrelated(): Int -> 0.\n" + body);
@@ -85,7 +89,7 @@ same and stale and fresh and cleaned).
 @test
 pub renamed_binding_invalidates_old_handle_without_name_fallback(): Bool ->
     let body = "module sample.\npub value(input: Int): Int -> let local = input + 1; local.\n";
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-entity-rename-");
         Ok(before) <- capture(root, body);
         Ok(later) <- capture(root, body.replace("local", "renamed"));
@@ -110,7 +114,7 @@ changed and absent and cleaned).
 
 @test
 pub invalid_source_cannot_produce_binding_facts(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-entity-invalid-");
         Ok(rows) <- capture(root, "module sample.\npub value(): Bool -> 1.\n");
         Ok(count) <- rows.length()

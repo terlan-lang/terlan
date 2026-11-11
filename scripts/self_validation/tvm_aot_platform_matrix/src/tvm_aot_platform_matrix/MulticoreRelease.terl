@@ -95,7 +95,7 @@ required_digest(path: String, message: String): Option[String] ->
     }.
 
 json_clone(value: Json): Option[Json] ->
-    if {
+    when {
         Ok(source) <- Json.stringify(value);
         Ok(copy) <- Json.parse(source)
     } else {
@@ -228,7 +228,7 @@ pub validate_workflow(workflow: String): Bool ->
     }.
 
 pub validate_repository(root: String): Bool ->
-    if {
+    when {
         Ok(makefile) <- read_text(child(root, "Makefile"));
         Ok(workflow) <- read_text(child(root, ".github/workflows/release.yml"))
     } else {
@@ -240,7 +240,7 @@ pub validate_repository(root: String): Bool ->
     }.
 
 validate_invariants(inventory: Json): Bool ->
-    if {
+    when {
         Some(report_schema) <- json_string(inventory, "schema");
         Some(contract) <- json_string(inventory, "contract_document");
         Some(upstream) <- json_value(inventory, "upstream");
@@ -272,7 +272,7 @@ string_field_is(value: Json, field: String, expected: String): Bool ->
     }.
 
 pub validate_closeout(report: Json): Bool ->
-    if {
+    when {
         Some(report_schema) <- json_string(report, "schema");
         Some(decision) <- json_string(report, "decision");
         Some(scope) <- json_string(report, "evidence_scope");
@@ -379,7 +379,7 @@ pub build_closeout(
     memory_model_digest: String,
     thread_sanitizer_digest: String,
 ): Option[Json] ->
-    if {
+    when {
         Some(memory_schema) <- json_string(memory_model, "schema");
         Some(memory_decision) <- json_string(memory_model, "decision");
         Some(sanitizer_schema) <- json_string(thread_sanitizer, "schema");
@@ -423,7 +423,7 @@ pub record(): Bool ->
     let thread_sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
     let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
-    if {
+    when {
         Some(memory_model) <- load_json(memory_model_path);
         Some(thread_sanitizer) <- load_json(thread_sanitizer_path);
         Ok(inventory_source) <- read_text(inventory_path);
@@ -467,7 +467,7 @@ pub verify(): Bool ->
     let thread_sanitizer_path = child(root, "target/quality/vm-multicore-thread-sanitizer-report.json");
     let inventory_path = child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json");
     let contract_path = child(root, "docs/runtime/TVM_MULTICORE_CONCURRENCY_CONTRACT.md");
-    if {
+    when {
         Some(actual) <- required_json(report_path, "sealed closeout is missing or malformed");
         Some(memory_model) <- required_json(memory_model_path, "memory-model evidence is missing or malformed");
         Some(thread_sanitizer) <-
@@ -518,7 +518,7 @@ mutation_rejected(report: Json, field: String, value: Json): Bool ->
 
 pub self_test(): Bool ->
     let root = Environment.current_directory();
-    if {
+    when {
         Ok(makefile) <- read_text(child(root, "Makefile"));
         Ok(workflow) <- read_text(child(root, ".github/workflows/release.yml"));
         Ok(inventory_source) <- read_text(child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"));

@@ -206,6 +206,46 @@ fn parse_test_args_accepts_declaration_coverage_gate() {
 }
 
 #[test]
+fn parse_test_args_accepts_explicit_coverage_sources() {
+    let parsed = parse_test_args(&args(&[
+        "tests/SubjectTest.terl",
+        "--coverage-source",
+        "src/Subject.terl",
+        "--coverage-source",
+        "src/Support.terl",
+        "--coverage-threshold",
+        "100",
+    ]))
+    .expect("coverage source args");
+
+    assert!(parsed.coverage);
+    assert_eq!(
+        parsed.coverage_sources,
+        vec![
+            std::path::PathBuf::from("src/Subject.terl"),
+            std::path::PathBuf::from("src/Support.terl"),
+        ]
+    );
+}
+
+#[test]
+fn parse_test_args_rejects_missing_or_duplicate_coverage_sources() {
+    let missing = parse_test_args(&args(&["tests", "--coverage-source"]))
+        .expect_err("missing coverage source");
+    let duplicate = parse_test_args(&args(&[
+        "tests",
+        "--coverage-source",
+        "src/Subject.terl",
+        "--coverage-source",
+        "src/Subject.terl",
+    ]))
+    .expect_err("duplicate coverage source");
+
+    assert_eq!(missing, "--coverage-source requires a file or directory");
+    assert_eq!(duplicate, "duplicate --coverage-source: src/Subject.terl");
+}
+
+#[test]
 fn parse_test_args_rejects_invalid_declaration_coverage_threshold() {
     let error = parse_test_args(&args(&["tests", "--coverage-threshold", "101"]))
         .expect_err("invalid coverage threshold");

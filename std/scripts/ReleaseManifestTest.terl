@@ -326,7 +326,7 @@ first_lines(lines: List[String], remaining: Int, accumulated: String): String ->
     }.
 
 source_module(source: String): String ->
-    if {
+    when {
         Ok(pattern) <- Regex.compile("(?m)^\\s*module\\s+([A-Za-z_][A-Za-z0-9_.]*)\\s*\\.\\s*$");
         Some(name) <- Regex.capture(pattern, source, 1)
     } else {
@@ -1112,6 +1112,10 @@ pub parser_rejects_malformed_manifest_rows(): Bool ->
             String.append(manifest_header(), "\nmodule\tstd.core.Unit\tstd/core/Unit.terl\n"),
         );
     parsed.diagnostics != List.new[String]().
+
+@test
+pub diagnostic_printer_visits_every_failure_row(): Bool ->
+    not print_diagnostics(["first failure", "second failure"]).
 
 @test
 pub longest_module_prefix_owns_nested_api(): Bool ->

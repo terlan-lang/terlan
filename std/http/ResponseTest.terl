@@ -93,6 +93,9 @@ pub sample_cookie_with_options(response: Response): Unit ->
 pub sample_delete_cookie(response: Response): Unit ->
     response.delete_cookie("session").
 
+@compiler.native {std.test.fixture.http_response_header}
+response_header(response: Response, name: String): String.
+
 pub text_response_has_body(value: Response): Bool ->
     value == Response.text("ok", 200) and value != Response.text("wrong", 200).
 
@@ -152,6 +155,13 @@ pub response_cookie_helpers_record_metadata(): Bool ->
 pub response_chainable_metadata_helpers_record_metadata(): Bool ->
     assert(status_response_has_metadata(Response.text("ok").with_status(202)))
         and assert(header_response_has_metadata(Response.text("ok").with_header("x-terlan", "yes"))).
+
+@test
+pub cache_control_override_replaces_the_secure_default(): Bool ->
+    response_header(
+    Response.text("ok").with_header("Cache-Control", "public, max-age=60"),
+    "Cache-Control",
+) == "public, max-age=60".
 
 @test
 pub response_security_headers_record_typed_policy_metadata(): Bool ->

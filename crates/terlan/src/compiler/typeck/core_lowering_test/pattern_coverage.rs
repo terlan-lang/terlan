@@ -316,34 +316,6 @@ pub apply(value: Int, f: (Int) -> Int): Int ->\n\
     );
 }
 
-/// Verifies pipe-forward can target dedicated function-value invocation.
-///
-/// Inputs:
-/// - A syntax-output module using `value |> f()`.
-///
-/// Output:
-/// - Test passes when the function typechecks without diagnostics.
-///
-/// Transformation:
-/// - Exercises the pipe rule that prepends the left operand to a
-///   `FunctionCall` argument list before checking the callee function type.
-#[test]
-pub(super) fn syntax_output_typechecks_pipe_into_function_value_call() {
-    let diagnostics = check_syntax_output(
-        "\
-module pipe_to_function_value_call.\n\
-\n\
-pub apply(value: Int, f: (Int) -> Int): Int ->\n\
-    value |> f().\n",
-    );
-
-    assert!(
-        diagnostics.is_empty(),
-        "unexpected diagnostics: {:?}",
-        diagnostics
-    );
-}
-
 /// Verifies compound type annotations lower to CoreType.
 ///
 /// Inputs:

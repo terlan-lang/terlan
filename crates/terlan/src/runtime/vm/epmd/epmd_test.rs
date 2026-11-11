@@ -6,13 +6,22 @@ use std::num::{NonZeroU16, NonZeroU64};
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::super::actor_directory::VmActorLifecycle;
+use super::super::fixed_scheduler_control::VmFixedSchedulerControl;
+use super::super::protocol_task_executor::{
+    bind_protocol_listener, start_protocol_tasks_with_topology,
+};
+use super::super::scheduler_topology::{VmSchedulerId, VmSchedulerTopology};
 use super::bootstrap::VmLogicalNodeBootstrap;
 use super::client::{
     kill_client_output, names_like_client_output, names_request_frame, stop_request_frame,
 };
 use super::lifecycle::{
-    VmLogicalNodeEndpoint, VmLogicalNodeLifecycle, VmLogicalNodeLifecycleError,
-    VmLogicalNodePhase,
+    VmLogicalNodeEndpoint, VmLogicalNodeLifecycle, VmLogicalNodeLifecycleError, VmLogicalNodePhase,
+};
+use super::node_transport::{
+    encode_node_transport_frame, VmNodePayloadDecoder, VmNodeTransportRouter,
+    VM_NODE_MAX_FRAME_BYTES,
 };
 use super::protocol::{
     encode_frame, encode_port2_response, parse_frame, parse_payload, Alive2Request, NameRequest,
@@ -20,16 +29,6 @@ use super::protocol::{
 };
 use super::state::{ConnectionId, ServerOptions, ServerState};
 use super::transport::{handle_payload, shared_state};
-use super::node_transport::{
-    encode_node_transport_frame, VmNodePayloadDecoder, VmNodeTransportRouter,
-    VM_NODE_MAX_FRAME_BYTES,
-};
-use super::super::fixed_scheduler_control::VmFixedSchedulerControl;
-use super::super::protocol_task_executor::{
-    bind_protocol_listener, start_protocol_tasks_with_topology,
-};
-use super::super::scheduler_topology::{VmSchedulerId, VmSchedulerTopology};
-use super::super::actor_directory::VmActorLifecycle;
 
 /// Builds one valid logical endpoint used by lifecycle tests.
 fn endpoint(name: &str, port: u16) -> VmLogicalNodeEndpoint {
@@ -78,33 +77,31 @@ fn epmd_protocol_round_trips_alive2_and_rejects_malformed_frames() {
     let frame = encode_frame(&payload).expect("encode alive frame");
     assert_eq!(parse_frame(&frame), Ok(Request::Alive2(request)));
     assert_eq!(parse_frame(&[]), Err(ProtocolError::Incomplete));
-    assert_eq!(parse_frame(&[0, 2, NAMES_REQ]), Err(ProtocolError::LengthMismatch));
+    assert_eq!(
+        parse_frame(&[0, 2, NAMES_REQ]),
+        Err(ProtocolError::LengthMismatch)
+    );
     assert_eq!(parse_payload(&[0xff]), Err(ProtocolError::UnknownTag(0xff)));
 }
 
 /// Proves invalid node names cannot enter lookup response encoding.
 #[test]
 fn epmd_protocol_rejects_invalid_names_and_response_fields() {
-    assert_eq!(
-        parse_payload(b"z"),
-        Err(ProtocolError::EmptyName)
-    );
+    assert_eq!(parse_payload(b"z"), Err(ProtocolError::EmptyName));
     assert_eq!(
         parse_payload(&[b'z', b'a', 0, b'b']),
         Err(ProtocolError::NameContainsNul)
     );
     assert_eq!(
-        encode_port2_response(&Port2Response::Found(
-            super::protocol::Port2Found {
-                port: 1,
-                node_type: 77,
-                protocol: 0,
-                highest_version: 6,
-                lowest_version: 5,
-                name: Vec::new(),
-                extra: Vec::new(),
-            }
-        )),
+        encode_port2_response(&Port2Response::Found(super::protocol::Port2Found {
+            port: 1,
+            node_type: 77,
+            protocol: 0,
+            highest_version: 6,
+            lowest_version: 5,
+            name: Vec::new(),
+            extra: Vec::new(),
+        })),
         Err(ProtocolError::EmptyName)
     );
 }
@@ -246,11 +243,7 @@ fn client_planning_preserves_otp_compatible_frames_and_output() {
 #[test]
 fn endpoint_validation_fails_closed() {
     assert_eq!(
-        VmLogicalNodeEndpoint::new(
-            Vec::new(),
-            NonZeroU16::new(1).expect("port"),
-            Vec::new()
-        ),
+        VmLogicalNodeEndpoint::new(Vec::new(), NonZeroU16::new(1).expect("port"), Vec::new()),
         Err(VmLogicalNodeLifecycleError::InvalidNodeName)
     );
     assert_eq!(
@@ -274,8 +267,8 @@ fn fixed_scheduler_connection_handler_owns_alive_registration() {
     payload.extend_from_slice(b"wire@host");
     payload.extend_from_slice(&0_u16.to_be_bytes());
 
-    let reply = handle_payload(&state, ConnectionId::new(50), &payload)
-        .expect("handle alive payload");
+    let reply =
+        handle_payload(&state, ConnectionId::new(50), &payload).expect("handle alive payload");
 
     assert!(reply.keep_connection);
     assert_eq!(reply.bytes, vec![b'v', 0, 0, 0, 0, 4]);
@@ -323,7 +316,11 @@ fn logical_node_router_publishes_to_current_actor_owner() {
     let destination = VmSchedulerId::primary()
         .index()
         .checked_add(1)
-        .and_then(|index| topology.schedulers().find(|scheduler| scheduler.index() == index))
+        .and_then(|index| {
+            topology
+                .schedulers()
+                .find(|scheduler| scheduler.index() == index)
+        })
         .expect("secondary scheduler");
     let migrated = actors
         .complete_migration(
@@ -354,7 +351,10 @@ fn logical_node_transport_frame_is_bounded_and_actor_addressed() {
     let actor = NonZeroU64::new(42).expect("actor");
     let frame = encode_node_transport_frame(actor, b"payload").expect("frame");
 
-    assert_eq!(u32::from_be_bytes(frame[..4].try_into().expect("length")), 15);
+    assert_eq!(
+        u32::from_be_bytes(frame[..4].try_into().expect("length")),
+        15
+    );
     assert_eq!(
         u64::from_be_bytes(frame[4..12].try_into().expect("actor")),
         42
@@ -452,11 +452,7 @@ fn query_discovery(address: std::net::SocketAddr, name: &[u8]) -> Vec<u8> {
 }
 
 /// Sends one actor-addressed payload and returns its terminal acknowledgement.
-fn send_node_message(
-    address: std::net::SocketAddr,
-    actor: NonZeroU64,
-    payload: &[u8],
-) -> Vec<u8> {
+fn send_node_message(address: std::net::SocketAddr, actor: NonZeroU64, payload: &[u8]) -> Vec<u8> {
     let mut stream = connect(address);
     stream
         .write_all(&encode_node_transport_frame(actor, payload).expect("node frame"))

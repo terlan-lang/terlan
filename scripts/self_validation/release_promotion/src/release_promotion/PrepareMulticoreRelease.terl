@@ -21,7 +21,7 @@ require(condition: Bool, message: String): Result[Bool, String] ->
 
 pub declare(root: String, vm: String, image: String, context: Context): Result[Owner, String] ->
     let env = context.environment;
-    if {
+    when {
         Ok(_paths) <-
             require(
                 PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
@@ -43,7 +43,7 @@ pub declare_with_version(
     context: Context,
     version: String,
 ): Result[Owner, String] ->
-    if {
+    when {
         Ok(_paths) <-
             require(
                 PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),
@@ -85,7 +85,7 @@ pub declare_with_version(
     ).
 
 pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
-    if {
+    when {
         Ok(_paths) <-
             require(
                 PreparationContext.tool_path(vm) and PreparationContext.tool_path(image),

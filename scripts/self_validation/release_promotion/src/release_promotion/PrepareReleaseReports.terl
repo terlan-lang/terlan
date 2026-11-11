@@ -13,12 +13,12 @@ import type release_promotion.PreparationGraph.Node.
 import type std.core.Result.
 
 pub declare(root: String, vm: String, image: String): Result[List[Node], String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image)
     } else {
         _ -> Err("preparation tools must be inside target/")
     };
-    (if {
+    (when {
     Ok(context) <-
         PreparationContext.capture(
             root,
@@ -41,7 +41,7 @@ Ok(
 )).
 
 pub run_locked(root: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(nodes) <- declare(root, vm, image)
     } else {
         Err(reason) ->

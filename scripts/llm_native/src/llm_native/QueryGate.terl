@@ -17,7 +17,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 load(path: String): Result[Json, Bool] ->
-    if {
+    when {
         Ok(contents) <- File.read_text(path);
         Ok(document) <- Json.parse(contents)
     } else {
@@ -120,7 +120,7 @@ pub admit_peer(
     spec_digest: String,
     large: Bool,
 ): Bool ->
-    if {
+    when {
         Ok(versions) <- report.get("peer_versions");
         Ok(rows) <- report.get("cases");
         Some(expected) <- QueryInventory.mcp_names(inventory, large)
@@ -203,7 +203,7 @@ snapshot(
             600_000,
         );
     let written = record(output, cases, completion);
-    if {
+    when {
         true <- written and Evidence.text(completion, "status") == "passed";
         Ok(document) <- load(output + "/" + label + "-snapshot.stdout");
         Ok(compiler) <- document.get("compiler");
@@ -229,7 +229,7 @@ sdk_case(
     large: Bool,
     mut cases: Json,
 ): Bool ->
-    if {
+    when {
         Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
         Ok(document) <- snapshot(host, root, output, fixture, label, cases);
         Ok(compiler_digest) <- Hash.sha256_file(host);
@@ -337,7 +337,7 @@ artifact_rows(paths: List[String], prefix: String, mut rows: Json): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            if {
+            when {
                 Ok(digest) <- Hash.sha256_file(path)
             } else {
                 _ -> false
@@ -358,7 +358,7 @@ artifact_rows(rest, prefix, rows))
     }.
 
 pub run(host: String, root: String, output: String): Bool ->
-    if {
+    when {
         Ok(inventory) <- QueryInventory.load(root);
         Ok(base) <- File.read_text(root + "/tests/fixtures/llm_native/mcp/query.terl");
         Ok(_) <- Directory.create_all(output + "/large");

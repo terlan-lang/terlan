@@ -22,8 +22,7 @@ rules from any source style guide.
   generated-code use, or repository policy violations.
 - `warning`: maintainability, confusing control flow, risky naming, hidden
   side effects, or fragile API shape.
-- `suggestion`: equivalent readability improvements such as safe pipe
-  canonicalization.
+- `suggestion`: behavior-preserving readability improvements.
 
 ## Diagnostic Contract
 
@@ -48,7 +47,7 @@ Initial rules:
 - `TL0001 readability.semicolon-chain`: reject dense same-line semicolon
   expression chains after formatting.
 - `TL0002 readability.deep-expression`: flag deeply nested expression trees
-  when a named `let`, helper, or pipe would clarify intent.
+  when a named `let`, helper, or receiver method would clarify intent.
 - `TL0003 readability.callback-name`: require meaningful callback parameter
   names when the callback has multiple expressions or captures outer state.
 - `TL0004 readability.unused-destructure-binding`: require destructured names
@@ -207,42 +206,12 @@ Purpose: keep the formatter deterministic and semantic rewrites in lint.
 Initial rules:
 
 - `TL1001 format-boundary.semantic-fmt`: reject formatter behavior that rewrites
-  ordinary call topology into pipe form.
-- `TL1002 format-boundary.pipe-fix`: offer pipe canonicalization only through
-  lint when the compiler proves the rewrite is behavior-preserving.
+  ordinary call topology.
 - `TL1003 format-boundary.semicolon-split`: flag semicolon-separated expression chains
   that remain dense after formatting and require one expression per line when
   side effects, assertions, mutations, or test setup steps are present.
 
 Policy boundary:
 
-- pipe canonicalization belongs to lint, because it can change call topology
-  and needs semantic proof before `--fix` may apply it.
 - fmt may split semicolon chains when it can preserve the exact expression
   order and does not need semantic proof.
-
-## Pipe Canonicalization
-
-Lint may suggest pipe form when the inner call result is passed as the first
-argument to the outer call:
-
-```terl
-Iterator.each(Set.iterator(collection), cb).
-```
-
-Suggested form:
-
-```terl
-collection
-    |> Set.iterator()
-    |> Iterator.each(cb).
-```
-
-`terlc lint --fix` must reject:
-
-- named-argument ambiguity
-- default-argument ambiguity
-- function-value calls
-- nested argument contexts
-- side-effect-sensitive duplicated expressions
-- target-specific intrinsic calls unless proven safe

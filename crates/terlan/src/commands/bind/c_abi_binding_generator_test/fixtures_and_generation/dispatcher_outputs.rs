@@ -69,7 +69,7 @@ fn mutable_dispatcher_can_discard_one_owned_alias_result() {
     assert!(helper.contains("Ok(()) => \"ok_unit\".to_string()"));
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
-    assert!(source.contains("pub write_clone(boundary: NativeBoundary): Unit"));
+    assert!(source.contains("pub (boundary: NativeBoundary) write_clone(): Unit"));
 
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");

@@ -970,7 +970,7 @@ groups_from_input_values(
     line_text: String,
     name: String,
 ): Option[List[DuplicateGroup]] ->
-    if {
+    when {
         Some(complexity_units) <- Int.from_string(complexity_text);
         Some(source_line) <- Int.from_string(line_text)
     } else {
@@ -1012,7 +1012,7 @@ groups_from_input_rows(rows: List[String], index: GroupIndex): Option[List[Dupli
     }.
 
 repository_input_rows(lines: List[String]): Option[List[DuplicateGroup]] ->
-    if {
+    when {
         [schema | rest] <- lines;
         [header | rows] <- rest
     } else {

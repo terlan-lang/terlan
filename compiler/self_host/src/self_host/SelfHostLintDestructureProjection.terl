@@ -1,14 +1,20 @@
-/** Tooling-document projection for TL0004 destructured bindings. */
+/**
+ * Tooling-document projection for TL0004 destructured bindings.
+ */
 module self_host.SelfHostLintDestructureProjection.
 
-import std.core.Option.{None, Some}.
+import self_host.CanonicalToken.LowerIdentifierToken.
 import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
-import self_host.SelfHostLintReadability.DestructureBinding.
 import self_host.SelfHostLintReadability.
+import self_host.SelfHostLintReadability.DestructureBinding.
 import self_host.SelfHostToolingDocument.{ToolingDocument, ToolingToken}.
+import std.core.Option.{None, Some}.
 
 append[T](left: List[T], right: List[T]): List[T] ->
-    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
 
 token_at(values: List[ToolingToken], start_byte: Int): Option[ToolingToken] ->
     case values {
@@ -23,17 +29,14 @@ token_at(values: List[ToolingToken], start_byte: Int): Option[ToolingToken] ->
 
 variable_token(value: ProjectedExpressionNode, tokens: List[ToolingToken]): Bool ->
     if {
-        value.kind != "pattern-token" -> false;
+        value.kind != "pattern-token" and value.kind != "binding-pattern" -> false;
         true -> case token_at(tokens, value.start_byte) {
-            Some(token) -> token.terminal == "var";
+            Some(token) -> token.category == LowerIdentifierToken;
             None -> false
         }
     }.
 
-pattern_names(
-    value: ProjectedExpressionNode,
-    tokens: List[ToolingToken],
-): List[String] ->
+pattern_names(value: ProjectedExpressionNode, tokens: List[ToolingToken]): List[String] ->
     if {
         variable_token(value, tokens) and value.text != "_" -> [value.text];
         true -> pattern_names_at(value.children, tokens)
@@ -45,10 +48,7 @@ pattern_names_at(
 ): List[String] ->
     case values {
         [] -> [];
-        [value | rest] -> append(
-            pattern_names(value, tokens),
-            pattern_names_at(rest, tokens),
-        )
+        [value | rest] -> append(pattern_names(value, tokens), pattern_names_at(rest, tokens))
     }.
 
 direct_pattern(value: ProjectedExpressionNode, tokens: List[ToolingToken]): Bool ->
@@ -62,14 +62,13 @@ direct_pattern(value: ProjectedExpressionNode, tokens: List[ToolingToken]): Bool
     }.
 
 expression_uses(value: ProjectedExpressionNode, name: String): Bool ->
-    (value.kind == "identifier" and value.text == name)
+    (value.kind == "identifier" or value.kind == "atom") and value.text == name
         or expressions_use(value.children, name).
 
 expressions_use(values: List[ProjectedExpressionNode], name: String): Bool ->
     case values {
         [] -> false;
-        [value | rest] ->
-            expression_uses(value, name) or expressions_use(rest, name)
+        [value | rest] -> expression_uses(value, name) or expressions_use(rest, name)
     }.
 
 binding_values(
@@ -78,10 +77,8 @@ binding_values(
 ): List[DestructureBinding] ->
     case names {
         [] -> [];
-        [name | rest] -> [DestructureBinding(
-            name,
-            expressions_use(uses, name),
-        ) | binding_values(rest, uses)]
+        [name | rest] ->
+            [DestructureBinding(name, expressions_use(uses, name)) | binding_values(rest, uses)]
     }.
 
 pattern_fact(
@@ -101,12 +98,8 @@ regular_let_facts(
     tokens: List[ToolingToken],
 ): List[{Int, Bool, List[DestructureBinding]}] ->
     case value.children {
-        [pattern, _bound, continuation] -> pattern_fact(
-            pattern,
-            tokens,
-            [continuation],
-            continuation.start_byte,
-        );
+        [pattern, _bound, continuation] ->
+            pattern_fact(pattern, tokens, [continuation], continuation.start_byte);
         _ -> []
     }.
 
@@ -115,18 +108,8 @@ clause_facts(
     tokens: List[ToolingToken],
 ): List[{Int, Bool, List[DestructureBinding]}] ->
     case value.children {
-        [pattern, body] -> pattern_fact(
-            pattern,
-            tokens,
-            [body],
-            body.start_byte,
-        );
-        [pattern, guard, body] -> pattern_fact(
-            pattern,
-            tokens,
-            [body, guard],
-            body.start_byte,
-        );
+        [pattern, body] -> pattern_fact(pattern, tokens, [body], body.start_byte);
+        [pattern, guard, body] -> pattern_fact(pattern, tokens, [body, guard], body.start_byte);
         _ -> []
     }.
 
@@ -145,10 +128,11 @@ binding_source(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] 
 binding_sources(values: List[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
     case values {
         [] -> [];
-        [value | rest] -> case binding_source(value) {
-            None -> binding_sources(rest);
-            Some(source) -> [source | binding_sources(rest)]
-        }
+        [value | rest] ->
+            case binding_source(value) {
+                None -> binding_sources(rest);
+                Some(source) -> [source | binding_sources(rest)]
+            }
     }.
 
 without_last_two(values: List[ProjectedExpressionNode]): List[ProjectedExpressionNode] ->
@@ -159,7 +143,9 @@ without_last_two(values: List[ProjectedExpressionNode]): List[ProjectedExpressio
         [value | rest] -> [value | without_last_two(rest)]
     }.
 
-last_two(values: List[ProjectedExpressionNode]): Option[{ProjectedExpressionNode, ProjectedExpressionNode}] ->
+last_two(
+    values: List[ProjectedExpressionNode],
+): Option[{ProjectedExpressionNode, ProjectedExpressionNode}] ->
     case values {
         [first, second] -> Some({first, second});
         [_ | rest] -> last_two(rest);
@@ -173,20 +159,22 @@ grouped_binding_facts(
 ): List[{Int, Bool, List[DestructureBinding]}] ->
     case bindings {
         [] -> [];
-        [value | rest] -> case binding_pattern(value) {
-            None -> grouped_binding_facts(rest, continuation, tokens);
-            Some(pattern) ->
-                let later_sources = binding_sources(rest);
-                let uses = append(later_sources, [continuation]);
-                let start_byte = case later_sources {
-                    [first | _] -> first.start_byte;
-                    [] -> continuation.start_byte
-                };
-                append(
-                    pattern_fact(pattern, tokens, uses, start_byte),
-                    grouped_binding_facts(rest, continuation, tokens),
-                )
-        }
+        [value | rest] ->
+            case binding_pattern(value) {
+                None -> grouped_binding_facts(rest, continuation, tokens);
+                Some(pattern) ->
+                    let later_sources = binding_sources(rest);
+                    let uses = append(later_sources, [continuation]);
+                    let start_byte =
+                        case later_sources {
+                            [first | _] -> first.start_byte;
+                            [] -> continuation.start_byte
+                        };
+                    append(
+                        pattern_fact(pattern, tokens, uses, start_byte),
+                        grouped_binding_facts(rest, continuation, tokens),
+                    )
+            }
     }.
 
 refutable_let_facts(
@@ -195,11 +183,8 @@ refutable_let_facts(
 ): List[{Int, Bool, List[DestructureBinding]}] ->
     case last_two(value.children) {
         None -> [];
-        Some({_fallback, continuation}) -> grouped_binding_facts(
-            without_last_two(value.children),
-            continuation,
-            tokens,
-        )
+        Some({_fallback, continuation}) ->
+            grouped_binding_facts(without_last_two(value.children), continuation, tokens)
     }.
 
 local_facts(
@@ -217,10 +202,7 @@ node_facts(
     value: ProjectedExpressionNode,
     tokens: List[ToolingToken],
 ): List[{Int, Bool, List[DestructureBinding]}] ->
-    append(
-        local_facts(value, tokens),
-        nodes_facts(value.children, tokens),
-    ).
+    append(local_facts(value, tokens), nodes_facts(value.children, tokens)).
 
 nodes_facts(
     values: List[ProjectedExpressionNode],
@@ -228,10 +210,7 @@ nodes_facts(
 ): List[{Int, Bool, List[DestructureBinding]}] ->
     case values {
         [] -> [];
-        [value | rest] -> append(
-            node_facts(value, tokens),
-            nodes_facts(rest, tokens),
-        )
+        [value | rest] -> append(node_facts(value, tokens), nodes_facts(rest, tokens))
     }.
 
 body_facts(
@@ -240,37 +219,29 @@ body_facts(
 ): List[{Int, Bool, List[DestructureBinding]}] ->
     case values {
         [] -> [];
-        [value | rest] -> case value.expression.node {
-            None -> body_facts(rest, tokens);
-            Some(expression) -> append(
-                node_facts(expression, tokens),
-                body_facts(rest, tokens),
-            )
-        }
+        [value | rest] ->
+            case value.expression.node {
+                None -> body_facts(rest, tokens);
+                Some(expression) ->
+                    append(node_facts(expression, tokens), body_facts(rest, tokens))
+            }
     }.
 
-/** Projects destructured binding use facts with native-compatible scopes. */
+/**
+ * Projects destructured binding use facts with native-compatible scopes.
+ */
 pub facts(value: ToolingDocument): List[{Int, Bool, List[DestructureBinding]}] ->
     if {
-        value.valid and value.frontend.bodies.valid ->
-            body_facts(value.frontend.bodies.values, value.tokens);
+        value.valid and value.frontend.bodies.valid -> body_facts(value.frontend.bodies.values, value.tokens);
         true -> []
     }.
 
-/** Runs TL0004 without native AST projection. */
+/**
+ * Runs TL0004 without native AST projection.
+ */
 @pure
 pub diagnostics(
     path: String,
     value: ToolingDocument,
 ): List[SelfHostLintReadability.ReadabilityDiagnostic] ->
-    SelfHostLintReadability.diagnostics(
-        path,
-        value.source,
-        [],
-        [],
-        facts(value),
-        [],
-        [],
-        [],
-        [],
-    ).
+    SelfHostLintReadability.diagnostics(path, value.source, [], [], facts(value), [], [], [], []).

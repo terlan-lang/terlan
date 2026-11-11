@@ -84,11 +84,11 @@ positive(xs: List[Int]): List[Int] -> [x | x <- xs, x > 0].
                     (number)))))))))))
 
 ==================
-remote calls compose with pipes
+remote calls compose with receiver methods
 ==================
 
 module app.Remote.
-format(): String -> Format.format("~p", []) |> inspect().
+format(): String -> Format.format("~p", []).inspect().
 
 ---
 
@@ -101,7 +101,7 @@ format(): String -> Format.format("~p", []) |> inspect().
     (type_expression
       (type_identifier))
     (expression
-      (binary_expression
+      (method_call_expression
         (expression
           (call_expression
             (qualified_identifier)
@@ -112,10 +112,8 @@ format(): String -> Format.format("~p", []) |> inspect().
               (argument
                 (expression
                   (list_expression))))))
-        (expression
-          (call_expression
-            (identifier)
-            (arguments)))))))
+        (field_identifier)
+        (arguments)))))
 
 ==================
 dotted module call

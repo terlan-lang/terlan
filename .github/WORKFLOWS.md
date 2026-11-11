@@ -398,6 +398,13 @@ workflow runs `make release-tag` to wait, prepare, and publish under one lease.
 It never transfers green evidence between commits. Existing attestation,
 checksum, candidate, annotated-tag, and upload verification remain authoritative.
 
+`make release-predict VERSION=0.0.10` is the strict read-only admission check.
+It validates both local Make execution plans, observes the exact hosted revision,
+and succeeds only when the retained candidate can enter preparation without
+discovering another required validation step. It neither builds nor publishes.
+`make release-plan VERSION=0.0.10` uses the already-built local compiler to show
+the same state without bootstrapping a second release-control artifact.
+
 The direct-AOT cache identity binds the dependency lock, profile, enabled Cargo
 features, target, codegen policy, and bytes of the resolved linker. Set
 `TERLAN_NATIVE_CACHE_MISS_POLICY=error` in a warm-cache validation step to make

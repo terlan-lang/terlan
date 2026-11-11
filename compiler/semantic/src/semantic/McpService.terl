@@ -31,7 +31,7 @@ text(value: Json, key: String): String ->
 
 schema(root: String, name: String): Result[Json, Failure] ->
     let path = root + "/" + name + ".schema.json";
-    if {
+    when {
         Ok(size) <- File.size(path);
         true <- size <= 65_536;
         Ok(contents) <- File.read_text(path);
@@ -56,7 +56,7 @@ catalog_uri(snapshot: String, page: Int): String ->
 
 resource(uri: String, name: String, document: Json): Result[Json, Failure] ->
     let contents = Json.to_string(document);
-    if {
+    when {
         true <- contents.byte_size() <= 65_536
     } else {
         _ ->
@@ -120,7 +120,7 @@ catalog_resources(
                 message = "Catalog exceeds the 1024-page admission limit.",
             ),
         );
-        index == count -> if {
+        index == count -> when {
             Ok(last) <-
                 resource(
                     catalog_uri(snapshot, page),
@@ -131,7 +131,7 @@ catalog_resources(
             Err(reason) -> Err(reason)
         };
         Ok(resources.push(last));
-        true -> if {
+        true -> when {
             Ok(row) <- entities.at(index)
         } else {
             _ ->
@@ -145,7 +145,7 @@ if {
             message = "A catalog entity exceeds the page admission limit.",
         ),
     );
-    bytes + size > 32_768 -> if {
+    bytes + size > 32_768 -> when {
         Ok(current) <-
             resource(
                 catalog_uri(snapshot, page),
@@ -184,7 +184,7 @@ if {
  * Host configuration, never client-supplied paths, selects store and schemas.
  */
 pub open(store: String, snapshot: String, schema_root: String): Result[Context, Failure] ->
-    if {
+    when {
         Ok(manifest) <- SnapshotStore.load(store, snapshot);
         Ok(catalog) <- Catalog.index(store, snapshot);
         Ok(entities) <- catalog.get("entities");
@@ -204,7 +204,7 @@ pub open(store: String, snapshot: String, schema_root: String): Result[Context, 
                 ),
             )
     };
-    (if {
+    (when {
     Ok(resources) <-
         catalog_resources(
             snapshot,
@@ -280,7 +280,7 @@ failure_result(reason: Failure): Json ->
     ).
 
 call(context: Context, id: Json, params: Json): Json ->
-    if {
+    when {
         Ok(name) <- JsonRules.text(params, "name")
     } else {
         _ -> Protocol.error(id, -32_602, "Tool call requires a name and arguments object.")
@@ -290,7 +290,7 @@ call(context: Context, id: Json, params: Json): Json ->
         Ok(value) -> value;
         _ -> Json.object()
     };
-(if {
+(when {
     Ok(_) <- arguments.keys()
 } else {
     _ -> Protocol.error(id, -32_602, "Tool arguments must be an object.")
@@ -331,7 +331,7 @@ cursor(params: Json): Result[String, Failure] ->
 descriptors(resources: Json, index: Int, end: Int, rows: Json): Result[Json, Failure] ->
     if {
         index == end -> Ok(rows);
-        true -> if {
+        true -> when {
             Ok(record) <- resources.at(index);
             Ok(descriptor) <- record.get("descriptor")
         } else {
@@ -348,7 +348,7 @@ descriptors(resources: Json, index: Int, end: Int, rows: Json): Result[Json, Fai
 
 list_resources(context: Context, id: Json, params: Json): Json ->
     let scope = Hash.sha256_domain_framed("terlan.semantic.mcp-resources.v1", [context.snapshot_id]);
-    if {
+    when {
         Ok(token) <- cursor(params);
         Ok(offset) <- CursorStore.load(context.store, scope, context.projection, token);
         Ok(count) <- context.resources.length();
@@ -366,7 +366,7 @@ list_resources(context: Context, id: Json, params: Json): Json ->
         offset + 16 < count -> offset + 16;
         true -> count
     };
-(if {
+(when {
     Ok(rows) <- descriptors(context.resources, offset, end, Json.array())
 } else {
     _ -> Protocol.error(id, -32_603, "Cannot read admitted resources.")
@@ -381,7 +381,7 @@ if {
 }))).
 
 find_resource(resources: Json, uri: String, index: Int, count: Int): Result[Json, Failure] ->
-    if {
+    when {
         true <- index < count
     } else {
         _ ->
@@ -392,7 +392,7 @@ find_resource(resources: Json, uri: String, index: Int, count: Int): Result[Json
                 ),
             )
     };
-    (if {
+    (when {
     Ok(record) <- resources.at(index);
     Ok(descriptor) <- record.get("descriptor")
 } else {
@@ -404,12 +404,12 @@ if {
 }).
 
 read_resource(context: Context, id: Json, params: Json): Json ->
-    if {
+    when {
         Ok(uri) <- JsonRules.text(params, "uri")
     } else {
         _ -> Protocol.error(id, -32_602, "Resource read requires a URI string.")
     };
-    (if {
+    (when {
     Ok(count) <- context.resources.length();
     Ok(record) <- find_resource(context.resources, uri, 0, count)
 } else {
@@ -426,7 +426,7 @@ Protocol.reply(id, Json.object().put("contents", Json.array().push(contents)))))
  * Called only for requests admitted by the shared MCP lifecycle.
  */
 pub dispatch(context: Context, method: String, params: Json, id: Json): Json ->
-    if {
+    when {
         Ok(_) <- SnapshotStore.load(context.store, context.snapshot_id)
     } else {
         _ -> Protocol.error(id, -32_603, "Admitted snapshot no longer passes integrity checks.")

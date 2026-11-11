@@ -198,7 +198,7 @@ json_string_array(
 ): Option[List[String]] ->
     if {
         index >= count -> Some(reverse(reversed, []));
-        true -> if {
+        true -> when {
             Ok(member) <- value.at(index);
             Ok(text) <- member.as_string()
         } else {
@@ -219,7 +219,7 @@ release_features_at(profiles: Json, index: Int, count: Int): Option[List[String]
         true -> case profiles.at(index) {
             Err(_reason) -> None;
             Ok(profile) ->
-                if {
+                when {
                     Ok(name_value) <- profile.get("name");
                     Ok(name) <- name_value.as_string()
                 } else {
@@ -227,7 +227,7 @@ release_features_at(profiles: Json, index: Int, count: Int): Option[List[String]
                 };
                 if {
                     name != "release" -> release_features_at(profiles, index + 1, count);
-                    true -> if {
+                    true -> when {
                         Ok(features) <- profile.get("feature_set");
                         Ok(feature_count) <- features.length()
                     } else {
@@ -243,7 +243,7 @@ release_features_at(profiles: Json, index: Int, count: Int): Option[List[String]
  */
 pub release_features(root: String): Option[List[String]] ->
     let path = String.append(root, "/docs/package/RUST_BUILD_FEATURES.json");
-    if {
+    when {
         Ok(source) <- read_text(path);
         Ok(manifest) <- Json.parse(source);
         Ok(profiles) <- manifest.get("release_profiles");

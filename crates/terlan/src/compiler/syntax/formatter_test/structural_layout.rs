@@ -389,6 +389,27 @@ pub run(): Bool ->
     parse_module(&output).expect("formatted lambda let binding should parse");
 }
 
+/// Verifies irrefutable product bindings survive canonical formatting.
+#[test]
+pub(super) fn formatter_preserves_product_let_destructuring() {
+    let output = format_source_module(
+        r#"
+module product_let_fmt.
+
+pub add(pair: {Int, Int}): Int ->
+    let {left,right} = pair;
+    left + right.
+"#,
+    )
+    .expect("format product let destructuring");
+
+    assert!(
+        output.contains("let {left, right} = pair;"),
+        "formatted output:\n{output}"
+    );
+    parse_module(&output).expect("formatted product let destructuring should parse");
+}
+
 /// Verifies list-comprehension filters survive formatting.
 ///
 /// Inputs:

@@ -17,11 +17,15 @@ import type std.data.Json.
 compiler(): String ->
     case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
         Some(value) -> value;
-        _ -> String.append(Environment.current_directory(), "/target/debug/terlc")
+        _ ->
+            case Environment.get("TERLC") {
+                Some(value) -> value;
+                _ -> String.append(Environment.current_directory(), "/target/debug/terlc")
+            }
     }.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -33,7 +37,7 @@ source(): String -> "module sample.\npub value(input: Int): Int -> let local = i
 
 @test
 pub repeated_capture_is_stable_and_preserves_source(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-semantic-stability-");
         Ok(_) <- File.write_text(root + "/sample.terl", source());
         Ok(first) <-
@@ -68,7 +72,7 @@ stable and preserved and checked and cleaned).
 
 @test
 pub original_edits_do_not_change_an_existing_snapshot(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-semantic-immutable-");
         Ok(_) <- File.write_text(root + "/sample.terl", source());
         Ok(first) <-
@@ -100,7 +104,7 @@ changed and previous and cleaned).
 
 @test
 pub modified_compiler_artifact_is_never_served(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-semantic-corruption-");
         Ok(_) <- File.write_text(root + "/sample.terl", source());
         Ok(document) <-
@@ -125,7 +129,7 @@ corrupted and rejected and cleaned).
 
 @test
 pub invalid_source_retains_compiler_rejection(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-semantic-invalid-");
         Ok(_) <- File.write_text(root + "/sample.terl", "module sample.\npub value(): Bool -> 1.\n");
         Ok(document) <-
@@ -161,7 +165,7 @@ pub malformed_handles_and_escaping_paths_are_rejected(): Bool ->
 
 @test
 pub unsaved_overlay_is_versioned_and_preserves_disk_source(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-semantic-overlay-test-");
         Ok(_) <- File.write_text(root + "/sample.terl", source());
         Ok(disk) <-
@@ -191,7 +195,7 @@ pub unsaved_overlay_is_versioned_and_preserves_disk_source(): Bool ->
 
 @test
 pub stale_overlay_base_is_rejected_before_publication(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-semantic-stale-overlay-");
         Ok(_) <- File.write_text(root + "/sample.terl", source())
     } else {

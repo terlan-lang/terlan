@@ -110,7 +110,7 @@ source(): Result[Source, Unit] ->
 build(source: Source, count: Int, average: Option[Price]): Result[Observation, Unit] ->
     Ok(Observation(source, count, average)).
 pub select(current: Option[Int]): Option[Observation] ->
-    if {
+    when {
         Ok(source) <- source()
     } else {
         _ -> None

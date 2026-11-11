@@ -17,7 +17,7 @@ import type std.system.Process.EnvironmentEntry.
 copy_surfaces(source: String, destination: String): Bool ->
     let editor_parent = Support.child(destination, "share/terlan/editors");
     let tree_parent = Support.child(destination, "share/terlan");
-    if {
+    when {
         Ok(_editor_parent) <- Directory.create_all(editor_parent);
         Ok(_tree_parent) <- Directory.create_all(tree_parent);
         Ok(_editor) <-
@@ -72,7 +72,7 @@ stale_icon_rejected(complete: String, root: String): Bool ->
     let manifest_path = Support.child(root, Support.child(Editor.editor_root(), "package.json"));
     if {
         not copy_complete(complete, root) -> false;
-        true -> if {
+        true -> when {
             Some(manifest) <- Support.read_json(manifest_path);
             Some(icon) <- Support.json_string(manifest, "icon");
             Ok(_unit) <- delete(Support.child(Support.child(root, Editor.editor_root()), icon));
@@ -151,7 +151,7 @@ malformed_source_rejected(
     environment: List[EnvironmentEntry],
 ): Bool ->
     let malformed = Support.child(fixture, "Malformed.terl");
-    if {
+    when {
         Ok(_unit) <- write_text(malformed, "module malformed\n");
         Some(output) <-
             Support.run_process(

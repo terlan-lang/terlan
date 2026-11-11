@@ -19,6 +19,8 @@ pub(super) use completed::lower_completed_guard_results;
 pub(super) use deferred::lower_guards;
 
 const EFFECT_CONTAINER: &str = "std.core.Effect.Effect";
+const RANGE_CONTAINS: &str = "std.range.Range.contains";
+const RANGE_INCLUSIVE: &str = "std.range.Range.inclusive";
 const RANGE_ITERATOR: &str = "std.range.Range.iterator";
 const MAX_COMPREHENSIONS_PER_MODULE: usize = 128;
 
@@ -637,6 +639,11 @@ fn range_bounds(source: &CoreExpr) -> NativeIrResult<(CoreExpr, CoreExpr)> {
         CoreExpr::Cast { expr, .. } => expr.as_ref(),
         source => source,
     };
+    if let CoreExpr::Call { function, args, .. } = source {
+        if function == RANGE_INCLUSIVE && args.len() == 2 {
+            return Ok((args[0].clone(), args[1].clone()));
+        }
+    }
     let CoreExpr::BinaryOp {
         operator,
         left,
@@ -659,6 +666,23 @@ fn range_bounds(source: &CoreExpr) -> NativeIrResult<(CoreExpr, CoreExpr)> {
 fn lower_range_membership(expr: &mut CoreExpr) {
     if let CoreExpr::Cast { expr, .. } = expr {
         lower_range_membership(expr);
+        return;
+    }
+    if let CoreExpr::Call { function, args, .. } = expr {
+        if function == RANGE_CONTAINS && args.len() == 2 {
+            let CoreExpr::Call {
+                function: constructor,
+                args: bounds,
+                ..
+            } = &args[0]
+            else {
+                return;
+            };
+            if constructor == RANGE_INCLUSIVE && bounds.len() == 2 {
+                *expr =
+                    range_membership_expr(args[1].clone(), bounds[0].clone(), bounds[1].clone());
+            }
+        }
         return;
     }
     let CoreExpr::BinaryOp {
@@ -685,9 +709,10 @@ fn lower_range_membership(expr: &mut CoreExpr) {
     if range_operator != ".." {
         return;
     }
-    let value = (**left).clone();
-    let start = (**start).clone();
-    let stop = (**stop).clone();
+    *expr = range_membership_expr((**left).clone(), (**start).clone(), (**stop).clone());
+}
+
+fn range_membership_expr(value: CoreExpr, start: CoreExpr, stop: CoreExpr) -> CoreExpr {
     let comparison = |operator: &str, left: CoreExpr, right: CoreExpr| CoreExpr::BinaryOp {
         operator: operator.to_string(),
         left: Box::new(left),
@@ -712,11 +737,11 @@ fn lower_range_membership(expr: &mut CoreExpr) {
             comparison(">=", value, stop),
         ),
     );
-    *expr = CoreExpr::BinaryOp {
+    CoreExpr::BinaryOp {
         operator: "or".to_string(),
         left: Box::new(ascending),
         right: Box::new(descending),
-    };
+    }
 }
 
 fn cast_type(expr: &CoreExpr) -> Option<CoreType> {

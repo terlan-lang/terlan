@@ -33,11 +33,15 @@ text(value: Json, key: String): String ->
 compiler(): String ->
     case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
         Some(value) -> value;
-        _ -> Environment.current_directory() + "/target/debug/terlc"
+        _ ->
+            case Environment.get("TERLC") {
+                Some(value) -> value;
+                _ -> Environment.current_directory() + "/target/debug/terlc"
+            }
     }.
 
 fixture(source: String): Result[Fixture, Bool] ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-relations-test-");
         Ok(_) <- File.write_text(root + "/sample.terl", source);
         Ok(snapshot) <- Snapshot.capture_file(compiler(), root + "/sample.terl", "sample.terl", root + "/store");
@@ -56,7 +60,7 @@ find(
     index: Int,
     count: Int,
 ): Result[Json, Bool] ->
-    if {
+    when {
         true <- index < count;
         Ok(row) <- rows.at(index)
     } else {
@@ -71,7 +75,7 @@ find(
     }.
 
 selected(context: Fixture, kind: String, name: String, occurrence: Int): Result[Json, Bool] ->
-    if {
+    when {
         Ok(count) <- context.entities.length()
     } else {
         _ -> Err(false)
@@ -105,7 +109,7 @@ run(context: Fixture, entity: Json): Result[Json, Failure] ->
     }.
 
 relation(rows: Json, kind: String, index: Int, count: Int): Result[Json, Bool] ->
-    if {
+    when {
         true <- index < count;
         Ok(fact) <- rows.at(index);
         Ok(value) <- fact.get("value")
@@ -121,7 +125,7 @@ relation(rows: Json, kind: String, index: Int, count: Int): Result[Json, Bool] -
     }.
 
 evidence(result: Json, kind: String): Result[Json, Bool] ->
-    if {
+    when {
         Ok(rows) <- result.get("facts");
         Ok(count) <- rows.length()
     } else {
@@ -134,7 +138,7 @@ clean(context: Fixture): Bool ->
 
 @test
 pub shape_queries_expose_canonical_patterns_guards_and_exact_entities(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub shape Positive(value) = value where value > 0.\npub identity(value: Int): Int -> value.\n",
@@ -161,7 +165,7 @@ checked and cleaned).
 
 @test
 pub trait_queries_keep_negative_evidence_distinct_from_missing_implementations(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub trait Encode[T] { encode(value: T): String. }.\npub opaque type Secret.\npub impl not Encode[Secret].\n",
@@ -186,7 +190,7 @@ checked and cleaned).
 
 @test
 pub implication_queries_return_checked_nested_field_types_and_variable_scope(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub display[T => {name: String, nested: {code: Int}}](value: T): String -> value.name.\n",
@@ -221,7 +225,7 @@ checked and cleaned).
 
 @test
 pub constrained_alias_queries_use_the_compilers_alias_contract(): Bool ->
-    if {
+    when {
         Ok(context) <- fixture("module sample.\npub type Named[T => {name: String}] = T.\n");
         Ok(entity) <- selected(context, "type", "Named", 0);
         Ok(result) <- run(context, entity);
@@ -235,7 +239,7 @@ pub constrained_alias_queries_use_the_compilers_alias_contract(): Bool ->
 
 @test
 pub overloaded_requirement_queries_join_exact_origins_and_charge_scans(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub name[T => {name: String}](value: T): String -> value.name.\npub name(number: Int): Int -> number.\n",
@@ -263,7 +267,7 @@ exact and bounded and cleaned).
 
 @test
 pub shape_identity_survives_unrelated_insertion_and_invalidates_changed_guards(): Bool ->
-    if {
+    when {
         Ok(before) <- fixture("module sample.\npub shape Positive(value) = value where value > 0.\n");
         Ok(inserted) <-
             fixture(
@@ -285,7 +289,7 @@ let third_cleaned = clean(changed);
 identity and first_cleaned and second_cleaned and third_cleaned).
 
 source_fixture(inputs: List[Input]): Result[Fixture, Bool] ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-bound-provider-test-");
         Ok(snapshot) <- SourceSet.capture(compiler(), inputs, root + "/store");
         Ok(catalog) <- Catalog.index(root + "/store", text(snapshot, "snapshot_id"));
@@ -296,7 +300,7 @@ source_fixture(inputs: List[Input]): Result[Fixture, Bool] ->
     Ok(Fixture(root = root, store = root + "/store", snapshot = snapshot, entities = entities)).
 
 bound_links(result: Json, index: Int): Result[Json, Bool] ->
-    if {
+    when {
         Ok(facts) <- result.get("facts");
         Ok(fact) <- facts.at(0);
         Ok(value) <- fact.get("value");
@@ -309,7 +313,7 @@ bound_links(result: Json, index: Int): Result[Json, Bool] ->
 
 @test
 pub imported_bound_origins_follow_resolver_aliases_despite_same_named_providers(): Bool ->
-    if {
+    when {
         Ok(context) <-
             source_fixture(
                 [
@@ -358,7 +362,7 @@ exact and bounded and cleaned).
 
 @test
 pub local_bound_origins_link_the_exact_checked_trait_entity(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub trait Read[T] { read(value: T): String. }.\npub show[T](value: T)[Read[T]]: String -> Read.read(value).\n",
@@ -382,7 +386,7 @@ exact and cleaned).
 
 @test
 pub bound_providers_outside_the_snapshot_remain_explicitly_unavailable(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\nimport std.core.String.{Show, show}.\npub display[T](value: T)[Show[T]]: String -> show(value).\n",
@@ -406,7 +410,7 @@ let cleaned = clean(context);
 explicit and cleaned).
 
 has_shape_origin(declaration: Json): Bool ->
-    if {
+    when {
         Ok(facts) <- declaration.get("facts");
         Ok(fact) <- facts.at(0);
         Ok(record) <- fact.get("value");
@@ -425,7 +429,7 @@ pattern_for(
     index: Int,
     count: Int,
 ): Result[Json, Bool] ->
-    if {
+    when {
         true <- index < count;
         Ok(entity) <- context.entities.at(index)
     } else {
@@ -434,7 +438,7 @@ pattern_for(
     if {
         text(entity, "kind") == "pattern" and text(entity, "owner") == owner -> if {
             not expanded -> Ok(entity);
-            true -> if {
+            true -> when {
                 Ok(declaration) <-
                     Query.run(
                         context.store,
@@ -452,7 +456,7 @@ pattern_for(
     }.
 
 selected_pattern(context: Fixture, owner: Json, expanded: Bool): Result[Json, Bool] ->
-    if {
+    when {
         Ok(count) <- context.entities.length()
     } else {
         _ -> Err(false)
@@ -460,7 +464,7 @@ selected_pattern(context: Fixture, owner: Json, expanded: Bool): Result[Json, Bo
     pattern_for(context, text(owner, "entity_id"), expanded, 0, count).
 
 shape_origin(result: Json, index: Int): Result[Json, Bool] ->
-    if {
+    when {
         Ok(facts) <- result.get("facts");
         Ok(fact) <- facts.at(index);
         Ok(value) <- fact.get("value");
@@ -472,7 +476,7 @@ shape_origin(result: Json, index: Int): Result[Json, Bool] ->
 
 @test
 pub local_nested_shape_expansions_link_both_checked_shape_entities(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub shape Wrapped(value) = {Atom[\"wrap\"], value}.\npub shape Nested(value) = Wrapped(value).\npub read(value: {Atom[\"wrap\"], Int}): Int -> case value { Nested(item) -> item }.\n",
@@ -501,7 +505,7 @@ linked and cleaned).
 
 @test
 pub imported_shape_alias_origins_follow_provider_identity_among_same_named_shapes(): Bool ->
-    if {
+    when {
         Ok(context) <-
             source_fixture(
                 [
@@ -542,7 +546,7 @@ pub imported_shape_alias_origins_follow_provider_identity_among_same_named_shape
 let bounded =
     case Query.run(context.store, request(context, pattern, used - 1)) {
         Ok(page) ->
-            if {
+            when {
                 Ok(cursor) <- page.get("next_cursor");
                 true <- not cursor.is_null();
                 Ok(first_facts) <- page.get("facts");
@@ -575,7 +579,7 @@ exact and bounded and cleaned).
 
 @test
 pub unexpanded_patterns_do_not_borrow_equivalent_shape_origins(): Bool ->
-    if {
+    when {
         Ok(context) <-
             fixture(
                 "module sample.\npub shape Positive(value) = value where value > 0.\npub plain(value: Int): Int -> case value { item -> item }.\n",

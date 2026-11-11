@@ -27,7 +27,7 @@ pub struct Inventory {
  * Loads the fresh prerequisite's completed handoff before allocating a candidate.
  */
 pub load(root: String): Result[Inventory, String] ->
-    if {
+    when {
         Ok(document) <- read(root)
     } else {
         Err(reason) -> Err(reason)
@@ -35,7 +35,7 @@ pub load(root: String): Result[Inventory, String] ->
     inventory_document(root, document).
 
 inventory_document(root: String, document: Json): Result[Inventory, String] ->
-    if {
+    when {
         Some(count) <- licensed_document(root, document);
         Ok(source) <- stringify(document)
     } else {
@@ -48,7 +48,7 @@ inventory_document(root: String, document: Json): Result[Inventory, String] ->
  * No text search or dependency package can supply another member's license.
  */
 pub licensed_package_count(root: String, source: String): Option[Int] ->
-    if {
+    when {
         Ok(document) <- parse(source)
     } else {
         _ -> None
@@ -56,7 +56,7 @@ pub licensed_package_count(root: String, source: String): Option[Int] ->
     licensed_document(root, document).
 
 licensed_document(root: String, document: Json): Option[Int] ->
-    if {
+    when {
         Ok(workspace_root) <- document.get("workspace_root");
         Ok(recorded_root) <- workspace_root.as_string();
         true <- recorded_root == root;
@@ -71,7 +71,7 @@ licensed_document(root: String, document: Json): Option[Int] ->
 licensed_at(packages: Json, count: Int, index: Int): Bool ->
     if {
         index >= count -> true;
-        true -> if {
+        true -> when {
             Ok(package) <- packages.at(index);
             Ok(name_value) <- package.get("name");
             Ok(name) <- name_value.as_string();
@@ -90,7 +90,7 @@ licensed_at(packages: Json, count: Int, index: Int): Bool ->
 pub self_test(): Bool ->
     let root = "/workspace";
     let source = "{\"version\":1,\"workspace_root\":\"/workspace\",\"workspace_members\":[\"b\",\"a\"],\"packages\":[{\"id\":\"a\",\"name\":\"first\",\"license\":\"Apache-2.0\"},{\"id\":\"dependency\",\"name\":\"dep\",\"license\":null},{\"id\":\"b\",\"name\":\"second\",\"license\":\"Apache-2.0\"}],\"resolve\":null}";
-    if {
+    when {
         Some(2) <- licensed_package_count(root, source);
         Some(2) <- licensed_package_count(root, replace(source, ":", " : "));
         None <- licensed_package_count("/another-workspace", source);

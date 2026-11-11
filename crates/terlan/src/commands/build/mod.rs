@@ -112,8 +112,8 @@ mod build_test;
 use build_orchestration::*;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use build_orchestration::{
-    build_reachable_test_native_helpers, resolve_project_test_dependencies, run,
-    run_package_command, TestNativeHelperCandidate,
+    build_reachable_test_native_helpers, owning_project_dir_for_source,
+    resolve_project_test_dependencies, run, run_package_command, TestNativeHelperCandidate,
 };
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use source_roots::prepare_source_root_interfaces;

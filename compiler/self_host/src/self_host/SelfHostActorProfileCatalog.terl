@@ -76,22 +76,22 @@ bool_field(value: Json, name: String): Result[Bool, String] ->
 
 @pure
 entry(value: Json): Result[ActorCalleeEntry, String] ->
-    if {
+    when {
         Ok(has_export) <- bool_field(value, "has_export_identity")
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(export_identity) <- string_field(value, "export_identity")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(continuation_identity) <- string_field(value, "continuation_identity")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(capture_count) <- int_field(value, "capture_count")
 } else {
     Err(reason) -> Err(reason)
@@ -152,32 +152,32 @@ entries(value: Json): Result[List[ActorCalleeEntry], String] ->
 
 @pure
 profile(value: Json): Result[ActorSuspensionProfile, String] ->
-    if {
+    when {
         Ok(module_name) <- string_field(value, "module_name")
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(callable_name) <- string_field(value, "callable_name")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(arity) <- int_field(value, "arity")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(runtime_owned) <- bool_field(value, "runtime_owned")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(entries_value) <- field(value, "entries")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(decoded_entries) <- entries(entries_value)
 } else {
     Err(reason) -> Err(reason)
@@ -236,34 +236,34 @@ reverse_profiles(
 
 @pure
 outward_entry(value: Json): Result[Option[ActorOutwardEntry], String] ->
-    if {
+    when {
         Ok(outward) <- bool_field(value, "outward_entry")
     } else {
         Err(reason) -> Err(reason)
     };
     if {
         not outward -> Ok(None);
-        true -> if {
+        true -> when {
             Ok(module_name) <- string_field(value, "source_module")
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(callable_name) <- string_field(value, "source_function")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(arity) <- int_field(value, "source_arity")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(identity) <- string_field(value, "id")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(captures) <- field(value, "capture_names")
 } else {
     Err(reason) -> Err(reason)
@@ -380,14 +380,14 @@ all_outward_profiled(
 
 @pure
 decode_document(value: Json): Result[List[ActorSuspensionProfile], String] ->
-    if {
+    when {
         Ok(schema) <- string_field(value, "schema")
     } else {
         Err(reason) -> Err(reason)
     };
     if {
         schema != "terlan.self-host.actor-ir/v2" -> Err("unsupported actor profile catalog schema");
-        true -> if {
+        true -> when {
             Ok(profiles_value) <- field(value, "profiles")
         } else {
             Err(reason) -> Err(reason)
@@ -399,7 +399,7 @@ decode_document(value: Json): Result[List[ActorSuspensionProfile], String] ->
                     Err(reason) -> Err(reason);
                     Ok(reversed) ->
                         let profiles = reverse_profiles(reversed, List.new[ActorSuspensionProfile]());
-                        if {
+                        when {
                             Ok(continuations) <- field(value, "continuations")
                         } else {
                             Err(reason) -> Err(reason)

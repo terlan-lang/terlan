@@ -103,7 +103,9 @@ pub(super) fn expr_to_output_text(expr: &Expr) -> String {
                     .map(case_clause_to_output_text)
                     .collect::<Vec<_>>()
                     .join("; ");
-                vec![format!("if {{ {rendered_bindings} }} else {{ {clauses} }}")]
+                vec![format!(
+                    "when {{ {rendered_bindings} }} else {{ {clauses} }}"
+                )]
             };
             if let Some(body) = body {
                 parts.push(expr_to_output_text(body));
@@ -425,6 +427,5 @@ pub(crate) fn binary_op_text(op: &BinaryOp) -> &'static str {
         BinaryOp::In => "in",
         BinaryOp::And => "and",
         BinaryOp::Or => "or",
-        BinaryOp::PipeForward => "|>",
     }
 }

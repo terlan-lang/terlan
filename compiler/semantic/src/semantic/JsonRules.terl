@@ -14,7 +14,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 pub text(value: Json, key: String): Result[String, Failure] ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -29,7 +29,7 @@ pub text(value: Json, key: String): Result[String, Failure] ->
     Ok(result).
 
 pub number(value: Json, key: String): Result[Int, Failure] ->
-    if {
+    when {
         Ok(field) <- value.get(key)
     } else {
         _ ->
@@ -43,7 +43,7 @@ pub number(value: Json, key: String): Result[Int, Failure] ->
     case field.as_int() {
         Ok(result) -> Ok(result);
         _ ->
-            if {
+            when {
                 Ok(number) <- field.as_float();
                 Some(result) <- Int.from_string(Float.to_string(number))
             } else {

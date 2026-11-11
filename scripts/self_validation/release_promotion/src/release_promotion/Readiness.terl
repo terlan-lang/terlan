@@ -63,7 +63,7 @@ report_paths(rows: List[{String, String}], output: Json): Json ->
     }.
 
 string_field(document: Json, name: String): String ->
-    if {
+    when {
         Ok(value) <- document.get(name);
         Ok(text) <- value.as_string()
     } else {
@@ -92,7 +92,7 @@ archive_row(rows: List[RequiredFieldRow], expected: String): {String, String} ->
     }.
 
 candidate_archive(root: String, candidate: Json): {String, String} ->
-    if {
+    when {
         Ok(metadata) <- Json.parse(text(root, "dist/terlan-release.json"));
         Ok(artifacts) <- candidate.get("artifacts");
         Ok(rows) <- Json.required_field_rows(artifacts, ["path", "sha256"], [], [])
@@ -112,7 +112,7 @@ archive_row(rows, expected)).
  * Local evidence must bind the installed platform, not the first sorted archive.
  */
 pub archive_selection_self_test(): Bool ->
-    if {
+    when {
         Ok(document) <-
             Json.string_object_rows(
                 ["path", "sha256"],
@@ -176,7 +176,7 @@ write_report(root: String, candidate: Json, archive: String, digest: String): Bo
             .put("required_reports", report_paths(required_reports(), Json.array()))
             .put("offline", Json.bool(true))
             .put("publication_required", Json.bool(false));
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(child(root, "target/quality"));
         Ok(rendered) <- Json.stringify_pretty(report);
         Ok(Unit) <- File.write_text(output, String.append(rendered, "\n"))
@@ -189,7 +189,7 @@ write_report(root: String, candidate: Json, archive: String, digest: String): Bo
  * Binds all required local reports and candidate surfaces to one seal.
  */
 pub attest(root: String, candidate: Json): Bool ->
-    if {
+    when {
         Ok(reports) <- candidate.get("gate_reports");
         Ok(sealed) <- Json.required_field_rows(reports, ["path", "sha256"], [], [])
     } else {
@@ -214,7 +214,7 @@ case candidate_archive(root, candidate) {
 }).
 
 metadata_version_matches(root: String, version: String): Bool ->
-    if {
+    when {
         Ok(metadata) <- Json.parse(text(root, "dist/terlan-release.json"))
     } else {
         _ -> false

@@ -837,7 +837,10 @@ pub(super) fn map_types(
         {
             Ok((&args[0], &args[1]))
         }
-        _ => Err("error[native_ir.map_pattern_type]: concrete Map type is unavailable".into()),
+        _ => Err(format!(
+            "error[native_ir.map_pattern_type]: concrete Map type is unavailable from {core_type:?}"
+        )
+        .into()),
     }
 }
 

@@ -55,9 +55,8 @@ pub(super) fn infer_syntax_var(
 ///   interface is unavailable, or overloads make the value ambiguous.
 ///
 /// Transformation:
-/// - Mirrors local function-value inference for selected imports so pipe forms
-///   such as `items |> next()` can typecheck the imported callee as a real
-///   function value instead of treating the name as an unresolved dynamic.
+/// - Mirrors local function-value inference for selected imports so imported
+///   callees typecheck as real function values instead of unresolved dynamics.
 fn infer_unique_imported_function_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
     let targets = ctx.function_imports.get(name)?;
     let [target] = targets.as_slice() else {

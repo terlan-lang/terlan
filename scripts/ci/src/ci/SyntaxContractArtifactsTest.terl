@@ -1,0 +1,85 @@
+module ci.SyntaxContractArtifactsTest.
+
+import ci.SyntaxContractArtifacts.
+import std.core.Option.{None, Some}.
+
+fixture(): String ->
+    "{\"schema\":\"terlan-syntax-contract-v1\",\"fingerprint_algorithm\":\"fnv1a64\",\"fingerprint\":\"fnv1a64:1234\",\"contract\":{\"format_version\":1,\"entry_rule\":\"SyntaxSpec\",\"rules\":[{\"id\":\"rule:SyntaxSpec\",\"name\":\"SyntaxSpec\",\"expr\":{\"id\":\"rule:SyntaxSpec/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:Declaration\",\"name\":\"Declaration\",\"expr\":{\"id\":\"rule:Declaration/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:DeclarationCore\",\"name\":\"DeclarationCore\",\"expr\":{\"id\":\"rule:DeclarationCore/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:Annotation\",\"name\":\"Annotation\",\"expr\":{\"id\":\"rule:Annotation/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:AnnotationBlock\",\"name\":\"AnnotationBlock\",\"expr\":{\"id\":\"rule:AnnotationBlock/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:AnnotationItem\",\"name\":\"AnnotationItem\",\"expr\":{\"id\":\"rule:AnnotationItem/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:AnnotationEntry\",\"name\":\"AnnotationEntry\",\"expr\":{\"id\":\"rule:AnnotationEntry/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:AnnotationValue\",\"name\":\"AnnotationValue\",\"expr\":{\"id\":\"rule:AnnotationValue/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:AnnotationSchemaDecl\",\"name\":\"AnnotationSchemaDecl\",\"expr\":{\"id\":\"rule:AnnotationSchemaDecl/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:ShapeDecl\",\"name\":\"ShapeDecl\",\"expr\":{\"id\":\"rule:ShapeDecl/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:StructuralParameterPattern\",\"name\":\"StructuralParameterPattern\",\"expr\":{\"id\":\"rule:StructuralParameterPattern/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:Expr\",\"name\":\"Expr\",\"expr\":{\"id\":\"rule:Expr/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:OrExpr\",\"name\":\"OrExpr\",\"expr\":{\"id\":\"rule:OrExpr/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:AndExpr\",\"name\":\"AndExpr\",\"expr\":{\"id\":\"rule:AndExpr/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:PostfixExpr\",\"name\":\"PostfixExpr\",\"expr\":{\"id\":\"rule:PostfixExpr/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:PrimaryExpr\",\"name\":\"PrimaryExpr\",\"expr\":{\"id\":\"rule:PrimaryExpr/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:Pattern\",\"name\":\"Pattern\",\"expr\":{\"id\":\"rule:Pattern/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:ListPattern\",\"name\":\"ListPattern\",\"expr\":{\"id\":\"rule:ListPattern/expr\",\"kind\":\"alternation\"}},{\"id\":\"rule:CallExpr\",\"name\":\"CallExpr\",\"expr\":{\"id\":\"rule:CallExpr/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:ScopedCallExpr\",\"name\":\"ScopedCallExpr\",\"expr\":{\"id\":\"rule:ScopedCallExpr/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:RawMacroExpr\",\"name\":\"RawMacroExpr\",\"expr\":{\"id\":\"rule:RawMacroExpr/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:ConfigDecl\",\"name\":\"ConfigDecl\",\"expr\":{\"id\":\"rule:ConfigDecl/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:MetadataBlock\",\"name\":\"MetadataBlock\",\"expr\":{\"id\":\"rule:MetadataBlock/expr\",\"kind\":\"sequence\"}},{\"id\":\"rule:TypeRef\",\"name\":\"TypeRef\",\"expr\":{\"id\":\"rule:TypeRef/expr\",\"kind\":\"alternation\"}}]}}".
+
+@test
+pub compiler_contract_generates_both_summaries(): Bool ->
+    case SyntaxContractArtifacts.generate(fixture()) {
+        Some(generated) ->
+            generated.fingerprint == "fnv1a64:1234"
+                and generated.specification_summary.contains("\"rule_count\": 24")
+                and generated.specification_summary.contains("\"name\": \"TypeRef\"")
+                and generated.artifact_summary.contains("\"fingerprint\": \"fnv1a64:1234\"")
+                and generated.artifact_summary.contains("\"rule_count\": 24");
+        None -> false
+    }.
+
+@test
+pub malformed_or_incomplete_contracts_are_rejected(): Bool ->
+    SyntaxContractArtifacts.generate("not-json") == None
+        and SyntaxContractArtifacts.generate("{}") == None
+        and SyntaxContractArtifacts.generate(
+    "{\"schema\":\"terlan-syntax-contract-v1\",\"fingerprint_algorithm\":\"fnv1a64\",\"fingerprint\":\"fnv1a64:1\",\"contract\":{\"format_version\":1,\"entry_rule\":\"SyntaxSpec\",\"rules\":[]}}",
+) == None.
+
+@test
+pub phase_fingerprints_are_generated_without_touching_other_lines(): Bool ->
+    SyntaxContractArtifacts.normalize_phase_source(
+    "schema=phase\nsyntax_contract_fingerprint=fnv1a64:old\nvalue=1\n",
+    "fnv1a64:new",
+) == "schema=phase\nsyntax_contract_fingerprint=fnv1a64:new\nvalue=1\n"
+        and SyntaxContractArtifacts.is_phase_golden("fixtures/example.core.golden")
+        and not SyntaxContractArtifacts.is_phase_golden("fixtures/example.core")
+        and SyntaxContractArtifacts.normalize_phase_source("unchanged", "fnv1a64:new") == "unchanged".
+
+@test
+pub required_digest_markers_are_generated_without_manual_hashes(): Bool ->
+    SyntaxContractArtifacts.normalize_digest_marker(
+    "// canonical-ebnf-sha256: old\nvalue\n",
+    "// canonical-ebnf-sha256: ",
+    "new",
+) == Some("// canonical-ebnf-sha256: new\nvalue\n")
+        and SyntaxContractArtifacts.normalize_digest_marker("value\n", "// canonical-ebnf-sha256: ", "new") == None.
+
+@test
+pub proof_manifest_fingerprints_are_derived_from_the_grammar(): Bool ->
+    case SyntaxContractArtifacts.normalize_proof_manifest(
+    "{\"manifest_fingerprints\":{\"docs/grammar/TERLAN_SYNTAX_SPEC.ebnf\":\"sha256:old\"}}",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf",
+    "new",
+) {
+    Some(source) -> source.contains("\"docs/grammar/TERLAN_SYNTAX_SPEC.ebnf\": \"sha256:new\"");
+    None -> false
+}
+        and SyntaxContractArtifacts.proof_manifest_paths(
+    "{\"manifest_fingerprints\":{\"b\":\"sha256:2\",\"a\":\"sha256:1\"}}",
+) == Some(["a", "b"])
+        and SyntaxContractArtifacts.proof_manifest_paths("{}") == Some([])
+        and SyntaxContractArtifacts.proof_manifest_paths("not-json") == None
+        and SyntaxContractArtifacts.normalize_proof_manifest("{}", "missing", "new") == None.
+
+@test
+pub proof_source_digests_are_generated_without_copied_hashes(): Bool ->
+    case SyntaxContractArtifacts.normalize_proof_source_digest(
+    "{\"source_digest\":\"sha256:old\",\"family\":\"example\"}",
+    "new",
+) {
+    Some(source) ->
+        source.contains("\"source_digest\": \"sha256:new\"")
+            and source.contains("\"family\": \"example\"");
+    None -> false
+}
+        and SyntaxContractArtifacts.normalize_proof_source_digest("{}", "new") == None
+        and SyntaxContractArtifacts.normalize_proof_source_digest("not-json", "new") == None.
+
+@test
+pub proof_inventory_digests_are_generated_without_copied_hashes(): Bool ->
+    SyntaxContractArtifacts.normalize_proof_inventory_row(
+    "proof.lean\tcurrent\tscope\ta;b\t0\tnone\tsha256:old\tartifact.json\tnone",
+    "new",
+) == Some("proof.lean\tcurrent\tscope\ta;b\t0\tnone\tsha256:new\tartifact.json\tnone")
+        and SyntaxContractArtifacts.normalize_proof_inventory_row("incomplete", "new") == None.

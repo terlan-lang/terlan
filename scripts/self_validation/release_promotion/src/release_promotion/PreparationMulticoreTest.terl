@@ -28,7 +28,7 @@ stage(root: String, label: String): Result[Decision, String] ->
     }.
 
 evidence(root: String): Bool ->
-    if {
+    when {
         Ok(identity) <- Git.source_tree_identity(root)
     } else {
         _ -> false
@@ -56,7 +56,7 @@ evidence(root: String): Bool ->
 ).
 
 pub fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(_quality) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
         Ok(_docs) <- Directory.create_all(OwnerStorage.child(root, "docs/runtime"));
@@ -86,7 +86,7 @@ pub fixture(root: String, origin: String, vm: String, image: String): Bool ->
     evidence(root).
 
 exercise(root: String, origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         true <- fixture(root, origin, vm, image);
         Err(_unsafe_path) <- PrepareMulticoreRelease.prepare(root, "../outside-vm", image_path());
         Ok(cold) <- stage(root, "[multicore rehearsal] cold composition");
@@ -155,7 +155,7 @@ exercise(root: String, origin: String, vm: String, image: String): Bool ->
     first == final.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-multicore-preparation-")
     } else {
         _ -> false

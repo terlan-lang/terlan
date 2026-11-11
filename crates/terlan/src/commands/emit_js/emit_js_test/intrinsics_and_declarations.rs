@@ -78,50 +78,6 @@ pub len(): Int ->
     assert!(js.contains(r#"return Array.from("hello").length;"#), "{js}");
 }
 
-/// Verifies that direct Oxc AST lowering handles focused pipe-forward
-/// expressions into local named calls.
-///
-/// Inputs:
-/// - A checked Terlan module with a private binary function and a public
-///   function using `1 |> add_one()`.
-///
-/// Output:
-/// - Assertions over Oxc-printed JavaScript source.
-///
-/// Transformation:
-/// - Compiles source through the formal pipeline, passes its `CoreModule`
-///   into the direct Oxc AST emitter, and checks that `CoreExpr::BinaryOp`
-///   with `|>` becomes a local JavaScript call with the piped expression as
-///   the first argument.
-#[test]
-pub(super) fn emit_core_module_with_direct_oxc_ast_handles_pipe_forward_to_named_call() {
-    let source = "\
-module js_core_direct_pipe_forward.
-
-add_one(x: Int): Int ->
-    x + 1.
-
-pub piped(): Int ->
-    1 |> add_one().
-";
-    let artifacts = compile_syntax_module_through_phases_with_profile(
-        "js_core_direct_pipe_forward.terl",
-        source,
-        DiagnosticFormat::default(),
-        None,
-        NativePolicy::default(),
-        TargetProfile::JsShared,
-    )
-    .expect("compile source to CoreIR");
-
-    let js = oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core)
-        .expect("direct Oxc AST emits pipe-forward CoreIR");
-
-    assert!(js.contains("export function piped()"));
-    assert!(js.contains("function add_one(x)"));
-    assert!(js.contains("return add_one(1);"), "{js}");
-}
-
 /// Verifies that the command-facing Oxc facade emits direct named-call
 /// modules with private helpers.
 ///

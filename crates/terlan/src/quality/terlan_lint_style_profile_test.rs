@@ -157,7 +157,7 @@ fn lint_style_profile_rejects_placeholder_terms() {
 /// Verifies format/lint boundary terms are required.
 ///
 /// Inputs:
-/// - Temporary profile missing the explicit pipe-canonicalization boundary.
+/// - Temporary profile missing the explicit semicolon-formatting boundary.
 ///
 /// Output:
 /// - Diagnostic naming the missing boundary term.
@@ -170,16 +170,13 @@ fn lint_style_profile_rejects_missing_format_boundary_term() {
     let root = temp_repo("lint_style_profile_missing_format_boundary");
     write_fixture(
         &root,
-        &fixture_profile().replace(
-            "pipe canonicalization belongs to lint",
-            "pipe cleanup is lint",
-        ),
+        &fixture_profile().replace("fmt may split semicolon chains", "fmt preserves chains"),
     );
 
     let error =
         run_terlan_lint_style_profile(&root).expect_err("missing boundary term should fail");
 
-    assert!(error.contains("missing format-boundary term `pipe canonicalization belongs to lint`"));
+    assert!(error.contains("missing format-boundary term `fmt may split semicolon chains`"));
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
@@ -229,11 +226,9 @@ fn lint_style_profile_rejects_missing_make_target() {
     fs::write(
         root.join("Makefile"),
         [
-            "CHECK_GATES := terlan-lint-pipe-canonicalization-check stdlib-check",
+            "CHECK_GATES := stdlib-check",
             "check: check-gates",
             "check-gates: $(CHECK_GATES)",
-            "terlan-lint-style-profile-check:",
-            "\tcargo test",
             "stdlib-check:",
             "\tcargo test",
             "",
@@ -244,49 +239,7 @@ fn lint_style_profile_rejects_missing_make_target() {
 
     let error = run_terlan_lint_style_profile(&root).expect_err("missing target should fail");
 
-    assert!(error.contains("Makefile: missing target `terlan-lint-pipe-canonicalization-check`"));
-    fs::remove_dir_all(root).expect("remove fixture");
-}
-
-/// Verifies the root check target keeps lint before stdlib gates.
-///
-/// Inputs:
-/// - Complete profile with a Makefile whose `check` target runs stdlib before
-///   the lint pipe gate.
-///
-/// Output:
-/// - Diagnostic naming the required gate order.
-///
-/// Transformation:
-/// - Prevents semantic lint regressions from being discovered only after
-///   release-scale stdlib checks have already started.
-#[test]
-fn lint_style_profile_rejects_check_target_after_stdlib_order() {
-    let root = temp_repo("lint_style_profile_check_order");
-    write_fixture(&root, fixture_profile());
-    fs::write(
-        root.join("Makefile"),
-        [
-            "CHECK_GATES := stdlib-check terlan-lint-pipe-canonicalization-check",
-            "check: check-gates",
-            "check-gates: $(CHECK_GATES)",
-            "terlan-lint-style-profile-check:",
-            "\tcargo test",
-            "terlan-lint-pipe-canonicalization-check:",
-            "\tcargo test",
-            "stdlib-check:",
-            "\tcargo test",
-            "",
-        ]
-        .join("\n"),
-    )
-    .expect("write Makefile");
-
-    let error = run_terlan_lint_style_profile(&root).expect_err("bad order should fail");
-
-    assert!(error.contains(
-        "Makefile: `CHECK_GATES` must run `terlan-lint-pipe-canonicalization-check` before `stdlib-check`"
-    ));
+    assert!(error.contains("Makefile: missing target `terlan-lint-style-profile-check`"));
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
@@ -307,13 +260,11 @@ fn write_fixture(root: &Path, profile: &str) {
     fs::write(
         root.join("Makefile"),
         [
-            "CHECK_GATES := terlan-lint-pipe-canonicalization-check stdlib-check",
+            "CHECK_GATES := terlan-lint-style-profile-check stdlib-check",
             "check: check-gates",
             "check-gates: $(CHECK_GATES)",
             "terlan-lint-style-profile-check:",
             "\tcargo run -p terlan --bin terlan-quality --quiet -- terlan-lint-style-profile",
-            "terlan-lint-pipe-canonicalization-check:",
-            "\tcargo test",
             "stdlib-check:",
             "\tcargo test",
             "",
@@ -366,18 +317,10 @@ Readability Imports Naming Docs Tests Std Effects Targets Interop Complexity For
 - `TL0902 complexity.file-size`
 - `TL0903 complexity.match-arm-size`
 - `TL1001 format-boundary.semantic-fmt`
-- `TL1002 format-boundary.pipe-fix`
 - `TL1003 format-boundary.semicolon-split`
 
 semicolon-separated expression chains
-pipe canonicalization belongs to lint
 fmt may split semicolon chains
 
-named-argument ambiguity
-default-argument ambiguity
-function-value calls
-nested argument contexts
-side-effect-sensitive duplicated expressions
-target-specific intrinsic calls
 "#
 }

@@ -322,16 +322,16 @@ pub(super) fn module_preflight(source: &str) -> Option<LalrpopBoundaryError> {
 }
 
 fn repeated_let_diagnostic(source: &str) -> Option<LalrpopBoundaryError> {
-    if let Some(start) = source.find("if {} else") {
+    if let Some(start) = source.find("when {} else") {
         return Some(diagnostic(
-            "refutable if requires at least one binding",
+            "refutable when requires at least one binding",
             start,
-            start + 5,
+            start + "when {".len(),
         ));
     }
     if let Some(start) = source.find("else {}") {
         return Some(diagnostic(
-            "refutable if requires at least one fallback clause",
+            "refutable when requires at least one fallback clause",
             start,
             start + 7,
         ));
@@ -373,8 +373,8 @@ fn repeated_let_diagnostic(source: &str) -> Option<LalrpopBoundaryError> {
             }
         }
     }
-    if let Some((start, close)) = refutable_if_group(source) {
-        let body = &source[start + "if {".len()..close];
+    if let Some((start, close)) = refutable_when_group(source) {
+        let body = &source[start + "when {".len()..close];
         if body.matches("<-").count() > 1 && has_top_level_comma(body) {
             return Some(diagnostic(
                 "refutable bindings must be separated by `;`, not commas",
@@ -384,7 +384,7 @@ fn repeated_let_diagnostic(source: &str) -> Option<LalrpopBoundaryError> {
         }
         if source[close + 1..].trim_start().starts_with(';') {
             return Some(diagnostic(
-                "grouped refutable if requires an else fallback",
+                "grouped refutable when requires an else fallback",
                 start,
                 start + 5,
             ));
@@ -494,7 +494,7 @@ fn trivia_spans(source: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
-fn refutable_if_group(source: &str) -> Option<(usize, usize)> {
+fn refutable_when_group(source: &str) -> Option<(usize, usize)> {
     let tokens = lex(source).ok()?;
     let significant = tokens
         .iter()
@@ -510,7 +510,7 @@ fn refutable_if_group(source: &str) -> Option<(usize, usize)> {
         })
         .collect::<Vec<_>>();
     for index in 0..significant.len().saturating_sub(1) {
-        if significant[index].kind != TokenKind::If
+        if significant[index].kind != TokenKind::When
             || significant[index + 1].kind != TokenKind::LBrace
         {
             continue;
@@ -612,10 +612,18 @@ fn duplicate_field_in_braces(source: &str) -> Option<usize> {
 }
 
 fn unsupported_when_guard(source: &str) -> Option<usize> {
-    lex(source)
-        .ok()?
-        .into_iter()
-        .find_map(|token| (token.kind == TokenKind::When).then_some(token.start))
+    let tokens = lex(source).ok()?;
+    let significant = tokens
+        .iter()
+        .filter(|token| !super::lalrpop_projection::is_trivia(&token.kind))
+        .collect::<Vec<_>>();
+    significant.iter().enumerate().find_map(|(index, token)| {
+        (token.kind == TokenKind::When
+            && significant
+                .get(index + 1)
+                .is_none_or(|next| next.kind != TokenKind::LBrace))
+        .then_some(token.start)
+    })
 }
 
 fn concrete_higher_kind_slot(source: &str) -> Option<usize> {

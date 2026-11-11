@@ -110,7 +110,7 @@ pub impl Applicative[Option] for Option {
     pure(value: A): Option[A] ->
         Some(value).
     apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->
-        if {
+        when {
             Some(unwrapped) <- f;
             Some(x) <- value
         } else {
@@ -135,7 +135,7 @@ pub impl Monad[Option] for Option {
     pure(value: A): Option[A] ->
         Some(value).
     apply(f: Option[(A) -> B], value: Option[A]): Option[B] ->
-        if {
+        when {
             Some(unwrapped) <- f;
             Some(x) <- value
         } else {

@@ -1,14 +1,17 @@
 # CLI `check` Command Internals
 
 This directory owns the `terlc check` command runtime. The implementation in
-`mod.rs` is centered on command-local argument parsing, single-file formal
+`mod.rs` is centered on command-local argument parsing, ordered batch formal
 compile validation, and directory/incremental check orchestration.
 
 ## Responsibilities
 
 - Parse `check` command-local arguments.
+- Preserve ordered path batches so directories can publish interfaces consumed
+  by later files in the same compiler process.
 - Run single-file checks through the formal syntax-output compiler pipeline.
 - Run directory checks with interface-cache and dependency-manifest support.
+- Resolve manifest-backed project source roots inside the compiler.
 - Emit optional phase manifests for single-file and directory paths.
 - Preserve invalidation tracing output.
 
@@ -31,9 +34,9 @@ broader CLI internals are split further.
 
 The main flow is:
 
-1. Parse a source path and optional `--emit-phase-manifest` path.
-2. For files, read source and compile through parse, macro expansion, resolve,
-   and typecheck phases.
+1. Parse one or more source paths and an optional `--emit-phase-manifest` path.
+2. Visit paths in input order; for files, read source and compile through parse,
+   macro expansion, resolve, and typecheck phases.
 3. For directories, discover modules, refresh interface caches, and recheck
    changed dependency closures.
 4. Emit phase manifests when requested.
@@ -45,6 +48,8 @@ Important invariants:
 - Phase manifests are validated before writing.
 - Argument errors return exit code `2`; compile and I/O errors return exit code
   `1` or the propagated compile phase code.
+- A batch phase-manifest destination must be a directory, preventing files from
+  overwriting one another's evidence.
 
 ## Integration Points
 

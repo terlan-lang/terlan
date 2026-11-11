@@ -70,7 +70,7 @@
     {"id":"sql-dollar-unterminated", "rule":"SqlRawBlock", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
     {"id":"sql-comment-unterminated", "rule":"SqlRawBlock", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
     {"id":"sql-dollar-trailing-token", "rule":"EOF", "ebnf":"reject", "compiler":"reject", "editor":"recover"},
-    {"id":"sql-dollar-pipe", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"PipeForward(raw(sql,1,0,\"select $$}$$\"),call(inspect,0,0,0))", "editor":"accept"},
+    {"id":"sql-dollar-receiver", "rule":"TypedSqlExpr", "ebnf":"accept", "compiler":"accept", "shape":"method(raw(sql,1,0,\"select $$}$$\"),inspect,0,0,0)", "editor":"accept"},
     {"id":"sql-quote-doubling", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select 'it''s } ${ignored}', ${value}\")", "editor":"accept"},
     {"id":"sql-partial-dollar-tag", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $name, ${value}\")", "editor":"accept"},
     {"id":"sql-long-dollar-tag", "rule":"SqlRawText", "ebnf":"accept", "compiler":"accept", "shape":"raw(sql,1,1,\"select $abcdefghijklmnopqrstuvwxyz_0123456789$ } ${ignored} $abcdefghijklmnopqrstuvwxyz_0123456789$, ${value}\")", "editor":"accept"},

@@ -1,0 +1,33 @@
+/**
+ * Focused contracts for string-aware delimiter scanning.
+ */
+module self_host.DelimitedTest.
+
+import self_host.Delimited.
+import std.collections.List.
+
+@pure
+quoted_text_preserves_delimiter_boundaries(): Bool ->
+    Delimited.balanced("(\"a\\\"b\", 'c\\\\d')")
+        and Delimited.split_top_level("\"left,right\", (nested, value), tail", 44) == ["\"left,right\"", "(nested, value)", "tail"]
+        and Delimited.top_level_byte("\"left,right\", tail", 44) == 12
+        and not Delimited.balanced("\"unterminated")
+        and not Delimited.balanced("\"escaped\\\\").
+
+@pure
+assignment_excludes_comparison_and_arrow_operators(): Bool ->
+    Delimited.top_level_assignment("left = right") == 5
+        and Delimited.top_level_assignment("=value") == 0
+        and Delimited.top_level_assignment("value=") == 5
+        and Delimited.top_level_assignment("left == right") == -1
+        and Delimited.top_level_assignment("left != right") == -1
+        and Delimited.top_level_assignment("left <= right") == -1
+        and Delimited.top_level_assignment("left >= right") == -1
+        and Delimited.top_level_assignment("left => right") == -1
+        and Delimited.top_level_assignment("\"left = right\"") == -1
+        and Delimited.top_level_assignment("(left = right)") == -1.
+
+@test
+pub quoted_and_assignment_delimiters_are_string_aware(): Bool ->
+    quoted_text_preserves_delimiter_boundaries()
+        and assignment_excludes_comparison_and_arrow_operators().

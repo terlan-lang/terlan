@@ -158,7 +158,7 @@ The grammars remain distinct. Raven uses `fun`, `match`, conventional brace
 blocks, mutable `let` bindings, `self` methods, enums, goroutines, channels,
 `defer`, and C FFI. Terlan uses declaration-ending periods, expression and
 clause bodies, immutable bindings, explicit receiver methods, constructors and
-unions, atoms, pipes, actor mailboxes, supervision, and isolated native
+unions, atoms, receiver methods, actor mailboxes, supervision, and isolated native
 capabilities.
 
 Terlan also has compile-time structural forms that Raven does not document.

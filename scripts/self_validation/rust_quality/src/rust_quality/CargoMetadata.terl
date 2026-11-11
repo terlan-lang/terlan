@@ -66,7 +66,7 @@ pub load_precomputed(root: String): Metadata ->
  * Missing or repeated members are errors, not an incomplete source inventory.
  */
 pub workspace_packages(metadata: Json): Option[Json] ->
-    if {
+    when {
         Ok(version_value) <- metadata.get("version");
         Ok(1) <- version_value.as_int();
         Some(members) <- object_string_array(metadata, "workspace_members");
@@ -93,7 +93,7 @@ workspace_packages_at(
             List.length(seen) == List.length(members) -> Some(output);
             true -> None
         };
-        true -> if {
+        true -> when {
             Ok(package) <- packages.at(index);
             Ok(id_value) <- package.get("id");
             Ok(id) <- id_value.as_string();
@@ -148,7 +148,7 @@ sort_unique_at(values: List[String], output: List[String]): List[String] ->
 string_array_at(value: Json, index: Int, output: List[String]): Option[List[String]] ->
     if {
         index < 0 -> Some(output);
-        true -> if {
+        true -> when {
             Ok(item) <- Json.at(value, index);
             Ok(text) <- Json.as_string(item)
         } else {
@@ -229,7 +229,7 @@ package_rows(
     }.
 
 node_dependencies(nodes: Json, index: Int, packages: List[PackageName]): Option[List[String]] ->
-    if {
+    when {
         Ok(node) <- Json.at(nodes, index);
         Some(ids) <- object_string_array(node, "dependencies")
     } else {
@@ -272,7 +272,7 @@ nodes_at(
 ): Option[List[GraphNode]] ->
     if {
         index == count -> Some(output);
-        true -> if {
+        true -> when {
             Ok(node) <- Json.at(nodes, index);
             Ok(id_value) <- Json.get(node, "id");
             Ok(id) <- Json.as_string(id_value)
@@ -297,7 +297,7 @@ nodes_at(
     }.
 
 pub workspace_graph(metadata: Json): Graph ->
-    if {
+    when {
         Ok(members_value) <- Json.get(metadata, "workspace_members");
         Some(members) <- string_array(members_value);
         Ok(packages_value) <- Json.get(metadata, "packages");
@@ -337,7 +337,7 @@ pub self_test(): Bool ->
         and workspace_projection_self_test().
 
 workspace_projection_self_test(): Bool ->
-    if {
+    when {
         Ok(metadata) <-
             Json.parse(
                 "{\"version\":1,\"workspace_members\":[\"member-a\",\"member-b\"],\"packages\":[{\"id\":\"registry-dep\",\"manifest_path\":\"/registry/dep/Cargo.toml\"},{\"id\":\"member-b\",\"manifest_path\":\"/workspace/b/Cargo.toml\"},{\"id\":\"excluded-local\",\"manifest_path\":\"/workspace/excluded/Cargo.toml\"},{\"id\":\"member-a\",\"manifest_path\":\"/workspace/a/Cargo.toml\"}]}",
@@ -370,7 +370,7 @@ rejected_workspaces(sources: List[String]): Bool ->
     case sources {
         [] -> true;
         [source | rest] ->
-            if {
+            when {
                 Ok(metadata) <- Json.parse(source);
                 None <- workspace_packages(metadata)
             } else {

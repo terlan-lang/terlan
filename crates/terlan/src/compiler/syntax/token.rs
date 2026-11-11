@@ -72,7 +72,6 @@ pub enum TokenKind {
     Colon,
     Semicolon,
     Pipe,
-    PipeForward,
     BitAnd,
     BitXor,
     BitNot,

@@ -41,7 +41,7 @@ required_member(value: Json, field: String): Option[Json] ->
     Support.json_member(value, field).
 
 pub expected_candidate_id(document: Json): Option[String] ->
-    if {
+    when {
         Some(candidate) <- required_member(document, "candidate");
         Some(materials) <- required_member(document, "candidate_materials");
         Some(release) <- Support.json_string(candidate, "release");
@@ -79,7 +79,7 @@ validate_materials_at(
         index >= count -> accept();
         true -> case values.at(index) {
             Ok(value) ->
-                if {
+                when {
                     Some(path) <- Support.json_string(value, "path");
                     Some(digest) <- Support.json_string(value, "sha256")
                 } else {
@@ -125,7 +125,7 @@ proof_families_at(
 ): Option[List[String]] ->
     if {
         index >= count -> Some(Support.reverse_strings(collected));
-        true -> if {
+        true -> when {
             Ok(proof) <- proofs.at(index);
             Some(family) <- Support.json_string(proof, "family")
         } else {
@@ -145,7 +145,7 @@ validate_proofs_at(root: String, proofs: Json, index: Int, count: Int): Validati
         index >= count -> accept();
         true -> case proofs.at(index) {
             Ok(proof) ->
-                if {
+                when {
                     Some(path) <- Support.json_string(proof, "proof_path");
                     Some(digest) <- Support.json_string(proof, "proof_digest");
                     Some(theorems) <- required_member(proof, "theorem_ids")
@@ -179,7 +179,7 @@ validate_compiler_inputs_at(root: String, values: Json, index: Int, count: Int):
         index >= count -> accept();
         true -> case values.at(index) {
             Ok(value) ->
-                if {
+                when {
                     Some(path) <- Support.json_string(value, "path");
                     Some(digest) <- Support.json_string(value, "sha256")
                 } else {
@@ -199,7 +199,7 @@ validate_compiler_inputs_at(root: String, values: Json, index: Int, count: Int):
     }.
 
 pub record_trace(record: Json): Option[String] ->
-    if {
+    when {
         Some(slice_id) <- Support.json_string(record, "slice_id");
         Some(feature_class) <- Support.json_string(record, "feature_class");
         Some(owner) <- Support.json_string(record, "owner");
@@ -262,7 +262,7 @@ validate_records_at(
         index >= count -> accept();
         true -> case records.at(index) {
             Ok(record) ->
-                if {
+                when {
                     Some(slice_id) <- Support.json_string(record, "slice_id");
                     Some(number) <- slice_number(slice_id);
                     Some(lane_id) <- Support.json_string(record, "lane_id");
@@ -312,7 +312,7 @@ validate_records_at(
     }.
 
 validate_replay(document: Json, config: Json): Validation ->
-    if {
+    when {
         Some(replay) <- required_member(document, "replay_corpus");
         Some(expected_value) <- required_member(config, "replay_families");
         Some(expected) <- Support.json_array_strings(expected_value)
@@ -329,7 +329,7 @@ validate_replay(document: Json, config: Json): Validation ->
     }.
 
 pub validate(root: String, document: Json): Validation ->
-    if {
+    when {
         Some(schema) <- Support.json_string(document, "schema");
         Some(format_version) <- Support.json_int(document, "format_version");
         Some(candidate) <- required_member(document, "candidate");
@@ -356,7 +356,7 @@ pub validate(root: String, document: Json): Validation ->
     }.
 
 normalized_document(document: Json): Option[Json] ->
-    if {
+    when {
         Some(schema) <- Support.json_string(document, "schema");
         Some(version) <- Support.json_int(document, "format_version");
         Some(candidate) <- required_member(document, "candidate");
@@ -410,7 +410,7 @@ slice_traces_at(records: Json, index: Int, count: Int, result: Json): Option[Jso
         index >= count -> Some(result);
         true -> case records.at(index) {
             Ok(record) ->
-                if {
+                when {
                     Some(slice_id) <- Support.json_string(record, "slice_id");
                     Some(trace) <- Support.json_string(record, "trace_id")
                 } else {
@@ -422,7 +422,7 @@ slice_traces_at(records: Json, index: Int, count: Int, result: Json): Option[Jso
     }.
 
 pub baseline_payload(document: Json): Option[Json] ->
-    if {
+    when {
         Some(candidate) <- required_member(document, "candidate");
         Some(candidate_id) <- Support.json_string(candidate, "candidate_id");
         Some(digest) <- normalized_digest(document);
@@ -478,7 +478,7 @@ subtract_strings(left: List[String], right: List[String], collected: List[String
     }.
 
 compare_baseline(root: String, document: Json): Validation ->
-    if {
+    when {
         Some(baseline) <- Support.load_json(root, "proofs/lean/release_evidence/baseline.json");
         Some(current) <- baseline_payload(document);
         Some(prior_candidate) <- Support.json_string(baseline, "candidate_id");

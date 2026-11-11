@@ -1,0 +1,314 @@
+#!/usr/bin/env -S terlc run
+import ci.SyntaxContractArtifacts.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{String, Unit}.
+import std.crypto.Hash.
+import std.io.Console.{eprintln, println}.
+import std.io.Directory.{create_temporary, files_recursive, remove_all}.
+import std.io.File.{TextWritePlan, read_text, write_text}.
+import std.system.{Arguments, Environment, Process}.
+
+import type ci.SyntaxContractArtifacts.GeneratedArtifacts.
+import type std.core.Option.
+import type std.io.File.TextWritePlan.
+
+root(): String ->
+    case Environment.get("TERLAN_SYNTAX_ARTIFACT_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+compiler(repository: String): String ->
+    case Environment.get("TERLAN_SYNTAX_ARTIFACT_COMPILER") {
+        Some(value) -> value;
+        None -> String.append(repository, "/target/debug/terlc")
+    }.
+
+child(parent: String, path: String): String ->
+    String.append(parent, String.append("/", path)).
+
+contract_source(repository: String, compiler_path: String, temporary: String): Option[String] ->
+    let output = child(temporary, "syntax-contract.json");
+    case Process.run(
+        Process.with_working_directory(
+            Process.with_arguments(
+                Process.command(compiler_path),
+                ["syntax-contract", "--out", output],
+            ),
+            repository,
+        ),
+    ) {
+        Ok(result) ->
+            if {
+                result.status != 0 -> None;
+                true -> case read_text(output) {
+                    Ok(source) -> Some(source);
+                    Err(_reason) -> None
+                }
+            };
+        Err(_reason) -> None
+    }.
+
+phase_plans(
+    files: List[String],
+    fingerprint: String,
+    plans: List[TextWritePlan],
+): Option[List[TextWritePlan]] ->
+    case files {
+        [] -> Some(plans);
+        [path | rest] ->
+            if {
+                not SyntaxContractArtifacts.is_phase_golden(path) -> phase_plans(rest, fingerprint, plans);
+                true -> case read_text(path) {
+                    Ok(source) ->
+                        phase_plans(
+                            rest,
+                            fingerprint,
+                            [TextWritePlan(path, SyntaxContractArtifacts.normalize_phase_source(source, fingerprint)) | plans],
+                        );
+                    Err(_reason) -> None
+                }
+            }
+    }.
+
+proof_artifacts_accepted(repository: String, files: List[String], update_artifacts: Bool): Bool ->
+    case files {
+        [] -> true;
+        [path | rest] ->
+            when {
+                Ok(source) <- read_text(path);
+                Some(manifests) <- SyntaxContractArtifacts.proof_manifest_paths(source);
+                Some(normalized) <- refresh_manifests(repository, source, manifests)
+            } else {
+                _ -> false
+            };
+            (let accepted =
+    if {
+        update_artifacts -> if {
+            source == normalized -> true;
+            true -> write_text(path, normalized) == Ok(Unit)
+        };
+        true -> source == normalized
+    };
+accepted and proof_artifacts_accepted(repository, rest, update_artifacts))
+    }.
+
+refresh_manifests(repository: String, source: String, paths: List[String]): Option[String] ->
+    case paths {
+        [] -> Some(source);
+        [path | rest] ->
+            if {
+                path == "" or path.starts_with("/") or path.contains("../") -> None;
+                true -> when {
+                    Ok(digest) <- Hash.sha256_file(child(repository, path));
+                    Some(updated) <- SyntaxContractArtifacts.normalize_proof_manifest(source, path, digest)
+                } else {
+                    _ -> None
+                };
+                refresh_manifests(repository, updated, rest)
+            }
+    }.
+
+proof_inventory_header(): String ->
+    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan".
+
+reverse_rows(rows: List[String], result: List[String]): List[String] ->
+    case rows {
+        [] -> result;
+        [row | rest] -> reverse_rows(rest, [row | result])
+    }.
+
+normalize_proof_rows(
+    repository: String,
+    rows: List[String],
+    normalized: List[String],
+    update_artifacts: Bool,
+): Option[List[String]] ->
+    case rows {
+        [] -> Some(reverse_rows(normalized, []));
+        ["" | rest] -> normalize_proof_rows(repository, rest, normalized, update_artifacts);
+        [row | rest] ->
+            when {
+                [proof, _status, _scope, _manifests, _exit, _stderr, _digest, metadata, _remediation] <- row.split("\t");
+                Ok(digest) <- Hash.sha256_file(child(repository, proof));
+                Some(updated_row) <- SyntaxContractArtifacts.normalize_proof_inventory_row(row, digest);
+                Ok(metadata_source) <- read_text(child(repository, metadata));
+                Some(updated_metadata) <- SyntaxContractArtifacts.normalize_proof_source_digest(metadata_source, digest)
+            } else {
+                _ -> None
+            };
+            (let metadata_matches = metadata_source == updated_metadata;
+let metadata_accepted =
+    if {
+        metadata_matches -> true;
+        update_artifacts -> write_text(child(repository, metadata), updated_metadata) == Ok(Unit);
+        true -> false
+    };
+if {
+    not metadata_accepted -> None;
+    true -> normalize_proof_rows(repository, rest, [updated_row | normalized], update_artifacts)
+})
+    }.
+
+proof_inventory_accepted(repository: String, update_artifacts: Bool): Bool ->
+    let path = child(repository, "proofs/lean/ci/lean-proof-artifacts.tsv");
+    when {
+        Ok(source) <- read_text(path);
+        [header | rows] <- source.split("\n");
+        Some(normalized_rows) <- normalize_proof_rows(repository, rows, [], update_artifacts)
+    } else {
+        _ -> false
+    };
+    (let normalized = proof_inventory_header().append("\n").append(String.join(normalized_rows, "\n")).append("\n");
+if {
+    header != proof_inventory_header() -> false;
+    source == normalized -> true;
+    update_artifacts -> write_text(path, normalized) == Ok(Unit);
+    true -> false
+}).
+
+primary_plans(repository: String, generated: GeneratedArtifacts): Option[List[TextWritePlan]] ->
+    when {
+        Ok(phase_files) <- files_recursive(child(repository, "tests/fixtures/phase_contract"));
+        Ok(ebnf_digest) <- Hash.sha256_file(child(repository, "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"));
+        Ok(grammar_source) <- read_text(child(repository, "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop"));
+        Some(grammar) <-
+            SyntaxContractArtifacts.normalize_digest_marker(
+                grammar_source,
+                "// canonical-ebnf-sha256: ",
+                ebnf_digest,
+            );
+        Ok(proof_source) <- read_text(child(repository, "proofs/lean/parser_shape/ParserShape.lean"));
+        Some(proof) <-
+            SyntaxContractArtifacts.normalize_digest_marker(
+                proof_source,
+                "-- canonical-ebnf-sha256: ",
+                ebnf_digest,
+            );
+        Some(base_plans) <-
+            phase_plans(
+                phase_files,
+                generated.fingerprint,
+                [
+                    TextWritePlan(
+                        child(
+                            repository,
+                            "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
+                        ),
+                        grammar,
+                    ),
+                    TextWritePlan(
+                        child(repository, "proofs/lean/parser_shape/ParserShape.lean"),
+                        proof,
+                    ),
+                    TextWritePlan(
+                        child(
+                            repository,
+                            "docs/grammar/fixtures/contract/terlan_syntax_spec_contract_summary.json",
+                        ),
+                        generated.specification_summary,
+                    ),
+                    TextWritePlan(
+                        child(
+                            repository,
+                            "docs/grammar/fixtures/contract/terlan_syntax_contract_artifact_summary.json",
+                        ),
+                        generated.artifact_summary,
+                    ),
+                ],
+            )
+    } else {
+        _ -> None
+    };
+    Some(base_plans).
+
+proof_artifacts_match(repository: String, update_artifacts: Bool): Bool ->
+    case files_recursive(child(repository, "proofs/lean/artifacts")) {
+        Ok(proof_files) -> proof_artifacts_accepted(repository, proof_files, update_artifacts);
+        Err(_reason) -> false
+    }.
+
+all_match(plans: List[TextWritePlan]): Bool ->
+    case plans {
+        [] -> true;
+        [plan | rest] ->
+            case read_text(plan.path) {
+                Ok(source) -> source == plan.contents and all_match(rest);
+                Err(_reason) -> false
+            }
+    }.
+
+write_all(plans: List[TextWritePlan]): Bool ->
+    case plans {
+        [] -> true;
+        [plan | rest] ->
+            case read_text(plan.path) {
+                Ok(source) ->
+                    if {
+                        source == plan.contents -> write_all(rest);
+                        true -> case write_text(plan.path, plan.contents) {
+                            Ok(Unit) -> write_all(rest);
+                            Err(_reason) -> false
+                        }
+                    };
+                Err(_reason) ->
+                    case write_text(plan.path, plan.contents) {
+                        Ok(Unit) -> write_all(rest);
+                        Err(_write_reason) -> false
+                    }
+            }
+    }.
+
+execute(update_artifacts: Bool): Bool ->
+    let repository = root();
+    case create_temporary("terlan-syntax-artifacts.") {
+        Ok(temporary) ->
+            let prepared =
+                (when {
+    Some(source) <- contract_source(repository, compiler(repository), temporary);
+    Some(generated) <- SyntaxContractArtifacts.generate(source);
+    Some(outputs) <- primary_plans(repository, generated)
+} else {
+    _ -> None
+};
+Some(outputs));
+            let accepted =
+                case prepared {
+                    Some(outputs) ->
+                        let primary_accepted =
+                            if {
+                                update_artifacts -> write_all(outputs);
+                                true -> all_match(outputs)
+                            };
+                        if {
+                            not primary_accepted -> false;
+                            not proof_inventory_accepted(repository, update_artifacts) -> false;
+                            true -> proof_artifacts_match(repository, update_artifacts)
+                        };
+                    None -> false
+                };
+            let _removed = remove_all(temporary);
+            accepted;
+        Err(_reason) -> false
+    }.
+
+entry(): Bool ->
+    let update_artifacts = Arguments.count() == 1 and Arguments.get(0) == Some("--write");
+    let check = Arguments.count() == 0 or Arguments.count() == 1 and Arguments.get(0) == Some("--check");
+    if {
+        not update_artifacts and not check -> let _usage = eprintln("usage: SyncSyntaxContractArtifacts.terls [--check|--write]");
+        false;
+        execute(update_artifacts) -> let action =
+            if {
+                update_artifacts -> "generated";
+                true -> "verified"
+            };
+        let _printed = println(String.append("Syntax contract artifacts ", action));
+        true;
+        true -> let _failure = eprintln("Syntax contract artifacts are stale or could not be generated");
+        false
+    }.
+
+assert(entry());
+Unit.

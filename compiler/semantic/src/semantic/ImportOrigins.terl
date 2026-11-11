@@ -47,12 +47,12 @@ declarations(
 ): Result[Found, Failure] ->
     if {
         index == count -> Ok(missing(binding, used));
-        true -> if {
+        true -> when {
             Ok(work) <- budget(used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(row) <- rows.at(index);
     Ok(payload) <- row.get("payload")
 } else {
@@ -67,7 +67,7 @@ declarations(
 if {
     (EntityLookup.text(payload, "kind") == "struct" and declaration_kind == "struct"
     or DeclarationEntities.kind(payload) == declaration_kind)
-        and EntityLookup.text(payload, "name") == EntityLookup.text(binding, "source_name") -> if {
+        and EntityLookup.text(payload, "name") == EntityLookup.text(binding, "source_name") -> when {
         Ok(entity) <-
             DeclarationEntities.entity(
                 artifact,
@@ -106,12 +106,12 @@ provider(
 ): Result[Found, Failure] ->
     if {
         index == count -> Ok(missing(binding, used));
-        true -> if {
+        true -> when {
             Ok(work) <- budget(used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(source_row) <- units.at(index);
     Ok(artifact) <- source_row.get("export")
 } else {
@@ -126,7 +126,7 @@ provider(
 if {
     EntityLookup.module_name(artifact) == EntityLookup.text(binding, "source_module")
         and (EntityLookup.text(artifact, "status") == "checked"
-    or EntityLookup.text(artifact, "status") == "interface_only") -> if {
+    or EntityLookup.text(artifact, "status") == "interface_only") -> when {
         Ok(rows) <- artifact.get("source_declarations");
         Ok(row_count) <- rows.length()
     } else {
@@ -156,12 +156,12 @@ imports(
 ): Result[Found, Failure] ->
     if {
         index == count -> Ok(missing(Json.null(), used));
-        true -> if {
+        true -> when {
             Ok(work) <- budget(used, maximum)
         } else {
             Err(reason) -> Err(reason)
         };
-        (if {
+        (when {
     Ok(binding) <- rows.at(index)
 } else {
     _ ->
@@ -174,7 +174,7 @@ imports(
 };
 if {
     EntityLookup.text(binding, "kind") == import_kind
-        and EntityLookup.text(binding, "local_name") == name -> if {
+        and EntityLookup.text(binding, "local_name") == name -> when {
         Ok(units) <- selection.context.get("units");
         Ok(unit_count) <- units.length()
     } else {
@@ -202,7 +202,7 @@ pub resolve_kind(
     used: Int,
     maximum: Int,
 ): Result[Found, Failure] ->
-    if {
+    when {
         Ok(rows) <- selection.artifact.get("resolved_imports");
         Ok(count) <- rows.length()
     } else {
@@ -230,7 +230,7 @@ pub resolve_reference(
 ): Result[Found, Failure] ->
     let module_name = EntityLookup.text(reference, "source_module");
     let source_name = EntityLookup.text(reference, "source_name");
-    if {
+    when {
         true <- module_name != "" and source_name != ""
     } else {
         _ ->
@@ -242,7 +242,7 @@ pub resolve_reference(
             )
     };
     if {
-        module_name == EntityLookup.module_name(selection.artifact) -> if {
+        module_name == EntityLookup.module_name(selection.artifact) -> when {
             Ok(rows) <- selection.artifact.get("source_declarations");
             Ok(count) <- rows.length()
         } else {
@@ -265,7 +265,7 @@ pub resolve_reference(
             used,
             maximum,
         );
-        true -> if {
+        true -> when {
             Ok(units) <- selection.context.get("units");
             Ok(count) <- units.length()
         } else {

@@ -35,7 +35,6 @@ const REQUIRED_OPERATORS: &[&str] = &[
     "not_keyword",
     "bang_not",
     "string_concat",
-    "pipe_forward",
     "index_access",
     "index_assignment",
     "deprecated_strict_eq",

@@ -42,26 +42,19 @@ pub(super) fn formal_rem_operator_preserves_distinct_binary_op() {
 }
 
 #[test]
-pub(super) fn formal_keyword_expr_participates_in_pipe_expression() {
+pub(super) fn formal_keyword_expr_is_an_expression() {
     let expr = parse_terlan_expr(
         r#"
         case Option {
           None -> 0;
                 Ok(value) -> value
-        } |> inspect()
+        }
         "#,
     )
-    .expect("parse keyword expression in pipe");
+    .expect("parse keyword expression");
 
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-    let Expr::Case { clauses, .. } = left.as_ref() else {
-        panic!("expected case expression as pipe left side");
+    let Expr::Case { clauses, .. } = &expr else {
+        panic!("expected case expression");
     };
     assert!(matches!(
         &clauses[0].pattern,
@@ -427,25 +420,18 @@ pub(super) fn formal_try_expr_parses_of_and_catch_clauses() {
             {Atom["ok"], value} -> value
         catch
             Atom["error"] -> 0
-        } |> inspect()
+        }
         "#,
     )
-    .expect("parse try expression in pipe");
+    .expect("parse try expression");
 
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
     let Expr::Try {
         of_clauses,
         catch_clauses,
         ..
-    } = left.as_ref()
+    } = &expr
     else {
-        panic!("expected try expression as pipe left side");
+        panic!("expected try expression");
     };
     assert_eq!(of_clauses.len(), 1);
     assert_eq!(catch_clauses.len(), 1);
@@ -458,20 +444,13 @@ pub(super) fn formal_try_expr_parses_after_clause() {
         try risky() {
             after
             0 -> cleanup()
-        } |> inspect()
+        }
         "#,
     )
-    .expect("parse try after expression in pipe");
+    .expect("parse try after expression");
 
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-    let Expr::Try { after_clause, .. } = left.as_ref() else {
-        panic!("expected try expression as pipe left side");
+    let Expr::Try { after_clause, .. } = &expr else {
+        panic!("expected try expression");
     };
     let after_clause = after_clause.as_ref().expect("expected try after clause");
     assert!(matches!(after_clause.trigger.as_ref(), Expr::Int(0)));
@@ -913,25 +892,17 @@ pub(super) fn formal_unary_expr_preserves_precedence() {
 
 #[test]
 pub(super) fn formal_remote_call_expr_parses_dotted_syntax() {
-    let expr = parse_terlan_expr("Format.format(\"~p\", []) |> inspect()")
-        .expect("parse dotted remote call in pipe");
+    let expr = parse_terlan_expr("Format.format(\"~p\", [])").expect("parse dotted remote call");
 
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
     let Expr::Call {
         callee,
         remote,
         args,
         is_fun_value: _,
         ..
-    } = left.as_ref()
+    } = &expr
     else {
-        panic!("expected remote call expression as pipe left side");
+        panic!("expected remote call expression");
     };
     assert_eq!(remote.as_deref(), Some("Format"));
     assert!(matches!(callee.as_ref(), Expr::Atom(name) if name == "format"));

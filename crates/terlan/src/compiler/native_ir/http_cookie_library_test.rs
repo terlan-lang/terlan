@@ -134,15 +134,15 @@ pub start(): Response -> Response { label: "start" }.
 pub (mut response: Response) cookie(name: String, value: String): Response ->
     Response { label: response.label + ":" + name + "=" + value }.
 pub (mut response: Response) with_cookie(name: String, value: String): Response ->
-    response |> cookie(name, value).
+    response.cookie(name, value).
 pub (mut response: Response) cookie_with_options(name: String, value: String): Response ->
-    response |> cookie("options-" + name, value).
+    response.cookie("options-" + name, value).
 pub (mut response: Response) with_cookie_options(name: String, value: String): Response ->
-    response |> cookie_with_options(name, value).
+    response.cookie_with_options(name, value).
 pub (mut response: Response) delete_cookie(name: String): Response ->
-    response |> cookie("delete", name).
+    response.cookie("delete", name).
 pub (mut response: Response) with_deleted_cookie(name: String): Response ->
-    response |> delete_cookie(name).
+    response.delete_cookie(name).
 "#;
     let caller = r#"
 module cookie_composition_authority.

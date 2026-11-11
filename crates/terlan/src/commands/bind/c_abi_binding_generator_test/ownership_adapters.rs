@@ -47,7 +47,7 @@ pub(super) fn c_abi_wrapper_generates_optional_owned_resource_results() {
     generate_c_abi_bindings(&manifest, &out_dir).expect("generate optional resource wrapper");
     let module =
         fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl")).expect("module");
-    assert!(module.contains("maybe_clone(boundary: NativeBoundary): Option[NativeBoundary]"));
+    assert!(module.contains("(boundary: NativeBoundary) maybe_clone(): Option[NativeBoundary]"));
     let adapter = fs::read_to_string(out_dir.join("native/rust/src/lib.rs")).expect("adapter");
     assert!(
         adapter.contains("pub fn maybe_clone(&self) -> Result<Option<NativeBoundary>, CAbiError>")
@@ -755,7 +755,7 @@ pub(super) fn c_abi_wrapper_supports_borrowed_int_input_arrays_with_linked_lengt
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
     assert!(source.contains(
-        "pub reduce(boundary: NativeBoundary, dimensions: List[Int], keep_dimension: Bool): NativeBoundary"
+        "pub (boundary: NativeBoundary) reduce(dimensions: List[Int], keep_dimension: Bool): NativeBoundary"
     ));
 
     fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");

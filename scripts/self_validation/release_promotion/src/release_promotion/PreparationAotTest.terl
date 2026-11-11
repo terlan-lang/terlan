@@ -60,7 +60,7 @@ host_report(revision: String): Json ->
         ).
 
 pub fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(_docs) <- Directory.create_all(OwnerStorage.child(root, "docs/runtime"));
         Ok(_inventory) <-
             File.copy(
@@ -101,7 +101,7 @@ stage(root: String, label: String): Result[Decision, String] ->
 exercise(root: String, origin: String, vm: String, image: String): Bool ->
     let sanitizer = OwnerStorage.child(root, "target/quality/tvm-aot-thread-sanitizer-report.json");
     let report = OwnerStorage.child(root, output());
-    if {
+    when {
         true <- fixture(root, origin, vm, image);
         Err(_unsafe) <- PrepareAotRelease.prepare(root, "../outside-vm", "target/tools/matrix.tvm");
         Ok(cold) <- stage(root, "[AOT rehearsal] cold composition");
@@ -147,7 +147,7 @@ exercise(root: String, origin: String, vm: String, image: String): Bool ->
     first == final.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-aot-preparation-")
     } else {
         _ -> false

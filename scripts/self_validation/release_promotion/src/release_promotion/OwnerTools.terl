@@ -32,7 +32,7 @@ pub build_identity(
     env: List[EnvironmentEntry],
     runtime: String,
 ): Result[BuildIdentity, String] ->
-    if {
+    when {
         Ok(rustc) <- run(root, "rustc", ["-vV"], env);
         Ok(cargo) <- run(root, "cargo", ["--version"], env);
         Ok(digest) <- with_runtime_identity(root, env, runtime)
@@ -99,7 +99,7 @@ config(path: String, rows: Json): Result[Json, String] ->
     }.
 
 configs(path: String, rows: Json): Result[Json, String] ->
-    if {
+    when {
         Ok(legacy) <- config(OwnerStorage.child(path, ".cargo/config"), rows);
         Ok(current) <- config(OwnerStorage.child(path, ".cargo/config.toml"), legacy);
         Ok(parsed) <- Path.from_string(path)
@@ -115,7 +115,7 @@ configs(path: String, rows: Json): Result[Json, String] ->
  * Includes absent configuration files so creation also invalidates reuse.
  */
 pub configuration(root: String, env: List[EnvironmentEntry]): Result[String, String] ->
-    if {
+    when {
         Some(home) <- setting(env, "HOME")
     } else {
         _ -> Err("preparation requires an explicit HOME")
@@ -125,7 +125,7 @@ pub configuration(root: String, env: List[EnvironmentEntry]): Result[String, Str
         Some(value) -> value;
         None -> OwnerStorage.child(home, ".cargo")
     };
-(if {
+(when {
     Ok(ancestors) <- configs(root, Json.array());
     Ok(legacy) <- config(OwnerStorage.child(cargo_home, "config"), ancestors);
     Ok(current) <- config(OwnerStorage.child(cargo_home, "config.toml"), legacy)
@@ -138,7 +138,7 @@ OwnerStorage.digest(current))).
  * Hashes actual tool bytes; a tool reporting the same version is not sufficient.
  */
 tool(root: String, name: String, env: List[EnvironmentEntry], rows: Json): Result[Json, String] ->
-    if {
+    when {
         Ok(path) <- run(root, "/bin/sh", ["-c", "command -v \"$1\"", "terlan-tool-identity", name], env);
         Ok(digest) <- Hash.sha256_file(path)
     } else {
@@ -182,7 +182,7 @@ toolchain_digest(sysroot: String): Result[String, String] ->
     case Directory.files_recursive_excluding(sysroot, ["share", "etc"]) {
         Err(reason) -> Err(reason.message);
         Ok(paths) ->
-            if {
+            when {
                 Ok(relative) <- relative_paths(String.append(sysroot, "/"), paths, List.new[String]())
             } else {
                 Err(reason) -> Err(reason)
@@ -194,7 +194,7 @@ toolchain_digest(sysroot: String): Result[String, String] ->
     }.
 
 pub identity(root: String, env: List[EnvironmentEntry]): Result[String, String] ->
-    if {
+    when {
         Ok(runtime) <- report_identity(root, env)
     } else {
         Err(reason) -> Err(reason)
@@ -209,7 +209,7 @@ pub with_runtime_identity(
     env: List[EnvironmentEntry],
     runtime: String,
 ): Result[String, String] ->
-    if {
+    when {
         Ok(sysroot) <- run(root, "rustc", ["--print", "sysroot"], env);
         Ok(toolchain) <- toolchain_digest(sysroot);
         Ok(rustc) <- tool(root, "rustc", env, Json.array());
@@ -235,7 +235,7 @@ pub with_runtime_identity(
  * Runtime/report tools do not depend on the Rust compiler sysroot.
  */
 pub report_identity(root: String, env: List[EnvironmentEntry]): Result[String, String] ->
-    if {
+    when {
         Ok(git) <- tool(root, "git", env, Json.array());
         Ok(environment) <- tool(root, "/usr/bin/env", env, git);
         Ok(move) <- tool(root, "/usr/bin/mv", env, environment);
@@ -262,7 +262,7 @@ pub installer_identity(
     env: List[EnvironmentEntry],
     runtime: String,
 ): Result[String, String] ->
-    if {
+    when {
         Ok(selected) <-
             installer_tools(
                 root,
@@ -308,7 +308,7 @@ installer_tools(
     case names {
         [] -> Ok(rows);
         [name | rest] ->
-            if {
+            when {
                 Ok(next) <- tool(root, name, env, rows)
             } else {
                 Err(reason) -> Err(reason)

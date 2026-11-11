@@ -223,7 +223,6 @@ impl ContractSummary {
             "ShapeDecl",
             "StructuralParameterPattern",
             "Expr",
-            "PipeExpr",
             "OrExpr",
             "AndExpr",
             "PostfixExpr",

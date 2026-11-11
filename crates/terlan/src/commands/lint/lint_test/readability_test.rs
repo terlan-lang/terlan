@@ -27,7 +27,7 @@ pub value(input: Int): Int ->
         .collect::<Vec<_>>()
         .join("\n");
     assert!(rendered.contains("warning[TL0002:readability.deep-expression]"));
-    assert!(rendered.contains("deep expression tree should be split"));
+    assert!(rendered.contains("deep expression tree should use let bindings"));
     assert!(!rendered.contains("[fix available]"));
 }
 
@@ -80,7 +80,7 @@ resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
         .collect::<Vec<_>>()
         .join("\n");
     assert!(rendered.contains("error[TL0009:readability.grouped-binding]"));
-    assert!(rendered.contains("should use grouped `if { ... <- ... } else { ... }` bindings"));
+    assert!(rendered.contains("should use grouped `when { ... <- ... } else { ... }` bindings"));
     assert!(!rendered.contains("[fix available]"));
 }
 
@@ -144,7 +144,7 @@ fn lint_accepts_grouped_refutable_bindings() {
 module sample.
 
 resolve(first: Option[Int], second: Option[Int]): Option[Int] ->
-    if {
+    when {
         Some(left) <- first;
         Some(right) <- second
     } else {
@@ -397,7 +397,7 @@ fn lint_counts_grouped_binding_uses_in_later_initializers() {
     let source = r#"
 module sample.
 value(input: Result[Int, String]): Int ->
-    if {
+    when {
         Ok(first) <- input;
         Ok(second) <- next(first)
     } else {
@@ -419,7 +419,7 @@ fn lint_counts_grouped_binding_uses_in_later_boolean_guards() {
     let source = r#"
 module sample.
 value(input: Result[Int, String]): Int ->
-    if {
+    when {
         Ok(first) <- input;
         true <- first > 0
     } else {
@@ -441,7 +441,7 @@ fn lint_keeps_genuinely_unused_grouped_binding_diagnostics() {
     let source = r#"
 module sample.
 value(unused: Int): Int ->
-    if {
+    when {
         Ok(unused) <- next(unused);
         Ok(second) <- next(1)
     } else {

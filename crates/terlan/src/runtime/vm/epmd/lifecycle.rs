@@ -117,7 +117,10 @@ impl fmt::Display for VmLogicalNodeLifecycleError {
             Self::InvalidNodeName => formatter.write_str("invalid EPMD node name"),
             Self::InvalidExtraData => formatter.write_str("invalid EPMD extra data"),
             Self::InvalidTransition { phase, operation } => {
-                write!(formatter, "operation `{operation}` is invalid during {phase:?}")
+                write!(
+                    formatter,
+                    "operation `{operation}` is invalid during {phase:?}"
+                )
             }
             Self::RegistrationRejected => formatter.write_str("EPMD registration was rejected"),
             Self::RegistrationOwnershipLost => {
@@ -177,9 +180,7 @@ impl VmLogicalNodeLifecycle {
     }
 
     /// Records that the logical node listener is bound and ready.
-    pub(crate) fn acknowledge_listener_ready(
-        &mut self,
-    ) -> Result<(), VmLogicalNodeLifecycleError> {
+    pub(crate) fn acknowledge_listener_ready(&mut self) -> Result<(), VmLogicalNodeLifecycleError> {
         self.advance(
             VmLogicalNodePhase::SchedulerPoolReady,
             VmLogicalNodePhase::ListenerReady,

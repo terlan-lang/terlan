@@ -298,6 +298,28 @@ fn fmt_check_accepts_multiple_paths() {
     );
 }
 
+/// Verifies one malformed input cannot hide findings in later inputs.
+#[test]
+fn fmt_write_processes_every_path_before_failing() {
+    let dir = temp_dir("fmt", "aggregate_path_failures");
+    let missing = dir.join("Missing.terl");
+    let later = dir.join("Later.terl");
+    write_file(&later, "module sample.\npub value(): Int -> 1.\n");
+
+    assert_eq!(
+        run(&[
+            "--write".to_owned(),
+            missing.display().to_string(),
+            later.display().to_string(),
+        ]),
+        ExitCode::from(1)
+    );
+    assert_eq!(
+        fs::read_to_string(later).expect("later input should be formatted"),
+        "module sample.\n\npub value(): Int -> 1.\n"
+    );
+}
+
 /// Verifies the command wrapper reports file-read failures.
 ///
 /// Inputs:
@@ -521,8 +543,7 @@ fn fmt_keeps_std_core_sources_canonical() {
 ///
 /// Transformation:
 /// - Runs the same parser and formatter used by `terlc fmt` and compares the
-///   emitted text to the checked-in file contents so pipe canonicalization
-///   remains enforced for collection traversal modules.
+///   emitted text to the checked-in file contents.
 #[test]
 fn fmt_keeps_std_collection_sources_canonical() {
     let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -38,7 +38,7 @@ pub generator_patterns_and_filters_become_ordinary_control_flow(): Bool ->
         [source, callback] ->
             projected.kind == "list-flat-map"
                 and source.text == "items"
-                and if {
+                and (when {
     [_parameters, matching] <- callback.children;
     [_subject, accepted, rejected] <- matching.children
 } else {
@@ -49,7 +49,7 @@ accepted.kind == "clause"
     and case accepted.children {
     [_pattern, filtered] -> filtered.kind == "if";
     _ -> false
-};
+});
         _ -> false
     }.
 
@@ -77,13 +77,13 @@ pub multiple_generators_nest_flat_map_nodes_in_source_order(): Bool ->
     case projected.children {
         [_source, callback] ->
             projected.kind == "list-flat-map"
-                and if {
+                and (when {
     [_parameters, matching] <- callback.children;
     [_subject, accepted, _rejected] <- matching.children;
     [_pattern, nested] <- accepted.children
 } else {
     _ -> false
 };
-nested.kind == "list-flat-map";
+nested.kind == "list-flat-map");
         _ -> false
     }.

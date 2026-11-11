@@ -31,7 +31,7 @@ run(program: String, arguments: List[String]): Option[String] ->
     }.
 
 check(root: String): Bool ->
-    if {
+    when {
         Some(platform) <- ReleasePlatform.detect()
     } else {
         _ -> false
@@ -45,7 +45,7 @@ check(root: String): Bool ->
                 None -> Environment.current_directory() + "/target/debug/" + platform.compiler
             }
     };
-(if {
+(when {
     Ok(compiler_path) <- Path.from_string(compiler);
     Some(tools) <- compiler_path.parent();
     Ok(vm_path) <- tools.join(platform.vm);
@@ -78,7 +78,7 @@ if {
             .put("schema", Json.string("terlan.release-artifact.v1"))
             .put("target_triple", Json.string(ReleasePlatform.target_triple(platform)))
             .put("native_self_test", metadata);
-    if {
+    when {
         Ok(rendered) <- Json.stringify_pretty(manifest);
         Ok(_) <- File.write_text(root + "/terlan-release.json", rendered);
         Some(_) <- run(vm_path.to_string(), ["validate-package", root])
@@ -90,7 +90,7 @@ if {
 
 @test
 pub packaged_self_test_retains_continuations_and_executes(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-release-self-test")
     } else {
         _ -> false

@@ -470,25 +470,6 @@
       ]
     },
     {
-      "id": "pipe_forward",
-      "feature": "pipe forward",
-      "parse": "supported",
-      "format": "supported",
-      "typecheck": "supported",
-      "core_ir": "supported",
-      "target_profile": "supported",
-      "vm": "supported",
-      "js": "supported",
-      "lsp": "supported",
-      "diagnostic": null,
-      "positive_tests": ["pipe_forward_executes"],
-      "adversarial_tests": [],
-      "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parse_tree.rs::PipeForward",
-        "crates/terlan/src/compiler/typeck/core_expr_lowering.rs::Converts `left |> target(args...)` into the same CoreIR"
-      ]
-    },
-    {
       "id": "index_assignment",
       "feature": "index assignment",
       "parse": "supported",

@@ -11,7 +11,7 @@ import std.mcp.Protocol.{Session}.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -20,7 +20,7 @@ text(value: Json, key: String): String ->
     result.
 
 code(response: Json): Int ->
-    if {
+    when {
         Ok(error) <- response.get("error");
         Ok(field) <- error.get("code");
         Ok(value) <- field.as_int()
@@ -51,7 +51,7 @@ pub initialize_and_initialized_enable_standard_method_dispatch(): Bool ->
             connected.session,
             "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}",
         );
-    if {
+    when {
         Ok(result) <- handshake.response.get("result");
         Ok(capabilities) <- result.get("capabilities");
         Ok(_) <- capabilities.get("tools");
@@ -72,7 +72,7 @@ pub unsupported_requested_version_negotiates_the_supported_revision(): Bool ->
             Protocol.start("terlan-test", "1", true, false),
             initialize().replace("2025-11-25", "1900-01-01"),
         );
-    if {
+    when {
         Ok(result) <- event.response.get("result")
     } else {
         _ -> false
@@ -118,7 +118,7 @@ pub ping_works_before_initialization_and_unadvertised_methods_are_rejected(): Bo
             ready(false, false),
             "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}",
         );
-    if {
+    when {
         Ok(result) <- ping.response.get("result");
         Ok(count) <- result.object_length()
     } else {
@@ -162,7 +162,7 @@ pub duplicate_request_ids_are_rejected_and_unsigned_ids_remain_exact(): Bool ->
             first.session,
             "{\"jsonrpc\":\"2.0\",\"id\":18446744073709551615,\"method\":\"ping\"}",
         );
-    if {
+    when {
         Ok(id) <- first.response.get("id")
     } else {
         _ -> false
@@ -174,7 +174,7 @@ pub malformed_requests_preserve_readable_ids_and_anonymous_errors_omit_them(): B
     let session = Protocol.start("terlan-test", "1", true, true);
     let version = Protocol.parse(session, "{\"jsonrpc\":\"1.0\",\"id\":17,\"method\":\"ping\"}");
     let method = Protocol.parse(session, "{\"jsonrpc\":\"2.0\",\"id\":\"probe\",\"method\":42}");
-    if {
+    when {
         Ok(version_id) <- version.response.get("id");
         Ok(method_id) <- method.response.get("id")
     } else {

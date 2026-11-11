@@ -176,7 +176,7 @@ pub directory_symbolic_link_exposes_target_contents_without_copying(): Bool ->
 
 @test
 pub remove_all_removes_tree(): Bool ->
-    if {
+    when {
         Ok(root) <- create_temporary("terlan-directory-remove-test.")
     } else {
         _ -> false

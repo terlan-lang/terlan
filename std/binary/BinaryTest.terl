@@ -101,7 +101,7 @@ pub rest_descriptor_width_is_zero(): Bool ->
 
 @test
 pub valid_descriptors_pass_validation(): Bool ->
-    if {
+    when {
         Ok(uint_descriptor) <- validate_descriptor(make_uint(16));
         Ok(rest_descriptor) <- validate_descriptor(make_rest())
     } else {
@@ -262,7 +262,7 @@ pub protocol_shape_set_preserves_declaration_order(): Bool ->
 
 @test
 pub protocol_shape_set_resolves_direct_and_alias_names(): Bool ->
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "wire",
@@ -283,7 +283,7 @@ pub protocol_shape_set_resolves_direct_and_alias_names(): Bool ->
 pub protocol_shape_set_resolves_prefix_collisions_exactly(): Bool ->
     let frame = protocol_shape("frame", BigEndian, List(protocol_field("kind", make_uint(8))), false);
     let frame_v2 = protocol_shape("frame_v2", BigEndian, List(protocol_field("kind", make_uint(16))), false);
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "frames",
@@ -372,7 +372,7 @@ pub protocol_shape_set_rejects_alias_chains_and_missing_targets(): Bool ->
 
 @test
 pub protocol_shape_set_reports_unknown_resolution(): Bool ->
-    if {
+    when {
         Ok(set) <- protocol_shape_set("wire", List(tcp_header_shape()), List.new[ProtocolShapeAlias]());
         Err(reason) <- protocol_shape_set_resolve(set, "absent")
     } else {
@@ -383,7 +383,7 @@ pub protocol_shape_set_reports_unknown_resolution(): Bool ->
 @test
 pub protocol_shape_set_decodes_direct_and_alias_names(): Bool ->
     let payload = Bytes.from_list([18, 0, 2, 170, 187]);
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "wire",
@@ -414,7 +414,7 @@ pub protocol_shape_set_encodes_exact_alias_and_decodes_roundtrip(): Bool ->
             ),
             Bytes.from_list([170, 187]),
         );
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "wire",
@@ -444,7 +444,7 @@ pub protocol_shape_set_encodes_prefix_for_direct_and_alias_names(): Bool ->
             ),
             Bytes.from_list([170, 187]),
         );
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "wire",
@@ -472,7 +472,7 @@ pub protocol_shape_set_codecs_reject_unknown_names(): Bool ->
             ),
             Bytes.from_list([]),
         );
-    if {
+    when {
         Ok(set) <- protocol_shape_set("wire", List(compact_frame_shape()), List.new[ProtocolShapeAlias]());
         {Err(decode_reason), Err(exact_reason), Err(prefix_reason)} <-
             {
@@ -586,7 +586,7 @@ pub decode_fixed_header_returns_encoded_header_and_body(): Bool ->
 @test
 pub decode_prefixed_body_decodes_big_endian_scalars_and_body(): Bool ->
     let payload = Bytes.from_list([18, 0, 2, 170, 187]);
-    if {
+    when {
         Ok(decoded) <- decode_prefixed_body(compact_frame_shape(), payload);
         {Some(version), Some(kind), Some(length)} <-
             {
@@ -645,7 +645,7 @@ pub decode_prefixed_body_decodes_little_endian_signed_scalars(): Bool ->
             true,
         );
     let payload = Bytes.from_list([52, 18, 0, 128, 170]);
-    if {
+    when {
         Ok(decoded) <- decode_prefixed_body(shape, payload);
         {Some(unsigned), Some(signed)} <-
             {
@@ -669,7 +669,7 @@ pub decode_prefixed_body_decodes_fixed_byte_fields(): Bool ->
             true,
         );
     let payload = Bytes.from_list([1, 2, 3]);
-    if {
+    when {
         Ok(decoded) <- decode_prefixed_body(shape, payload);
         Some(prefix) <- decoded_protocol_bytes_value(decoded, "prefix")
     } else {
@@ -690,7 +690,7 @@ pub decode_prefixed_body_decodes_adjacent_bit_spans(): Bool ->
             ),
             false,
         );
-    if {
+    when {
         Ok(decoded) <- decode_prefixed_body(shape, Bytes.from_list([184]));
         {Some(prefix), Some(suffix)} <-
             {

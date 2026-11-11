@@ -17,7 +17,7 @@ Current subset:
 - direct variable parameter clauses
 - `Int`, `Bool`, `String`, and `Term`-like fallback signatures
 - integer, boolean, string-like, variable, local call, function-value call,
-  pipe-to-call, unary negation, and selected binary expressions
+  calls, unary negation, and selected binary expressions
 - selected primitive intrinsics, beginning with `core.string.contains`,
   `core.string.starts_with`, and `core.string.length`
 

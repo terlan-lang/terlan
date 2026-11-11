@@ -41,7 +41,7 @@ write(root: String, path: String, contents: String): Bool ->
     }.
 
 bind_revision(root: String): Bool ->
-    if {
+    when {
         Ok(revision) <-
             OwnerTools.run(
                 root,
@@ -60,7 +60,7 @@ bind_revision(root: String): Bool ->
     ).
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         true <- step("candidate fixture", CandidateFixture.create(root));
         true <- step("synthetic reports", EvidenceReportsTest.prepare_reports(root));
         Ok(_tools) <- Directory.create_all(OwnerStorage.child(root, "target/tools"));
@@ -115,7 +115,7 @@ stage(root: String, label: String, valid: Bool, completed: Int, reused: Int): Bo
     }.
 
 same(root: String, path: String, expected: String): Bool ->
-    if {
+    when {
         Ok(actual) <- File.read_text(OwnerStorage.child(root, path))
     } else {
         _ -> fail("read expected file")
@@ -123,7 +123,7 @@ same(root: String, path: String, expected: String): Bool ->
     actual == expected.
 
 cold_and_warm(root: String): Bool ->
-    if {
+    when {
         true <- stage(root, "cold seal and attestation", true, 2, 0);
         true <- same(root, "target/calls", "seal\nattest-existing\n");
         Ok(candidate) <- File.read_text(OwnerStorage.child(root, "dist/release-candidate.json"));
@@ -143,7 +143,7 @@ cold_and_warm(root: String): Bool ->
     true.
 
 interrupted(root: String): Bool ->
-    if {
+    when {
         Ok(previous) <-
             File.read_text(
                 OwnerStorage.child(root, "target/quality/release-readiness-attestation-report.json"),
@@ -168,7 +168,7 @@ interrupted(root: String): Bool ->
     true.
 
 invalidated(root: String): Bool ->
-    if {
+    when {
         Ok(before) <- File.read_text(OwnerStorage.child(root, "target/calls"));
         Ok(_generated) <- Directory.create_all(OwnerStorage.child(root, "std/generated"));
         true <- write(root, "std/generated/input.terli", "generated component\n");
@@ -188,7 +188,7 @@ invalidated(root: String): Bool ->
  * constructed reports are not release certification.
  */
 inventory_scale(origin: String): Bool ->
-    if {
+    when {
         Ok(source) <-
             OwnerTools.run(
                 origin,
@@ -213,7 +213,7 @@ valid).
  * Executes the actual graph; constructed reports are not release certification.
  */
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-readiness-owner-")
     } else {
         _ -> fail("temporary fixture directory")

@@ -43,7 +43,7 @@ failure(message: String): Bool ->
     false.
 
 json_clone(value: Json): Option[Json] ->
-    if {
+    when {
         Ok(source) <- Json.stringify(value);
         Ok(copy) <- Json.parse(source)
     } else {
@@ -102,7 +102,7 @@ string_member(values: List[String], expected: String): Bool ->
     }.
 
 json_string_at(values: Json, index: Int): Option[String] ->
-    if {
+    when {
         Ok(value) <- values.at(index);
         Ok(text) <- value.as_string()
     } else {
@@ -121,7 +121,7 @@ unique_strings(values: Json, index: Int, seen: List[String]): Bool ->
     }.
 
 pub validate_stress_report(report: Json): Bool ->
-    if {
+    when {
         Some(report_schema) <- json_string(report, "schema");
         Some(decision) <- json_string(report, "decision");
         Some(seeds) <- json_value(report, "seeds");
@@ -139,7 +139,7 @@ pub validate_stress_report(report: Json): Bool ->
     }.
 
 ci_fields_valid(report: Json, revision_value: String): Bool ->
-    if {
+    when {
         Some(source_clean) <- json_bool(report, "source_tree_clean");
         Some(environment) <- json_string(report, "execution_environment");
         Some(repository) <- json_string(report, "repository");
@@ -155,7 +155,7 @@ ci_fields_valid(report: Json, revision_value: String): Bool ->
         and commit == revision_value.
 
 pub validate_report(report: Json, require_ci: Bool): Bool ->
-    if {
+    when {
         Some(report_schema) <- json_string(report, "schema");
         Some(decision) <- json_string(report, "decision");
         Some(host) <- json_string(report, "host");
@@ -258,7 +258,7 @@ setup_rust_contract_valid(action: String): Bool ->
     ).
 
 pub contract_files_valid(root: String): Bool ->
-    if {
+    when {
         Ok(makefile) <- read_text(child(root, "Makefile"));
         Ok(manifest) <- read_text(child(root, "crates/terlan/Cargo.toml"));
         Ok(harness) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness.rs"));
@@ -285,7 +285,7 @@ put_optional_provenance(mut report: Json, evidence: Json): Json ->
     case json_string(evidence, "execution_environment") {
         Some("local") -> report.put("execution_environment", Json.string("local"));
         Some("github-actions") ->
-            if {
+            when {
                 Some(repository) <- json_string(evidence, "repository");
                 Some(workflow_ref) <- json_string(evidence, "workflow_ref");
                 Some(run_id) <- json_int(evidence, "run_id");
@@ -344,7 +344,7 @@ report_body(
     ).
 
 finish_run(root: String, stress_path: String, rustc: String): Bool ->
-    if {
+    when {
         Some(stress) <- load_json(stress_path);
         Ok(stress_digest) <- sha256_file(stress_path);
         Ok(identity) <- source_tree_identity(root);
@@ -387,7 +387,7 @@ if {
 }).
 
 run_supported(root: String): Bool ->
-    if {
+    when {
         Some(installed) <-
             command_output(
                 root,

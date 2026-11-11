@@ -201,7 +201,7 @@ case_seeds(
     facts: List[InferredTypeFact],
     catalog: PatternAuthorityCatalog,
 ): List[PatternTypeSeed] ->
-    if {
+    when {
         [subject | clauses] <- value.children;
         Some(source_type) <- fact_type(node_id + 1, facts)
     } else {

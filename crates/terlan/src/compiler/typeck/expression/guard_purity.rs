@@ -22,7 +22,7 @@ pub(crate) struct EffectfulCallFacts<'a> {
     pub(crate) trait_qualified: Option<&'a HashSet<(String, String, usize)>>,
     pub(crate) trait_receiver: Option<&'a HashSet<(String, usize)>>,
     pub(crate) module_aliases: Option<&'a HashSet<String>>,
-    pub(crate) proven_pure_receiver_calls: Option<&'a [(usize, usize)]>,
+    pub(crate) proven_pure_receiver_calls: Option<&'a [usize]>,
 }
 
 /// Appends a stable diagnostic when a guard contains an effect-only expression.
@@ -61,15 +61,15 @@ pub(crate) fn check_clause_guard_purity(
 /// Collects receiver calls that normal dispatch proves are pure primitives.
 ///
 /// Primitive dispatch runs before imported and trait receiver dispatch. Recording
-/// the exact call span prevents an unrelated impure method with the same name
-/// and arity from poisoning a guard while preserving conservative treatment for
+/// the exact syntax node prevents nested calls with coarse shared spans from
+/// proving one another pure while preserving conservative treatment for
 /// user-defined receivers.
 pub(in crate::compiler::typeck) fn collect_proven_pure_receiver_calls(
     expr: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,
     ctx: &ExprInferContext<'_>,
     subst: &HashMap<TypeVarId, Type>,
-    calls: &mut Vec<(usize, usize)>,
+    calls: &mut Vec<usize>,
 ) {
     collect_proven_pure_module_call(expr, locals, ctx, subst, calls);
     if let Some((receiver, method)) = receiver_method_call_parts(expr) {
@@ -134,7 +134,7 @@ pub(in crate::compiler::typeck) fn collect_proven_pure_receiver_calls(
             &trial_subst,
         );
         if primitive || (imported && callbacks_are_pure) {
-            calls.push((expr.span.start, expr.span.end));
+            calls.push(call_site_id(expr));
         }
     }
 
@@ -169,7 +169,7 @@ fn collect_proven_pure_module_call(
     locals: &HashMap<String, Type>,
     ctx: &ExprInferContext<'_>,
     subst: &HashMap<TypeVarId, Type>,
-    calls: &mut Vec<(usize, usize)>,
+    calls: &mut Vec<usize>,
 ) {
     let signatures = if let Some((module_alias, function)) = module_member_call_identity(expr) {
         let Some(module) = ctx.module_aliases.get(module_alias) else {
@@ -196,7 +196,7 @@ fn collect_proven_pure_module_call(
                     .iter()
                     .all(|scheme| scheme_callbacks_are_pure(scheme, expr, locals, ctx, subst))
             {
-                calls.push((expr.span.start, expr.span.end));
+                calls.push(call_site_id(expr));
             }
             return;
         }
@@ -232,7 +232,7 @@ fn collect_proven_pure_module_call(
             .iter()
             .all(|signature| signature_callbacks_are_pure(signature, expr, locals, ctx, subst))
         {
-            calls.push((expr.span.start, expr.span.end));
+            calls.push(call_site_id(expr));
         }
         return;
     } else {
@@ -251,7 +251,7 @@ fn collect_proven_pure_module_call(
             signature.pure && signature_callbacks_are_pure(signature, expr, locals, ctx, subst)
         })
     {
-        calls.push((expr.span.start, expr.span.end));
+        calls.push(call_site_id(expr));
     }
 }
 
@@ -484,6 +484,15 @@ fn receiver_method_call_parts(expr: &SyntaxExprOutput) -> Option<(&SyntaxExprOut
     Some((callee.children.first()?, callee.text.as_deref()?))
 }
 
+/// Returns the in-memory identity of one syntax expression during a purity pass.
+///
+/// Collection and validation traverse the same immutable syntax tree, so this
+/// identity distinguishes nested calls even when a parser assigns them the same
+/// coarse source span.
+fn call_site_id(expr: &SyntaxExprOutput) -> usize {
+    std::ptr::from_ref(expr).addr()
+}
+
 /// Appends a stable diagnostic when a pure context calls known effectful locals.
 ///
 /// Inputs:
@@ -591,7 +600,7 @@ fn first_impure_expr(
         }
         let resolved_as_conditionally_pure = facts
             .proven_pure_receiver_calls
-            .is_some_and(|calls| calls.contains(&(expr.span.start, expr.span.end)));
+            .is_some_and(|calls| calls.contains(&call_site_id(expr)));
         if !resolved_as_conditionally_pure
             && facts
                 .conditional_local
@@ -615,7 +624,7 @@ fn first_impure_expr(
         );
         let resolved_as_conditionally_pure = facts
             .proven_pure_receiver_calls
-            .is_some_and(|calls| calls.contains(&(expr.span.start, expr.span.end)));
+            .is_some_and(|calls| calls.contains(&call_site_id(expr)));
         if !resolved_as_conditionally_pure
             && facts
                 .qualified
@@ -639,7 +648,7 @@ fn first_impure_expr(
         let identity = (method.to_string(), arity);
         let resolved_as_pure_primitive = facts
             .proven_pure_receiver_calls
-            .is_some_and(|calls| calls.contains(&(expr.span.start, expr.span.end)));
+            .is_some_and(|calls| calls.contains(&call_site_id(expr)));
         if !resolved_as_pure_primitive
             && facts
                 .imported_receiver

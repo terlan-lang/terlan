@@ -15,7 +15,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 pub save(store: String, context: String, projection: String, offset: Int): Result[String, Failure] ->
-    if {
+    when {
         true <- offset >= 0
     } else {
         _ ->
@@ -45,7 +45,7 @@ if {
             ),
         )
     };
-    true -> if {
+    true -> when {
         Ok(stage) <- Directory.create_temporary("terlan-semantic-cursor-")
     } else {
         _ ->
@@ -72,14 +72,14 @@ if {
 pub load(store: String, context: String, projection: String, cursor: String): Result[Int, Failure] ->
     if {
         cursor == "" -> Ok(0);
-        true -> if {
+        true -> when {
             true <- JsonRules.id(cursor, "c:")
         } else {
             _ -> Err(Failure(code = "semantic.cursor.id", message = "Malformed cursor identity."))
         };
         (let digest = cursor.utf8_slice(2, 64);
 let path = store + "/query-cursors/" + digest + "/cursor.json";
-(if {
+(when {
     Ok(size) <- File.size(path);
     true <- size <= 1_024;
     Ok(contents) <- File.read_text(path);
@@ -98,7 +98,7 @@ let path = store + "/query-cursors/" + digest + "/cursor.json";
             ),
         )
 };
-(if {
+(when {
     true <-
         schema == "terlan.semantic.query-cursor.v1"
             and recorded_context == context

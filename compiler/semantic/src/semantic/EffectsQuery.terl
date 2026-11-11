@@ -32,7 +32,7 @@ signature(
                 message = "Purity signature selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(parameter) <- params.at(index);
             Ok(annotation) <- parameter.get("ty")
         } else {
@@ -48,7 +48,7 @@ signature(
     }.
 
 matches(row: Json, function: Json, module_name: String, parameter_types: Json): Bool ->
-    if {
+    when {
         Ok(types) <- row.get("parameter_types");
         Ok(arity) <- function.get("arity");
         Ok(contract_arity) <- row.get("arity");
@@ -88,7 +88,7 @@ scan(
                 message = "Purity contract selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ ->
@@ -108,7 +108,7 @@ scan(rows, function, module_name, types, index + 1, count, next, used + 1, maxim
     }.
 
 pub select(artifact: Json, function: Json, used: Int, maximum: Int): Result[Selected, Failure] ->
-    if {
+    when {
         Ok(rows) <- artifact.get("purity_contracts");
         Ok(count) <- rows.length();
         Ok(params) <- function.get("params");
@@ -116,7 +116,7 @@ pub select(artifact: Json, function: Json, used: Int, maximum: Int): Result[Sele
     } else {
         _ -> Ok(Selected(rows = Json.array(), work_used = used))
     };
-    (if {
+    (when {
     Ok(types) <- signature(params, 0, arity, Json.array(), used, maximum)
 } else {
     Err(reason) -> Err(reason)

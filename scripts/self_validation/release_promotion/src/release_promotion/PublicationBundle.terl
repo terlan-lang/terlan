@@ -49,7 +49,7 @@ artifact_plans(
                 {[path, digest], [size]} ->
                     let source = child(root, path);
                     let destination = child(staging, path);
-                    if {
+                    when {
                         true <- artifact_path(path);
                         true <- contains(regular_files, source);
                         Ok(actual_size) <- File.size(source);
@@ -78,7 +78,7 @@ manifest_rows(staging: String, paths: List[String], output: String): Result[Stri
         [] -> Ok(output);
         [path | rest] ->
             let prefix = staging + "/";
-            if {
+            when {
                 true <- path.starts_with(prefix);
                 Ok(digest) <- Hash.sha256_file(path)
             } else {
@@ -88,7 +88,7 @@ manifest_rows(staging: String, paths: List[String], output: String): Result[Stri
     }.
 
 stage(root: String, staging: String, plan: Json): Result[Unit, String] ->
-    if {
+    when {
         Ok(schema) <- plan.get("schema");
         Ok(schema_name) <- schema.as_string();
         true <- schema_name == "terlan.publication-plan.v1";

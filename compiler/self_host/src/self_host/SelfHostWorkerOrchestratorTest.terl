@@ -9,17 +9,17 @@ import std.core.Result.{Err, Ok}.
 
 @test
 pub batches_dispatch_only_after_active_work_drains(): Bool ->
-    if {
+    when {
         Ok(initial) <- SelfHostWorkerOrchestrator.start([WorkerBatch(0, ["a", "b"]), WorkerBatch(1, ["c"])])
     } else {
         Err(_) -> false
     };
-    (if {
+    (when {
     Ok(first) <- SelfHostWorkerOrchestrator.dispatch(initial)
 } else {
     Err(_) -> false
 };
-(if {
+(when {
     Ok(after_a) <- SelfHostWorkerOrchestrator.complete(first.state, "a", true)
 } else {
     Err(_) -> false
@@ -29,17 +29,17 @@ pub batches_dispatch_only_after_active_work_drains(): Bool ->
         Err(_) -> true;
         Ok(_) -> false
     };
-(if {
+(when {
     Ok(after_b) <- SelfHostWorkerOrchestrator.complete(after_a, "b", true)
 } else {
     Err(_) -> false
 };
-(if {
+(when {
     Ok(second) <- SelfHostWorkerOrchestrator.dispatch(after_b)
 } else {
     Err(_) -> false
 };
-(if {
+(when {
     Ok(done) <- SelfHostWorkerOrchestrator.complete(second.state, "c", true)
 } else {
     Err(_) -> false
@@ -51,17 +51,17 @@ first.modules == ["a", "b"]
 
 @test
 pub first_failure_cancels_active_and_pending_modules(): Bool ->
-    if {
+    when {
         Ok(initial) <- SelfHostWorkerOrchestrator.start([WorkerBatch(0, ["a", "b"]), WorkerBatch(1, ["c"])])
     } else {
         Err(_) -> false
     };
-    (if {
+    (when {
     Ok(first) <- SelfHostWorkerOrchestrator.dispatch(initial)
 } else {
     Err(_) -> false
 };
-(if {
+(when {
     Ok(failed) <- SelfHostWorkerOrchestrator.complete(first.state, "a", false)
 } else {
     Err(_) -> false

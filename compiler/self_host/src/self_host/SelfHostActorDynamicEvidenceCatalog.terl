@@ -61,17 +61,17 @@ target_present(value: ActorCallableIdentity, values: List[ActorCallableIdentity]
 
 @pure
 target(value: Json): Result[ActorCallableIdentity, String] ->
-    if {
+    when {
         Ok(module_name) <- string_field(value, "module_name")
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(function_name) <- string_field(value, "function_name")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(arity) <- int_field(value, "arity")
 } else {
     Err(reason) -> Err(reason)
@@ -130,22 +130,22 @@ targets(value: Json): Result[List[ActorCallableIdentity], String] ->
 
 @pure
 dynamic_call(value: Json): Result[ActorDynamicCallEvidence, String] ->
-    if {
+    when {
         Ok(result_name) <- string_field(value, "result_name")
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(arity) <- int_field(value, "arity")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(target_values) <- field(value, "targets")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(decoded_targets) <- targets(target_values)
 } else {
     Err(reason) -> Err(reason)
@@ -214,27 +214,27 @@ calls(value: Json): Result[List[ActorDynamicCallEvidence], String] ->
 
 @pure
 function_evidence(value: Json): Result[ActorFunctionCompileEvidence, String] ->
-    if {
+    when {
         Ok(module_name) <- string_field(value, "module_name")
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(function_name) <- string_field(value, "function_name")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(arity) <- int_field(value, "arity")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(call_values) <- field(value, "dynamic_calls")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     Ok(decoded_calls) <- calls(call_values)
 } else {
     Err(reason) -> Err(reason)
@@ -302,14 +302,14 @@ pub decode(text: String): Result[List[ActorFunctionCompileEvidence], String] ->
     case Json.parse(text) {
         Err(_) -> Err("actor dynamic evidence is not valid JSON");
         Ok(value) ->
-            if {
+            when {
                 Ok(schema) <- string_field(value, "schema")
             } else {
                 Err(reason) -> Err(reason)
             };
             if {
                 schema != "terlan.self-host.actor-dynamic-evidence/v1" -> Err("unsupported actor dynamic evidence schema");
-                true -> if {
+                true -> when {
                     Ok(functions) <- field(value, "functions")
                 } else {
                     Err(reason) -> Err(reason)

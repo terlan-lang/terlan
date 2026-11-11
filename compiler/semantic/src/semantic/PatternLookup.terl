@@ -80,7 +80,7 @@ search(
     case pending {
         [] -> Ok(missing(used));
         [current | rest] ->
-            if {
+            when {
                 true <- used < maximum
             } else {
                 _ ->
@@ -110,7 +110,7 @@ case current.mode {
                     );
                 if {
                     key == "span" -> search(artifact, snapshot, digest, target, [continuation | rest], work, maximum);
-                    true -> if {
+                    true -> when {
                         Ok(value) <- current.value.get(key)
                     } else {
                         _ -> Err(invalid())
@@ -135,7 +135,7 @@ search(artifact, snapshot, digest, target, [child | [continuation | rest]], work
                 }
         };
     "pattern" ->
-        if {
+        when {
             Ok(payload) <- current.declaration.get("payload");
             Ok(span) <- current.declaration.get("span");
             Ok(children) <- current.value.get("children");
@@ -156,7 +156,7 @@ search(artifact, snapshot, digest, target, [child | [continuation | rest]], work
     );
 if {
     text(entity, "entity_id") == target -> let explicit_arity =
-        (if {
+        (when {
     Ok(params) <- payload.get("params");
     Ok(count) <- params.length()
 } else {
@@ -239,14 +239,14 @@ count);
                 }
         };
     _ ->
-        if {
+        when {
             Ok(count) <- current.value.length()
         } else {
             _ -> Err(invalid())
         };
         if {
             current.index == count -> search(artifact, snapshot, digest, target, rest, work, maximum);
-            true -> if {
+            true -> when {
                 Ok(value) <- current.value.at(current.index)
             } else {
                 _ -> Err(invalid())
@@ -264,7 +264,7 @@ count);
     );
 let path = current.path + "/" + Json.to_string(Json.int(current.index));
 if {
-    current.mode == "declarations" -> if {
+    current.mode == "declarations" -> when {
         Ok(payload) <- value.get("payload")
     } else {
         _ -> Err(invalid())
@@ -288,7 +288,7 @@ if {
                 true -> Err(reason)
             }
     };
-    current.mode == "fields" -> if {
+    current.mode == "fields" -> when {
         Ok(pattern) <- value.get("value")
     } else {
         _ -> Err(invalid())
@@ -325,7 +325,7 @@ pub find(
     used: Int,
     maximum: Int,
 ): Result[Found, Failure] ->
-    if {
+    when {
         Ok(rows) <- artifact.get("source_declarations")
     } else {
         _ -> Err(invalid())

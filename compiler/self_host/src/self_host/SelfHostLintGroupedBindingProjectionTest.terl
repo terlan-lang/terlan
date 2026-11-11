@@ -35,5 +35,11 @@ pub accepts_repeated_fallback_that_reads_its_binding(): Bool ->
 @test
 pub accepts_grouped_refutable_bindings(): Bool ->
     diagnostics(
-    "module sample.\nresolve(first: Option[Int], second: Option[Int]): Option[Int] -> if { Some(left) <- first; Some(right) <- second } else { None -> None }; Some(left + right).\n",
+    "module sample.\nresolve(first: Option[Int], second: Option[Int]): Option[Int] -> when { Some(left) <- first; Some(right) <- second } else { None -> None }; Some(left + right).\n",
+) == [].
+
+@test
+pub accepts_guarded_case_clauses_as_non_candidates(): Bool ->
+    diagnostics(
+    "module sample.\nselect(value: Int): Int -> case value { item where item > 0 -> item; _ -> 0 }.\n",
 ) == [].

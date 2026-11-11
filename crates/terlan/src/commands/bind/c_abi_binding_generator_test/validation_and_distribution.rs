@@ -205,7 +205,7 @@ pub(super) fn structured_c_metadata_accepts_type_distinct_terlan_overloads() {
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("read generated Terlan overloads");
     assert!(source.contains("pub new(value: Int): NativeBoundary"));
-    assert!(source.contains("pub new(boundary: NativeBoundary): Int"));
+    assert!(source.contains("pub (boundary: NativeBoundary) new(): Int"));
     fs::remove_dir_all(manifest.parent().expect("variant root")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
 }
@@ -234,8 +234,8 @@ pub(super) fn structured_c_metadata_separates_public_and_abi_argument_types() {
         .expect("generated helper");
     assert!(module.contains("delta: ExampleCode"));
     assert!(module.contains("import std.core.Int.{to_string}."));
-    assert!(module.contains("\nadd(boundary: NativeBoundary"));
-    assert!(!module.contains("\npub add(boundary: NativeBoundary"));
+    assert!(module.contains("\n(boundary: NativeBoundary) add("));
+    assert!(!module.contains("\npub (boundary: NativeBoundary) add("));
     assert!(adapter.contains("delta: i64"));
     assert!(helper.contains("Arg::Int(delta)"));
     let consumer = fs::read_to_string(out_dir.join("tests/c_abi_fixture/NativeBoundaryTest.terl"))
@@ -794,7 +794,7 @@ pub(super) fn external_c_distribution_splits_cpp_adapters_and_maps_borrowed_stri
     assert!(helper.contains("strip_prefix(\"s:\")"));
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
-    assert!(source.contains("run_model(boundary: NativeBoundary, path: String)"));
+    assert!(source.contains("(boundary: NativeBoundary) run_model(path: String)"));
 
     fs::remove_dir_all(root).expect("remove variant root");
     fs::remove_dir_all(out_dir).expect("remove output");

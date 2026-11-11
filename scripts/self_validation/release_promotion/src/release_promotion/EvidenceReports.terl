@@ -95,7 +95,7 @@ pub preflight_reports(): List[{String, String}] ->
     ).
 
 pub string_field(document: Json, key: String): Option[String] ->
-    if {
+    when {
         Ok(value) <- document.get(key);
         Ok(text) <- value.as_string()
     } else {
@@ -104,7 +104,7 @@ pub string_field(document: Json, key: String): Option[String] ->
     Some(text).
 
 pub admitted(source: String, schema: String): Option[Json] ->
-    if {
+    when {
         Ok(document) <- Json.parse(source);
         Some(actual) <- string_field(document, "schema");
         true <- actual == schema;
@@ -121,7 +121,7 @@ pub passes(source: String, schema: String): Bool ->
     }.
 
 pub seal_matches(source: String, schema: String, seal: String): Bool ->
-    if {
+    when {
         true <- seal != "";
         Some(document) <- admitted(source, schema);
         Some(actual) <- string_field(document, "candidate_seal")
@@ -142,7 +142,7 @@ pub targets(): List[String] ->
     ].
 
 matrix(source: String): Option[Json] ->
-    if {
+    when {
         Some(document) <- admitted(source, "terlan.vm-release-artifact-matrix-report.v1");
         Ok(count) <- document.get("target_count");
         Ok(6) <- count.as_int();
@@ -165,7 +165,7 @@ exact_targets(rows: List[RequiredFieldRow], remaining: List[String]): Bool ->
     case rows {
         [] -> remaining == [];
         [row | rest] ->
-            if {
+            when {
                 [triple] <- row.strings
             } else {
                 _ -> false
@@ -174,7 +174,7 @@ exact_targets(rows: List[RequiredFieldRow], remaining: List[String]): Bool ->
     }.
 
 pub supply_chain_matches(source: String, digest: String): Bool ->
-    if {
+    when {
         Some(document) <- admitted(source, "terlan.release-supply-chain-provenance-report.v1");
         Ok(checksums) <- document.get("checksums");
         Some(actual) <- string_field(checksums, "installed_archive")
@@ -184,7 +184,7 @@ pub supply_chain_matches(source: String, digest: String): Bool ->
     digest != "" and actual == digest.
 
 pub matrix_archive_matches(source: String, path: String, digest: String): Bool ->
-    if {
+    when {
         Some(document) <- matrix(source);
         Ok(rows) <- document.get("targets");
         Ok(count) <- rows.length()
@@ -196,7 +196,7 @@ pub matrix_archive_matches(source: String, path: String, digest: String): Bool -
 host_archive_count(rows: Json, path: String, digest: String, index: Int, count: Int): Int ->
     if {
         index == count -> 0;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(host) <- row.get("host_validation")
         } else {

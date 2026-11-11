@@ -5,9 +5,16 @@ terlc="$CARGO_TARGET_DIR/release/terlc"
 # Semantic runtime oracles use the repository's conventional binary path.
 # The hook's fresh snapshot shares only binaries with its external build cache.
 mkdir -p target
-if [[ ! -e target/debug ]]; then
-  ln -s "$CARGO_TARGET_DIR/debug" target/debug
-fi
+mkdir -p target/debug
+for tool in terlc terlan-vm terlan-quality; do
+  source_tool="$CARGO_TARGET_DIR/debug/$tool"
+  target_tool="target/debug/$tool"
+  test -x "$source_tool"
+  if [[ ! -e "$target_tool" ]]; then
+    ln -s "$source_tool" "$target_tool"
+  fi
+  test "$(realpath "$target_tool")" = "$(realpath "$source_tool")"
+done
 test "$(realpath target/debug/terlc)" = "$(realpath "$CARGO_TARGET_DIR/debug/terlc")"
 "$terlc" build scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls \
   --target terlan-vm --out-dir target/self-validation/semantic-kernels

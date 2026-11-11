@@ -26,7 +26,7 @@ move(root: String, source: String, target: String): Bool ->
     ).
 
 fixture(root: String): Bool ->
-    if {
+    when {
         Ok(_stage) <- Directory.create_all(OwnerStorage.child(root, staged()));
         Ok(_final) <- Directory.create_all(OwnerStorage.child(root, destination()))
     } else {
@@ -119,7 +119,7 @@ old_preserved(root: String, mode: String): Bool ->
     File.read_text(OwnerStorage.child(root, String.append(directory, "/obsolete.json"))) == Ok("old").
 
 exercise(root: String, mode: String): Bool ->
-    if {
+    when {
         true <- fixture(root);
         Ok(expected) <- OwnerDirectory.row(root, staged(), destination());
         true <- advance(root, mode, expected)
@@ -134,7 +134,7 @@ exercise(root: String, mode: String): Bool ->
     }.
 
 published(root: String, expected: Json): Bool ->
-    if {
+    when {
         true <- OwnerDirectory.ready(root, staged(), destination(), expected);
         true <- OwnerDirectory.publish(root, staged(), destination(), expected);
         true <- OwnerDirectory.publish(root, staged(), destination(), expected);
@@ -154,7 +154,7 @@ published(root: String, expected: Json): Bool ->
     OwnerStorage.digest(expected) == OwnerStorage.digest(actual).
 
 scenario(mode: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-directory-publication-")
     } else {
         _ -> false

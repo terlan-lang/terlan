@@ -52,19 +52,28 @@ pub(crate) fn infer_syntax_list_comprehension(
     let mut lift_constructor: Option<Type> = None;
     for guard in expr.children.iter().skip(expr.patterns.len() + 1) {
         refine_by_syntax_guard(guard, &mut item_locals, ctx.aliases, &mut item_subst);
-        super::check_clause_guard_purity(
-            guard,
-            "list comprehension filter",
-            &item_locals,
-            ctx,
-            &item_subst,
-            errors,
-        );
         let guard_type = infer_syntax_expr(guard, &item_locals, ctx, &mut item_subst, errors);
         let mut bool_subst = item_subst.clone();
         if unify(&Type::Bool, &guard_type, &mut bool_subst).is_ok() {
+            super::check_clause_guard_purity(
+                guard,
+                "list comprehension filter",
+                &item_locals,
+                ctx,
+                &item_subst,
+                errors,
+            );
             item_subst = bool_subst;
-        } else if !is_completed_comprehension_guard_result(&guard_type, ctx.aliases) {
+        } else if is_completed_comprehension_guard_result(&guard_type, ctx.aliases) {
+            super::check_clause_guard_purity(
+                guard,
+                "list comprehension filter",
+                &item_locals,
+                ctx,
+                &item_subst,
+                errors,
+            );
+        } else {
             match comprehension_guard_lift_constructor(&guard_type, ctx) {
                 Ok(constructor) => {
                     if let Some(existing) = &lift_constructor {

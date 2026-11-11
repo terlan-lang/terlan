@@ -13,16 +13,19 @@ import std.data.Json.
 import type std.data.Json.
 
 row(attempt: String, phase: String, child: Int, elapsed: Int): Json ->
-    row_header(attempt)
-    |> observed_row(phase, child, elapsed).
+    observed_row(row_header(attempt), phase, child, elapsed).
 
 row_header(attempt: String): Json ->
-    Json.object()
-    |> put_text("schema", "terlan.process-activity.v1")
-    |> put_text("attempt", attempt)
-    |> put_text("declaration_sha256", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-    |> put_text("program_kind", "cargo")
-    |> put_count("owner_pid", 17).
+    let schema = put_text(Json.object(), "schema", "terlan.process-activity.v1");
+    let attempt_row = put_text(schema, "attempt", attempt);
+    let declaration =
+        put_text(
+            attempt_row,
+            "declaration_sha256",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        );
+    let program = put_text(declaration, "program_kind", "cargo");
+    put_count(program, "owner_pid", 17).
 
 observed_row(header: Json, phase: String, child: Int, elapsed: Int): Json ->
     let observed =
@@ -59,7 +62,7 @@ source(rows: List[Json]): String ->
     case rows {
         [] -> "";
         [value | rest] ->
-            if {
+            when {
                 Ok(line) <- Json.stringify(value)
             } else {
                 _ -> "invalid fixture\n"
@@ -74,7 +77,7 @@ rejected(rows: List[Json]): Bool ->
     }.
 
 count(report: Json, name: String, expected: Int): Bool ->
-    if {
+    when {
         Ok(value) <- report.get(name);
         Ok(actual) <- value.as_int()
     } else {
@@ -97,14 +100,14 @@ outcomes(): Bool ->
             ],
         );
     let log = String.append(NativeActivityTest.object("object"), executions);
-    if {
+    when {
         Ok(report) <- NativeActivity.validate(log);
         Some("terlan.execution-inventory.v1") <- OwnerStorage.text(report, "schema");
         Ok(processes) <- report.get("process_inventory")
     } else {
         _ -> false
     };
-    (if {
+    (when {
     true <- count(processes, "launches", 2);
     true <- count(processes, "reaped", 2);
     true <- count(processes, "nonzero_exits", 1);
@@ -117,7 +120,7 @@ outcomes(): Bool ->
 true).
 
 transitions(): Bool ->
-    if {
+    when {
         true <- rejected([spawned("one")]);
         true <- rejected([started("one"), reaped("one", 0)]);
         true <- rejected([started("one"), spawned("one"), spawned("one")]);
@@ -130,7 +133,7 @@ transitions(): Bool ->
     true.
 
 terminal_transitions(): Bool ->
-    if {
+    when {
         true <- rejected([started("one"), row("one", "invented", -1, 1)]);
         true <- rejected([started("one"), row("one", "spawned", 0, 1)]);
         true <-
@@ -151,7 +154,7 @@ terminal_transitions(): Bool ->
     true.
 
 identity(): Bool ->
-    if {
+    when {
         true <- rejected([started("one"), spawned("one").put("owner_pid", Json.int(19))]);
         true <- rejected([started("one"), spawned("one").put("program_kind", Json.string("git"))]);
         true <-
@@ -182,7 +185,7 @@ identity(): Bool ->
     true.
 
 invalid_scalars(): Bool ->
-    if {
+    when {
         true <- rejected([started("one").put("owner_pid", Json.int(0))]);
         true <- rejected([started("one").put("declaration_sha256", Json.string("bad"))]);
         true <- rejected([started("one").put("attempt", Json.string("../one"))]);
@@ -194,7 +197,7 @@ invalid_scalars(): Bool ->
     true.
 
 malformed(): Bool ->
-    if {
+    when {
         true <- rejected([started("one").put("extra", Json.null())]);
         true <- rejected([started("one").put("schema", Json.string("unknown.v1"))]);
         true <- rejected([started("one").put("exit_code", Json.int(0))]);
@@ -208,7 +211,7 @@ malformed(): Bool ->
     true.
 
 invalid_results(): Bool ->
-    if {
+    when {
         true <-
             rejected(
                 [
@@ -235,7 +238,7 @@ invalid_results(): Bool ->
     true.
 
 interrupted(): Bool ->
-    if {
+    when {
         Ok(report) <- NativeActivity.inspect(source([started("pending"), spawned("pending")]));
         Some("interrupted") <- OwnerStorage.text(report, "decision");
         Ok(processes) <- report.get("process_inventory")

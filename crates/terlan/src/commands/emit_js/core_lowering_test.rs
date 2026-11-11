@@ -112,48 +112,6 @@ pub quotient(A: Int, B: Int): Int ->
     assert!(js.contains("return Math.trunc(A / B);"), "{js}");
 }
 
-/// Verifies that bootstrap CoreIR-to-JS lowering handles focused
-/// pipe-forward expressions into local named calls.
-///
-/// Inputs:
-/// - A checked Terlan module with a public unary function and a public
-///   function using `1 |> add_one()`.
-///
-/// Output:
-/// - Assertions over bootstrap JavaScript source before Oxc reprinting.
-///
-/// Transformation:
-/// - Compiles source through the formal pipeline, emits JS from
-///   `CoreModule` through the bootstrap lowering helper, and checks that
-///   `CoreExpr::BinaryOp` with `|>` becomes `add_one(1)`.
-#[test]
-fn emit_core_module_to_js_handles_pipe_forward_to_named_call() {
-    let source = "\
-module js_core_surface_pipe_forward.
-
-pub add_one(x: Int): Int ->
-    x + 1.
-
-pub piped(): Int ->
-    1 |> add_one().
-";
-    let artifacts = compile_syntax_module_through_phases_with_profile(
-        "js_core_surface_pipe_forward.terl",
-        source,
-        DiagnosticFormat::default(),
-        None,
-        NativePolicy::default(),
-        TargetProfile::JsShared,
-    )
-    .expect("compile source to CoreIR");
-
-    let js = core_lowering::emit_core_module_to_js(&artifacts.core);
-
-    assert!(js.contains("export function add_one(x)"));
-    assert!(js.contains("export function piped()"));
-    assert!(js.contains("return add_one(1);"), "{js}");
-}
-
 /// Verifies that bootstrap CoreIR-to-JS lowering handles total integer
 /// literal case expressions.
 ///

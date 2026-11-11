@@ -12,7 +12,7 @@ import type std.collections.List.
 import type std.core.Option.
 
 changed_paths(base: String, head: String): Option[List[String]] ->
-    if {
+    when {
         Ok(output) <-
             Process.run(
                 Process.with_arguments(
@@ -27,7 +27,7 @@ changed_paths(base: String, head: String): Option[List[String]] ->
     Some(String.split(String.trim(output.stdout), "\n")).
 
 entry(): Bool ->
-    if {
+    when {
         Some(base) <- Arguments.get(0);
         Some(head) <- Arguments.get(1);
         Some(output_path) <- Arguments.get(2);
@@ -36,7 +36,7 @@ entry(): Bool ->
         _ -> false
     };
     (let force_full = ChangeClassifier.indeterminate_base(base);
-(if {
+(when {
     Some(paths) <-
         if {
             force_full -> Some(List.new[String]());

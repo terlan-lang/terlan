@@ -26,7 +26,7 @@ test_source(module_name: String, body: String): String ->
 write_example(candidate: Candidate, name: String, contents: String): String ->
     let directory = Support.child(candidate.workspace, name);
     let path = Support.child(directory, "ExampleTest.terl");
-    if {
+    when {
         Ok(Unit) <- Directory.create_all(directory);
         Ok(Unit) <- File.write_text(path, contents)
     } else {

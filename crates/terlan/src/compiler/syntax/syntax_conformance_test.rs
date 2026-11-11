@@ -207,8 +207,17 @@ fn expression_shape(expr: &Expr) -> String {
             arg_names,
             ..
         } => {
+            if let Expr::FieldAccess { value, field } = callee.as_ref() {
+                return format!(
+                    "method({},{field},{},{},{})",
+                    expression_shape(value),
+                    type_args.len(),
+                    args.len(),
+                    arg_names.iter().filter(|name| name.is_some()).count()
+                );
+            }
             let (Expr::Atom(name) | Expr::Var(name)) = callee.as_ref() else {
-                panic!("expected named call")
+                panic!("expected named or receiver call")
             };
             let qualified = remote
                 .as_ref()

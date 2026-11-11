@@ -110,7 +110,7 @@ coverage_command_text(): String ->
     "CARGO_TARGET_DIR=target/coverage RUSTFLAGS=--cfg coverage cargo test --locked -p terlan --lib --features quality-tools --no-run".
 
 pub read_json(path: String): Option[Json] ->
-    if {
+    when {
         Ok(text) <- read_text(path);
         Ok(value) <- Json.parse(text)
     } else {
@@ -125,7 +125,7 @@ json_member(value: Json, key: String): Option[Json] ->
     }.
 
 json_int(value: Json, key: String): Option[Int] ->
-    if {
+    when {
         Some(member) <- json_member(value, key);
         Ok(number) <- member.as_int()
     } else {
@@ -134,7 +134,7 @@ json_int(value: Json, key: String): Option[Int] ->
     Some(number).
 
 json_string(value: Json, key: String): Option[String] ->
-    if {
+    when {
         Some(member) <- json_member(value, key);
         Ok(text) <- member.as_string()
     } else {
@@ -143,7 +143,7 @@ json_string(value: Json, key: String): Option[String] ->
     Some(text).
 
 json_bool(value: Json, key: String): Option[Bool] ->
-    if {
+    when {
         Some(member) <- json_member(value, key);
         Ok(flag) <- member.as_bool()
     } else {
@@ -339,7 +339,7 @@ invalidated_lines(lines: List[String], count: Int): Int ->
     case lines {
         [] -> count;
         [line | rest] ->
-            if {
+            when {
                 Ok(value) <- Json.parse(line);
                 {Some("compiler-artifact"), Some(false)} <- {json_string(value, "reason"), json_bool(value, "fresh")}
             } else {
@@ -423,7 +423,7 @@ run_lane(
     }.
 
 touch_source(path: String): Option[FileTimestamps] ->
-    if {
+    when {
         Ok(saved) <- timestamps(path);
         Ok(contents) <- read_text(path);
         Ok(Unit) <- write_text(path, contents)
@@ -578,7 +578,7 @@ positive_executable_sizes(sizes: Json, prefix: String, names: List[String]): Boo
 executable_sizes_within_budget(sizes: Json, policy: Json): Bool ->
     let report = Json.object();
     let _sizes = report.put("executable_sizes", sizes);
-    if {
+    when {
         Some(maxima) <- json_member(policy, "executable_maximum_bytes");
         Some(debug_maximum) <- json_int(maxima, "debug");
         Some(release_maximum) <- json_int(maxima, "release")
@@ -1007,7 +1007,7 @@ policy_hash(repository: String): String ->
     }.
 
 pub write_report(repository: String, report: Json): Bool ->
-    if {
+    when {
         Ok(text) <- Json.stringify_pretty(report);
         Ok(Unit) <- create_all(child(repository, "target/quality"));
         Ok(Unit) <- write_text(report_path(repository), String.append(text, "\n"))
@@ -1137,7 +1137,7 @@ validate(repository: String, report: Json, policy: Json): List[String] ->
     reverse_strings(eleventh).
 
 validate_classes(report: Json, policy: Json, findings: List[String]): List[String] ->
-    if {
+    when {
         {Some(classes), Some(maxima), Some(total_max)} <-
             {
                 json_member(report, "artifact_classes"),
@@ -1213,7 +1213,7 @@ validate_maximum_members(
     }.
 
 validate_lanes(report: Json, policy: Json, findings: List[String]): List[String] ->
-    if {
+    when {
         {Some(lanes), Some(maxima)} <- {json_member(report, "lanes"), json_member(policy, "lane_maximum_wall_time_ms")};
         Ok(6) <- lanes.length()
     } else {
@@ -1342,14 +1342,14 @@ validate_executables(report: Json, policy: Json, findings: List[String]): List[S
     }.
 
 validate_roots(report: Json, findings: List[String]): List[String] ->
-    if {
+    when {
         Some(roots) <- json_member(report, "target_roots");
         {Ok(1), Ok(root_value)} <- {roots.length(), roots.at(0)};
         Ok("target") <- root_value.as_string()
     } else {
         _ -> ["duplicate or missing target roots" | findings]
     };
-    (if {
+    (when {
     Some(children) <- json_member(report, "unaccounted_target_children");
     Ok(0) <- children.length()
 } else {
@@ -1373,7 +1373,7 @@ pub check(repository: String, policy: Json, report: Json): Bool ->
     let validated = validate(repository, report, policy);
     case validated {
         [] ->
-            if {
+            when {
                 {Some(classes), Some(maximum), Some(lanes)} <-
                     {
                         json_member(report, "artifact_classes"),
@@ -1678,7 +1678,7 @@ pub clock_contract_supports_evidence_and_elapsed_time(): Bool ->
 
 @test
 pub executable_budget_rejects_overflow_missing_files_and_invalid_policy(): Bool ->
-    if {
+    when {
         Ok(sizes) <-
             Json.parse(
                 "{\"debug/terlc\":1,\"debug/terlan-vm\":1,\"debug/terlan-native-worker\":1,\"debug/terlan-test-orchestrator\":1,\"release/terlc\":2,\"release/terlan-vm\":2,\"release/terlan-native-worker\":2,\"release/terlan-test-orchestrator\":2}",
@@ -1692,7 +1692,7 @@ pub executable_budget_rejects_overflow_missing_files_and_invalid_policy(): Bool 
 
 @test
 pub executable_budget_failure_reports_measured_totals(): Bool ->
-    if {
+    when {
         Ok(report) <-
             Json.parse(
                 "{\"executable_sizes\":{\"debug/terlc\":1,\"debug/terlan-vm\":1,\"debug/terlan-native-worker\":1,\"debug/terlan-test-orchestrator\":1,\"release/terlc\":2,\"release/terlan-vm\":2,\"release/terlan-native-worker\":2,\"release/terlan-test-orchestrator\":2}}",

@@ -377,7 +377,7 @@ text_findings(
     ebin_lines: List[Int],
     number: Int,
 ): List[Finding] ->
-    if {
+    when {
         _ <- {erlc_lines, erl_lines, erlc_command_lines, eunit_lines, ebin_lines};
         [line | rest] <- lines
     } else {

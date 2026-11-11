@@ -691,7 +691,15 @@ request_pipeline(callbacks: List[Middleware]): RequestPipeline ->
         };
     RequestPipeline {#callbacks: callbacks, #execute: execute}.
 
-run_request_pipeline(callbacks: List[Middleware], request: Request): MiddlewareResult ->
+/**
+ * Runs request middleware in declaration order.
+ *
+ * Input: middleware callbacks and the request being admitted.
+ * Output: the first short-circuit response or `Continue` after every callback.
+ * Transformation: applies the same deterministic middleware contract used by
+ * VM-owned HTTP dispatch without opening a transport.
+ */
+pub run_request_pipeline(callbacks: List[Middleware], request: Request): MiddlewareResult ->
     case callbacks {
         [] -> Continue;
         [callback | rest] ->
@@ -712,7 +720,15 @@ response_pipeline(callbacks: List[ResponseMiddleware]): ResponsePipeline ->
         };
     ResponsePipeline {#callbacks: callbacks, #execute: execute}.
 
-run_response_pipeline(
+/**
+ * Runs response middleware in reverse declaration order.
+ *
+ * Input: response callbacks, the original request, and the handler response.
+ * Output: the fully transformed response.
+ * Transformation: nests callbacks so the earliest declaration is the outermost
+ * response transformation, matching VM-owned HTTP dispatch.
+ */
+pub run_response_pipeline(
     callbacks: List[ResponseMiddleware],
     request: Request,
     response: Response,

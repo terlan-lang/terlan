@@ -94,7 +94,7 @@ build_with[M, First, Second](model: M)[Builder[M, First, Second]]: Option[Pair[F
     Builder.build(model).
 same[T](left: T, right: T): Bool -> left == right.
 pub check(): Bool ->
-    if { Some(pair) <- build_with(Model()) } else { _ -> false };
+    when { Some(pair) <- build_with(Model()) } else { _ -> false };
     same(true, pair.second()).
 "#,
         r#"

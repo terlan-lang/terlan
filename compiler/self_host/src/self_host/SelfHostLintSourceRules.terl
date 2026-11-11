@@ -1,22 +1,16 @@
-/** Ordered aggregation boundary for self-hosted source-only lint families. */
+/**
+ * Ordered aggregation boundary for self-hosted source-only lint families.
+ */
 module self_host.SelfHostLintSourceRules.
 
 import self_host.SelfHostLintActorVm.{ActorFunction, ActorVmDiagnostic}.
-import self_host.SelfHostLintActorVm.
 import self_host.SelfHostLintComplexity.{ClauseSpan, ComplexityDiagnostic}.
-import self_host.SelfHostLintComplexity.
 import self_host.SelfHostLintConsistency.{ConsistencyDiagnostic}.
-import self_host.SelfHostLintConsistency.
 import self_host.SelfHostLintGenerated.{GeneratedDiagnostic}.
-import self_host.SelfHostLintGenerated.
 import self_host.SelfHostLintMaintainability.{MaintainabilityDiagnostic}.
-import self_host.SelfHostLintMaintainability.
-import self_host.SelfHostLintPipe.{PipeCandidate}.
-import self_host.SelfHostLintPipeFix.
 import self_host.SelfHostLintSemicolon.{SemicolonDiagnostic}.
-import self_host.SelfHostLintSemicolon.
 import self_host.SelfHostLintTargets.{TargetDiagnostic}.
-import self_host.SelfHostLintTargets.
+import self_host.{SelfHostLintActorVm, SelfHostLintComplexity, SelfHostLintConsistency, SelfHostLintGenerated, SelfHostLintMaintainability, SelfHostLintSemicolon, SelfHostLintTargets}.
 
 pub struct SourceDiagnostic {
     path: String,
@@ -52,74 +46,128 @@ append[T](left: List[T], right: List[T]): List[T] ->
 from_semicolon(values: List[SemicolonDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_semicolon(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_semicolon(rest)]
     }.
 
 from_complexity(values: List[ComplexityDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_complexity(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_complexity(rest)]
     }.
 
 from_actor(values: List[ActorVmDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_actor(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_actor(rest)]
     }.
 
 from_maintainability(values: List[MaintainabilityDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_maintainability(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_maintainability(rest)]
     }.
 
 from_generated(values: List[GeneratedDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_generated(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_generated(rest)]
     }.
 
 from_consistency(values: List[ConsistencyDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_consistency(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_consistency(rest)]
     }.
 
 from_targets(values: List[TargetDiagnostic]): List[SourceDiagnostic] ->
     case values {
         [] -> [];
-        [value | rest] -> [SourceDiagnostic(
-            value.path, value.line, value.column, value.rule_id, value.rule_name,
-            value.severity, value.message, value.fix_available,
-        ) | from_targets(rest)]
+        [value | rest] ->
+            [SourceDiagnostic(
+    value.path,
+    value.line,
+    value.column,
+    value.rule_id,
+    value.rule_name,
+    value.severity,
+    value.message,
+    value.fix_available,
+) | from_targets(rest)]
     }.
 
-/** Aggregates implemented source-only rules in public Rust registry order. */
+/**
+ * Aggregates implemented source-only rules in public Rust registry order.
+ */
 pub diagnostics(
     path: String,
     source: String,
     clause_spans: List[ClauseSpan],
-): List[SourceDiagnostic] -> diagnostics_with_actor(path, source, clause_spans, []).
+): List[SourceDiagnostic] ->
+    diagnostics_with_actor(path, source, clause_spans, []).
 
-/** Aggregates source rules with normalized actor declarations at the registry position. */
+/**
+ * Aggregates source rules with normalized actor declarations at the registry position.
+ */
 pub diagnostics_with_actor(
     path: String,
     source: String,
@@ -137,13 +185,21 @@ pub diagnostics_with_actor(
                     append(
                         from_actor(SelfHostLintActorVm.diagnostics(path, source, actor_functions)),
                         append(
-                            from_maintainability(SelfHostLintMaintainability.debug_calls(path, source)),
+                            from_maintainability(
+                                SelfHostLintMaintainability.debug_calls(path, source),
+                            ),
                             append(
-                                from_maintainability(SelfHostLintMaintainability.sql_line_width(path, source)),
+                                from_maintainability(
+                                    SelfHostLintMaintainability.sql_line_width(path, source),
+                                ),
                                 append(
-                                    from_consistency(SelfHostLintConsistency.diagnostics(path, source)),
+                                    from_consistency(
+                                        SelfHostLintConsistency.diagnostics(path, source),
+                                    ),
                                     append(
-                                        from_generated(SelfHostLintGenerated.diagnostics(path, source)),
+                                        from_generated(
+                                            SelfHostLintGenerated.diagnostics(path, source),
+                                        ),
                                         from_targets(SelfHostLintTargets.diagnostics(path, source)),
                                     ),
                                 ),
@@ -155,6 +211,8 @@ pub diagnostics_with_actor(
         ),
     ).
 
-/** Applies safe fixes in public order; pipe candidates belong to semicolon-fixed source. */
-pub fix(source: String, pipe_candidates: List[PipeCandidate]): String ->
-    SelfHostLintPipeFix.apply(SelfHostLintSemicolon.fix(source), pipe_candidates).
+/**
+ * Applies safe source fixes in public order.
+ */
+pub fix(source: String): String ->
+    SelfHostLintSemicolon.fix(source).

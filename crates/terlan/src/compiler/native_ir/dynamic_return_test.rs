@@ -313,7 +313,7 @@ pub type Option[T] = None | Some[T].
 @compiler.native {probe.read}
 read(): Option[String].
 accepted(value: String): Bool -> value == "ok".
-if { Some(value) <- read() } else { _ -> false };
+when { Some(value) <- read() } else { _ -> false };
 accepted(value).
 "#,
         "script.GroupedCall",

@@ -183,9 +183,6 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
             left,
             right,
         } => {
-            if operator == "|>" {
-                return core_pipe_forward_expr_to_js(left, right);
-            }
             if operator == "div" {
                 return core_integer_division_expr_to_js(left, right);
             }
@@ -249,54 +246,6 @@ fn core_function_call_expr_to_js(callee: &CoreExpr, args: &[CoreExpr]) -> Option
         .collect::<Option<Vec<_>>>()?
         .join(", ");
     Some(format!("({callee})({args})"))
-}
-
-/// Lowers a focused pipe-forward CoreIR expression into a local function call.
-///
-/// Inputs:
-/// - `left`: CoreIR expression supplying the piped first argument.
-/// - `right`: CoreIR expression expected to be a local named call or
-///   function-value invocation.
-///
-/// Output:
-/// - JavaScript call expression text for `left |> f(args...)`.
-/// - `None` when the right side is not a local named call or any child
-///   expression remains outside the current JS subset.
-///
-/// Transformation:
-/// - Converts `left |> f(extra)` into `f(left, extra)` and `left |> f(extra)`
-///   into `(f)(left, extra)`.
-fn core_pipe_forward_expr_to_js(left: &CoreExpr, right: &CoreExpr) -> Option<String> {
-    match right {
-        CoreExpr::Call { function, args, .. } => {
-            let mut piped_args = Vec::with_capacity(args.len() + 1);
-            piped_args.push(core_expr_to_js(left)?);
-            piped_args.extend(
-                args.iter()
-                    .map(core_expr_to_js)
-                    .collect::<Option<Vec<_>>>()?,
-            );
-            if !is_js_identifier(function) {
-                return None;
-            }
-            Some(format!("{function}({})", piped_args.join(", ")))
-        }
-        CoreExpr::FunctionCall { callee, args } => {
-            let mut piped_args = Vec::with_capacity(args.len() + 1);
-            piped_args.push(core_expr_to_js(left)?);
-            piped_args.extend(
-                args.iter()
-                    .map(core_expr_to_js)
-                    .collect::<Option<Vec<_>>>()?,
-            );
-            Some(format!(
-                "({})({})",
-                core_expr_to_js(callee)?,
-                piped_args.join(", ")
-            ))
-        }
-        _ => None,
-    }
 }
 
 /// Lowers Terlan integer division into a JavaScript truncating division call.

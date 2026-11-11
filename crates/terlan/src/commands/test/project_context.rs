@@ -92,7 +92,7 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
         return ExitCode::from(1);
     }
 
-    run_terlan_vm_test_files(args, state, files)
+    run_terlan_vm_test_files(args, state, files, true)
 }
 
 /// Prepares manifest source roots for one test file.
@@ -101,6 +101,7 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
 /// - `path`: active test file passed to `terlc test`.
 /// - `state`: command state before project-specific cache selection.
 /// - `profile`: profile used to validate project source roots.
+/// - `exhaustive_project`: whether every project implementation must typecheck.
 ///
 /// Output:
 /// - Optional project context and state with an effective cache directory.
@@ -108,12 +109,15 @@ pub(super) fn run_terlan_vm_test_directory(args: &TestArgs, state: CliState) -> 
 ///
 /// Transformation:
 /// - Walks upward from the test file to find `terlan.toml`; when found, reads
-///   `[build] source_roots`, validates those roots through the normal check
-///   pipeline, and uses the same cache for subsequent test compilation.
+///   `[build] source_roots`, prepares their interfaces, and uses the same cache
+///   for subsequent test compilation. Directory runs also typecheck every
+///   implementation; focused files defer implementation checks to their
+///   reachable compilation closure.
 pub(super) fn prepare_test_project_context(
     path: &str,
     state: CliState,
     profile: TargetProfile,
+    exhaustive_project: bool,
 ) -> Result<(Option<TestProjectContext>, CliState), String> {
     let Some(context) = discover_test_project_context(Path::new(path), state.cache_dir.as_ref())?
     else {
@@ -126,14 +130,23 @@ pub(super) fn prepare_test_project_context(
     project_state.incremental = true;
 
     for root in &context.compilation_source_roots {
-        let status = crate::commands::check::run_check_dir(
-            &root.to_string_lossy(),
-            project_state.clone(),
-            None,
-        );
-        if status != ExitCode::SUCCESS {
+        if exhaustive_project {
+            let status = crate::commands::check::run_check_dir(
+                &root.to_string_lossy(),
+                project_state.clone(),
+                None,
+            );
+            if status != ExitCode::SUCCESS {
+                return Err(format!(
+                    "project source root `{}` failed while preparing tests",
+                    root.display()
+                ));
+            }
+        } else if let Err(message) =
+            crate::commands::build::prepare_source_root_interfaces(root, &project_state)
+        {
             return Err(format!(
-                "project source root `{}` failed while preparing tests",
+                "project source root `{}` failed interface preparation: {message}",
                 root.display()
             ));
         }

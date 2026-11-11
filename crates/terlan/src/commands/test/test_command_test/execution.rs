@@ -739,7 +739,7 @@ fn run_project_test_inside_source_root_compiles_active_module_once() {
     assert_eq!(result, ExitCode::SUCCESS);
 }
 
-/// Verifies a focused project test compiles only its transitive import closure.
+/// Verifies focused project tests compile only their transitive import closure.
 #[test]
 fn focused_project_test_skips_unreachable_source_modules() {
     let root = std::env::temp_dir().join(format!(
@@ -783,11 +783,25 @@ fn focused_project_test_skips_unreachable_source_modules() {
         ),
     )
     .expect("focused test");
+    let second_test = root.join("tests/app/SecondFocusedTest.terl");
+    fs::write(
+        &second_test,
+        concat!(
+            "module app.SecondFocusedTest.\n",
+            "import app.Used.\n\n",
+            "@test\n",
+            "pub answer_is_still_correct(): Bool -> Used.answer() == 42.\n",
+        ),
+    )
+    .expect("second focused test");
 
     let result = run(
         CliCommand {
             verb: Some("test".to_string()),
-            args: vec![test.to_string_lossy().into_owned()],
+            args: vec![
+                test.to_string_lossy().into_owned(),
+                second_test.to_string_lossy().into_owned(),
+            ],
         },
         CliState {
             out_dir: root.join("out"),
@@ -891,7 +905,7 @@ fn focused_native_import_nested_generic_test_uses_reachable_closure() {
             "import type std.core.Result.{Result}.\n\n",
             "@test\n",
             "pub nested_result_preserves_nominal_payload(): Bool ->\n",
-            "    if {\n",
+            "    when {\n",
             "        Ok(Some(batch)) <- sample();\n",
             "        [bar] <- batch.completed_bars()\n",
             "    } else {\n",
@@ -1095,6 +1109,248 @@ artifact = "library"
 
     assert_eq!(app_result, ExitCode::SUCCESS);
     assert_eq!(dependency_result, ExitCode::from(1));
+}
+
+/// Verifies a focused coverage gate can name its production ownership boundary.
+///
+/// Inputs:
+/// - One subject module importing a helper module with an uncovered declaration.
+/// - A focused test that executes every declaration in the subject module.
+///
+/// Output:
+/// - Package-wide coverage detects the uncovered helper declaration.
+/// - Explicit subject ownership reaches 100% without weakening execution.
+///
+/// Transformation:
+/// - Keeps the helper in the compilation closure while restricting the
+///   denominator to the production source paired with the focused test.
+#[test]
+fn focused_coverage_sources_exclude_unowned_transitive_declarations() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_focused_coverage_ownership_test_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos()
+    ));
+    fs::create_dir_all(root.join("src/app")).expect("create app source dir");
+    fs::create_dir_all(root.join("tests/app")).expect("create app test dir");
+    fs::write(
+        root.join("terlan.toml"),
+        r#"[package]
+name = "app"
+version = "0.0.0"
+
+[build]
+source_roots = ["src"]
+"#,
+    )
+    .expect("write app manifest");
+    fs::write(
+        root.join("src/app/Support.terl"),
+        "module app.Support.\n\npub increment(value: Int): Int ->\n    value + 1.\n\npub uncovered(value: Int): Int ->\n    value - 1.\n\npub choose(covered: Bool, value: Int): Int ->\n    if {\n        covered -> increment(value);\n        _ -> uncovered(value)\n    }.\n",
+    )
+    .expect("write support source");
+    let subject = root.join("src/app/Subject.terl");
+    fs::write(
+        &subject,
+        "module app.Subject.\n\nimport app.Support.{choose}.\n\npub answer(): Int ->\n    choose(true, 41).\n",
+    )
+    .expect("write subject source");
+    let test = root.join("tests/app/SubjectTest.terl");
+    fs::write(
+        &test,
+        "module app.SubjectTest.\n\nimport app.Subject.{answer}.\n\n@test\npub answer_is_covered(): Bool ->\n    answer() == 42.\n",
+    )
+    .expect("write subject test");
+
+    let command = |coverage_source: Option<&std::path::Path>| {
+        let mut args = vec![
+            test.to_string_lossy().into_owned(),
+            "--coverage".to_string(),
+            "--coverage-threshold".to_string(),
+            "100".to_string(),
+        ];
+        if let Some(source) = coverage_source {
+            args.push("--coverage-source".to_string());
+            args.push(source.to_string_lossy().into_owned());
+        }
+        CliCommand {
+            verb: Some("test".to_string()),
+            args,
+        }
+    };
+    let package_result = run(command(None), CliState::default());
+    let focused_result = run(command(Some(&subject)), CliState::default());
+    let _ = fs::remove_dir_all(&root);
+
+    assert_eq!(package_result, ExitCode::from(1));
+    assert_eq!(focused_result, ExitCode::SUCCESS);
+}
+
+/// Verifies explicit multi-project paths share one command-level coverage gate.
+///
+/// The application test covers one dependency declaration and the dependency's
+/// own test covers the other. Neither project image reaches 100% alone, while
+/// their combined command evidence does.
+#[test]
+fn explicit_multi_project_paths_aggregate_coverage_before_threshold() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_multi_project_coverage_test_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos()
+    ));
+    let app = root.join("app");
+    let dependency = root.join("dependency");
+    for directory in [
+        app.join("src/app"),
+        app.join("tests/app"),
+        dependency.join("src/dependency"),
+        dependency.join("tests/dependency"),
+    ] {
+        fs::create_dir_all(directory).expect("create coverage fixture directory");
+    }
+    fs::write(
+        app.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\n\n[dependencies]\ndependency = { path = \"../dependency\" }\n",
+    )
+    .expect("write app manifest");
+    fs::write(
+        dependency.join("terlan.toml"),
+        "[package]\nname = \"dependency\"\nversion = \"0.0.0\"\nnamespace = \"dependency\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+    )
+    .expect("write dependency manifest");
+    let dependency_source = dependency.join("src/dependency/Values.terl");
+    fs::write(
+        &dependency_source,
+        "module dependency.Values.\n\npub first(): Int -> 1.\n\npub second(): Int -> 2.\n",
+    )
+    .expect("write dependency source");
+    let app_source = app.join("src/app/Main.terl");
+    fs::write(
+        &app_source,
+        "module app.Main.\n\nimport dependency.Values.{first}.\n\npub use_first(): Int -> first().\n",
+    )
+    .expect("write app source");
+    let app_test = app.join("tests/app/MainTest.terl");
+    fs::write(
+        &app_test,
+        "module app.MainTest.\n\nimport app.Main.{use_first}.\n\n@test\npub first_is_covered(): Bool -> use_first() == 1.\n",
+    )
+    .expect("write app test");
+    let dependency_test = dependency.join("tests/dependency/ValuesTest.terl");
+    fs::write(
+        &dependency_test,
+        "module dependency.ValuesTest.\n\nimport dependency.Values.{second}.\n\n@test\npub second_is_covered(): Bool -> second() == 2.\n",
+    )
+    .expect("write dependency test");
+
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![
+                app_test.to_string_lossy().into_owned(),
+                dependency_test.to_string_lossy().into_owned(),
+                "--coverage".to_string(),
+                "--coverage-source".to_string(),
+                app_source.to_string_lossy().into_owned(),
+                "--coverage-source".to_string(),
+                dependency_source.to_string_lossy().into_owned(),
+                "--coverage-threshold".to_string(),
+                "100".to_string(),
+            ],
+        },
+        CliState::default(),
+    );
+    let _ = fs::remove_dir_all(&root);
+
+    assert_eq!(result, ExitCode::SUCCESS);
+}
+
+/// Verifies standalone test inputs own their declaration coverage boundaries.
+///
+/// Inputs:
+/// - One test module and its directory without an ancestor `terlan.toml`.
+///
+/// Output:
+/// - File-focused and directory-focused runs satisfy 100% coverage gates.
+///
+/// Transformation:
+/// - Uses the selected file or directory as its own coverage root without
+///   admitting declarations from imported standard-library modules.
+#[test]
+fn standalone_test_inputs_own_their_declaration_coverage() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_standalone_coverage_test_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).expect("create standalone coverage directory");
+    let test = root.join("StandaloneCoverageTest.terl");
+    fs::write(
+        &test,
+        "module tests.StandaloneCoverageTest.\n\npub increment(value: Int): Int ->\n    value + 1.\n\n@test\npub standalone_declarations_are_covered(): Bool ->\n    increment(1) == 2.\n",
+    )
+    .expect("write standalone coverage test");
+
+    let coverage_args = |path: &std::path::Path| CliCommand {
+        verb: Some("test".to_string()),
+        args: vec![
+            path.to_string_lossy().into_owned(),
+            "--coverage".to_string(),
+            "--coverage-threshold".to_string(),
+            "100".to_string(),
+        ],
+    };
+    let file_result = run(coverage_args(&test), CliState::default());
+    let directory_result = run(coverage_args(&root), CliState::default());
+    let _ = fs::remove_dir_all(&root);
+
+    assert_eq!(file_result, ExitCode::SUCCESS);
+    assert_eq!(directory_result, ExitCode::SUCCESS);
+}
+
+/// Verifies unrelated standalone directories remain separate native suites.
+#[test]
+fn explicit_standalone_paths_group_by_parent_directory() {
+    let root = std::env::temp_dir().join(format!(
+        "terlan_standalone_group_test_{}_{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos()
+    ));
+    let first_dir = root.join("first");
+    let second_dir = root.join("second");
+    fs::create_dir_all(&first_dir).expect("create first suite");
+    fs::create_dir_all(&second_dir).expect("create second suite");
+    let first = first_dir.join("DuplicateTest.terl");
+    let second = second_dir.join("DuplicateTest.terl");
+    let source = "module tests.DuplicateTest.\n\n@test\npub succeeds(): Bool -> true.\n";
+    fs::write(&first, source).expect("write first test");
+    fs::write(&second, source).expect("write second test");
+
+    let result = run(
+        CliCommand {
+            verb: Some("test".to_string()),
+            args: vec![
+                first.to_string_lossy().into_owned(),
+                second.to_string_lossy().into_owned(),
+            ],
+        },
+        CliState::default(),
+    );
+    let _ = fs::remove_dir_all(&root);
+
+    assert_eq!(result, ExitCode::SUCCESS);
 }
 
 /// Verifies Terlan VM tests report boolean failures as command failures.

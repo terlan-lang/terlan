@@ -490,7 +490,7 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
         }),
         Expr::Case { scrutinee, clauses } => {
             if let Some(grouped) =
-                super::grouped_cases::format_as_grouped_refutable_if(expr, indent)
+                super::grouped_cases::format_as_grouped_refutable_when(expr, indent)
             {
                 return grouped;
             }
@@ -633,9 +633,6 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
             };
             format_raw_macro(name, &rendered_type_args, raw, indent)
         }
-        Expr::BinaryOp { op, left, right } if matches!(op, BinaryOp::PipeForward) && indent > 0 => {
-            format_pipe_forward_chain(left, right, indent)
-        }
         Expr::BinaryOp { op, left, right } if matches!(op, BinaryOp::And | BinaryOp::Or) => {
             format_boolean_chain(*op, left, right, indent)
         }
@@ -748,62 +745,6 @@ fn collect_boolean_operands<'a>(expr: &'a Expr, op: BinaryOp, operands: &mut Vec
             operands.push(right);
         }
         _ => operands.push(expr),
-    }
-}
-
-/// Formats an explicit `|>` expression as one pipeline stage per line.
-///
-/// Inputs:
-/// - `left`: left side of the pipe expression.
-/// - `right`: right side of the pipe expression.
-/// - `indent`: indentation level for continuation pipe stages.
-///
-/// Output:
-/// - Canonical multi-line pipe expression.
-///
-/// Transformation:
-/// - Flattens nested left-associated pipe expressions so source that already
-///   uses `|>` converges to one stage per line without rewriting ordinary
-///   function calls into pipes.
-pub(super) fn format_pipe_forward_chain(left: &Expr, right: &Expr, indent: usize) -> String {
-    let mut stages = Vec::new();
-    collect_pipe_forward_parts(left, &mut stages);
-    stages.push(format_binary_operand(right, BinaryOp::PipeForward, true));
-    let continuation = "    ".repeat(indent);
-    let mut out = stages
-        .first()
-        .cloned()
-        .unwrap_or_else(|| format_expr(left, 0));
-    for stage in stages.iter().skip(1) {
-        out.push('\n');
-        out.push_str(&continuation);
-        out.push_str("|> ");
-        out.push_str(stage);
-    }
-    out
-}
-
-/// Collects formatted stages from a pipe expression.
-///
-/// Inputs:
-/// - `expr`: expression that may be a nested pipe.
-/// - `stages`: accumulator of already formatted pipe stages.
-///
-/// Output: appends formatted stages to `stages`.
-///
-/// Transformation: flattens only the left-associated spine. A pipe nested on
-/// the right remains parenthesized so formatting cannot change evaluation order.
-pub(super) fn collect_pipe_forward_parts(expr: &Expr, stages: &mut Vec<String>) {
-    match expr {
-        Expr::BinaryOp {
-            op: BinaryOp::PipeForward,
-            left,
-            right,
-        } => {
-            collect_pipe_forward_parts(left, stages);
-            stages.push(format_binary_operand(right, BinaryOp::PipeForward, true));
-        }
-        _ => stages.push(format_expr(expr, 0)),
     }
 }
 

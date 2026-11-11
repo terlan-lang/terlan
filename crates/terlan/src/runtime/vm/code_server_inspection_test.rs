@@ -1,6 +1,5 @@
 use super::{
-    VmCodeServer, VmCodeServerEvent, VmModuleArtifact, VmModuleFunction,
-    VmModuleGenerationState,
+    VmCodeServer, VmCodeServerEvent, VmModuleArtifact, VmModuleFunction, VmModuleGenerationState,
 };
 use crate::runtime::vm::process::{VmProcessSource, VmProcessTable};
 

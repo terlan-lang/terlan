@@ -108,7 +108,7 @@ respond(session: Session, id: Json, response: Json): Event ->
     event(session, "reply", response, "", Json.null(), id).
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -161,7 +161,7 @@ params_object(value: Json): Bool ->
     }.
 
 supported_version(value: Json): Bool ->
-    if {
+    when {
         Err(_) <- value.as_string();
         Err(_) <- value.as_int()
     } else {
@@ -170,7 +170,7 @@ supported_version(value: Json): Bool ->
     false.
 
 initialization_valid(params: Json): Bool ->
-    if {
+    when {
         Ok(version) <- params.get("protocolVersion");
         Ok(capabilities) <- params.get("capabilities");
         Ok(info) <- params.get("clientInfo");
@@ -284,7 +284,7 @@ pub (session: Session) handle(message: Json): Event ->
                 params_object(params) -> notification(session, method, params);
                 true -> event(session, "ignore", Json.null(), method, params, Json.null())
             };
-            true -> if {
+            true -> when {
                 Ok(id) <- message.get("id")
             } else {
                 _ ->

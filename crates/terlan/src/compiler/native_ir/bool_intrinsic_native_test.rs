@@ -45,39 +45,29 @@ pub from_string(value: String): Option[Bool] -> Some(true).
     ]);
 }
 
-/// Renaming the shipped provider must not change the library's semantics.
+/// Primitive receiver methods remain owned by their defining module.
 #[test]
-fn boolean_library_executes_outside_the_std_namespace() {
+fn boolean_library_receiver_methods_require_defining_module() {
     let library = include_str!("../../../../../std/core/Bool.terl").replacen(
         "module std.core.Bool.",
         "module ordinary.Truth.",
         1,
     );
-    super::source_constructor_test::check_sources(&[
-        r#"
-module boolean_portability.
-import ordinary.Truth.
-import std.core.Option.{None, Some}.
-import std.core.Ordering.{Lt}.
-pub trait Render[T] { render(value: T): String. }.
-pub impl Render[Bool] for Bool {
-    render(value: Bool): String -> Truth.to_string(value).
-}.
-apply[T, R](value: T, transform: (T) -> R): R -> transform(value).
-render(value: Bool): String -> "wrong-local-function".
-pub check(): Bool ->
-    Truth.equal(true, true) and not Truth.equal(false, true)
-        and Truth.compare(false, true) == Lt
-        and Truth.to_string(false) == "false"
-        and Truth.from_string("true") == Some(true)
-        and Truth.from_string("True") == None
-        and apply(false, (value) -> value.render()) == "false"
-        and render(false) == "wrong-local-function".
-"#,
-        &library,
-        include_str!("../../../../../std/core/Option.terl"),
-        include_str!("../../../../../std/core/Ordering.terl"),
-    ]);
+    let syntax = parse_module_as_syntax_output(&library).expect("parse renamed Boolean provider");
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+
+    for method in ["equal", "is_true", "is_false", "compare", "to_string"] {
+        assert!(diagnostics.iter().any(|diagnostic| {
+            diagnostic
+                .message
+                .contains(&format!("receiver method `{method}`"))
+                && diagnostic
+                    .message
+                    .contains("must be declared in the defining module of `Bool`")
+        }));
+    }
 }
 
 #[test]

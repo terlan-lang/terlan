@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Exercise the Git boundary with tiny repositories and a staged fixture checker.
 set -euo pipefail
-unset TERLAN_HOOK_SHARED_TARGET
+unset TERLAN_HOOK_SHARED_TARGET TERLAN_HOOK_TERLAN_CACHE_DIR
+unset TERLAN_HOOK_VALIDATION_RECEIPT_DIR TERLAN_TEST_FORCE_RERUN
+export TERLAN_HOOK_MODE=full
 driver="$(cd "$(dirname "$0")" && pwd)/git_hooks.sh"
 version_filter="$(cd "$(dirname "$0")" && pwd)/git_hooks/filter_version_changes.cjs"
 mkdir -p target
@@ -159,6 +161,35 @@ test "$(git config --get core.hooksPath)" = /dev/null
 # before the optimized build, using the real checker with bounded stand-ins.
 mkdir -p "$temporary/early-bindings/bin" "$temporary/early-bindings/cache/debug" \
   "$temporary/early-bindings/scripts"
+
+# Default commit admission executes only bounded checks and emits the complete
+# candidate plan without launching its expensive lanes.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+case "$*" in
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
+    printf 'preflight:inventory\nworkspace\n'
+    ;;
+  test\ scripts/self_validation/InventoryTest.terl\ --out-dir\ *\ --cache-dir\ *) ;;
+  *) exit 96 ;;
+esac
+TERLC
+chmod +x "$temporary/early-bindings/cache/debug/terlc"
+printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
+(
+  cd "$temporary/early-bindings"
+  TERLAN_HOOK_MODE=fast \
+    TERLAN_HOOK_LATEST_TERLC="$PWD/cache/debug/terlc" \
+    CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/fast-admission.log" 2>&1
+  grep -Eq '^admitted:inventory:[0-9a-f]+$' changes.candidate-plan
+  grep -qx 'workspace' changes.candidate-plan
+  grep -Eq 'pass inventory \([0-9]+s\)' "$temporary/fast-admission.log"
+  grep -q 'candidate validation deferred' "$temporary/fast-admission.log"
+)
+
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 case "$*" in
@@ -189,6 +220,21 @@ chmod +x "$temporary/early-bindings/bin/"* "$temporary/early-bindings/cache/debu
 mkdir -p "$temporary/early-bindings/std/core"
 printf 'module std.core.Int.\n' > "$temporary/early-bindings/std/core/Int.terl"
 printf 'std/core/Int.terl\nREADME.md\n' > "$temporary/early-bindings/changes.txt"
+(
+  cd "$temporary/early-bindings"
+  {
+    printf '%s\n' terlan-staged-compiler-input-v2
+    git ls-files -s -z -- \
+      Cargo.toml Cargo.lock rust-toolchain.toml .cargo \
+      ':(glob)**/Cargo.toml' ':(glob)**/*.rs' ':(glob)**/*.lalrpop' \
+      ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop'
+    if [[ -f crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop ]]; then
+      printf 'normalized-lalrpop:'
+      sed '/^\/\/ canonical-ebnf-sha256: /d' \
+        crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop | git hash-object --stdin
+    fi
+  } | git hash-object --stdin > cache/.terlan-compiler-input
+)
 (
   cd "$temporary/early-bindings"
   status=0
@@ -230,6 +276,11 @@ if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
 fi
 if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
+if [[ "$*" == 'run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --check' ]]; then
+  test "$TERLAN_SYNTAX_ARTIFACT_ROOT" = "$PWD"
+  test "$TERLAN_SYNTAX_ARTIFACT_COMPILER" = "$0"
+  exit 0
+fi
 test "$TERLAN_JS_BINDINGS_ROOT" = "$PWD"
 test "$TERLAN_JS_BINDINGS_TERLC" = "$0"
 test "$*" = 'test scripts/self_validation/JsBindingsDriftTest.terl'
@@ -255,6 +306,11 @@ if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
 fi
 if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
+if [[ "$*" == 'run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --check' ]]; then
+  test "$TERLAN_SYNTAX_ARTIFACT_ROOT" = "$PWD"
+  test "$TERLAN_SYNTAX_ARTIFACT_COMPILER" = "$0"
+  exit 0
+fi
 if [[ "$*" == 'test scripts/self_validation/JsBindingsDriftTest.terl' ]]; then
   exit 0
 fi
@@ -396,6 +452,12 @@ grep -Fq 'repository_root=$(git remote get-url origin)' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq "rg -qx 'preflight:inventory'" \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'check tests/language/RepeatedLetSyntaxTest.terl' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+test "$(grep -Fc 'run_plan "$terlc"' "$(dirname "$driver")/git_hooks/check.sh")" = 3
+grep -Fq 'run_plan "$reusable_terlc"' "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'compiler/self_host/corpus/*' \
   "$(dirname "$driver")/git_hooks/terlan.sh"
 grep -Fq 'terlc="$target_terlc"' \
@@ -405,8 +467,20 @@ if grep -Fq 'cargo fmt --all' "$(dirname "$driver")/git_hooks/check.sh"; then
 fi
 early_terlan_line=$(rg -n -F 'early terlan ownership and coverage' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+early_rust_reports_line=$(rg -n -F 'early Rust report drift' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+early_terlan_format_line=$(rg -n -F 'early Terlan formatting' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+early_grammar_line=$(rg -n -F 'early canonical grammar and summary' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 inventory_line=$(rg -n -F 'retained source inventory' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+test -n "$early_rust_reports_line"
+test -n "$early_terlan_format_line"
+test -n "$early_grammar_line"
+test "$early_grammar_line" -lt "$early_terlan_format_line"
+test "$early_terlan_format_line" -lt "$early_rust_reports_line"
+test "$early_rust_reports_line" -lt "$early_terlan_line"
 test "$early_terlan_line" -lt "$inventory_line"
 
 # The executable budget owns four binaries in both profiles. Planner bootstrap
@@ -661,6 +735,8 @@ git -C "$temporary/terlan-order" add .
 (
   cd "$temporary/terlan-order"
   TERLAN_LANE_CALLS="$temporary/terlan-order.calls" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-order-receipts" \
+    TERLAN_TEST_FORCE_RERUN=1 \
     bash "$(dirname "$driver")/git_hooks/terlan.sh" \
       changes.txt unused "$PWD/terlc" false /dev/null /dev/null
 )

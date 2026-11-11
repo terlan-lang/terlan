@@ -30,13 +30,12 @@ pub plan(): DeferredWrite ->\n\
     );
 }
 
-/// Verifies a function-value invocation is effectful without purity evidence.
+/// Verifies an asserted-pure callback parameter creates conditional purity.
 ///
-/// Terlan function types do not yet carry purity contracts, so invoking a
-/// callback from an asserted pure function must fail closed even when its
-/// input and output types otherwise match.
+/// The declaration remains valid, while each caller must prove that its
+/// concrete callback is pure before invoking this conditional combinator.
 #[test]
-fn pure_function_rejects_unproven_function_value_invocation() {
+fn pure_function_accepts_conditionally_pure_function_value_invocation() {
     let diagnostics = check_syntax_output(
         "\
 module pure_callback_invocation.\n\
@@ -47,14 +46,7 @@ pub execute(callback: (Int) -> Int, value: Int): Int ->\n\
 ",
     );
 
-    assert!(
-        diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.message.contains(
-                "function execute annotated @pure must be pure; found unproven function-value call"
-            )),
-        "diagnostics: {diagnostics:?}"
-    );
+    assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
 }
 
 /// Verifies callback effects propagate through ordinary local helpers.

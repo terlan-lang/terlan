@@ -74,7 +74,7 @@ excluded_stage_entries(): List[String] ->
     [".git", ".terlan", ".venv", "__pycache__", "node_modules", "reports", "target"].
 
 ecosystem_roots(package: String): Option[EcosystemRoots] ->
-    if {
+    when {
         Ok(path) <- Path.from_string(package);
         Some(parent) <- path.parent()
     } else {
@@ -137,7 +137,7 @@ json_field(value: Json, name: String): Option[Json] ->
     }.
 
 json_string_field(value: Json, name: String): Option[String] ->
-    if {
+    when {
         Ok(field) <- value.get(name);
         Ok(text) <- field.as_string()
     } else {
@@ -146,7 +146,7 @@ json_string_field(value: Json, name: String): Option[String] ->
     Some(text).
 
 json_false_field(value: Json, name: String): Bool ->
-    if {
+    when {
         Ok(field) <- value.get(name);
         Ok(found) <- field.as_bool()
     } else {
@@ -163,7 +163,7 @@ array_contains_string(value: Json, expected: String): Bool ->
 array_contains_string_at(value: Json, expected: String, index: Int, count: Int): Bool ->
     if {
         index == count -> false;
-        true -> if {
+        true -> when {
             Ok(item) <- value.at(index);
             Ok(found) <- item.as_string()
         } else {
@@ -191,7 +191,7 @@ array_equals_strings_at(value: Json, expected: List[String], index: Int, count: 
         [item | rest] ->
             if {
                 index >= count -> false;
-                true -> if {
+                true -> when {
                     Ok(found) <- value.at(index);
                     Ok(text) <- found.as_string()
                 } else {
@@ -395,7 +395,7 @@ write_integrated_report(output: String, package: String, report: Json): Bool ->
     case Json.stringify_pretty(integrated) {
         Ok(encoded) ->
             let contents = String.append(encoded, "\n");
-            if {
+            when {
                 Ok(Unit) <- create_all("target/quality");
                 Ok(Unit) <- write_text(output, contents);
                 Ok(observed) <- read_text(output)

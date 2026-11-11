@@ -18,7 +18,7 @@ pub struct Selected {
 }.
 
 matches(row: Json, function: Json): Bool ->
-    if {
+    when {
         Ok(owner) <- row.get("owner");
         Ok(source) <- function.get("source");
         Ok(span) <- source.get("declaration_span");
@@ -55,7 +55,7 @@ scan(
                 message = "Coverage selection exhausted its compiler-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ ->
@@ -75,7 +75,7 @@ scan(rows, function, index + 1, count, next, used + 1, maximum, truncated))
     }.
 
 pub select(artifact: Json, function: Json, used: Int, maximum: Int): Result[Selected, Failure] ->
-    if {
+    when {
         Ok(metadata) <- artifact.get("coverage_observations");
         true <- EntityLookup.text(metadata, "model") == "finite-pattern-coverage.v1";
         Ok(rows) <- metadata.get("observations");

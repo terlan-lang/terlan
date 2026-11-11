@@ -18,7 +18,7 @@ pub accepts_error(value: TomlError): TomlError ->
 
 @test
 pub parse_projects_nested_tables_and_arrays(): Bool ->
-    if {
+    when {
         Ok(root) <-
             Toml.parse(
                 "[package]\nname = \"terlan\"\nfeatures = [\"aot\", \"multicore\"]\n[package.lints]\nwarnings = true\n",

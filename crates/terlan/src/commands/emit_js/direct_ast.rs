@@ -353,11 +353,6 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             operator,
             left,
             right,
-        } if operator == "|>" => core_pipe_forward_to_oxc_expression(ast, left, right),
-        crate::terlan_typeck::CoreExpr::BinaryOp {
-            operator,
-            left,
-            right,
         } if operator == "div" => core_integer_division_to_oxc_expression(ast, left, right),
         crate::terlan_typeck::CoreExpr::BinaryOp {
             operator,
@@ -549,67 +544,6 @@ fn core_function_call_expr_to_oxc_expression<'a>(
         arguments,
         false,
     ))
-}
-
-/// Lowers a focused pipe-forward CoreIR expression into an Oxc call expression.
-///
-/// Inputs:
-/// - `ast`: Oxc AST builder tied to the destination allocator.
-/// - `left`: CoreIR expression supplying the piped first argument.
-/// - `right`: CoreIR expression expected to be a local named call or a
-///   function-value invocation.
-///
-/// Output:
-/// - `Some(Expression)` for `left |> f(args...)` or `left |> f(args...)` in
-///   the supported subset.
-/// - `None` when the right side is not a supported call shape or any child
-///   expression remains unsupported.
-///
-/// Transformation:
-/// - Prepends the piped value to either named-call arguments or dedicated
-///   function-value invocation arguments.
-fn core_pipe_forward_to_oxc_expression<'a>(
-    ast: oxc_ast::AstBuilder<'a>,
-    left: &crate::terlan_typeck::CoreExpr,
-    right: &crate::terlan_typeck::CoreExpr,
-) -> Option<oxc_ast::ast::Expression<'a>> {
-    use oxc_ast::ast::Argument;
-    use oxc_span::SPAN;
-
-    match right {
-        crate::terlan_typeck::CoreExpr::Call { function, args, .. } => {
-            if !is_direct_oxc_js_identifier(function) {
-                return None;
-            }
-            let mut arguments = ast.vec();
-            arguments.push(Argument::from(core_expr_to_oxc_expression(ast, left)?));
-            for arg in args {
-                arguments.push(Argument::from(core_expr_to_oxc_expression(ast, arg)?));
-            }
-            Some(ast.expression_call(
-                SPAN,
-                ast.expression_identifier(SPAN, oxc_ident_name(ast, function)),
-                oxc_ast::NONE,
-                arguments,
-                false,
-            ))
-        }
-        crate::terlan_typeck::CoreExpr::FunctionCall { callee, args } => {
-            let mut arguments = ast.vec();
-            arguments.push(Argument::from(core_expr_to_oxc_expression(ast, left)?));
-            for arg in args {
-                arguments.push(Argument::from(core_expr_to_oxc_expression(ast, arg)?));
-            }
-            Some(ast.expression_call(
-                SPAN,
-                core_expr_to_oxc_expression(ast, callee)?,
-                oxc_ast::NONE,
-                arguments,
-                false,
-            ))
-        }
-        _ => None,
-    }
 }
 
 /// Lowers Terlan integer division into an Oxc `Math.trunc(left / right)` call.

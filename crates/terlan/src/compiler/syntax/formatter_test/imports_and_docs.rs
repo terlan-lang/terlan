@@ -530,52 +530,21 @@ pub two(): Bool ->
 /// - Canonical formatter output that keeps the nested call shape.
 ///
 /// Transformation:
-/// - Keeps semantic pipe canonicalization out of `terlc fmt`; lint owns any
-///   later safe rewrite into pipe form.
+/// - Keeps semantic call rewriting out of `terlc fmt`.
 #[test]
-pub(super) fn formatter_preserves_nested_module_calls_without_pipe_promotion() {
+pub(super) fn formatter_preserves_nested_module_calls_without_call_rewriting() {
     let output = format_source_module(
         r#"
-module nested_pipe_fmt.
+module nested_call_fmt.
 
 pub main(collection: Set[Int], cb: (Int) -> Unit): Unit ->
     Iterator.each(Set.iterator(collection), cb).
 "#,
     )
-    .expect("format nested module call pipe");
+    .expect("format nested module call");
 
     assert!(output.contains(
         "pub main(collection: Set[Int], cb: (Int) -> Unit): Unit ->\n    Iterator.each(Set.iterator(collection), cb)."
-    ));
-    assert!(!output.contains("|> Set.iterator"));
-}
-
-/// Verifies explicit pipe chains are canonicalized to one stage per line.
-///
-/// Inputs:
-/// - Source that already uses `|>` inline across several stages.
-///
-/// Output:
-/// - Canonical formatter output with the original pipe chain split across
-///   continuation lines.
-///
-/// Transformation:
-/// - Exercises explicit pipe formatting separately from nested-call promotion
-///   so handwritten pipelines cannot remain as long single-line expressions.
-#[test]
-pub(super) fn formatter_wraps_explicit_pipe_chains_to_one_stage_per_line() {
-    let output = format_source_module(
-        r#"
-module explicit_pipe_fmt.
-
-pub main(collection: Set[Int], cb: (Int) -> Int): Set[Int] ->
-    collection |> Set.iterator() |> map_iterator(cb) |> Set.from_list().
-"#,
-    )
-    .expect("format explicit pipe chain");
-
-    assert!(output.contains(
-        "pub main(collection: Set[Int], cb: (Int) -> Int): Set[Int] ->\n    collection\n    |> Set.iterator()\n    |> map_iterator(cb)\n    |> Set.from_list()."
     ));
 }
 
@@ -588,27 +557,26 @@ pub main(collection: Set[Int], cb: (Int) -> Int): Set[Int] ->
 /// - Formatter output that keeps the nested receiver call shape.
 ///
 /// Transformation:
-/// - Keeps receiver-call pipe canonicalization out of `terlc fmt`; lint owns
+/// - Keeps receiver-call call rewriting out of `terlc fmt`; lint owns
 ///   any later safe rewrite.
 #[test]
-pub(super) fn formatter_preserves_nested_receiver_calls_without_pipe_promotion() {
+pub(super) fn formatter_preserves_nested_receiver_calls_without_call_rewriting() {
     let output = format_source_module(
         r#"
-module receiver_pipe_fmt.
+module receiver_call_fmt.
 
 pub main(list: List[Int], cb: (Int) -> Unit): Unit ->
     Iterator.each(list.iterator(), cb).
 "#,
     )
-    .expect("format nested receiver call pipe");
+    .expect("format nested receiver call");
 
     assert!(output.contains(
         "pub main(list: List[Int], cb: (Int) -> Unit): Unit ->\n    Iterator.each(list.iterator(), cb)."
     ));
-    assert!(!output.contains("|> iterator"));
 }
 
-/// Verifies selected imports do not trigger pipe promotion.
+/// Verifies selected imports do not trigger call rewriting.
 ///
 /// Inputs:
 /// - A selected value import used by the inner call of a nested traversal.
@@ -617,13 +585,13 @@ pub main(list: List[Int], cb: (Int) -> Unit): Unit ->
 /// - Import remains canonical and the nested call shape is preserved.
 ///
 /// Transformation:
-/// - Ensures import normalization does not smuggle semantic pipe rewrites back
+/// - Ensures import normalization does not smuggle semantic call rewrites back
 ///   into the formatter pass.
 #[test]
-pub(super) fn formatter_preserves_nested_selected_import_calls_without_pipe_promotion() {
+pub(super) fn formatter_preserves_nested_selected_import_calls_without_call_rewriting() {
     let output = format_source_module(
         r#"
-module selected_import_pipe_fmt.
+module selected_import_call_fmt.
 
 import std.collections.Set.{iterator}.
 
@@ -631,16 +599,15 @@ pub main(collection: Set[Int], cb: (Int) -> Unit): Unit ->
     Iterator.each(iterator(collection), cb).
 "#,
     )
-    .expect("format selected import pipe");
+    .expect("format selected import call");
 
     assert!(output.contains("import std.collections.Set.{iterator}."));
     assert!(output.contains(
         "pub main(collection: Set[Int], cb: (Int) -> Unit): Unit ->\n    Iterator.each(iterator(collection), cb)."
     ));
-    assert!(!output.contains("|> iterator"));
 }
 
-/// Verifies named arguments are not promoted into pipe stages.
+/// Verifies named arguments retain their explicit call shape.
 ///
 /// Inputs:
 /// - A nested call whose outer call has named arguments.
@@ -651,10 +618,10 @@ pub main(collection: Set[Int], cb: (Int) -> Unit): Unit ->
 /// Transformation:
 /// - Guards against rewrites that could obscure named-argument meaning.
 #[test]
-pub(super) fn formatter_does_not_promote_named_argument_calls_to_pipe_chain() {
+pub(super) fn formatter_does_not_promote_named_argument_calls_to_nested_chain() {
     let output = format_source_module(
         r#"
-module named_arg_pipe_fmt.
+module named_arg_call_fmt.
 
 pub main(response: Response): Response ->
     Response.cookie(response, name = "session", value = "abc").
@@ -665,10 +632,9 @@ pub main(response: Response): Response ->
     assert!(output.contains(
         "pub main(response: Response): Response ->\n    Response.cookie(response, name = \"session\", value = \"abc\")."
     ));
-    assert!(!output.contains("|> Response.cookie"));
 }
 
-/// Verifies function-value calls are not promoted into pipe stages.
+/// Verifies function-value calls retain their explicit call shape.
 ///
 /// Inputs:
 /// - A function-value call whose argument is a nested module call.
@@ -680,10 +646,10 @@ pub main(response: Response): Response ->
 /// - Keeps `callee(arg)` distinct from normal module/local calls because its
 ///   invocation semantics are intentionally explicit.
 #[test]
-pub(super) fn formatter_does_not_promote_function_value_calls_to_pipe_chain() {
+pub(super) fn formatter_does_not_promote_function_value_calls_to_nested_chain() {
     let output = format_source_module(
         r#"
-module function_value_pipe_fmt.
+module function_value_call_fmt.
 
 pub main(collection: Set[Int], runner: (Iterator[Int]) -> Unit): Unit ->
     runner(Set.iterator(collection)).
@@ -694,7 +660,6 @@ pub main(collection: Set[Int], runner: (Iterator[Int]) -> Unit): Unit ->
     assert!(output.contains(
         "pub main(collection: Set[Int], runner: (Iterator[Int]) -> Unit): Unit ->\n    runner(Set.iterator(collection))."
     ));
-    assert!(!output.contains("|> runner"));
 }
 
 /// Verifies promotion does not leak into ordinary call argument lists.
@@ -704,16 +669,16 @@ pub main(collection: Set[Int], runner: (Iterator[Int]) -> Unit): Unit ->
 ///
 /// Output:
 /// - Formatter output keeps the argument inline instead of emitting a multiline
-///   pipe expression inside the argument list.
+///   nested expression inside the argument list.
 ///
 /// Transformation:
-/// - Restricts pipe promotion to statement/body contexts where multiline pipe
+/// - Restricts call rewriting to statement/body contexts where multiline call
 ///   layout is syntactically clear.
 #[test]
-pub(super) fn formatter_does_not_promote_nested_call_arguments_to_pipe_chain() {
+pub(super) fn formatter_does_not_promote_nested_call_arguments_to_nested_chain() {
     let output = format_source_module(
         r#"
-module nested_argument_pipe_fmt.
+module nested_argument_call_fmt.
 
 pub main(collection: Set[Int], label: String): Unit ->
     Debug.log(label, Iterator.each(Set.iterator(collection), cb)).

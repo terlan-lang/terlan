@@ -289,35 +289,6 @@ function testInjectionQueryCoverage() {
 }
 
 /**
- * Verifies the editor grammar keeps the canonical pipe spelling.
- *
- * @returns {void}
- *
- * @description
- * Locks the 0.0.5 template-expression rule that pipes inside `${...}` are
- * ordinary Terlan `|>` expressions, not template-only `{ value | filter }`
- * filters. A single `|` remains available as the distinct bitwise-OR
- * expression operator.
- */
-function testCanonicalPipeOperatorSpelling() {
-  const grammar = readText("grammar.js");
-  const binaryExpression = grammar.match(/\n\s{4}binary_expression:[\s\S]*?\n\s{4}raw_macro_expression:/);
-
-  assert.ok(grammar.includes('"|>"'), "grammar should recognize canonical |>");
-  assert.ok(grammar.includes("list_comprehension_body"), "grammar should parse list comprehensions");
-  assert.ok(grammar.includes('"|"'), "grammar should recognize the list-comprehension separator");
-  assert.ok(binaryExpression, "grammar should expose binary expression production");
-  assert.ok(
-    binaryExpression[0].includes('prec.left(1, seq($.expression, "|>", $.expression))'),
-    "grammar must keep |> as the pipeline operator"
-  );
-  assert.ok(
-    binaryExpression[0].includes('prec.left(5, seq($.expression, "|", $.expression))'),
-    "grammar must keep | as the distinct bitwise-OR operator"
-  );
-}
-
-/**
  * Verifies the checked-in parser corpus covers current 0.0.5 syntax examples.
  *
  * @returns {void}
@@ -378,7 +349,6 @@ function testStringPatternLongTailCorpusCoverage() {
   const requiredSnippets = [
     "string capture patterns",
     '"users/${id: Int}/${name}.json" where id > 0',
-    'let "users/${id: Int}/${name}.json" = path',
     'pub named("users/${id: Int}/${name}.json")',
     "shape synonym declaration",
     'shape UserAsset(id, file) = "users/${id: Int}/assets/${file}".',
@@ -466,7 +436,7 @@ function testBinaryLayoutToolingCoverage() {
     "Binary[little] { port: UInt[16], delta: IntBits[8] }",
     "pub decode_head(Binary[big]",
     "let decode = ((Binary[big]",
-    "let Binary[big] { prefix: Bytes[2], flags: Bits[3], body: Rest }"
+    "Binary[big] { prefix: Bytes[2], flags: Bits[3], body: Rest } ->"
   ];
 
   for (const node of requiredGrammarNodes) {
@@ -485,7 +455,6 @@ testPackageFileSelection();
 testHighlightQueryCoverage();
 testInjectionQueryCoverage();
 testSharedInterpolationFixtureCoverage();
-testCanonicalPipeOperatorSpelling();
 testCorpusCoverage();
 testStringPatternLongTailCorpusCoverage();
 testShapeSynonymCorpusCoverage();

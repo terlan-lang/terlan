@@ -3,6 +3,8 @@
 set -euo pipefail
 changes=$1
 base=$2
+hook_mode=${TERLAN_HOOK_MODE:-fast}
+case "$hook_mode" in fast|full) ;; *) echo "unsupported hook mode: $hook_mode" >&2; exit 2 ;; esac
 target_terlc="$CARGO_TARGET_DIR/debug/terlc"
 terlc="$target_terlc"
 export TERLC="$terlc"
@@ -11,23 +13,74 @@ preflight_plan="${changes%.txt}.preflight-plan"
 plan="${changes%.txt}.plan"
 specialized_tests="${changes%.txt}.specialized-tests.txt"
 prechecked_terlan="${changes%.txt}.prechecked-terlan.txt"
-compiler_build=false
-if [[ -x "$terlc" ]] && "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"; then
-  :
-else
-  repository_root=$(git remote get-url origin)
-  reusable_terlc="$repository_root/target/debug/terlc"
-  if [[ "$repository_root" == /* && -f "$reusable_terlc" && -x "$reusable_terlc" && ! -L "$reusable_terlc" ]] \
-    && "$reusable_terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"; then
-    terlc="$reusable_terlc"
-    export TERLC="$terlc"
-    echo "pre-commit: reuse compatible compiler $terlc"
+compiler_input_key="$({
+  printf '%s\n' terlan-staged-compiler-input-v2
+  git ls-files -s -z -- \
+    Cargo.toml Cargo.lock rust-toolchain.toml .cargo \
+    ':(glob)**/Cargo.toml' ':(glob)**/*.rs' ':(glob)**/*.lalrpop' \
+    ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop'
+  if [[ -f crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop ]]; then
+    printf 'normalized-lalrpop:'
+    sed '/^\/\/ canonical-ebnf-sha256: /d' \
+      crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop | git hash-object --stdin
+  fi
+} | git hash-object --stdin)"
+compiler_input_receipt="$CARGO_TARGET_DIR/.terlan-compiler-input"
+exact_compiler_inputs=false
+if [[ -x "$target_terlc" \
+  && -f "$compiler_input_receipt" \
+  && ! -L "$compiler_input_receipt" \
+  && $(wc -l < "$compiler_input_receipt") == 1 \
+  && $(sed -n '1p' "$compiler_input_receipt") == "$compiler_input_key" ]]; then
+  exact_compiler_inputs=true
+fi
+compiler_build=true
+if [[ "$exact_compiler_inputs" == true ]]; then compiler_build=false; fi
+run_plan() {
+  local compiler=$1
+  : > "$raw_plan"
+  "$compiler" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan" \
+    && [[ -s "$raw_plan" ]] \
+    && rg -qx 'preflight:inventory' "$raw_plan" \
+    && { [[ ! -f tests/language/RepeatedLetSyntaxTest.terl ]] \
+      || "$compiler" check tests/language/RepeatedLetSyntaxTest.terl >/dev/null; }
+}
+if [[ "$hook_mode" == fast ]]; then
+  terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}
+  if [[ ! -x "$terlc" || -L "$terlc" ]]; then
+    echo 'pre-commit: fast admission requires a locally built terlc' >&2
+    exit 1
+  fi
+  export TERLC="$terlc"
+  run_plan "$terlc" || { echo 'pre-commit: latest terlc cannot plan the staged source' >&2; exit 1; }
+  compiler_build=false
+  echo "pre-commit: fast admission uses $terlc"
+elif [[ "$compiler_build" == false ]]; then
+  if [[ -x "$terlc" ]] && run_plan "$terlc"; then
+    :
   else
-    compiler_build=true
+    repository_root=$(git remote get-url origin)
+    reusable_terlc="$repository_root/target/debug/terlc"
+    if [[ "$repository_root" == /* && -f "$reusable_terlc" && -x "$reusable_terlc" && ! -L "$reusable_terlc" ]] \
+      && run_plan "$reusable_terlc"; then
+      terlc="$reusable_terlc"
+      export TERLC="$terlc"
+      echo "pre-commit: reuse compatible compiler $terlc"
+    else
+      compiler_build=true
+    fi
   fi
 fi
-if [[ "$compiler_build" == false ]]; then
+if [[ "$hook_mode" == full && "$compiler_build" == false ]]; then
   if rg -qx 'preflight:compiler-build' "$raw_plan"; then compiler_build=true; fi
+fi
+if [[ "$compiler_build" == true \
+  && "$exact_compiler_inputs" == true ]] \
+  && run_plan "$target_terlc"; then
+  compiler_build=false
+  terlc="$target_terlc"
+  export TERLC="$terlc"
+  echo 'pre-commit: reuse exact staged compiler inputs'
 fi
 if [[ "$compiler_build" == true ]]; then
   # This target survives staged checkout revisions. Cargo dep-info can still
@@ -50,7 +103,10 @@ if [[ "$compiler_build" == true ]]; then
   cargo build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools
   terlc="$target_terlc"
   export TERLC="$terlc"
-  "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"
+  run_plan "$terlc"
+  temporary_compiler_receipt=$(mktemp "$CARGO_TARGET_DIR/.terlan-compiler-input.XXXXXX")
+  printf '%s\n' "$compiler_input_key" > "$temporary_compiler_receipt"
+  mv "$temporary_compiler_receipt" "$compiler_input_receipt"
 else
   echo 'pre-commit: reuse compiler; no compiler inputs changed'
 fi
@@ -61,9 +117,248 @@ rg -v '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
 preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
 
+if [[ "$hook_mode" == fast ]]; then
+  admission_started=$SECONDS
+  admission_status=0
+  fast_jobs=${TERLAN_HOOK_FAST_JOBS:-8}
+  case "$fast_jobs" in ''|*[!0-9]*|0) echo 'Invalid fast admission job count' >&2; exit 2 ;; esac
+  fast_output_dir=$(mktemp -d "$CARGO_TARGET_DIR/fast-admission.XXXXXX")
+  fast_receipt_dir=${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-$CARGO_TARGET_DIR/validation-results/fast-admission}
+  test ! -L "$fast_receipt_dir"
+  mkdir -p "$fast_receipt_dir"
+  fast_receipt_schema=terlan-fast-admission-v1
+  fast_compiler_hash=$(git hash-object "$terlc")
+  fast_labels=()
+  fast_pids=()
+  fast_logs=()
+  fast_durations=()
+  fast_keys=()
+  fast_receipts=()
+  declare -A fast_admitted_keys=()
+  fast_terlan_paths=()
+  while IFS= read -r path; do
+    case "$path" in
+      compiler/self_host/corpus/*|scripts/git_hooks/scripts/Plan.terls) ;;
+      *.terl|*.terli|*.terls) [[ -f "$path" ]] && fast_terlan_paths+=("$path") ;;
+    esac
+  done < "$changes"
+  fast_rust_format() {
+    "$terlc" run scripts/ci/scripts/CheckRustFormatting.terls \
+      --out-dir "$fast_output_dir/rust-format-build" \
+      --cache-dir "$fast_output_dir/rust-format-cache" \
+      -- --paths-file "$changes"
+  }
+  fast_grammar() {
+    local status=0
+    TERLAN_EBNF_ROOT="$PWD" TERLAN_EBNF_COMPILER="$terlc" \
+      "$terlc" run scripts/self_validation/EbnfValidator.terls \
+        --out-dir "$fast_output_dir/grammar-build" \
+        --cache-dir "$fast_output_dir/grammar-cache" || status=1
+    TERLAN_SYNTAX_ARTIFACT_ROOT="$PWD" TERLAN_SYNTAX_ARTIFACT_COMPILER="$terlc" \
+      "$terlc" run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls \
+        --out-dir "$fast_output_dir/syntax-artifacts-build" \
+        --cache-dir "$fast_output_dir/syntax-artifacts-cache" \
+        -- --check || status=1
+    return "$status"
+  }
+  fast_terlan_format() {
+    local status=0 lint_pid format_pid
+    if (( ${#fast_terlan_paths[@]} == 0 )); then return 0; fi
+    (printf '%s\0' "${fast_terlan_paths[@]}" \
+      | xargs -0 -r -n 48 -P "$fast_jobs" "$terlc" lint --only TL0009 --only TL0010) &
+    lint_pid=$!
+    (printf '%s\0' "${fast_terlan_paths[@]}" \
+      | xargs -0 -r -n 48 -P "$fast_jobs" "$terlc" fmt --check) &
+    format_pid=$!
+    wait "$lint_pid" || status=1
+    wait "$format_pid" || status=1
+    return "$status"
+  }
+  fast_inventory() {
+    "$terlc" test scripts/self_validation/InventoryTest.terl \
+      --out-dir "$fast_output_dir/inventory-build" \
+      --cache-dir "$fast_output_dir/inventory-cache"
+  }
+  fast_shell() {
+    local status=0 path
+    while IFS= read -r path; do
+      if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then
+        bash -n "$path" || status=1
+      fi
+    done < "$changes"
+    return "$status"
+  }
+  fast_gate_key() {
+    local label=$1 path
+    {
+      printf '%s\n%s\n%s\n' "$fast_receipt_schema" "$label" "$fast_compiler_hash"
+      git ls-files -s -- scripts/git_hooks/check.sh \
+        scripts/git_hooks/scripts/Plan.terls \
+        scripts/git_hooks/src/git_hooks/Plan.terl
+      for tool in git bash xargs; do
+        tool_path=$(command -v "$tool")
+        printf 'tool:%s:%s\n' "$tool" "$(git hash-object "$tool_path")"
+      done
+      case "$label" in
+        rust-format)
+          git ls-files -s -z -- rustfmt.toml scripts/ci/scripts/CheckRustFormatting.terls \
+            scripts/ci/src/ci/RustFormatting.terl
+          while IFS= read -r path; do
+            case "$path" in *.rs) printf 'path:%s\n' "$path"; git ls-files -s -- "$path" ;; esac
+          done < "$changes"
+          ;;
+        grammar)
+          git ls-files -s -z -- docs/grammar crates/terlan/src/compiler/syntax \
+            proofs/lean/artifacts proofs/lean/ci/lean-proof-artifacts.tsv \
+            proofs/lean/parser_shape/ParserShape.lean tests/fixtures/phase_contract \
+            scripts/ci/scripts/SyncSyntaxContractArtifacts.terls \
+            scripts/ci/src/ci/SyntaxContractArtifacts.terl \
+            scripts/self_validation/EbnfValidator.terls
+          ;;
+        terlan-format)
+          while IFS= read -r path; do
+            case "$path" in
+              *.terl|*.terli|*.terls)
+                printf 'path:%s\n' "$path"
+                git ls-files -s -- "$path"
+                ;;
+            esac
+          done < "$changes"
+          ;;
+        inventory)
+          git ls-files -z | git hash-object --stdin
+          git ls-files -s -- scripts/self_validation/InventoryTest.terl
+          ;;
+        shell)
+          while IFS= read -r path; do
+            case "$path" in *.sh|.githooks/*) printf 'path:%s\n' "$path"; git ls-files -s -- "$path" ;; esac
+          done < "$changes"
+          ;;
+      esac
+    } | git hash-object --stdin
+  }
+  start_fast_gate() {
+    local label=$1 function=$2 log="$fast_output_dir/$1.log" \
+      duration="$fast_output_dir/$1.duration" key receipt
+    key=$(fast_gate_key "$label")
+    receipt="$fast_receipt_dir/$label-$key.passed"
+    if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 \
+      && -f "$receipt" \
+      && $(wc -l < "$receipt") == 2 \
+      && $(sed -n '1p' "$receipt") == "$fast_receipt_schema" \
+      && $(sed -n '2p' "$receipt") == "$key" ]]; then
+      echo "pre-commit: reuse $label ($key)"
+      fast_admitted_keys["$label"]=$key
+      return 0
+    fi
+    echo "pre-commit: start $label"
+    (
+      gate_started=$SECONDS
+      set +e
+      "$function"
+      gate_status=$?
+      set -e
+      printf '%s\n' "$((SECONDS - gate_started))" > "$duration"
+      exit "$gate_status"
+    ) >"$log" 2>&1 &
+    fast_labels+=("$label")
+    fast_pids+=("$!")
+    fast_logs+=("$log")
+    fast_durations+=("$duration")
+    fast_keys+=("$key")
+    fast_receipts+=("$receipt")
+  }
+  if preflight_has rust-format; then
+    start_fast_gate rust-format fast_rust_format
+  fi
+  if preflight_has grammar; then
+    start_fast_gate grammar fast_grammar
+  fi
+  if preflight_has terlan-format && (( ${#fast_terlan_paths[@]} > 0 )); then
+    echo "pre-commit: changed Terlan syntax (${#fast_terlan_paths[@]} paths, $fast_jobs workers)"
+    start_fast_gate terlan-format fast_terlan_format
+  fi
+  if preflight_has inventory; then
+    start_fast_gate inventory fast_inventory
+  fi
+  start_fast_gate shell fast_shell
+  for index in "${!fast_pids[@]}"; do
+    fast_elapsed=unknown
+    if wait "${fast_pids[$index]}"; then
+      if [[ -f ${fast_durations[$index]} ]]; then
+        fast_elapsed=$(sed -n '1p' "${fast_durations[$index]}")s
+      fi
+      echo "pre-commit: pass ${fast_labels[$index]} (${fast_elapsed})"
+      temporary_fast_receipt=$(mktemp "$fast_receipt_dir/.fast-admission.XXXXXX")
+      printf '%s\n%s\n' "$fast_receipt_schema" "${fast_keys[$index]}" > "$temporary_fast_receipt"
+      mv "$temporary_fast_receipt" "${fast_receipts[$index]}"
+      fast_admitted_keys["${fast_labels[$index]}"]=${fast_keys[$index]}
+    else
+      admission_status=1
+      if [[ -f ${fast_durations[$index]} ]]; then
+        fast_elapsed=$(sed -n '1p' "${fast_durations[$index]}")s
+      fi
+      echo "pre-commit: fail ${fast_labels[$index]} (${fast_elapsed})" >&2
+    fi
+    cat "${fast_logs[$index]}"
+  done
+  rm -rf -- "$fast_output_dir"
+  admission_elapsed=$((SECONDS - admission_started))
+  echo "pre-commit: fast admission finished in ${admission_elapsed}s"
+  if (( admission_elapsed > ${TERLAN_HOOK_FAST_TIMEOUT_SECONDS:-60} )); then
+    echo 'pre-commit: fast admission exceeded its performance budget' >&2
+    admission_status=1
+  fi
+  if (( admission_status != 0 )); then exit "$admission_status"; fi
+  candidate_plan="${changes%.txt}.candidate-plan"
+  {
+    while IFS= read -r label; do
+      if [[ -n ${fast_admitted_keys[$label]+present} ]]; then
+        printf 'admitted:%s:%s\n' "$label" "${fast_admitted_keys[$label]}"
+      else
+        printf 'preflight:%s\n' "$label"
+      fi
+    done < "$preflight_plan"
+    cat "$plan"
+  } > "$candidate_plan"
+  echo "pre-commit: candidate validation deferred to content-addressed graph $candidate_plan"
+  exit 0
+fi
+
 if preflight_has rust-format; then
   echo 'pre-commit: changed Rust formatting'
   "$terlc" run scripts/ci/scripts/CheckRustFormatting.terls -- --paths-file "$changes"
+fi
+
+if preflight_has grammar; then
+  echo 'pre-commit: early canonical grammar and summary'
+  TERLAN_EBNF_ROOT="$PWD" TERLAN_EBNF_COMPILER="$terlc" \
+    "$terlc" run scripts/self_validation/EbnfValidator.terls
+  TERLAN_SYNTAX_ARTIFACT_ROOT="$PWD" TERLAN_SYNTAX_ARTIFACT_COMPILER="$terlc" \
+    "$terlc" run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --check
+fi
+
+if preflight_has terlan-format; then
+  terlan_paths=()
+  while IFS= read -r path; do
+    case "$path" in
+      compiler/self_host/corpus/*)
+        # Parser acceptance fixtures intentionally contain syntax that the
+        # production formatter must reject before macro resolution.
+        ;;
+      scripts/git_hooks/scripts/Plan.terls)
+        # This bootstrap planner is executed before this point and deliberately
+        # stays parseable by both the previous and candidate compiler syntax.
+        ;;
+      *.terl|*.terli|*.terls)
+        if [[ -f "$path" ]]; then terlan_paths+=("$path"); fi
+        ;;
+    esac
+  done < "$changes"
+  echo 'pre-commit: early Terlan readability canonicalization'
+  "$terlc" lint --only TL0009 --only TL0010 "${terlan_paths[@]}"
+  echo 'pre-commit: early Terlan formatting'
+  "$terlc" fmt --check "${terlan_paths[@]}"
 fi
 
 release_tools_ready=false
@@ -118,8 +413,12 @@ if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typ
   TERLC="$terlc" bash scripts/check_typed_css.sh
   typed_css_checked=true
 fi
-# Directly affected compiler and source ownership runs immediately after the
-# compiler exists. Broad repository, proof, package, and platform gates follow.
+if lane_has rust-reports; then
+  echo 'pre-commit: early Rust report drift'
+  run_rust_reports_lane
+fi
+# Generated Rust reports and source-structure policy fail before any broad
+# Terlan compilation. Directly affected compiler and source ownership follows.
 if lane_has terlan; then
   echo 'pre-commit: early terlan ownership and coverage'
   TERLAN_HOOK_TERLAN_CACHE_DIR="$CARGO_TARGET_DIR/terlan-cache" \
@@ -130,10 +429,6 @@ fi
 if lane_has commands-test; then
   echo 'pre-commit: early test-command ownership'
   run_commands_test_lane
-fi
-if lane_has rust-reports; then
-  echo 'pre-commit: early Rust report drift'
-  run_rust_reports_lane
 fi
 if lane_has summaries; then
   echo 'pre-commit: early summary drift'
@@ -165,28 +460,6 @@ if preflight_has workflow-contract; then
     scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/WorkflowContractTest.terl \
     >> "$prechecked_terlan"
 fi
-if preflight_has terlan-format; then
-  terlan_paths=()
-  while IFS= read -r path; do
-    case "$path" in
-      compiler/self_host/corpus/*)
-        # Parser acceptance fixtures intentionally contain syntax that the
-        # production formatter must reject before macro resolution.
-        ;;
-      scripts/git_hooks/scripts/Plan.terls)
-        # This bootstrap planner is executed before this point and deliberately
-        # stays parseable by both the previous and candidate compiler syntax.
-        ;;
-      *.terl|*.terli|*.terls)
-        if [[ -f "$path" ]]; then terlan_paths+=("$path"); fi
-        ;;
-    esac
-  done < "$changes"
-  echo 'pre-commit: Terlan readability canonicalization'
-  "$terlc" lint --only TL0009 --only TL0010 "${terlan_paths[@]}"
-  echo 'pre-commit: Terlan formatting'
-  "$terlc" fmt --check "${terlan_paths[@]}"
-fi
 if preflight_has rust-security; then
   echo 'pre-commit: Rust dependency security audit'
   make --no-print-directory rust-security-audit-check
@@ -202,11 +475,6 @@ fi
 if preflight_has artifact-bootstrap; then
   echo 'pre-commit: artifact bootstrap ownership'
   bash scripts/build_artifact_bootstrap_test.sh
-fi
-if preflight_has grammar; then
-  echo 'pre-commit: canonical grammar and summary'
-  TERLAN_EBNF_ROOT="$PWD" TERLAN_EBNF_COMPILER="$terlc" \
-    "$terlc" run scripts/self_validation/EbnfValidator.terls
 fi
 if preflight_has js-bindings; then
   echo 'pre-commit: generated JavaScript bindings'

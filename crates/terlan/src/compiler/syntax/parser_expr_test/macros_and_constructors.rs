@@ -3,7 +3,7 @@ use crate::terlan_syntax::{parse_module, parse_terlan_expr};
 
 #[test]
 fn formal_remote_fun_ref_is_not_source_syntax() {
-    let err = parse_terlan_expr("fun math:double/1 |> inspect()")
+    let err = parse_terlan_expr("fun math:double/1")
         .expect_err("remote fun refs are not canonical source syntax");
 
     assert!(
@@ -16,16 +16,9 @@ fn formal_remote_fun_ref_is_not_source_syntax() {
 
 #[test]
 fn formal_macro_expr_parses_as_primary_expr() {
-    let expr = parse_terlan_expr("?MODULE |> inspect()").expect("parse macro expr in pipe");
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
+    let expr = parse_terlan_expr("?MODULE").expect("parse macro expression");
     assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-    assert!(matches!(
-        left.as_ref(),
+        &expr,
         Expr::MacroCall { name, args } if name == "MODULE" && args.is_empty()
     ));
 
@@ -38,17 +31,9 @@ fn formal_macro_expr_parses_as_primary_expr() {
 
 #[test]
 fn formal_raw_macro_expr_requires_immediate_raw_block() {
-    let expr = parse_terlan_expr("sql{select * from users} |> inspect()")
-        .expect("parse raw macro expr in pipe");
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
+    let expr = parse_terlan_expr("sql{select * from users}").expect("parse raw macro expression");
     assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-    assert!(matches!(
-        left.as_ref(),
+        &expr,
         Expr::RawMacro { name, type_args, interpolations, raw }
             if name == "sql"
                 && type_args.is_empty()
@@ -504,28 +489,11 @@ fn rejects_implication_arrow_in_case_branch_body() {
 }
 
 #[test]
-fn parses_pipe_forward_operator() {
-    let source = r#"
-module pipe_demo.
-
-pub demo(X: Int): Int ->
-    X |> add(1).
-"#;
-
-    let module = parse_module(source).expect("parse");
-    let function = match &module.declarations[0] {
-        Decl::Function(function) => function,
-        _ => panic!("expected function"),
-    };
-    match &function.clauses[0].body {
-        Expr::BinaryOp { op, .. } => {
-            assert!(matches!(
-                op,
-                crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-            ));
-        }
-        _ => panic!("expected pipe forward binary op"),
-    }
+fn rejects_removed_pipeline_operator() {
+    let error =
+        parse_module("module pipeline_removed. pub demo(value: Int): Int -> value |> add(1).")
+            .expect_err("pipeline syntax must be rejected");
+    assert!(error.message.contains("unexpected") || error.message.contains("expected"));
 }
 
 /// Verifies binary `!` is rejected as process-message syntax.

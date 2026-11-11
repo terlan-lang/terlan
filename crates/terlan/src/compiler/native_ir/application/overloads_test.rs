@@ -649,7 +649,7 @@ import type std.core.Option.{Option}.
 same[M, S](model: M, state: S)[Producer[M, S]]: S -> state.
 pub check(): Bool ->
     let model = Model();
-    if { Some(initial) <- Producer.initial(model) } else {
+    when { Some(initial) <- Producer.initial(model) } else {
         _ -> false
     };
     same(model, initial).value == 42.
@@ -698,7 +698,7 @@ handle_with[Implementation, Message, Output, Failure](
 )[Handler[Implementation, Message, Output, Failure]]: Result[Output, Failure] ->
     Handler.handle(implementation, message).
 pub check(): Bool ->
-    if { Ok(output) <- handle_with(Implementation(), Message(42)) } else {
+    when { Ok(output) <- handle_with(Implementation(), Message(42)) } else {
         _ -> false
     };
     output.value() == 42.

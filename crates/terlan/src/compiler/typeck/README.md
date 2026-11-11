@@ -59,7 +59,7 @@ Expression layout:
 - `expression`: owns root expression dispatch, diagnostic span encoding, trait
   lookup caching, generic-bound checks, and shared expression helpers.
 - `expression::calls`: owns function, method, constructor, macro, template,
-  imported, and pipe-forward call inference.
+  and imported call inference.
 - `expression::casts`: owns explicit `as` conversion checks and
   conversion-trait visibility.
 - `expression::construction`: owns record, field, template, and constructor
@@ -67,8 +67,8 @@ Expression layout:
 - `expression::control_flow`: owns case, if, try, let, lambda, and
   comprehension inference.
 - `expression::indexing`: owns index get/set trait contract inference.
-- `expression::operators`: owns unary, binary, boolean, comparison,
-  arithmetic, and pipe operator classification.
+- `expression::operators`: owns unary, binary, boolean, comparison, and
+  arithmetic operator classification.
 - `expression::sql`: owns SQL raw-form row validation and wrapper result
   inference.
 - `expression::values`: owns variable lookup, singleton aliases, implicit

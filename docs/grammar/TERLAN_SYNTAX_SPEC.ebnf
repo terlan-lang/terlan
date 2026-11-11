@@ -253,10 +253,13 @@ Constraint ::= TraitRef .
 
 Expr ::= LetExpr | RefutableExpr | AssignExpr .
 
-LetExpr ::= "let" LowerIdent "=" Expr ";" Expr .
-RefutableExpr ::= RefutableBinding ";" Expr | "if" "{" RefutableBinding { ";" RefutableBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr .
+LetExpr ::= "let" LetBindingPattern "=" Expr ";" Expr .
+LetBindingPattern ::= Binding | BindingTuplePattern .
+BindingTuplePattern ::= "{" BindingSubpattern "," BindingSubpattern { "," BindingSubpattern } [ "," ] "}" .
+BindingSubpattern ::= Binding | "_" | BindingTuplePattern | "(" BindingSubpattern ")" .
+RefutableExpr ::= RefutableBinding ";" Expr | "when" "{" RefutableBinding { ";" RefutableBinding } [ ";" ] "}" "else" "{" Clause { ";" Clause } [ ";" ] "}" ";" Expr .
 RefutableBinding ::= Pattern "<-" Expr .
-AssignExpr ::= IndexAssignExpr | PipeExpr .
+AssignExpr ::= IndexAssignExpr | OrExpr .
 IndexAssignExpr ::= PostfixExpr "[" Expr "]" "=" Expr .
 
 CaseExpr ::= "case" Expr "{" [ Clause { ";" Clause } [ ";" ] ] "}" .
@@ -271,7 +274,6 @@ CatchClause ::= PatternList [ "where" Expr ] "->" Expr .
 IfClause ::= Expr "->" Expr .
 QuoteExpr ::= "quote" Expr .
 UnquoteExpr ::= "unquote" "(" Expr ")" .
-PipeExpr ::= OrExpr { "|>" OrExpr } .
 OrExpr ::= AndExpr { OrOp AndExpr } .
 AndExpr ::= CmpExpr { AndOp CmpExpr } .
 CmpExpr ::= BitOrExpr { CmpOp BitOrExpr } .
@@ -325,8 +327,7 @@ ListExpr ::= "[" [ ListElementExpr { "," ListElementExpr } [ "," ] ] "]" .
 ConsListExpr ::= "[" ListElementExpr "|" Expr "]" .
 ArrayExpr ::= "#[" [ Expr { "," Expr } [ "," ] ] "]" .
 ListGeneratorExpr ::= "[" ListElementExpr "|" Generator { "," ComprehensionQualifier } "]" .
-ListElementExpr ::= ListElementPipeExpr { "with" ListElementPipeExpr } .
-ListElementPipeExpr ::= ListElementOrExpr { "|>" ListElementOrExpr } .
+ListElementExpr ::= ListElementOrExpr { "with" ListElementOrExpr } .
 ListElementOrExpr ::= ListElementAndExpr { OrOp ListElementAndExpr } .
 ListElementAndExpr ::= ListElementCmpExpr { AndOp ListElementCmpExpr } .
 ListElementCmpExpr ::= ListElementBitwiseExpr { CmpOp ListElementBitwiseExpr } .

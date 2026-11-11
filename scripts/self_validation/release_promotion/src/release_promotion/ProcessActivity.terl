@@ -83,7 +83,7 @@ error_name(reason: String, offset: Int): Bool ->
 valid_code(code: Json, success: Bool): Bool ->
     if {
         code.is_null() -> not success;
-        true -> if {
+        true -> when {
             Ok(number) <- code.as_int()
         } else {
             _ -> false
@@ -92,7 +92,7 @@ valid_code(code: Json, success: Bool): Bool ->
     }.
 
 outcome(document: Json, phase: String): Result[Bool, String] ->
-    if {
+    when {
         Ok(code) <- document.get("exit_code");
         Ok(success) <- document.get("exit_success");
         Ok(error) <- document.get("error_kind")
@@ -100,14 +100,14 @@ outcome(document: Json, phase: String): Result[Bool, String] ->
         _ -> Err("missing process outcome fields")
     };
     if {
-        phase == "reaped" -> if {
+        phase == "reaped" -> when {
             Ok(passed) <- success.as_bool();
             true <- error.is_null() and valid_code(code, passed)
         } else {
             _ -> Err("invalid reaped process outcome")
         };
         Ok(not passed);
-        phase == "spawn_failed" -> if {
+        phase == "spawn_failed" -> when {
             Ok(reason) <- error.as_string();
             true <- reason.byte_size() <= 64 and error_name(reason, 0);
             true <- code.is_null() and success.is_null()
@@ -122,7 +122,7 @@ outcome(document: Json, phase: String): Result[Bool, String] ->
     }.
 
 parse(document: Json): Result[Event, String] ->
-    if {
+    when {
         Ok(11) <- document.object_length();
         Some("terlan.process-activity.v1") <- OwnerStorage.text(document, "schema");
         Some(attempt) <- OwnerStorage.text(document, "attempt");
@@ -190,7 +190,7 @@ save(inventory: ProcessInventory, event: Event, fresh: Bool): ProcessInventory -
  * Admits exactly one valid state transition with stable attempt identity.
  */
 pub accept(inventory: ProcessInventory, document: Json): Result[ProcessInventory, String] ->
-    if {
+    when {
         Ok(event) <- parse(document)
     } else {
         Err(reason) -> Err(reason)
@@ -218,9 +218,8 @@ pub complete(inventory: ProcessInventory): Bool ->
  * Reports observed counts separately from producer exit semantics.
  */
 pub summary(inventory: ProcessInventory): Json ->
-    summary_header(inventory)
-    |> summary_counts(inventory)
-    |> summary_remaining(inventory).
+    let counts = summary_counts(summary_header(inventory), inventory);
+    summary_remaining(counts, inventory).
 
 summary_header(inventory: ProcessInventory): Json ->
     Json.object()
@@ -229,17 +228,15 @@ summary_header(inventory: ProcessInventory): Json ->
         .put("events", Json.int(inventory.events)).
 
 summary_counts(report: Json, inventory: ProcessInventory): Json ->
-    report
-    |> put_count("launches", inventory.launches)
-    |> put_count("reaped", inventory.reaped)
-    |> put_count("spawn_failed", inventory.spawn_failed).
+    let launches = put_count(report, "launches", inventory.launches);
+    let reaped = put_count(launches, "reaped", inventory.reaped);
+    put_count(reaped, "spawn_failed", inventory.spawn_failed).
 
 summary_remaining(counts: Json, inventory: ProcessInventory): Json ->
-    counts
-    |> put_count("pending", inventory.pending)
-    |> put_count("abandoned", inventory.abandoned)
-    |> put_count("nonzero_exits", inventory.nonzero)
-    |> put_count("attempts", inventory.attempts.size()).
+    let pending = put_count(counts, "pending", inventory.pending);
+    let abandoned = put_count(pending, "abandoned", inventory.abandoned);
+    let nonzero = put_count(abandoned, "nonzero_exits", inventory.nonzero);
+    put_count(nonzero, "attempts", inventory.attempts.size()).
 
 decision(inventory: ProcessInventory): String ->
     if {

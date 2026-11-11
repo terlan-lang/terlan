@@ -633,7 +633,7 @@ pub(super) fn script_requires_project_closure(source_path: &Path) -> Result<bool
 /// Transformation:
 /// - Walks parent directories from the source location toward the filesystem
 ///   root so nested projects take ownership before their ancestors.
-pub(super) fn owning_project_dir_for_source(source_path: &Path) -> Option<PathBuf> {
+pub(crate) fn owning_project_dir_for_source(source_path: &Path) -> Option<PathBuf> {
     owning_project_dir_for_source_from(source_path, &std::env::current_dir().ok()?)
 }
 

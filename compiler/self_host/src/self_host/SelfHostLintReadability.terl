@@ -306,7 +306,7 @@ deep_diagnostics(
     "TL0002",
     "readability.deep-expression",
     "warning",
-    "deep expression tree should be split with let bindings, a pipe, or a named helper",
+    "deep expression tree should use let bindings, receiver methods, or a named helper",
 ) | deep_diagnostics(source, path, rest)];
                 true -> deep_diagnostics(source, path, rest)
             }
@@ -328,7 +328,7 @@ grouped_diagnostics(
     "TL0009",
     "readability.grouped-binding",
     "error",
-    "linear nested cases with one repeated fallback should use grouped `if { ... <- ... } else { ... }` bindings",
+    "linear nested cases with one repeated fallback should use grouped `when { ... <- ... } else { ... }` bindings",
 ) | grouped_diagnostics(source, path, rest)];
                 true -> grouped_diagnostics(source, path, rest)
             }

@@ -12,7 +12,7 @@ struct NominalType {
 
 type NominalTypes = HashMap<String, NominalType>;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler::native_ir) struct ReceiverTarget {
     module: String,
     function: String,
@@ -21,6 +21,7 @@ pub(in crate::compiler::native_ir) struct ReceiverTarget {
     public: bool,
     generic_params: Vec<String>,
     trait_fallback: bool,
+    scope_preferred: bool,
     mutable: bool,
     command: bool,
 }
@@ -38,6 +39,19 @@ pub(crate) fn resolve_typed_mutable_receiver_calls(
     let types = nominal_types(cores);
     let qualified_results = function_results(cores);
     for core in cores {
+        let type_modules = core
+            .imports
+            .iter()
+            .filter(|import| import.kind == crate::terlan_typeck::CoreImportKind::TypeModule)
+            .map(|import| import.module.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        let mut scoped_targets = targets.clone();
+        for candidates in scoped_targets.values_mut() {
+            for target in candidates {
+                target.scope_preferred =
+                    target.module == core.module || type_modules.contains(target.module.as_str());
+            }
+        }
         let mut results = qualified_results.clone();
         for function in &core.functions {
             if let Some(result) = function
@@ -66,10 +80,17 @@ pub(crate) fn resolve_typed_mutable_receiver_calls(
                     .as_mut()
                     .and_then(|summary| summary.core_expr.as_mut())
                 {
-                    resolve_expr(guard, &module, &variables, &results, &targets, &types)?;
+                    resolve_expr(
+                        guard,
+                        &module,
+                        &variables,
+                        &results,
+                        &scoped_targets,
+                        &types,
+                    )?;
                 }
                 if let Some(body) = clause.body.core_expr.as_mut() {
-                    resolve_expr(body, &module, &variables, &results, &targets, &types)?;
+                    resolve_expr(body, &module, &variables, &results, &scoped_targets, &types)?;
                 }
             }
         }
@@ -125,27 +146,29 @@ pub(in crate::compiler::native_ir) fn receiver_targets(cores: &[CoreModule]) -> 
             }) else {
                 continue;
             };
-            targets
-                .entry((method.clone(), function.arity))
-                .or_default()
-                .push(ReceiverTarget {
-                    module: core.module.clone(),
-                    function: function.name.clone(),
-                    receiver,
-                    result: function
-                        .core_return_type
-                        .clone()
-                        .or_else(|| core_type_from_text(&function.return_type)),
-                    public: function.public,
-                    trait_fallback: !function.receiver_method,
-                    mutable: function.receiver_mutable,
-                    command: function.receiver_command,
-                    generic_params:
-                        super::super::generic_specialization::generic_parameters_with_nominals(
-                            function,
-                            &nominal_parameters,
-                        ),
-                });
+            let target = ReceiverTarget {
+                module: core.module.clone(),
+                function: function.name.clone(),
+                receiver,
+                result: function
+                    .core_return_type
+                    .clone()
+                    .or_else(|| core_type_from_text(&function.return_type)),
+                public: function.public,
+                trait_fallback: !function.receiver_method,
+                scope_preferred: false,
+                mutable: function.receiver_mutable,
+                command: function.receiver_command,
+                generic_params:
+                    super::super::generic_specialization::generic_parameters_with_nominals(
+                        function,
+                        &nominal_parameters,
+                    ),
+            };
+            let candidates = targets.entry((method.clone(), function.arity)).or_default();
+            if !candidates.contains(&target) {
+                candidates.push(target);
+            }
         }
     }
     targets
@@ -185,12 +208,42 @@ fn binding_receiver(
     let CoreExpr::Var(name) = receiver else {
         return None;
     };
-    let target = receiver_target(function, arity, locals.get(name)?, module, targets)?;
-    if owner != "__receiver__" && owner != target.module {
+    let receiver_type = locals.get(name)?;
+    if let Some(target) = receiver_target(function, arity, receiver_type, module, targets) {
+        if owner != "__receiver__" && owner != target.module {
+            return None;
+        }
+        let statement =
+            matches!(&binding.pattern, CorePattern::Var(name) if name.starts_with("$seq"));
+        return (target.mutable && (statement || target.command))
+            .then(|| (name.clone(), target.command));
+    }
+    if owner != "__receiver__" {
         return None;
     }
-    let statement = matches!(&binding.pattern, CorePattern::Var(name) if name.starts_with("$seq"));
-    (target.mutable && (statement || target.command)).then(|| (name.clone(), target.command))
+    super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
+        receiver_type,
+        function,
+        arity,
+    )
+    .filter(|(intrinsic, _)| intrinsic_receiver_command(intrinsic))
+    .map(|_| (name.clone(), true))
+}
+
+fn intrinsic_receiver_command(intrinsic: &crate::terlan_typeck::CorePrimitiveIntrinsic) -> bool {
+    use crate::terlan_typeck::CorePrimitiveIntrinsic as Primitive;
+
+    matches!(
+        intrinsic,
+        Primitive::ListPush
+            | Primitive::ListClear
+            | Primitive::MapPut
+            | Primitive::MapRemove
+            | Primitive::MapClear
+            | Primitive::SetAdd
+            | Primitive::SetRemove
+            | Primitive::SetClear
+    )
 }
 
 fn function_results(cores: &[CoreModule]) -> HashMap<(String, usize), CoreType> {
@@ -253,6 +306,25 @@ fn resolve_expr(
                     },
                     args: call_args,
                 };
+                return Ok(());
+            }
+            if let Some((intrinsic, return_type)) = super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
+                &receiver_type,
+                method,
+                args.len() + 1,
+            ) {
+                let receiver =
+                    std::mem::replace(receiver.as_mut(), CoreExpr::Atom("Unit".to_string()));
+                let mut call_args = vec![receiver];
+                call_args.append(args);
+                *expr = CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall {
+                    id: crate::terlan_typeck::CoreIntrinsicId::Primitive(intrinsic),
+                    args: call_args,
+                    return_type,
+                    effects: crate::terlan_typeck::core_intrinsic_lowering::core_pure_effect_set(),
+                    span: crate::terlan_syntax::span::Span::new(0, 0),
+                });
+                return Ok(());
             }
         }
         CoreExpr::RemoteCall {
@@ -264,20 +336,35 @@ fn resolve_expr(
             for argument in args.iter_mut() {
                 resolve_expr(argument, module, variables, functions, targets, types)?;
             }
-            let target = args
-                .first()
-                .and_then(|receiver| {
-                    infer_core_type(receiver, variables, functions, targets, types, module)
-                })
-                .and_then(|receiver_type| {
-                    receiver_target(function, args.len(), &receiver_type, module, targets)
-                });
+            let receiver_type = args.first().and_then(|receiver| {
+                infer_core_type(receiver, variables, functions, targets, types, module)
+            });
+            let target = receiver_type.as_ref().and_then(|receiver_type| {
+                receiver_target(function, args.len(), receiver_type, module, targets)
+            });
             if let Some(target) = target {
                 *expr = CoreExpr::Call {
                     type_args: std::mem::take(type_args),
                     function: callable_identity(target, module),
                     args: std::mem::take(args),
                 };
+                return Ok(());
+            }
+            if let Some((intrinsic, return_type)) = receiver_type.as_ref().and_then(|receiver| {
+                super::super::collection_intrinsic_specialization::receiver_intrinsics::typed_receiver_intrinsic(
+                    receiver,
+                    function,
+                    args.len(),
+                )
+            }) {
+                *expr = CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall {
+                    id: crate::terlan_typeck::CoreIntrinsicId::Primitive(intrinsic),
+                    args: std::mem::take(args),
+                    return_type,
+                    effects: crate::terlan_typeck::core_intrinsic_lowering::core_pure_effect_set(),
+                    span: crate::terlan_syntax::span::Span::new(0, 0),
+                });
+                return Ok(());
             }
         }
         CoreExpr::Let { bindings, body } => {
@@ -294,6 +381,10 @@ fn resolve_expr(
                     types,
                 )?;
                 if let Some((name, command)) = receiver {
+                    let receiver_continuation = matches!(
+                        &binding.pattern,
+                        CorePattern::Var(binding_name) if binding_name == &name
+                    );
                     // The internal receiver result is not another public command
                     // invocation when this pass runs again after source linking.
                     let value = CoreExpr::Cast {
@@ -307,7 +398,7 @@ fn resolve_expr(
                         pattern: CorePattern::Var(name),
                         value,
                     });
-                    if !command {
+                    if !command || receiver_continuation {
                         continue;
                     }
                 }
@@ -586,7 +677,14 @@ fn receiver_target<'a>(
                 .flatten()
                 .map(|target| (
                     target.module.as_str(),
+                    target.function.as_str(),
                     target.receiver.contract_text(),
+                    target
+                        .result
+                        .as_ref()
+                        .map(crate::terlan_typeck::CoreType::contract_text),
+                    target.generic_params.as_slice(),
+                    target.trait_fallback,
                     target.public,
                 ))
                 .collect::<Vec<_>>(),
@@ -595,11 +693,25 @@ fn receiver_target<'a>(
     // Declared receiver methods take precedence over trait fallback, matching
     // frontend dispatch. Ambiguous candidates within either tier stay unresolved.
     for trait_fallback in [false, true] {
-        let mut tier = matches
+        let tier = matches
             .clone()
-            .filter(|target| target.trait_fallback == trait_fallback);
-        if let Some(target) = tier.next() {
-            return tier.next().is_none().then_some(target);
+            .filter(|target| target.trait_fallback == trait_fallback)
+            .collect::<Vec<_>>();
+        let preferred = tier
+            .iter()
+            .copied()
+            .filter(|target| target.scope_preferred)
+            .collect::<Vec<_>>();
+        let selected = if trait_fallback && !preferred.is_empty() {
+            preferred
+        } else {
+            tier
+        };
+        if !selected.is_empty() {
+            return match selected.as_slice() {
+                [target] => Some(*target),
+                _ => None,
+            };
         }
     }
     None

@@ -129,7 +129,7 @@ environment(values: List[EnvironmentEntry], result: Json): Json ->
     }.
 
 identity(root: String, owner: Owner): Result[Json, String] ->
-    if {
+    when {
         Ok(inputs) <- OwnerStorage.files(root, owner.inputs);
         Ok(dependencies) <- OwnerOutputs.files(root, owner.dependencies);
         Ok(optional_dependencies) <- OwnerOutputs.optional_files(root, owner.optional_dependencies);
@@ -165,7 +165,7 @@ identity(root: String, owner: Owner): Result[Json, String] ->
  * The final output must still match the successful ledger's bytes and schema.
  */
 reusable(root: String, owner: Owner, ledger: Json, fingerprint: String): Bool ->
-    if {
+    when {
         Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
         Some("pass") <- OwnerStorage.text(ledger, "outcome");
         Some(expected) <- OwnerStorage.text(ledger, "input_sha256");
@@ -270,7 +270,7 @@ failure_evidence_valid(root: String, owner: Owner, ledger: Json): Bool ->
     case ledger.get("native_outputs") {
         Err(_absent) -> true;
         Ok(expected) ->
-            if {
+            when {
                 Ok(actual) <- OwnerStorage.files(root, [failed_activity_path(owner)]);
                 Ok(expected_hash) <- OwnerStorage.digest(expected);
                 Ok(actual_hash) <- OwnerStorage.digest(actual)
@@ -401,7 +401,7 @@ scratch_absent(entries: List[String], work: String, pending: String, budget: Int
  * and changed inputs never authorize skipping an owner or its recovery work.
  */
 pub checked_admission(root: String, owner: Owner): Option[Admission] ->
-    if {
+    when {
         true <- valid_declaration(owner);
         Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)));
         Some("pass") <- OwnerStorage.text(ledger, "outcome");
@@ -461,7 +461,7 @@ pub run_locked(root: String, owner: Owner): Decision ->
 current_recovery(root: String, owner: Owner, recovered: Decision): Decision ->
     if {
         not recovered.valid -> recovered;
-        true -> if {
+        true -> when {
             Ok(inputs) <- identity(root, owner);
             Ok(fingerprint) <- OwnerStorage.digest(inputs);
             Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)))
@@ -475,7 +475,7 @@ current_recovery(root: String, owner: Owner, recovered: Decision): Decision ->
     }.
 
 run_ready(root: String, owner: Owner): Decision ->
-    if {
+    when {
         Ok(inputs) <- identity(root, owner);
         Ok(fingerprint) <- OwnerStorage.digest(inputs);
         Ok(_directory) <-
@@ -491,12 +491,12 @@ run_ready(root: String, owner: Owner): Decision ->
     };
     case File.read_text(OwnerStorage.child(root, ledger_path(owner))) {
         Ok(source) ->
-            if {
+            when {
                 true <- source.byte_size() <= 16_777_216
             } else {
                 _ -> reject("owner ledger exceeds the 16 MiB budget")
             };
-            (if {
+            (when {
     Ok(ledger) <- Json.parse(source)
 } else {
     _ -> reject("owner ledger is corrupt")
@@ -539,7 +539,7 @@ recover_completed(root: String, owner: Owner, ledger: Json): Option[Decision] ->
                 true -> Some(reject("cannot inspect completed owner scratch"))
             };
         Ok(_size) ->
-            if {
+            when {
                 Some(fingerprint) <- OwnerStorage.text(ledger, "input_sha256");
                 true <- reusable(root, owner, ledger, fingerprint);
                 true <- OwnerStorage.clean_workspace(root, workspace(owner))
@@ -550,7 +550,7 @@ recover_completed(root: String, owner: Owner, ledger: Json): Option[Decision] ->
     }.
 
 recover_prepared(root: String, owner: Owner, ledger: Json): Decision ->
-    if {
+    when {
         Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
         Some(prior_owner) <- OwnerStorage.text(ledger, "owner");
         true <- prior_owner == owner.name;
@@ -585,7 +585,7 @@ recover_unsealed(root: String, owner: Owner): Option[Decision] ->
                 true -> Some(reject("cannot inspect interrupted owner native log"))
             };
         Ok(_size) ->
-            if {
+            when {
                 Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)));
                 Some("terlan.preparation-owner.v2") <- OwnerStorage.text(ledger, "schema");
                 Some(prior_owner) <- OwnerStorage.text(ledger, "owner");
@@ -649,7 +649,7 @@ state(owner: Owner, inputs: Json, fingerprint: String, outcome: String): Json ->
         .put("outputs", Json.array()).
 
 activity_environment(root: String, owner: Owner): Result[List[EnvironmentEntry], String] ->
-    if {
+    when {
         Ok(scope) <- OwnerNative.process_scope(staged_activity(root, owner))
     } else {
         Err(reason) -> Err(reason)
@@ -663,7 +663,7 @@ activity_environment(root: String, owner: Owner): Result[List[EnvironmentEntry],
 
 execute(root: String, owner: Owner, inputs: Json, fingerprint: String): Decision ->
     let work = workspace(owner);
-    if {
+    when {
         Ok(environment) <- activity_environment(root, owner);
         true <- OwnerStorage.clean_workspace(root, work);
         Ok(_created) <- Directory.create_all(OwnerStorage.child(root, work));
@@ -697,7 +697,7 @@ let result = Process.run(command);
 let activity = OwnerNative.read_snapshot(staged_activity(root, owner));
 let finished = finish(root, owner, inputs, fingerprint, result, activity);
 if {
-    finished.valid -> if {
+    finished.valid -> when {
         Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, ledger_path(owner)))
     } else {
         _ -> reject("prepared owner ledger cannot be read; scratch preserved")
@@ -760,7 +760,7 @@ finish(
                             .put("exit_status", Json.int(output.status)),
                     );
                 reject("owner subprocess failed or did not execute its declared test");
-                true -> if {
+                true -> when {
                     Ok(snapshot) <- activity;
                     Ok(native_inventory) <- OwnerNative.summary(activity);
                     Some("pass") <- OwnerStorage.text(native_inventory, "decision");

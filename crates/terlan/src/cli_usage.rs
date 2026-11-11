@@ -6,7 +6,7 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
     &[
         "terlc help [command]",
         "terlc init [project-name] [--profile default|web|static]",
-        "terlc check <file.terl|file.terli|dir>",
+        "terlc check <file.terl|file.terli|file.terls|dir>...",
         "terlc build [file.terl|file.terls|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]\nterlc build --print-toolchain-identity",
         "terlc run [project-dir|file.terl|file.terls] [--target terlan-vm]",
         "terlc run <artifact.wasm> [--export <name>] [--arg <type:value>] [--host-return <module.name=type:value>] [--expect <type:value>] [--repeat <count>] [--timeout-ms <ms>]",
@@ -31,7 +31,7 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc integration-test [project-dir] [--host <host>] [--port <port>] [--http-check METHOD:PATH:STATUS[:CONTAINS[:BODY]]]",
         "terlc static <emit|serve|check> <file.terl>",
         "terlc support bundle [project-dir|image.tvm] [--diagnostic <report.json>] [--out <bundle.json>]",
-        "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] [--name <function>]... [--coverage [--coverage-threshold <0..100>]] [--bench [--warmup <count>] [--samples <count>]]",
+        "terlc test [file.terl|dir]... [--target terlan-vm|js|wasm] [--name <function>]... [--coverage [--coverage-threshold <0..100>] [--coverage-source <file|dir>]...] [--bench [--warmup <count>] [--samples <count>]]",
         "terlc doc <file.terl|dir|std> [--format html|markdown|json] [--out-dir <dir>]",
         "terlc api <emit|check|import>",
         "terlc login --cloud <url> --user-id <id> --token-file <path> [--artifact-token-file <path>]",
@@ -86,7 +86,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         "bind" => println!(
             "terlc bind native --crate <crate-name> --out <dir>\nterlc bind js-dom --manifest <path> --out <dir>\nterlc bind typescript --input <file.d.ts> --namespace <module.prefix> --out <dir>\nterlc bind typescript --manifest <path> --out <dir>\nterlc bind cpp --manifest <path> --out <dir>\nterlc bind c --manifest <path> --out <dir>"
         ),
-        "check" => println!("terlc check <file.terl|file.terli|dir> [--interfaces-only] [--emit-phase-manifest <path>]"),
+        "check" => println!("terlc check <file.terl|file.terli|file.terls|dir>... [--interfaces-only] [--emit-phase-manifest <path>]"),
         "build" => println!(
             "terlc build [file.terl|dir] [--target terlan-vm|js|wasm.core] [--release] [--out-dir <dir>]\nterlc build --print-toolchain-identity"
         ),
@@ -131,7 +131,7 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         ),
         "emit-js" => println!("terlc emit-js <file.terl> [--out-dir <dir>] [--declarations]"),
         "test" => println!(
-            "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] [--name <test_function>]... [--coverage [--coverage-threshold <0..100>]] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
+            "terlc test [file.terl|dir] [--target terlan-vm|js|wasm] [--name <test_function>]... [--coverage [--coverage-threshold <0..100>] [--coverage-source <file|dir>]...] [--emit-test-manifest <path>] [--emit-test-result-manifest <path>]"
         ),
         "interface" => println!("terlc interface <file.terl|file.terli> [--out-dir <dir>]"),
         "doc" => println!(

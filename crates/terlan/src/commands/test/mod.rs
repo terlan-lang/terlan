@@ -1,4 +1,5 @@
 mod arguments;
+mod batch;
 mod coverage;
 mod discovery;
 mod execution;

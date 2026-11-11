@@ -145,7 +145,7 @@ pub policy(): SecurityHeaders -> SecurityHeaders { label: "source" }.
 pub (mut response: Response) security_headers(policy: SecurityHeaders): Response ->
     Response { label: response.label + ":" + policy.label }.
 pub (mut response: Response) with_security_headers(policy: SecurityHeaders): Response ->
-    response |> security_headers(policy).
+    response.security_headers(policy).
 "#;
     let caller = r#"
 module security_application_authority.

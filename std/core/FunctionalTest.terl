@@ -54,10 +54,7 @@ pub monad_flat_map_preserves_none(): Bool ->
 
 @test
 pub list_functor_map_transforms_values(): Bool ->
-    let mapped =
-        1
-        |> List(2)
-        |> Functor[List].map(increment);
+    let mapped = Functor[List].map(List(1, 2), increment);
     case mapped.first() {
         Some(value) -> assert_equal(2, value);
         None -> false
@@ -65,18 +62,12 @@ pub list_functor_map_transforms_values(): Bool ->
 
 @test
 pub list_applicative_apply_expands_function_values(): Bool ->
-    let applied =
-        increment
-        |> List(double)
-        |> Applicative[List].apply(List(1, 2));
+    let applied = Applicative[List].apply(List(increment, double), List(1, 2));
     assert_equal(4, applied.length()).
 
 @test
 pub list_monad_flat_map_flattens_callback_lists(): Bool ->
-    let flattened =
-        1
-        |> List(2)
-        |> Monad[List].flat_map(duplicate);
+    let flattened = Monad[List].flat_map(List(1, 2), duplicate);
     assert_equal(4, flattened.length()).
 
 @test

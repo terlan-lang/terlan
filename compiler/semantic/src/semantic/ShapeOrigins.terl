@@ -34,7 +34,7 @@ scan(
                 message = "Shape origin selection exhausted its checked-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(reference) <- references.at(index)
         } else {
             _ ->
@@ -45,7 +45,7 @@ scan(
                     ),
                 )
         };
-        (if {
+        (when {
     Ok(found) <- ImportOrigins.resolve_reference(selection, reference, "shape", used + 1, maximum)
 } else {
     Err(reason) -> Err(reason)
@@ -78,7 +78,7 @@ scan(selection, references, index + 1, count, output.push(value), found.used, ma
     }.
 
 pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
-    if {
+    when {
         Ok(payload) <- selection.record.get("payload");
         Ok(references) <- payload.get("expanded_from");
         Ok(count) <- references.length()

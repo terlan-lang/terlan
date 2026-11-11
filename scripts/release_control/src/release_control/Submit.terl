@@ -13,7 +13,7 @@ import std.time.Clock.
 import type std.core.Result.
 
 local_guard(revision: String, version: String): Result[Unit, String] ->
-    if {
+    when {
         Ok(source) <- File.read_text("Cargo.toml");
         true <- Tag.version_matches(source, version);
         Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
@@ -30,7 +30,7 @@ local_guard(revision: String, version: String): Result[Unit, String] ->
 annotate(revision: String, version: String): Result[String, String] ->
     let tag = String.append("v", version);
     let reference = String.append("refs/tags/", tag);
-    if {
+    when {
         Ok(existing) <- Support.run("git", ["tag", "--list", tag], 30_000);
         Ok(_tagged) <-
             if {
@@ -61,7 +61,7 @@ annotate(revision: String, version: String): Result[String, String] ->
     }.
 
 wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
-    if {
+    when {
         Ok(_guarded) <- Tag.guard(revision, version);
         Ok(publication) <- Publication.observe(revision, version)
     } else {
@@ -70,7 +70,7 @@ wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
     if {
         Support.text(publication, "html_url") != "" -> let _shown = println(String.append("[publish] ", Support.text(publication, "html_url")));
         Ok(Unit);
-        true -> if {
+        true -> when {
             Ok(runs) <-
                 Support.github(
                     [
@@ -117,7 +117,7 @@ wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
  * Local validation is owned by publish-local before this command can run.
  */
 pub run(revision: String, version: String, seconds: Int): Result[Unit, String] ->
-    if {
+    when {
         Ok(_local) <- local_guard(revision, version);
         Ok(_authenticated) <- Support.run("gh", ["auth", "status"], 30_000);
         Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60_000);

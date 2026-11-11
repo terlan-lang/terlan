@@ -33,7 +33,7 @@ fresh(candidate: String, graph: String): Json ->
         .put("native_link_launches", Json.int(0)).
 
 save(root: String, journal: String, state: Json): Bool ->
-    if {
+    when {
         Ok(digest) <- OwnerStorage.digest(state)
     } else {
         _ -> false
@@ -48,7 +48,7 @@ save(root: String, journal: String, state: Json): Bool ->
     ).
 
 number(state: Json, field: String): Result[Int, String] ->
-    if {
+    when {
         Ok(value) <- state.get(field);
         Ok(count) <- value.as_int();
         true <- count >= 0 and count <= 65_536
@@ -58,7 +58,7 @@ number(state: Json, field: String): Result[Int, String] ->
     Ok(count).
 
 load(root: String, journal: String, candidate: String, graph: String): Result[Json, String] ->
-    if {
+    when {
         Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, journal));
         Some("terlan.preparation-native-cycle.v1") <- OwnerStorage.text(document, "schema");
         Ok(state) <- document.get("body");
@@ -102,7 +102,7 @@ pub open(root: String, candidate: String, graph: String): Result[Json, String] -
                     true -> Err("cannot inspect native cycle checkpoint")
                 }
         };
-    if {
+    when {
         Ok(state) <- loaded;
         true <- OwnerStorage.discard_pending(root, journal);
         true <- save(root, journal, state)
@@ -119,7 +119,7 @@ pub active(state: Json): String ->
     }.
 
 activity_path(root: String, owner: Owner): String ->
-    if {
+    when {
         Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
         Some("failed") <- OwnerStorage.text(ledger, "outcome")
     } else {
@@ -141,7 +141,7 @@ signature(root: String, owner: Owner): Result[String, String] ->
  * Publish the active owner before launching it, covering the owner/graph commit gap.
  */
 pub before(root: String, journal: String, state: Json, owner: Owner): Bool ->
-    if {
+    when {
         Ok(digest) <- signature(root, owner)
     } else {
         _ -> false
@@ -155,7 +155,7 @@ pub before(root: String, journal: String, state: Json, owner: Owner): Bool ->
 claim(inputs: Json, index: Int, count: Int, claims: Json, owner: String): Result[Bool, String] ->
     if {
         index == count -> Ok(true);
-        true -> if {
+        true -> when {
             Ok(value) <- inputs.at(index);
             Ok(key) <- value.as_string();
             true <- key.byte_size() >= 76 and key.byte_size() <= 83
@@ -172,7 +172,7 @@ claim(inputs: Json, index: Int, count: Int, claims: Json, owner: String): Result
     }.
 
 merge(state: Json, owner: String, digest: String, report: Json): Result[Bool, String] ->
-    if {
+    when {
         Some("terlan.execution-inventory.v1") <- OwnerStorage.text(report, "schema");
         Some(decision) <- OwnerStorage.text(report, "decision");
         true <- decision == "pass" or decision == "failed" or decision == "interrupted";
@@ -196,7 +196,7 @@ merge(state: Json, owner: String, digest: String, report: Json): Result[Bool, St
 case consumed.get(identity) {
     Ok(_already_accounted) -> Ok(true);
     Err(_new) ->
-        if {
+        when {
             Ok(_claimed) <- claim(inputs, 0, count, claims, owner)
         } else {
             Err(reason) -> Err(reason)
@@ -253,7 +253,7 @@ pub recover(root: String, journal: String, state: Json, owner: Owner): Bool ->
     }.
 
 recover_retained(root: String, journal: String, state: Json, owner: Owner): Bool ->
-    if {
+    when {
         Some(before) <- OwnerStorage.text(state, "active_before");
         Ok(current) <- signature(root, owner)
     } else {
@@ -261,7 +261,7 @@ recover_retained(root: String, journal: String, state: Json, owner: Owner): Bool
     };
     if {
         before == current or current == "absent" -> clear(root, journal, state);
-        true -> if {
+        true -> when {
             Ok(ledger) <-
                 OwnerStorage.read_json(
                     OwnerStorage.child(root, PreparationOwner.ledger_path(owner)),
@@ -271,7 +271,7 @@ recover_retained(root: String, journal: String, state: Json, owner: Owner): Bool
         } else {
             _ -> clear(root, journal, state)
         };
-        (if {
+        (when {
     Ok(expected) <-
         ledger
             .get(

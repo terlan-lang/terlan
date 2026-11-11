@@ -114,8 +114,7 @@ pub(super) fn index_expression(expr: &SyntaxExprOutput, path: &str) {
     let is_call = matches!(
         expr.kind,
         SyntaxExprKind::Call | SyntaxExprKind::FunctionCall
-    ) || (expr.kind == SyntaxExprKind::BinaryOp
-        && matches!(expr.operator.as_deref(), Some("|>" | "<|")));
+    );
     if !is_call {
         return;
     }

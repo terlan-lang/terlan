@@ -47,7 +47,7 @@ peer(cases: String, digest: String): Json ->
 
 @test
 pub existing_output_is_preserved(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-existing-");
         Ok(_) <- File.write_text(String.append(directory, "/sentinel"), "preserve")
     } else {
@@ -57,7 +57,7 @@ pub existing_output_is_preserved(): Bool ->
 
 @test
 pub unknown_selector_creates_no_output(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-selector-")
     } else {
         _ -> false
@@ -66,7 +66,7 @@ pub unknown_selector_creates_no_output(): Bool ->
 
 @test
 pub missing_compiler_creates_no_output(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-compiler-")
     } else {
         _ -> false
@@ -125,7 +125,7 @@ pub test_evidence_rejects_empty_skipped_and_incomplete_results(): Bool ->
 
 @test
 pub unimplemented_milestone_cannot_pass(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-unimplemented-")
     } else {
         _ -> false
@@ -143,7 +143,7 @@ refused and recorded and expanded and cleaned).
 
 @test
 pub missing_or_malformed_peer_report_cannot_pass(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-report-")
     } else {
         _ -> false
@@ -178,7 +178,7 @@ pub wire_evidence_rejects_missing_and_unknown_cases(): Bool ->
 
 @test
 pub baseline_manifest_evidence_rejects_partial_and_malformed_sets(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-phases-")
     } else {
         _ -> false
@@ -198,7 +198,7 @@ empty and written and accepted and partial and poisoned and malformed and cleane
 
 @test
 pub property_inventory_rejects_empty_and_duplicate_registration(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-properties-")
     } else {
         _ -> false
@@ -220,7 +220,7 @@ created and empty_written and empty and duplicate_written and duplicate and actu
 
 @test
 pub baseline_preserves_timeout_diagnostic(): Bool ->
-    if {
+    when {
         Ok(directory) <- Directory.create_temporary("terlan-llm-native-timeout-")
     } else {
         _ -> false
@@ -252,7 +252,7 @@ pub snapshot_gate_rejects_empty_peer_and_stale_compiled_sources(): Bool ->
     let stale_peer = not SnapshotGate.admit_peer(peer, "changed", "catalog", "fixture");
     let _empty = peer.put("entity_count", Json.int(0));
     let empty_peer = not SnapshotGate.admit_peer(peer, "snapshot", "catalog", "fixture");
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-snapshot-gate-source-");
         Ok(_) <- Directory.create_all(root + "/compiler/semantic");
         Ok(_) <- File.write_text(root + "/compiler/semantic/source.terl", "initial")

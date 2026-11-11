@@ -873,7 +873,7 @@ hash_bad_rollback_archive(
     baseline: String,
     archive: String,
 ): Bool ->
-    if {
+    when {
         Ok(digest) <- Hash.sha256_file(archive);
         Ok(Unit) <-
             write_text(

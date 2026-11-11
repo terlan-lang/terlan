@@ -291,7 +291,7 @@ verify(root: String, version: String): DocumentResult ->
     }.
 
 candidate_string(candidate: Json, field: String): String ->
-    if {
+    when {
         Ok(value) <- candidate.get(field);
         Ok(text) <- value.as_string()
     } else {
@@ -306,7 +306,7 @@ seal_digest(candidate: Json): String ->
     }.
 
 artifact_paths(candidate: Json): List[String] ->
-    if {
+    when {
         Ok(rows) <- candidate.get("artifacts");
         Ok(values) <- Json.required_field_rows(rows, ["path"], [], [])
     } else {
@@ -386,7 +386,7 @@ paths_json(paths: List[String], output: Json): Json ->
     }.
 
 repository_contract(root: String): Bool ->
-    if {
+    when {
         Ok(makefile) <- File.read_text(child(root, "Makefile"));
         Ok(publisher) <- File.read_text(child(root, "scripts/publish_release_from_dist.sh"))
     } else {

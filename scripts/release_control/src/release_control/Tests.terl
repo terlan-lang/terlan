@@ -125,6 +125,10 @@ pub run(): Bool ->
         and Status.decision(success, failed) == "failed"
         and Status.decision(cancelled, success) == "failed"
         and Status.decision(success, success) == "ready"
+        and Status.publishable(Json.object().put("state", Json.string("ready")))
+        and Status.publishable(Json.object().put("state", Json.string("published")))
+        and not Status.publishable(Json.object().put("state", Json.string("waiting")))
+        and not Status.publishable(Json.object())
         and case Status.workflow(Json.array(), "candidate", "ci.yml") {
     Ok(value) -> Support.text(value, "state") == "missing";
     _ -> false

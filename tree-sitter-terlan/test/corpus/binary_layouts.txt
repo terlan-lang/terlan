@@ -133,7 +133,8 @@ pub decode_let(value: Dynamic): Int ->
     (expression
       (let_expression
         (let_binding
-          (identifier)
+          (let_binding_pattern
+            (identifier))
           (expression
             (expression
               (lambda_expression

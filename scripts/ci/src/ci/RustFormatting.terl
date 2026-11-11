@@ -7,7 +7,7 @@ import std.collections.List.
 import std.core.String.
 
 pub is_source(path: String): Bool ->
-    String.ends_with(path, ".rs").
+    String.ends_with(path, ".rs") and not String.ends_with(path, ".native_boundary.rs").
 
 pub changes_global_contract(path: String): Bool ->
     path == "rustfmt.toml" or path == ".rustfmt.toml" or path == "rust-toolchain.toml".

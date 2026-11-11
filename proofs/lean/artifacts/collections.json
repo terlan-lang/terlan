@@ -13,7 +13,7 @@
   ],
   "family": "collections",
   "manifest_fingerprints": {
-    "docs/compiler/type_spec/language_feature_coverage_matrix.json": "sha256:12275655dddcc1c9c855ac40c6ad36f79cf35f1ccc88322322c498184338994f"
+    "docs/compiler/type_spec/language_feature_coverage_matrix.json": "sha256:afaa82a1c963c36bc559f9639b7f41979c666457cb9222f7f74b2692c5308863"
   },
   "output_signature": {
     "exit_class": "success",

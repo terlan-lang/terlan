@@ -133,7 +133,7 @@ pub range_sugar_works_inside_guard(): Bool ->
 @test
 pub range_sugar_supports_direct_iterator_traversal(): Bool ->
     let iterator = iterator(1 .. 2);
-    if {
+    when {
         Some({value: first, next: rest}) <- next(iterator);
         Some({value: second, next: _done}) <- next(rest)
     } else {

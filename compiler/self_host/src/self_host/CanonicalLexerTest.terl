@@ -1,14 +1,15 @@
-/** Positive and negative canonical lexer contracts. */
+/**
+ * Positive and negative canonical lexer contracts.
+ */
 module self_host.CanonicalLexerTest.
 
-import std.core.String.
-
-import std.collections.List.
 import self_host.CanonicalLexer.
+import std.collections.List.
+import std.core.String.
 
 @pure
 positive_lexing(): Bool ->
-    let source = "module demo.Lex.\npub value(x: Int): Float -> x |> convert() + 1.5e2.\n";
+    let source = "module demo.Lex.\npub value(x: Int): Float -> x.convert() + 1.5e2.\n";
     let output = CanonicalLexer.lex(source);
     output.valid and List.length(output.tokens) > 10.
 
@@ -19,9 +20,7 @@ positive_comments_and_radices(): Bool ->
 
 @pure
 positive_numeric_separators(): Bool ->
-    let output = CanonicalLexer.lex(
-        "const VALUES: Int = 60_000 + 0xff_ff + 0b1010_0101 + 0o7_7.\n",
-    );
+    let output = CanonicalLexer.lex("const VALUES: Int = 60_000 + 0xff_ff + 0b1010_0101 + 0o7_7.\n");
     output.valid and List.length(output.errors) == 0.
 
 @pure
@@ -29,8 +28,8 @@ negative_lexing(): Bool ->
     not CanonicalLexer.lex("module bad.String.\nvalue(): String -> \"open.\n").valid
         and not CanonicalLexer.lex("module bad.Byte.\nvalue(): Int -> ~1.\n").valid.
 
-pub self_test(): Bool -> positive_lexing()
-    and positive_comments_and_radices()
-    and positive_numeric_separators()
-    and negative_lexing().
-
+pub self_test(): Bool ->
+    positive_lexing()
+        and positive_comments_and_radices()
+        and positive_numeric_separators()
+        and negative_lexing().

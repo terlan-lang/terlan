@@ -44,17 +44,11 @@ pub impl Enumerable[std.collections.List] for std.collections.List {
     each(collection: List[T], cb: (T) -> Unit): Unit ->
         List.each(collection, cb).
     map[U](collection: List[T], cb: (T) -> U): List[U] ->
-        collection
-        |> List.iterator()
-        |> map_iterator(cb).
+        map_iterator(collection.iterator(), cb).
     filter(collection: List[T], predicate: (T) -> Bool): List[T] ->
-        collection
-        |> List.iterator()
-        |> filter_iterator(predicate).
+        filter_iterator(collection.iterator(), predicate).
     fold[U](collection: List[T], initial: U, reducer: (U, T) -> U): U ->
-        collection
-        |> List.iterator()
-        |> fold_iterator(initial, reducer).
+        fold_iterator(collection.iterator(), initial, reducer).
 }.
 
 /**
@@ -68,23 +62,13 @@ pub impl Enumerable[std.collections.List] for std.collections.List {
  */
 pub impl Enumerable[std.collections.Set] for std.collections.Set {
     each(collection: Set[T], cb: (T) -> Unit): Unit ->
-        collection
-        |> Set.iterator()
-        |> Iterator.each(cb).
+        collection.iterator().each(cb).
     map[U](collection: Set[T], cb: (T) -> U): Set[U] ->
-        collection
-        |> Set.iterator()
-        |> map_iterator(cb)
-        |> Set.from_list().
+        Set.from_list(map_iterator(collection.iterator(), cb)).
     filter(collection: Set[T], predicate: (T) -> Bool): Set[T] ->
-        collection
-        |> Set.iterator()
-        |> filter_iterator(predicate)
-        |> Set.from_list().
+        Set.from_list(filter_iterator(collection.iterator(), predicate)).
     fold[U](collection: Set[T], initial: U, reducer: (U, T) -> U): U ->
-        collection
-        |> Set.iterator()
-        |> fold_iterator(initial, reducer).
+        fold_iterator(collection.iterator(), initial, reducer).
 }.
 
 /**

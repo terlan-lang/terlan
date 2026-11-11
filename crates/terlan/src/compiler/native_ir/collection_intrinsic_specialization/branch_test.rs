@@ -1,5 +1,5 @@
 use super::*;
-use crate::terlan_typeck::{CoreCaseClause, CoreIfClause};
+use crate::terlan_typeck::{CoreCaseClause, CoreIfClause, CoreMapPatternField, CoreMapTypeField};
 
 fn control(branches: Vec<CoreExpr>, conditional: bool) -> CoreExpr {
     if conditional {
@@ -29,6 +29,50 @@ fn control(branches: Vec<CoreExpr>, conditional: bool) -> CoreExpr {
 
 fn infer(expression: &mut CoreExpr) -> Option<CoreType> {
     specialize_expr(expression, &HashMap::new(), &HashMap::new(), "app.Branches")
+}
+
+#[test]
+fn normalized_option_tuple_binds_structural_payload_fields() {
+    let pattern = CorePattern::Tuple(vec![
+        CorePattern::Atom("some".into()),
+        CorePattern::Map(vec![
+            CoreMapPatternField {
+                key: "value".into(),
+                required: true,
+                value: CorePattern::Var("value".into()),
+            },
+            CoreMapPatternField {
+                key: "next".into(),
+                required: true,
+                value: CorePattern::Var("rest".into()),
+            },
+        ]),
+    ]);
+    let iterator = CoreType::Apply {
+        constructor: "std.collections.Iterator.Iterator".into(),
+        args: vec![CoreType::Int],
+    };
+    let option = CoreType::Apply {
+        constructor: "std.core.Option.Option".into(),
+        args: vec![CoreType::Map(vec![
+            CoreMapTypeField {
+                key: "value".into(),
+                operator: ":".into(),
+                value: CoreType::Int,
+            },
+            CoreMapTypeField {
+                key: "next".into(),
+                operator: ":".into(),
+                value: iterator.clone(),
+            },
+        ])],
+    };
+    let mut variables = HashMap::new();
+
+    bind_pattern(&pattern, &option, &mut variables);
+
+    assert_eq!(variables.get("value"), Some(&CoreType::Int));
+    assert_eq!(variables.get("rest"), Some(&iterator));
 }
 
 #[test]

@@ -1,21 +1,22 @@
-/** Positive and negative nested function-lowering contracts. */
+/**
+ * Positive and negative nested function-lowering contracts.
+ */
 module self_host.FunctionLoweringTest.
 
-
-import std.core.Result.{Result}.
-import self_host.ExpressionSyntax.{PipeExpression}.
+import self_host.ExpressionSyntax.{CallExpression}.
 import self_host.TypeSyntax.{AppliedType}.
-
+import self_host.{DeclarationLowering, FunctionLowering, Parser}.
 import std.collections.List.
-import self_host.DeclarationLowering.
-import self_host.FunctionLowering.
-import self_host.Parser.
+import std.core.Result.
 
 @pure
 positive_function(): Bool ->
-    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
-        "module demo.Function.\npub run(value: String): Result[String, Error] -> value |> normalize().\n",
-    ));
+    let lowered_module =
+        DeclarationLowering.lower(
+            Parser.parse_surface(
+                "module demo.Function.\npub run(value: String): Result[String, Error] -> value.normalize().\n",
+            ),
+        );
     case lowered_module.declarations {
         [declaration] ->
             let function = FunctionLowering.lower(declaration);
@@ -25,15 +26,18 @@ positive_function(): Bool ->
                 and List.length(function.typed_parameters) == 1
                 and function.return_type.syntax.class == AppliedType
                 and function.has_body
-                and function.body.syntax.class == PipeExpression;
+                and function.body.syntax.class == CallExpression;
         _ -> false
     }.
 
 @pure
 positive_native_signature(): Bool ->
-    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
-        "module demo.Function.\n@compiler.native\npub read(value: String)[Readable[String]]: Result[String, Error].\n",
-    ));
+    let lowered_module =
+        DeclarationLowering.lower(
+            Parser.parse_surface(
+                "module demo.Function.\n@compiler.native\npub read(value: String)[Readable[String]]: Result[String, Error].\n",
+            ),
+        );
     case lowered_module.declarations {
         [declaration] ->
             let function = FunctionLowering.lower(declaration);
@@ -47,12 +51,16 @@ positive_native_signature(): Bool ->
 
 @pure
 negative_function(): Bool ->
-    let lowered_module = DeclarationLowering.lower(Parser.parse_surface(
-        "module demo.Function.\npub run(value: String): Result[String, Error -> value.\n",
-    ));
+    let lowered_module =
+        DeclarationLowering.lower(
+            Parser.parse_surface(
+                "module demo.Function.\npub run(value: String): Result[String, Error -> value.\n",
+            ),
+        );
     case lowered_module.declarations {
         [declaration] -> not FunctionLowering.lower(declaration).valid;
         _ -> false
     }.
 
-pub self_test(): Bool -> positive_function() and positive_native_signature() and negative_function().
+pub self_test(): Bool ->
+    positive_function() and positive_native_signature() and negative_function().

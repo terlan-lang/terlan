@@ -384,7 +384,7 @@ map_failure(reason: Int): Result[Int, Failure] ->
     }.
 parse(values: List[Int]): Result[Parsed, Failure] ->
     case values {
-        [first, second] -> if {
+        [first, second] -> when {
             Ok(left) <- parse_one(first);
             Ok(right) <- parse_one(second)
         } else {
@@ -426,7 +426,7 @@ import type mapped_result_identity.Failure.{Failure}.
 import type std.core.Result.{Result}.
 make_config(): Result[Int, ConfigViolation] -> Ok(6).
 run(): Result[Int, Failure] ->
-    if {
+    when {
         Ok(config) <- case make_config() {
             Err(_) -> Err(Failure.CONFIG);
             Ok(value) -> Ok(value)

@@ -1251,10 +1251,10 @@ probe(): Int -> sql[Row] {select $$}$$} unexpected.
     (ERROR)))
 
 ==================
-sql-dollar-pipe
+sql-dollar-receiver
 ==================
 module contract.Cases.
-probe(): Int -> sql[Row] {select $$}$$} |> inspect().
+probe(): Int -> sql[Row] {select $$}$$}.inspect().
 ---
 
 (source_file
@@ -1266,16 +1266,14 @@ probe(): Int -> sql[Row] {select $$}$$} |> inspect().
     (type_expression
       (type_identifier))
     (expression
-      (binary_expression
+      (method_call_expression
         (expression
           (raw_macro_expression
             (identifier)
             (type_expression
               (type_identifier))))
-        (expression
-          (call_expression
-            (identifier)
-            (arguments)))))))
+        (field_identifier)
+        (arguments)))))
 
 ==================
 sql-quote-doubling

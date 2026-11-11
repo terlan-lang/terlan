@@ -20,7 +20,7 @@ directories(root: String, paths: List[String]): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            if {
+            when {
                 Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, path))
             } else {
                 _ -> fail("fixture directory creation")
@@ -32,7 +32,7 @@ copy_sources(root: String, origin: String, paths: List[String]): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            if {
+            when {
                 Ok(_copied) <- File.copy(OwnerStorage.child(origin, path), OwnerStorage.child(root, path))
             } else {
                 _ -> fail("fixture source copy")
@@ -41,7 +41,7 @@ copy_sources(root: String, origin: String, paths: List[String]): Bool ->
     }.
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         true <-
             directories(
                 root,
@@ -95,7 +95,7 @@ commands(root: String, context: Context, names: List[String], reused: Bool): Boo
     case names {
         [] -> true;
         [name | rest] ->
-            if {
+            when {
                 Ok(owner) <-
                     PrepareContracts.declare(
                         root,
@@ -108,7 +108,7 @@ commands(root: String, context: Context, names: List[String], reused: Bool): Boo
                 _ -> fail(String.append("declare ", name))
             };
             (let result = PreparationOwner.run_locked(root, owner);
-(if {
+(when {
     true <-
         if {
             result.valid and result.reused == reused -> true;
@@ -129,7 +129,7 @@ commands(root, context, rest, reused)))
     }.
 
 launches(root: String, expected: String): Bool ->
-    if {
+    when {
         Ok(actual) <- File.read_text(OwnerStorage.child(root, "target/contract-launches"))
     } else {
         _ -> fail("read contract launches")
@@ -140,7 +140,7 @@ launches(root: String, expected: String): Bool ->
     }.
 
 exercise(root: String): Bool ->
-    if {
+    when {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         true <- commands(root, context, PrepareContracts.commands(), false);
         true <- commands(root, context, PrepareContracts.commands(), true)
@@ -149,7 +149,7 @@ exercise(root: String): Bool ->
     };
     (let cold = "self-test\ntsan-self-test\nrelease-self-test\nmulticore-release-self-test\n";
 let expected = String.append(cold, "tsan-self-test\n");
-(if {
+(when {
     true <- launches(root, cold);
     Ok(owner) <-
         PrepareContracts.declare(
@@ -169,7 +169,7 @@ let expected = String.append(cold, "tsan-self-test\n");
     _ -> fail("repair contract commands")
 };
 (let failed = PreparationOwner.run_locked(root, owner);
-(if {
+(when {
     false <- failed.valid;
     true <- launches(root, String.append(expected, "tsan-self-test\n"));
     Ok(ledger) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
@@ -184,7 +184,7 @@ candidate_isolation(root, context)
     and launches(root, String.append(expected, "tsan-self-test\ntsan-self-test\n")))))).
 
 candidate_isolation(root: String, prior: Context): Bool ->
-    if {
+    when {
         Ok(old_owner) <-
             PrepareContracts.declare(
                 root,
@@ -222,7 +222,7 @@ candidate_isolation(root: String, prior: Context): Bool ->
     retained == old_bytes.
 
 pub self_test(origin: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-contract-owners-")
     } else {
         _ -> fail("temporary fixture directory")

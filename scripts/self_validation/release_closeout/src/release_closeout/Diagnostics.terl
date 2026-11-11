@@ -36,7 +36,7 @@ diagnostic_file(candidate: Candidate, value: DiagnosticCase): String ->
         value.id == "module_layout_error" -> let root = Support.child(candidate.workspace, "module-layout");
         let directory = Support.child(root, "app");
         let path = Support.child(directory, "Main.terl");
-        if {
+        when {
             Ok(Unit) <- std.io.Directory.create_all(directory);
             Ok(Unit) <- File.write_text(path, value.source)
         } else {
@@ -243,7 +243,7 @@ change_fields_valid(
 rows_valid(root: String, changes: Json, index: Int, count: Int, surfaces: List[String]): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(change) <- changes.at(index);
             Ok(fields) <-
                 change
@@ -295,13 +295,13 @@ baseline_version(root: String): String ->
     }.
 
 compatibility_document(root: String): {Bool, Int, String, String} ->
-    if {
+    when {
         Ok(source) <- File.read_text(release_document(root, "COMPATIBILITY_", ".json"));
         Ok(document) <- Json.parse(source)
     } else {
         _ -> {false, 0, "", ""}
     };
-    (if {
+    (when {
     Ok(header) <- document.required_fields(["schema", "baseline", "candidate"], [], ["changes"]);
     [schema, baseline, candidate] <- header.strings;
     [count] <- header.array_lengths;

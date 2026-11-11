@@ -70,7 +70,7 @@ tsv_field(
     path: String,
     index: Int,
 ): Option[String] ->
-    if {
+    when {
         Some(source) <- text(root_path, relative);
         [actual | rows] <- String.split(source, "\n")
     } else {
@@ -105,7 +105,7 @@ theorems_present(source: String, theorems: List[String]): Option[String] ->
 find_binding(records: Json, slice: String, index: Int, count: Int): Option[Json] ->
     if {
         index >= count -> None;
-        true -> if {
+        true -> when {
             Ok(record) <- records.at(index);
             Some(candidate) <- Support.json_string(record, "slice_id")
         } else {
@@ -118,7 +118,7 @@ find_binding(records: Json, slice: String, index: Int, count: Int): Option[Json]
     }.
 
 binding_is_current(index: Json, slice: String, family: String): Bool ->
-    if {
+    when {
         Some(records) <- Support.json_member(index, "records");
         Ok(count) <- records.length();
         Some(binding) <- find_binding(records, slice, 0, count);
@@ -166,7 +166,7 @@ exact_rust_test_output_holds(output: String): Bool ->
         and String.contains(normalized, "test result: ok. 1 passed; 0 failed; 0 ignored;").
 
 rust_runtime_owned_by_canonical_suite(values: List[String]): Bool ->
-    if {
+    when {
         ["cargo" | arguments] <- values;
         ["test" | _remaining] <- arguments
     } else {
@@ -181,7 +181,7 @@ rust_coverage_requested(): Bool ->
     }.
 
 request_rust_coverage(root_path: String, values: List[String]): KernelResult ->
-    if {
+    when {
         ["cargo" | tail] <- values;
         ["test" | arguments] <- tail
     } else {
@@ -213,7 +213,7 @@ selected_proof_paths(
 ): Option[List[String]] ->
     if {
         position >= count -> Some([]);
-        true -> if {
+        true -> when {
             Ok(family) <- families.at(position);
             Some(family_id) <- Support.json_string(family, "family");
             Some(proof) <- Support.json_string(family, "proof");
@@ -228,7 +228,7 @@ selected_proof_paths(
     }.
 
 family_evidence(root_path: String, family: Json, index: Json): KernelResult ->
-    if {
+    when {
         Some(slice) <- Support.json_string(family, "slice");
         Some(family_id) <- Support.json_string(family, "family");
         Some(proof) <- Support.json_string(family, "proof");
@@ -349,7 +349,7 @@ check_families(
 family_exists(families: Json, expected: String, position: Int, count: Int): Bool ->
     if {
         position >= count -> false;
-        true -> if {
+        true -> when {
             Ok(family) <- families.at(position);
             Some(value) <- Support.json_string(family, "family")
         } else {
@@ -365,7 +365,7 @@ proof_program(root_path: String): String ->
     }.
 
 run_check(root_path: String, selected: String, completed_only: Bool): Bool ->
-    if {
+    when {
         Some(config) <- Support.load_json(root_path, "proofs/lean/semantic-kernels.json");
         Some(schema) <- Support.json_string(config, "schema");
         Some(families) <- Support.json_member(config, "families");
@@ -430,7 +430,7 @@ run_check(root_path: String, selected: String, completed_only: Bool): Bool ->
     }.
 
 self_test(root_path: String): Bool ->
-    if {
+    when {
         Some(config) <- Support.load_json(root_path, "proofs/lean/semantic-kernels.json");
         Some(families) <- Support.json_member(config, "families");
         Ok(count) <- families.length()

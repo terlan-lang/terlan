@@ -49,13 +49,14 @@ pub(crate) fn run(args: &[String]) -> ExitCode {
         return ExitCode::from(2);
     }
 
+    let mut outcome = ExitCode::SUCCESS;
     for path in paths {
         let result = format_path(path, mode);
         if result != ExitCode::SUCCESS {
-            return result;
+            outcome = result;
         }
     }
-    ExitCode::SUCCESS
+    outcome
 }
 
 /// Formats one command input while the caller retains ownership of a shared

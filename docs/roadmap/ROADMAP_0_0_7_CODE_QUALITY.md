@@ -811,10 +811,9 @@ and module-size limits are release blockers. Public `panic!`, `unwrap`, and
 explicit owners.
 
 The umbrella runs `dormant-runtime-code-check`, `shared-helper-check`,
-`rust-file-headroom-check`,
-`terlan-lint-style-profile-check`, and
-`terlan-lint-pipe-canonicalization-check` alongside the safe Rust and structural
-gates. The report is evidence, not a replacement for any executable subgate.
+`rust-file-headroom-check`, and `terlan-lint-style-profile-check` alongside the
+safe Rust and structural gates. The report is evidence, not a replacement for
+any executable subgate.
 
 ## Freeze Exit
 

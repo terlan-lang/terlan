@@ -20,7 +20,7 @@ struct Context {
 }.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -29,7 +29,7 @@ text(value: Json, key: String): String ->
     result.
 
 pub position(origin: Json, value: Json): Json ->
-    if {
+    when {
         Ok(span) <- value.get("span");
         {Ok(start), Ok(end)} <- {span.get("start"), span.get("end")}
     } else {
@@ -51,7 +51,7 @@ pattern_fields(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(field) <- rows.at(index);
             Ok(value) <- field.get("value")
         } else {
@@ -73,7 +73,7 @@ patterns(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(value) <- rows.at(index)
         } else {
             _ -> false
@@ -113,7 +113,7 @@ pub entity(
         .put("expanded_from", Json.array()).
 
 pattern(mut output: Json, context: Context, origin: Json, path: String, value: Json): Bool ->
-    if {
+    when {
         Ok(children) <- value.get("children");
         Ok(child_count) <- children.length();
         Ok(fields) <- value.get("fields");
@@ -122,7 +122,7 @@ pattern(mut output: Json, context: Context, origin: Json, path: String, value: J
         _ -> false
     };
     (let kind = text(value, "kind");
-(if {
+(when {
     true <- kind != ""
 } else {
     _ -> false
@@ -146,7 +146,7 @@ walk_array(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(value) <- rows.at(index)
         } else {
             _ -> false
@@ -166,7 +166,7 @@ walk_object(
     case keys {
         [] -> true;
         [key | rest] ->
-            if {
+            when {
                 Ok(field) <- value.get(key)
             } else {
                 _ -> false
@@ -197,7 +197,7 @@ walk(mut output: Json, context: Context, origin: Json, path: String, value: Json
 materialize(mut output: Json, context: Context, rows: Json, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(origin) <- row.get("origin");
             Ok(value) <- row.get("value");
@@ -246,7 +246,7 @@ collect_declaration(
                 .put("path", Json.string(text(artifact, "source_name")))
                 .put("start_byte", Json.int(0))
                 .put("end_byte", Json.int(0));
-        if {
+        when {
             true <- walk(raw, context, position(origin, row), "", payload);
             Ok(count) <- raw.length()
         } else {
@@ -254,7 +254,7 @@ collect_declaration(
         };
         if {
             count == 0 -> true;
-            true -> if {
+            true -> when {
                 Ok(owner) <- DeclarationEntities.identity(artifact, module_name, payload)
             } else {
                 _ -> false
@@ -286,7 +286,7 @@ declarations(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -302,7 +302,7 @@ visited
  * retain the nearest compiler span; no token precision or coverage is inferred.
  */
 pub index(store: String, snapshot: String): Result[Json, Failure] ->
-    if {
+    when {
         Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot)
     } else {
         Err(reason) -> Err(reason)
@@ -313,7 +313,7 @@ pub index(store: String, snapshot: String): Result[Json, Failure] ->
  * Projects one already admitted compiler unit without rereading the store.
  */
 pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
-    if {
+    when {
         true <- text(artifact, "status") == "checked"
     } else {
         _ ->
@@ -324,7 +324,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
                 ),
             )
     };
-    (if {
+    (when {
     Ok(core) <- artifact.get("core");
     Ok(rows) <- artifact.get("source_declarations");
     Ok(count) <- rows.length()
@@ -338,7 +338,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
         )
 };
 (let output = Json.array();
-(if {
+(when {
     true <-
         declarations(
             output,

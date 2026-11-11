@@ -67,7 +67,7 @@ save(path: String, value: Json): Bool ->
     }.
 
 load(path: String): Option[Json] ->
-    if {
+    when {
         Ok(text) <- File.read_text(path);
         Ok(value) <- Json.parse(text)
     } else {
@@ -76,7 +76,7 @@ load(path: String): Option[Json] ->
     Some(value).
 
 own_output(path: String): Bool ->
-    if {
+    when {
         Ok(empty) <- Directory.create_temporary("terlan-llm-native-gate-")
     } else {
         _ -> false
@@ -110,7 +110,7 @@ wire_completion(output: String, expected_ids: List[String]): Bool ->
     }.
 
 schema_case(root: String, output: String): Bool ->
-    if {
+    when {
         Some(python) <- Environment.get("TERLAN_LLM_NATIVE_PEER_PYTHON");
         Some(inventory) <- load(String.append(root, "/tests/fixtures/llm_native/contracts/cases.json"));
         Ok(cases) <- inventory.get("cases");
@@ -225,7 +225,7 @@ artifact_rows(output: String, paths: List[String], mut rows: Json): Bool ->
             let path = String.concat([output, "/", name]);
             if {
                 not File.exists(path) -> artifact_rows(output, rest, rows);
-                true -> if {
+                true -> when {
                     Ok(digest) <- Hash.sha256_file(path)
                 } else {
                     _ -> false
@@ -239,7 +239,7 @@ artifact_rows(output: String, paths: List[String], mut rows: Json): Bool ->
  */
 pub run(compiler: String, selector: String, output: String): Bool ->
     let root = Environment.current_directory();
-    if {
+    when {
         true <- Evidence.contains(selectors(), selector);
         Ok(true) <- File.is_executable(compiler);
         true <- not File.exists(output);

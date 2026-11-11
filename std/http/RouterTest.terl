@@ -1,6 +1,7 @@
 module std.http.RouterTest.
 
-import std.http.{Response, Router, Sse, WebSocket}.
+import std.http.Router.{run_request_pipeline, run_response_pipeline}.
+import std.http.{Request, Response, Router, Sse, WebSocket}.
 
 import type std.http.Error.HttpError.
 import type std.http.Router.{LifecycleDecision, LifecycleEvent, MiddlewareResult}.
@@ -20,12 +21,31 @@ pub require_user(_request: Request): MiddlewareResult -> Atom["continue"].
 pub add_response_context(_request: Request, response: Response): Response ->
     response.
 
+pub stop_request(_request: Request): MiddlewareResult ->
+    {Atom["respond"], Response.text("stopped")}.
+
+pub should_not_run(_request: Request): MiddlewareResult ->
+    {Atom["respond"], Response.text("late")}.
+
+pub inner_response(_request: Request, response: Response): Response ->
+    if {
+        response == Response.text("start") -> Response.text("middle");
+        true -> Response.text("wrong")
+    }.
+
+pub outer_response(_request: Request, response: Response): Response ->
+    if {
+        response == Response.text("middle") -> Response.text("done");
+        true -> Response.text("wrong")
+    }.
+
+@compiler.native {std.test.fixture.http_request}
+request_fixture(cookie_header: String): Request.
+
 pub lifecycle_policy(_event: LifecycleEvent): LifecycleDecision -> Atom["lifecycle_allow"].
 
 pub users(router: Router): Router ->
-    router
-    |> Router.use(require_user)
-    |> Router.get("/:id", home).
+    router.use(require_user).get("/:id", home).
 
 pub sample_router(): Router ->
     let router = Router.get(Router.new(), "/", home);
@@ -42,3 +62,18 @@ pub sample_router(): Router ->
 @test
 pub router_builder_records_route_group_fallback_and_error_steps(): Bool ->
     sample_router() != Router.new().
+
+@test
+pub request_pipeline_continues_and_short_circuits_in_order(): Bool ->
+    let request = request_fixture("");
+    let continued = run_request_pipeline([require_user, require_user], request);
+    let stopped = run_request_pipeline([require_user, stop_request, should_not_run], request);
+    continued == Atom["continue"]
+        and case stopped {
+    {Atom["respond"], response} -> response == Response.text("stopped");
+    _ -> false
+}.
+
+@test
+pub response_pipeline_unwinds_in_reverse_order(): Bool ->
+    run_response_pipeline([outer_response, inner_response], request_fixture(""), Response.text("start")) == Response.text("done").

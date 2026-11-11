@@ -50,7 +50,7 @@ decimal(value: String): Option[Int] ->
 metric(line: String, expected: String): Option[MetricObservation] ->
     case String.split(line, "\t") {
         [name, used, limit] where name == expected ->
-            if {
+            when {
                 Some(used_value) <- decimal(used);
                 Some(limit_value) <- decimal(limit)
             } else {
@@ -79,37 +79,37 @@ meaningful(lines: List[String]): List[String] ->
 pub decode(source: String): Option[AnalysisResourceObservation] ->
     case meaningful(String.split(source, "\n")) {
         ["schema\tterlan.self-host.analysis-resources-observation/v1", modules_line, tokens_line, syntax_nodes_line, type_constraints_line, core_instructions_line, actor_continuations_line, native_bytes_line] ->
-            if {
+            when {
                 Some(modules) <- metric(modules_line, "modules")
             } else {
                 None -> None
             };
-            (if {
+            (when {
     Some(tokens) <- metric(tokens_line, "tokens")
 } else {
     None -> None
 };
-(if {
+(when {
     Some(syntax_nodes) <- metric(syntax_nodes_line, "syntax-nodes")
 } else {
     None -> None
 };
-(if {
+(when {
     Some(type_constraints) <- metric(type_constraints_line, "type-constraints")
 } else {
     None -> None
 };
-(if {
+(when {
     Some(core_instructions) <- metric(core_instructions_line, "core-instructions")
 } else {
     None -> None
 };
-(if {
+(when {
     Some(actor_continuations) <- metric(actor_continuations_line, "actor-continuations")
 } else {
     None -> None
 };
-(if {
+(when {
     Some(native_bytes) <- metric(native_bytes_line, "native-bytes")
 } else {
     None -> None

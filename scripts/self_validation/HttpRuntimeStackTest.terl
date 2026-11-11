@@ -26,7 +26,7 @@ pub repository_boundary_holds(root: String): Bool ->
     }.
 
 dependencies_hold(manifest: String): Bool ->
-    if {
+    when {
         Ok(document) <- Toml.parse(manifest);
         Ok(dependencies) <- document.get("dependencies");
         Ok(_) <- dependencies.get("http");
@@ -121,8 +121,8 @@ marker_paths(root: String): List[String] ->
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/watch.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
-        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
-        String.append(root, "/crates/terlan/src/commands/serve/hyper_server.rs"),
+        String.append(root, "/std/http/native/src/websocket/upgrade.rs"),
+        String.append(root, "/crates/terlan/src/commands/serve/channel_transport.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/hyper_server/tls_io.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/tls/acme_runtime.rs"),
         String.append(root, "/crates/terlan/src/commands/serve/tls/acme_runtime.rs"),
@@ -134,7 +134,7 @@ required_markers(): List[String] ->
         "hyper::server::conn::http1",
         "serve_protocol_tasks",
         "VmReadyStream",
-        "terlan_http_native::http1::serve_connection(io, service)",
+        "terlan_http_native::server_connection::serve_http1(",
         "type HyperVmIo = terlan_http_native::plain_io::PlainIo<VmReadyStream>",
         "hyper_server::serve(listener, web_root, max_body_bytes)",
         "pub fn content_type_for_path",
@@ -146,7 +146,7 @@ required_markers(): List[String] ->
         "fn watch_web_package_for_reload",
         "fn should_reload_for_event",
         "use terlan_http_native::response_body::ResponseBody",
-        "terlan_http_native::upgrade_io::UpgradeIo<",
+        "UpgradeIo::<I>::from_upgraded",
         "connection::serve(",
         "terlan_http_native::tls::TlsIo<VmReadyStream>",
         "tls_runtime::load(",

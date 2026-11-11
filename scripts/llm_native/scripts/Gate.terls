@@ -5,7 +5,7 @@ import std.core.Unit.
 import std.system.Arguments.{count, get}.
 
 entry(): Bool ->
-    if {
+    when {
         true <- count() == 3;
         Some(compiler) <- get(0);
         Some(selector) <- get(1);

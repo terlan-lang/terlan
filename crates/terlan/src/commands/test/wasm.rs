@@ -24,7 +24,8 @@ pub(super) fn run_wasm_tests(args: &TestArgs, state: CliState) -> ExitCode {
         );
         return ExitCode::from(1);
     }
-    let (_, state) = match prepare_test_project_context(path, state, TargetProfile::WasmCore) {
+    let (_, state) = match prepare_test_project_context(path, state, TargetProfile::WasmCore, false)
+    {
         Ok(result) => result,
         Err(message) => {
             eprintln!("{message}");

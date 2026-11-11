@@ -2,7 +2,6 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use super::makefile_list::parse_make_list_variable_values;
 use crate::terlan_quality::{render_failure, QualityResult};
 
 const PROFILE_PATH: &str = "docs/compiler/TERLAN_LINT_STYLE_PROFILE.md";
@@ -44,29 +43,16 @@ const REQUIRED_LINEAGE_MARKERS: &[&str] = &[
 const REQUIRED_RULE_IDS: &[&str] = &[
     "TL0001", "TL0002", "TL0003", "TL0004", "TL0005", "TL0006", "TL0007", "TL0008", "TL0009",
     "TL0010", "TL0101", "TL0201", "TL0301", "TL0401", "TL0501", "TL0601", "TL0701", "TL0702",
-    "TL0801", "TL0804", "TL0805", "TL0901", "TL0902", "TL0903", "TL1001", "TL1002", "TL1003",
-];
-
-const REQUIRED_PIPE_REJECTIONS: &[&str] = &[
-    "named-argument ambiguity",
-    "default-argument ambiguity",
-    "function-value calls",
-    "nested argument contexts",
-    "side-effect-sensitive duplicated expressions",
-    "target-specific intrinsic calls",
+    "TL0801", "TL0804", "TL0805", "TL0901", "TL0902", "TL0903", "TL1001", "TL1003",
 ];
 
 const REQUIRED_FORMAT_BOUNDARY_TERMS: &[&str] = &[
     "semicolon-separated expression chains",
-    "pipe canonicalization belongs to lint",
     "fmt may split semicolon chains",
 ];
 const REQUIRED_FIX_MARKERS: &[&str] = &["fix-safe", "fix-unsafe", "fix-unavailable"];
 
 const PROHIBITED_PLACEHOLDERS: &[&str] = &["TODO", "TBD", "placeholder", "stub"];
-
-const CHECK_PIPE_GATE: &str = "terlan-lint-pipe-canonicalization-check";
-const CHECK_STDLIB_GATE: &str = "stdlib-check";
 
 /// Summary produced by the Terlan lint style-profile gate.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,7 +68,7 @@ pub struct TerlanLintStyleProfileSummary {
 ///
 /// Output:
 /// - Success when the lint profile names required rule families, commands,
-///   severities, diagnostics, pipe-fix guardrails, and Make gates.
+///   severities, diagnostics, fix guardrails, and Make gates.
 /// - Stable diagnostics when the profile drifts or becomes non-executable.
 ///
 /// Transformation:
@@ -122,12 +108,6 @@ pub fn run_terlan_lint_style_profile(root: &Path) -> QualityResult<TerlanLintSty
         &profile,
         "rule id",
         REQUIRED_RULE_IDS,
-    ));
-    diagnostics.extend(validate_required_markers(
-        PROFILE_PATH,
-        &profile,
-        "pipe rejection",
-        REQUIRED_PIPE_REJECTIONS,
     ));
     diagnostics.extend(validate_required_markers(
         PROFILE_PATH,
@@ -227,15 +207,11 @@ fn validate_no_placeholder_terms(profile: &str) -> Vec<String> {
 
 fn validate_make_hooks(makefile: &str) -> Vec<String> {
     let mut diagnostics = Vec::new();
-    for target in [
-        "terlan-lint-style-profile-check",
-        "terlan-lint-pipe-canonicalization-check",
-    ] {
+    for target in ["terlan-lint-style-profile-check"] {
         if !has_make_target(makefile, target) {
             diagnostics.push(format!("Makefile: missing target `{target}`"));
         }
     }
-    diagnostics.extend(validate_make_check_order(makefile));
     diagnostics
 }
 
@@ -244,30 +220,6 @@ fn has_make_target(makefile: &str, target: &str) -> bool {
     makefile
         .lines()
         .any(|line| line.trim_end().starts_with(&target_prefix))
-}
-
-fn validate_make_check_order(makefile: &str) -> Vec<String> {
-    let check_gates = parse_make_list_variable_values(makefile, "CHECK_GATES");
-    let Some(pipe_index) = check_gates.iter().position(|gate| gate == CHECK_PIPE_GATE) else {
-        return vec![format!(
-            "Makefile: `CHECK_GATES` must include `{CHECK_PIPE_GATE}`"
-        )];
-    };
-    let Some(stdlib_index) = check_gates
-        .iter()
-        .position(|gate| gate == CHECK_STDLIB_GATE)
-    else {
-        return vec![format!(
-            "Makefile: `CHECK_GATES` must include `{CHECK_STDLIB_GATE}`"
-        )];
-    };
-    if pipe_index > stdlib_index {
-        vec![format!(
-            "Makefile: `CHECK_GATES` must run `{CHECK_PIPE_GATE}` before `{CHECK_STDLIB_GATE}`"
-        )]
-    } else {
-        Vec::new()
-    }
 }
 
 #[cfg(test)]

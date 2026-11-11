@@ -1,25 +1,95 @@
-/** Source-level pattern binding type propagation regressions. */
+/**
+ * Source-level pattern binding type propagation regressions.
+ */
 module self_host.ProjectedPatternBindingTypeMergeTest.
 
-import self_host.CanonicalLexer.
-import self_host.ProjectedFrontend.
-import self_host.ProjectedSemanticAnalysis.
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode, ProjectedExpressionResult}.
+import self_host.ProjectedPatternAuthority.{PatternAuthorityCatalog, PatternConstructorContract}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
+import self_host.Syntax.SyntaxSpan.
+import self_host.{CanonicalLexer, ProjectedFrontend, ProjectedPatternBindingTypeMerge, ProjectedSemanticAnalysis}.
 import std.collections.List.
-import std.core.String.
+import std.core.Option.{None, Option, Some}.
+import std.core.{Int, String}.
 
 @test
 pub list_head_and_tail_bindings_retain_subject_types(): Bool ->
-    let source = String.concat([
-        "module demo.PatternBinding.\n",
-        "pub select(values: List[Int]): List[Int] -> case values {\n",
-        "    [] -> values;\n",
-        "    [value | rest] -> if { value > 0 -> rest; true -> values }\n",
-        "}.\n",
-    ]);
+    let source =
+        String.concat(
+            [
+                "module demo.PatternBinding.\n",
+                "pub select(values: List[Int]): List[Int] -> case values {\n",
+                "    [] -> values;\n",
+                "    [value | rest] -> if { value > 0 -> rest; true -> values }\n",
+                "}.\n",
+            ],
+        );
     let lexed = CanonicalLexer.lex(source);
     ProjectedSemanticAnalysis.analyze(
-        ProjectedFrontend.compile(source, lexed.tokens),
-        List.new[String](),
-    ).expression_typecheck.valid.
+    ProjectedFrontend.compile(source, lexed.tokens),
+    List.new[String](),
+).expression_typecheck.valid.
 
-pub self_test(): Bool -> list_head_and_tail_bindings_retain_subject_types().
+@pure
+node(
+    kind: String,
+    text: String,
+    start: Int,
+    children: List[ProjectedExpressionNode],
+): ProjectedExpressionNode ->
+    ProjectedExpressionNode(kind, text, start, start + 1, children).
+
+@test
+pub constructor_payload_bindings_receive_instantiated_types(): Bool ->
+    let first = node("binding-pattern", "first", 25, List.new[ProjectedExpressionNode]());
+    let second = node("binding-pattern", "second", 32, List.new[ProjectedExpressionNode]());
+    let pattern = node("constructor-pattern", "Pair", 20, [first, second]);
+    let clause = node("clause", "->", 20, [pattern]);
+    let subject = node("identifier", "pair", 10, List.new[ProjectedExpressionNode]());
+    let expression = node("case", "case", 5, [subject, clause]);
+    let bodies =
+        ProjectedBodies(
+            true,
+            [
+                ProjectedBody(
+                    "select/1",
+                    SyntaxSpan(0, 40),
+                    ProjectedExpressionResult(true, Some(expression), [], ""),
+                ),
+            ],
+        );
+    let resolution =
+        TypeConstraintResolution(
+            [
+                InferredTypeFact(1, Some("Pair[Int, String]"), 10),
+                InferredTypeFact(4, None, 25),
+                InferredTypeFact(5, None, 32),
+            ],
+            [TypeConstraintDiagnostic("unknown-type-constraint", "deferred", 32)],
+        );
+    let catalog =
+        PatternAuthorityCatalog(
+            [
+                PatternConstructorContract("Other", 0),
+                PatternConstructorContract(
+                    "Pair",
+                    2,
+                    ["Left", "Right"],
+                    [Some("Left"), Some("Right")],
+                ),
+            ],
+            [],
+        );
+    let merged = ProjectedPatternBindingTypeMerge.merge_with_catalog(bodies, resolution, catalog);
+    case {merged.facts, merged.diagnostics} {
+        {[subject_fact, first_fact, second_fact], []} ->
+            subject_fact.type_name == Some("Pair[Int, String]")
+                and first_fact.type_name == Some("Int")
+                and second_fact.type_name == Some("String");
+        _ -> false
+    }.
+
+pub self_test(): Bool ->
+    list_head_and_tail_bindings_retain_subject_types()
+        and constructor_payload_bindings_receive_instantiated_types().

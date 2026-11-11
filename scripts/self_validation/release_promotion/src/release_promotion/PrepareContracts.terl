@@ -35,7 +35,7 @@ pub declare(
     command: String,
 ): Result[Owner, String] ->
     let expected = marker(command);
-    if {
+    when {
         true <-
             expected != ""
                 and PreparationContext.tool_path(vm)
@@ -65,7 +65,7 @@ Ok(
 )).
 
 pub prepare(root: String, vm: String, image: String, command: String): Result[Decision, String] ->
-    if {
+    when {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(owner) <- declare(root, vm, image, context, command)
     } else {
@@ -74,7 +74,7 @@ pub prepare(root: String, vm: String, image: String, command: String): Result[De
     Ok(PreparationOwner.run_locked(root, owner)).
 
 pub run_locked(root: String, vm: String, image: String): Bool ->
-    if {
+    when {
         Some(command) <- Arguments.get(3)
     } else {
         _ ->

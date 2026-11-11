@@ -76,7 +76,7 @@ pub let_value(value: Dynamic): Dynamic ->
     doubled.
 
 pub refutable(value: Dynamic): Dynamic ->
-    if {
+    when {
         Some(inner) <- value
     } else {
         None -> 0

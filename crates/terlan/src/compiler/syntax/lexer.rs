@@ -630,7 +630,6 @@ fn match_two_char_token(chars: &[char], i: usize) -> Option<(TokenKind, String, 
         ('<', '=') => Some((TokenKind::LtEq, "<=".to_string(), i + 2)),
         ('>', '=') => Some((TokenKind::GtEq, ">=".to_string(), i + 2)),
         ('>', '>') => Some((TokenKind::ShiftRight, ">>".to_string(), i + 2)),
-        ('|', '>') => Some((TokenKind::PipeForward, "|>".to_string(), i + 2)),
         ('=', _) => Some((TokenKind::Equals, "=".to_string(), i + 1)),
         _ => None,
     }

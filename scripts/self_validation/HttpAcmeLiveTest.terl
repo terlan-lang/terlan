@@ -84,7 +84,7 @@ path(root: String, suffix: String): String ->
 
 write_package(root: String, domain: String, email: String): Bool ->
     let web = path(root, "/_build/web");
-    if {
+    when {
         Ok(_) <- Directory.create_all(web);
         Ok(_) <-
             File.write_text(

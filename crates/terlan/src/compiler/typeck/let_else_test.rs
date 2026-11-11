@@ -17,9 +17,25 @@ fn result_source(body: &str) -> String {
 }
 
 #[test]
+fn irrefutable_product_let_destructuring_typechecks() {
+    let source = "module product_let_typecheck.\n\
+                  pub add(pair: {Int, Int}): Int ->\n\
+                      let {left, right} = pair;\n\
+                      left + right.\n";
+    let diagnostics = check_syntax_output(source);
+
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !matches!(diagnostic.severity, DiagSeverity::Error)),
+        "diagnostics: {diagnostics:?}"
+    );
+}
+
+#[test]
 fn grouped_let_else_typechecks_success_and_fallback_paths() {
     let source = result_source(
-        "if {\n\
+        "when {\n\
              Ok(left) <- first;\n\
              Ok(right) <- second\n\
          } else {\n\
@@ -40,7 +56,7 @@ fn grouped_let_else_typechecks_success_and_fallback_paths() {
 #[test]
 fn grouped_let_else_does_not_expose_success_bindings_to_fallback() {
     let source = result_source(
-        "if {\n\
+        "when {\n\
              Ok(left) <- first;\n\
              Ok(right) <- second\n\
          } else {\n\
@@ -68,7 +84,7 @@ fn grouped_let_else_boolean_literal_pattern_is_not_a_success_binding() {
                   pub type Err[E] = {Atom[\"error\"], reason: E}.\n\
                   pub type Result[T, E] = Ok[T] | Err[E].\n\
                   pub rejects_false(input: Result[Bool, String]): Bool ->\n\
-                      if {\n\
+                      when {\n\
                           Ok(false) <- input\n\
                       } else {\n\
                           _ -> false\n\
@@ -87,7 +103,7 @@ fn grouped_let_else_boolean_literal_pattern_is_not_a_success_binding() {
 #[test]
 fn grouped_let_else_lowers_left_to_right_to_nested_cases() {
     let source = result_source(
-        "if {\n\
+        "when {\n\
              Ok(left) <- first;\n\
              Ok(right) <- second\n\
          } else {\n\
@@ -127,7 +143,7 @@ fn grouped_let_else_lowers_left_to_right_to_nested_cases() {
 #[test]
 fn guarded_fallback_is_not_treated_as_exhaustive() {
     let source = result_source(
-        "if {\n\
+        "when {\n\
              Ok(left) <- first\n\
          } else {\n\
              Err(reason) where reason == \"retry\" -> Err(reason)\n\
@@ -152,7 +168,7 @@ fn guarded_shape_grouped_let_typechecks_and_lowers_success_guards() {
     let source = "module guarded_shape_grouped_let.\n\
                   shape Positive(value) = value where value > 0.\n\
                   pub add(left: Int, right: Int): Int ->\n\
-                      if {\n\
+                      when {\n\
                           Positive(first) <- left;\n\
                           Positive(second) <- right\n\
                       } else {\n\
@@ -287,7 +303,7 @@ fn guarded_shape_grouped_let_keeps_fallback_outside_success_scope() {
     let source = "module guarded_shape_grouped_let_scope.\n\
                   shape Positive(value) = value where value > 0.\n\
                   pub read(input: Int): Int ->\n\
-                      if {\n\
+                      when {\n\
                           Positive(value) <- input\n\
                       } else {\n\
                           _ -> value\n\

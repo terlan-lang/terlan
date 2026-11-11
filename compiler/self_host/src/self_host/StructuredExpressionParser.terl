@@ -563,10 +563,16 @@ parse_if_block(
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     let slice = group(opening, rest);
-    let refutable = split(slice.inner, "<-");
-    if {
-        refutable.found -> parse_refutable_group(keyword, opening, rest);
-        true -> finish_if_block(keyword, values, slice)
+    finish_if_block(keyword, values, slice).
+
+@pure
+parse_when(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    case values {
+        [opening | rest] where opening.text == "{" -> parse_refutable_group(keyword, opening, rest);
+        _ -> invalid(values, "when expression is missing its binding block")
     }.
 
 @pure
@@ -912,7 +918,7 @@ finish_bindings(output: List[ProjectedExpressionNode]): ClauseParse ->
 @pure
 binding_message(empty: Bool): String ->
     if {
-        empty -> "refutable if requires at least one binding";
+        empty -> "refutable when requires at least one binding";
         true -> ""
     }.
 
@@ -964,14 +970,14 @@ invalid_binding(output: List[ProjectedExpressionNode]): ClauseParse ->
     ClauseParse(
         valid = false,
         nodes = reverse(output),
-        message = "refutable if binding is missing <-",
+        message = "refutable when binding is missing <-",
     ).
 
 @pure
 parse_fallback(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
         [else_token | rest] -> parse_fallback_else(values, else_token, rest);
-        [] -> invalid(values, "refutable if requires an else fallback")
+        [] -> invalid(values, "refutable when requires an else fallback")
     }.
 
 @pure
@@ -982,7 +988,7 @@ parse_fallback_else(
 ): ProjectedExpressionResult ->
     if {
         else_token.text == "else" -> parse_fallback_opening(values, else_token, rest);
-        true -> invalid(values, "refutable if requires an else fallback")
+        true -> invalid(values, "refutable when requires an else fallback")
     }.
 
 @pure
@@ -993,7 +999,7 @@ parse_fallback_opening(
 ): ProjectedExpressionResult ->
     case rest {
         [opening | tail] -> parse_fallback_group(values, else_token, opening, tail);
-        [] -> invalid(values, "refutable if requires an else fallback")
+        [] -> invalid(values, "refutable when requires an else fallback")
     }.
 
 @pure
@@ -1005,7 +1011,7 @@ parse_fallback_group(
 ): ProjectedExpressionResult ->
     if {
         opening.text == "{" -> parse_fallback_clauses(values, else_token, opening, rest);
-        true -> invalid(values, "refutable if requires an else fallback")
+        true -> invalid(values, "refutable when requires an else fallback")
     }.
 
 @pure
@@ -1019,7 +1025,7 @@ parse_fallback_clauses(
     let parsed = clauses_at(slice.inner, true, false, List.new[ProjectedExpressionNode]());
     case slice.close {
         Some(close) -> finish_fallback(values, else_token, slice, parsed, close);
-        None -> invalid(values, "refutable if fallback is missing }")
+        None -> invalid(values, "refutable when fallback is missing }")
     }.
 
 @pure
@@ -1037,7 +1043,7 @@ finish_fallback(
             slice.rest,
             parsed.message,
         );
-        true -> invalid(values, "refutable if requires at least one fallback clause")
+        true -> invalid(values, "refutable when requires at least one fallback clause")
     }.
 
 @pure
@@ -1078,7 +1084,7 @@ parse_refutable_continuation(
                 separator,
                 continuation_tokens,
             );
-        [] -> invalid(fallback_source, "refutable if is missing continuation separator")
+        [] -> invalid(fallback_source, "refutable when is missing continuation separator")
     }.
 
 @pure
@@ -1100,7 +1106,7 @@ parse_refutable_separator(
             fallback_node,
             continuation_tokens,
         );
-        true -> invalid(fallback_source, "refutable if is missing continuation separator")
+        true -> invalid(fallback_source, "refutable when is missing continuation separator")
     }.
 
 @pure
@@ -1123,7 +1129,7 @@ parse_refutable_body(
                 continuation,
                 continuation_node,
             );
-        None -> invalid(fallback_source, "refutable if continuation is invalid")
+        None -> invalid(fallback_source, "refutable when continuation is invalid")
     }.
 
 @pure
@@ -1136,7 +1142,7 @@ build_refutable(
     continuation_node: ProjectedExpressionNode,
 ): ProjectedExpressionResult ->
     let children = append_nodes(bindings, [fallback_node, continuation_node]);
-    let refutable_node = node("let-refutable", "if", keyword.start_byte, continuation_node.end_byte, children);
+    let refutable_node = node("let-refutable", "when", keyword.start_byte, continuation_node.end_byte, children);
     ProjectedExpressionResult(
         fallback.valid and continuation.valid,
         Some(refutable_node),
@@ -1153,7 +1159,7 @@ parse_refutable_group(
     let group_slice = group(opening, values);
     let bindings = bindings_at(group_slice.inner, List.new[ProjectedExpressionNode]());
     if {
-        not group_slice.valid -> invalid(values, "refutable if binding group is missing }");
+        not group_slice.valid -> invalid(values, "refutable when binding group is missing }");
         not bindings.valid -> invalid(values, bindings.message);
         true -> parse_refutable_tail(keyword, bindings.nodes, group_slice.rest)
     }.
@@ -1237,12 +1243,27 @@ parse_let_assignment(
     let binding = ProjectedPatternParser.parse(assignment.left);
     if {
         not assignment.found -> invalid(values, "let expression is missing =");
-        not binding.valid or binding.rest != [] -> invalid(values, "let must bind exactly one variable");
+        not binding.valid or binding.rest != [] -> invalid(values, "let requires an irrefutable binding pattern");
         true -> case binding.node {
-            Some(binding_node) where binding_node.kind == "binding-pattern" ->
+            Some(binding_node) where irrefutable_let_pattern(binding_node) ->
                 parse_ordinary_let(keyword, assignment);
-            _ -> invalid(values, "let must bind exactly one variable")
+            _ -> invalid(values, "let requires an irrefutable binding pattern")
         }
+    }.
+
+@pure
+irrefutable_let_pattern_children(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> irrefutable_let_pattern(value) and irrefutable_let_pattern_children(rest)
+    }.
+
+@pure
+irrefutable_let_pattern(value: ProjectedExpressionNode): Bool ->
+    if {
+        value.kind == "binding-pattern" or value.kind == "wildcard-pattern" -> true;
+        value.kind == "tuple-pattern" -> irrefutable_let_pattern_children(value.children);
+        true -> false
     }.
 
 @pure
@@ -1721,6 +1742,17 @@ parse_refutable_initial(
     let binding_source = split(separator.left, "<-");
     if {
         separator.found and binding_source.found -> parse_bare_refutable(original, binding_source, separator);
+        true -> parse_when_initial(first, rest, original)
+    }.
+
+@pure
+parse_when_initial(
+    first: ProjectedCanonicalToken,
+    rest: List[ProjectedCanonicalToken],
+    original: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    if {
+        first.text == "when" -> parse_when(first, rest);
         true -> parse_if_initial(first, rest, original)
     }.
 

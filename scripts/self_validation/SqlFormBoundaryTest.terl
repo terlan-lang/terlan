@@ -17,7 +17,7 @@ import type std.regex.Regex.
  */
 pub repository_boundary_holds(root: String): Bool ->
     let sql_root = String.append(root, "/crates/terlan/src/compiler/typeck/sql_forms");
-    if {
+    when {
         Ok(readme) <- read_text(String.append(sql_root, "/README.md"));
         Ok(classification) <- read_text(String.append(sql_root, "/classification.rs"));
         Ok(projection) <- read_text(String.append(sql_root, "/projection.rs"));

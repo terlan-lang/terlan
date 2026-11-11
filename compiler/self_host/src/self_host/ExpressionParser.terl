@@ -4,7 +4,7 @@
 module self_host.ExpressionParser.
 
 import self_host.Delimited.
-import self_host.ExpressionSyntax.{AddExpression, AndExpression, ArrayExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, BitAndExpression, BitOrExpression, BitXorExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, PipeExpression, QuoteExpression, RefutableExpression, SequenceExpression, ShiftExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
+import self_host.ExpressionSyntax.{AddExpression, AndExpression, ArrayExpression, AssignmentExpression, BinaryExpression, BinaryLayoutExpression, BitAndExpression, BitOrExpression, BitXorExpression, CallExpression, CaseExpression, CastExpression, CompareExpression, ConstructorChainExpression, ExpressionClass, ExpressionParse, ExpressionSyntax, FloatExpression, GroupExpression, IfExpression, IntegerExpression, InvalidExpression, LambdaExpression, LetExpression, ListComprehensionExpression, ListConsExpression, ListExpression, MacroExpression, MapExpression, MultiplyExpression, NameExpression, NominalKeyedExpression, OrExpression, QuoteExpression, RefutableExpression, SequenceExpression, ShiftExpression, StringExpression, TryExpression, TupleExpression, UnaryExpression, UnquoteExpression}.
 import std.collections.List.
 import std.core.{Int, String}.
 
@@ -59,7 +59,7 @@ is_refutable(source: String): Bool ->
     if {
         String.starts_with(source, "let ") -> false;
         Delimited.top_level_pair(source, 60, 45) >= 0 -> true;
-        true -> String.starts_with(source, "if {")
+        true -> String.starts_with(source, "when {")
             and String.contains(source, "<-")
             and String.contains(source, "} else {")
     }.
@@ -246,17 +246,10 @@ classify_or(source: String): ExpressionClass ->
     }.
 
 @pure
-classify_pipe(source: String): ExpressionClass ->
-    if {
-        Delimited.top_level_pair(source, 124, 62) >= 0 -> PipeExpression;
-        true -> classify_or(source)
-    }.
-
-@pure
 classify_constructor_chain(source: String): ExpressionClass ->
     if {
         Delimited.top_level_text(source, " with ") >= 0 -> ConstructorChainExpression;
-        true -> classify_pipe(source)
+        true -> classify_or(source)
     }.
 
 @pure
@@ -514,5 +507,6 @@ pub parse(source: String): ExpressionParse ->
     let parts = parts_for(normalized, class);
     if {
         normalized == "" -> invalid(source, "expression is empty");
+        String.contains(normalized, "|>") -> invalid(source, "unsupported expression operator");
         true -> parse_balanced(source, normalized, class, parts)
     }.

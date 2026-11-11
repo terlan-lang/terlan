@@ -3,7 +3,9 @@
 use crate::{
     terlan_hir::resolve_syntax_module_output,
     terlan_syntax::parse_module_as_syntax_output,
-    terlan_typeck::{lower_syntax_module_output_to_core, CoreModule},
+    terlan_typeck::{
+        lower_syntax_module_output_to_core, CoreModule, CoreTraitMethodIdentity, CoreType,
+    },
 };
 
 use super::{higher_order_specialization::specialize_higher_order_helpers, NativeModule};
@@ -186,6 +188,19 @@ fn recursive_higher_order_helpers_receive_distinct_finite_callsite_contexts() {
          pub first(): Int -> apply(1, ((value: Int) -> value + 1)).\n\n\
          pub second(): Int -> apply(2, ((value: Int) -> value + 2)).\n",
     );
+    let helper = core
+        .functions
+        .iter_mut()
+        .find(|function| function.name == "apply")
+        .expect("higher-order helper");
+    helper.receiver_method = true;
+    helper.receiver_mutable = true;
+    helper.receiver_command = true;
+    helper.trait_method = Some(CoreTraitMethodIdentity {
+        trait_name: "app.Apply".into(),
+        type_args: vec![CoreType::Int],
+        method: "apply".into(),
+    });
     let mut budget = super::specialization_budget::SpecializationBudget::default();
 
     super::higher_order_context::specialize_higher_order_contexts(&mut core, &mut budget)
@@ -219,6 +234,10 @@ fn recursive_higher_order_helpers_receive_distinct_finite_callsite_contexts() {
             .iter()
             .find(|function| function.name == clone_name)
             .expect("context clone");
+        assert!(!clone.receiver_method);
+        assert!(!clone.receiver_mutable);
+        assert!(!clone.receiver_command);
+        assert!(clone.trait_method.is_none());
         let crate::terlan_typeck::CoreExpr::Call { function, .. } = clone.clauses[0]
             .body
             .core_expr

@@ -300,7 +300,7 @@ bool_text(value: String): Option[Bool] ->
 load_compact_function(line: String, index: Int): FunctionRow ->
     case String.split(line, "\t") {
         [name, path, visibility, argument_text, string_error_text, ffi_text, implementation_text] ->
-            if {
+            when {
                 Some(argument_count) <- Int.from_string(argument_text);
                 Some(returns_string_error) <- bool_text(string_error_text);
                 Some(explicit_ffi_parameters) <- bool_text(ffi_text);
@@ -381,14 +381,14 @@ load_report(root: String): ReportLoad ->
 
 @pure
 load_compact_report(schema: String, lines: List[String]): ReportLoad ->
-    if {
+    when {
         [parse_line | after_parse] <- lines;
         [lint_line | after_lint] <- after_parse;
         [header | functions] <- after_lint
     } else {
         _ -> report_failure("malformed compact Rust boundary audit report")
     };
-    (if {
+    (when {
     Some(parse_failures) <- count_row(parse_line, "parse_failures");
     Some(lint_attributes) <- count_row(lint_line, "lint_attributes")
 } else {
@@ -617,7 +617,7 @@ render_inventory(rows: List[ErrorRow]): String ->
 budget_row(fields: List[String]): BudgetRow ->
     case fields {
         [row_owner, maximum_rows, maximum_sites, target_rows, target_sites, row_milestone] ->
-            if {
+            when {
                 Some(maximum_row_count) <- Int.from_string(maximum_rows);
                 Some(maximum_site_count) <- Int.from_string(maximum_sites);
                 Some(target_row_count) <- Int.from_string(target_rows);

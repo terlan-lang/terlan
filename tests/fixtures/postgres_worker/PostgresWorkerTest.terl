@@ -16,7 +16,7 @@ import type std.db.Postgres.{Connection, Pool}.
 pub type Rollback = Atom["fixture.rollback"].
 
 with_pool(body: (Pool) -> Bool): Bool ->
-    if {
+    when {
         Some(url) <- Environment.get("TERLAN_TEST_POSTGRES_URL");
         Ok(pool) <- connect({url: url})
     } else {

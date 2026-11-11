@@ -40,23 +40,13 @@ pub trait KeyedEnumerable[C[_, _]] {
  */
 pub impl KeyedEnumerable[std.collections.Map] for std.collections.Map {
     each(collection: Map[K, V], cb: ({K, V}) -> Unit): Unit ->
-        collection
-        |> Map.iterator()
-        |> Iterator.each(cb).
+        collection.iterator().each(cb).
     map[U](collection: Map[K, V], cb: (V) -> U): Map[K, U] ->
-        collection
-        |> Map.iterator()
-        |> map_keyed_iterator(cb)
-        |> Map.from_entries().
+        Map.from_entries(map_keyed_iterator(collection.iterator(), cb)).
     filter(collection: Map[K, V], predicate: ({K, V}) -> Bool): Map[K, V] ->
-        collection
-        |> Map.iterator()
-        |> filter_keyed_iterator(predicate)
-        |> Map.from_entries().
+        Map.from_entries(filter_keyed_iterator(collection.iterator(), predicate)).
     fold[U](collection: Map[K, V], initial: U, reducer: (U, {K, V}) -> U): U ->
-        collection
-        |> Map.iterator()
-        |> fold_iterator(initial, reducer).
+        fold_iterator(collection.iterator(), initial, reducer).
 }.
 
 /**

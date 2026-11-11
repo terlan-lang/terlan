@@ -49,7 +49,7 @@ pub github(arguments: List[String]): Result[Json, String] ->
  * Reads a string field; absent or malformed fields remain visibly empty.
  */
 pub text(document: Json, key: String): String ->
-    if {
+    when {
         Ok(value) <- document.get(key);
         Ok(text) <- value.as_string()
     } else {
@@ -61,7 +61,7 @@ pub text(document: Json, key: String): String ->
  * Reads an integer field; invalid values cannot become valid workflow identifiers.
  */
 pub number(document: Json, key: String): Int ->
-    if {
+    when {
         Ok(value) <- document.get(key);
         Ok(number) <- value.as_int()
     } else {

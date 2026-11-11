@@ -547,3 +547,39 @@ pub from_int(value: Int): Counter ->
         "factories without an owned input must remain module functions: {diagnostics:?}"
     );
 }
+
+#[test]
+fn fix_moves_owned_first_parameter_into_receiver_position() {
+    let source = "module sample.Counter.\n\npub struct Counter { value: Int }.\n\npub increment[T](\n    counter: Counter,\n    amount: Int,\n): Counter -> counter.\n";
+    let fixed = super::fix_receiver_capability_ownership(Path::new("Counter.terl"), source);
+    assert!(fixed.contains(
+        "pub (counter: Counter) increment[T](\n    amount: Int,\n): Counter -> counter."
+    ));
+}
+
+#[test]
+fn fix_leaves_factory_and_test_source_unchanged() {
+    let source = "module sample.Counter.\n\npub struct Counter { value: Int }.\n\npub from_int(value: Int): Counter -> Counter { value: value }.\n";
+    assert_eq!(
+        super::fix_receiver_capability_ownership(Path::new("Counter.terl"), source),
+        source
+    );
+    let helper = "module sample.CounterTest.\n\npub type Problem.\n\npub render(problem: Problem): String -> \"problem\".\n";
+    assert_eq!(
+        super::fix_receiver_capability_ownership(Path::new("CounterTest.terl"), helper),
+        helper
+    );
+}
+
+#[test]
+fn foreign_qualified_type_does_not_alias_a_local_type_name() {
+    let source = "module sample.Bytes.\n\npub type Bytes = String.\n\npub split(value: std.vm.Bytes): std.vm.Bytes -> value.\n";
+    assert!(
+        super::receiver_capability_ownership_diagnostics(Path::new("Bytes.terl"), source)
+            .is_empty()
+    );
+    assert_eq!(
+        super::fix_receiver_capability_ownership(Path::new("Bytes.terl"), source),
+        source
+    );
+}

@@ -91,7 +91,7 @@ pub valid(request: Request): Bool ->
         and (request.cursor == "" or JsonRules.id(request.cursor, "c:")).
 
 pub parse(value: Json): Result[Request, Failure] ->
-    if {
+    when {
         true <-
             JsonRules.exact_keys(
                 value,
@@ -106,18 +106,18 @@ pub parse(value: Json): Result[Request, Failure] ->
                 ),
             )
     };
-    (if {
+    (when {
     Ok(schema) <- JsonRules.text(value, "schema")
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     true <- schema == "terlan.semantic.query.v1"
 } else {
     _ ->
         Err(Failure(code = "semantic.query.schema", message = "Unsupported semantic query schema."))
 };
-(if {
+(when {
     Ok(snapshot) <- JsonRules.text(value, "snapshot_id");
     Ok(fact) <- JsonRules.text(value, "fact");
     Ok(target) <- value.get("target");
@@ -132,7 +132,7 @@ pub parse(value: Json): Result[Request, Failure] ->
             ),
         )
 };
-(if {
+(when {
     true <-
         JsonRules.exact_keys(target, ["entity_id", "kind", "expected_digest"])
             and JsonRules.exact_keys(limits, ["max_bytes", "max_work"])
@@ -145,7 +145,7 @@ pub parse(value: Json): Result[Request, Failure] ->
             ),
         )
 };
-(if {
+(when {
     Ok(entity_id) <- JsonRules.text(target, "entity_id");
     Ok(kind) <- JsonRules.text(target, "kind");
     Ok(digest) <- JsonRules.text(target, "expected_digest");

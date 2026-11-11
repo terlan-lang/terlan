@@ -20,8 +20,7 @@ expression module so each language feature can be tested independently.
 - `function_inference`: generic function inference, explicit type arguments,
   trait-bound validation, and trait lookup caching.
 - `indexing`: index get/set validation.
-- `operators`: unary, binary, boolean, comparison, arithmetic, and pipe
-  operator inference.
+- `operators`: unary, binary, boolean, comparison, and arithmetic inference.
 - `sql`: SQL raw-form row type validation and wrapper result inference.
 - `values`: variable, singleton alias, implicit value, and function-value
   lookup.
@@ -54,7 +53,7 @@ Important invariants:
 
 - Ambiguous overloads must produce stable diagnostics.
 - Unsupported target-specific expressions must fail before backend emission.
-- Pipe and receiver behavior must preserve source evaluation order.
+- Receiver behavior must preserve source evaluation order.
 
 ## Types And Interfaces
 
@@ -80,8 +79,7 @@ value invocation.
 : Checks indexed reads and writes through index contracts.
 
 `operators`
-: Checks expression operators while keeping pipe behavior routed through call
-resolution.
+: Checks expression operators.
 
 `sql`
 : Checks compiler-known SQL raw macros against visible row types.

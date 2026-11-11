@@ -60,20 +60,25 @@ mod tests {
 
     #[test]
     fn generated_expression_owns_precedence_and_spans() {
-        let source = "A |> C or D and E == F + G * H";
+        let source = "C or D and E == F + G * H";
         let output = parse_lalrpop_expression(source).expect("parse generated expression");
         assert_eq!(output.schema, LALRPOP_EXPRESSION_OUTPUT_SCHEMA);
-        assert_eq!(output.root.text.as_deref(), Some("|>"));
+        assert_eq!(output.root.text.as_deref(), Some("or"));
         assert_eq!(output.root.span, Span::new(0, source.len()));
-        let or = &output.root.children[1];
-        assert_eq!(or.text.as_deref(), Some("or"));
-        let and = &or.children[1];
+        let and = &output.root.children[1];
         assert_eq!(and.text.as_deref(), Some("and"));
         let comparison = &and.children[1];
         assert_eq!(comparison.text.as_deref(), Some("=="));
         let addition = &comparison.children[1];
         assert_eq!(addition.text.as_deref(), Some("+"));
         assert_eq!(addition.children[1].text.as_deref(), Some("*"));
+    }
+
+    #[test]
+    fn generated_expression_rejects_removed_pipeline_operator() {
+        let error = parse_lalrpop_expression("value |> transform()")
+            .expect_err("removed pipeline syntax must fail");
+        assert!(error.message.contains("unexpected") || error.message.contains("expected"));
     }
 
     #[test]

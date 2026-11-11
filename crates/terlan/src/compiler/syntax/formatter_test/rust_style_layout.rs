@@ -238,7 +238,6 @@ pub grouped_product(left: Int, right: Int, scale: Int): Int -> (left + right) * 
 pub right_nested_subtract(left: Int, middle: Int, right: Int): Int -> left - (middle - right).
 pub grouped_cast(left: Int, right: Int): Int -> (left + right) as Int.
 pub grouped_field(left: Dynamic, right: Dynamic): Dynamic -> (left + right).value.
-pub grouped_pipe(source: Dynamic, middle: Dynamic, sink: Dynamic): Dynamic -> source |> (middle |> sink).
 "#,
     )
     .expect("format precedence-sensitive expressions");
@@ -248,7 +247,6 @@ pub grouped_pipe(source: Dynamic, middle: Dynamic, sink: Dynamic): Dynamic -> so
     assert!(output.contains("left - (middle - right)."));
     assert!(output.contains("(left + right) as Int."));
     assert!(output.contains("(left + right).value."));
-    assert!(output.contains("|> (middle |> sink)."));
     parse_module(&output).expect("precedence-preserving formatter output should parse");
     assert_eq!(
         format_source_module(&output).expect("reformat precedence output"),

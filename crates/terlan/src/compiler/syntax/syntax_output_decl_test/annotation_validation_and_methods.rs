@@ -481,7 +481,7 @@ pub(super) fn syntax_output_preserves_release_core_collection_contracts() {
 ///
 /// Output:
 /// - Test passes when syntax output preserves `Iterator.next` as a
-///   function signature and `Iterable.iterator` as a trait method
+///   receiver method signature and `Iterable.iterator` as a trait method
 ///   signature.
 ///
 /// Transformation:
@@ -496,7 +496,7 @@ pub(super) fn syntax_output_preserves_release_core_collection_contracts() {
 ///
 /// Output:
 /// - Test passes when syntax output preserves `Iterator.next` as a
-///   function signature and `Iterable.iterator` as a trait method
+///   receiver method signature and `Iterable.iterator` as a trait method
 ///   signature.
 ///
 /// Transformation:
@@ -509,18 +509,21 @@ pub(super) fn syntax_output_preserves_release_traversal_contracts() {
     ))
     .expect("syntax output iterator contract");
     assert_eq!(iterator_output.module_name, "std.collections.Iterator");
-    let iterator_function_shapes: Vec<String> = iterator_output
+    let iterator_method_shapes: Vec<String> = iterator_output
         .declarations
         .iter()
         .filter_map(|declaration| match &declaration.payload {
-            SyntaxDeclarationPayload::Function {
+            SyntaxDeclarationPayload::Method {
+                receiver,
                 name,
                 params,
                 return_type,
                 ..
             } => Some(format!(
-                "{}({}) -> {}",
+                "{}({}: {}; {}) -> {}",
                 name,
+                receiver.name,
+                receiver.annotation.text,
                 params
                     .iter()
                     .map(|param| param.annotation.text.as_str())
@@ -535,18 +538,19 @@ pub(super) fn syntax_output_preserves_release_traversal_contracts() {
         iterator_output.declarations.iter().any(|declaration| {
             matches!(
                 &declaration.payload,
-                SyntaxDeclarationPayload::Function {
+                SyntaxDeclarationPayload::Method {
+                    receiver,
                     name,
                     params,
                     return_type,
                     ..
                 } if name == "next"
-                    && params.len() == 1
-                    && params[0].annotation.text == "Iterator[T]"
+                    && receiver.annotation.text == "Iterator[T]"
+                    && params.is_empty()
                     && return_type.text == "Option[Step[T]]"
             )
         }),
-        "iterator function shapes: {iterator_function_shapes:?}"
+        "iterator method shapes: {iterator_method_shapes:?}"
     );
 
     let iterable_output = parse_module_as_syntax_output(include_str!(

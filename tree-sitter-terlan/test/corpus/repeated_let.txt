@@ -27,13 +27,15 @@ pub total(value: Int): Int ->
     (expression
       (let_expression
         (let_binding
-          (identifier)
+          (let_binding_pattern
+            (identifier))
           (expression
             (identifier)))
         (expression
           (let_expression
             (let_binding
-              (identifier)
+              (let_binding_pattern
+                (identifier))
               (expression
                 (binary_expression
                   (expression
@@ -44,13 +46,67 @@ pub total(value: Int): Int ->
               (identifier))))))))
 
 ==================
-grouped refutable if bindings
+irrefutable product let binding
+==================
+
+module app.ProductLet.
+
+pub total(pair: {{Int, Int}, Int}): Int ->
+  let {{left, _}, right} = pair;
+  left + right.
+
+---
+
+(source_file
+  (module_declaration
+    (qualified_identifier))
+  (function_declaration
+    (pub_keyword)
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_expression
+          (tuple_type
+            (type_expression
+              (tuple_type
+                (type_expression
+                  (type_identifier))
+                (type_expression
+                  (type_identifier))))
+            (type_expression
+              (type_identifier))))))
+    (type_expression
+      (type_identifier))
+    (expression
+      (let_expression
+        (let_binding
+          (let_binding_pattern
+            (let_binding_tuple_pattern
+              (let_binding_subpattern
+                (let_binding_tuple_pattern
+                  (let_binding_subpattern
+                    (identifier))
+                  (let_binding_subpattern)))
+              (let_binding_subpattern
+                (identifier))))
+          (expression
+            (identifier)))
+        (expression
+          (binary_expression
+            (expression
+              (identifier))
+            (expression
+              (identifier))))))))
+
+==================
+grouped refutable when bindings
 ==================
 
 module app.GroupedLetElse.
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
-  if {
+  when {
       Ok(left) <- first;
       Ok(right) <- second
   } else {
@@ -142,7 +198,7 @@ single grouped refutable binding
 module app.SingleLetElse.
 
 pub resolve(value: Result[Int, String]): Result[Int, String] ->
-  if {
+  when {
       Ok(result) <- value
   } else {
       Err(reason) -> Err(reason)

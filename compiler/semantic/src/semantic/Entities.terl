@@ -13,7 +13,7 @@ import type std.core.Result.
 import type std.data.Json.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -52,7 +52,7 @@ pub entity(
     snapshot: String,
     artifact_digest: String,
 ): Result[Json, Failure] ->
-    if {
+    when {
         Ok(start) <- binding.get("span_start");
         Ok(end) <- binding.get("span_end")
     } else {
@@ -99,7 +99,7 @@ project(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(binding) <- rows.at(index);
             Ok(projected) <- entity(artifact, core, binding, snapshot, artifact_digest)
         } else {
@@ -114,7 +114,7 @@ project(
  * origins and non-lexical entities remain unavailable in this initial view.
  */
 pub bindings(store: String, snapshot: String): Result[Json, Failure] ->
-    if {
+    when {
         Ok(artifact) <- SnapshotStore.compiler_artifact(store, snapshot)
     } else {
         Err(reason) -> Err(reason)
@@ -149,7 +149,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
             );
     let collected =
         if {
-            checked -> if {
+            checked -> when {
                 Ok(core) <- artifact.get("core");
                 Ok(evidence) <- core.get("binding_identities");
                 Ok(rows) <- evidence.get("bindings");
@@ -169,7 +169,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
             );
             true -> true
         };
-    if {
+    when {
         true <- collected
     } else {
         _ ->
@@ -199,7 +199,7 @@ pub from_artifact(artifact: Json, snapshot: String): Result[Json, Failure] ->
     ).
 
 find(rows: Json, id: String, index: Int, count: Int): Result[Json, Failure] ->
-    if {
+    when {
         true <- index < count
     } else {
         _ ->
@@ -210,7 +210,7 @@ find(rows: Json, id: String, index: Int, count: Int): Result[Json, Failure] ->
                 ),
             )
     };
-    (if {
+    (when {
     Ok(row) <- rows.at(index)
 } else {
     _ ->
@@ -235,7 +235,7 @@ pub resolve_binding(
     id: String,
     expected_digest: String,
 ): Result[Json, Failure] ->
-    if {
+    when {
         Ok(catalog) <- bindings(store, snapshot);
         Ok(rows) <- catalog.get("entities");
         Ok(count) <- rows.length()
@@ -248,7 +248,7 @@ pub resolve_binding(
                 ),
             )
     };
-    (if {
+    (when {
     Ok(entity) <- find(rows, id, 0, count)
 } else {
     Err(reason) -> Err(reason)

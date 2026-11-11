@@ -47,7 +47,7 @@ identity_present(version: String, revision: String, target: String): Bool ->
     version != "" and revision != "" and target != "".
 
 identity_fields(fields: List[String], expected: String): Result[Identity, String] ->
-    if {
+    when {
         [version, revision, target, operating_system] <- fields
     } else {
         _ -> Err("release metadata fields have an unsupported shape")
@@ -66,7 +66,7 @@ identity_fields(fields: List[String], expected: String): Result[Identity, String
     }.
 
 load_identity(root: String, expected: String): Result[Identity, String] ->
-    if {
+    when {
         Ok(source) <- read_text(CandidateFiles.child(root, "dist/terlan-release.json"));
         Ok(document) <- Json.parse(source);
         Ok(schema) <- document.get("schema");
@@ -79,12 +79,12 @@ load_identity(root: String, expected: String): Result[Identity, String] ->
 
 collect_components(root: String): Result[Components, String] ->
     let manifest = PublishableDocs.load(root);
-    if {
+    when {
         true <- manifest.accepted
     } else {
         _ -> Err(manifest.failure)
     };
-    (if {
+    (when {
     Ok(stdlib) <- CandidateFiles.directory_files(root, "std");
     Ok(editors) <- CandidateFiles.directory_files(root, "editors");
     Ok(tree_sitter) <- CandidateFiles.directory_files(root, "tree-sitter-terlan")
@@ -103,7 +103,7 @@ Ok(
  * Discovers paths on every invocation, so added and removed files invalidate reuse.
  */
 pub collect(root: String, expected: String): Result[Inputs, String] ->
-    if {
+    when {
         Ok(identity) <- load_identity(root, expected);
         Ok(archives) <- CandidateFiles.release_archives(root);
         true <- not is_empty(archives);

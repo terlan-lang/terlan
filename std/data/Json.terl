@@ -351,7 +351,7 @@ pub (json: Json) string_fields(fields: List[String]): Result[List[Option[String]
     }.
 
 optional_string_field(json: Json, field: String): Option[String] ->
-    if {
+    when {
         Ok(value) <- json.get(field);
         Ok(text) <- value.as_string()
     } else {

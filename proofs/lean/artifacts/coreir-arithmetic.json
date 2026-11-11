@@ -1,40 +1,40 @@
 {
-  "schema": "terlan.lean-proof-replay.v1",
-  "family": "coreir-arithmetic",
-  "theorem_names": [
-    "Terlan.Core.addEvaluationPreservesInteger",
-    "Terlan.Core.typedIntegerExpressionEvaluates"
-  ],
-  "manifest_fingerprints": {
-    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0",
-    "docs/compiler/type_spec/terlan_core_typing_spec.toml": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
-  },
   "dependency_files": [
     "proofs/lean/lake-manifest.json",
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "source_digest": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815",
+  "deterministic_timestamp_strategy": "none-content-addressed",
   "execution_command": [
     "lake",
     "env",
     "lean",
     "Terlan/Core/Arithmetic.lean"
   ],
-  "working_directory": "proofs/lean",
-  "deterministic_timestamp_strategy": "none-content-addressed",
-  "output_signature": {
-    "stdout_class": "empty",
-    "stderr_class": "empty",
-    "exit_class": "success"
+  "family": "coreir-arithmetic",
+  "manifest_fingerprints": {
+    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0",
+    "docs/compiler/type_spec/terlan_core_typing_spec.toml": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
   },
+  "output_signature": {
+    "exit_class": "success",
+    "stderr_class": "empty",
+    "stdout_class": "empty"
+  },
+  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
+  "schema": "terlan.lean-proof-replay.v1",
+  "source_digest": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815",
+  "theorem_names": [
+    "Terlan.Core.addEvaluationPreservesInteger",
+    "Terlan.Core.typedIntegerExpressionEvaluates"
+  ],
   "toolchain": {
-    "lean_version": "4.31.0",
     "elan_channel": "leanprover/lean4:v4.31.0",
     "lake_flags": [
       "env",
       "lean"
-    ]
-  }
+    ],
+    "lean_version": "4.31.0"
+  },
+  "working_directory": "proofs/lean"
 }

@@ -134,7 +134,7 @@ smoke_in(
  * Validates the public installer without a network dependency.
  */
 pub smoke(root: String): Bool ->
-    if {
+    when {
         Some(platform) <- ReleasePlatform.detect();
         Some(version) <- ReleasePlatform.cargo_version(root)
     } else {
@@ -209,7 +209,7 @@ raw_installer(
     }.
 
 write_checksum(path: String, artifact_name: String): Bool ->
-    if {
+    when {
         Ok(digest) <- Hash.sha256_file(path);
         Ok(Unit) <-
             File.write_text(
@@ -308,7 +308,7 @@ copy_installer(root: String, temporary: String, platform: ReleasePlatform): Opti
     }.
 
 readiness_seal(root: String): String ->
-    if {
+    when {
         Ok(source) <-
             File.read_text(
                 ReleasePayload.child(
@@ -348,7 +348,7 @@ write_staged_report(root: String, seal: String, artifact_hash: String): Bool ->
             .put("version_mismatch_rejected", Json.bool(true))
             .put("credentials_required", Json.bool(false))
             .put("source_checkout_required", Json.bool(false));
-    if {
+    when {
         Ok(rendered) <- Json.stringify_pretty(report);
         Ok(Unit) <- File.write_text(output, String.append(rendered, "\n"))
     } else {
@@ -360,7 +360,7 @@ write_staged_report(root: String, seal: String, artifact_hash: String): Bool ->
  * Installs the sealed host artifact from a local mirror and proves rollback.
  */
 pub staged(root: String): Bool ->
-    if {
+    when {
         Some(platform) <- ReleasePlatform.detect();
         Some(version) <- ReleasePlatform.cargo_version(root)
     } else {

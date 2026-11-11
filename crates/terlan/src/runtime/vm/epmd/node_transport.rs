@@ -158,7 +158,8 @@ impl<P> VmNodeTransportConnection<P> {
                         Poll::Pending => return Poll::Pending,
                         Poll::Ready(()) => {
                             let body_len = u32::from_be_bytes(*bytes) as usize;
-                            if !(VM_NODE_ACTOR_BYTES..=VM_NODE_MAX_FRAME_BYTES).contains(&body_len) {
+                            if !(VM_NODE_ACTOR_BYTES..=VM_NODE_MAX_FRAME_BYTES).contains(&body_len)
+                            {
                                 self.phase = VmNodeTransportPhase::Writing {
                                     bytes: error_ack("invalid body length"),
                                     offset: 0,
@@ -187,14 +188,10 @@ impl<P> VmNodeTransportConnection<P> {
                                         .to_string()
                                 })
                                 .and_then(|actor| {
-                                    self.router
-                                        .route(actor, &bytes[VM_NODE_ACTOR_BYTES..])
+                                    self.router.route(actor, &bytes[VM_NODE_ACTOR_BYTES..])
                                 });
                             self.phase = VmNodeTransportPhase::Writing {
-                                bytes: result.map_or_else(
-                                    |error| error_ack(&error),
-                                    success_ack,
-                                ),
+                                bytes: result.map_or_else(|error| error_ack(&error), success_ack),
                                 offset: 0,
                             };
                         }

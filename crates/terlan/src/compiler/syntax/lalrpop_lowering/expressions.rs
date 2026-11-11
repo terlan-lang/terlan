@@ -604,7 +604,6 @@ fn lower_binary(
         Some("in") => BinaryOp::In,
         Some("and") => BinaryOp::And,
         Some("or") => BinaryOp::Or,
-        Some("|>") => BinaryOp::PipeForward,
         _ => return Err(context.error(node, "unknown binary operator")),
     };
     Ok(Expr::BinaryOp {

@@ -76,7 +76,7 @@ check(paths: List[String]): Bool ->
     }.
 
 from_paths_file(path: String): Bool ->
-    if {
+    when {
         Some(changed) <- paths_file(path);
         Some(tracked) <-
             if {
@@ -89,7 +89,7 @@ from_paths_file(path: String): Bool ->
     check(existing(RustFormatting.select(changed, tracked, false))).
 
 from_revisions(base: String, head: String, force_all: Bool): Bool ->
-    if {
+    when {
         Some(paths) <-
             if {
                 force_all -> tracked_sources();
@@ -108,7 +108,7 @@ entry(): Bool ->
                 None -> false
             };
         Some("--revisions") ->
-            if {
+            when {
                 Some(base) <- Arguments.get(1);
                 Some(head) <- Arguments.get(2);
                 Some(force_all) <- Arguments.get(3)

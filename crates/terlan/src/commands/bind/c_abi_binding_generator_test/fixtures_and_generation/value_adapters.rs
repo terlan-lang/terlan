@@ -185,7 +185,7 @@ pub(super) fn c_abi_wrapper_supports_float_constructors_arguments_and_results() 
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
     assert!(source.contains("pub new_float(value: Float): NativeBoundary"));
-    assert!(source.contains("pub ratio(boundary: NativeBoundary): Float"));
+    assert!(source.contains("pub (boundary: NativeBoundary) ratio(): Float"));
 
     fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");
@@ -265,7 +265,7 @@ pub(super) fn c_abi_wrapper_supports_bool_constructors_arguments_and_results() {
     let source = fs::read_to_string(out_dir.join("src/c_abi_fixture/NativeBoundary.terl"))
         .expect("Terlan source");
     assert!(source.contains("pub new_bool(value: Bool): NativeBoundary"));
-    assert!(source.contains("pub enabled(boundary: NativeBoundary): Bool"));
+    assert!(source.contains("pub (boundary: NativeBoundary) enabled(): Bool"));
 
     fs::remove_dir_all(manifest.parent().expect("variant parent")).expect("remove variant");
     fs::remove_dir_all(out_dir).expect("remove output");

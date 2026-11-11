@@ -19,7 +19,7 @@ pub median_preserves_units_and_handles_unordered_samples(): Bool ->
 
 @test
 pub invalid_repetition_count_never_starts_work(): Bool ->
-    if {
+    when {
         Ok(directory) <- create_temporary("terlan-compilation-suite-")
     } else {
         _ -> false

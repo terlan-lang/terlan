@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use super::{
@@ -404,14 +405,32 @@ fn cargo_capture_selects_and_executes_a_real_compiled_harness() {
 
 pub(super) struct CargoFixture(pub(super) std::path::PathBuf);
 
+static FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
 pub(super) fn temporary_fixture(label: &str) -> CargoFixture {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let path = std::env::temp_dir().join(format!("terlan-{label}-{}-{stamp}", std::process::id()));
+    reserve_temporary_fixture(label, stamp)
+}
+
+fn reserve_temporary_fixture(label: &str, stamp: u128) -> CargoFixture {
+    let sequence = FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!(
+        "terlan-{label}-{}-{stamp}-{sequence}",
+        std::process::id()
+    ));
     fs::create_dir(&path).expect("exclusively reserve fixture");
     CargoFixture(path)
+}
+
+#[test]
+fn fixture_reservations_remain_unique_at_one_clock_tick() {
+    let first = reserve_temporary_fixture("shared-clock", 1);
+    let second = reserve_temporary_fixture("shared-clock", 1);
+
+    assert_ne!(first.0, second.0);
 }
 
 impl Drop for CargoFixture {

@@ -20,7 +20,11 @@ fn is_identity_fallback(clauses: &[CaseClause]) -> bool {
 }
 
 fn is_ordinary_binding_target(pattern: &Pattern) -> bool {
-    matches!(pattern, Pattern::Var(_))
+    match pattern {
+        Pattern::Var(_) | Pattern::Wildcard => true,
+        Pattern::Tuple(values) => values.iter().all(is_ordinary_binding_target),
+        _ => false,
+    }
 }
 
 /// Formats ordinary declarations, propagating refutable steps, and grouped
@@ -46,7 +50,7 @@ pub(super) fn format_let_expr(
 
     let spacing = "    ".repeat(indent);
     let inner_spacing = "    ".repeat(indent + 1);
-    let mut out = String::from("if {\n");
+    let mut out = String::from("when {\n");
     for (index, binding) in bindings.iter().enumerate() {
         out.push_str(&inner_spacing);
         out.push_str(&format_refutable_binding(binding, indent + 1));

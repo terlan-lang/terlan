@@ -13,7 +13,7 @@ pub resolves_and_splits_a_tcp_header(): Bool ->
         Bytes.from_list(
             [0, 80, 1, 187, 0, 0, 0, 1, 0, 0, 0, 2, 80, 18, 16, 0, 18, 52, 0, 0, 170, 187],
         );
-    if {
+    when {
         Ok(set) <-
             protocol_shape_set(
                 "transport",
@@ -37,7 +37,7 @@ pub roundtrips_an_aliased_compact_frame(): Bool ->
         );
     let decoded = decoded_protocol(fields, Bytes.from_list([170, 187]));
     let aliases = List(protocol_shape_alias("current", "compact_frame"));
-    if {
+    when {
         Ok(set) <- protocol_shape_set("frames", List(compact_frame_shape()), aliases);
         Ok(encoded) <- protocol_shape_set_encode_exact(set, "current", decoded);
         Ok(roundtrip) <- protocol_shape_set_decode(set, "current", encoded);

@@ -66,7 +66,7 @@ publications(): List[Publication] ->
     ].
 
 prepare(root: String): Bool ->
-    if {
+    when {
         Ok(_directory) <- Directory.create_all(OwnerStorage.child(root, "target/quality"));
         Ok(_input) <- File.write_text(OwnerStorage.child(root, "input"), "source");
         Ok(_producer) <-
@@ -79,7 +79,7 @@ prepare(root: String): Bool ->
     };
     (let owner = selected();
 let first = PreparationOwner.run_locked(root, owner);
-(if {
+(when {
     true <- first.valid;
     Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
     Ok(snapshot) <- OwnerNative.read_snapshot(OwnerStorage.child(root, PreparationOwner.activity_path(owner)));
@@ -115,7 +115,7 @@ OwnerCommit.prepare_many(
 
 advance(root: String, phase: String): Bool ->
     let owner = selected();
-    if {
+    when {
         Ok(state) <- OwnerStorage.read_json(OwnerStorage.child(root, PreparationOwner.ledger_path(owner)));
         Ok(outputs) <- state.get("outputs");
         Ok(output) <- outputs.at(0);
@@ -139,14 +139,14 @@ advance(root: String, phase: String): Bool ->
             Ok(_written) -> true;
             _ -> false
         };
-        phase == "changed-input" or phase == "changed-input-fails" -> if {
+        phase == "changed-input" or phase == "changed-input-fails" -> when {
             Ok(_written) <- File.write_text(OwnerStorage.child(root, "input"), "changed")
         } else {
             _ -> false
         };
         if {
             phase == "changed-input" -> true;
-            true -> if {
+            true -> when {
                 Ok(script) <- File.read_text(OwnerStorage.child(root, "producer.sh"));
                 Ok(_changed) <-
                     File.write_text(
@@ -191,7 +191,7 @@ advance(root: String, phase: String): Bool ->
 verify(root: String, phase: String): Bool ->
     let owner = selected();
     let resumed = PreparationOwner.run_locked(root, owner);
-    if {
+    when {
         Ok(calls) <- File.read_text(OwnerStorage.child(root, "calls"));
         true <-
             calls == if {
@@ -204,7 +204,7 @@ verify(root: String, phase: String): Bool ->
         _ -> false
     };
     if {
-        phase == "corrupt-native" or phase == "corrupt-third" -> if {
+        phase == "corrupt-native" or phase == "corrupt-third" -> when {
             Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, owner.output));
             Ok(value) <- document.get("generation");
             Ok(1) <- value.as_int()
@@ -214,7 +214,7 @@ verify(root: String, phase: String): Bool ->
         not resumed.valid and outcome == "prepared";
         phase == "corrupt-stage" or phase == "corrupt-final" -> not resumed.valid and outcome == "prepared";
         phase == "changed-input" -> let again = PreparationOwner.run_locked(root, owner);
-        if {
+        when {
             Ok(updated_calls) <- File.read_text(OwnerStorage.child(root, "calls"))
         } else {
             _ -> false
@@ -227,7 +227,7 @@ verify(root: String, phase: String): Bool ->
             and updated_calls == "run\nrun\n"
             and outputs_have_generation(root, 1);
         phase == "changed-input-fails" -> not resumed.valid and outcome == "failed" and outputs_have_generation(root, 2);
-        true -> if {
+        true -> when {
             Ok(document) <- OwnerStorage.read_json(OwnerStorage.child(root, owner.output));
             Ok(value) <- document.get("generation");
             Ok(generation) <- value.as_int();
@@ -250,7 +250,7 @@ verify(root: String, phase: String): Bool ->
     }.
 
 outputs_have_generation(root: String, expected: Int): Bool ->
-    if {
+    when {
         Ok(first) <- OwnerStorage.read_json(OwnerStorage.child(root, selected().output));
         Ok(second) <- OwnerStorage.read_json(OwnerStorage.child(root, "target/quality/second.json"));
         Ok(third) <- OwnerStorage.read_json(OwnerStorage.child(root, "target/quality/third.json"));
@@ -264,7 +264,7 @@ outputs_have_generation(root: String, expected: Int): Bool ->
         and OwnerStorage.digest(first) == OwnerStorage.digest(third).
 
 scenario(phase: String): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-owner-commit-")
     } else {
         _ -> false

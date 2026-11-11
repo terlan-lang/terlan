@@ -117,7 +117,7 @@ tool_paths(vm: String, image: String): Result[Bool, String] ->
  * Source, tool and dynamic path discovery precede any candidate writes.
  */
 pub declare(root: String, vm: String, image: String, version: String): Result[List[Node], String] ->
-    if {
+    when {
         Ok(_paths) <- tool_paths(vm, image);
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(inputs) <- CandidateInputs.collect(root, version);
@@ -142,7 +142,7 @@ pub revision_matches(metadata: String, revision: String): Bool ->
  * Restores successful matching outputs without replaying their producer.
  */
 pub prepare(root: String, vm: String, image: String, version: String): Result[Summary, String] ->
-    if {
+    when {
         Ok(nodes) <- declare(root, vm, image, version)
     } else {
         Err(reason) -> Err(reason)
@@ -153,7 +153,7 @@ pub prepare(root: String, vm: String, image: String, version: String): Result[Su
  * CLI entry point used under Make's exclusive preparation flock.
  */
 pub run_locked(root: String, vm: String, image: String, version: String): Bool ->
-    if {
+    when {
         Ok(result) <- prepare(root, vm, image, version)
     } else {
         Err(reason) ->

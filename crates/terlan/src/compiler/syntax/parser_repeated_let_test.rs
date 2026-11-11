@@ -140,7 +140,7 @@ fn parses_grouped_refutable_bindings_with_shared_else() {
 module grouped_let_else.
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
-    if {
+    when {
         Ok(left) <- first;
         Ok(right) <- second
     }
@@ -173,7 +173,7 @@ fn parses_grouped_refutable_bindings_with_multi_argument_calls() {
 module grouped_let_call_values.
 
 pub resolve(value: Dynamic): Option[Int] ->
-    if {
+    when {
         Some(left) <- read_int(value, "left");
         Some(right) <- read_int(value, "right")
     } else {
@@ -204,7 +204,7 @@ module lambda_grouped_let_else.
 
 pub resolve(values: List[Dynamic]): List[Option[Int]] ->
     values.map((value) ->
-        if {
+        when {
             Some(left) <- read_int(value, "left");
             Some(right) <- read_int(value, "right")
         } else {
@@ -224,7 +224,7 @@ module nested_let_else.
 
 pub resolve(first: Result[Int, String], second: Result[Int, String]): Result[Int, String] ->
     let first_result = first;
-    if {
+    when {
         Ok(right) <- second
     } else {
         Err(reason) -> Err(reason)
@@ -255,7 +255,7 @@ fn rejects_grouped_let_else_without_fallback_clauses() {
 module empty_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    if {
+    when {
         Ok(result) <- value
     } else {};
     result.
@@ -264,7 +264,7 @@ pub resolve(value: Dynamic): Dynamic ->
     let error = parse_module(source).expect_err("empty let else should fail");
     assert_eq!(
         error.message,
-        "refutable if requires at least one fallback clause"
+        "refutable when requires at least one fallback clause"
     );
 }
 
@@ -274,14 +274,17 @@ fn rejects_empty_refutable_let_group_with_stable_diagnostic() {
 module empty_refutable_let_group.
 
 pub resolve(): Int ->
-    if {} else {
+    when {} else {
         _ -> 0
     };
     1.
 "#;
 
     let error = parse_module(source).expect_err("empty refutable let group should fail");
-    assert_eq!(error.message, "refutable if requires at least one binding");
+    assert_eq!(
+        error.message,
+        "refutable when requires at least one binding"
+    );
 }
 
 #[test]
@@ -290,7 +293,7 @@ fn rejects_refutable_let_group_without_else() {
 module missing_refutable_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    if {
+    when {
         Ok(result) <- value
     };
     result.
@@ -299,7 +302,7 @@ pub resolve(value: Dynamic): Dynamic ->
     let error = parse_module(source).expect_err("refutable let group without else should fail");
     assert_eq!(
         error.message,
-        "grouped refutable if requires an else fallback"
+        "grouped refutable when requires an else fallback"
     );
 }
 
@@ -309,7 +312,7 @@ fn accepts_trailing_semicolons_in_refutable_let_blocks() {
 module trailing_refutable_let_semicolons.
 
 pub resolve(value: Dynamic): Dynamic ->
-    if {
+    when {
         Ok(result) <- value;
     } else {
         Err(reason) -> reason;
@@ -326,7 +329,7 @@ fn accepts_comments_at_refutable_let_group_boundaries() {
 module commented_refutable_let.
 
 pub resolve(value: Dynamic): Dynamic ->
-    if {
+    when {
         // Inspect the result without exposing a partial binding.
         Ok(result) <- value
     }
@@ -373,7 +376,7 @@ fn rejects_grouped_let_else_without_success_result() {
 module bodyless_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    if {
+    when {
         Ok(result) <- value
     } else {
         Err(reason) -> reason
@@ -393,7 +396,7 @@ fn rejects_comma_grouped_refutable_bindings() {
 module comma_grouped_let_else.
 
 pub resolve(first: Dynamic, second: Dynamic): Dynamic ->
-    if {
+    when {
         Ok(left) <- first, Ok(right) <- second
     } else {
         Err(reason) -> reason
@@ -409,7 +412,7 @@ pub resolve(first: Dynamic, second: Dynamic): Dynamic ->
 }
 
 #[test]
-fn rejects_pattern_destructuring_in_let() {
+fn parses_irrefutable_product_destructuring_in_let() {
     let source = r#"
 module tuple_let.
 
@@ -418,7 +421,45 @@ pub add(pair: {Int, Int}): Int ->
     left + right.
 "#;
 
-    parse_module(source).expect_err("let must bind exactly one variable");
+    let module = parse_module(source).expect("product let destructuring should parse");
+    let Decl::Function(function) = &module.declarations[0] else {
+        panic!("expected function declaration");
+    };
+    let Expr::Let { bindings, .. } = &function.clauses[0].body else {
+        panic!("expected let expression");
+    };
+    assert!(matches!(
+        &bindings[0].pattern,
+        Pattern::Tuple(values)
+            if matches!(&values[..], [Pattern::Var(left), Pattern::Var(right)]
+                if left == "left" && right == "right")
+    ));
+}
+
+#[test]
+fn parses_nested_irrefutable_product_destructuring_in_let() {
+    let source = r#"
+module nested_tuple_let.
+
+pub first(pair: {{Int, Int}, Int}): Int ->
+    let {{left, _}, right} = pair;
+    left + right.
+"#;
+
+    parse_module(source).expect("nested product let destructuring should parse");
+}
+
+#[test]
+fn rejects_refutable_constructor_destructuring_in_let() {
+    let source = r#"
+module constructor_let.
+
+pub resolve(value: Dynamic): Dynamic ->
+    let Ok(result) = value;
+    result.
+"#;
+
+    parse_module(source).expect_err("refutable constructor bindings require when");
 }
 
 #[test]
@@ -448,7 +489,24 @@ pub resolve(value: Dynamic): Dynamic ->
     result.
 "#;
 
-    parse_module(source).expect_err("grouped refutable bindings use if");
+    parse_module(source).expect_err("grouped refutable bindings use when");
+}
+
+#[test]
+fn rejects_retired_refutable_if_introducer() {
+    let source = r#"
+module retired_refutable_if.
+
+pub resolve(value: Dynamic): Dynamic ->
+    if {
+        Ok(result) <- value
+    } else {
+        _ -> value
+    };
+    result.
+"#;
+
+    parse_module(source).expect_err("refutable bindings require when");
 }
 
 #[test]
@@ -457,7 +515,7 @@ fn parses_single_refutable_with_explicit_fallback() {
 module unbraced_let_else.
 
 pub resolve(value: Dynamic): Dynamic ->
-    if {
+    when {
         Ok(result) <- value
     } else {
         _ -> 0

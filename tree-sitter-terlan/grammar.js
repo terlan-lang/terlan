@@ -189,8 +189,7 @@ module.exports = grammar({
             "in",
             "..",
             "and",
-            "or",
-            "|>"
+            "or"
           ),
           $.shape_guard_expression
         )
@@ -464,7 +463,6 @@ module.exports = grammar({
 
     _list_binary_expression: ($) =>
       choice(
-        prec.left(1, seq(alias($._list_element_expression, $.expression), "|>", alias($._list_element_expression, $.expression))),
         prec.left(2, seq(alias($._list_element_expression, $.expression), "or", alias($._list_element_expression, $.expression))),
         prec.left(3, seq(alias($._list_element_expression, $.expression), "and", alias($._list_element_expression, $.expression))),
         prec.left(4, seq(alias($._list_element_expression, $.expression), choice("==", "!=", ">=", "<=", ">", "<", "in"), alias($._list_element_expression, $.expression))),
@@ -481,7 +479,29 @@ module.exports = grammar({
         prec.right(3, seq(repeat1(seq("let", $.let_binding)), $.expression))
       ),
 
-    let_binding: ($) => seq(field("name", $.identifier), "=", $.expression, ";"),
+    let_binding: ($) =>
+      seq(field("pattern", $.let_binding_pattern), "=", $.expression, ";"),
+
+    let_binding_pattern: ($) => choice($.identifier, $.let_binding_tuple_pattern),
+
+    let_binding_subpattern: ($) =>
+      choice(
+        $.identifier,
+        "_",
+        $.let_binding_tuple_pattern,
+        seq("(", $.let_binding_subpattern, ")")
+      ),
+
+    let_binding_tuple_pattern: ($) =>
+      seq(
+        "{",
+        $.let_binding_subpattern,
+        ",",
+        $.let_binding_subpattern,
+        repeat(seq(",", $.let_binding_subpattern)),
+        optional(","),
+        "}"
+      ),
 
     refutable_expression: ($) =>
       choice(
@@ -501,7 +521,7 @@ module.exports = grammar({
           prec.right(
             4,
           seq(
-            "if",
+            "when",
             "{",
             field("binding", $.refutable_binding),
             repeat(seq(";", field("binding", $.refutable_binding))),
@@ -632,7 +652,6 @@ module.exports = grammar({
 
     binary_expression: ($) =>
       choice(
-        prec.left(1, seq($.expression, "|>", $.expression)),
         prec.left(2, seq($.expression, "or", $.expression)),
         prec.left(3, seq($.expression, "and", $.expression)),
         prec.left(4, seq($.expression, choice("==", "!=", ">=", "<=", ">", "<", "in"), $.expression)),

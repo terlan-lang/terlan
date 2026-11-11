@@ -43,7 +43,7 @@ pub spawn_702(): Unit ->
     Unit.
 
 pub replay_counter(state: RecoveryState): Int ->
-    if {
+    when {
         [value] <- state.state.to_list();
         [event] <- state.events;
         [delta] <- event.payload.to_list()
@@ -78,7 +78,7 @@ pub durable_restart(path: String): Bool ->
                     _ <- Process.send[Process[Int]](replacement, Message.wrap[Process[Int]](parent));
                     let restored = Message.unwrap[Int](Process.receive[Int]());
                     let evidence =
-                        (if {
+                        (when {
     Ok(snapshot) <- Supervisor.snapshot(root);
     [event] <- snapshot.restart_history
 } else {
@@ -92,7 +92,7 @@ snapshot.running
     and event.restart_count == 1
     and event.outcome == "Restarted");
                     let stopped =
-                        (if {
+                        (when {
     Ok(_) <- Supervisor.stop_child[Process[Int]](root, spec);
     Ok(snapshot) <- Supervisor.snapshot(root);
     [child] <- snapshot.children
@@ -126,7 +126,7 @@ pub spawn_703(): Unit ->
 pub supervision_enforces_restart_intensity(): Bool ->
     let root = Supervisor.root(703, OneForOne, 2, 100);
     let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 0, 0, 0);
-    if {
+    when {
         Ok(_) <- Supervisor.start_child[Int](root, spec);
         Ok(snapshot) <- Supervisor.snapshot(root)
     } else {
@@ -147,7 +147,7 @@ pub restart_classes_control_actual_process_exits(): Bool ->
     let failed = Supervisor.child_spec[Entry[Int]](2, Process.entry[Int](703), Temporary, 1, 0, 0, 0);
     _ <- Supervisor.start_child[Int](root, normal);
     _ <- Supervisor.start_child[Int](root, failed);
-    if {
+    when {
         Ok(snapshot) <- Supervisor.snapshot(root);
         [first, second] <- snapshot.restart_history
     } else {
@@ -171,7 +171,7 @@ pub group_restarts(strategy: RestartStrategy, expected: Int): Bool ->
     let last = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](705), Permanent, 2, 0, 0, 0);
     let first = Supervisor.child_spec[Entry[Int]](2, Process.entry[Int](705), Permanent, 0, 0, 0, 0);
     let middle = Supervisor.child_spec[Entry[Int]](3, Process.entry[Int](705), Permanent, 1, 0, 0, 0);
-    if {
+    when {
         Ok(old_last) <- Supervisor.start_child[Int](root, last);
         Ok(old_first) <- Supervisor.start_child[Int](root, first);
         Ok(old_middle) <- Supervisor.start_child[Int](root, middle)
@@ -179,7 +179,7 @@ pub group_restarts(strategy: RestartStrategy, expected: Int): Bool ->
         _ -> false
     };
     (_ <- Process.send[Int](old_middle, Message.wrap[Int](1));
-if {
+when {
     Ok(new_last) <- Supervisor.current_child[Int](root, last);
     Ok(new_first) <- Supervisor.current_child[Int](root, first);
     Ok(new_middle) <- Supervisor.current_child[Int](root, middle);
@@ -207,7 +207,7 @@ pub rest_for_one_uses_declaration_order(): Bool ->
 pub backoff_defers_replacement_until_the_vm_deadline(): Bool ->
     let root = Supervisor.root(706, OneForOne, 1, 100);
     let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 2, 8, 0);
-    if {
+    when {
         Ok(_) <- Supervisor.start_child[Int](root, spec);
         Ok(before) <- Supervisor.snapshot(root);
         [child] <- before.children
@@ -216,7 +216,7 @@ pub backoff_defers_replacement_until_the_vm_deadline(): Bool ->
     };
     (let deferred = child.pending_restart and child.restart_count == 0 and before.restart_history.is_empty();
 (_ <- Process.sleep(Process.timer(2));
-if {
+when {
     Ok(observed) <- Supervisor.snapshot(root);
     [restarted, exhausted] <- observed.restart_history
 } else {
@@ -232,14 +232,14 @@ deferred
 pub stopping_during_backoff_prevents_a_replacement(): Bool ->
     let root = Supervisor.root(707, OneForOne, 3, 100);
     let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 2, 8, 0);
-    if {
+    when {
         Ok(_) <- Supervisor.start_child[Int](root, spec);
         Ok(_) <- Supervisor.stop_child[Int](root, spec)
     } else {
         _ -> false
     };
     (_ <- Process.sleep(Process.timer(3));
-if {
+when {
     Ok(snapshot) <- Supervisor.snapshot(root);
     [child] <- snapshot.children
 } else {
@@ -251,7 +251,7 @@ child.running == false and child.pending_restart == false and snapshot.restart_h
 pub shutdown_deadline_terminates_a_blocked_child(): Bool ->
     let root = Supervisor.root(708, OneForOne, 3, 100);
     let spec = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](705), Permanent, 0, 0, 0, 2);
-    if {
+    when {
         Ok(_) <- Supervisor.start_child[Int](root, spec);
         Ok(_) <- Supervisor.stop_child[Int](root, spec);
         Ok(before) <- Supervisor.snapshot(root);
@@ -260,7 +260,7 @@ pub shutdown_deadline_terminates_a_blocked_child(): Bool ->
         _ -> false
     };
     (_ <- Process.sleep(Process.timer(2));
-if {
+when {
     Ok(observed) <- Supervisor.snapshot(root);
     [stopped] <- observed.children
 } else {
@@ -273,14 +273,14 @@ pub intensity_exhaustion_cancels_other_pending_restarts(): Bool ->
     let root = Supervisor.root(709, OneForOne, 1, 100);
     let first = Supervisor.child_spec[Entry[Int]](1, Process.entry[Int](703), Permanent, 0, 3, 8, 0);
     let second = Supervisor.child_spec[Entry[Int]](2, Process.entry[Int](703), Permanent, 1, 3, 8, 0);
-    if {
+    when {
         Ok(_) <- Supervisor.start_child[Int](root, first);
         Ok(_) <- Supervisor.start_child[Int](root, second)
     } else {
         _ -> false
     };
     (_ <- Process.sleep(Process.timer(3));
-if {
+when {
     Ok(snapshot) <- Supervisor.snapshot(root);
     [left, right] <- snapshot.children
 } else {

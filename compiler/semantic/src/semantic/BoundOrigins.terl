@@ -36,7 +36,7 @@ local(
                 message = "Local bound origin selection exhausted its checked-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(payload) <- row.get("payload")
         } else {
@@ -50,7 +50,7 @@ local(
         };
         if {
             EntityLookup.text(payload, "kind") == "trait"
-                and EntityLookup.text(payload, "name") == name -> if {
+                and EntityLookup.text(payload, "name") == name -> when {
                 Ok(entity) <-
                     DeclarationEntities.entity(
                         selection.artifact,
@@ -68,14 +68,14 @@ local(
     }.
 
 origin(selection: Selection, name: String, used: Int, maximum: Int): Result[Found, Failure] ->
-    if {
+    when {
         Ok(imported) <- ImportOrigins.resolve_kind(selection, name, "trait", "trait", used, maximum)
     } else {
         Err(reason) -> Err(reason)
     };
     if {
         imported.found or not imported.binding.is_null() -> Ok(imported);
-        true -> if {
+        true -> when {
             Ok(rows) <- selection.artifact.get("source_declarations");
             Ok(count) <- rows.length()
         } else {
@@ -107,7 +107,7 @@ scan(
                 message = "Bound origin traversal exhausted its checked-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(bound) <- bounds.at(index)
         } else {
             _ ->
@@ -118,7 +118,7 @@ scan(
         if {
             EntityLookup.text(bound, "kind") != "trait" -> scan(selection, bounds, index + 1, count, output, used + 1, maximum);
             true -> let name = EntityLookup.text(bound, "trait_name");
-            if {
+            when {
                 Ok(found) <- origin(selection, name, used + 1, maximum)
             } else {
                 Err(reason) -> Err(reason)
@@ -152,7 +152,7 @@ pub resolve(
     used: Int,
     maximum: Int,
 ): Result[Selected, Failure] ->
-    if {
+    when {
         Ok(bounds) <- requirement.get("bounds");
         Ok(count) <- bounds.length()
     } else {

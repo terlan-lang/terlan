@@ -14,8 +14,7 @@ use super::*;
 ///
 /// Transformation:
 /// - Infers all non-callee arguments, then delegates to the shared
-///   function-value invocation checker so pipe-forward can prepend a synthetic
-///   first argument without rebuilding syntax nodes.
+///   function-value invocation checker.
 pub(crate) fn infer_syntax_function_value_call(
     expr: &SyntaxExprOutput,
     locals: &HashMap<String, Type>,

@@ -21,7 +21,6 @@ const REQUIRED_SUB_GATES: &[&str] = &[
     "vm-deterministic-hashmap-check",
     "shared-helper-check",
     "terlan-lint-style-profile-check",
-    "terlan-lint-pipe-canonicalization-check",
 ];
 
 const FORBIDDEN_REPORT_FIELDS: &[&str] = &["todo", "tbd", "placeholder", "manual_review_only"];

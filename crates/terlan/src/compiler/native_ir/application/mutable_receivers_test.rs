@@ -101,6 +101,7 @@ fn declared_receiver_precedes_trait_fallback_without_ignoring_ambiguity() {
         public: true,
         generic_params: vec![],
         trait_fallback: false,
+        scope_preferred: false,
         mutable: false,
         command: false,
     };
@@ -119,6 +120,24 @@ fn declared_receiver_precedes_trait_fallback_without_ignoring_ambiguity() {
     assert!(super::receiver_target("score", 1, &CoreType::Int, "app.Caller", &targets).is_none());
     targets.insert(key.clone(), vec![fallback.clone(), fallback.clone()]);
     assert!(super::receiver_target("score", 1, &CoreType::Int, "app.Caller", &targets).is_none());
+    let mut preferred = fallback.clone();
+    preferred.function = "preferred_score".into();
+    preferred.scope_preferred = true;
+    targets.insert(key.clone(), vec![fallback.clone(), preferred.clone()]);
+    assert_eq!(
+        super::receiver_target("score", 1, &CoreType::Int, "app.Caller", &targets)
+            .unwrap()
+            .function,
+        "preferred_score",
+    );
+    preferred.receiver = CoreType::String;
+    targets.insert(key.clone(), vec![fallback.clone(), preferred]);
+    assert_eq!(
+        super::receiver_target("score", 1, &CoreType::Int, "app.Caller", &targets)
+            .unwrap()
+            .function,
+        "trait_score",
+    );
     fallback.public = false;
     targets.insert(key, vec![fallback]);
     assert!(super::receiver_target("score", 1, &CoreType::Int, "app.Caller", &targets).is_none());
@@ -150,6 +169,34 @@ fn only_declared_receivers_survive_serialized_dispatch() {
 }
 
 #[test]
+fn duplicate_core_modules_do_not_create_receiver_ambiguity() {
+    use crate::terlan_hir::resolve_syntax_module_output;
+    use crate::terlan_syntax::parse_module_as_syntax_output;
+    use crate::terlan_typeck::lower_syntax_module_output_to_core;
+
+    let syntax = parse_module_as_syntax_output(
+        "module app.Methods. pub (values: List[T]) map(cb: (T) -> T): List[T] -> values.",
+    )
+    .expect("parse duplicate receiver fixture");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let targets = super::receiver_targets(&[core.clone(), core]);
+    let candidates = targets.get(&("map".into(), 2)).expect("receiver target");
+
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(
+        super::receiver_callable(
+            &targets,
+            "map",
+            2,
+            &CoreType::List(Box::new(CoreType::Int)),
+            "app.Caller",
+        ),
+        Some("app.Methods.map".into()),
+    );
+}
+
+#[test]
 fn generic_receiver_dispatch_preserves_types_visibility_and_ambiguity() {
     let target = ReceiverTarget {
         module: "app.ListMethods".into(),
@@ -158,6 +205,7 @@ fn generic_receiver_dispatch_preserves_types_visibility_and_ambiguity() {
         result: None,
         public: true,
         trait_fallback: false,
+        scope_preferred: false,
         mutable: false,
         command: false,
         generic_params: vec!["T".into()],
@@ -196,6 +244,7 @@ fn generic_receivers_do_not_merge_distinct_qualified_constructors() {
         result: None,
         public: true,
         trait_fallback: false,
+        scope_preferred: false,
         mutable: false,
         command: false,
         generic_params: vec!["T".into()],
@@ -221,6 +270,7 @@ fn builtin_map_receiver_does_not_merge_with_js_map() {
         result: None,
         public: true,
         trait_fallback: false,
+        scope_preferred: false,
         mutable: false,
         command: false,
         generic_params: vec!["K".into(), "V".into()],
@@ -297,6 +347,7 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
                 result: None,
                 public: true,
                 trait_fallback: false,
+                scope_preferred: false,
                 mutable: false,
                 command: false,
                 generic_params: Vec::new(),
@@ -308,6 +359,7 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
                 result: None,
                 public: true,
                 trait_fallback: false,
+                scope_preferred: false,
                 mutable: false,
                 command: false,
                 generic_params: Vec::new(),
@@ -329,4 +381,217 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
         expression,
         CoreExpr::Call { function, .. } if function == "std.io.Path.join"
     ));
+}
+
+#[test]
+fn intrinsic_receiver_does_not_require_provider_in_application_closure() {
+    let iterator = CoreType::Apply {
+        constructor: "Iterator".to_string(),
+        args: vec![CoreType::Int],
+    };
+    let variables = HashMap::from([("iterator".to_string(), iterator)]);
+    for mut expression in [
+        CoreExpr::MutableReceiverCall {
+            receiver: Box::new(CoreExpr::Var("iterator".to_string())),
+            method: "next".to_string(),
+            args: Vec::new(),
+            effects: crate::terlan_typeck::core_intrinsic_lowering::core_pure_effect_set(),
+        },
+        CoreExpr::RemoteCall {
+            type_args: Vec::new(),
+            module: "__receiver__".to_string(),
+            function: "next".to_string(),
+            args: vec![CoreExpr::Var("iterator".to_string())],
+        },
+    ] {
+        resolve_expr(
+            &mut expression,
+            "app.Support",
+            &variables,
+            &HashMap::new(),
+            &HashMap::new(),
+            &HashMap::new(),
+        )
+        .expect("resolve intrinsic receiver without provider module");
+
+        assert!(matches!(
+            expression,
+            CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall {
+                id: crate::terlan_typeck::CoreIntrinsicId::Primitive(
+                    crate::terlan_typeck::CorePrimitiveIntrinsic::IteratorNext
+                ),
+                ..
+            })
+        ));
+    }
+}
+
+#[test]
+fn declared_mutable_receiver_precedes_intrinsic_fallback() {
+    let receiver = CoreType::Apply {
+        constructor: "Set".to_string(),
+        args: vec![CoreType::String],
+    };
+    let variables = HashMap::from([
+        ("values".to_string(), receiver.clone()),
+        ("value".to_string(), CoreType::String),
+    ]);
+    let targets = HashMap::from([(
+        ("add".to_string(), 2),
+        vec![ReceiverTarget {
+            module: "std.collections.Set".to_string(),
+            function: "add".to_string(),
+            receiver,
+            result: None,
+            public: true,
+            generic_params: Vec::new(),
+            trait_fallback: false,
+            scope_preferred: false,
+            mutable: true,
+            command: true,
+        }],
+    )]);
+    let mut expression = CoreExpr::MutableReceiverCall {
+        receiver: Box::new(CoreExpr::Var("values".to_string())),
+        method: "add".to_string(),
+        args: vec![CoreExpr::Var("value".to_string())],
+        effects: crate::terlan_typeck::core_intrinsic_lowering::core_pure_effect_set(),
+    };
+
+    resolve_expr(
+        &mut expression,
+        "app.Support",
+        &variables,
+        &HashMap::new(),
+        &targets,
+        &HashMap::new(),
+    )
+    .expect("prefer declared mutable receiver");
+
+    assert!(matches!(
+        expression,
+        CoreExpr::Call { function, .. } if function == "std.collections.Set.add"
+    ));
+}
+
+#[test]
+fn intrinsic_mutable_receiver_writes_back_without_provider_module() {
+    let receiver = CoreType::Apply {
+        constructor: "Set".to_string(),
+        args: vec![CoreType::String],
+    };
+    let variables = HashMap::from([
+        ("values".to_string(), receiver.clone()),
+        ("value".to_string(), CoreType::String),
+    ]);
+    let mut expression = CoreExpr::Let {
+        bindings: vec![crate::terlan_typeck::CoreLetBinding {
+            pattern: crate::terlan_typeck::CorePattern::Var("_added".to_string()),
+            value: CoreExpr::MutableReceiverCall {
+                receiver: Box::new(CoreExpr::Var("values".to_string())),
+                method: "add".to_string(),
+                args: vec![CoreExpr::Var("value".to_string())],
+                effects: crate::terlan_typeck::core_intrinsic_lowering::core_pure_effect_set(),
+            },
+        }],
+        body: Box::new(CoreExpr::Var("values".to_string())),
+    };
+
+    resolve_expr(
+        &mut expression,
+        "app.Support",
+        &variables,
+        &HashMap::new(),
+        &HashMap::new(),
+        &HashMap::new(),
+    )
+    .expect("write back intrinsic mutable receiver");
+
+    let CoreExpr::Let { bindings, .. } = expression else {
+        panic!("expected rewritten receiver binding");
+    };
+    assert_eq!(bindings.len(), 2);
+    assert!(matches!(
+        &bindings[0],
+        crate::terlan_typeck::CoreLetBinding {
+            pattern: crate::terlan_typeck::CorePattern::Var(name),
+            value: CoreExpr::Cast { expr, target_type },
+        } if name == "values"
+            && target_type == &receiver
+            && matches!(
+                expr.as_ref(),
+                CoreExpr::Intrinsic(crate::terlan_typeck::CoreIntrinsicCall {
+                    id: crate::terlan_typeck::CoreIntrinsicId::Primitive(
+                        crate::terlan_typeck::CorePrimitiveIntrinsic::SetAdd
+                    ),
+                    ..
+                })
+            )
+    ));
+    assert!(matches!(
+        &bindings[1],
+        crate::terlan_typeck::CoreLetBinding {
+            pattern: crate::terlan_typeck::CorePattern::Var(name),
+            value: CoreExpr::Atom(value),
+        } if name == "_added" && value == "Unit"
+    ));
+}
+
+#[test]
+fn command_receiver_continuation_keeps_its_nominal_type() {
+    let receiver = CoreType::Apply {
+        constructor: "std.native.collections.Vector.Vector".to_string(),
+        args: vec![CoreType::Int],
+    };
+    let variables = HashMap::from([("values".to_string(), receiver.clone())]);
+    let targets = HashMap::from([(
+        ("push".to_string(), 2),
+        vec![ReceiverTarget {
+            module: "std.native.collections.Vector".to_string(),
+            function: "push".to_string(),
+            receiver: receiver.clone(),
+            result: Some(CoreType::Named("Unit".to_string())),
+            public: true,
+            generic_params: Vec::new(),
+            trait_fallback: false,
+            scope_preferred: false,
+            mutable: true,
+            command: true,
+        }],
+    )]);
+    let mut expression = CoreExpr::Let {
+        bindings: vec![crate::terlan_typeck::CoreLetBinding {
+            pattern: crate::terlan_typeck::CorePattern::Var("values".to_string()),
+            value: CoreExpr::MutableReceiverCall {
+                receiver: Box::new(CoreExpr::Var("values".to_string())),
+                method: "push".to_string(),
+                args: vec![CoreExpr::Int(7)],
+                effects: crate::terlan_typeck::core_intrinsic_lowering::core_pure_effect_set(),
+            },
+        }],
+        body: Box::new(CoreExpr::Var("values".to_string())),
+    };
+
+    resolve_expr(
+        &mut expression,
+        "app.Support",
+        &variables,
+        &HashMap::new(),
+        &targets,
+        &HashMap::new(),
+    )
+    .expect("preserve command receiver continuation");
+
+    let CoreExpr::Let { bindings, body } = expression else {
+        panic!("expected rewritten receiver binding");
+    };
+    assert_eq!(bindings.len(), 1);
+    assert!(matches!(
+        &bindings[0],
+        crate::terlan_typeck::CoreLetBinding {
+            pattern: crate::terlan_typeck::CorePattern::Var(name),
+            value: CoreExpr::Cast { target_type, .. },
+        } if name == "values" && target_type == &receiver
+    ));
+    assert!(matches!(body.as_ref(), CoreExpr::Var(name) if name == "values"));
 }

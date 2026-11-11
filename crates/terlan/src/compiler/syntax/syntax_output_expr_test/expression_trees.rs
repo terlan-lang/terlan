@@ -188,7 +188,7 @@ pub(super) fn syntax_output_preserves_expression_precedence_tree() {
         module precedence_tree.
 
         demo(a: Int, b: Int, c: Int): Dynamic ->
-            a + b * c |> inspect().
+            a + b * c.
         "#,
     )
     .expect("syntax output precedence tree");
@@ -197,12 +197,7 @@ pub(super) fn syntax_output_preserves_expression_precedence_tree() {
         panic!("expected function declaration");
     };
 
-    let pipe = &clauses[0].body;
-    assert_eq!(pipe.kind, SyntaxExprKind::BinaryOp);
-    assert_eq!(pipe.operator.as_deref(), Some("|>"));
-    assert_eq!(pipe.children.len(), 2);
-
-    let add = &pipe.children[0];
+    let add = &clauses[0].body;
     assert_eq!(add.kind, SyntaxExprKind::BinaryOp);
     assert_eq!(add.operator.as_deref(), Some("+"));
     assert_eq!(add.children.len(), 2);
@@ -217,14 +212,12 @@ pub(super) fn syntax_output_preserves_expression_precedence_tree() {
     assert_eq!(mul.children[0].text.as_deref(), Some("b"));
     assert_eq!(mul.children[1].kind, SyntaxExprKind::Var);
     assert_eq!(mul.children[1].text.as_deref(), Some("c"));
-
-    assert_eq!(pipe.children[1].kind, SyntaxExprKind::Call);
 }
 
 /// Verifies that boolean operators are preserved in formal syntax output.
 ///
 /// Inputs:
-/// - A module whose function body combines pipe, `or`, `and`, comparison,
+/// - A module whose function body combines `or`, `and`, comparison,
 ///   and arithmetic operators.
 ///
 /// Output:
@@ -235,19 +228,6 @@ pub(super) fn syntax_output_preserves_expression_precedence_tree() {
 /// - Parses source to `SyntaxModuleOutput` and inspects the nested
 ///   expression tree used by the formal compiler path.
 ///
-/// Verifies that boolean operators are preserved in formal syntax output.
-///
-/// Inputs:
-/// - A module whose function body combines pipe, `or`, `and`, comparison,
-///   and arithmetic operators.
-///
-/// Output:
-/// - Test passes when syntax output carries `or` and `and` as binary
-///   operator nodes in canonical precedence order.
-///
-/// Transformation:
-/// - Parses source to `SyntaxModuleOutput` and inspects the nested
-///   expression tree used by the formal compiler path.
 #[test]
 pub(super) fn syntax_output_preserves_boolean_expression_precedence_tree() {
     let output = parse_module_as_syntax_output(
@@ -255,7 +235,7 @@ pub(super) fn syntax_output_preserves_boolean_expression_precedence_tree() {
         module boolean_precedence_tree.
 
         demo(a: Bool, b: Bool, c: Bool, d: Int, e: Int): Dynamic ->
-            a |> inspect() or b and c == d + e.
+            a or b and c == d + e.
         "#,
     )
     .expect("syntax output boolean precedence tree");
@@ -264,11 +244,7 @@ pub(super) fn syntax_output_preserves_boolean_expression_precedence_tree() {
         panic!("expected function declaration");
     };
 
-    let pipe = &clauses[0].body;
-    assert_eq!(pipe.kind, SyntaxExprKind::BinaryOp);
-    assert_eq!(pipe.operator.as_deref(), Some("|>"));
-
-    let or_expr = &pipe.children[1];
+    let or_expr = &clauses[0].body;
     assert_eq!(or_expr.kind, SyntaxExprKind::BinaryOp);
     assert_eq!(or_expr.operator.as_deref(), Some("or"));
 

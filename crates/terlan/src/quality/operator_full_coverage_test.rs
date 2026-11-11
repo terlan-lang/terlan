@@ -37,7 +37,7 @@ fn operator_coverage_100_accepts_complete_fixture() {
 /// Verifies missing required operator rows are rejected.
 ///
 /// Inputs:
-/// - A matrix with the `pipe_forward` row removed.
+/// - A matrix with the `add` row removed.
 ///
 /// Output:
 /// - Diagnostic naming the missing operator.
@@ -54,9 +54,7 @@ fn operator_coverage_100_rejects_missing_operator() {
     matrix["operators"]
         .as_array_mut()
         .expect("operators")
-        .retain(|operator| {
-            operator.get("id").and_then(serde_json::Value::as_str) != Some("pipe_forward")
-        });
+        .retain(|operator| operator.get("id").and_then(serde_json::Value::as_str) != Some("add"));
     write(
         &root,
         OPERATOR_MATRIX,
@@ -65,7 +63,7 @@ fn operator_coverage_100_rejects_missing_operator() {
 
     let error = run_operator_coverage_100(&root).expect_err("missing operator should fail");
 
-    assert!(error.contains("missing operator `pipe_forward`"));
+    assert!(error.contains("missing operator `add`"));
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
@@ -268,7 +266,6 @@ fn is_supported_operator(operator: &str) -> bool {
         operator,
         "rem_keyword"
             | "bang_not"
-            | "pipe_forward"
             | "index_access"
             | "index_assignment"
             | "deprecated_strict_eq"

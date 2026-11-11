@@ -18,7 +18,7 @@ absent(path: String): Json ->
 row(root: String, path: String, optional: Bool): Result[Json, String] ->
     case File.size(OwnerStorage.child(root, path)) {
         Ok(_size) ->
-            if {
+            when {
                 Ok(rows) <- OwnerStorage.files(root, [path]);
                 Ok(value) <- rows.at(0)
             } else {
@@ -42,7 +42,7 @@ rows(
     case paths {
         [] -> Ok(result);
         [path | rest] ->
-            if {
+            when {
                 true <- budget > 0;
                 Ok(value) <- row(root, path, optional)
             } else {

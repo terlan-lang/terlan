@@ -31,7 +31,7 @@ and mixed template regions; the compiler owns validation and diagnostics.
 - `test/corpus/binary_layouts.txt`: binary constructor and shared pattern-position
   corpus.
 - `test/corpus/list_and_remote_calls.txt`: cons/comprehension classification and
-  dotted module calls and pipe composition.
+  dotted module calls and receiver composition.
 - `test/corpus/syntax_contract.txt`: shared language-contract sources and exact
   editor trees, also consumed by compiler conformance tests. Expectations and
   explicit editor differences are in

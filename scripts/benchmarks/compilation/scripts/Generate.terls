@@ -6,7 +6,7 @@ import std.io.File.
 import std.system.Arguments.{count, get}.
 
 entry(): Bool ->
-    if {
+    when {
         true <- count() == 4;
         Some(directory) <- get(0);
         Some(leaves_text) <- get(1);

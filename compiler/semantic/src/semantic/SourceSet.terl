@@ -26,7 +26,7 @@ pub struct Input {
 }.
 
 text(value: Json, key: String): String ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(result) <- field.as_string()
     } else {
@@ -92,7 +92,7 @@ freeze(values: List[Input], stage: String, mut sources: Json, mut files: Json, i
                     .put("path", Json.string(input.path))
                     .put("digest", Json.string(Hash.sha256(input.contents)))
                     .put("document_version", Json.int(input.document_version));
-            if {
+            when {
                 Ok(_) <- Directory.create_all(directory);
                 Ok(_) <- File.write_text(stage + "/context/" + input.path, input.contents);
                 Ok(_) <- File.write_text(stage + "/" + filename, input.contents)
@@ -105,7 +105,7 @@ freeze(values: List[Input], stage: String, mut sources: Json, mut files: Json, i
 collect_dependencies(rows: Json, mut dependencies: Json, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ -> false
@@ -124,7 +124,7 @@ agrees and collect_dependencies(rows, dependencies, index + 1, count))
 normalize_diagnostic_paths(mut diagnostics: Json, root: String, index: Int, count: Int): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- diagnostics.at(index);
             Ok(diagnostic) <- row.get("diagnostic")
         } else {
@@ -159,7 +159,7 @@ normalize_units(
 ): Bool ->
     if {
         index == count -> true;
-        true -> if {
+        true -> when {
             Ok(row) <- units.at(index);
             Ok(exported) <- row.get("export");
             Ok(normalized) <-
@@ -175,12 +175,12 @@ normalize_units(
         } else {
             _ -> false
         };
-        (if {
+        (when {
     true <- text(exported, "target_profile") == target and text(exported, "native_policy") == policy
 } else {
     _ -> false
 };
-(if {
+(when {
     true <- normalize_diagnostic_paths(diagnostics, root, 0, diag_count)
 } else {
     _ -> false
@@ -196,7 +196,7 @@ dependency_rows(names: List[String], dependencies: Json, mut output: Json): Bool
     case names {
         [] -> true;
         [name | rest] ->
-            if {
+            when {
                 Ok(digest) <- dependencies.get(name)
             } else {
                 _ -> false
@@ -212,7 +212,7 @@ capture_staged(
 ): Result[Json, Failure] ->
     let sources = Json.array();
     let files = Json.array();
-    if {
+    when {
         true <- freeze(values, stage, sources, files, 0)
     } else {
         _ ->
@@ -223,7 +223,7 @@ capture_staged(
                 ),
             )
     };
-    (if {
+    (when {
     Ok(compiler_digest) <- Hash.sha256_file(compiler)
 } else {
     _ ->
@@ -234,12 +234,12 @@ capture_staged(
             ),
         )
 };
-(if {
+(when {
     Ok(bundle) <- CompilerBridge.export_sources(compiler, stage + "/context", sources)
 } else {
     Err(reason) -> Err(reason)
 };
-(if {
+(when {
     true <- Hash.sha256_file(compiler) == Ok(compiler_digest)
 } else {
     _ ->
@@ -250,7 +250,7 @@ capture_staged(
             ),
         )
 };
-(if {
+(when {
     Ok(units) <- bundle.get("units");
     Ok(count) <- units.length();
     Ok(first) <- units.at(0);
@@ -268,7 +268,7 @@ capture_staged(
 (let target = text(first_export, "target_profile");
 let policy = text(first_export, "native_policy");
 let dependencies = Json.object();
-(if {
+(when {
     true <- normalize_units(units, stage + "/context", target, policy, dependencies, 0, count)
 } else {
     _ ->
@@ -281,7 +281,7 @@ let dependencies = Json.object();
 };
 (let _units = bundle.put("units", units);
 let deps = Json.array();
-(if {
+(when {
     Ok(names) <- dependencies.keys()
 } else {
     _ ->
@@ -292,7 +292,7 @@ let deps = Json.array();
             ),
         )
 };
-(if {
+(when {
     true <- dependency_rows(names, dependencies, deps)
 } else {
     _ ->
@@ -382,7 +382,7 @@ let document =
                 )
                 .put("limitations", limits),
         );
-(if {
+(when {
     Ok(id) <- SnapshotStore.identity(document, bundle)
 } else {
     Err(reason) -> Err(reason)
@@ -396,7 +396,7 @@ let document =
  */
 pub capture(compiler: String, inputs: List[Input], store: String): Result[Json, Failure] ->
     let count = List.length(inputs);
-    if {
+    when {
         true <- count > 0 and count <= 1_024
     } else {
         _ ->
@@ -408,7 +408,7 @@ pub capture(compiler: String, inputs: List[Input], store: String): Result[Json, 
             )
     };
     (let values = sort(inputs, []);
-(if {
+(when {
     true <- valid(values, "", 8_388_608)
 } else {
     _ ->
@@ -419,7 +419,7 @@ pub capture(compiler: String, inputs: List[Input], store: String): Result[Json, 
             ),
         )
 };
-(if {
+(when {
     Ok(stage) <- Directory.create_temporary("terlan-semantic-source-set-")
 } else {
     _ ->

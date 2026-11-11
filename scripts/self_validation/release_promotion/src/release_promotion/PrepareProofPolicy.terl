@@ -35,13 +35,13 @@ pub declare(
     command: String,
     day: String,
 ): Result[Owner, String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(quality);
         Some(_date) <- Date.parse_iso(day)
     } else {
         _ -> Err("invalid proof policy tool path or UTC date")
     };
-    (if {
+    (when {
     [filename, schema] <- specification(command)
 } else {
     _ -> Err("unknown proof policy producer")
@@ -76,7 +76,7 @@ Ok(
  */
 pub prepare(root: String, quality: String, command: String): Result[Decision, String] ->
     let day = Date.to_iso(Date.today_utc());
-    if {
+    when {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(owner) <- declare(root, quality, context, command, day)
     } else {
@@ -89,7 +89,7 @@ if {
 }).
 
 pub run_locked(root: String, quality: String, command: String): Bool ->
-    if {
+    when {
         Ok(result) <- prepare(root, quality, command)
     } else {
         Err(reason) ->
@@ -112,7 +112,7 @@ result.valid).
  */
 pub prepare_all(root: String, quality: String): Result[Summary, String] ->
     let day = Date.to_iso(Date.today_utc());
-    if {
+    when {
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(runtime) <- declare(root, quality, context, "lean-proof-runtime", day);
         Ok(ownership) <- declare(root, quality, context, "lean-proof-pr", day);
@@ -136,7 +136,7 @@ if {
 }).
 
 pub run_all_locked(root: String, quality: String): Bool ->
-    if {
+    when {
         Ok(result) <- prepare_all(root, quality)
     } else {
         Err(reason) ->

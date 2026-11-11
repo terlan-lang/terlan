@@ -128,6 +128,13 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$cache/build}"
   case "$CARGO_TARGET_DIR" in /*) ;; *) export CARGO_TARGET_DIR="$root/$CARGO_TARGET_DIR" ;; esac
   export TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$cache/validation-results/terlan"
+  # Commit admission intentionally uses the newest locally built scripting
+  # compiler. Candidate validation separately proves the staged compiler.
+  if [[ -x "$root/target/debug/terlc" && ! -L "$root/target/debug/terlc" ]]; then
+    export TERLAN_HOOK_LATEST_TERLC="$root/target/debug/terlc"
+  else
+    unset TERLAN_HOOK_LATEST_TERLC
+  fi
   # Repository-level Terlan tests use the conventional target/debug paths.
   # Share only the hook-owned binaries; keep generated evidence inside this
   # disposable staged checkout and never copy the external build directory.
@@ -156,7 +163,14 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   fi
   unset TERLAN_UPDATE_PHASE_GOLDEN
   cd "$snapshot"
-  bash scripts/git_hooks/check.sh "$changes" "$base"
+  if [[ ${TERLAN_HOOK_MODE:-fast} == fast ]]; then
+    fast_timeout=${TERLAN_HOOK_FAST_TIMEOUT_SECONDS:-60}
+    case "$fast_timeout" in ''|*[!0-9]*) echo 'Invalid fast admission timeout' >&2; exit 2 ;; esac
+    timeout --kill-after=5s "${fast_timeout}s" \
+      bash scripts/git_hooks/check.sh "$changes" "$base"
+  else
+    bash scripts/git_hooks/check.sh "$changes" "$base"
+  fi
   # Validation must never silently repair the source it is approving.
   git diff --exit-code
   test "$(git write-tree)" = "$tree"

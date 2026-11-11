@@ -103,15 +103,15 @@ pub require_user(_request: Request): MiddlewareResult ->
 
 pub api(router: Router): Router ->
     router
-    |> Router.use(require_user)
-    |> Router.get("/users/:id", show_user).
+        .use(require_user)
+        .get("/users/:id", show_user).
 
 pub application_router(): Router ->
     Router.new()
-    |> Router.use(propagate_trace)
-    |> Router.map_response(normalize_headers)
-    |> Router.group("/api", api)
-    |> Router.error(recover_http_error).
+        .use(propagate_trace)
+        .map_response(normalize_headers)
+        .group("/api", api)
+        .error(recover_http_error).
 ```
 
 Terlan source prefixes group paths, expands grouped fallback declarations into

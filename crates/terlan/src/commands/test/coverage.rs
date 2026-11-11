@@ -61,6 +61,9 @@ impl DeclarationCoverage {
             .map(|root| canonical_path(root))
             .collect::<Result<Vec<_>, _>>()?;
         for record in records {
+            if is_compiler_generated_callable(&record.function) {
+                continue;
+            }
             let source_file = canonical_path(Path::new(&record.source_file))?;
             if !roots.iter().any(|root| source_file.starts_with(root)) {
                 continue;
@@ -157,6 +160,10 @@ impl DeclarationCoverage {
     }
 }
 
+fn is_compiler_generated_callable(function: &str) -> bool {
+    function.starts_with("$aot_")
+}
+
 fn canonical_path(path: &Path) -> Result<PathBuf, String> {
     fs::canonicalize(path).map_err(|error| {
         format!(
@@ -185,3 +192,7 @@ fn source_line(path: &Path, offset: usize) -> Result<usize, String> {
         .count()
         + 1)
 }
+
+#[cfg(test)]
+#[path = "coverage_test.rs"]
+mod coverage_test;

@@ -345,17 +345,10 @@ operator_after_pipe(source: String, index: Int): String ->
     }.
 
 @pure
-operator_after_range(source: String, index: Int): String ->
-    if {
-        starts(source, "|>", index) -> "|>";
-        true -> operator_after_pipe(source, index)
-    }.
-
-@pure
 operator_after_strict_not(source: String, index: Int): String ->
     if {
         starts(source, "..", index) -> "..";
-        true -> operator_after_range(source, index)
+        true -> operator_after_pipe(source, index)
     }.
 
 @pure

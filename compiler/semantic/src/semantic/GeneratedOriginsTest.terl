@@ -23,16 +23,20 @@ text(value: Json, key: String): String ->
 compiler(): String ->
     case Environment.get("TERLAN_SEMANTIC_TEST_COMPILER") {
         Some(value) -> value;
-        _ -> Environment.current_directory() + "/target/debug/terlc"
+        _ ->
+            case Environment.get("TERLC") {
+                Some(value) -> value;
+                _ -> Environment.current_directory() + "/target/debug/terlc"
+            }
     }.
 
 find(rows: Json, kind: String, name: String, index: Int, count: Int): Result[Json, Bool] ->
-    if {
+    when {
         true <- index < count
     } else {
         _ -> Err(false)
     };
-    (if {
+    (when {
     Ok(row) <- rows.at(index)
 } else {
     _ -> Err(false)
@@ -52,14 +56,14 @@ check_functions(
 ): Bool ->
     if {
         index == count -> observed == 2 and arity_sum == 3;
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ -> false
         };
         if {
             text(row, "name") != "add" -> check_functions(rows, origin, index + 1, count, observed, arity_sum);
-            true -> if {
+            true -> when {
                 Ok(source) <- row.get("source");
                 Ok(span) <- source.get("declaration_span");
                 Ok(start) <- span.get("start");
@@ -82,7 +86,7 @@ check_functions(
 
 @test
 pub core_query_preserves_generated_default_adapter_source_origins(): Bool ->
-    if {
+    when {
         Ok(root) <- Directory.create_temporary("terlan-generated-origin-");
         Ok(_) <-
             File.write_text(
@@ -116,7 +120,7 @@ pub core_query_preserves_generated_default_adapter_source_origins(): Bool ->
             Json.object().put("max_bytes", Json.int(100_000)).put("max_work", Json.int(10_000)),
         )
         .put("cursor", Json.null());
-(if {
+(when {
     Ok(result) <- Query.run(root + "/store", request);
     Ok(facts) <- result.get("facts");
     Ok(first) <- facts.at(0);

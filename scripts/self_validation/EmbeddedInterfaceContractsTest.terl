@@ -43,7 +43,7 @@ fixture_holds(generated: String, source: String, artifact: String): Bool ->
     }.
 
 artifact_matches(generated: String, artifact: String): Bool ->
-    if {
+    when {
         Ok(expected) <- read_text(append("std/summaries/", artifact));
         Ok(actual) <- read_text(child(generated, artifact))
     } else {

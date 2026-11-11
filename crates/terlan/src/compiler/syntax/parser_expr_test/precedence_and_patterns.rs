@@ -28,38 +28,6 @@ fn typed_lambda_annotations_survive_syntax_serialization() {
     assert!(crate::terlan_syntax::parse_expr_as_syntax_output("(value: List[) -> value").is_err());
 }
 
-#[test]
-fn formal_expr_precedence_keeps_pipe_below_boolean_chain() {
-    let expr = parse_terlan_expr("A |> B + C * D or Ready").expect("parse formal precedence");
-    let Expr::BinaryOp { op, right, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-
-    let Expr::BinaryOp { op, left, .. } = right.as_ref() else {
-        panic!("expected or expression on pipe right side");
-    };
-    assert!(matches!(op, crate::terlan_syntax::parse_tree::BinaryOp::Or));
-
-    let Expr::BinaryOp { op, right, .. } = left.as_ref() else {
-        panic!("expected additive expression on or left side");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::Add
-    ));
-    assert!(matches!(
-        right.as_ref(),
-        Expr::BinaryOp {
-            op: crate::terlan_syntax::parse_tree::BinaryOp::Mul,
-            ..
-        }
-    ));
-}
-
 /// Verifies range membership parses as `value in (start..end)`.
 ///
 /// Inputs:
@@ -689,41 +657,21 @@ fn assert_typed_string_capture_pattern(
 /// Verifies the boolean precedence chain introduced by the canonical EBNF.
 ///
 /// Inputs:
-/// - A source expression containing pipe, `or`, `and`, comparison, and
+/// - A source expression containing `or`, `and`, comparison, and
 ///   arithmetic operators.
 ///
 /// Output:
-/// - Test passes when parsing preserves `pipe < or < and < cmp`.
+/// - Test passes when parsing preserves `or < and < cmp`.
 ///
 /// Transformation:
 /// - Parses one expression through the recursive-descent parser and
 ///   inspects the nested binary operator tree.
 ///
-/// Verifies the boolean precedence chain introduced by the canonical EBNF.
-///
-/// Inputs:
-/// - A source expression containing pipe, `or`, `and`, comparison, and
-///   arithmetic operators.
-///
-/// Output:
-/// - Test passes when parsing preserves `pipe < or < and < cmp`.
-///
-/// Transformation:
-/// - Parses one expression through the recursive-descent parser and
-///   inspects the nested binary operator tree.
 #[test]
 fn formal_boolean_operators_preserve_ebnf_precedence() {
-    let expr = parse_terlan_expr("A |> C or D and E == F + G").expect("parse boolean precedence");
+    let expr = parse_terlan_expr("C or D and E == F + G").expect("parse boolean precedence");
     let Expr::BinaryOp { op, right, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-
-    let Expr::BinaryOp { op, right, .. } = right.as_ref() else {
-        panic!("expected or expression on pipe right side");
+        panic!("expected or expression");
     };
     assert!(matches!(op, crate::terlan_syntax::parse_tree::BinaryOp::Or));
 
@@ -811,7 +759,7 @@ fn formal_bitwise_operators_preserve_contract_precedence() {
 }
 
 #[test]
-fn list_pipe_remains_cons_and_grouped_pipe_is_bitwise_or() {
+fn list_separator_remains_cons_and_grouped_bar_is_bitwise_or() {
     assert!(matches!(
         parse_terlan_expr("[head | tail]").expect("parse list cons"),
         Expr::ListCons(_, _)
@@ -832,7 +780,7 @@ fn list_pipe_remains_cons_and_grouped_pipe_is_bitwise_or() {
 /// Verifies explicit cast syntax follows the canonical precedence chain.
 ///
 /// Inputs:
-/// - Expressions containing `as`, multiplication, pipe, and keyword forms.
+/// - Expressions containing `as`, multiplication, and keyword forms.
 ///
 /// Output:
 /// - Test passes when `Cast` binds above multiplication and below postfix
@@ -845,7 +793,7 @@ fn list_pipe_remains_cons_and_grouped_pipe_is_bitwise_or() {
 /// Verifies explicit cast syntax follows the canonical precedence chain.
 ///
 /// Inputs:
-/// - Expressions containing `as`, multiplication, pipe, and keyword forms.
+/// - Expressions containing `as`, multiplication, and keyword forms.
 ///
 /// Output:
 /// - Test passes when `Cast` binds above multiplication and below postfix
@@ -872,19 +820,10 @@ fn formal_cast_expr_preserves_ebnf_precedence() {
         } if target_type.text == "Int"
     ));
 
-    let expr = parse_terlan_expr(
-        "case Option { Atom[\"none\"] -> 0; value -> value } as Int |> inspect()",
-    )
-    .expect("parse casted keyword expression before pipe");
-    let Expr::BinaryOp { op, left, .. } = expr else {
-        panic!("expected pipe expression");
-    };
-    assert!(matches!(
-        op,
-        crate::terlan_syntax::parse_tree::BinaryOp::PipeForward
-    ));
-    let Expr::Cast { expr, target_type } = left.as_ref() else {
-        panic!("expected cast expression on pipe left side");
+    let expr = parse_terlan_expr("case Option { Atom[\"none\"] -> 0; value -> value } as Int")
+        .expect("parse casted keyword expression");
+    let Expr::Cast { expr, target_type } = &expr else {
+        panic!("expected cast expression");
     };
     assert_eq!(target_type.text, "Int");
     assert!(matches!(expr.as_ref(), Expr::Case { .. }));

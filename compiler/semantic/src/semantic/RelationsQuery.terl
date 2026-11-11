@@ -36,7 +36,7 @@ definition_value(selection: Selection, kind: String, evidence: Json): Json ->
         .put("candidate_set_exhaustive", Json.bool(false)).
 
 matches(selection: Selection, row: Json): Bool ->
-    if {
+    when {
         Ok(origin) <- selection.entity.get("origin");
         Ok(start) <- origin.get("start_byte");
         Ok(end) <- origin.get("end_byte");
@@ -68,7 +68,7 @@ requirements(
                 message = "Requirement selection exhausted its checked-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ ->
@@ -80,7 +80,7 @@ requirements(
                 )
         };
         if {
-            matches(selection, row) -> if {
+            matches(selection, row) -> when {
                 Ok(origins) <- BoundOrigins.resolve(selection, row, found.work_used + 1, maximum)
             } else {
                 Err(reason) -> Err(reason)
@@ -119,7 +119,7 @@ contracts(selection: Selection, maximum: Int): Result[Selected, Failure] ->
     let empty = Selected(rows = Json.array(), work_used = selection.work_used, truncated = false);
     let kind = EntityLookup.text(selection.entity, "kind");
     if {
-        kind == "trait" or kind == "shape" -> if {
+        kind == "trait" or kind == "shape" -> when {
             Ok(payload) <- selection.record.get("payload")
         } else {
             _ ->
@@ -148,7 +148,7 @@ if {
         ),
     )
 });
-        kind == "function" or kind == "type" -> if {
+        kind == "function" or kind == "type" -> when {
             Ok(metadata) <- selection.artifact.get("requirement_observations");
             Ok(rows) <- metadata.get("requirements");
             Ok(count) <- rows.length();
@@ -183,7 +183,7 @@ relations(
                 message = "Relation selection exhausted its checked-record inspection budget.",
             ),
         );
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index)
         } else {
             _ ->
@@ -209,7 +209,7 @@ relations(
 
 pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
     if {
-        EntityLookup.text(selection.entity, "kind") == "pattern" -> if {
+        EntityLookup.text(selection.entity, "kind") == "pattern" -> when {
             Ok(origins) <- ShapeOrigins.select(selection, maximum)
         } else {
             Err(reason) -> Err(reason)
@@ -219,12 +219,12 @@ pub select(selection: Selection, maximum: Int): Result[Selected, Failure] ->
     }.
 
 select_declaration(selection: Selection, maximum: Int): Result[Selected, Failure] ->
-    if {
+    when {
         Ok(found) <- contracts(selection, maximum)
     } else {
         Err(reason) -> Err(reason)
     };
-    (if {
+    (when {
     Ok(rows) <- selection.artifact.get("conformance_contracts");
     Ok(count) <- rows.length()
 } else {

@@ -44,7 +44,7 @@ reports_pass(files: List[TextFile], paths: List[{String, String}]): Bool ->
 
 @pure
 recipe_is_offline(makefile: String): Bool ->
-    if {
+    when {
         [_before, suffix] <- String.split(makefile, "release-preflight:");
         [recipe | _rest] <- String.split(suffix, "\n\n")
     } else {
@@ -58,7 +58,7 @@ recipe_is_offline(makefile: String): Bool ->
 
 @pure
 recipe_is_composition_only(makefile: String): Bool ->
-    if {
+    when {
         [_before, suffix] <- String.split(makefile, "release-preflight:");
         [recipe | _rest] <- String.split(suffix, "\n\n")
     } else {

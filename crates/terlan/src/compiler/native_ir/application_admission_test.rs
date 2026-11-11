@@ -645,7 +645,7 @@ fn suspending_argument_case_retains_option_boolean_payload_type() {
                  {1, Some(\"--allow\")} -> Some(true);\n\
                  _ -> None\n\
              };\n\
-             if {\n\
+             when {\n\
                  Some(allowed) <- selected\n\
              } else {\n\
                  _ -> false\n\
@@ -678,7 +678,7 @@ fn suspending_argument_case_retains_option_string_payload_type() {
                  {1, Some(path)} -> Some(path);\n\
                  _ -> None\n\
              };\n\
-             if {\n\
+             when {\n\
                  Some(path) <- selected\n\
              } else {\n\
                  _ -> \"missing\"\n\

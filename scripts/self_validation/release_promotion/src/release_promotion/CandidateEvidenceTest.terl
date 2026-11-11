@@ -19,7 +19,7 @@ remove(root: String, paths: List[String]): Bool ->
     case paths {
         [] -> true;
         [path | rest] ->
-            if {
+            when {
                 Ok(_deleted) <- File.delete(OwnerStorage.child(root, path))
             } else {
                 _ -> false
@@ -28,7 +28,7 @@ remove(root: String, paths: List[String]): Bool ->
     }.
 
 create_bookkeeping(root: String): Bool ->
-    if {
+    when {
         Ok(_owner) <-
             Directory.create_all(
                 OwnerStorage.child(root, "target/quality/preparation/candidate/owner.work"),
@@ -65,7 +65,7 @@ create_bookkeeping(root: String): Bool ->
     publication_scratch(root).
 
 publication_scratch(root: String): Bool ->
-    if {
+    when {
         Ok(_scratch) <- Directory.create_all(OwnerStorage.child(root, "target/quality/publication.pending"));
         true <- write(root, "target/quality/publication.pending/publication-plan.json", "");
         true <- write(root, "target/quality/publication.pending/release.json", "{}\n");
@@ -76,7 +76,7 @@ publication_scratch(root: String): Bool ->
     true.
 
 bookkeeping(root: String, original: List[String]): Bool ->
-    if {
+    when {
         true <- create_bookkeeping(root);
         Ok(created) <- CandidateEvidence.paths(root);
         true <- created == original;
@@ -119,7 +119,7 @@ genuine_reports(root: String, original: List[String]): Bool ->
             "target/quality/nested/release-status.json",
             "target/quality/publication.pending/evidence.json",
         ];
-    if {
+    when {
         Ok(_nested) <- Directory.create_all(OwnerStorage.child(root, "target/quality/nested/preparation"));
         true <- write(root, "target/quality/preparation-report.json", "{}\n");
         true <- write(root, "target/quality/rust-cargo-metadata-report.json", "{}\n");
@@ -145,7 +145,7 @@ genuine_reports(root: String, original: List[String]): Bool ->
  * then verifies the original candidate seal using the real payload builder.
  */
 pub self_test(root: String): Bool ->
-    if {
+    when {
         true <- CandidateEvidence.relative_root_self_test();
         Ok(original) <- CandidateEvidence.paths(root);
         true <- original == ["target/quality/self-test-report.json"];

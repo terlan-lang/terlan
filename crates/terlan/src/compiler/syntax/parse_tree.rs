@@ -653,7 +653,6 @@ pub enum BinaryOp {
     In,
     And,
     Or,
-    PipeForward,
 }
 
 /// Trait declaration with required and default methods.

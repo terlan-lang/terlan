@@ -15,13 +15,13 @@ import type release_promotion.PreparationOwner.{Decision, Owner}.
 import type std.core.Result.
 
 pub declare(root: String, vm: String, image: String, context: Context): Result[Owner, String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image)
     } else {
         _ -> Err("preparation tools must be inside target/")
     };
     (let env = context.environment;
-(if {
+(when {
     Ok(version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], env);
     Ok(tools) <- OwnerTools.build_identity(root, env, context.runtime_tools)
 } else {
@@ -40,7 +40,7 @@ pub declare_with_tools(
     version: String,
     tools: BuildIdentity,
 ): Result[Owner, String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image)
     } else {
         _ -> Err("preparation tools must be inside target/")
@@ -77,12 +77,12 @@ Ok(
 )).
 
 pub prepare(root: String, vm: String, image: String): Result[Decision, String] ->
-    if {
+    when {
         true <- PreparationContext.tool_path(vm) and PreparationContext.tool_path(image)
     } else {
         _ -> Err("preparation tools must be inside target/")
     };
-    (if {
+    (when {
     Ok(context) <-
         PreparationContext.capture(
             root,

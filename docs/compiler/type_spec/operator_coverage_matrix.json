@@ -248,7 +248,7 @@
         "integer_bitwise_or_executes"
       ],
       "adversarial_tests": [
-        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::list_pipe_remains_cons_and_grouped_pipe_is_bitwise_or"
+        "crates/terlan/src/compiler/syntax/parser_expr_test/precedence_and_patterns.rs::list_separator_remains_cons_and_grouped_bar_is_bitwise_or"
       ],
       "source_fragments": [
         "crates/terlan/src/compiler/syntax/parse_tree.rs::BitOr",
@@ -599,28 +599,6 @@
       "source_fragments": [
         "crates/terlan/src/compiler/typeck/expression/operators.rs::is_string_concat_pair",
         "crates/terlan/src/compiler/native_ir/expression/string_concat.rs::let append = encode_string_append_operation();"
-      ]
-    },
-    {
-      "id": "pipe_forward",
-      "spelling": "|>",
-      "kind": "binary",
-      "parse": "supported",
-      "format": "supported",
-      "typecheck": "supported",
-      "core_ir": "partial",
-      "target_profile": "vm-gated",
-      "vm": "unsupported",
-      "js": "supported",
-      "diagnostic": "unsupported_vm_feature",
-      "positive_tests": [],
-      "adversarial_tests": [
-        "crates/terlan/src/compiler/typeck/expression_test/assignment_templates_and_html.rs::syntax_output_infers_pipe_forward_on_formal_path",
-        "crates/terlan/src/compiler/typeck/expression/calls/pipe.rs::right side of |> must be a function call"
-      ],
-      "source_fragments": [
-        "crates/terlan/src/compiler/syntax/parse_tree.rs::PipeForward",
-        "crates/terlan/src/compiler/typeck/expression/operators.rs::SyntaxBinaryOp::PipeForward"
       ]
     },
     {

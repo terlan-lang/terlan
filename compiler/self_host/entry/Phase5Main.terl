@@ -35,22 +35,22 @@ backend_usage(): Unit ->
     ).
 
 main_backend_unit(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> backend_usage()
     };
-    (if {
+    (when {
     Some(interfaces) <- Arguments.get(2)
 } else {
     None -> backend_usage()
 };
-(if {
+(when {
     Some(output) <- Arguments.get(3)
 } else {
     None -> backend_usage()
 };
-(if {
+(when {
     Some(diagnostics) <- Arguments.get(4)
 } else {
     None -> backend_usage()
@@ -67,17 +67,17 @@ optimizer_usage(): Unit ->
     ).
 
 main_optimizer_evidence(): Unit ->
-    if {
+    when {
         Some(root) <- Arguments.get(1)
     } else {
         None -> optimizer_usage()
     };
-    (if {
+    (when {
     Some(output) <- Arguments.get(2)
 } else {
     None -> optimizer_usage()
 };
-(if {
+(when {
     Some(marker) <- Arguments.get(3)
 } else {
     None -> optimizer_usage()
@@ -94,17 +94,17 @@ optimizer_artifacts_usage(): Unit ->
     ).
 
 main_optimizer_artifacts(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> optimizer_artifacts_usage()
     };
-    (if {
+    (when {
     Some(interfaces) <- Arguments.get(2)
 } else {
     None -> optimizer_artifacts_usage()
 };
-(if {
+(when {
     Some(output) <- Arguments.get(3)
 } else {
     None -> optimizer_artifacts_usage()
@@ -112,22 +112,22 @@ main_optimizer_artifacts(): Unit ->
 (let _completed = ProjectedInterfaceCatalog.write_optimizer_artifacts(source, interfaces, output); Unit))).
 
 main_optimizer_runtime(): Unit ->
-    if {
+    when {
         Some(root) <- Arguments.get(1)
     } else {
         None -> optimizer_artifacts_usage()
     };
-    (if {
+    (when {
     Some(publisher) <- Arguments.get(2)
 } else {
     None -> optimizer_artifacts_usage()
 };
-(if {
+(when {
     Some(vm) <- Arguments.get(3)
 } else {
     None -> optimizer_artifacts_usage()
 };
-(if {
+(when {
     Some(entry) <- Arguments.get(4)
 } else {
     None -> optimizer_artifacts_usage()
@@ -135,27 +135,27 @@ main_optimizer_runtime(): Unit ->
 (let _completed = SelfHostCoreOptimizeRuntimeTool.write(root, publisher, vm, entry); Unit)))).
 
 main_optimizer_cross_target(): Unit ->
-    if {
+    when {
         Some(source) <- Arguments.get(1)
     } else {
         None -> optimizer_artifacts_usage()
     };
-    (if {
+    (when {
     Some(interfaces) <- Arguments.get(2)
 } else {
     None -> optimizer_artifacts_usage()
 };
-(if {
+(when {
     Some(target_a) <- Arguments.get(3)
 } else {
     None -> optimizer_artifacts_usage()
 };
-(if {
+(when {
     Some(target_b) <- Arguments.get(4)
 } else {
     None -> optimizer_artifacts_usage()
 };
-(if {
+(when {
     Some(output) <- Arguments.get(5)
 } else {
     None -> optimizer_artifacts_usage()

@@ -8,7 +8,7 @@ import std.io.Console.{eprintln, println}.
 import std.system.Arguments.{count, get}.
 
 entry(): Bool ->
-    if {
+    when {
         true <- count() == 2 or count() == 3;
         Some(store) <- get(0);
         Some(snapshot) <- get(1)

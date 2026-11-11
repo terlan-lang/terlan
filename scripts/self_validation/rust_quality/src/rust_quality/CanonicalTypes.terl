@@ -212,7 +212,7 @@ candidate_rows(
 ): Option[List[Candidate]] ->
     if {
         index == count -> Some(output);
-        true -> if {
+        true -> when {
             Ok(candidate) <- Json.at(candidates, index);
             Ok(rendered) <- Json.stringify(candidate)
         } else {
@@ -230,7 +230,7 @@ candidate_rows(
     }.
 
 candidates_for(report: Json, field: String, category: String): Option[List[Candidate]] ->
-    if {
+    when {
         Ok(candidates) <- Json.get(report, field);
         Ok(count) <- Json.length(candidates)
     } else {
@@ -342,7 +342,7 @@ load(root: String): CanonicalResult ->
                                 message = reason.message,
                             );
                         Ok(report) ->
-                            if {
+                            when {
                                 Some(equal) <- candidates_for(report, "equal_shape_candidates", "equal-shape");
                                 Some(named) <- candidates_for(report, "same_name_candidates", "same-name");
                                 Ok(parse_failures) <- Json.get(report, "parse_failures");
@@ -380,7 +380,7 @@ pub check(root: String): CanonicalResult ->
     load(root).
 
 candidate_identity(source: String): Option[String] ->
-    if {
+    when {
         Ok(candidate) <- Json.parse(source);
         Ok(rendered) <- Json.stringify(candidate)
     } else {

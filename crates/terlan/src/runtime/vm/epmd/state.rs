@@ -52,8 +52,6 @@ impl ServerOptions {
             max_unregistered: MAX_UNREGISTERED,
         }
     }
-
-
 }
 
 /// Mutable EPMD server state.
@@ -84,7 +82,6 @@ impl ServerState {
     pub fn registered_len(&self) -> usize {
         self.registered.len()
     }
-
 
     /// Register an ALIVE2 node for a connection.
     pub fn register_alive2(

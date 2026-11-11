@@ -370,14 +370,14 @@ node-security-audit-check:
 .PHONY: comprehension-guards-check
 .PHONY: lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-track-check lean-proof-smoke-check lean-proof-feature-binding-check lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check lean-proof-counterexample-check lean-proof-track-gap-hygiene-check lean-proof-feature-cull-check proof-repro-check proof_repro_check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-track-runtime-check lean-proof-track-release-closeout-check lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check release-artifacts-closeout-check proof-coverage-release-artifacts-smoke proof-readiness-release-mode-check release-evidence-compose release-evidence-refresh release-preflight release-check publish-evidence-refresh publish-evidence-check publish-evidence-plan-check publish-evidence-refresh-plan-check aot-developer-hot-reload-check
 .PHONY: function-head-pattern-parameters-check function-head-migration-diagnostic-policy-check function-head-migration-lint-check function-head-pattern-migration-assist-check function-head-pattern-migration-benchmark-check function-head-pattern-migration-docs-check function-head-pattern-0-0-7-handoff-check function-head-pattern-parameters-hardening-check
-.PHONY: syntax-contract-check shape-implications-check
+.PHONY: syntax-contract-check syntax-contract-artifacts syntax-contract-artifacts-check shape-implications-check
 .PHONY: shape-synonyms-check
 .PHONY: wasm-coreir-lowering-check wasm-runtime-exec-check wasm-contract-discovery-check
 .PHONY: flexible-shape-guards-check
 .PHONY: callable-syntax-cleanup-check
 .PHONY: release-version-channel-check release-version-bump
 .PHONY: editor-definition-navigation-check editor-code-action-auto-import-check
-.PHONY: terlan-lint-style-profile-check terlan-lint-pipe-canonicalization-check
+.PHONY: terlan-lint-style-profile-check
 .PHONY: upgrade-local update-terlc
 .PHONY: dormant-runtime-code-check rust-module-structure-check rust-structure-census-check rust-structure-census-record-timings rust-build-graph-boundary-check
 .PHONY: rust-format-check rust-locked-binary-check rust-clippy-check rust-workspace-policy-check
@@ -436,7 +436,6 @@ CHECK_GATES := \
 	rust-code-quality-preflight-check \
 	build-artifact-budget-check \
 	aot-developer-hot-reload-check \
-	terlan-lint-pipe-canonicalization-check \
 	stdlib-check \
 	language-feature-coverage-100-check \
 	lean-proof-track-check \
@@ -1266,6 +1265,16 @@ validate-ebnf: | terlan-ebnf-validator-bootstrap
 	TERLAN_EBNF_COMPILER="$(CURDIR)/$(TERLAN_BOOTSTRAP_COMPILER)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_EBNF_VALIDATOR_IMAGE) --script-eval -- --strict
 
+syntax-contract-artifacts: | terlan-compiler-bootstrap
+	TERLAN_SYNTAX_ARTIFACT_ROOT="$(CURDIR)" \
+	TERLAN_SYNTAX_ARTIFACT_COMPILER="$(CURDIR)/target/debug/terlc" \
+		target/debug/terlc run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --write
+
+syntax-contract-artifacts-check: | terlan-compiler-bootstrap
+	TERLAN_SYNTAX_ARTIFACT_ROOT="$(CURDIR)" \
+	TERLAN_SYNTAX_ARTIFACT_COMPILER="$(CURDIR)/target/debug/terlc" \
+		target/debug/terlc run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --check
+
 workspace-version-check: | terlan-repository-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_REPOSITORY_VALIDATION) workspace-version
@@ -1425,8 +1434,7 @@ release-code-hygiene-check: \
 	dormant-runtime-code-check \
 	vm-deterministic-hashmap-check \
 	shared-helper-check \
-	terlan-lint-style-profile-check \
-	terlan-lint-pipe-canonicalization-check
+	terlan-lint-style-profile-check
 	$(TERLAN_QUALITY) release-code-hygiene
 
 
@@ -1827,7 +1835,14 @@ release-candidate-check: build-artifact-budget-record
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 		$(MAKE) --no-print-directory release-proof-baseline-check
 
-.PHONY: release-proof-baseline-check
+.PHONY: generated-contract-artifacts proof-release-baseline release-proof-baseline-check
+generated-contract-artifacts: syntax-contract-artifacts proof-release-baseline
+
+proof-release-baseline: lean-proof-lanes-check | terlan-proof-release-bootstrap
+	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
+		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) \
+			--script-eval -- record-baseline
+
 release-proof-baseline-check: | terlan-proof-release-bootstrap
 	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/self_validation/proof_release_evidence/src/proof_release_evidence/LaneFreshnessTest.terl
 	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
@@ -4321,13 +4336,6 @@ terlan-lint-style-profile-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools terlan_lint_style_profile_test
 	$(TERLAN_QUALITY) terlan-lint-style-profile
 
-terlan-lint-pipe-canonicalization-check: \
-	terlan-lint-style-profile-check \
-	terlan-lint-style-check \
-	formatter-pipe-canonicalization-check
-	$(TERLC_EXACT_TEST) commands::lint::lint_test::pipe_test::lint_rejects_default_argument_ambiguous_module_pipe_candidate -- --exact
-	$(TERLC_EXACT_TEST) commands::lint::lint_test::pipe_test::lint_rejects_default_argument_ambiguous_receiver_pipe_candidate -- --exact
-
 std-test-honesty-check:
 	$(RUST_TEST) -p terlan --lib --features quality-tools std_test_honesty_test
 	$(TERLAN_QUALITY) std-test-honesty
@@ -5487,8 +5495,9 @@ publish-evidence-refresh-plan-check:
 
 TERLAN_RELEASE_CONTROL_IMAGE := target/release-control/vm/scripts_Release.tvm
 TERLAN_RELEASE_CONTROL := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE) --script-eval --
+TERLAN_RELEASE_CONTROL_SOURCE := $(TERLAN_BOOTSTRAP_COMPILER) run scripts/release_control/scripts/Release.terls --
 
-.PHONY: release release-wait release-tag publish-tag release-status release-control-check terlan-release-control-bootstrap
+.PHONY: release release-plan release-predict release-wait release-tag publish-tag release-status release-control-check terlan-release-control-bootstrap
 terlan-release-control-bootstrap: terlan-typed-validator-fingerprint
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_RELEASE_CONTROL_IMAGE)
@@ -5500,6 +5509,15 @@ endif
 
 release-status: | terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) status "$(VERSION)"
+
+release-plan: publish-source-preflight
+	@test -x $(TERLAN_BOOTSTRAP_COMPILER) || { echo 'release planning requires the current local terlc' >&2; exit 1; }
+	$(TERLAN_RELEASE_CONTROL_SOURCE) status "$(VERSION)"
+
+release-predict: publish-source-preflight publish-evidence-plan-check publish-evidence-refresh-plan-check
+	@test -x $(TERLAN_BOOTSTRAP_COMPILER) || { echo 'release prediction requires the current local terlc' >&2; exit 1; }
+	$(TERLAN_RELEASE_CONTROL_SOURCE) predict "$(VERSION)"
+	@echo '[release-predict] hosted checks, retained artifacts, and local execution graph are ready'
 
 release: publish
 
@@ -5526,7 +5544,7 @@ release-control-check: | terlan-release-control-bootstrap
 	$(TERLAN_RELEASE_CONTROL) acceptance-test "$(CURDIR)/$(TERLAN_BOOTSTRAP_VM)" "$(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE)"
 
 .PHONY: publish publish-local publish-local-check publish-release-input-check publish-workflow-input-check publish-upload browser-release-check
-publish: publish-source-preflight
+publish: release-plan publish-source-preflight
 	@set -eu; \
 	git_common=$$(git rev-parse --path-format=absolute --git-common-dir); \
 	test -d "$$git_common" && test ! -L "$$git_common"; \

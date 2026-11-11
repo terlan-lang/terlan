@@ -47,7 +47,7 @@ require(condition: Bool, message: String): Result[Bool, String] ->
     }.
 
 pub declare(root: String, context: Context): Result[Owner, String] ->
-    if {
+    when {
         Ok(tools) <- OwnerTools.build_identity(root, context.environment, context.runtime_tools)
     } else {
         Err(reason) -> Err(reason)
@@ -59,7 +59,7 @@ pub declare(root: String, context: Context): Result[Owner, String] ->
  */
 pub declare_with_tools(context: Context, tools: BuildIdentity): Result[Owner, String] ->
     let env = context.environment;
-    if {
+    when {
         Ok(_host) <-
             require(
                 String.contains(tools.rustc, "host: x86_64-unknown-linux-gnu"),
@@ -100,7 +100,7 @@ pub declare_with_tools(context: Context, tools: BuildIdentity): Result[Owner, St
     ).
 
 pub run_locked(root: String): Bool ->
-    if {
+    when {
         Ok(context) <-
             PreparationContext.capture(
                 root,

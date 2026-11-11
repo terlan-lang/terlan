@@ -145,7 +145,7 @@ status_holds(status: String): Bool ->
         or status == "slice_blocked".
 
 slice_number(slice_id: String): Option[Int] ->
-    if {
+    when {
         ["Slice", number_source] <- String.split(slice_id, " ");
         Some(number) <- Int.from_string(number_source)
     } else {
@@ -276,7 +276,7 @@ reverse_records(values: List[Record], output: List[Record]): List[Record] ->
     }.
 
 current_records(source: String): Option[List[Record]] ->
-    if {
+    when {
         Ok(index) <- Json.parse(source);
         Some(schema) <- json_string(index, "schema");
         Ok(records_json) <- index.get("records");
@@ -317,7 +317,7 @@ projected_records(rows: List[StringFieldRow], reversed: List[Record]): Option[Li
     }.
 
 json_string(value: Json, key: String): Option[String] ->
-    if {
+    when {
         Ok(field) <- value.get(key);
         Ok(text) <- field.as_string()
     } else {
@@ -493,7 +493,7 @@ diff_json(diff: DiffData): Json ->
         .put("schema", Json.string("terlan.lean-proof-binding-diff.v1")).
 
 parse_inputs(inputs: Inputs): Option[DiffData] ->
-    if {
+    when {
         Some(accepted) <- accepted_records(inputs.accepted);
         Some(current) <- current_records(inputs.index)
     } else {
@@ -796,7 +796,7 @@ policy_classes_lines(lines: List[String]): List[String] ->
     }.
 
 policy_classes_source(source: String): Option[List[String]] ->
-    if {
+    when {
         Ok(value) <- Json.parse(source);
         Ok(length) <- value.length()
     } else {
@@ -816,7 +816,7 @@ policy_class_rows(
 ): Option[List[String]] ->
     if {
         index == length -> Some(reverse_strings(reversed, []));
-        true -> if {
+        true -> when {
             Ok(item) <- value.at(index);
             Ok(class_name) <- item.as_string()
         } else {
@@ -847,7 +847,7 @@ policy_json(policy: Policy): Json ->
         .put("unresolved_warning_ttl_days", Json.int(policy.unresolved_warning_ttl_days)).
 
 exceptions(source: String, today: std.time.Date.Date): Option[List[Exception]] ->
-    if {
+    when {
         Ok(payload) <- Json.parse(source);
         Some(schema) <- json_string(payload, "schema");
         Ok(rows) <- payload.get("exceptions");
@@ -872,7 +872,7 @@ exception_rows(
 ): Option[List[Exception]] ->
     if {
         index == length -> Some(reverse_exceptions(reversed, []));
-        true -> if {
+        true -> when {
             Ok(row) <- rows.at(index);
             Ok(keys) <- row.keys();
             Some(slice_id) <- json_string(row, "slice_id");
@@ -1280,7 +1280,7 @@ review_json(
         .put("signed_exceptions", exception_rows).
 
 json_equal_source(source: String, expected: Json): Bool ->
-    if {
+    when {
         Ok(observed) <- Json.parse(source);
         {Ok(left), Ok(right)} <- {Json.stringify(observed), Json.stringify(expected)}
     } else {
@@ -1402,7 +1402,7 @@ inputs_from_task_files(task: String, files: List[TextFile]): Option[Inputs] ->
     }.
 
 write_json(root: String, name: String, value: Json): Bool ->
-    if {
+    when {
         Some(source) <- render(value);
         Ok(Unit) <- create_all(root_path(root, "target/quality/proof-artifacts"));
         Ok(Unit) <- write_text(report_path(root, name), source)
@@ -1541,7 +1541,7 @@ run_impact(root: String, inputs: Inputs, diff: DiffData): Bool ->
     }.
 
 review_data(today: String, inputs: Inputs, diff: DiffData): Option[Json] ->
-    if {
+    when {
         Some(today_date) <- Date.parse_iso(today);
         Some(policy_value) <- policy(inputs.policy);
         Some(exception_rows) <- exceptions(inputs.exceptions, today_date)
@@ -1557,7 +1557,7 @@ if {
 
 run_review(root: String, today: String, inputs: Inputs, diff: DiffData): Bool ->
     let impact_value = impact(diff);
-    if {
+    when {
         Some(review) <- review_data(today, inputs, diff)
     } else {
         _ -> fail("unexcepted or malformed snapshot policy regression")
@@ -1576,7 +1576,7 @@ print_review(review: Json, changed: List[String]): Bool ->
             None -> "invalid"
         };
     let exceptions_count =
-        (if {
+        (when {
     Ok(rows) <- review.get("signed_exceptions");
     Ok(value) <- rows.length()
 } else {
@@ -1603,7 +1603,7 @@ value);
 
 run_snapshot(root: String, today: String, inputs: Inputs, diff: DiffData): Bool ->
     let impact_value = impact(diff);
-    if {
+    when {
         Some(policy_value) <- policy(inputs.policy);
         Some(expected_review) <- review_data(today, inputs, diff);
         Ok(observed_review) <- Json.parse(inputs.observed_review);
@@ -1648,7 +1648,7 @@ persist_snapshot(
             .put("policy_digest", Json.string(digest(policy_json(policy))))
             .put("schema", Json.string("terlan.lean-proof-policy-result.v1"))
             .put("status", Json.string("pass"));
-    if {
+    when {
         Some(canonical_source) <- render(canonical_index);
         Some(diff_source) <- render(diff_json(diff));
         Some(impact_source) <- render(impact.value);
@@ -1674,7 +1674,7 @@ persist_snapshot(
     }.
 
 snapshot_directory(root: String, relative: String): Bool ->
-    if {
+    when {
         None <- Environment.get("TERLAN_PROOF_SNAPSHOT_INDEX_OUTPUT");
         Err(_reason) <- create_all(root_path(root, relative))
     } else {
@@ -1694,7 +1694,7 @@ write_snapshot_files(
     review_source: String,
     policy_source: String,
 ): Bool ->
-    if {
+    when {
         Ok(Unit) <-
             write_text(
                 snapshot_output(
@@ -1766,7 +1766,7 @@ repository_task_holds(): Bool ->
     let root = environment_or("TERLAN_LEAN_PROOF_ROOT", Environment.current_directory());
     let today = environment_or("TERLAN_PROOF_BINDING_DATE", Date.to_iso(Date.today_utc()));
     let task = selected_task();
-    if {
+    when {
         Some(_day) <- Date.parse_iso(today)
     } else {
         _ -> fail("snapshot UTC date is malformed")

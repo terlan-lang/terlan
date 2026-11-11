@@ -153,7 +153,7 @@ successful(result: Option[Completion]): Bool ->
     }.
 
 build(session: Session, name: String, reference: Bool, expected: Int): Bool ->
-    if {
+    when {
         Some(removed) <-
             CacheControl.prepare(
                 String.append(
@@ -177,7 +177,7 @@ build(session: Session, name: String, reference: Bool, expected: Int): Bool ->
 }).
 
 same_artifact(session: Session, phase: String): Bool ->
-    if {
+    when {
         Ok(incremental) <- sha256_file(binary(session, false));
         Ok(reference) <- sha256_file(binary(session, true))
     } else {
@@ -235,7 +235,7 @@ diagnostic_cycle(session: Session): Bool ->
 
 run_sample(session: Session, count: Int, width: Int, records: Bool): Bool ->
     let expected = count * width;
-    if {
+    when {
         true <- Corpus.generate(session.project, count, width, records);
         Ok(source_hash) <- sha256_tree(session.project);
         Ok(compiler_hash) <- sha256_file(session.compiler);
@@ -248,7 +248,7 @@ let _compiler = session.report.put("compiler_sha256", Json.string(compiler_hash)
 let _stdlib = session.report.put("stdlib_source_and_summary_sha256", Json.string(stdlib_hash));
 let _host = session.report.put("host_before", Evidence.host_snapshot());
 let _cwd = session.report.put("working_directory", Json.string(Environment.current_directory()));
-(if {
+(when {
     true <- successful(capture(session, "compiler-version", session.compiler, ["--version"]));
     true <- toolchain(session);
     true <- build(session, "build-cold", false, expected);
@@ -307,7 +307,7 @@ pub run_with_reuse(
     if {
         not valid_input or exists(directory) -> let _error = eprintln("Benchmark requires positive bounded dimensions and a new output directory.");
         false;
-        true -> if {
+        true -> when {
             Ok(_) <- create_all(directory)
         } else {
             _ -> false
@@ -379,7 +379,7 @@ passed and cleaned and _written)
  * Captures compiler, backend, ABI, target, and exact linker identities.
  */
 toolchain(session: Session): Bool ->
-    if {
+    when {
         Some(output) <-
             capture(
                 session,

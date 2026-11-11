@@ -600,7 +600,8 @@ pub lambda(path: String): String ->
       (expression
         (let_expression
           (let_binding
-            (identifier)
+            (let_binding_pattern
+              (identifier))
             (expression
               (lambda_expression
                 (parameters

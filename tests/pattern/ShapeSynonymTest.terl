@@ -23,16 +23,16 @@ shape PositiveAsset(_marker) = "assets/${asset_id: Int}.json" where asset_id > 0
 shape Route(method, path) = {method, path}.
 
 constructor Ready {
-    (): Dynamic ->
+    (): Atom["ready"] ->
         Atom["ready"]
 }.
 
 shape ReadyValue() = Ready().
 
-pub unwrap(Wrapped(value): Dynamic): Int ->
+pub unwrap(Wrapped(value): {Atom["wrapped"], {Atom["pair"], Int}}): Int ->
     value.
 
-pub read_pair(value: Dynamic): Int ->
+pub read_pair(value: {Atom["pair"], Int}): Int ->
     case value {
         Pair(number) -> number;
         _ -> 0
@@ -44,19 +44,19 @@ pub first_or_zero(value: List[Int]): Int ->
         _ -> 0
     }.
 
-pub success_body(value: Dynamic): Int ->
+pub success_body(value: {Int, Int}): Int ->
     case value {
         Success(body) where body > 0 -> body;
         _ -> 0
     }.
 
-pub tagged_positive(value: Dynamic): Int ->
+pub tagged_positive(value: {Atom["positive"], Int}): Int ->
     case value {
         TaggedPositive(found) -> found;
         _ -> 0
     }.
 
-pub unwrap_positive(Positive(value): Dynamic): Int ->
+pub unwrap_positive(Positive(value): Int): Int ->
     value.
 
 pub assert_positive(input: Int): Int ->
@@ -73,13 +73,13 @@ pub selected_values(values: List[Int]): List[Int] ->
 pub positive_below_ten(values: List[Int]): List[Int] ->
     [value | Positive(value) <- values, value < 10].
 
-pub success_with_external_status(value: Dynamic, status: Int): Int ->
+pub success_with_external_status(value: {Int, Int}, status: Int): Int ->
     case value {
         Success(body) where status == 500 -> body;
         _ -> 0
     }.
 
-pub two_successes(left: Dynamic, right: Dynamic): Int ->
+pub two_successes(left: {Int, Int}, right: {Int, Int}): Int ->
     case {left, right} {
         {Success(first), Success(second)} -> first + second;
         _ -> 0
@@ -103,14 +103,14 @@ pub positive_asset(path: String): Bool ->
         _ -> false
     }.
 
-pub is_ready(value: Dynamic): Bool ->
+pub is_ready(value: Atom["ready"] | Atom["waiting"]): Bool ->
     case value {
         ReadyValue() -> true;
         _ -> false
     }.
 
 pub add_positive(left: Int, right: Int): Int ->
-    if {
+    when {
         Positive(first) <- left;
         Positive(second) <- right
     } else {
@@ -118,7 +118,7 @@ pub add_positive(left: Int, right: Int): Int ->
     };
     first + second.
 
-pub user_route_id(request: Dynamic): Int ->
+pub user_route_id(request: {String, String}): Int ->
     case request {
         Route("GET", "/users/${id: Int}") -> id;
         _ -> -1
