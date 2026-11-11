@@ -1,14 +1,21 @@
 #!/usr/bin/env -S terlc run
 import git_hooks.Plan.
-import std.core.Option.{Some}.
-import std.core.Result.{Ok}.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.Console.{println}.
 import std.io.File.
 import std.system.Arguments.
 
-let Some(path) = Arguments.get(0);
-let Ok(source) = File.read_text(path);
-println(String.join(Plan.prefixed_preflight_lanes(String.split(source, "\n")), "\n"));
-println(String.join(Plan.lanes(String.split(source, "\n")), "\n"));
+entry(): Bool ->
+    case Arguments.get(0) {
+        None -> false;
+        Some(path) -> case File.read_text(path) {
+            Err(_) -> false;
+            Ok(source) ->
+                (let paths = String.split(source, "\n"); let _preflight = println(String.join(Plan.prefixed_preflight_lanes(paths), "\n")); let _specialized = println(String.join(Plan.prefixed_specialized_terlan_tests(paths), "\n")); let _lanes = println(String.join(Plan.lanes(paths), "\n")); true)
+        }
+    }.
+
+assert(entry());
 Unit.

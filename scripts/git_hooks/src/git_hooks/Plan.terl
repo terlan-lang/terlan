@@ -175,6 +175,35 @@ prefix_preflight_lanes(values: List[String]): List[String] ->
         [value | rest] -> [String.append("preflight:", value) | prefix_preflight_lanes(rest)]
     }.
 
+/**
+ * Returns changed contracts that require their owning prepared environment or
+ * benchmark lane instead of the generic standalone Terlan test runner.
+ */
+pub specialized_terlan_tests(paths: List[String]): List[String] ->
+    case paths {
+        [] -> List.new[String]();
+        [path | rest] ->
+            if {
+                specialized_terlan_test(path) -> [path | specialized_terlan_tests(rest)];
+                true -> specialized_terlan_tests(rest)
+            }
+    }.
+
+pub prefixed_specialized_terlan_tests(paths: List[String]): List[String] ->
+    prefix_specialized_terlan_tests(specialized_terlan_tests(paths)).
+
+prefix_specialized_terlan_tests(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] ->
+            [String.append("specialized-test:", value) | prefix_specialized_terlan_tests(rest)]
+    }.
+
+@pure
+specialized_terlan_test(path: String): Bool ->
+    String.starts_with(path, "scripts/self_validation/") and String.ends_with(path, "Test.terl")
+        or String.ends_with(path, "BenchmarkTest.terl").
+
 pub workspace(paths: List[String]): Bool ->
     general_fixtures(paths) or non_compiler_rust(paths).
 
@@ -361,16 +390,19 @@ release_script(paths: List[String]): Bool ->
         [path | rest] ->
             String.starts_with(path, "scripts/")
     and String.ends_with(path, ".sh")
-    and path != "scripts/git_hooks/check.sh"
+    and path != "scripts/git_hooks.sh"
     and path != "scripts/git_hooks_test.sh"
+    and path != "scripts/git_hooks/check.sh"
+    and path != "scripts/git_hooks/formatting_only.sh"
+    and path != "scripts/git_hooks/js_browser.sh"
     and path != "scripts/git_hooks/rust_reports.sh"
     and path != "scripts/git_hooks/stdlib_summaries.sh"
+    and path != "scripts/git_hooks/terlan.sh"
                 or release_script(rest)
     }.
 
 pub bootstrap(paths: List[String]): Bool ->
-    not workspace(paths)
-        and (affected(paths, "mk/hermetic-support.mk", "") or affected(paths, "scripts/git_hooks/check.sh", "")).
+    not workspace(paths) and affected(paths, "mk/hermetic-support.mk", "").
 
 pub clippy(paths: List[String]): Bool ->
     workspace(paths)
@@ -411,18 +443,39 @@ pub proofs(paths: List[String]): Bool ->
         or affected(paths, "scripts/git_hooks/proofs.sh", "").
 
 pub lanes(paths: List[String]): List[String] ->
-    let source_rust =
+    let orchestrator_rust =
         if {
-            workspace(paths) -> ["workspace"];
             test_orchestrator(paths) and not bootstrap(paths) -> ["test-orchestrator"];
+            true -> List.new[String]()
+        };
+    let boundary_rust =
+        if {
             rust_boundary_audit(paths) -> ["rust-boundary-audit"];
+            true -> List.new[String]()
+        };
+    let command_rust =
+        if {
             commands(paths) -> command_lanes(paths);
+            true -> List.new[String]()
+        };
+    let compiler_rust =
+        if {
             native_lowering(paths) -> ["native-ir", "phase"];
             compiler(paths) -> ["compiler", "phase"];
             syntax(paths) or build_support(paths) -> ["syntax", "phase"];
             phase(paths) -> ["phase"];
             true -> List.new[String]()
         };
+    let workspace_rust =
+        if {
+            workspace(paths) -> ["workspace"];
+            true -> List.new[String]()
+        };
+    let source_rust =
+        append(
+            orchestrator_rust,
+            append(boundary_rust, append(command_rust, append(compiler_rust, workspace_rust))),
+        );
     let rust =
         if {
             dependency_inputs(paths) -> ["dependencies" | source_rust];

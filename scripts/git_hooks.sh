@@ -55,13 +55,49 @@ cache="$root/target/git-hooks"
 test ! -L "$root/target"
 test ! -L "$cache"
 mkdir -p "$cache"
-if ! mkdir "$cache/lock" 2>/dev/null; then
-  echo "Another staged validation owns $cache/lock; wait for it to finish." >&2
+validation_lock="$cache/validation.lock"
+if [[ -L "$validation_lock" || ( -e "$validation_lock" && ! -f "$validation_lock" ) ]]; then
+  echo "Invalid staged validation lock path: $validation_lock" >&2
   exit 1
 fi
-trap 'rmdir "$cache/lock"' EXIT
+exec 8>>"$validation_lock"
+if ! flock --exclusive --nonblock 8; then
+  echo "Another staged validation owns $validation_lock; wait for it to finish." >&2
+  exit 1
+fi
+[[ /dev/fd/8 -ef "$validation_lock" ]] || exit 1
 trap 'exit 130' INT
 trap 'exit 143' TERM
+validation_schema=terlan-staged-tree-validation-v1
+validation_receipt_dir="$cache/validation-results/staged-trees"
+if [[ -z ${CARGO_HOME:-} && -L "$cache/cargo-home" ]]; then
+  echo "Invalid default Cargo cache path: $cache/cargo-home" >&2
+  exit 1
+fi
+test ! -L "$cache/validation-results"
+test ! -L "$validation_receipt_dir"
+mkdir -p "$validation_receipt_dir"
+validation_key="$({
+  printf '%s\n' "$validation_schema" "$tree" "$base"
+  printf '%s\n' \
+    "CARGO_HOME=${CARGO_HOME:-<default>}" \
+    "CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-<default>}" \
+    "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-<default>}"
+  for executable in "$(command -v cargo)" "$(command -v rustc)"; do
+    printf '%s:%s\n' "$executable" "$(git hash-object "$executable")"
+  done
+  cargo -Vv
+  rustc -Vv
+} | git hash-object --stdin)"
+validation_receipt="$validation_receipt_dir/$validation_key.passed"
+if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 \
+  && -f "$validation_receipt" \
+  && $(wc -l < "$validation_receipt") == 2 \
+  && $(sed -n '1p' "$validation_receipt") == "$validation_schema" \
+  && $(sed -n '2p' "$validation_receipt") == "$validation_key" ]]; then
+  echo "pre-commit: reuse passed staged tree $tree"
+  exit 0
+fi
 raw_changes="$cache/changed-paths.raw.txt"
 changes="$cache/changed-paths.txt"
 git diff --no-renames --name-only -z "$base" "$tree" > "$cache/changed-paths.nul"
@@ -91,6 +127,16 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   git -C "$snapshot" clean -ffdqx
   export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$cache/build}"
   case "$CARGO_TARGET_DIR" in /*) ;; *) export CARGO_TARGET_DIR="$root/$CARGO_TARGET_DIR" ;; esac
+  export TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$cache/validation-results/terlan"
+  # Repository-level Terlan tests use the conventional target/debug paths.
+  # Share only the hook-owned binaries; keep generated evidence inside this
+  # disposable staged checkout and never copy the external build directory.
+  test ! -L "$snapshot/target"
+  mkdir -p "$snapshot/target"
+  test ! -e "$snapshot/target/debug"
+  test ! -L "$snapshot/target/debug"
+  ln -s "$CARGO_TARGET_DIR/debug" "$snapshot/target/debug"
+  test "$(readlink "$snapshot/target/debug")" = "$CARGO_TARGET_DIR/debug"
   # The staged checkout reuses ordinary Cargo artifacts, but incremental state
   # is both checkout-specific and disproportionately large. Default it off so
   # a workspace test lane cannot exhaust disk after Clippy and release builds.
@@ -119,4 +165,7 @@ if [[ "$(git write-tree)" != "$tree" || "$(git rev-parse --verify HEAD 2>/dev/nu
   echo 'The index or HEAD changed during validation; retry the commit.' >&2
   exit 1
 fi
+temporary_receipt=$(mktemp "$validation_receipt_dir/.staged-tree.XXXXXX")
+printf '%s\n%s\n' "$validation_schema" "$validation_key" > "$temporary_receipt"
+mv "$temporary_receipt" "$validation_receipt"
 echo "pre-commit: passed staged tree $tree"

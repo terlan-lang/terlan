@@ -109,6 +109,12 @@ and validator sources; that completed entry is not compiled again by the later
 changed-Terlan-source lane. Changed declaration-based Terlan tests also enforce
 100% declaration coverage.
 
+Changed Terlan sources and `.terls` entries are passed to one ordered
+`terlc check` batch. The compiler groups files by their owning project, prepares
+each source graph once, and checks only the changed modules and entries without
+linking native images. Bash only collects paths; Terlan owns project discovery,
+dependency resolution, and validation.
+
 Commits that change Rust dependency or toolchain inputs run `make
 rust-security-audit-check` against the staged lockfile and the current RustSec
 database, with warnings denied. Scheduled and release checks retain the
@@ -211,7 +217,7 @@ summary generation batches the independent CSS property modules separately.
 | --- | --- |
 | Grammar/parser inputs, Lean proofs and metadata, compiler/runtime specifications, standard-library inputs, native-boundary sources, or proof validators | Check EBNF/LALRPOP/Lean fingerprints and replay the complete Lean proof track against the staged snapshot; requires the pinned Lean toolchain and, on Linux, Bubblewrap |
 | Rust source or compiler/grammar inputs | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
-| Rust source | Check formatting only for changed `.rs` files; formatter or toolchain configuration changes check every tracked Rust source |
+| Rust source | Check formatting only for changed handwritten `.rs` files; formatter or toolchain configuration changes check every tracked handwritten Rust source. Generated NativeBoundary Rust is checked by its freshness gate. |
 | The above inputs, checked Rust quality reports, or their validators | Enforce Rust size and test-layout rules; regenerate AST and Cargo metadata evidence; check API-boundary inventory and dependency-impact report without updating tracked files |
 | Rust/compiler/grammar inputs, stdlib sources and summaries, or summary generators | Check native and JavaScript/DOM summaries against temporary regenerated output; requires Node/npm |
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
@@ -240,6 +246,14 @@ set `TERLAN_TEST_FORCE_RERUN=1` to deliberately repeat an identical result.
 Owning workflow, hook-policy, and release-contract gates record the Terlan
 sources they already compiled. The generic Terlan lane treats that record as
 terminal and does not rebuild, reformat, or retest those files.
+
+Affected Terlan tests run as project-scoped units before broad repository and
+platform gates. A source with an executable owning test is not checked a second
+time first. Successful check and test units receive content-addressed receipts
+bound to the compiler, command, project inputs, standard library, and local path
+dependencies. Receipts live outside the disposable staged checkout, survive a
+later gate failure, reject corruption, and are replaced only after a successful
+rerun. Set `TERLAN_TEST_FORCE_RERUN=1` to bypass them deliberately.
 
 For Terlan files, Git plumbing compares the staged bytes with the staged
 compiler's formatting of the same file at the commit's original base. Exact
@@ -275,9 +289,10 @@ selection policy lives in `src/git_hooks/Plan.terl`.
 Missing tools and failed or empty Rust test selections stop the commit. Test
 output identifies the failed gate. Review and stage golden updates explicitly;
 the hook clears `TERLAN_UPDATE_PHASE_GOLDEN` and never accepts automatic repairs.
-After a killed validation process, remove `target/git-hooks/lock` only after
-confirming no other check is running. Concurrent invocations fail without
-touching the active snapshot. Filenames containing newlines are rejected.
+The staged-validation lock uses `flock`, so the kernel releases it when a
+validation process exits or is killed. Concurrent invocations fail without
+touching the active snapshot, and interrupted runs need no manual lock cleanup.
+Filenames containing newlines are rejected.
 
 Rust report checks compile the staged validator once with the canonical optimized
 compiler, then execute every report check with its paired VM.

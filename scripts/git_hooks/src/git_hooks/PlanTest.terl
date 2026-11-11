@@ -142,6 +142,39 @@ pub ordinary_docs_avoid_test_suites(): Bool ->
     Plan.lanes(["README.md"]) == ["shell"].
 
 @test
+pub specialized_integration_tests_require_their_owning_environment(): Bool ->
+    Plan.specialized_terlan_tests(
+    [
+        "scripts/self_validation/AcceleratorPackageMetadataTest.terl",
+        "scripts/self_validation/AcceleratorTargetAdmissionTest.terl",
+        "scripts/self_validation/AcceleratorValueContractTest.terl",
+        "scripts/self_validation/AngularTsIntegrationTest.terl",
+        "scripts/self_validation/CallableSyntaxCleanupTest.terl",
+        "scripts/self_validation/CudaPackageContractTest.terl",
+        "scripts/self_validation/JsonEvidenceContractTest.terl",
+        "scripts/self_validation/release_promotion/src/release_promotion/ReadinessTest.terl",
+        "scripts/self_validation/VmCliBridgeTest.terl",
+        "benchmarks/fixtures/BinaryProtocolBenchmarkTest.terl",
+        "scripts/benchmarks/protocol/ProtocolBenchmarkTest.terl",
+        "scripts/self_validation/RepositoryValidation.terls",
+        "std/io/FileTest.terl",
+    ],
+) == [
+    "scripts/self_validation/AcceleratorPackageMetadataTest.terl",
+    "scripts/self_validation/AcceleratorTargetAdmissionTest.terl",
+    "scripts/self_validation/AcceleratorValueContractTest.terl",
+    "scripts/self_validation/AngularTsIntegrationTest.terl",
+    "scripts/self_validation/CallableSyntaxCleanupTest.terl",
+    "scripts/self_validation/CudaPackageContractTest.terl",
+    "scripts/self_validation/JsonEvidenceContractTest.terl",
+    "scripts/self_validation/release_promotion/src/release_promotion/ReadinessTest.terl",
+    "scripts/self_validation/VmCliBridgeTest.terl",
+    "benchmarks/fixtures/BinaryProtocolBenchmarkTest.terl",
+    "scripts/benchmarks/protocol/ProtocolBenchmarkTest.terl",
+]
+        and Plan.prefixed_specialized_terlan_tests(["scripts/self_validation/JsonEvidenceContractTest.terl"]) == ["specialized-test:scripts/self_validation/JsonEvidenceContractTest.terl"].
+
+@test
 pub ordinary_docs_avoid_artifact_workloads(): Bool ->
     Plan.preflight_lanes(["README.md"]) == ["inventory"]
         and not Plan.artifact_budget(["README.md"])
@@ -209,8 +242,15 @@ pub test_command_changes_use_their_owned_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/test/coverage.rs"]) == ["shell", "clippy", "rust-reports", "commands-test"].
 
 @test
+pub mixed_workspace_changes_retain_targeted_command_tests(): Bool ->
+    Plan.lanes(["crates/terlan/src/commands/test/coverage.rs", "crates/terlan/src/tests/help_test.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "commands-test", "workspace"].
+
+@test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->
     Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
+        and Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell"]
+        and not Plan.release_contract(["scripts/git_hooks.sh"])
+        and not Plan.bootstrap(["scripts/git_hooks/check.sh"])
         and not Plan.native_bindings(["scripts/git_hooks/check.sh"])
         and not Plan.artifact_budget(["scripts/git_hooks/check.sh"])
         and not Plan.release_contract(["scripts/git_hooks_test.sh"]).
@@ -269,7 +309,7 @@ pub bootstrap_make_changes_run_sandbox_integration_tests(): Bool ->
 
 @test
 pub bootstrap_runner_changes_test_the_lane(): Bool ->
-    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell", "bootstrap"].
+    Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell"].
 
 @test
 pub orchestrator_tests_use_their_owning_crate_lane(): Bool ->
@@ -283,7 +323,7 @@ pub bootstrap_changes_already_cover_orchestrator_regressions(): Bool ->
         "scripts/git_hooks/check.sh",
         "crates/terlan-test-orchestrator/tests/hosted_release_make.rs",
     ],
-) == ["shell", "bootstrap", "clippy", "rust-reports", "release-contract"].
+) == ["shell", "clippy", "rust-reports", "test-orchestrator", "release-contract"].
 
 @test
 pub workspace_tests_already_cover_bootstrap(): Bool ->

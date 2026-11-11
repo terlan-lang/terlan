@@ -30,6 +30,8 @@ set -eu
 test "$(cat tracked.txt)" = good
 test -z "${GIT_INDEX_FILE:-}"
 test "$2" = "$(git -C "$(git remote get-url origin)" rev-parse HEAD)"
+test -L target/debug
+test "$(readlink target/debug)" = "$CARGO_TARGET_DIR/debug"
 if test -n "${EXPECTED_HOOK_CARGO_HOME:-}"; then
   test "$CARGO_HOME" = "$EXPECTED_HOOK_CARGO_HOME"
 fi
@@ -97,11 +99,28 @@ test "$(git show :tracked.txt)" = bad
 test "$(GIT_INDEX_FILE="$temporary/alternate-index" git show :tracked.txt)" = good
 
 # Concurrent checks cannot reset a snapshot that is currently being validated.
-mkdir target/git-hooks/lock
+mkdir -p target/git-hooks
+lock_ready="$temporary/validation-lock.ready"
+lock_wait="$temporary/validation-lock.wait"
+mkfifo "$lock_wait"
+(
+  exec 9>target/git-hooks/validation.lock
+  flock --exclusive 9
+  touch "$lock_ready"
+  read -r _ < "$lock_wait"
+) &
+lock_owner=$!
+while [[ ! -f "$lock_ready" ]]; do sleep 0.01; done
 if bash "$driver" check > "$temporary/locked.log" 2>&1; then
   echo 'Hook ignored the active snapshot lock' >&2; exit 1
 fi
-rmdir target/git-hooks/lock
+kill "$lock_owner"
+wait "$lock_owner" 2>/dev/null || true
+rm -f "$lock_ready" "$lock_wait"
+
+# Kernel locks are released automatically when a killed owner exits.
+GIT_INDEX_FILE="$temporary/alternate-index" \
+  bash "$driver" check > "$temporary/recovered-lock.log" 2>&1
 
 # Stage a checker that changes the real index while it runs: approval must fail.
 cat > scripts/git_hooks/check.sh <<'CHECK'
@@ -377,11 +396,18 @@ grep -Fq 'repository_root=$(git remote get-url origin)' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'compiler/self_host/corpus/*' \
+  "$(dirname "$driver")/git_hooks/terlan.sh"
 grep -Fq 'terlc="$target_terlc"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'cargo fmt --all' "$(dirname "$driver")/git_hooks/check.sh"; then
   echo 'Hook redundantly formats unchanged Rust sources' >&2; exit 1
 fi
+early_terlan_line=$(rg -n -F 'early terlan ownership and coverage' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+inventory_line=$(rg -n -F 'retained source inventory' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+test "$early_terlan_line" -lt "$inventory_line"
 
 # The executable budget owns four binaries in both profiles. Planner bootstrap
 # already provides debug terlc and terlan-vm; the budget lane must explicitly
@@ -406,7 +432,9 @@ exit 1
 FORMAT
 cat > "$temporary/terlan-lane/terlc" <<'TERLC'
 #!/usr/bin/env bash
+if [[ "$*" == 'test --help' ]]; then echo '--coverage-source <file>'; exit 0; fi
 printf '%s\n' "$*" >> "$TERLAN_LANE_CALLS"
+if [[ ${TERLAN_LANE_FAIL:-} == test && " $* " == *' test '* ]]; then exit 9; fi
 TERLC
 cat > "$temporary/terlan-lane/src/Legacy.terl" <<'SOURCE'
 module fixture.Legacy.
@@ -423,31 +451,120 @@ module fixture.DeclaredTest.
 @test
 declared_test(): Bool -> true.
 SOURCE
+cat > "$temporary/terlan-lane/src/Second.terl" <<'SOURCE'
+module fixture.Second.
+SOURCE
+cat > "$temporary/terlan-lane/src/SecondTest.terl" <<'SOURCE'
+module fixture.SecondTest.
+@test
+second_test(): Bool -> true.
+SOURCE
 cat > "$temporary/terlan-lane/src/Prechecked.terls" <<'SOURCE'
 assert(true).
 SOURCE
-printf '%s\n' src/Legacy.terl src/Declared.terl src/Prechecked.terls > "$temporary/terlan-lane/changes.txt"
+cat > "$temporary/terlan-lane/src/SpecializedTest.terl" <<'SOURCE'
+module fixture.SpecializedTest.
+@test
+specialized_test(): Bool -> true.
+SOURCE
+cat > "$temporary/terlan-lane/terlan.toml" <<'MANIFEST'
+[package]
+name = "hook-fixture"
+version = "0.0.1"
+
+[build]
+source_roots = ["src"]
+MANIFEST
+printf '%s\n' src/Legacy.terl src/Declared.terl src/Second.terl src/Prechecked.terls src/SpecializedTest.terl > "$temporary/terlan-lane/changes.txt"
 printf '%s\n' src/Prechecked.terls > "$temporary/terlan-lane/prechecked.txt"
+printf '%s\n' src/SpecializedTest.terl > "$temporary/terlan-lane/specialized.txt"
 chmod +x "$temporary/terlan-lane/terlc" \
   "$temporary/terlan-lane/scripts/git_hooks/formatting_only.sh"
+git init --quiet --initial-branch=main "$temporary/terlan-lane"
+git -C "$temporary/terlan-lane" add .
 (
   cd "$temporary/terlan-lane"
   TERLAN_LANE_CALLS="$temporary/terlan-lane.calls" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$temporary/terlan-lane-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-lane-receipts" \
     bash "$(dirname "$driver")/git_hooks/terlan.sh" \
-      changes.txt unused "$PWD/terlc" false prechecked.txt \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
     > "$temporary/terlan-lane.log" 2>&1
 )
-grep -Fx 'check src/Legacy.terl' "$temporary/terlan-lane.calls"
-grep -Fx 'check src/Declared.terl' "$temporary/terlan-lane.calls"
-grep -Fx 'test src/DeclaredTest.terl --coverage --coverage-threshold 100' "$temporary/terlan-lane.calls"
+rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check src$" "$temporary/terlan-lane.calls"
+rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} test src/DeclaredTest.terl src/SecondTest.terl --coverage --coverage-source src/Declared.terl --coverage-source src/Second.terl --coverage-threshold 100$" "$temporary/terlan-lane.calls"
+if rg -q -- ' build ' "$temporary/terlan-lane.calls"; then
+  echo 'Hook linked a native image during source validation' >&2; exit 1
+fi
 if grep -Fxq 'test src/LegacyTest.terl' "$temporary/terlan-lane.calls"; then
   echo 'Hook launched an empty legacy test suite' >&2; exit 1
 fi
 grep -Fq 'compiled legacy self-test module: src/LegacyTest.terl' "$temporary/terlan-lane.log"
 grep -Fq 'reused earlier Terlan validation: src/Prechecked.terls' "$temporary/terlan-lane.log"
+grep -Fq 'specialized owner will execute: src/SpecializedTest.terl' "$temporary/terlan-lane.log"
+if grep -Fq 'test src/SpecializedTest.terl' "$temporary/terlan-lane.calls"; then
+  echo 'Hook executed a specialized integration contract without its owner' >&2; exit 1
+fi
 if grep -Fq 'src/Prechecked.terls' "$temporary/terlan-lane.calls"; then
   echo 'Hook repeated a prechecked Terlan entry build' >&2; exit 1
 fi
+first_call_count=$(wc -l < "$temporary/terlan-lane.calls")
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$temporary/terlan-lane.calls" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$temporary/terlan-lane-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-lane-receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    >> "$temporary/terlan-lane.log" 2>&1
+)
+test "$(wc -l < "$temporary/terlan-lane.calls")" = "$first_call_count"
+test "$(find "$temporary/terlan-lane-receipts" -type f -name '*.passed' | wc -l)" = 2
+grep -Fq 'reuse test validation for . ' "$temporary/terlan-lane.log"
+grep -Fq 'reuse check validation for . ' "$temporary/terlan-lane.log"
+
+# Exact input changes invalidate only their project units. Corrupt receipts are
+# rejected, and a failed unit never records success.
+printf '\n// changed\n' >> "$temporary/terlan-lane/src/Declared.terl"
+git -C "$temporary/terlan-lane" add src/Declared.terl
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$temporary/terlan-lane.calls" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$temporary/terlan-lane-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-lane-receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    >> "$temporary/terlan-lane.log" 2>&1
+)
+test "$(wc -l < "$temporary/terlan-lane.calls")" = "$((first_call_count + 2))"
+test "$(find "$temporary/terlan-lane-receipts" -type f -name '*.passed' | wc -l)" = 4
+while IFS= read -r corrupt_receipt; do
+  printf 'corrupt\n' > "$corrupt_receipt"
+done < <(find "$temporary/terlan-lane-receipts" -type f -name '*.passed')
+before_corrupt_retry=$(wc -l < "$temporary/terlan-lane.calls")
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$temporary/terlan-lane.calls" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$temporary/terlan-lane-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-lane-receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    >> "$temporary/terlan-lane.log" 2>&1
+)
+test "$(wc -l < "$temporary/terlan-lane.calls")" = "$((before_corrupt_retry + 2))"
+if (
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_FAIL=test \
+    TERLAN_LANE_CALLS="$temporary/terlan-lane-failure.calls" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$temporary/terlan-lane-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-lane-failure-receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    > "$temporary/terlan-lane-failure.log" 2>&1
+); then
+  echo 'Failed Terlan validation unexpectedly passed' >&2; exit 1
+fi
+test "$(find "$temporary/terlan-lane-failure-receipts" -type f -name '*.passed' | wc -l)" = 0
 
 # Prebuilt workspace binaries must honor the hook's isolated Cargo target.
 # A relative target/debug path points at the staged checkout instead and made

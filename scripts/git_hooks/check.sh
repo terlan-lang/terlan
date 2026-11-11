@@ -9,6 +9,7 @@ export TERLC="$terlc"
 raw_plan="${changes%.txt}.raw-plan"
 preflight_plan="${changes%.txt}.preflight-plan"
 plan="${changes%.txt}.plan"
+specialized_tests="${changes%.txt}.specialized-tests.txt"
 prechecked_terlan="${changes%.txt}.prechecked-terlan.txt"
 compiler_build=false
 if [[ -x "$terlc" ]] && "$terlc" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan"; then
@@ -29,21 +30,20 @@ if [[ "$compiler_build" == false ]]; then
   if rg -qx 'preflight:compiler-build' "$raw_plan"; then compiler_build=true; fi
 fi
 if [[ "$compiler_build" == true ]]; then
-  if [[ ${TERLAN_HOOK_SHARED_TARGET:-0} == 1 ]]; then
-    # Cargo dep-info may point at another checkout. Invalidate workspace-owned
-    # fingerprints only when this staged tree actually needs a compiler build.
-    cache_metadata=$(mktemp)
-    cargo metadata --locked --no-deps --format-version 1 > "$cache_metadata"
-    invalidate_workspace_cache() {
-      local result=$?
-      trap - EXIT
-      node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR" || result=1
-      rm -f "$cache_metadata"
-      exit "$result"
-    }
-    trap invalidate_workspace_cache EXIT
-    node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
-  fi
+  # This target survives staged checkout revisions. Cargo dep-info can still
+  # point at the prior snapshot even when no caller supplied a shared target.
+  # Invalidate workspace-owned fingerprints before every required rebuild.
+  cache_metadata=$(mktemp)
+  cargo metadata --locked --no-deps --format-version 1 > "$cache_metadata"
+  invalidate_workspace_cache() {
+    local result=$?
+    trap - EXIT
+    node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR" || result=1
+    rm -f "$cache_metadata"
+    exit "$result"
+  }
+  trap invalidate_workspace_cache EXIT
+  node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
   echo 'pre-commit: build the changed staged compiler'
   # Use the quality superset once. Building without it and the report binary
   # with it would alternate two `terlan` feature graphs.
@@ -55,7 +55,8 @@ else
   echo 'pre-commit: reuse compiler; no compiler inputs changed'
 fi
 sed -n 's/^preflight://p' "$raw_plan" > "$preflight_plan"
-rg -v '^preflight:' "$raw_plan" > "$plan"
+sed -n 's/^specialized-test://p' "$raw_plan" > "$specialized_tests"
+rg -v '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
 : > "$prechecked_terlan"
 preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
@@ -90,6 +91,54 @@ ensure_orchestrator() {
     orchestrator_ready=true
   fi
 }
+run_commands_test_lane() {
+  bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test::
+  bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+    tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
+}
+run_rust_reports_lane() {
+  ensure_quality_tools
+  ensure_orchestrator
+  TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
+  TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
+  TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
+  TERLAN_RUST_REPORT_CACHE_DIR="$CARGO_TARGET_DIR/validation-results/rust-reports" \
+    bash scripts/git_hooks/rust_reports.sh
+}
+run_summaries_lane() {
+  TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
+    bash scripts/git_hooks/stdlib_summaries.sh
+}
+
+typed_css_checked=false
+if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
+  echo 'pre-commit: typed CSS generation, types, native values, and browser build'
+  npm ci --ignore-scripts --prefix tools/css
+  npm ci --ignore-scripts --prefix tools/web-toolchain
+  TERLC="$terlc" bash scripts/check_typed_css.sh
+  typed_css_checked=true
+fi
+# Directly affected compiler and source ownership runs immediately after the
+# compiler exists. Broad repository, proof, package, and platform gates follow.
+if lane_has terlan; then
+  echo 'pre-commit: early terlan ownership and coverage'
+  TERLAN_HOOK_TERLAN_CACHE_DIR="$CARGO_TARGET_DIR/terlan-cache" \
+    bash scripts/git_hooks/terlan.sh \
+    "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan" \
+    "$specialized_tests"
+fi
+if lane_has commands-test; then
+  echo 'pre-commit: early test-command ownership'
+  run_commands_test_lane
+fi
+if lane_has rust-reports; then
+  echo 'pre-commit: early Rust report drift'
+  run_rust_reports_lane
+fi
+if lane_has summaries; then
+  echo 'pre-commit: early summary drift'
+  run_summaries_lane
+fi
 
 if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'
@@ -120,6 +169,14 @@ if preflight_has terlan-format; then
   terlan_paths=()
   while IFS= read -r path; do
     case "$path" in
+      compiler/self_host/corpus/*)
+        # Parser acceptance fixtures intentionally contain syntax that the
+        # production formatter must reject before macro resolution.
+        ;;
+      scripts/git_hooks/scripts/Plan.terls)
+        # This bootstrap planner is executed before this point and deliberately
+        # stays parseable by both the previous and candidate compiler syntax.
+        ;;
       *.terl|*.terli|*.terls)
         if [[ -f "$path" ]]; then terlan_paths+=("$path"); fi
         ;;
@@ -199,14 +256,6 @@ if preflight_has preparation; then
   echo 'pre-commit: preparation owner Cargo resource controls'
   "$terlc" test scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl
 fi
-typed_css_checked=false
-if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
-  echo 'pre-commit: typed CSS generation, types, native values, and browser build'
-  npm ci --ignore-scripts --prefix tools/css
-  npm ci --ignore-scripts --prefix tools/web-toolchain
-  TERLC="$terlc" bash scripts/check_typed_css.sh
-  typed_css_checked=true
-fi
 if preflight_has hook-policy; then
   echo 'pre-commit: hook policy and snapshot regression tests'
   "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
@@ -253,17 +302,10 @@ while IFS= read -r lane; do
       make --no-print-directory rust-clippy-check
       ;;
     rust-reports)
-      ensure_quality_tools
-      ensure_orchestrator
-      TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
-      TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
-      TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
-      TERLAN_RUST_REPORT_CACHE_DIR="$CARGO_TARGET_DIR/validation-results/rust-reports" \
-        bash scripts/git_hooks/rust_reports.sh
+      # Executed before expensive proof and workspace gates.
       ;;
     summaries)
-      TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
-        bash scripts/git_hooks/stdlib_summaries.sh
+      # Executed before expensive proof and workspace gates.
       ;;
     shell)
       while IFS= read -r path; do
@@ -280,7 +322,7 @@ while IFS= read -r lane; do
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
       ;;
     commands-test)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test::
+      # Executed before expensive proof and workspace gates.
       ;;
     commands-clean)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test
@@ -315,8 +357,7 @@ while IFS= read -r lane; do
       (cd tree-sitter-terlan && npm ci && npm run check && npm run check:cli)
       ;;
     terlan)
-      bash scripts/git_hooks/terlan.sh \
-        "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan"
+      # Executed before expensive proof and workspace gates.
       ;;
     workflow)
       go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
