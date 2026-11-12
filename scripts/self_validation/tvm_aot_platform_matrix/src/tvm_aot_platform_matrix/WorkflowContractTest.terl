@@ -71,7 +71,8 @@ pub compiled_dependency_cache_survives_source_only_commits(): Bool ->
     };
     compiled_cache_text_valid(action)
         and not action.contains("\"$GITHUB_SHA\"")
-        and action.contains("terlan-rust-build-v4-").
+        and action.contains("terlan-rust-dependencies-v1-")
+        and not action.contains("terlan-rust-build-v4-").
 
 @test
 pub source_preflight_never_compiles_rust_tests(): Bool ->

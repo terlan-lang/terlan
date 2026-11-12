@@ -6,6 +6,7 @@ unset TERLAN_HOOK_VALIDATION_RECEIPT_DIR TERLAN_TEST_FORCE_RERUN
 export TERLAN_HOOK_MODE=full
 driver="$(cd "$(dirname "$0")" && pwd)/git_hooks.sh"
 version_filter="$(cd "$(dirname "$0")" && pwd)/git_hooks/filter_version_changes.cjs"
+exact_cargo_test="$(cd "$(dirname "$0")" && pwd)/run_exact_cargo_test.sh"
 mkdir -p target
 temporary=$(mktemp -d "$(pwd)/target/git-hooks-test.XXXXXX")
 trap 'result=$?; if (( result != 0 )); then cat "$temporary"/*.log >&2; fi; rm -rf "$temporary"' EXIT
@@ -881,4 +882,51 @@ test "$(grep -c '^vm:' "$report_cache_calls")" = 26
 TERLAN_TEST_FORCE_RERUN=1 run_report_cache > "$temporary/report-cache-forced.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 31
 
-echo 'Git hook regression tests passed (24 scenarios).'
+# Exact Cargo selection must stream compilation progress rather than holding all
+# output in memory until a long-running test process exits.
+mkdir -p "$temporary/exact-cargo/bin"
+cat > "$temporary/exact-cargo/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+printf 'Compiling visible-fixture v0.0.0\n'
+case "$*" in
+  *stream*)
+    while [[ ! -f "$EXACT_CARGO_RELEASE" ]]; do sleep 0.01; done
+    printf 'running 1 test\n'
+    ;;
+  *empty*) printf 'running 0 tests\n' ;;
+  *failure*) exit 31 ;;
+esac
+CARGO
+chmod +x "$temporary/exact-cargo/bin/cargo"
+exact_stream_log="$temporary/exact-cargo-stream.log"
+PATH="$temporary/exact-cargo/bin:$PATH" \
+  EXACT_CARGO_RELEASE="$temporary/exact-cargo.release" \
+  bash "$exact_cargo_test" stream > "$exact_stream_log" 2>&1 &
+exact_stream_pid=$!
+exact_stream_visible=false
+for _attempt in $(seq 1 100); do
+  if grep -q 'Compiling visible-fixture' "$exact_stream_log"; then
+    exact_stream_visible=true
+    break
+  fi
+  sleep 0.01
+done
+if [[ "$exact_stream_visible" != true ]]; then
+  echo 'Exact Cargo runner withheld compilation progress' >&2
+  touch "$temporary/exact-cargo.release"
+  wait "$exact_stream_pid" || true
+  exit 1
+fi
+touch "$temporary/exact-cargo.release"
+wait "$exact_stream_pid"
+if PATH="$temporary/exact-cargo/bin:$PATH" \
+  bash "$exact_cargo_test" empty > "$temporary/exact-cargo-empty.log" 2>&1; then
+  echo 'Exact Cargo runner accepted an empty selection' >&2; exit 1
+fi
+grep -q 'matched zero tests' "$temporary/exact-cargo-empty.log"
+if PATH="$temporary/exact-cargo/bin:$PATH" \
+  bash "$exact_cargo_test" failure > "$temporary/exact-cargo-failure.log" 2>&1; then
+  echo 'Exact Cargo runner ignored Cargo failure' >&2; exit 1
+fi
+
+echo 'Git hook regression tests passed (27 scenarios).'

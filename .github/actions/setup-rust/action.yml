@@ -92,7 +92,7 @@ runs:
           echo "cache-profile must be a stable compatibility label" >&2
           exit 1
         fi
-        printf 'value=terlan-rust-build-v4-%s-%s-%s-%s-%s-%s\n' \
+        printf 'value=terlan-rust-dependencies-v1-%s-%s-%s-%s-%s-%s\n' \
           "$TERLAN_CACHE_SCOPE" "$RUNNER_OS" "$RUNNER_ARCH" \
           "$TERLAN_CACHE_TOOLCHAIN" "$TERLAN_CACHE_PROFILE" "$TERLAN_CACHE_MANIFEST" >> "$GITHUB_OUTPUT"
 
@@ -115,16 +115,51 @@ runs:
       with:
         path: |
           target/debug/.fingerprint
+          !target/debug/.fingerprint/terlan-*
+          !target/debug/.fingerprint/terl-docs-*
           target/debug/build
+          !target/debug/build/terlan-*
+          !target/debug/build/terl-docs-*
           target/debug/deps
+          !target/debug/deps/terlan*
+          !target/debug/deps/libterlan*
+          !target/debug/deps/terl_docs*
+          !target/debug/deps/libterl_docs*
+          !target/debug/deps/abi1_evidence_producers*
+          !target/debug/deps/direct_aot*
+          !target/debug/deps/managed_continuation_aot*
+          !target/debug/deps/tvm_transition_rejection*
+          !target/debug/deps/vm_supervision_runtime*
+          !target/debug/deps/bootstrap_admission*
+          !target/debug/deps/support_bootstrap_make*
+          !target/debug/deps/cargo_metadata_make*
+          !target/debug/deps/command_dispatch*
+          !target/debug/deps/compiler_bootstrap_make*
+          !target/debug/deps/driver_snapshot*
+          !target/debug/deps/generated_artifacts_make*
+          !target/debug/deps/hosted_release_make*
+          !target/debug/deps/library_selection*
+          !target/debug/deps/make_coverage*
+          !target/debug/deps/owned_command*
+          !target/debug/deps/preparation_lease*
+          !target/debug/deps/proof_*
+          !target/debug/deps/publish_*
+          !target/debug/deps/refresh_plan_make*
+          !target/debug/deps/typed_validator_owner*
           target/release/.fingerprint
+          !target/release/.fingerprint/terlan-*
+          !target/release/.fingerprint/terl-docs-*
           target/release/build
+          !target/release/build/terlan-*
+          !target/release/build/terl-docs-*
           target/release/deps
+          !target/release/deps/terlan*
+          !target/release/deps/libterlan*
+          !target/release/deps/terl_docs*
+          !target/release/deps/libterl_docs*
         key: ${{ steps.compiled-cache-key.outputs.value }}
         restore-keys: |
-          terlan-rust-build-v4-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-
-          terlan-rust-build-v3-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
-          terlan-rust-build-v3-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-
+          terlan-rust-dependencies-v1-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-
 
     - name: Install exact Rust toolchain
       shell: bash
