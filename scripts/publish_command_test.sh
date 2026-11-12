@@ -23,7 +23,9 @@ for mode in ready failed dirty staged untracked drift head-drift version dry-run
     awk '/^publish-source-preflight:/ { active=1 } active && /^# Network\/tag/ { exit } active { print }' "$root/Makefile" >> Makefile
     awk '/^\.PHONY: publish publish-local / { active=1 } active && /^publish-local-check:/ { exit } active { print }' "$root/Makefile" >> Makefile
     cat >> Makefile <<'MAKE'
-.PHONY: publish-local-check terlan-release-control-bootstrap
+.PHONY: release-plan publish-local-check terlan-release-control-bootstrap
+release-plan:
+	@:
 publish-local-check:
 	@mkdir -p target
 	@echo validate >> target/operations
@@ -77,7 +79,7 @@ echo 'Publication command regressions passed (11 scenarios).'
 # The public entry point owns the clean-tree preflight once. The Terlan
 # controller guards the source again before dispatch and submission, so the
 # recursive publish-local graph must not replay the Make preflight.
-grep -Fxq 'publish: publish-source-preflight' "$root/Makefile"
+grep -Fxq 'publish: release-plan publish-source-preflight' "$root/Makefile"
 grep -Fxq 'publish-local:' "$root/Makefile"
 publish_local=$(awk '/^publish-local:$/ { active=1 } active && /^publish-release-input-check:/ { exit } active { print }' "$root/Makefile")
 if printf '%s\n' "$publish_local" | rg -q 'publish-source-preflight'; then
