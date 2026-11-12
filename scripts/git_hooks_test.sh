@@ -336,6 +336,45 @@ for contract in negative-api io-negative-api; do
     test "$status" = 38
   )
 done
+# A selected Rust lane must fail before broad preflight gates, and its failure
+# must propagate without executing the later gate.
+cp "$exact_cargo_test" "$temporary/early-bindings/scripts/run_exact_cargo_test.sh"
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+case "$*" in
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
+    printf 'preflight:inventory\npreflight:negative-api\ncommands-doctor\nshell\n'
+    ;;
+  'run scripts/self_validation/StdlibValidation.terls -- negative-api')
+    printf 'late-negative-api\n' >> "$HOOK_ORDER_CALLS"
+    exit 43
+    ;;
+  *) exit 98 ;;
+esac
+TERLC
+cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+printf 'cargo:%s\n' "$*" >> "$HOOK_ORDER_CALLS"
+exit 42
+CARGO
+chmod +x "$temporary/early-bindings/cache/debug/terlc" \
+  "$temporary/early-bindings/bin/cargo" \
+  "$temporary/early-bindings/scripts/run_exact_cargo_test.sh"
+(
+  cd "$temporary/early-bindings"
+  calls="$temporary/early-rust-order.calls"
+  : > "$calls"
+  status=0
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" HOOK_ORDER_CALLS="$calls" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-rust-order.log" 2>&1 || status=$?
+  test "$status" = 42
+  grep -Fq 'cargo:test --locked -p terlan --lib commands::doctor::doctor_test' "$calls"
+  test "$(wc -l < "$calls")" = 1
+  grep -Fq 'early affected Rust lane failed: commands-doctor' \
+    "$temporary/early-rust-order.log"
+)
 # Retained-source inventory drift must stop before planning or optimized builds.
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
@@ -461,6 +500,10 @@ grep -Fq "rg -qx 'preflight:inventory'" \
 grep -Fq '[[ "$hosted_source_preflight" == 0 ]]' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'candidate compiler produced an empty validation plan' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'early affected Rust lane passed' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'duplicate affected Rust lane remained scheduled' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'check tests/language/RepeatedLetSyntaxTest.terl' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -933,4 +976,4 @@ if PATH="$temporary/exact-cargo/bin:$PATH" \
   echo 'Exact Cargo runner ignored Cargo failure' >&2; exit 1
 fi
 
-echo 'Git hook regression tests passed (27 scenarios).'
+echo 'Git hook regression tests passed (28 scenarios).'

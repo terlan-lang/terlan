@@ -103,6 +103,9 @@ pub compiler_validation_starts_beside_source_preflight(): Bool ->
         and hook.contains("planner_arguments+=(--hosted-source-preflight)")
         and hook.contains("[[ \"$hosted_source_preflight\" == 0 ]]")
         and hook.contains("local validation plan omitted source inventory")
+        and hook.contains("run_affected_rust_lane")
+        and hook.contains("early affected Rust lane passed")
+        and hook.contains("mv \"$remaining_plan\" \"$plan\"")
         and not compiler_before_platform_text_valid(
     workflow
         .replace(

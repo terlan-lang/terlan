@@ -415,8 +415,8 @@ ensure_orchestrator() {
   fi
 }
 run_commands_test_lane() {
-  bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test::
-  bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+  bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test:: \
+    && bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
     tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 }
 run_rust_reports_lane() {
@@ -432,6 +432,63 @@ run_summaries_lane() {
   TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
     bash scripts/git_hooks/stdlib_summaries.sh
 }
+
+run_affected_rust_lane() {
+  local lane=$1 filter
+  case "$lane" in
+    commands-test) run_commands_test_lane ;;
+    commands) bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands:: ;;
+    commands-emit-js)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
+      ;;
+    commands-clean)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test
+      ;;
+    commands-doctor)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::doctor::doctor_test
+      ;;
+    commands-init)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::init::init_test
+      ;;
+    phase)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+        tests::run_phase_contract_fixtures_match_golden -- --exact
+      ;;
+    native-ir)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
+      ;;
+    syntax|compiler)
+      filter=compiler::
+      if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib "$filter"
+      ;;
+    workspace) bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets ;;
+    dependencies) cargo check --locked --workspace --all-targets ;;
+    test-orchestrator) cargo test --locked -p terlan-test-orchestrator ;;
+    rust-boundary-audit) cargo test --locked -p terlan-rust-boundary-audit ;;
+    *) return 2 ;;
+  esac
+}
+
+# The changed-code test is the first substantial consumer of a newly built
+# compiler. Execute every selected Rust test/check lane now, in the priority
+# emitted by the Terlan planner, and remove it from the later broad plan.
+remaining_plan="${plan%.plan}.remaining-plan"
+: > "$remaining_plan"
+while IFS= read -r lane; do
+  if run_affected_rust_lane "$lane"; then
+    echo "pre-commit: early affected Rust lane passed: $lane"
+  else
+    lane_status=$?
+    if (( lane_status == 2 )); then
+      printf '%s\n' "$lane" >> "$remaining_plan"
+    else
+      echo "pre-commit: early affected Rust lane failed: $lane" >&2
+      exit "$lane_status"
+    fi
+  fi
+done < "$plan"
+mv "$remaining_plan" "$plan"
 
 typed_css_checked=false
 if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
@@ -608,46 +665,9 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    phase)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib tests::run_phase_contract_fixtures_match_golden -- --exact
-      ;;
-    commands)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::
-      ;;
-    commands-emit-js)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
-      ;;
-    commands-test)
-      # Executed before expensive proof and workspace gates.
-      ;;
-    commands-clean)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test
-      ;;
-    commands-doctor)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::doctor::doctor_test
-      ;;
-    commands-init)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::init::init_test
-      ;;
-    rust-boundary-audit)
-      cargo test --locked -p terlan-rust-boundary-audit
-      ;;
-    native-ir)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
-      ;;
-    syntax|compiler)
-      filter=compiler::
-      if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib "$filter"
-      ;;
-    workspace)
-      bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets
-      ;;
-    dependencies)
-      cargo check --locked --workspace --all-targets
-      ;;
-    test-orchestrator)
-      cargo test --locked -p terlan-test-orchestrator
+    phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|syntax|compiler|workspace|dependencies|test-orchestrator)
+      echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
+      exit 1
       ;;
     editor)
       (cd tree-sitter-terlan && npm ci && npm run check && npm run check:cli)
