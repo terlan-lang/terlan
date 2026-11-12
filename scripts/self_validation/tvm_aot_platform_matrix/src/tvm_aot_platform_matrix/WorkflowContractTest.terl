@@ -55,9 +55,12 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v3-")
+    action.contains("terlan-script-runner-v4-")
         and action.contains("allow-compatible-fallback:")
         and action.contains("default: \"false\"")
+        and action.contains("Compile current change classifier")
+        and action.contains("scripts_ClassifyChanges.tvm")
+        and action.contains("classifier-image=")
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
@@ -114,7 +117,7 @@ pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v3-")
+    action.contains("terlan-script-runner-v4-")
         and action.contains("key: \${{ steps.identity.outputs.key }}")
         and action.contains("if: \${{ steps.restored.outputs.usable != 'true' }}")
         and occurrences(workflow, "allow-compatible-fallback: \"true\"") == 1.

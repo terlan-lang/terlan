@@ -8,6 +8,9 @@ outputs:
   vm:
     description: Cached VM path
     value: ${{ steps.paths.outputs.vm }}
+  classifier-image:
+    description: Current compiled change-classification image
+    value: ${{ steps.paths.outputs.classifier-image }}
 
 inputs:
   allow-compatible-fallback:
@@ -22,7 +25,7 @@ runs:
       id: identity
       shell: bash
       run: |
-        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v3-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli') }}"
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v4-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/ClassifyChanges.terls', 'scripts/ci/src/ci/ChangeClassifier.terl') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
 
     - name: Restore script runner
@@ -32,22 +35,18 @@ runs:
         path: target/script-runner
         key: ${{ steps.identity.outputs.key }}
         restore-keys: |
+          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v4-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v3-', runner.os, runner.arch) || '' }}
-          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v2-', runner.os, runner.arch) || '' }}
 
     - name: Validate restored script runner
       id: restored
       shell: bash
       run: |
         usable=false
-        if test -x target/script-runner/terlc && test -x target/script-runner/terlan-vm; then
-          output=$(mktemp)
-          revision=$(git rev-parse HEAD)
-          if target/script-runner/terlc run scripts/ci/scripts/ClassifyChanges.terls -- \
-            "$revision" "$revision" "$output" >/dev/null 2>&1; then
-            usable=true
-          fi
-          rm -f "$output"
+        if test -x target/script-runner/terlc \
+          && test -x target/script-runner/terlan-vm \
+          && target/script-runner/terlc version >/dev/null 2>&1; then
+          usable=true
         fi
         echo "usable=$usable" >> "$GITHUB_OUTPUT"
 
@@ -67,6 +66,27 @@ runs:
         cargo build --locked -p terlan --bin terlc --bin terlan-vm
         install -D -m 0755 target/debug/terlc target/script-runner/terlc
         install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
+
+    - name: Compile current change classifier
+      if: ${{ steps.restore.outputs.cache-hit != 'true' || steps.restored.outputs.usable != 'true' }}
+      shell: bash
+      run: |
+        target/script-runner/terlc build \
+          scripts/ci/scripts/ClassifyChanges.terls \
+          --target terlan-vm \
+          --out-dir target/script-runner/classifier
+        test -s target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm
+
+    - name: Validate compiled change classifier
+      shell: bash
+      run: |
+        output=$(mktemp)
+        revision=$(git rev-parse HEAD)
+        target/script-runner/terlan-vm run \
+          target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm \
+          --script-eval -- "$revision" "$revision" "$output" >/dev/null
+        grep -qx 'changed-count=0' "$output"
+        rm -f "$output"
 
     - name: Compact candidate script runner
       shell: bash
@@ -89,5 +109,7 @@ runs:
       run: |
         test -x target/script-runner/terlc
         test -x target/script-runner/terlan-vm
+        test -s target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm
         echo "terlc=$GITHUB_WORKSPACE/target/script-runner/terlc" >> "$GITHUB_OUTPUT"
         echo "vm=$GITHUB_WORKSPACE/target/script-runner/terlan-vm" >> "$GITHUB_OUTPUT"
+        echo "classifier-image=$GITHUB_WORKSPACE/target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm" >> "$GITHUB_OUTPUT"

@@ -194,8 +194,9 @@ jobs:
           BASE_REVISION: ${{ steps.validation-base.outputs.revision }}
           HEAD_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          "${{ steps.script-runner.outputs.terlc }}" run \
-            scripts/ci/scripts/ClassifyChanges.terls -- \
+          "${{ steps.script-runner.outputs.vm }}" run \
+            "${{ steps.script-runner.outputs.classifier-image }}" \
+            --script-eval -- \
             "$BASE_REVISION" "$HEAD_REVISION" "$GITHUB_OUTPUT"
 
   source-preflight:
