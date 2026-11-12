@@ -58,7 +58,7 @@ pub artifact_budget(paths: List[String]): Bool ->
 pub release_manifest(paths: List[String]): Bool ->
     affected(paths, "std/", ".terl")
         or affected(paths, "std/", ".terli")
-        or affected(paths, "std/scripts/ReleaseManifestTest.terl", "")
+        or affected(paths, "scripts/self_validation/release_manifest/", "")
         or affected(paths, "tests/std/RELEASE_API_TESTS.tsv", "").
 
 pub rust_docs(paths: List[String]): Bool ->
@@ -427,8 +427,7 @@ pub summaries(paths: List[String]): Bool ->
         or affected(paths, "std/", ".terli")
         or affected(paths, "std/summaries/", "")
         or affected(paths, "std/js/manifests/", "")
-        or affected(paths, "scripts/self_validation/BuildInterfacesTest.terl", "")
-        or affected(paths, "scripts/self_validation/SummaryDriftTest.terl", "")
+        or affected(paths, "scripts/self_validation/stdlib_interfaces/", "")
         or affected(paths, "scripts/self_validation/JsBindingsDriftTest.terl", "")
         or affected(paths, "scripts/git_hooks/stdlib_summaries.sh", "").
 

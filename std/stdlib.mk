@@ -45,7 +45,7 @@ stdlib-build-interfaces:
 	@TERLAN_BUILD_INTERFACES_ROOT="$(CURDIR)" \
 	TERLAN_BUILD_INTERFACES_OUT_DIR="$(TERLAN_STDLIB_INTERFACE_OUTPUT)" \
 	TERLAN_BUILD_INTERFACES_TERLC="$(CURDIR)/target/debug/terlc" \
-		target/debug/terlc test scripts/self_validation/BuildInterfacesTest.terl
+		target/debug/terlc run scripts/self_validation/stdlib_interfaces/scripts/BuildInterfaces.terls
 
 stdlib-doc-format-check:
 	@target/debug/terlc test scripts/self_validation/DocCommentFormatTest.terl
@@ -56,8 +56,9 @@ stdlib-summary-inventory-check:
 stdlib-summary-drift-check:
 	@TERLAN_SUMMARY_DRIFT_ROOT="$(CURDIR)" \
 	TERLAN_SUMMARY_DRIFT_TERLC="$(TERLC)" \
-	TERLAN_SUMMARY_DRIFT_GENERATOR="$(CURDIR)/scripts/self_validation/BuildInterfacesTest.terl" \
-		$(TERLC) test scripts/self_validation/SummaryDriftTest.terl
+		$(TERLC) test scripts/self_validation/stdlib_interfaces/tests/stdlib_interfaces/SummaryDriftTest.terl \
+		--out-dir target/source-preflight/summary/build \
+		--cache-dir target/source-preflight/summary/cache
 
 stdlib-embedded-interface-contract-check:
 	@target/debug/terlc test scripts/self_validation/EmbeddedInterfaceContractsTest.terl
@@ -65,7 +66,9 @@ stdlib-embedded-interface-contract-check:
 stdlib-js-bindings-drift-check:
 	@TERLAN_JS_BINDINGS_ROOT="$(CURDIR)" \
 	TERLAN_JS_BINDINGS_TERLC="$(TERLC)" \
-		$(TERLC) test scripts/self_validation/JsBindingsDriftTest.terl
+		$(TERLC) test scripts/self_validation/JsBindingsDriftTest.terl \
+		--out-dir target/source-preflight/js-bindings/build \
+		--cache-dir target/source-preflight/js-bindings/cache
 
 stdlib-js-review-surface-check:
 	@TERLAN_JS_REVIEW_ROOT="$(CURDIR)" \
@@ -73,8 +76,9 @@ stdlib-js-review-surface-check:
 
 stdlib-release-manifest-check:
 	@TERLAN_RELEASE_MANIFEST_ROOT="$(CURDIR)" \
-	TERLAN_RELEASE_MANIFEST_TERLC="$(TERLC)" \
-		$(TERLC) test std/scripts/ReleaseManifestTest.terl
+		$(TERLC) test scripts/self_validation/release_manifest \
+		--out-dir target/source-preflight/release-manifest/build \
+		--cache-dir target/source-preflight/release-manifest/cache
 
 stdlib-rust-backed-manifest-check: stdlib-native-artifacts-check
 	@TERLAN_RUST_BACKED_MANIFEST_ROOT="$(CURDIR)" \
@@ -85,7 +89,9 @@ stdlib-rust-backed-manifest-check: stdlib-native-artifacts-check
 stdlib-native-artifacts-check:
 	@TERLAN_NATIVE_ARTIFACTS_ROOT="$(CURDIR)" \
 	TERLAN_NATIVE_ARTIFACTS_TERLC="$(TERLC)" \
-		$(TERLC) test scripts/self_validation/NativeArtifactsTest.terl
+		$(TERLC) test scripts/self_validation/NativeArtifactsTest.terl \
+		--out-dir target/source-preflight/native-artifacts/build \
+		--cache-dir target/source-preflight/native-artifacts/cache
 
 stdlib-validation-self-test: | terlan-stdlib-validation-bootstrap
 	@TERLAN_REPOSITORY_ROOT="$(CURDIR)" \

@@ -4558,10 +4558,27 @@ GENERATED_ARTIFACT_FRESHNESS_GATES := \
 	stdlib-release-manifest-check \
 	tree-sitter-cli-check
 
+TERLAN_GENERATED_SUMMARIES ?= 1
+TERLAN_GENERATED_JS_BINDINGS ?= 1
+TERLAN_GENERATED_NATIVE_ARTIFACTS ?= 1
+TERLAN_GENERATED_RELEASE_MANIFEST ?= 1
+TERLAN_GENERATED_TREE_SITTER ?= 1
+ifneq ($(strip $(filter-out 0 1,$(TERLAN_GENERATED_SUMMARIES) $(TERLAN_GENERATED_JS_BINDINGS) $(TERLAN_GENERATED_NATIVE_ARTIFACTS) $(TERLAN_GENERATED_RELEASE_MANIFEST) $(TERLAN_GENERATED_TREE_SITTER))),)
+$(error generated artifact selectors must be 0 or 1)
+endif
+SELECTED_GENERATED_ARTIFACT_FRESHNESS_GATES := \
+	$(if $(filter 1,$(TERLAN_GENERATED_SUMMARIES)),stdlib-summary-drift-check) \
+	$(if $(filter 1,$(TERLAN_GENERATED_JS_BINDINGS)),stdlib-js-bindings-drift-check) \
+	$(if $(filter 1,$(TERLAN_GENERATED_NATIVE_ARTIFACTS)),stdlib-native-artifacts-check) \
+	$(if $(filter 1,$(TERLAN_GENERATED_RELEASE_MANIFEST)),stdlib-release-manifest-check) \
+	$(if $(filter 1,$(TERLAN_GENERATED_TREE_SITTER)),tree-sitter-cli-check)
+
 RELEASE_GENERATED_ARTIFACT_FRESHNESS_GATES := $(GENERATED_ARTIFACT_FRESHNESS_GATES)
 
 .PHONY: source-generated-artifacts-check
-source-generated-artifacts-check: $(GENERATED_ARTIFACT_FRESHNESS_GATES)
+source-generated-artifacts-check:
+	@test -n "$(strip $(SELECTED_GENERATED_ARTIFACT_FRESHNESS_GATES))" || { echo 'no generated artifact owner selected' >&2; exit 2; }
+	$(MAKE) --no-print-directory -j5 $(SELECTED_GENERATED_ARTIFACT_FRESHNESS_GATES)
 	@echo "[source-preflight] every generated artifact is current"
 
 .PHONY: release-generated-artifacts-before release-generated-artifacts-freshness-pass release-generated-artifacts-check

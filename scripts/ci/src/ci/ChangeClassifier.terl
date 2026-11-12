@@ -12,6 +12,11 @@ pub struct Classification {
     compiler: Bool,
     dependencies: Bool,
     generated: Bool,
+    generated_summaries: Bool,
+    generated_js_bindings: Bool,
+    generated_native_artifacts: Bool,
+    generated_release_manifest: Bool,
+    generated_tree_sitter: Bool,
     rust_format: Bool,
     rust_format_all: Bool,
     terlan_style: Bool,
@@ -77,24 +82,66 @@ pub is_dependency_file(path: String): Bool ->
         or String.ends_with(path, "/package-lock.json")
         or String.ends_with(path, "/requirements.txt").
 
+generated_registry(path: String): Bool ->
+    path == "docs/release/GENERATED_ARTIFACTS.json".
+
+std_non_js(path: String): Bool ->
+    String.starts_with(path, "std/")
+        and path != "std/stdlib.mk"
+        and not String.starts_with(path, "std/js/").
+
+stdlib_source(path: String): Bool ->
+    String.starts_with(path, "std/")
+        and (String.ends_with(path, ".terl") or String.ends_with(path, ".terli")).
+
+pub is_generated_summaries_input(path: String): Bool ->
+    generated_registry(path)
+        or std_non_js(path)
+        or starts_with_any(path, ["crates/terlan/src/compiler/", "scripts/self_validation/stdlib_interfaces/"]).
+
+pub is_generated_js_bindings_input(path: String): Bool ->
+    generated_registry(path)
+        or starts_with_any(path, ["std/js/", "crates/terlan/src/commands/bind/ts_"])
+        or path == "scripts/self_validation/JsBindingsDriftTest.terl".
+
+pub is_generated_native_artifacts_input(path: String): Bool ->
+    generated_registry(path)
+        or std_non_js(path)
+        or starts_with_any(path, ["crates/terlan/src/commands/emit_native_metadata/"])
+        or path == "scripts/self_validation/NativeArtifactsTest.terl".
+
+pub is_generated_release_manifest_input(path: String): Bool ->
+    generated_registry(path)
+        or stdlib_source(path)
+        or path == "std/RELEASE_MANIFEST.tsv"
+        or path == "tests/std/RELEASE_API_TESTS.tsv"
+        or String.starts_with(path, "scripts/self_validation/release_manifest/").
+
+pub is_generated_tree_sitter_input(path: String): Bool ->
+    starts_with_any(
+        path,
+        ["tree-sitter-terlan/", "docs/grammar/", "crates/terlan/src/compiler/syntax/"],
+    ).
+
 pub is_generated_artifact_input(path: String): Bool ->
-    starts_with_any(path, ["std/", "tree-sitter-terlan/", "crates/terlan/src/compiler/"])
-        or contains(
-    [
-        "Makefile",
-        "editors/editor.mk",
-        "std/stdlib.mk",
-        "docs/release/GENERATED_ARTIFACTS.json",
-        "scripts/self_validation/BuildInterfacesTest.terl",
-        "scripts/self_validation/JsBindingsDriftTest.terl",
-        "scripts/self_validation/NativeArtifactsTest.terl",
-    ],
-    path,
-).
+    is_generated_summaries_input(path)
+        or is_generated_js_bindings_input(path)
+        or is_generated_native_artifacts_input(path)
+        or is_generated_release_manifest_input(path)
+        or is_generated_tree_sitter_input(path).
 
 pub is_ci_contract_file(path: String): Bool ->
     starts_with_any(path, ["scripts/ci/", ".github/actions/setup-terlan-script-runner/"])
-        or contains([".github/workflows/ci.yml", ".github/workflows/source-preflight.yml"], path).
+        or contains(
+    [
+        "Makefile",
+        "std/stdlib.mk",
+        "editors/editor.mk",
+        ".github/workflows/ci.yml",
+        ".github/workflows/source-preflight.yml",
+    ],
+    path,
+).
 
 pub is_editor_file(path: String): Bool ->
     starts_with_any(path, ["editors/", "tree-sitter-terlan/"]).
@@ -155,6 +202,22 @@ any_generated_artifact_input(paths: List[String]): Bool ->
         [path | rest] -> is_generated_artifact_input(path) or any_generated_artifact_input(rest)
     }.
 
+any_generated_kind(paths: List[String], kind: String): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            let matched =
+                case kind {
+                    "summaries" -> is_generated_summaries_input(path);
+                    "js-bindings" -> is_generated_js_bindings_input(path);
+                    "native-artifacts" -> is_generated_native_artifacts_input(path);
+                    "release-manifest" -> is_generated_release_manifest_input(path);
+                    "tree-sitter" -> is_generated_tree_sitter_input(path);
+                    _ -> false
+                };
+            matched or any_generated_kind(rest, kind)
+    }.
+
 any_matching(paths: List[String], kind: String): Bool ->
     case paths {
         [] -> false;
@@ -190,6 +253,11 @@ pub classify(paths: List[String], force_full: Bool): Classification ->
         compiler = force_full or any_compiler(normalized),
         dependencies = force_full or any_dependency(normalized),
         generated = force_full or any_generated_artifact_input(normalized),
+        generated_summaries = force_full or any_generated_kind(normalized, "summaries"),
+        generated_js_bindings = force_full or any_generated_kind(normalized, "js-bindings"),
+        generated_native_artifacts = force_full or any_generated_kind(normalized, "native-artifacts"),
+        generated_release_manifest = force_full or any_generated_kind(normalized, "release-manifest"),
+        generated_tree_sitter = force_full or any_generated_kind(normalized, "tree-sitter"),
         rust_format = RustFormatting.required(normalized, force_full),
         rust_format_all = force_full or RustFormatting.requires_all(normalized),
         terlan_style = TerlanStyle.required(normalized, force_full),
@@ -237,6 +305,16 @@ pub render_outputs(value: Classification): String ->
             boolean(value.dependencies),
             "\ngenerated=",
             boolean(value.generated),
+            "\ngenerated-summaries=",
+            boolean(value.generated_summaries),
+            "\ngenerated-js-bindings=",
+            boolean(value.generated_js_bindings),
+            "\ngenerated-native-artifacts=",
+            boolean(value.generated_native_artifacts),
+            "\ngenerated-release-manifest=",
+            boolean(value.generated_release_manifest),
+            "\ngenerated-tree-sitter=",
+            boolean(value.generated_tree_sitter),
             "\nrust-format=",
             boolean(value.rust_format),
             "\nrust-format-all=",

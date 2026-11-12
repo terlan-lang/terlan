@@ -515,7 +515,7 @@ if preflight_has release-manifest; then
   "$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl --target js.browser \
     --out-dir target/git-hooks-js-constructor-types
   TERLAN_RELEASE_MANIFEST_ROOT="$PWD" TERLAN_RELEASE_MANIFEST_TERLC="$terlc" \
-    "$terlc" test std/scripts/ReleaseManifestTest.terl
+    "$terlc" test scripts/self_validation/release_manifest
 fi
 if lane_has proofs; then
   echo 'pre-commit: proof release baseline'

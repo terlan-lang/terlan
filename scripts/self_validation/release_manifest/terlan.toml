@@ -1,0 +1,7 @@
+[package]
+name = "release-manifest"
+version = "0.0.10"
+
+[build]
+source_roots = ["tests"]
+artifact = "library"

@@ -378,7 +378,7 @@ pub javascript_manifests_check_generated_summaries(): Bool ->
 
 @test
 pub summary_generator_changes_run_drift_checks(): Bool ->
-    Plan.lanes(["scripts/self_validation/BuildInterfacesTest.terl"]) == ["shell", "summaries", "terlan"].
+    Plan.lanes(["scripts/self_validation/stdlib_interfaces/src/stdlib_interfaces/Build.terl"]) == ["shell", "summaries", "terlan"].
 
 @test
 pub summary_runner_changes_execute_drift_checks(): Bool ->

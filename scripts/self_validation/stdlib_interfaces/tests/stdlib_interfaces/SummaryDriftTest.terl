@@ -1,7 +1,7 @@
 /**
  * Verifies regenerated std interfaces match committed release summaries.
  */
-module scripts.self_validation.SummaryDriftTest.
+module stdlib_interfaces.SummaryDriftTest.
 
 import std.collections.Set.
 import std.core.Option.{None, Some}.
@@ -10,7 +10,8 @@ import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
 import std.io.Directory.{create_temporary, entries, remove_all}.
 import std.io.File.{read_text_directory, read_text_many}.
-import std.system.{Environment, Process}.
+import std.system.Environment.
+import stdlib_interfaces.Build.
 
 import type std.collections.Set.
 import type std.io.File.TextFile.
@@ -47,12 +48,6 @@ selected_root(): String ->
 
 selected_compiler(root: String): String ->
     environment_or("TERLAN_SUMMARY_DRIFT_TERLC", child(root, "target/debug/terlc")).
-
-selected_generator(root: String): String ->
-    environment_or(
-        "TERLAN_SUMMARY_DRIFT_GENERATOR",
-        child(root, "scripts/self_validation/BuildInterfacesTest.terl"),
-    ).
 
 @pure
 pub is_summary_artifact(path: String): Bool ->
@@ -206,51 +201,16 @@ build_plan_at(
             )
     }.
 
-generation_command(
-    root: String,
-    compiler: String,
-    generator: String,
-    output: String,
-): std.system.Process.Command ->
-    Process.with_output_limit_bytes(
-        Process.with_timeout_ms(
-            Process.with_environment(
-                Process.with_working_directory(
-                    Process.with_arguments(
-                        Process.command(compiler),
-                        ["test", generator, "--name", "repository_std_interfaces_build"],
-                    ),
-                    root,
-                ),
-                [
-                    Process.environment_entry("CARGO_TERM_COLOR", "never"),
-                    Process.environment_entry("TERLAN_BUILD_INTERFACES_ROOT", root),
-                    Process.environment_entry("TERLAN_BUILD_INTERFACES_OUT_DIR", output),
-                    Process.environment_entry("TERLAN_BUILD_INTERFACES_TERLC", compiler),
-                ],
-            ),
-            600_000,
-        ),
-        16_777_216,
-    ).
-
-pub validate(root: String, compiler: String, generator: String): Bool ->
+pub validate(root: String, compiler: String): Bool ->
     case create_temporary("terlan-std-summary-drift-") {
         Err(_reason) -> report(["temporary summary workspace creation failed"]);
-        Ok(workspace) -> run_generation(root, compiler, generator, workspace)
+        Ok(workspace) -> run_generation(root, compiler, workspace)
     }.
 
-run_generation(root: String, compiler: String, generator: String, workspace: String): Bool ->
-    case Process.run(generation_command(root, compiler, generator, workspace)) {
-        Err(reason) -> generation_failed(workspace, reason.message);
-        Ok(output) ->
-            if {
-                output.status == 0 -> discover_generated(root, workspace);
-                true -> generation_failed(
-                    workspace,
-                    String.trim_end(String.append(output.stdout, output.stderr)),
-                )
-            }
+run_generation(root: String, compiler: String, workspace: String): Bool ->
+    if {
+        Build.build_interfaces(root, workspace, compiler, 16) -> discover_generated(root, workspace);
+        true -> generation_failed(workspace, "interface generation failed")
     }.
 
 generation_failed(workspace: String, message: String): Bool ->
@@ -411,11 +371,19 @@ pub generated_js_header_is_bounded_and_requires_both_markers(): Bool ->
         and not generated_js_header(late).
 
 @test
+pub generation_failure_reports_and_removes_workspace(): Bool ->
+    case create_temporary("terlan-std-summary-drift-failure-") {
+        Err(_reason) -> false;
+        Ok(workspace) ->
+            not generation_failed(workspace, "expected generation failure")
+                and not report(["expected comparison failure"])
+    }.
+
+@test
 pub repository_summaries_have_no_drift(): Bool ->
     let root = selected_root();
     let compiler = selected_compiler(root);
-    let generator = selected_generator(root);
-    validate(root, compiler, generator).
+    validate(root, compiler).
 
 pub main(): Unit ->
     if {

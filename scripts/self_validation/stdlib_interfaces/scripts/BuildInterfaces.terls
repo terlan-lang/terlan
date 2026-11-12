@@ -1,0 +1,8 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Regenerates the complete reviewed standard-library interface set.
+ */
+import stdlib_interfaces.Build.
+
+assert(Build.repository_std_interfaces_build());
+Unit.

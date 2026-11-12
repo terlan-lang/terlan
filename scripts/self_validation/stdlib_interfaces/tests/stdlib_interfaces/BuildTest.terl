@@ -1,0 +1,26 @@
+/**
+ * Verifies deterministic standard-library interface generation helpers.
+ */
+module stdlib_interfaces.BuildTest.
+
+import stdlib_interfaces.Build.
+
+@test
+pub css_source_partition_preserves_paths_and_order(): Bool ->
+    Build.css_source_partition_preserves_paths_and_order().
+
+@test
+pub css_interface_batches_bound_argv_without_losing_sources(): Bool ->
+    Build.css_interface_batches_bound_argv_without_losing_sources().
+
+@test
+pub source_classification_preserves_public_test_module(): Bool ->
+    Build.source_classification_preserves_public_test_module().
+
+@test
+pub generated_js_classification_is_header_bounded(): Bool ->
+    Build.generated_js_classification_is_header_bounded().
+
+@test
+pub release_summary_classification_rejects_backend_scratch(): Bool ->
+    Build.release_summary_classification_rejects_backend_scratch().

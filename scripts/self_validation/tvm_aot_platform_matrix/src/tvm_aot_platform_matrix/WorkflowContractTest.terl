@@ -3,7 +3,7 @@ module tvm_aot_platform_matrix.WorkflowContractTest.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.File.{read_text}.
-import tvm_aot_platform_matrix.Core.{release_audit_before_platform_text_valid}.
+import tvm_aot_platform_matrix.Core.{release_audit_before_platform_text_valid, source_preflight_text_valid}.
 import tvm_aot_platform_matrix.MulticoreRelease.{validate_workflow as multicore_release_workflow_valid}.
 
 @test
@@ -29,3 +29,21 @@ let bypassed = String.replace(normalized, "needs: [revision, dependency-audit]",
 normalized != bypassed
     and not release_audit_before_platform_text_valid(bypassed)
     and not multicore_release_workflow_valid(bypassed)).
+
+@test
+pub generated_artifact_selection_is_statically_complete(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/source-preflight.yml");
+        Ok(makefile) <- read_text("Makefile")
+    } else {
+        Err(_reason) -> false
+    };
+    source_preflight_text_valid(workflow, makefile)
+        and not source_preflight_text_valid(
+    String.replace(
+        workflow,
+        "TERLAN_GENERATED_JS_BINDINGS:",
+        "TERLAN_GENERATED_JS_BINDINGS_MISSING:",
+    ),
+    makefile,
+).

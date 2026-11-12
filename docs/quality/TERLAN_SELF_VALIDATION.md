@@ -56,10 +56,11 @@ select the Terlan replacements, and those replaced Python sources are deleted.
   CPU-required/CUDA-optional package policy, placeholder-symbol rejection,
   consumer/report validation, manifest hashing, and deterministic evidence;
   its output is byte-identical to the deleted Python checker.
-- `scripts.self_validation.BuildInterfacesTest` now owns stdlib source
+- `stdlib_interfaces.Build` now owns stdlib source
   selection, batched interface generation, bounded NativeBoundary metadata
   emission, and scratch-artifact cleanup. Its 212 generated artifacts are
-  byte-identical to the deleted Python generator.
+  byte-identical to the deleted Python generator. The drift test imports the
+  generator in one project image instead of launching a nested test compiler.
 - `scripts.self_validation.JsBindingsDriftTest` now regenerates all 7,257
   pinned TypeScript binding artifacts in a temporary workspace and compares
   ordered generated/committed pairs through bounded batch reads. Its accepted
@@ -102,7 +103,7 @@ select the Terlan replacements, and those replaced Python sources are deleted.
   version-bump write path. Its repository report is field-for-field identical
   to the superseded Python checker, and write mode is exercised in an isolated
   typed temporary workspace.
-- `std.scripts.ReleaseManifestTest` now owns the complete stdlib release
+- `release_manifest.ValidationTest` now owns the complete stdlib release
   manifest, generated documentation inventory, longest-prefix API ownership,
   and exact annotated-test coverage. Its accepted 83-module result matches the
   superseded Python checker; bounded filesystem phases avoid retaining

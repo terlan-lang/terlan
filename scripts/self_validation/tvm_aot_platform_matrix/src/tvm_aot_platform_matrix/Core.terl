@@ -731,12 +731,23 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
     [
         "timeout-minutes: 30",
         "if: \${{ inputs.generated }}",
+        "generated_summaries:",
+        "generated_js_bindings:",
+        "generated_native_artifacts:",
+        "generated_release_manifest:",
+        "generated_tree_sitter:",
+        "TERLAN_GENERATED_SUMMARIES:",
+        "TERLAN_GENERATED_JS_BINDINGS:",
+        "TERLAN_GENERATED_NATIVE_ARTIFACTS:",
+        "TERLAN_GENERATED_RELEASE_MANIFEST:",
+        "TERLAN_GENERATED_TREE_SITTER:",
         "source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=\${{ steps.script-runner.outputs.terlc }}",
         "git diff --exit-code",
         "git status --porcelain --untracked-files=all",
     ],
 )
-        and makefile.contains("source-generated-artifacts-check: $(GENERATED_ARTIFACT_FRESHNESS_GATES)").
+        and makefile.contains("generated artifact selectors must be 0 or 1")
+        and makefile.contains("$(MAKE) --no-print-directory -j5 $(SELECTED_GENERATED_ARTIFACT_FRESHNESS_GATES)").
 
 pub compiler_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [changes, source-preflight, check]") == 3.

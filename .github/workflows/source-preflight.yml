@@ -24,6 +24,26 @@ on:
         description: Whether committed generated-artifact inputs changed
         required: true
         type: boolean
+      generated_summaries:
+        description: Whether reviewed standard-library summaries changed
+        required: true
+        type: boolean
+      generated_js_bindings:
+        description: Whether generated JavaScript binding inputs changed
+        required: true
+        type: boolean
+      generated_native_artifacts:
+        description: Whether generated native metadata inputs changed
+        required: true
+        type: boolean
+      generated_release_manifest:
+        description: Whether generated release manifest inputs changed
+        required: true
+        type: boolean
+      generated_tree_sitter:
+        description: Whether generated Tree-sitter inputs changed
+        required: true
+        type: boolean
       rust_format_all:
         description: Whether the global Rust formatting contract changed
         required: true
@@ -89,6 +109,12 @@ jobs:
           node-version: 24
       - name: Check every generated artifact for drift
         if: ${{ inputs.generated }}
+        env:
+          TERLAN_GENERATED_SUMMARIES: ${{ inputs.generated_summaries && '1' || '0' }}
+          TERLAN_GENERATED_JS_BINDINGS: ${{ inputs.generated_js_bindings && '1' || '0' }}
+          TERLAN_GENERATED_NATIVE_ARTIFACTS: ${{ inputs.generated_native_artifacts && '1' || '0' }}
+          TERLAN_GENERATED_RELEASE_MANIFEST: ${{ inputs.generated_release_manifest && '1' || '0' }}
+          TERLAN_GENERATED_TREE_SITTER: ${{ inputs.generated_tree_sitter && '1' || '0' }}
         run: |
           make --no-print-directory source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=${{ steps.script-runner.outputs.terlc }}
           git diff --exit-code

@@ -28,6 +28,11 @@ pub compiler_sources_select_compiler_validation(): Bool ->
         and result.source
         and not result.dependencies
         and result.generated
+        and result.generated_summaries
+        and not result.generated_js_bindings
+        and result.generated_native_artifacts
+        and result.generated_release_manifest
+        and not result.generated_tree_sitter
         and result.rust_format
         and not result.rust_format_all
         and result.terlan_style
@@ -47,6 +52,11 @@ pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
         and result.source
         and result.dependencies
         and not result.generated
+        and not result.generated_summaries
+        and not result.generated_js_bindings
+        and not result.generated_native_artifacts
+        and not result.generated_release_manifest
+        and not result.generated_tree_sitter
         and not result.rust_format
         and not result.rust_format_all
         and not result.terlan_style
@@ -66,6 +76,11 @@ pub manual_and_indeterminate_dispatches_force_all_validation(): Bool ->
         and result.source
         and result.dependencies
         and result.generated
+        and result.generated_summaries
+        and result.generated_js_bindings
+        and result.generated_native_artifacts
+        and result.generated_release_manifest
+        and result.generated_tree_sitter
         and result.rust_format
         and result.rust_format_all
         and result.terlan_style
@@ -88,7 +103,7 @@ pub classification_ignores_duplicate_and_empty_paths(): Bool ->
     result.source
         and not result.compiler
         and not result.dependencies
-        and result.generated
+        and not result.generated
         and not result.rust_format
         and not result.rust_format_all
         and not result.terlan_style
@@ -114,7 +129,7 @@ pub release_tooling_receives_source_checks_without_compiler_replay(): Bool ->
     result.source
         and not result.compiler
         and not result.dependencies
-        and result.generated
+        and not result.generated
         and not result.rust_format
         and not result.rust_format_all
         and result.terlan_style
@@ -152,9 +167,44 @@ pub generated_artifact_scope_excludes_unrelated_automation(): Bool ->
     not automation.generated
         and automation.source
         and generator.generated
+        and ChangeClassifier.is_generated_artifact_input(
+    "scripts/self_validation/stdlib_interfaces/src/stdlib_interfaces/Build.terl",
+)
         and ChangeClassifier.is_generated_artifact_input("tree-sitter-terlan/grammar.js")
         and ChangeClassifier.is_generated_artifact_input("crates/terlan/src/compiler/typeck/expression.rs")
         and not ChangeClassifier.is_generated_artifact_input("crates/terlan/src/runtime/vm.rs").
+
+@test
+pub generated_artifact_owners_are_selected_independently(): Bool ->
+    let summary = ChangeClassifier.classify(["crates/terlan/src/compiler/typeck/expression.rs"], false);
+    let javascript = ChangeClassifier.classify(["std/js/manifests/std_js_dom_inputs.json"], false);
+    let tree = ChangeClassifier.classify(["tree-sitter-terlan/grammar.js"], false);
+    summary.generated_summaries
+        and not summary.generated_js_bindings
+        and not summary.generated_native_artifacts
+        and not summary.generated_release_manifest
+        and not summary.generated_tree_sitter
+        and not javascript.generated_summaries
+        and javascript.generated_js_bindings
+        and not javascript.generated_native_artifacts
+        and not javascript.generated_release_manifest
+        and not javascript.generated_tree_sitter
+        and tree.generated_tree_sitter
+        and not tree.generated_summaries
+        and not tree.generated_js_bindings
+        and not tree.generated_native_artifacts
+        and not tree.generated_release_manifest.
+
+@test
+pub generated_orchestration_uses_contracts_without_regeneration(): Bool ->
+    let orchestration = ChangeClassifier.classify(["Makefile", "std/stdlib.mk"], false);
+    orchestration.ci_contracts
+        and not orchestration.generated
+        and not orchestration.generated_summaries
+        and not orchestration.generated_js_bindings
+        and not orchestration.generated_native_artifacts
+        and not orchestration.generated_release_manifest
+        and not orchestration.generated_tree_sitter.
 
 @test
 pub preflight_domains_are_selected_by_their_own_inputs(): Bool ->
@@ -197,4 +247,4 @@ pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
 pub github_outputs_are_complete_and_stable(): Bool ->
     ChangeClassifier.render_outputs(
     ChangeClassifier.classify(["crates/terlan/src/main.rs", "Cargo.lock"], false),
-) == "source=true\ncompiler=true\ndependencies=true\ngenerated=false\nrust-format=true\nrust-format-all=false\nterlan-style=false\nterlan-style-all=false\nci-contracts=false\neditor=false\ninventory=true\nrelease-tooling=false\nhooks=false\nworkflow=false\nchanged-count=2\n".
+) == "source=true\ncompiler=true\ndependencies=true\ngenerated=false\ngenerated-summaries=false\ngenerated-js-bindings=false\ngenerated-native-artifacts=false\ngenerated-release-manifest=false\ngenerated-tree-sitter=false\nrust-format=true\nrust-format-all=false\nterlan-style=false\nterlan-style-all=false\nci-contracts=false\neditor=false\ninventory=true\nrelease-tooling=false\nhooks=false\nworkflow=false\nchanged-count=2\n".

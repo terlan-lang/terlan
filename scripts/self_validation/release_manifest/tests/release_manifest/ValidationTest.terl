@@ -1,22 +1,20 @@
 /**
  * Validates the complete standard-library release manifest.
  */
-module std.scripts.ReleaseManifestTest.
+module release_manifest.ValidationTest.
 
 import std.collections.{List, Set}.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{println}.
-import std.io.Directory.{create_temporary, remove_all}.
 import std.io.File.{exists, read_text, read_text_many, read_text_tree_matching}.
 import std.regex.Regex.
-import std.system.{Environment, Process}.
+import std.system.Environment.
 
 import type std.collections.{List, Set}.
 import type std.core.Option.
 import type std.io.File.TextFile.
-import type std.system.Process.{BatchCompletion, Command}.
 
 pub struct ManifestRow {
     kind: String,
@@ -454,79 +452,6 @@ prepend_reversed_strings(left: List[String], right: List[String]): List[String] 
         [value | rest] -> prepend_reversed_strings(rest, [value | right])
     }.
 
-process_command(compiler: String, root: String, docs: String, source: String): Command ->
-    Process.with_output_limit_bytes(
-        Process.with_timeout_ms(
-            Process.with_working_directory(
-                Process.with_arguments(
-                    Process.command(compiler),
-                    ["--out-dir", docs, "doc", source],
-                ),
-                root,
-            ),
-            600_000,
-        ),
-        4_194_304,
-    ).
-
-doc_commands(compiler: String, root: String, docs: String, sources: List[String]): List[Command] ->
-    reverse_commands(doc_commands_at(compiler, root, docs, sources, List.new[Command]())).
-
-doc_commands_at(
-    compiler: String,
-    root: String,
-    docs: String,
-    sources: List[String],
-    commands: List[Command],
-): List[Command] ->
-    case sources {
-        [] -> commands;
-        [source | rest] ->
-            doc_commands_at(
-                compiler,
-                root,
-                docs,
-                rest,
-                [process_command(compiler, root, docs, source) | commands],
-            )
-    }.
-
-reverse_commands(values: List[Command]): List[Command] ->
-    reverse_commands_at(values, List.new[Command]()).
-
-reverse_commands_at(values: List[Command], reversed: List[Command]): List[Command] ->
-    case values {
-        [] -> reversed;
-        [value | rest] -> reverse_commands_at(rest, [value | reversed])
-    }.
-
-completions_hold(completions: List[BatchCompletion]): Bool ->
-    case completions {
-        [] -> true;
-        [completion | rest] ->
-            case {completion.output, completion.error} {
-                {Some(output), None} -> output.status == 0 and completions_hold(rest);
-                _ -> false
-            }
-    }.
-
-generate_docs(
-    compiler: String,
-    root: String,
-    docs: String,
-    rows: List[ManifestRow],
-    inventory: DocInventory,
-): Bool ->
-    let source_paths =
-        unique_strings(
-            append_strings(module_source_paths(rows), doc_source_paths(inventory.sources)),
-        );
-    let commands = doc_commands(compiler, root, docs, source_paths);
-    case Process.run_many(Process.batch(commands, 4)) {
-        Ok(batch) -> completions_hold(batch.completions);
-        Err(_reason) -> false
-    }.
-
 @pure
 artifact_paths(rows: List[ManifestRow]): List[String] ->
     unique_strings(reverse_strings(artifact_paths_at(rows, List.new[String]()))).
@@ -870,24 +795,27 @@ print_diagnostic_rows(diagnostics: List[String]): Bool ->
     }.
 
 validate_after_docs(context: ValidationContext): Bool ->
-    let paths =
+    let artifact_paths_to_check =
         unique_strings(
-            append_strings(
-                paths_with_root(
-                    context.root,
-                    append_strings(
-                        artifact_paths(context.manifest.rows),
-                        api_test_paths(context.api.rows),
-                    ),
+            paths_with_root(
+                context.root,
+                append_strings(
+                    artifact_paths(context.manifest.rows),
+                    api_test_paths(context.api.rows),
                 ),
+            ),
+        );
+    let present_paths =
+        Set.from_list(
+            append_strings(
+                existing_paths(artifact_paths_to_check),
                 expected_doc_paths(context.docs, context.manifest.rows, context.inventory.sources),
             ),
         );
-    let present_paths = existing_paths(paths);
     let api_paths = paths_with_root(context.root, api_test_paths(context.api.rows));
     case read_text_many(api_paths) {
         Err(_reason) -> print_diagnostics(["cannot read release manifest artifacts"]);
-        Ok(files) -> validate_loaded(context, files, Set.from_list(present_paths))
+        Ok(files) -> validate_loaded(context, files, present_paths)
     }.
 
 existing_paths(paths: List[String]): List[String] ->
@@ -965,10 +893,11 @@ validate_sets(
             context.manifest.diagnostics,
             append_strings(context.api.diagnostics, context.inventory.diagnostics),
         );
+    let doc_contract = doc_path_diagnostics(context.manifest.rows, initial);
     let manifest_shape =
         if {
-            context.manifest.api_manifest_total == 1 -> initial;
-            true -> ["std release manifest must contain exactly one api_manifest row" | initial]
+            context.manifest.api_manifest_total == 1 -> doc_contract;
+            true -> ["std release manifest must contain exactly one api_manifest row" | doc_contract]
         };
     let artifacts =
         artifact_set_diagnostics(
@@ -1000,6 +929,21 @@ validate_sets(
         );
     ValidationOutcome(module_count = context.manifest.module_total, diagnostics = api_checks).
 
+@pure
+doc_path_diagnostics(rows: List[ManifestRow], diagnostics: List[String]): List[String] ->
+    case rows {
+        [] -> diagnostics;
+        [row | rest] ->
+            let expected = String.append(row.identifier, ".html");
+            doc_path_diagnostics(
+                rest,
+                if {
+                    row.kind != "module" or row.docs == expected -> diagnostics;
+                    true -> [String.append(row.identifier, String.append(": expected docs path `", String.append(expected, "`"))) | diagnostics]
+                },
+            )
+    }.
+
 finish_validation(outcome: ValidationOutcome): Bool ->
     if {
         outcome.diagnostics == List.new[String]() -> let _printed =
@@ -1027,7 +971,7 @@ paths_with_root_at(root: String, paths: List[String], rooted: List[String]): Lis
         [path | rest] -> paths_with_root_at(root, rest, [child(root, path) | rooted])
     }.
 
-run_with_docs(root: String, compiler: String, docs: String): Bool ->
+run_with_docs(root: String, docs: String): Bool ->
     case read_text(child(root, "std/RELEASE_MANIFEST.tsv")) {
         Err(_reason) ->
             print_diagnostics(["missing std release manifest: std/RELEASE_MANIFEST.tsv"]);
@@ -1036,13 +980,12 @@ run_with_docs(root: String, compiler: String, docs: String): Bool ->
             let api_path = api_manifest_path(manifest.rows);
             if {
                 api_path == "" -> print_diagnostics(["std release manifest is missing api_manifest row"]);
-                true -> read_api_and_inventory(root, compiler, docs, manifest, api_path)
+                true -> read_api_and_inventory(root, docs, manifest, api_path)
             }
     }.
 
 read_api_and_inventory(
     root: String,
-    compiler: String,
     docs: String,
     manifest: ParsedManifest,
     api_path: String,
@@ -1052,33 +995,20 @@ read_api_and_inventory(
         Ok(api_source) ->
             let api = parse_api_manifest(api_source);
             let inventory = discover_doc_inventory(root);
-            if {
-                generate_docs(compiler, root, docs, manifest.rows, inventory) -> validate_after_docs(
-                    ValidationContext(
-                        root = root,
-                        docs = docs,
-                        manifest = manifest,
-                        api = api,
-                        inventory = inventory,
-                    ),
-                );
-                true -> print_diagnostics(["failed to generate std documentation"])
-            }
+            validate_after_docs(
+                ValidationContext(
+                    root = root,
+                    docs = docs,
+                    manifest = manifest,
+                    api = api,
+                    inventory = inventory,
+                ),
+            )
     }.
 
 repository_gate(): Bool ->
     let root = environment_or("TERLAN_RELEASE_MANIFEST_ROOT", ".");
-    let compiler = environment_or("TERLAN_RELEASE_MANIFEST_TERLC", "target/debug/terlc");
-    case create_temporary("terlan-std-docs") {
-        Err(_reason) -> false;
-        Ok(docs) ->
-            let valid = run_with_docs(root, compiler, docs);
-            let cleaned = remove_all(docs);
-            case cleaned {
-                Ok(Unit) -> valid;
-                Err(_reason) -> false
-            }
-    }.
+    run_with_docs(root, ".terlan-release-doc-contract").
 
 @test
 pub repository_std_release_manifest_is_complete(): Bool ->
@@ -1112,6 +1042,19 @@ pub parser_rejects_malformed_manifest_rows(): Bool ->
             String.append(manifest_header(), "\nmodule\tstd.core.Unit\tstd/core/Unit.terl\n"),
         );
     parsed.diagnostics != List.new[String]().
+
+@test
+pub release_manifest_requires_exact_documentation_path(): Bool ->
+    let row =
+        ManifestRow(
+            kind = "module",
+            identifier = "std.core.Unit",
+            source = "std/core/Unit.terl",
+            summary = "std/summaries/std.core.Unit.typi",
+            tests = "std/core/UnitTest.terl",
+            docs = "wrong.html",
+        );
+    doc_path_diagnostics([row], List.new[String]()).length() == 1.
 
 @test
 pub diagnostic_printer_visits_every_failure_row(): Bool ->

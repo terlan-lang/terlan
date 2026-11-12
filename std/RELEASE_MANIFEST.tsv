@@ -7,7 +7,7 @@
 # - Exact per-API release-test manifest in tests/std/RELEASE_API_TESTS.tsv.
 #
 # Output:
-# - A tab-separated manifest consumed by std/scripts/ReleaseManifestTest.terl.
+# - A tab-separated manifest consumed by the release_manifest validation package.
 #
 # Transformation:
 # - Ties each release-owned std module to its source, summary, generated docs,

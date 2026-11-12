@@ -15,7 +15,9 @@ scripts/self_validation/AllTerlanTestsVmInventoryTest.terl	checker	migrated	file
 scripts/self_validation/AngularTsIntegrationTest.terl	checker	migrated	arguments,environment,filesystem,process,temp-workspace,path,string-normalization
 scripts/self_validation/ExternalVmContractTest.terl	checker	migrated	environment,filesystem,process,temp-workspace,path,string-normalization
 scripts/self_validation/BuildArtifactBudgetTest.terl	quality-tool	migrated	arguments,environment,filesystem,file-metadata,hash,process,clock,json,deterministic-reporting
-scripts/self_validation/BuildInterfacesTest.terl	bootstrap-generator	migrated	arguments,environment,filesystem,process,bounded-parallelism,string-normalization
+scripts/self_validation/stdlib_interfaces/src/stdlib_interfaces/Build.terl	bootstrap-generator	migrated	arguments,environment,filesystem,process,bounded-parallelism,string-normalization
+scripts/self_validation/stdlib_interfaces/tests/stdlib_interfaces/BuildTest.terl	checker	migrated	unit-tests
+scripts/self_validation/stdlib_interfaces/tests/stdlib_interfaces/SummaryDriftTest.terl	bootstrap-generator	migrated	environment,filesystem,process,temp-workspace,batch-text-read,string-normalization
 scripts/self_validation/CallableSyntaxCleanupTest.terl	checker	migrated	filesystem,regex,string-search
 scripts/self_validation/CargoArtifactRetentionTest.terl	quality-tool	migrated	environment,filesystem,temp-workspace,deterministic-reporting
 scripts/self_validation/ChangelogPublicScopeTest.terl	checker	migrated	filesystem
@@ -49,7 +51,6 @@ scripts/self_validation/SingleRootContractTest.terl	checker	migrated	filesystem,
 scripts/self_validation/SqlFormBoundaryTest.terl	checker	migrated	filesystem,bounded-recursive-text-read,regex,string-search
 scripts/self_validation/StaticRouteBoundaryTest.terl	checker	migrated	filesystem,regex,string-search
 scripts/self_validation/StdlibValidation.terls	checker	migrated	arguments,environment,filesystem,process,regex,tsv,inline-assertions
-scripts/self_validation/SummaryDriftTest.terl	bootstrap-generator	migrated	environment,filesystem,process,temp-workspace,batch-text-read,string-normalization
 scripts/self_validation/SummaryInventoryTest.terl	bootstrap-generator	migrated	filesystem,bounded-recursive-text-read,string-normalization
 scripts/self_validation/TerlanPytorchBaselinePolicyTest.terl	checker	migrated	environment,filesystem,json,sha256,string-normalization
 scripts/self_validation/TerlanPytorchCudaTest.terl	checker	migrated	environment,filesystem,json,process,string-normalization
@@ -58,7 +59,7 @@ scripts/self_validation/VmCliExactSelectorSurfaceTest.terl	checker	migrated	file
 scripts/self_validation/VmCoordinationDockerTest.terl	checker	migrated	environment,process
 scripts/self_validation/WebManifestPreflight.terls	checker	migrated	arguments,filesystem,json,inline-assertions
 scripts/self_validation/docs_static_release_parity/src/docs_static_release_parity/Main.terl	checker	migrated	arguments,environment,filesystem,hash,archive,process,platform,json,deterministic-reporting
-std/scripts/ReleaseManifestTest.terl	bootstrap-generator	migrated	environment,filesystem,process,temp-workspace,batch-text-read,bounded-recursive-text-read,regex,string-normalization,tsv
+scripts/self_validation/release_manifest/tests/release_manifest/ValidationTest.terl	bootstrap-generator	migrated	environment,filesystem,batch-text-read,bounded-recursive-text-read,regex,string-normalization,tsv
 scripts/self_validation/installer_contract/src/installer_contract/Main.terl	checker	migrated	arguments,environment,filesystem,hash,archive-create,file-permissions,process,temp-workspace,release-artifact-mapping
 scripts/self_validation/LeanProofCounterexampleTest.terl	checker	migrated	arguments,environment,filesystem,hash,json,process,deterministic-reporting
 scripts/self_validation/LeanProofFeatureBindingTest.terl	checker	migrated	environment,filesystem,hash,json,batch-text-read,string-normalization,tsv,markdown,deterministic-reporting

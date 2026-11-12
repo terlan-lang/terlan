@@ -96,6 +96,11 @@ jobs:
       compiler: ${{ steps.classify.outputs.compiler }}
       dependencies: ${{ steps.classify.outputs.dependencies }}
       generated: ${{ steps.classify.outputs.generated }}
+      generated-summaries: ${{ steps.classify.outputs.generated-summaries }}
+      generated-js-bindings: ${{ steps.classify.outputs.generated-js-bindings }}
+      generated-native-artifacts: ${{ steps.classify.outputs.generated-native-artifacts }}
+      generated-release-manifest: ${{ steps.classify.outputs.generated-release-manifest }}
+      generated-tree-sitter: ${{ steps.classify.outputs.generated-tree-sitter }}
       rust-format: ${{ steps.classify.outputs.rust-format }}
       rust-format-all: ${{ steps.classify.outputs.rust-format-all }}
       terlan-style: ${{ steps.classify.outputs.terlan-style }}
@@ -138,6 +143,11 @@ jobs:
     with:
       mode: ${{ needs.changes.outputs.source == 'true' && 'full' || 'contracts' }}
       generated: ${{ needs.changes.outputs.generated == 'true' }}
+      generated_summaries: ${{ needs.changes.outputs.generated-summaries == 'true' }}
+      generated_js_bindings: ${{ needs.changes.outputs.generated-js-bindings == 'true' }}
+      generated_native_artifacts: ${{ needs.changes.outputs.generated-native-artifacts == 'true' }}
+      generated_release_manifest: ${{ needs.changes.outputs.generated-release-manifest == 'true' }}
+      generated_tree_sitter: ${{ needs.changes.outputs.generated-tree-sitter == 'true' }}
       base_revision: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
       head_revision: ${{ github.event.pull_request.head.sha || github.sha }}
       rust_format: ${{ needs.changes.outputs.rust-format == 'true' }}
