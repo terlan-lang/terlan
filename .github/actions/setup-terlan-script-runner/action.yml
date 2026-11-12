@@ -31,20 +31,39 @@ runs:
       id: identity
       shell: bash
       run: |
-        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v4-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/ClassifyChanges.terls', 'scripts/ci/src/ci/ChangeClassifier.terl') }}"
-        program_key="terlan-ci-programs-v1-$key-${{ hashFiles('scripts/ci/scripts/CheckRustFormatting.terls', 'scripts/ci/scripts/CheckTerlanStyle.terls', 'scripts/ci/src/ci/FormattingTools.terl', 'scripts/ci/src/ci/RustFormatting.terl', 'scripts/ci/src/ci/TerlanStyle.terl') }}"
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v5-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', '!crates/**/*_test.rs', '!crates/**/*_tests.rs', '!crates/**/*_test/**/*.rs', '!crates/**/*_tests/**/*.rs', '!crates/**/test/**/*.rs', '!crates/**/tests/**/*.rs') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
-        echo "program-key=$program_key" >> "$GITHUB_OUTPUT"
+        echo "classifier-sources=${{ hashFiles('std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/ClassifyChanges.terls', 'scripts/ci/src/ci/ChangeClassifier.terl') }}" >> "$GITHUB_OUTPUT"
+        echo "program-sources=${{ hashFiles('std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/CheckRustFormatting.terls', 'scripts/ci/scripts/CheckTerlanStyle.terls', 'scripts/ci/src/ci/FormattingTools.terl', 'scripts/ci/src/ci/RustFormatting.terl', 'scripts/ci/src/ci/TerlanStyle.terl') }}" >> "$GITHUB_OUTPUT"
 
     - name: Restore script runner
       id: restore
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: target/script-runner
+        path: |
+          target/script-runner/terlc
+          target/script-runner/terlan-vm
         key: ${{ steps.identity.outputs.key }}
         restore-keys: |
+          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v5-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v4-', runner.os, runner.arch) || '' }}
           ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v3-', runner.os, runner.arch) || '' }}
+
+    - name: Resolve compiled-program cache identity
+      id: program-identity
+      shell: bash
+      env:
+        MATCHED_RUNNER_KEY: ${{ steps.restore.outputs.cache-matched-key }}
+        CANDIDATE_RUNNER_KEY: ${{ steps.identity.outputs.key }}
+        CLASSIFIER_SOURCES: ${{ steps.identity.outputs.classifier-sources }}
+        PROGRAM_SOURCES: ${{ steps.identity.outputs.program-sources }}
+      run: |
+        runner_key="$MATCHED_RUNNER_KEY"
+        if [[ -z "$runner_key" ]]; then
+          runner_key="$CANDIDATE_RUNNER_KEY"
+        fi
+        echo "classifier-key=terlan-ci-classifier-v1-$runner_key-$CLASSIFIER_SOURCES" >> "$GITHUB_OUTPUT"
+        echo "program-key=terlan-ci-programs-v2-$runner_key-$PROGRAM_SOURCES" >> "$GITHUB_OUTPUT"
 
     - name: Validate restored script runner
       id: restored
@@ -75,15 +94,22 @@ runs:
         install -D -m 0755 target/debug/terlc target/script-runner/terlc
         install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
 
+    - name: Restore compiled change classifier
+      id: classifier
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: target/ci-classifier
+        key: ${{ steps.program-identity.outputs.classifier-key }}
+
     - name: Compile current change classifier
-      if: ${{ steps.restore.outputs.cache-hit != 'true' || steps.restored.outputs.usable != 'true' }}
+      if: ${{ steps.classifier.outputs.cache-hit != 'true' }}
       shell: bash
       run: |
         target/script-runner/terlc build \
           scripts/ci/scripts/ClassifyChanges.terls \
           --target terlan-vm \
-          --out-dir target/script-runner/classifier
-        test -s target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm
+          --out-dir target/ci-classifier
+        test -s target/ci-classifier/vm/scripts_ClassifyChanges.tvm
 
     - name: Validate compiled change classifier
       shell: bash
@@ -91,7 +117,7 @@ runs:
         output=$(mktemp)
         revision=$(git rev-parse HEAD)
         target/script-runner/terlan-vm run \
-          target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm \
+          target/ci-classifier/vm/scripts_ClassifyChanges.tvm \
           --script-eval -- "$revision" "$revision" "$output" >/dev/null
         grep -qx 'changed-count=0' "$output"
         rm -f "$output"
@@ -108,15 +134,24 @@ runs:
       if: ${{ steps.restored.outputs.usable != 'true' }}
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: target/script-runner
+        path: |
+          target/script-runner/terlc
+          target/script-runner/terlan-vm
         key: ${{ steps.identity.outputs.key }}
+
+    - name: Save compiled change classifier
+      if: ${{ steps.classifier.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: target/ci-classifier
+        key: ${{ steps.program-identity.outputs.classifier-key }}
 
     - name: Restore compiled CI programs
       id: ci-programs
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: target/ci-programs
-        key: ${{ steps.identity.outputs.program-key }}
+        key: ${{ steps.program-identity.outputs.program-key }}
 
     - name: Compile current CI programs
       if: ${{ steps.ci-programs.outputs.cache-hit != 'true' }}
@@ -142,7 +177,7 @@ runs:
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: target/ci-programs
-        key: ${{ steps.identity.outputs.program-key }}
+        key: ${{ steps.program-identity.outputs.program-key }}
 
     - name: Validate script runner
       id: paths
@@ -150,9 +185,9 @@ runs:
       run: |
         test -x target/script-runner/terlc
         test -x target/script-runner/terlan-vm
-        test -s target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm
+        test -s target/ci-classifier/vm/scripts_ClassifyChanges.tvm
         echo "terlc=$GITHUB_WORKSPACE/target/script-runner/terlc" >> "$GITHUB_OUTPUT"
         echo "vm=$GITHUB_WORKSPACE/target/script-runner/terlan-vm" >> "$GITHUB_OUTPUT"
-        echo "classifier-image=$GITHUB_WORKSPACE/target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm" >> "$GITHUB_OUTPUT"
+        echo "classifier-image=$GITHUB_WORKSPACE/target/ci-classifier/vm/scripts_ClassifyChanges.tvm" >> "$GITHUB_OUTPUT"
         echo "rust-format-image=$GITHUB_WORKSPACE/target/ci-programs/rust-format/vm/scripts_CheckRustFormatting.tvm" >> "$GITHUB_OUTPUT"
         echo "terlan-style-image=$GITHUB_WORKSPACE/target/ci-programs/terlan-style/vm/scripts_CheckTerlanStyle.tvm" >> "$GITHUB_OUTPUT"

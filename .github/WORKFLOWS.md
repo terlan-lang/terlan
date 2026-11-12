@@ -65,11 +65,15 @@ same Chromium archive again.
 
 Compiler CI calls `source-preflight.yml` once. A change-classification job
 distinguishes product inputs from workflow and documentation contracts.
-The classifier is Terlan source with 100% declaration coverage. A
-content-addressed script-runner cache restores `terlc` and `terlan-vm` when
-compiler inputs are unchanged; otherwise the candidate compiler self-bootstraps
-that runner once. Source preflight reuses the same compiler for classifier,
-release-payload, and readability checks instead of rebuilding it. Script
+The classifier is Terlan source with 100% declaration coverage. Separate
+content-addressed caches own the `terlc`/`terlan-vm` binaries, classifier image,
+and formatting images. The binary key excludes Rust test modules and Terlan
+library/script inputs, so test-only and orchestration-only commits cannot force
+a compiler rebuild; each compiled script key includes its actual standard
+library and source inputs plus the compiler binary that produced it. When real
+compiler inputs change, the candidate compiler self-bootstraps that runner once.
+Source preflight reuses the same compiler for classifier, release-payload, and
+readability checks instead of rebuilding it. Script
 capability is deliberately separate from release
 eligibility: candidate tooling may orchestrate a red build, while only complete
 independent evidence permits publication.

@@ -55,13 +55,19 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v4-")
+    action.contains("terlan-script-runner-v5-")
         and action.contains("allow-compatible-fallback:")
         and action.contains("default: \"false\"")
+        and action.contains("!crates/**/*_test.rs")
+        and action.contains("!crates/**/*_test/**/*.rs")
+        and action.contains("terlan-ci-classifier-v1-")
+        and action.contains("target/ci-classifier")
+        and action.contains("steps.restore.outputs.cache-matched-key")
+        and action.contains("CANDIDATE_RUNNER_KEY")
         and action.contains("Compile current change classifier")
         and action.contains("scripts_ClassifyChanges.tvm")
         and action.contains("classifier-image=")
-        and action.contains("terlan-ci-programs-v1-")
+        and action.contains("terlan-ci-programs-v2-")
         and action.contains("scripts_CheckRustFormatting.tvm")
         and action.contains("scripts_CheckTerlanStyle.tvm")
         and action.contains("rust-format-image=")
@@ -130,7 +136,7 @@ pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v4-")
+    action.contains("terlan-script-runner-v5-")
         and action.contains("key: \${{ steps.identity.outputs.key }}")
         and action.contains("if: \${{ steps.restored.outputs.usable != 'true' }}")
         and occurrences(workflow, "allow-compatible-fallback: \"true\"") == 1.
