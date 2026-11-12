@@ -270,8 +270,26 @@ pub test_command_changes_use_their_owned_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/test/coverage.rs"]) == ["shell", "clippy", "rust-reports", "commands-test"].
 
 @test
-pub mixed_workspace_changes_retain_targeted_command_tests(): Bool ->
-    Plan.lanes(["crates/terlan/src/commands/test/coverage.rs", "crates/terlan/src/tests/help_test.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "commands-test", "workspace"].
+pub mixed_workspace_changes_execute_each_rust_test_once(): Bool ->
+    Plan.lanes(["crates/terlan/src/commands/test/coverage.rs", "crates/terlan/src/tests/help_test.rs"]) == ["shell", "clippy", "rust-reports", "summaries", "commands-test", "workspace"]
+        and Plan.execution_lanes(
+    ["crates/terlan/src/commands/test/coverage.rs", "crates/terlan/src/tests/help_test.rs"],
+) == ["shell", "workspace", "clippy", "rust-reports", "summaries"].
+
+@test
+pub broad_rust_lanes_remove_their_narrow_duplicates(): Bool ->
+    Plan.execution_lanes(
+    [
+        "crates/terlan/src/commands/emit_js/cast_semantics.rs",
+        "crates/terlan/src/commands/bind/mod.rs",
+    ],
+) == ["shell", "commands", "native-bindings", "clippy", "rust-reports"]
+        and Plan.execution_lanes(
+    [
+        "crates/terlan/src/compiler/native_ir/collection_values.rs",
+        "crates/terlan/src/compiler/typeck/import_maps.rs",
+    ],
+) == ["shell", "compiler", "phase", "clippy", "rust-reports", "summaries"].
 
 @test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->

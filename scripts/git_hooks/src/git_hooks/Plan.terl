@@ -570,14 +570,58 @@ pub hosted_lanes(paths: List[String]): List[String] ->
     without_hosted_lanes(lanes(paths)).
 
 /**
- * Runs the smallest changed-code test before broad static and proof gates.
- * Ownership remains expressed by lanes/1; this is only fail-fast scheduling.
+ * Runs changed-code tests before broad static and proof gates, after removing
+ * narrower Rust lanes whose selected superset proves the same declarations.
+ * Ownership remains expressed by lanes/1; execution never repeats a subset.
  */
 pub execution_lanes(paths: List[String]): List[String] ->
-    prioritize_test_lanes(lanes(paths)).
+    prioritize_test_lanes(minimal_test_lanes(lanes(paths))).
 
 pub hosted_execution_lanes(paths: List[String]): List[String] ->
-    prioritize_test_lanes(hosted_lanes(paths)).
+    prioritize_test_lanes(minimal_test_lanes(hosted_lanes(paths))).
+
+minimal_test_lanes(values: List[String]): List[String] ->
+    retain_minimal_test_lanes(values, values).
+
+retain_minimal_test_lanes(selected: List[String], remaining: List[String]): List[String] ->
+    case remaining {
+        [] -> List.new[String]();
+        [lane | rest] ->
+            if {
+                test_lane_is_superseded(selected, lane) -> retain_minimal_test_lanes(selected, rest);
+                true -> [lane | retain_minimal_test_lanes(selected, rest)]
+            }
+    }.
+
+test_lane_is_superseded(values: List[String], lane: String): Bool ->
+    contains_lane(values, "workspace") and workspace_test_subset(lane)
+        or contains_lane(values, "commands") and command_test_subset(lane)
+        or contains_lane(values, "compiler") and compiler_test_subset(lane).
+
+workspace_test_subset(lane: String): Bool ->
+    lane == "commands-test"
+        or lane == "commands-clean"
+        or lane == "commands-doctor"
+        or lane == "commands-init"
+        or lane == "commands-emit-js"
+        or lane == "commands"
+        or lane == "native-ir"
+        or lane == "compiler"
+        or lane == "syntax"
+        or lane == "phase"
+        or lane == "test-orchestrator"
+        or lane == "rust-boundary-audit"
+        or lane == "dependencies".
+
+command_test_subset(lane: String): Bool ->
+    lane == "commands-test"
+        or lane == "commands-clean"
+        or lane == "commands-doctor"
+        or lane == "commands-init"
+        or lane == "commands-emit-js".
+
+compiler_test_subset(lane: String): Bool ->
+    lane == "native-ir" or lane == "syntax".
 
 prioritize_test_lanes(values: List[String]): List[String] ->
     append(selected_priority_lanes(test_lane_priority(), values), remaining_lanes(values)).
