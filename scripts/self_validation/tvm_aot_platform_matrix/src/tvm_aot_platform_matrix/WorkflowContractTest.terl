@@ -56,8 +56,8 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
         Err(_reason) -> false
     };
     action.contains("terlan-script-runner-v3-")
-        and action.contains(".github/actions/setup-terlan-script-runner/action.yml")
-        and not action.contains("restore-keys:")
+        and action.contains("allow-compatible-fallback:")
+        and action.contains("default: \"false\"")
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
@@ -104,13 +104,15 @@ pub compiler_validation_starts_beside_source_preflight(): Bool ->
 @test
 pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
     when {
-        Ok(action) <- read_text(".github/actions/setup-terlan-script-runner/action.yml")
+        Ok(action) <- read_text(".github/actions/setup-terlan-script-runner/action.yml");
+        Ok(workflow) <- read_text(".github/workflows/ci.yml")
     } else {
         Err(_reason) -> false
     };
     action.contains("terlan-script-runner-v3-")
         and action.contains("key: \${{ steps.identity.outputs.key }}")
-        and not action.contains("restore-keys:").
+        and action.contains("if: \${{ steps.restored.outputs.usable != 'true' }}")
+        and occurrences(workflow, "allow-compatible-fallback: \"true\"") == 1.
 
 @test
 pub cancelled_main_validation_is_accumulated_by_the_next_run(): Bool ->

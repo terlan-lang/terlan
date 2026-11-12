@@ -9,6 +9,12 @@ outputs:
     description: Cached VM path
     value: ${{ steps.paths.outputs.vm }}
 
+inputs:
+  allow-compatible-fallback:
+    description: Permit bootstrap-only callers to use an older compatible runner
+    required: false
+    default: "false"
+
 runs:
   using: composite
   steps:
@@ -16,7 +22,7 @@ runs:
       id: identity
       shell: bash
       run: |
-        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v3-${{ hashFiles('.github/actions/setup-terlan-script-runner/action.yml', 'Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli') }}"
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v3-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
 
     - name: Restore script runner
@@ -25,6 +31,9 @@ runs:
       with:
         path: target/script-runner
         key: ${{ steps.identity.outputs.key }}
+        restore-keys: |
+          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v3-', runner.os, runner.arch) || '' }}
+          ${{ inputs.allow-compatible-fallback == 'true' && format('{0}-{1}-terlan-script-runner-v2-', runner.os, runner.arch) || '' }}
 
     - name: Validate restored script runner
       id: restored
@@ -67,7 +76,8 @@ runs:
         test "$(wc -c < target/script-runner/terlan-vm)" -le 125829120
 
     - name: Save candidate script runner
-      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      # A compatible fallback is never saved under the exact candidate key.
+      if: ${{ steps.restored.outputs.usable != 'true' }}
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: target/script-runner

@@ -129,6 +129,8 @@ jobs:
       - name: Setup Terlan script runner
         id: script-runner
         uses: ./.github/actions/setup-terlan-script-runner
+        with:
+          allow-compatible-fallback: "true"
       - name: Resolve last compiler-validated main revision
         id: validated-main
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
