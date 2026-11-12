@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "f861327dc8b09db760104cf07a7a49143633c6b63ec5d7895f1791ef744075d7",
+  "compilation_input_sha256": "764ba0775af8598053738a8d0e607fae13fb1385ba54193273685dac33f913d6",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -476,6 +476,14 @@
     {
       "classification": "transitive-upgrade-blocked",
       "milestone": "0.0.9",
+      "name": "base64",
+      "owner": "dependency-health",
+      "rationale": "ureq uses base64 0.23 while ACME, certificate, and native encoding consumers retain base64 0.22",
+      "versions": "0.22.1,0.23.1"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.9",
       "name": "bitflags",
       "owner": "dependency-health",
       "rationale": "defmt retains bitflags 1 while current workspace and protocol crates use bitflags 2",
@@ -582,8 +590,8 @@
       "milestone": "0.0.9",
       "name": "itertools",
       "owner": "dependency-health",
-      "rationale": "macOS libproc build-time bindgen requires itertools 0.13 while parser and editor tooling use 0.14",
-      "versions": "0.13.0,0.14.0"
+      "rationale": "macOS libproc build-time bindgen, editor tooling, and LALRPOP currently span three itertools APIs",
+      "versions": "0.13.0,0.14.0,0.15.0"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -610,6 +618,14 @@
       "versions": "0.37.3,0.39.1,0.40.0"
     },
     {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.9",
+      "name": "phf_shared",
+      "owner": "dependency-health",
+      "rationale": "web atom generation uses PHF 0.13 while LALRPOP string caches use PHF 0.14",
+      "versions": "0.13.1,0.14.0"
+    },
+    {
       "classification": "platform-compatibility",
       "milestone": "0.0.9",
       "name": "r-efi",
@@ -623,7 +639,7 @@
       "name": "rustix",
       "owner": "dependency-health",
       "rationale": "transitive consumers currently support different rustix APIs",
-      "versions": "0.38.44,1.1.5"
+      "versions": "0.38.44,1.1.6"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -640,6 +656,14 @@
       "owner": "dependency-health",
       "rationale": "macOS libproc build-time bindgen requires shlex 1 while the pinned C compiler helper uses shlex 2",
       "versions": "1.3.0,2.0.1"
+    },
+    {
+      "classification": "transitive-upgrade-blocked",
+      "milestone": "0.0.9",
+      "name": "string_cache",
+      "owner": "dependency-health",
+      "rationale": "LALRPOP uses string_cache 0.11 while web atom generation retains string_cache 0.9",
+      "versions": "0.11.0,0.9.0"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -864,12 +888,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 140746,
+      "physical_lines": 140747,
       "rust_files": 424
     },
     {
       "name": "compiler",
-      "physical_lines": 189542,
+      "physical_lines": 189697,
       "rust_files": 534
     },
     {
@@ -1030,6 +1054,13 @@
   ],
   "resolved_dependency_duplicates": [
     {
+      "name": "base64",
+      "versions": [
+        "0.22.1",
+        "0.23.1"
+      ]
+    },
+    {
       "name": "bitflags",
       "versions": [
         "1.3.2",
@@ -1128,7 +1159,8 @@
       "name": "itertools",
       "versions": [
         "0.13.0",
-        "0.14.0"
+        "0.14.0",
+        "0.15.0"
       ]
     },
     {
@@ -1154,6 +1186,13 @@
       ]
     },
     {
+      "name": "phf_shared",
+      "versions": [
+        "0.13.1",
+        "0.14.0"
+      ]
+    },
+    {
       "name": "r-efi",
       "versions": [
         "5.3.0",
@@ -1164,7 +1203,7 @@
       "name": "rustix",
       "versions": [
         "0.38.44",
-        "1.1.5"
+        "1.1.6"
       ]
     },
     {
@@ -1179,6 +1218,13 @@
       "versions": [
         "1.3.0",
         "2.0.1"
+      ]
+    },
+    {
+      "name": "string_cache",
+      "versions": [
+        "0.11.0",
+        "0.9.0"
       ]
     },
     {
@@ -1307,12 +1353,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 54718,
+      "physical_lines": 54740,
       "rust_files": 242
     },
     {
       "name": "compiler",
-      "physical_lines": 56840,
+      "physical_lines": 56905,
       "rust_files": 261
     },
     {
@@ -1831,8 +1877,12 @@
           "optional": false
         },
         {
-          "default_features": true,
-          "features": [],
+          "default_features": false,
+          "features": [
+            "ring",
+            "std",
+            "tls12"
+          ],
           "kind": "normal",
           "name": "rustls",
           "optional": false
