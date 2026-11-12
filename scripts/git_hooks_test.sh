@@ -540,12 +540,25 @@ test "$early_terlan_line" -lt "$inventory_line"
 native_worker_build_pattern='cargo '
 native_worker_build_pattern+='build --locked -p terlan --bin terlan-native-worker'
 native_worker_build_line=$(rg -n -F "$native_worker_build_pattern" \
-  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1 | tail -1)
 executable_budget_line=$(rg -n -F -- '-- --check-executables "$CARGO_TARGET_DIR"' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$native_worker_build_line"
 test -n "$executable_budget_line"
 test "$native_worker_build_line" -lt "$executable_budget_line"
+
+# Rust lanes that execute native capability integration tests must provision
+# their declared companion once and pass its exact path to every test child.
+grep -Fq 'build required native test companions once' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+commands_lane=$(sed -n '/^    commands)/,/^      ;;/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+workspace_lane=$(sed -n '/^    workspace)/,/^      ;;/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
+grep -Fq 'ensure_native_test_companions' <<< "$workspace_lane"
 
 # Adjacent legacy `*Test.terl` modules without `@test` declarations are still
 # compiled with their package, but must not be sent to an empty test runner.

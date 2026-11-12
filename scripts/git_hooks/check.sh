@@ -392,6 +392,7 @@ fi
 release_tools_ready=false
 quality_tools_ready=false
 orchestrator_ready=false
+native_test_companions_ready=false
 ensure_release_tools() {
   if [[ "$release_tools_ready" == false ]]; then
     echo 'pre-commit: build required release tools once'
@@ -413,6 +414,14 @@ ensure_orchestrator() {
     cargo build --locked -p terlan-test-orchestrator
     orchestrator_ready=true
   fi
+}
+ensure_native_test_companions() {
+  if [[ "$native_test_companions_ready" == false ]]; then
+    echo 'pre-commit: build required native test companions once'
+    cargo build --locked -p terlan --bin terlan-native-worker
+    native_test_companions_ready=true
+  fi
+  export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"
 }
 run_commands_test_lane() {
   bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test:: \
@@ -437,7 +446,10 @@ run_affected_rust_lane() {
   local lane=$1 filter
   case "$lane" in
     commands-test) run_commands_test_lane ;;
-    commands) bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands:: ;;
+    commands)
+      ensure_native_test_companions
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::
+      ;;
     commands-emit-js)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
       ;;
@@ -462,7 +474,10 @@ run_affected_rust_lane() {
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib "$filter"
       ;;
-    workspace) bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets ;;
+    workspace)
+      ensure_native_test_companions
+      bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets
+      ;;
     dependencies) cargo check --locked --workspace --all-targets ;;
     test-orchestrator) cargo test --locked -p terlan-test-orchestrator ;;
     rust-boundary-audit) cargo test --locked -p terlan-rust-boundary-audit ;;
