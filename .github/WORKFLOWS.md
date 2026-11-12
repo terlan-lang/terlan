@@ -406,6 +406,10 @@ and succeeds only when the retained candidate can enter preparation without
 discovering another required validation step. It neither builds nor publishes.
 `make release-plan VERSION=0.0.10` uses the already-built local compiler to show
 the same state without bootstrapping a second release-control artifact.
+`make release-wait` and `make release-tag` use that same working compiler and VM
+to refresh only the content-addressed release-control image. Candidate Rust or
+lockfile changes never trigger a local compiler rebuild merely to orchestrate
+hosted validation; the exact-revision Compiler CI evidence owns that decision.
 
 The direct-AOT cache identity binds the dependency lock, profile, enabled Cargo
 features, target, codegen policy, and bytes of the resolved linker. Set

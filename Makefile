@@ -5514,8 +5514,22 @@ TERLAN_RELEASE_CONTROL_IMAGE := target/release-control/vm/scripts_Release.tvm
 TERLAN_RELEASE_CONTROL := $(CURDIR)/$(TERLAN_BOOTSTRAP_VM) run $(CURDIR)/$(TERLAN_RELEASE_CONTROL_IMAGE) --script-eval --
 TERLAN_RELEASE_CONTROL_SOURCE := $(TERLAN_BOOTSTRAP_COMPILER) run scripts/release_control/scripts/Release.terls --
 
-.PHONY: release release-plan release-predict release-wait release-tag publish-tag release-status release-control-check terlan-release-control-bootstrap
-terlan-release-control-bootstrap: terlan-typed-validator-fingerprint
+.PHONY: release release-plan release-predict release-wait release-tag publish-tag release-status release-control-check terlan-release-control-fingerprint terlan-release-control-bootstrap
+# Release orchestration is a consumer of the latest working Terlan tools. It
+# must not rebuild the candidate compiler merely because candidate Rust inputs
+# changed; hosted compiler evidence validates those inputs independently.
+terlan-release-control-fingerprint:
+	test -x $(TERLAN_BOOTSTRAP_COMPILER)
+	test -x $(TERLAN_BOOTSTRAP_VM)
+ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
+	@identity=$$($(TERLAN_BOOTSTRAP_COMPILER) build --print-toolchain-identity) || exit $$?; \
+	TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$$identity" \
+	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
+		$(TERLAN_BOOTSTRAP_COMPILER) std
+endif
+
+terlan-release-control-bootstrap: terlan-release-control-fingerprint
 ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	test -s $(TERLAN_RELEASE_CONTROL_IMAGE)
 else

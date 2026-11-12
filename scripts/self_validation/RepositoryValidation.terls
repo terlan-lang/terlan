@@ -1011,6 +1011,19 @@ if {
         "build_release.self_hosted",
         "release validation must not depend on a self-hosted runner",
     );
+    not contains_all(
+    makefile,
+    [
+        "terlan-release-control-fingerprint:",
+        "test -x $(TERLAN_BOOTSTRAP_COMPILER)",
+        "test -x $(TERLAN_BOOTSTRAP_VM)",
+        "terlan-release-control-bootstrap: terlan-release-control-fingerprint",
+    ],
+)
+        or String.contains(makefile, "terlan-release-control-bootstrap: terlan-typed-validator-fingerprint") -> failure(
+        "build_release.release_control_bootstrap",
+        "release control must use working tools without rebuilding the candidate compiler",
+    );
     String.contains(release, "run: make vm-multicore-performance-check") -> failure(
         "build_release.performance_owner",
         "host-sensitive multicore performance must remain diagnostic-only",
