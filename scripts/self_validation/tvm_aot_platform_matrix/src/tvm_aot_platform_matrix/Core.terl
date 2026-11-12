@@ -754,7 +754,9 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
         and makefile.contains("$(MAKE) --no-print-directory -j5 $(SELECTED_GENERATED_ARTIFACT_FRESHNESS_GATES)").
 
 pub compiler_before_platform_text_valid(workflow: String): Bool ->
-    occurrences(workflow, "needs: [changes, source-preflight, check]") == 3.
+    occurrences(workflow, "needs: [changes, source-preflight, check]") == 3
+        and occurrences(workflow, "needs: changes\n    name: Compiler check and test") == 1
+        and not workflow.contains("needs: [changes, source-preflight]\n    name: Compiler check and test").
 
 pub release_audit_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [revision, dependency-audit]") == 3.

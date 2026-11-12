@@ -3,7 +3,7 @@ module tvm_aot_platform_matrix.WorkflowContractTest.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.File.{read_text}.
-import tvm_aot_platform_matrix.Core.{compiled_cache_text_valid, release_audit_before_platform_text_valid, source_preflight_text_valid}.
+import tvm_aot_platform_matrix.Core.{compiled_cache_text_valid, compiler_before_platform_text_valid, release_audit_before_platform_text_valid, source_preflight_text_valid}.
 import tvm_aot_platform_matrix.MulticoreRelease.{validate_workflow as multicore_release_workflow_valid}.
 
 @test
@@ -55,7 +55,9 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    action.contains("terlan-script-runner-v2-")
+    action.contains("terlan-script-runner-v3-")
+        and action.contains(".github/actions/setup-terlan-script-runner/action.yml")
+        and not action.contains("restore-keys:")
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
@@ -84,6 +86,33 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
         and workflow.contains("cache-registry: \"false\"").
 
 @test
+pub compiler_validation_starts_beside_source_preflight(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/ci.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    compiler_before_platform_text_valid(workflow)
+        and not compiler_before_platform_text_valid(
+    workflow
+        .replace(
+            "needs: changes\n    name: Compiler check and test",
+            "needs: [changes, source-preflight]\n    name: Compiler check and test",
+        ),
+).
+
+@test
+pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
+    when {
+        Ok(action) <- read_text(".github/actions/setup-terlan-script-runner/action.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    action.contains("terlan-script-runner-v3-")
+        and action.contains("key: \${{ steps.identity.outputs.key }}")
+        and not action.contains("restore-keys:").
+
+@test
 pub cancelled_main_validation_is_accumulated_by_the_next_run(): Bool ->
     when {
         Ok(workflow) <- read_text(".github/workflows/ci.yml")
@@ -93,6 +122,8 @@ pub cancelled_main_validation_is_accumulated_by_the_next_run(): Bool ->
     workflow.contains("actions: read")
         and workflow.contains("github.rest.actions.listWorkflowRuns")
         and workflow.contains("github.rest.actions.listJobsForWorkflowRun")
+        and workflow.contains("const batchSize = 10")
+        and workflow.contains("const jobsByRun = await Promise.all")
         and workflow.contains("job.name === \"Compiler check and test\"")
         and workflow.contains("compiler?.conclusion === \"success\"")
         and workflow.contains("git merge-base --is-ancestor \"$base\" \"$GITHUB_SHA\"")
