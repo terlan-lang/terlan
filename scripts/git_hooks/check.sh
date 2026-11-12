@@ -493,26 +493,6 @@ if lane_has rust-reports; then
   run_rust_reports_lane
 fi
 
-# The changed-code test is the first substantial consumer of a newly built
-# compiler. Execute every selected Rust test/check lane now, in the priority
-# emitted by the Terlan planner, and remove it from the later broad plan.
-remaining_plan="${plan%.plan}.remaining-plan"
-: > "$remaining_plan"
-while IFS= read -r lane; do
-  if run_affected_rust_lane "$lane"; then
-    echo "pre-commit: early affected Rust lane passed: $lane"
-  else
-    lane_status=$?
-    if (( lane_status == 2 )); then
-      printf '%s\n' "$lane" >> "$remaining_plan"
-    else
-      echo "pre-commit: early affected Rust lane failed: $lane" >&2
-      exit "$lane_status"
-    fi
-  fi
-done < "$plan"
-mv "$remaining_plan" "$plan"
-
 typed_css_checked=false
 if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
   echo 'pre-commit: typed CSS generation, types, native values, and browser build'
@@ -530,14 +510,30 @@ if lane_has terlan; then
     "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan" \
     "$specialized_tests"
 fi
-if lane_has commands-test; then
-  echo 'pre-commit: early test-command ownership'
-  run_commands_test_lane
-fi
 if lane_has summaries; then
   echo 'pre-commit: early summary drift'
   run_summaries_lane
 fi
+
+# Focused Terlan and generated-contract checks above are cheaper and produce
+# more actionable diagnostics than broad Cargo suites. Only after they pass,
+# execute each selected Rust lane and remove it from the later broad plan.
+remaining_plan="${plan%.plan}.remaining-plan"
+: > "$remaining_plan"
+while IFS= read -r lane; do
+  if run_affected_rust_lane "$lane"; then
+    echo "pre-commit: early affected Rust lane passed: $lane"
+  else
+    lane_status=$?
+    if (( lane_status == 2 )); then
+      printf '%s\n' "$lane" >> "$remaining_plan"
+    else
+      echo "pre-commit: early affected Rust lane failed: $lane" >&2
+      exit "$lane_status"
+    fi
+  fi
+done < "$plan"
+mv "$remaining_plan" "$plan"
 
 if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'

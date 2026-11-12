@@ -462,7 +462,7 @@ pub make(value: Int): Result[Int, Failure] -> Ok(value + 1).
 fn contextual_option_identity_survives_case_if_and_record_storage() {
     check_sources(&[
         r#"
-module contextual_option_identity.
+module contextual_option_identity_if.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import type std.core.Option.{Option}.
@@ -486,6 +486,59 @@ pub check(): Bool ->
             Some(evidence) -> evidence.value == 42;
             None -> false
         }.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
+fn contextual_option_identity_survives_nested_cases_and_record_storage() {
+    check_sources(&[
+        r#"
+module contextual_option_identity.
+import contextual_option_identity.Evidence.make_evidence.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import type contextual_option_identity.Evidence.{Evidence}.
+import type std.core.Option.{Option}.
+import type std.core.Result.{Result}.
+pub struct Holder { latest: Option[Evidence] }.
+score(warm: Bool): Option[Int] ->
+    if { warm -> Some(1); true -> None }.
+build(warm: Bool, accepted: Bool): Result[Holder, Int] ->
+    let evidence = case score(warm) {
+        None -> None;
+        Some(_) -> case make_evidence(accepted) {
+            Err(_) -> None;
+            Ok(value) -> Some(value)
+        }
+    };
+    if {
+        warm and evidence == None -> Err(2);
+        true -> Ok(Holder {latest: evidence})
+    }.
+pub check(): Bool ->
+    case build(false, true) {
+        Ok(holder) -> case holder.latest { None -> true; Some(_) -> false };
+        Err(_) -> false
+    }
+        and case build(true, false) { Err(2) -> true; _ -> false }
+        and case build(true, true) {
+            Ok(holder) -> case holder.latest {
+                Some(evidence) -> evidence.value == 42;
+                None -> false
+            };
+            Err(_) -> false
+        }.
+"#,
+        r#"
+module contextual_option_identity.Evidence.
+import std.core.Result.{Err, Ok}.
+import type std.core.Result.{Result}.
+pub struct Evidence { value: Int }.
+pub make_evidence(accepted: Bool): Result[Evidence, Int] ->
+    if { accepted -> Ok(Evidence {value: 42}); true -> Err(1) }.
 "#,
         include_str!("../../../../../std/core/Option.terl"),
         include_str!("../../../../../std/core/Result.terl"),

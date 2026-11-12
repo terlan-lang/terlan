@@ -70,6 +70,13 @@ pub(super) fn lower_cast(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> super::super::NativeIrResult<NativeExpr> {
+    // Alias expansion can spell the same checked tagged union with or without
+    // constructor field labels. Managed identity includes those labels, so all
+    // compiler-inserted casts must use the constructor registry's canonical
+    // spelling rather than allocating an equivalent second representation.
+    let canonical_target =
+        super::super::structured_case::canonical_control_type(target_type.clone(), constructors);
+    let target_type = &canonical_target;
     // A checked conditional may join distinct constructor representations.
     // Apply its expected type to each result, never to the guard expressions.
     if let CoreExpr::If { clauses } = expr {

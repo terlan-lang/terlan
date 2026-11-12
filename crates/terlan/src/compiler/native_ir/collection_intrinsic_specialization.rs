@@ -798,10 +798,13 @@ pub(super) fn specialize_expr(
                 functions,
                 module,
             );
-            if super::empty_list_values::is_bottom_list(target_type)
+            let unresolved_list = super::empty_list_values::is_bottom_list(target_type)
+                || list_element(target_type).is_some_and(is_dynamic_type);
+            if unresolved_list
                 && inferred.as_ref().is_some_and(|inferred| {
                     matches!(inferred, CoreType::List(_))
                         && !super::empty_list_values::is_bottom_list(inferred)
+                        && !list_element(inferred).is_some_and(is_dynamic_type)
                 })
             {
                 *target_type = inferred.expect("guard requires an inferred concrete list");

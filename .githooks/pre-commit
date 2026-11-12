@@ -4,4 +4,6 @@ set -euo pipefail
 driver=$(mktemp "$(git rev-parse --git-path pre-commit).XXXXXX")
 trap 'rm -f "$driver"' EXIT
 git show :scripts/git_hooks.sh > "$driver"
-bash "$driver" check
+# Until the cumulative compiler baseline is green, local commits must execute
+# the complete affected validation plan instead of deferring it to hosted CI.
+TERLAN_HOOK_MODE=full bash "$driver" check

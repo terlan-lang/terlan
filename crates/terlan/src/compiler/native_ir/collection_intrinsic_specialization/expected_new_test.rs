@@ -302,42 +302,56 @@ fn push_specialization_refines_empty_values_without_retyping_initializers() {
     assert_eq!(call.args[1], CoreExpr::Int(1));
 }
 
-/// A checked bottom-list result follows the concrete type proven by mutation.
+/// An unresolved list result follows the concrete type proven by mutation.
 #[test]
-fn bottom_list_cast_tracks_specialized_mutation_result() {
-    let bottom = CoreType::List(Box::new(CoreType::Never));
+fn unresolved_list_cast_tracks_specialized_mutation_result() {
     let concrete = CoreType::List(Box::new(CoreType::Int));
-    let mut expression = CoreExpr::Cast {
-        expr: Box::new(CoreExpr::MutableReceiverCall {
-            receiver: Box::new(CoreExpr::Var("state".to_string())),
-            method: "push".to_string(),
-            args: vec![CoreExpr::Int(1)],
-            effects: CoreEffectSet {
-                effects: vec!["receiver_mutation".to_string()],
-            },
-        }),
-        target_type: bottom.clone(),
-    };
-
-    assert_eq!(
-        super::super::specialize_expr(
-            &mut expression,
-            &HashMap::from([("state".to_string(), bottom)]),
-            &HashMap::new(),
-            "fixture",
+    for (unresolved, receiver) in [
+        (
+            CoreType::List(Box::new(CoreType::Never)),
+            CoreType::List(Box::new(CoreType::Never)),
         ),
-        Some(concrete.clone())
-    );
-    let CoreExpr::Cast { expr, target_type } = expression else {
-        panic!("expected retained checked cast");
-    };
-    assert_eq!(target_type, concrete);
-    assert!(matches!(
-        expr.as_ref(),
-        CoreExpr::Intrinsic(call)
-            if call.return_type == target_type
-                && call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)
-    ));
+        (
+            CoreType::List(Box::new(CoreType::Dynamic)),
+            concrete.clone(),
+        ),
+        (
+            CoreType::List(Box::new(CoreType::Named("Dynamic".to_string()))),
+            concrete.clone(),
+        ),
+    ] {
+        let mut expression = CoreExpr::Cast {
+            expr: Box::new(CoreExpr::MutableReceiverCall {
+                receiver: Box::new(CoreExpr::Var("state".to_string())),
+                method: "push".to_string(),
+                args: vec![CoreExpr::Int(1)],
+                effects: CoreEffectSet {
+                    effects: vec!["receiver_mutation".to_string()],
+                },
+            }),
+            target_type: unresolved.clone(),
+        };
+
+        assert_eq!(
+            super::super::specialize_expr(
+                &mut expression,
+                &HashMap::from([("state".to_string(), receiver)]),
+                &HashMap::new(),
+                "fixture",
+            ),
+            Some(concrete.clone())
+        );
+        let CoreExpr::Cast { expr, target_type } = expression else {
+            panic!("expected retained checked cast");
+        };
+        assert_eq!(target_type, concrete);
+        assert!(matches!(
+            expr.as_ref(),
+            CoreExpr::Intrinsic(call)
+                if call.return_type == target_type
+                    && call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)
+        ));
+    }
 }
 
 /// Qualified and local nominal constructors contextualize their collection fields.

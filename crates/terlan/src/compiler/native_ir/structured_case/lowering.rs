@@ -657,7 +657,7 @@ pub(in crate::compiler::native_ir) fn lower_lexical_expr(
 
 /// Lowers a checked lexical control value while retaining its joined result type.
 ///
-/// Ordinary expression lowering has no contextual type for an `if` arm. A
+/// Ordinary expression lowering has no contextual type for a control arm. A
 /// destructured product can therefore lose the nested Option/Result identity
 /// established by type checking. Control-prefix owners use this entry point
 /// after recovering that checked join so every selected arm constructs the
@@ -670,6 +670,23 @@ pub(in crate::compiler::native_ir) fn lower_lexical_expr_as(
     core_types: &HashMap<String, CoreType>,
     environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
+    if let CoreExpr::Case { scrutinee, clauses } = expr {
+        let contextual = CoreExpr::Case {
+            scrutinee: scrutinee.clone(),
+            clauses: clauses
+                .iter()
+                .map(|clause| crate::terlan_typeck::CoreCaseClause {
+                    pattern: clause.pattern.clone(),
+                    guard: clause.guard.clone(),
+                    body: CoreExpr::Cast {
+                        expr: Box::new(clause.body.clone()),
+                        target_type: expected.clone(),
+                    },
+                })
+                .collect(),
+        };
+        return lower_child(&contextual, params, param_types, core_types, environment);
+    }
     let CoreExpr::If { clauses } = expr else {
         return if matches!(
             expr,

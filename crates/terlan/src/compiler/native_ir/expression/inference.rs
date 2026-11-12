@@ -281,6 +281,16 @@ pub(super) fn infer_native_type_impl(
             })
         }
         CoreExpr::Cast { expr, target_type } => {
+            let canonical_target = constructors.map_or_else(
+                || target_type.clone(),
+                |constructors| {
+                    super::super::structured_case::canonical_control_type(
+                        target_type.clone(),
+                        constructors,
+                    )
+                },
+            );
+            let target_type = &canonical_target;
             if super::super::union_values::is_boxed(target_type) {
                 return native_type(Some(target_type), &target_type.contract_text());
             }

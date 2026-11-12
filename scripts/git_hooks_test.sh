@@ -495,6 +495,8 @@ grep -Fq 'repository_root=$(git remote get-url origin)' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'TERLAN_HOOK_MODE=full bash "$driver" check' \
+  "$(dirname "$driver")/../.githooks/pre-commit"
 grep -Fq "rg -qx 'preflight:inventory'" \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq '[[ "$hosted_source_preflight" == 0 ]]' \
@@ -534,8 +536,8 @@ test -n "$early_terlan_format_line"
 test -n "$early_grammar_line"
 test "$early_grammar_line" -lt "$early_terlan_format_line"
 test "$early_terlan_format_line" -lt "$early_rust_reports_line"
-test "$early_rust_reports_line" -lt "$early_affected_rust_line"
 test "$early_rust_reports_line" -lt "$early_terlan_line"
+test "$early_terlan_line" -lt "$early_affected_rust_line"
 test "$early_terlan_line" -lt "$inventory_line"
 
 # The executable budget owns four binaries in both profiles. Planner bootstrap
