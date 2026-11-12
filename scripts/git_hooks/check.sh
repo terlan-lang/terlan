@@ -45,11 +45,25 @@ run_plan() {
     planner_arguments+=(--hosted-source-preflight)
   fi
   : > "$raw_plan"
-  "$compiler" run scripts/git_hooks/scripts/Plan.terls -- "${planner_arguments[@]}" > "$raw_plan" \
-    && [[ -s "$raw_plan" ]] \
-    && rg -qx 'preflight:inventory' "$raw_plan" \
-    && { [[ ! -f tests/language/RepeatedLetSyntaxTest.terl ]] \
-      || "$compiler" check tests/language/RepeatedLetSyntaxTest.terl >/dev/null; }
+  if ! "$compiler" run scripts/git_hooks/scripts/Plan.terls -- \
+    "${planner_arguments[@]}" > "$raw_plan"; then
+    echo 'pre-commit: candidate compiler could not produce a validation plan' >&2
+    return 1
+  fi
+  if [[ ! -s "$raw_plan" ]]; then
+    echo 'pre-commit: candidate compiler produced an empty validation plan' >&2
+    return 1
+  fi
+  if [[ "$hosted_source_preflight" == 0 ]] \
+    && ! rg -qx 'preflight:inventory' "$raw_plan"; then
+    echo 'pre-commit: local validation plan omitted source inventory' >&2
+    return 1
+  fi
+  if [[ -f tests/language/RepeatedLetSyntaxTest.terl ]] \
+    && ! "$compiler" check tests/language/RepeatedLetSyntaxTest.terl >/dev/null; then
+    echo 'pre-commit: candidate compiler rejected the syntax sentinel' >&2
+    return 1
+  fi
 }
 if [[ "$hook_mode" == fast ]]; then
   terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}

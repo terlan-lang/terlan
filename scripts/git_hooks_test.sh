@@ -458,6 +458,10 @@ grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq "rg -qx 'preflight:inventory'" \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq '[[ "$hosted_source_preflight" == 0 ]]' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'candidate compiler produced an empty validation plan' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'check tests/language/RepeatedLetSyntaxTest.terl' \
   "$(dirname "$driver")/git_hooks/check.sh"
 test "$(grep -Fc 'run_plan "$terlc"' "$(dirname "$driver")/git_hooks/check.sh")" = 3

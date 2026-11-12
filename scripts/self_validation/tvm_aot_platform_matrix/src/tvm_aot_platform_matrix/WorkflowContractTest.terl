@@ -101,6 +101,8 @@ pub compiler_validation_starts_beside_source_preflight(): Bool ->
         and workflow.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT: \"1\"")
         and hook.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT:-0")
         and hook.contains("planner_arguments+=(--hosted-source-preflight)")
+        and hook.contains("[[ \"$hosted_source_preflight\" == 0 ]]")
+        and hook.contains("local validation plan omitted source inventory")
         and not compiler_before_platform_text_valid(
     workflow
         .replace(
