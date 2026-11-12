@@ -80,6 +80,15 @@ fn nullary_union_cast_inference_requires_one_matching_empty_variant() {
         );
     }
     let atom = CoreExpr::Atom("done".into());
+    let cast_atom = CoreExpr::Cast {
+        expr: Box::new(atom.clone()),
+        target_type: ty.clone(),
+    };
+    assert!(
+        zero_field_managed_variant_layout(&cast_atom, target, &layouts)
+            .unwrap()
+            .is_some()
+    );
     let mut conflicting = zero_field_managed_variant_layout(&atom, target, &layouts)
         .unwrap()
         .unwrap()

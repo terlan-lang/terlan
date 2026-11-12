@@ -1,5 +1,5 @@
 #!/usr/bin/env -S terlc run
-import ci.TerlanStyle.
+import ci.{FormattingTools, TerlanStyle}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -58,17 +58,29 @@ check_commands(
             let _lint =
                 commands
                     .push(
-                        Process.with_arguments(
-                            Process.command(compiler),
-                            ["lint", "--only", "TL0009", "--only", "TL0010"].concat(batch),
+                        Process.with_output_limit_bytes(
+                            Process.with_timeout_ms(
+                                Process.with_arguments(
+                                    Process.command(compiler),
+                                    ["lint", "--only", "TL0009", "--only", "TL0010"].concat(batch),
+                                ),
+                                FormattingTools.timeout_ms(),
+                            ),
+                            FormattingTools.output_limit_bytes(),
                         ),
                     );
             let _format =
                 commands
                     .push(
-                        Process.with_arguments(
-                            Process.command(compiler),
-                            ["fmt", "--check"].concat(batch),
+                        Process.with_output_limit_bytes(
+                            Process.with_timeout_ms(
+                                Process.with_arguments(
+                                    Process.command(compiler),
+                                    ["fmt", "--check"].concat(batch),
+                                ),
+                                FormattingTools.timeout_ms(),
+                            ),
+                            FormattingTools.output_limit_bytes(),
                         ),
                     );
             check_commands(compiler, remaining, commands)
@@ -84,7 +96,7 @@ completion_valid(completion: BatchCompletion): Bool ->
                 false
             };
         {None, Some(reason)} ->
-            let _printed = eprintln(reason.message());
+            let _printed = eprintln(reason.message);
             false;
         _ -> false
     }.
@@ -100,7 +112,7 @@ check_batches(compiler: String, paths: List[String]): Bool ->
     case Process.run_many(Process.batch(commands, 8)) {
         Ok(output) -> completions_valid(output.completions);
         Err(reason) ->
-            let _printed = eprintln(reason.message());
+            let _printed = eprintln(reason.message);
             false
     }.
 

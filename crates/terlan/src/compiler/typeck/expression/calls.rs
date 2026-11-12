@@ -277,6 +277,47 @@ fn infer_syntax_call_with_arg_types(
             ) {
                 return ty;
             }
+
+            let callee = expr
+                .children
+                .first()
+                .expect("receiver calls have a field-access callee");
+            let callee_type = apply_subst(
+                &infer_syntax_field_access(callee, locals, ctx, subst, errors),
+                subst,
+            );
+            if let Type::Function {
+                ref params,
+                ref ret,
+            } = callee_type
+            {
+                if expr.arg_names.iter().any(Option::is_some) {
+                    errors.push("function-valued fields do not accept named arguments".to_string());
+                    return Type::Dynamic;
+                }
+                if params.len() != arg_types.len() {
+                    errors.push(format!(
+                        "function arity mismatch: expected {} args, found {}",
+                        params.len(),
+                        arg_types.len()
+                    ));
+                    return Type::Dynamic;
+                }
+                for (expected, actual) in params.iter().zip(arg_types) {
+                    if let Err(message) = unify(expected, actual, subst) {
+                        errors.push(message);
+                    }
+                }
+                return apply_subst(ret.as_ref(), subst);
+            }
+            if !matches!(callee_type, Type::Dynamic) {
+                let field = callee.text.as_deref().unwrap_or_default();
+                errors.push(format!(
+                    "field `{field}` is not callable; found {}",
+                    pretty_type(&callee_type)
+                ));
+            }
+            return Type::Dynamic;
         }
     }
 

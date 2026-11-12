@@ -1,0 +1,11 @@
+module ci.FormattingToolsTest.
+
+import ci.FormattingTools.
+import std.system.Process.
+
+@test
+pub formatting_tools_use_explicit_runtime_bounds(): Bool ->
+    FormattingTools.timeout_ms() > 60_000
+        and FormattingTools.timeout_ms() <= Process.limits().maximum_timeout_ms
+        and FormattingTools.output_limit_bytes() > 1_048_576
+        and FormattingTools.output_limit_bytes() <= Process.limits().maximum_output_bytes.

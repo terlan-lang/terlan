@@ -1,6 +1,24 @@
 use super::*;
 use crate::terlan_syntax::parse_module_as_syntax_output;
 
+#[test]
+fn field_calls_require_callable_field_types() {
+    let valid = check_syntax_output(
+        "module callable_field. struct Handler { callback: (Int) -> String }. pub call(handler: Handler): String -> handler.callback(7).",
+    );
+    assert!(valid.is_empty(), "callable field diagnostics: {valid:?}");
+
+    let invalid = check_syntax_output(
+        "module scalar_field. struct Failure { message: String }. pub call(failure: Failure): String -> failure.message().",
+    );
+    assert!(
+        invalid.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("field `message` is not callable")),
+        "scalar field call was not rejected: {invalid:?}"
+    );
+}
+
 /// Fresh constructor variables must not capture a later field's live binding.
 #[test]
 fn option_of_struct_field_does_not_pollute_following_field_type() {

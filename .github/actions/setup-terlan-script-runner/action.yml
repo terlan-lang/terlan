@@ -11,6 +11,12 @@ outputs:
   classifier-image:
     description: Current compiled change-classification image
     value: ${{ steps.paths.outputs.classifier-image }}
+  rust-format-image:
+    description: Current compiled Rust-formatting image
+    value: ${{ steps.paths.outputs.rust-format-image }}
+  terlan-style-image:
+    description: Current compiled Terlan-style image
+    value: ${{ steps.paths.outputs.terlan-style-image }}
 
 inputs:
   allow-compatible-fallback:
@@ -26,7 +32,9 @@ runs:
       shell: bash
       run: |
         key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v4-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli', 'scripts/ci/scripts/ClassifyChanges.terls', 'scripts/ci/src/ci/ChangeClassifier.terl') }}"
+        program_key="terlan-ci-programs-v1-$key-${{ hashFiles('scripts/ci/scripts/CheckRustFormatting.terls', 'scripts/ci/scripts/CheckTerlanStyle.terls', 'scripts/ci/src/ci/FormattingTools.terl', 'scripts/ci/src/ci/RustFormatting.terl', 'scripts/ci/src/ci/TerlanStyle.terl') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
+        echo "program-key=$program_key" >> "$GITHUB_OUTPUT"
 
     - name: Restore script runner
       id: restore
@@ -103,6 +111,39 @@ runs:
         path: target/script-runner
         key: ${{ steps.identity.outputs.key }}
 
+    - name: Restore compiled CI programs
+      id: ci-programs
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: target/ci-programs
+        key: ${{ steps.identity.outputs.program-key }}
+
+    - name: Compile current CI programs
+      if: ${{ steps.ci-programs.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: |
+        target/script-runner/terlc build \
+          scripts/ci/scripts/CheckRustFormatting.terls \
+          --target terlan-vm \
+          --out-dir target/ci-programs/rust-format
+        target/script-runner/terlc build \
+          scripts/ci/scripts/CheckTerlanStyle.terls \
+          --target terlan-vm \
+          --out-dir target/ci-programs/terlan-style
+
+    - name: Validate compiled CI programs
+      shell: bash
+      run: |
+        test -s target/ci-programs/rust-format/vm/scripts_CheckRustFormatting.tvm
+        test -s target/ci-programs/terlan-style/vm/scripts_CheckTerlanStyle.tvm
+
+    - name: Save compiled CI programs
+      if: ${{ steps.ci-programs.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: target/ci-programs
+        key: ${{ steps.identity.outputs.program-key }}
+
     - name: Validate script runner
       id: paths
       shell: bash
@@ -113,3 +154,5 @@ runs:
         echo "terlc=$GITHUB_WORKSPACE/target/script-runner/terlc" >> "$GITHUB_OUTPUT"
         echo "vm=$GITHUB_WORKSPACE/target/script-runner/terlan-vm" >> "$GITHUB_OUTPUT"
         echo "classifier-image=$GITHUB_WORKSPACE/target/script-runner/classifier/vm/scripts_ClassifyChanges.tvm" >> "$GITHUB_OUTPUT"
+        echo "rust-format-image=$GITHUB_WORKSPACE/target/ci-programs/rust-format/vm/scripts_CheckRustFormatting.tvm" >> "$GITHUB_OUTPUT"
+        echo "terlan-style-image=$GITHUB_WORKSPACE/target/ci-programs/terlan-style/vm/scripts_CheckTerlanStyle.tvm" >> "$GITHUB_OUTPUT"

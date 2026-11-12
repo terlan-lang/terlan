@@ -138,8 +138,9 @@ jobs:
           HEAD_REVISION: ${{ inputs.head_revision }}
           FORMAT_ALL: ${{ inputs.rust_format_all }}
         run: |
-          ${{ steps.script-runner.outputs.terlc }} run \
-            scripts/ci/scripts/CheckRustFormatting.terls -- \
+          ${{ steps.script-runner.outputs.vm }} run \
+            ${{ steps.script-runner.outputs.rust-format-image }} \
+            --script-eval -- \
             --revisions "$BASE_REVISION" "$HEAD_REVISION" "$FORMAT_ALL"
       - name: Validate release payload inputs
         if: ${{ inputs.release_tooling }}
@@ -151,8 +152,9 @@ jobs:
           HEAD_REVISION: ${{ inputs.head_revision }}
           STYLE_ALL: ${{ inputs.terlan_style_all }}
         run: |
-          ${{ steps.script-runner.outputs.terlc }} run \
-            scripts/ci/scripts/CheckTerlanStyle.terls -- \
+          ${{ steps.script-runner.outputs.vm }} run \
+            ${{ steps.script-runner.outputs.terlan-style-image }} \
+            --script-eval -- \
             "$BASE_REVISION" "$HEAD_REVISION" "$STYLE_ALL" \
             "${{ steps.script-runner.outputs.terlc }}"
       - name: Check source inventory and test ownership

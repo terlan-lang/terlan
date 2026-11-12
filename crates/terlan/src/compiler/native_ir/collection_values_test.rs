@@ -294,6 +294,23 @@ fn nested_list_literal_retains_its_recursive_union_element_contract() {
     assert!(contains_collection_tag(&wrap.body, 1));
 }
 
+#[test]
+fn recursive_tagged_union_fields_reify_cast_nullary_variants() {
+    let modules = lower(
+        "module native_recursive_tagged_union.\n\n\
+         pub type Value =\n\
+               Atom[\"bit\"]\n\
+             | Atom[\"integer\"]\n\
+             | {Atom[\"seq\"], size: Int, element: Value}\n\
+             | {Atom[\"tuple\"], fields: List[Value]}.\n\n\
+         pub sample(): Value -> {Atom[\"seq\"], 8, Atom[\"bit\"]}.\n",
+    );
+    assert!(modules[0]
+        .functions
+        .iter()
+        .any(|function| function.name == "sample"));
+}
+
 fn contains_collection_tag(expr: &NativeExpr, tag: u8) -> bool {
     match expr {
         NativeExpr::ManagedOperation { encoded, args } => {

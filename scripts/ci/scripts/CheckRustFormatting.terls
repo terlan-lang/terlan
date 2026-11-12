@@ -1,5 +1,5 @@
 #!/usr/bin/env -S terlc run
-import ci.RustFormatting.
+import ci.{FormattingTools, RustFormatting}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -57,9 +57,16 @@ check(paths: List[String]): Bool ->
             true;
         _ ->
             case Process.run(
-                Process.with_arguments(
-                    Process.command("rustfmt"),
-                    ["--edition", "2021", "--check", "--config-path", "rustfmt.toml"].concat(paths),
+                Process.with_output_limit_bytes(
+                    Process.with_timeout_ms(
+                        Process.with_arguments(
+                            Process.command("rustfmt"),
+                            ["--edition", "2021", "--check", "--config-path", "rustfmt.toml"]
+                                .concat(paths),
+                        ),
+                        FormattingTools.timeout_ms(),
+                    ),
+                    FormattingTools.output_limit_bytes(),
                 ),
             ) {
                 Ok(output) ->
@@ -70,7 +77,7 @@ check(paths: List[String]): Bool ->
                         false
                     };
                 Err(reason) ->
-                    let _printed = eprintln(reason.message());
+                    let _printed = eprintln(reason.message);
                     false
             }
     }.

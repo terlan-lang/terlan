@@ -21,7 +21,9 @@ mod metadata;
 pub(super) use metadata::{canonical_structural_field_name, result_core_type_for_native};
 
 mod structural_registry;
-pub(super) use structural_registry::install_structural_type_layouts;
+pub(super) use structural_registry::{
+    install_named_structural_type_layouts, install_structural_type_layouts,
+};
 mod records;
 pub(super) use records::{install_struct_layouts, lower_structural_record_construct};
 mod source_variants;
@@ -261,6 +263,23 @@ pub(super) fn native_application_constructor_layouts(
                     .iter()
                     .filter_map(|parameter| parameter.core_ty.as_ref())
                     .chain(function.core_return_type.iter())
+            })
+        }),
+        &mut base,
+    )?;
+    install_named_structural_type_layouts(
+        cores.iter().flat_map(|core| {
+            core.types.iter().filter_map(|declaration| {
+                if !declaration.params.is_empty() {
+                    return None;
+                }
+                let body = declaration.core_body.as_ref()?;
+                let identity = if declaration.name.contains('.') {
+                    declaration.name.clone()
+                } else {
+                    format!("{}.{}", core.module, declaration.name)
+                };
+                Some((identity, body))
             })
         }),
         &mut base,

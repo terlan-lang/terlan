@@ -1,0 +1,16 @@
+/**
+ * Shared resource policy for repository formatting tools.
+ */
+module ci.FormattingTools.
+
+/**
+ * Formatting is a bounded build operation, not an interactive child command.
+ * The shared ceiling prevents runner load from reviving the fragile implicit
+ * 60-second process default in any formatting frontend.
+ */
+pub timeout_ms(): Int -> 900_000.
+
+/**
+ * Preserve complete diagnostics without exceeding the runtime process ceiling.
+ */
+pub output_limit_bytes(): Int -> 16_777_216.

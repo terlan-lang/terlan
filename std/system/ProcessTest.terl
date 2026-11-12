@@ -8,7 +8,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.system.Process.
-import std.system.Process.{InvalidFrame, InvalidRequest, OutputLimitExceeded, TimedOut}.
+import std.system.Process.{InvalidFrame, InvalidRequest, OutputLimitExceeded, SpawnFailed, TimedOut}.
 
 import type std.system.Process.Command.
 
@@ -158,6 +158,20 @@ pub bounded_batch_rejects_zero_concurrency(): Bool ->
         Err(reason) -> reason.code == InvalidRequest;
         _ -> false
     }.
+
+@test
+pub bounded_batch_preserves_typed_command_failures(): Bool ->
+    let missing = Process.command("/terlan-process-test/nonexistent-program");
+    when {
+        Ok(batch) <- Process.run_many(Process.batch([missing], 1));
+        [completion] <- batch.completions;
+        {None, Some(reason)} <- {completion.output, completion.error}
+    } else {
+        _ -> false
+    };
+    reason.code == SpawnFailed
+        and String.contains(reason.message, "cannot spawn child")
+        and reason.program == "/terlan-process-test/nonexistent-program".
 
 @test
 pub length_framed_session_sequences_handshake_phases(): Bool ->

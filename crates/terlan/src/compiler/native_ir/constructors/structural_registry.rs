@@ -26,6 +26,118 @@ pub(in crate::compiler::native_ir) fn install_structural_type_layouts<'a>(
     Ok(())
 }
 
+/// Installs nominal layouts for zero-parameter aliases with structural variants.
+///
+/// Recursive aliases retain their nominal name in nested fields even when the
+/// outer use has been expanded to a union. Registering the alias identity keeps
+/// those nested values on the same checked constructor ABI.
+pub(in crate::compiler::native_ir) fn install_named_structural_type_layouts<'a>(
+    types: impl IntoIterator<Item = (String, &'a CoreType)>,
+    layouts: &mut NativeConstructorLayouts,
+) -> Result<(), String> {
+    for (identity, body) in types {
+        if crate::compiler::native_ir::union_values::is_boxed(body) {
+            continue;
+        }
+        let Some(variants) = structural_variants(body) else {
+            continue;
+        };
+        let alias = CoreType::Named(identity);
+        install_variant_layouts(&alias, body, variants, layouts)?;
+    }
+    Ok(())
+}
+
+fn install_variant_layouts(
+    identity: &CoreType,
+    variants_type: &CoreType,
+    variants: Vec<String>,
+    layouts: &mut NativeConstructorLayouts,
+) -> Result<(), String> {
+    let mut names = std::collections::HashSet::new();
+    if variants.iter().any(|name| !names.insert(name)) {
+        return Err(
+            "error[native_ir.structural_registry_variant]: ambiguous public union variant identity"
+                .into(),
+        );
+    }
+    let canonical = managed_semantic_contract(identity);
+    let result = native_type(Some(identity), &identity.contract_text()).ok_or_else(|| {
+        format!(
+            "error[native_ir.structural_registry_type]: `{}` has no native representation",
+            identity.contract_text()
+        )
+    })?;
+    for variant in variants {
+        let Some((discriminant, variant_count, fields)) =
+            structural_constructor_fields(&variant, variants_type)
+        else {
+            continue;
+        };
+        if layouts.values().any(|layout| {
+            layout.result == result && layout.descriptor.discriminant() == Some(discriminant)
+        }) {
+            continue;
+        }
+        let parameters = fields
+            .iter()
+            .map(|(_, field)| native_type(Some(field), &field.contract_text()))
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| {
+                format!(
+                    "error[native_ir.structural_registry_field]: `{}` has an unsupported field",
+                    identity.contract_text()
+                )
+            })?;
+        let descriptor = Arc::new(
+            ManagedAggregateDescriptor::constructor(
+                &canonical,
+                &variant,
+                discriminant,
+                variant_count,
+                fields
+                    .iter()
+                    .enumerate()
+                    .zip(&parameters)
+                    .map(|((index, (name, _)), ty)| {
+                        managed_field_type(*ty).map(|ty| {
+                            (
+                                canonical_structural_field_name(
+                                    &canonical,
+                                    &variant,
+                                    index,
+                                    name.as_deref(),
+                                ),
+                                ty,
+                            )
+                        })
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+            .map_err(|error| format!("error[native_ir.structural_registry]: {error}"))?,
+        );
+        let encoded_layout = Arc::<[u8]>::from(
+            encode_aggregate_layout(&descriptor)
+                .map_err(|error| format!("error[native_ir.structural_registry_abi]: {error}"))?,
+        );
+        let key = (format!("$structural.{canonical}.{variant}"), fields.len());
+        layouts.entry(key).or_insert_with(|| {
+            Arc::new(NativeConstructorLayout {
+                parameters,
+                parameter_core_types: fields
+                    .iter()
+                    .map(|(_, field)| Some(field.clone()))
+                    .collect(),
+                result,
+                result_core_type: Some(identity.clone()),
+                descriptor,
+                encoded_layout,
+            })
+        });
+    }
+    Ok(())
+}
+
 fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result<(), String> {
     if crate::compiler::native_ir::union_values::is_boxed(ty) {
         let result = native_type(Some(ty), &ty.contract_text())
@@ -55,84 +167,7 @@ fn install_type(ty: &CoreType, layouts: &mut NativeConstructorLayouts) -> Result
     if let Some(variants) =
         structural_variants(ty).filter(|_| !crate::compiler::native_ir::union_values::is_boxed(ty))
     {
-        let mut names = std::collections::HashSet::new();
-        if variants.iter().any(|name| !names.insert(name)) {
-            return Err("error[native_ir.structural_registry_variant]: ambiguous public union variant identity".into());
-        }
-        let canonical = managed_semantic_contract(ty);
-        let result = native_type(Some(ty), &ty.contract_text()).ok_or_else(|| {
-            format!(
-                "error[native_ir.structural_registry_type]: `{}` has no native representation",
-                ty.contract_text()
-            )
-        })?;
-        for variant in variants {
-            let Some((discriminant, variant_count, fields)) =
-                structural_constructor_fields(&variant, ty)
-            else {
-                continue;
-            };
-            if layouts.values().any(|layout| {
-                layout.result == result && layout.descriptor.discriminant() == Some(discriminant)
-            }) {
-                continue;
-            }
-            let parameters = fields
-                .iter()
-                .map(|(_, field)| native_type(Some(field), &field.contract_text()))
-                .collect::<Option<Vec<_>>>()
-                .ok_or_else(|| {
-                    format!(
-                        "error[native_ir.structural_registry_field]: `{}` has an unsupported field",
-                        ty.contract_text()
-                    )
-                })?;
-            let descriptor = Arc::new(
-                ManagedAggregateDescriptor::constructor(
-                    &canonical,
-                    &variant,
-                    discriminant,
-                    variant_count,
-                    fields
-                        .iter()
-                        .enumerate()
-                        .zip(&parameters)
-                        .map(|((index, (name, _)), ty)| {
-                            managed_field_type(*ty).map(|ty| {
-                                (
-                                    canonical_structural_field_name(
-                                        &canonical,
-                                        &variant,
-                                        index,
-                                        name.as_deref(),
-                                    ),
-                                    ty,
-                                )
-                            })
-                        })
-                        .collect::<Result<Vec<_>, _>>()?,
-                )
-                .map_err(|error| format!("error[native_ir.structural_registry]: {error}"))?,
-            );
-            let encoded_layout =
-                Arc::<[u8]>::from(encode_aggregate_layout(&descriptor).map_err(|error| {
-                    format!("error[native_ir.structural_registry_abi]: {error}")
-                })?);
-            let key = (format!("$structural.{canonical}.{variant}"), fields.len());
-            layouts.entry(key).or_insert_with(|| {
-                Arc::new(NativeConstructorLayout {
-                    parameters,
-                    parameter_core_types: fields
-                        .iter()
-                        .map(|(_, field)| Some(field.clone()))
-                        .collect(),
-                    result,
-                    result_core_type: Some(ty.clone()),
-                    descriptor,
-                    encoded_layout,
-                })
-            });
-        }
+        install_variant_layouts(ty, ty, variants, layouts)?;
     }
     match ty {
         CoreType::Apply { args, .. } | CoreType::Union(args) => {

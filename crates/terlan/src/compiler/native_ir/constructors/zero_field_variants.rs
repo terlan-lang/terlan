@@ -31,24 +31,9 @@ pub(in crate::compiler::native_ir) fn zero_field_managed_variant_layout<'a>(
     let NativeType::ManagedRef(_) = expected else {
         return Ok(None);
     };
-    let (identity, qualified) = match argument {
-        CoreExpr::Atom(identity) => (identity, None),
-        CoreExpr::Var(identity)
-            if identity
-                .rsplit('.')
-                .next()
-                .and_then(|name| name.chars().next())
-                .is_some_and(|first| first.is_ascii_uppercase()) =>
-        {
-            (identity, None)
-        }
-        CoreExpr::ConstructorCall {
-            constructor,
-            constructor_identity,
-            args,
-            ..
-        } if args.is_empty() => (constructor, constructor_identity.as_deref()),
-        _ => return Ok(None),
+    let (identity, qualified) = match nullary_variant_identity(argument) {
+        Some(identity) => identity,
+        None => return Ok(None),
     };
     if let Some(layout) = qualified
         .and_then(|qualified| layouts.get(&(qualified.to_string(), 0)))
@@ -76,4 +61,28 @@ pub(in crate::compiler::native_ir) fn zero_field_managed_variant_layout<'a>(
         .into());
     }
     Ok(Some(candidate))
+}
+
+/// Recovers a nullary constructor identity through checked representation casts.
+fn nullary_variant_identity(argument: &CoreExpr) -> Option<(&str, Option<&str>)> {
+    match argument {
+        CoreExpr::Cast { expr, .. } => nullary_variant_identity(expr),
+        CoreExpr::Atom(identity) => Some((identity, None)),
+        CoreExpr::Var(identity)
+            if identity
+                .rsplit('.')
+                .next()
+                .and_then(|name| name.chars().next())
+                .is_some_and(|first| first.is_ascii_uppercase()) =>
+        {
+            Some((identity, None))
+        }
+        CoreExpr::ConstructorCall {
+            constructor,
+            constructor_identity,
+            args,
+            ..
+        } if args.is_empty() => Some((constructor, constructor_identity.as_deref())),
+        _ => None,
+    }
 }

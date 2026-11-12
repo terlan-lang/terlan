@@ -61,6 +61,11 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
         and action.contains("Compile current change classifier")
         and action.contains("scripts_ClassifyChanges.tvm")
         and action.contains("classifier-image=")
+        and action.contains("terlan-ci-programs-v1-")
+        and action.contains("scripts_CheckRustFormatting.tvm")
+        and action.contains("scripts_CheckTerlanStyle.tvm")
+        and action.contains("rust-format-image=")
+        and action.contains("terlan-style-image=")
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
@@ -87,7 +92,10 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
     workflow.contains("terlc }} test scripts/self_validation/InventoryTest.terl")
         and not workflow.contains("cargo test")
         and not workflow.contains("cache-build: \"true\"")
-        and workflow.contains("cache-registry: \"false\"").
+        and workflow.contains("cache-registry: \"false\"")
+        and workflow.contains("steps.script-runner.outputs.rust-format-image")
+        and workflow.contains("steps.script-runner.outputs.terlan-style-image")
+        and workflow.contains("--script-eval --").
 
 @test
 pub compiler_validation_starts_beside_source_preflight(): Bool ->
