@@ -569,6 +569,64 @@ pub lanes(paths: List[String]): List[String] ->
 pub hosted_lanes(paths: List[String]): List[String] ->
     without_hosted_lanes(lanes(paths)).
 
+/**
+ * Runs the smallest changed-code test before broad static and proof gates.
+ * Ownership remains expressed by lanes/1; this is only fail-fast scheduling.
+ */
+pub execution_lanes(paths: List[String]): List[String] ->
+    prioritize_test_lanes(lanes(paths)).
+
+pub hosted_execution_lanes(paths: List[String]): List[String] ->
+    prioritize_test_lanes(hosted_lanes(paths)).
+
+prioritize_test_lanes(values: List[String]): List[String] ->
+    append(selected_priority_lanes(test_lane_priority(), values), remaining_lanes(values)).
+
+test_lane_priority(): List[String] ->
+    [
+        "shell",
+        "commands-test",
+        "commands-clean",
+        "commands-doctor",
+        "commands-init",
+        "commands-emit-js",
+        "commands",
+        "native-ir",
+        "compiler",
+        "syntax",
+        "phase",
+        "workspace",
+        "test-orchestrator",
+        "rust-boundary-audit",
+        "dependencies",
+    ].
+
+selected_priority_lanes(priority: List[String], values: List[String]): List[String] ->
+    case priority {
+        [] -> List.new[String]();
+        [lane | rest] ->
+            if {
+                contains_lane(values, lane) -> [lane | selected_priority_lanes(rest, values)];
+                true -> selected_priority_lanes(rest, values)
+            }
+    }.
+
+remaining_lanes(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [lane | rest] ->
+            if {
+                contains_lane(test_lane_priority(), lane) -> remaining_lanes(rest);
+                true -> [lane | remaining_lanes(rest)]
+            }
+    }.
+
+contains_lane(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains_lane(rest, expected)
+    }.
+
 without_hosted_lanes(values: List[String]): List[String] ->
     case values {
         [] -> List.new[String]();

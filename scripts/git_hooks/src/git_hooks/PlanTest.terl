@@ -207,6 +207,17 @@ pub hosted_compiler_validation_omits_parallel_source_duplicates(): Bool ->
         and Plan.hosted_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "clippy", "native-ir", "phase"].
 
 @test
+pub affected_tests_execute_before_broad_validation(): Bool ->
+    Plan.execution_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "native-ir", "phase", "clippy"]
+        and Plan.execution_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "commands-doctor", "clippy", "rust-reports"]
+        and Plan.execution_lanes(["README.md"]) == ["shell"].
+
+@test
+pub hosted_execution_keeps_tests_early_and_omits_duplicates(): Bool ->
+    Plan.hosted_execution_lanes(["crates/terlan/src/runtime/vm.rs"]) == ["shell", "workspace", "clippy", "rust-reports"]
+        and Plan.hosted_execution_lanes(["std/core/Int.terl"]) == ["shell", "proofs", "terlan"].
+
+@test
 pub platform_validator_changes_validate_themselves_early(): Bool ->
     Plan.preflight_lanes(
     ["scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"],

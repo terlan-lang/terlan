@@ -27,8 +27,8 @@ let preflight =
     };
 let lanes =
     if {
-        hosted -> Plan.hosted_lanes(paths);
-        true -> Plan.lanes(paths)
+        hosted -> Plan.hosted_execution_lanes(paths);
+        true -> Plan.execution_lanes(paths)
     };
 let _preflight = println(String.join(preflight, "\n"));
 let _specialized = println(String.join(Plan.prefixed_specialized_terlan_tests(paths), "\n"));
