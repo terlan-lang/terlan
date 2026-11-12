@@ -153,8 +153,8 @@ pub terlan_style_scope_is_independent_of_source_scope(): Bool ->
     source.terlan_style
         and not source.terlan_style_all
         and not source.source
-        and configuration.terlan_style
-        and configuration.terlan_style_all.
+        and not configuration.terlan_style
+        and not configuration.terlan_style_all.
 
 @test
 pub generated_artifact_scope_excludes_unrelated_automation(): Bool ->

@@ -8,14 +8,13 @@ import std.io.File.
 import std.system.Arguments.
 
 entry(): Bool ->
-    case Arguments.get(0) {
-        None -> false;
-        Some(path) -> case File.read_text(path) {
-            Err(_) -> false;
-            Ok(source) ->
-                (let paths = String.split(source, "\n"); let _preflight = println(String.join(Plan.prefixed_preflight_lanes(paths), "\n")); let _specialized = println(String.join(Plan.prefixed_specialized_terlan_tests(paths), "\n")); let _lanes = println(String.join(Plan.lanes(paths), "\n")); true)
-        }
-    }.
+    when {
+        Some(path) <- Arguments.get(0);
+        Ok(source) <- File.read_text(path)
+    } else {
+        _ -> false
+    };
+    (let paths = String.split(source, "\n"); let _preflight = println(String.join(Plan.prefixed_preflight_lanes(paths), "\n")); let _specialized = println(String.join(Plan.prefixed_specialized_terlan_tests(paths), "\n")); let _lanes = println(String.join(Plan.lanes(paths), "\n")); true).
 
 assert(entry());
 Unit.

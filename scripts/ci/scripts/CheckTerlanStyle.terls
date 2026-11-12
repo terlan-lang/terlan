@@ -9,6 +9,7 @@ import std.system.{Arguments, Process}.
 
 import type std.collections.List.
 import type std.core.Option.
+import type std.system.Process.{BatchCompletion, Command}.
 
 lines(text: String): List[String] ->
     let trimmed = String.trim(text);
@@ -45,28 +46,69 @@ changed_sources(base: String, head: String): Option[List[String]] ->
         ],
     ).
 
-run_check(compiler: String, arguments: List[String]): Bool ->
-    case Process.run(Process.with_arguments(Process.command(compiler), arguments)) {
-        Ok(output) ->
+check_commands(
+    compiler: String,
+    paths: List[String],
+    mut commands: List[Command],
+): List[Command] ->
+    case paths {
+        [] -> commands;
+        _ ->
+            let {batch, remaining} = TerlanStyle.batch(paths, 48);
+            let _lint =
+                commands
+                    .push(
+                        Process.with_arguments(
+                            Process.command(compiler),
+                            ["lint", "--only", "TL0009", "--only", "TL0010"].concat(batch),
+                        ),
+                    );
+            let _format =
+                commands
+                    .push(
+                        Process.with_arguments(
+                            Process.command(compiler),
+                            ["fmt", "--check"].concat(batch),
+                        ),
+                    );
+            check_commands(compiler, remaining, commands)
+    }.
+
+completion_valid(completion: BatchCompletion): Bool ->
+    case {completion.output, completion.error} {
+        {Some(output), None} ->
             if {
                 output.status == 0 -> true;
                 true -> let _stdout = eprintln(output.stdout);
                 let _stderr = eprintln(output.stderr);
                 false
             };
+        {None, Some(reason)} ->
+            let _printed = eprintln(reason.message());
+            false;
+        _ -> false
+    }.
+
+completions_valid(completions: List[BatchCompletion]): Bool ->
+    case completions {
+        [] -> true;
+        [completion | rest] -> completion_valid(completion) and completions_valid(rest)
+    }.
+
+check_batches(compiler: String, paths: List[String]): Bool ->
+    let commands = check_commands(compiler, paths, []);
+    case Process.run_many(Process.batch(commands, 8)) {
+        Ok(output) -> completions_valid(output.completions);
         Err(reason) ->
             let _printed = eprintln(reason.message());
             false
     }.
 
 check(compiler: String, paths: List[String]): Bool ->
-    case paths {
-        [] ->
-            let _printed = println("Terlan style skipped: no Terlan sources changed");
-            true;
-        _ ->
-            run_check(compiler, ["lint", "--only", "TL0009", "--only", "TL0010"].concat(paths))
-                and run_check(compiler, ["fmt", "--check"].concat(paths))
+    if {
+        paths == [] -> let _printed = println("Terlan style skipped: no Terlan sources changed");
+        true;
+        true -> check_batches(compiler, paths)
     }.
 
 entry(): Bool ->
@@ -83,7 +125,7 @@ entry(): Bool ->
     } else {
         _ -> false
     };
-    check(compiler, paths).
+    check(compiler, TerlanStyle.sources(paths)).
 
 assert(entry());
 Unit.

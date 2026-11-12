@@ -86,6 +86,10 @@ Main-push classification is cumulative from the newest successful Compiler CI
 run whose compiler job actually passed. Cancelling an obsolete run therefore
 cannot make its unvalidated compiler or dependency changes disappear from the
 next push's validation scope.
+Terlan readability checks operate only on changed Terlan sources. Changing the
+linter or formatter implementation does not retroactively lint thousands of
+unmodified files; an explicit full style invocation remains available when a
+repository-wide migration is intentionally requested.
 Contract-only changes run formatting, actionlint, and publication/tooling
 regressions without starting compiler tests. Product pushes and pull requests
 execute only the changed-scope lanes selected by the same Terlan plan used for

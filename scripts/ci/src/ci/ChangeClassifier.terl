@@ -261,7 +261,7 @@ pub classify(paths: List[String], force_full: Bool): Classification ->
         rust_format = not force_full and RustFormatting.required(normalized, false),
         rust_format_all = not force_full and RustFormatting.requires_all(normalized),
         terlan_style = not force_full and TerlanStyle.required(normalized, false),
-        terlan_style_all = not force_full and TerlanStyle.requires_all(normalized),
+        terlan_style_all = false,
         ci_contracts = force_full or any_matching(normalized, "ci"),
         editor = force_full or any_matching(normalized, "editor"),
         inventory = force_full or any_matching(normalized, "inventory"),

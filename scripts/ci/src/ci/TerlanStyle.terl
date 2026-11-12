@@ -7,15 +7,10 @@ import std.collections.List.
 import std.core.String.
 
 pub is_source(path: String): Bool ->
-    String.ends_with(path, ".terl")
-        or String.ends_with(path, ".terli")
-        or String.ends_with(path, ".terls").
-
-pub changes_global_contract(path: String): Bool ->
-    String.starts_with(path, "crates/terlan/src/commands/lint/")
-        or String.starts_with(path, "crates/terlan/src/commands/fmt/")
-        or String.starts_with(path, "crates/terlan/src/compiler/syntax/formatter/")
-        or path == "crates/terlan/cli.mk".
+    not String.starts_with(path, "compiler/self_host/corpus/")
+        and (String.ends_with(path, ".terl")
+    or String.ends_with(path, ".terli")
+    or String.ends_with(path, ".terls")).
 
 pub sources(paths: List[String]): List[String] ->
     case paths {
@@ -27,17 +22,29 @@ pub sources(paths: List[String]): List[String] ->
             }
     }.
 
-pub requires_all(paths: List[String]): Bool ->
-    case paths {
-        [] -> false;
-        [path | rest] -> changes_global_contract(path) or requires_all(rest)
-    }.
-
 pub select(changed: List[String], tracked: List[String], force_all: Bool): List[String] ->
     if {
-        force_all or requires_all(changed) -> sources(tracked);
+        force_all -> sources(tracked);
         true -> sources(changed)
     }.
 
 pub required(paths: List[String], force_all: Bool): Bool ->
-    force_all or requires_all(paths) or sources(paths) != [].
+    force_all or sources(paths) != [].
+
+pub batch(paths: List[String], maximum: Int): {List[String], List[String]} ->
+    batch_into(paths, maximum, []).
+
+batch_into(
+    paths: List[String],
+    remaining: Int,
+    mut selected: List[String],
+): {List[String], List[String]} ->
+    if {
+        remaining <= 0 -> {selected, paths};
+        true -> case paths {
+            [] -> {selected, []};
+            [path | rest] ->
+                let _pushed = selected.push(path);
+                batch_into(rest, remaining - 1, selected)
+        }
+    }.

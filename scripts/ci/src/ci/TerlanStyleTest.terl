@@ -14,21 +14,24 @@ pub changed_sources_are_the_only_selected_paths(): Bool ->
         and TerlanStyle.is_source("src/value.terl")
         and TerlanStyle.is_source("src/value.terli")
         and TerlanStyle.is_source("scripts/value.terls")
+        and not TerlanStyle.is_source("compiler/self_host/corpus/accepted/Expressions.terl")
         and not TerlanStyle.is_source("src/value.terl.bak").
 
 @test
-pub formatter_and_linter_changes_select_all_sources(): Bool ->
+pub formatter_and_linter_changes_do_not_recheck_unchanged_sources(): Bool ->
     let tracked = ["std/core/Bool.terl", "README.md", "scripts/check.terls"];
-    TerlanStyle.select(["crates/terlan/src/commands/lint/rules.rs"], tracked, false) == ["std/core/Bool.terl", "scripts/check.terls"]
-        and TerlanStyle.requires_all(["crates/terlan/src/commands/fmt/mod.rs"])
-        and TerlanStyle.requires_all(["crates/terlan/src/compiler/syntax/formatter/expressions.rs"])
-        and TerlanStyle.requires_all(["crates/terlan/cli.mk"])
-        and not TerlanStyle.requires_all(["crates/terlan/src/main.rs"])
-        and TerlanStyle.changes_global_contract("crates/terlan/cli.mk")
-        and not TerlanStyle.changes_global_contract("Cargo.lock").
+    TerlanStyle.select(["crates/terlan/src/commands/lint/rules.rs"], tracked, false) == []
+        and not TerlanStyle.required(["crates/terlan/src/commands/fmt/mod.rs"], false)
+        and TerlanStyle.select([], tracked, true) == ["std/core/Bool.terl", "scripts/check.terls"].
 
 @test
 pub indeterminate_revisions_fail_closed_to_all_sources(): Bool ->
     TerlanStyle.select([], ["std/core/Bool.terl", "docs/guide.md"], true) == ["std/core/Bool.terl"]
         and TerlanStyle.required([], true)
         and TerlanStyle.sources([]) == [].
+
+@test
+pub global_style_paths_are_split_into_bounded_batches(): Bool ->
+    TerlanStyle.batch(["one.terl", "two.terl", "three.terl"], 2) == {["one.terl", "two.terl"], ["three.terl"]}
+        and TerlanStyle.batch(["one.terl"], 4) == {["one.terl"], []}
+        and TerlanStyle.batch(["one.terl"], 0) == {[], ["one.terl"]}.
