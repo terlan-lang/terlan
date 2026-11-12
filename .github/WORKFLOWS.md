@@ -295,13 +295,15 @@ for executing a validation gate. ThreadSanitizer owns its separate pinned
 nightly `rust-src` installation. Developer coverage support remains declared
 in `rust-toolchain.toml` without making every hosted matrix lane download
 `rust-src` and LLVM tools it never executes.
-Compiler and release validation both build the exact locked `cargo-audit 0.22.2`
-source and run it against `Cargo.lock`, denying vulnerabilities, unsound
-dependencies, and unmaintained dependencies. Registry inputs are cached, but
-the security decision never trusts an opaque cached audit executable; its
-advisory database is refreshed on every run. `security.yml` also runs the same
-gate every Monday and on demand, so a newly published advisory is detected even
-when the repository has not changed.
+Compiler and release validation run the exact locked `cargo-audit 0.22.2`
+against `Cargo.lock`, denying vulnerabilities, unsound dependencies, and
+unmaintained dependencies. Its platform- and toolchain-bound executable is
+cached under an immutable versioned key and its reported version is checked
+before use; a cache miss builds the exact locked source. The advisory database
+is refreshed on every run, so the cache never substitutes for the security
+decision. `security.yml` also runs the same gate every Monday and on demand, so
+a newly published advisory is detected even when the repository has not
+changed.
 
 Typed validation images use a content-addressed local build wrapper. The
 post-measure validation set hashes the compiler and standard library once, then

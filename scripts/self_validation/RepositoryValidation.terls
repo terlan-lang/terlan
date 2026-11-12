@@ -1031,7 +1031,13 @@ if {
     dependency_audit,
     [
         "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+        "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
         "node-version: 24",
+        "path: ~/.cargo/bin/cargo-audit",
+        "key: cargo-audit-0.22.2-\${{ runner.os }}-\${{ runner.arch }}-\${{ hashFiles('rust-toolchain.toml') }}",
+        "steps.cargo-audit-cache.outputs.cache-hit != 'true'",
+        "cargo install cargo-audit --version 0.22.2 --locked --force",
+        "test \"$(cargo-audit --version)\" = \"cargo-audit 0.22.2\"",
         "make --no-print-directory rust-security-audit-check",
         "make --no-print-directory node-security-audit-check",
     ],

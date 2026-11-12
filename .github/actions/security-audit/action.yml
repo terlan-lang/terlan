@@ -9,9 +9,21 @@ runs:
       with:
         node-version: 24
 
+    - name: Restore exact cargo-audit
+      id: cargo-audit-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cargo/bin/cargo-audit
+        key: cargo-audit-0.22.2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('rust-toolchain.toml') }}
+
     - name: Install exact cargo-audit
+      if: ${{ steps.cargo-audit-cache.outputs.cache-hit != 'true' }}
       shell: bash
       run: cargo install cargo-audit --version 0.22.2 --locked --force
+
+    - name: Verify exact cargo-audit
+      shell: bash
+      run: test "$(cargo-audit --version)" = "cargo-audit 0.22.2"
 
     - name: Reject vulnerable, unsound, and unmaintained dependencies
       shell: bash
