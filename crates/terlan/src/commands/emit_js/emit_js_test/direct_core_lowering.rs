@@ -759,11 +759,11 @@ pub middle(items: List[Int]): List[Int] ->
     );
 }
 
-/// Verifies that remote calls stay outside the direct JS backend subset.
+/// Verifies that qualified calls stay outside the direct JS backend subset.
 ///
 /// Inputs:
-/// - A checked Terlan module with a public function returning a remote
-///   Vm call expression.
+/// - A checked Terlan module with a public function returning a qualified
+///   call expression through the supported dotted module syntax.
 ///
 /// Output:
 /// - Assertions over direct-AST rejection and fallback JavaScript source.
@@ -776,10 +776,10 @@ pub middle(items: List[Int]): List[Int] ->
 #[test]
 pub(super) fn emit_core_module_with_oxc_codegen_falls_back_for_remote_call() {
     let source = "\
-module js_core_remote_call_fallback.
+module js_core.RemoteCallFallback.
 
-pub call_remote(): Int ->
-    erlang.abs(1).
+pub call_remote(): Unit ->
+    std.io.Console.println(\"remote\").
 ";
     let artifacts = compile_syntax_module_through_phases_with_profile(
         "js_core_remote_call_fallback.terl",
