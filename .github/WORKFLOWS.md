@@ -82,6 +82,10 @@ dependency layer while Cargo fingerprints rebuild changed workspace code.
 Release-candidate validation runs compiler tests before the destructive clean
 artifact-budget measurement. The measurement remains authoritative, but it can
 no longer erase restored compiler inputs before the first test result appears.
+Main-push classification is cumulative from the newest successful Compiler CI
+run whose compiler job actually passed. Cancelling an obsolete run therefore
+cannot make its unvalidated compiler or dependency changes disappear from the
+next push's validation scope.
 Contract-only changes run formatting, actionlint, and publication/tooling
 regressions without starting compiler tests. Product pushes and pull requests
 execute only the changed-scope lanes selected by the same Terlan plan used for

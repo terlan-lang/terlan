@@ -80,6 +80,7 @@ on:
       - ".github/WORKFLOWS.md"
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -92,6 +93,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
+      validation-base: ${{ steps.validation-base.outputs.revision }}
       source: ${{ steps.classify.outputs.source }}
       compiler: ${{ steps.classify.outputs.compiler }}
       dependencies: ${{ steps.classify.outputs.dependencies }}
@@ -127,10 +129,57 @@ jobs:
       - name: Setup Terlan script runner
         id: script-runner
         uses: ./.github/actions/setup-terlan-script-runner
+      - name: Resolve last compiler-validated main revision
+        id: validated-main
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const {data} = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "ci.yml",
+              branch: "main",
+              event: "push",
+              status: "success",
+              per_page: 100,
+            });
+            for (const run of data.workflow_runs) {
+              if (run.id === context.runId || run.head_sha === context.sha) continue;
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                  per_page: 100,
+                },
+              );
+              const compiler = jobs.find((job) => job.name === "Compiler check and test");
+              if (compiler?.conclusion === "success") {
+                core.setOutput("revision", run.head_sha);
+                return;
+              }
+            }
+            core.setOutput("revision", "");
+      - name: Resolve cumulative validation base
+        id: validation-base
+        env:
+          MAIN_VALIDATED_REVISION: ${{ steps.validated-main.outputs.revision }}
+          EVENT_BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: |
+          base="$EVENT_BASE_REVISION"
+          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]]; then
+            base="$MAIN_VALIDATED_REVISION"
+          fi
+          if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] || ! git merge-base --is-ancestor "$base" "$GITHUB_SHA"; then
+            base=$(git hash-object -t tree /dev/null)
+          fi
+          printf 'revision=%s\n' "$base" >> "$GITHUB_OUTPUT"
       - name: Classify changed files
         id: classify
         env:
-          BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+          BASE_REVISION: ${{ steps.validation-base.outputs.revision }}
           HEAD_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           "${{ steps.script-runner.outputs.terlc }}" run \
@@ -148,7 +197,7 @@ jobs:
       generated_native_artifacts: ${{ needs.changes.outputs.generated-native-artifacts == 'true' }}
       generated_release_manifest: ${{ needs.changes.outputs.generated-release-manifest == 'true' }}
       generated_tree_sitter: ${{ needs.changes.outputs.generated-tree-sitter == 'true' }}
-      base_revision: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+      base_revision: ${{ needs.changes.outputs.validation-base }}
       head_revision: ${{ github.event.pull_request.head.sha || github.sha }}
       rust_format: ${{ needs.changes.outputs.rust-format == 'true' }}
       rust_format_all: ${{ needs.changes.outputs.rust-format-all == 'true' }}
@@ -403,7 +452,7 @@ jobs:
       - name: Validate changed compiler scope
         if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
-          BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+          BASE_REVISION: ${{ needs.changes.outputs.validation-base }}
         run: |
           base="$BASE_REVISION"
           if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] ||

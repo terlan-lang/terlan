@@ -84,6 +84,22 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
         and workflow.contains("cache-registry: \"false\"").
 
 @test
+pub cancelled_main_validation_is_accumulated_by_the_next_run(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/ci.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    workflow.contains("actions: read")
+        and workflow.contains("github.rest.actions.listWorkflowRuns")
+        and workflow.contains("github.rest.actions.listJobsForWorkflowRun")
+        and workflow.contains("job.name === \"Compiler check and test\"")
+        and workflow.contains("compiler?.conclusion === \"success\"")
+        and workflow.contains("git merge-base --is-ancestor \"$base\" \"$GITHUB_SHA\"")
+        and workflow.contains("validation-base: \${{ steps.validation-base.outputs.revision }}")
+        and occurrences(workflow, "needs.changes.outputs.validation-base") == 2.
+
+@test
 pub release_reuse_requires_full_dispatched_compiler_evidence(): Bool ->
     when {
         Ok(workflow) <- read_text(".github/workflows/release.yml");
