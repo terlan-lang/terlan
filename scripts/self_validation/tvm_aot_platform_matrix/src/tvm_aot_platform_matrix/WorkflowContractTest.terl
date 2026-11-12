@@ -59,3 +59,16 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
+
+@test
+pub release_reuse_requires_full_dispatched_compiler_evidence(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/release.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    workflow.contains("run.event !== \"workflow_dispatch\"")
+        and workflow.contains("github.rest.actions.listJobsForWorkflowRun")
+        and workflow.contains("\"Locked dependency security audit\"")
+        and workflow.contains("\"Compiler check and test\"")
+        and workflow.contains("compiler_run_id lacks successful required job").

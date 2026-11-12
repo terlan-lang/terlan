@@ -52,19 +52,40 @@ jobs:
               repo: context.repo.repo,
               run_id: runId,
             });
-            const validEvent = run.event === "push" || run.event === "workflow_dispatch";
             if (
               run.repository.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
               run.path !== ".github/workflows/ci.yml" ||
               run.name !== "Compiler CI" ||
               run.head_sha !== context.sha ||
               run.head_branch !== "main" ||
-              !validEvent ||
+              run.event !== "workflow_dispatch" ||
               run.status !== "completed" ||
               run.conclusion !== "success" ||
               run.run_attempt < 1
             ) {
               throw new Error("compiler_run_id is not successful exact-revision Compiler CI evidence");
+            }
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId,
+                per_page: 100,
+              },
+            );
+            for (const requiredName of [
+              "Locked dependency security audit",
+              "Compiler check and test",
+            ]) {
+              const matches = jobs.filter((job) => job.name === requiredName);
+              if (
+                matches.length !== 1 ||
+                matches[0].status !== "completed" ||
+                matches[0].conclusion !== "success"
+              ) {
+                throw new Error(`compiler_run_id lacks successful required job: ${requiredName}`);
+              }
             }
       - name: Publish workflow run identity
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
