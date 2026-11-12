@@ -396,12 +396,14 @@ fn collect_syntax_module_aliases(
             continue;
         };
 
-        if interfaces.contains_key(module_name) {
-            if let Some(leaf) = module_name
-                .rsplit('.')
-                .next()
-                .filter(|leaf| !leaf.is_empty())
-            {
+        if let Some(interface) = interfaces.get(module_name) {
+            if let Some(leaf) = module_name.rsplit('.').next().filter(|leaf| {
+                !leaf.is_empty()
+                    && !items.iter().any(|item| {
+                        interface.traits.contains_key(&item.name)
+                            && item.as_alias.as_deref().unwrap_or(&item.name) == *leaf
+                    })
+            }) {
                 aliases.insert(leaf.to_string(), module_name.clone());
             }
         }
