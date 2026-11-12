@@ -485,6 +485,14 @@ run_affected_rust_lane() {
   esac
 }
 
+# Derived Rust inventories are cheap structural inputs compared with affected
+# test suites. Reject their drift before compiling or executing those suites so
+# a stale generated report cannot invalidate a long compiler validation run.
+if lane_has rust-reports; then
+  echo 'pre-commit: early Rust report drift'
+  run_rust_reports_lane
+fi
+
 # The changed-code test is the first substantial consumer of a newly built
 # compiler. Execute every selected Rust test/check lane now, in the priority
 # emitted by the Terlan planner, and remove it from the later broad plan.
@@ -512,10 +520,6 @@ if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typ
   npm ci --ignore-scripts --prefix tools/web-toolchain
   TERLC="$terlc" bash scripts/check_typed_css.sh
   typed_css_checked=true
-fi
-if lane_has rust-reports; then
-  echo 'pre-commit: early Rust report drift'
-  run_rust_reports_lane
 fi
 # Generated Rust reports and source-structure policy fail before any broad
 # Terlan compilation. Directly affected compiler and source ownership follows.

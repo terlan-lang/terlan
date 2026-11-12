@@ -520,6 +520,8 @@ early_terlan_line=$(rg -n -F 'early terlan ownership and coverage' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_rust_reports_line=$(rg -n -F 'early Rust report drift' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+early_affected_rust_line=$(rg -n -F 'early affected Rust lane passed' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_terlan_format_line=$(rg -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_grammar_line=$(rg -n -F 'early canonical grammar and summary' \
@@ -527,10 +529,12 @@ early_grammar_line=$(rg -n -F 'early canonical grammar and summary' \
 inventory_line=$(rg -n -F 'retained source inventory' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$early_rust_reports_line"
+test -n "$early_affected_rust_line"
 test -n "$early_terlan_format_line"
 test -n "$early_grammar_line"
 test "$early_grammar_line" -lt "$early_terlan_format_line"
 test "$early_terlan_format_line" -lt "$early_rust_reports_line"
+test "$early_rust_reports_line" -lt "$early_affected_rust_line"
 test "$early_rust_reports_line" -lt "$early_terlan_line"
 test "$early_terlan_line" -lt "$inventory_line"
 

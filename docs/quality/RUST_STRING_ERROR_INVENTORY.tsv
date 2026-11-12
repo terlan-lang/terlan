@@ -215,7 +215,7 @@ crates/terlan/src/compiler/native_ir/constructors.rs	10	internal-helper	compiler
 crates/terlan/src/compiler/native_ir/constructors/field_types.rs	3	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/projection.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/records.rs	2	internal-helper	compiler-errors	0.0.9
-crates/terlan/src/compiler/native_ir/constructors/structural_registry.rs	2	internal-helper	compiler-errors	0.0.9
+crates/terlan/src/compiler/native_ir/constructors/structural_registry.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/constructors/zero_field_variants.rs	1	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/continuation_sharing.rs	4	internal-helper	compiler-errors	0.0.9
 crates/terlan/src/compiler/native_ir/control.rs	2	internal-helper	compiler-errors	0.0.9
