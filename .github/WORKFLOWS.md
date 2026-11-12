@@ -74,11 +74,13 @@ capability is deliberately separate from release
 eligibility: candidate tooling may orchestrate a red build, while only complete
 independent evidence permits publication.
 Contract-only changes run formatting, actionlint, and publication/tooling
-regressions without starting the compiler suite. Product changes additionally
-run source inventory, ownership, canonicalization, and the compiler gates.
-Release control passes the successful exact-revision Compiler CI run ID into
-Release validation. A lightweight GitHub API gate verifies its repository,
-workflow path, commit, branch, event, attempt, status, and conclusion instead of
+regressions without starting compiler tests. Product pushes and pull requests
+execute only the changed-scope lanes selected by the same Terlan plan used for
+local commit admission. An explicit release dispatch is the sole owner of the
+complete release-candidate graph. Release control ignores push runs and passes
+the successful exact-revision dispatched Compiler CI run ID into Release
+validation. A lightweight GitHub API gate verifies its repository, workflow
+path, commit, branch, event, attempt, status, and conclusion instead of
 recompiling and rerunning source preflight. That same guarded job publishes the
 pending release identity, avoiding a second runner whose only purpose was to
 repeat the already-established source binding.
@@ -107,13 +109,13 @@ candidate before merge:
 - `Makefile`
 - workflow and shared action configuration
 
-On `main`, Compiler CI runs the general compiler/release-candidate job only when
-product inputs changed. Release validation never starts from a push: release
-control dispatches it once, with the expected full commit SHA, after Compiler CI
-for that SHA succeeds. The dispatch also binds the successful Compiler CI run
-ID, which Release validation verifies before starting any matrix job. It is the
-sole owner of the release AOT matrix, sanitizer families, candidate preparation,
-and publication bundle.
+On `main`, ordinary product pushes run the bounded changed-scope compiler plan.
+Release control separately dispatches the complete Compiler CI graph once with
+the expected full commit SHA; push evidence is deliberately ineligible. After
+that exact dispatch succeeds, release control passes its run ID to Release
+validation, which verifies it before starting any matrix job. Release validation
+is the sole owner of the release AOT matrix, sanitizer families, candidate
+preparation, and publication bundle.
 On `main`, a separate short attestation job signs the three completed compiler
 coverage records. Only this job receives attestation/OIDC write permissions; it
 does not execute downloaded code or rebuild/retest the compiler. It consumes the

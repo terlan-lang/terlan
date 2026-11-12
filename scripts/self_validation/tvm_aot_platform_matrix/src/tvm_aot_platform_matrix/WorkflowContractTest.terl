@@ -63,7 +63,8 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
 @test
 pub release_reuse_requires_full_dispatched_compiler_evidence(): Bool ->
     when {
-        Ok(workflow) <- read_text(".github/workflows/release.yml")
+        Ok(workflow) <- read_text(".github/workflows/release.yml");
+        Ok(compiler) <- read_text(".github/workflows/ci.yml")
     } else {
         Err(_reason) -> false
     };
@@ -71,4 +72,17 @@ pub release_reuse_requires_full_dispatched_compiler_evidence(): Bool ->
         and workflow.contains("github.rest.actions.listJobsForWorkflowRun")
         and workflow.contains("\"Locked dependency security audit\"")
         and workflow.contains("\"Compiler check and test\"")
-        and workflow.contains("compiler_run_id lacks successful required job").
+        and workflow.contains("compiler_run_id lacks successful required job")
+        and compiler
+    .contains(
+        "if: \${{ github.event_name == 'workflow_dispatch' }}\n        run: make release-candidate-check",
+    )
+        and compiler
+    .contains(
+        "if: \${{ github.event_name != 'workflow_dispatch' }}\n        env:\n          BASE_REVISION:",
+    )
+        and compiler.contains("TERLAN_HOOK_MODE=full")
+        and compiler
+    .contains(
+        "if: \${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}",
+    ).

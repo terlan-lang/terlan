@@ -65,16 +65,20 @@ pub required_release_job_must_run_and_pass(): Bool ->
         and Support.text(Status.require_job(workflow_with_jobs("success", Json.array()), ""), "state") == "success"
         and Support.text(Status.require_job(Json.object(), "Compiler check and test"), "state") == "failed".
 
-row(revision: String, status: String, conclusion: String): Json ->
+row_event(revision: String, event: String, status: String, conclusion: String): Json ->
     Json.array()
         .push(
             Json.object()
                 .put("headSha", Json.string(revision))
+                .put("event", Json.string(event))
                 .put("databaseId", Json.int(17))
                 .put("url", Json.string("https://github.com/terlan-lang/terlan/actions/runs/17"))
                 .put("status", Json.string(status))
                 .put("conclusion", Json.string(conclusion)),
         ).
+
+row(revision: String, status: String, conclusion: String): Json ->
+    row_event(revision, "workflow_dispatch", status, conclusion).
 
 state(status: String, conclusion: String): Json ->
     case Status.workflow(row("candidate", status, conclusion), "candidate", "ci.yml") {
@@ -142,6 +146,10 @@ pub run(): Bool ->
     _ -> false
 }
         and case Status.workflow(row("candidate", "unexpected", "success"), "candidate", "ci.yml") {
+    Err(_reason) -> true;
+    _ -> false
+}
+        and case Status.workflow(row_event("candidate", "push", "completed", "success"), "candidate", "ci.yml") {
     Err(_reason) -> true;
     _ -> false
 }.

@@ -203,6 +203,7 @@ workflow_row(): Bool ->
                         "url",
                         Json.string("https://github.com/terlan-lang/terlan/actions/runs/17"),
                     )
+                    .put("event", Json.string("workflow_dispatch"))
                     .put(
                         "status",
                         Json.string(

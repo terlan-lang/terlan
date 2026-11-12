@@ -30,6 +30,7 @@ pub workflow(runs: Json, revision: String, name: String): Result[Json, String] -
                     let conclusion = Support.text(row, "conclusion");
                     if {
                         Support.text(row, "headSha") != revision -> Err("workflow belongs to a different source revision");
+                        Support.text(row, "event") != "workflow_dispatch" -> Err("workflow is not explicit release evidence");
                         Support.number(row, "databaseId") <= 0 -> Err("workflow identifier is invalid");
                         not String.starts_with(Support.text(row, "url"), "https://github.com/") -> Err("workflow URL is invalid");
                         status != "completed"
@@ -88,10 +89,12 @@ load(revision: String, name: String): Result[Json, String] ->
             revision,
             "--workflow",
             name,
+            "--event",
+            "workflow_dispatch",
             "--limit",
             "1",
             "--json",
-            "databaseId,headSha,status,conclusion,url,workflowName",
+            "databaseId,headSha,event,status,conclusion,url,workflowName",
         ],
     ) {
         Err(reason) -> Err(reason);
