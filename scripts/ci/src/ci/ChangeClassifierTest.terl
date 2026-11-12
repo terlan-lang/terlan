@@ -70,7 +70,7 @@ pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
         and ChangeClassifier.is_dependency_file("scripts/peers/requirements.txt").
 
 @test
-pub manual_and_indeterminate_dispatches_force_all_validation(): Bool ->
+pub manual_dispatches_skip_duplicate_style_validation(): Bool ->
     let result = ChangeClassifier.classify([], true);
     result.compiler
         and result.source
@@ -81,10 +81,10 @@ pub manual_and_indeterminate_dispatches_force_all_validation(): Bool ->
         and result.generated_native_artifacts
         and result.generated_release_manifest
         and result.generated_tree_sitter
-        and result.rust_format
-        and result.rust_format_all
-        and result.terlan_style
-        and result.terlan_style_all
+        and not result.rust_format
+        and not result.rust_format_all
+        and not result.terlan_style
+        and not result.terlan_style_all
         and result.ci_contracts
         and result.editor
         and result.inventory

@@ -98,7 +98,7 @@ from_revisions(base: String, head: String, force_all: Bool): Bool ->
     } else {
         _ -> false
     };
-    check(paths).
+    check(RustFormatting.sources(paths)).
 
 entry(): Bool ->
     case Arguments.get(0) {
