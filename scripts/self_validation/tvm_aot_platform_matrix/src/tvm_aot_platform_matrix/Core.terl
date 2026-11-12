@@ -725,6 +725,9 @@ source_preflight_order_valid(workflow: String): Bool ->
 pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
     let normalized_workflow = String.replace(workflow, "\r\n", "\n");
     occurrences(normalized_workflow, "name: Check every generated artifact for drift") == 1
+        and not normalized_workflow.contains("cargo test")
+        and not normalized_workflow.contains("cache-build: \"true\"")
+        and normalized_workflow.contains("cache-registry: \"false\"")
         and source_preflight_order_valid(normalized_workflow)
         and fragments_present(
     normalized_workflow,
@@ -744,6 +747,7 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
         "source-generated-artifacts-check TERLAN_VALIDATION_BOOTSTRAPPED=1 TERLC=\${{ steps.script-runner.outputs.terlc }}",
         "git diff --exit-code",
         "git status --porcelain --untracked-files=all",
+        "terlc }} test scripts/self_validation/InventoryTest.terl --coverage --coverage-threshold 100",
     ],
 )
         and makefile.contains("generated artifact selectors must be 0 or 1")
@@ -756,32 +760,35 @@ pub release_audit_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [revision, dependency-audit]") == 3.
 
 pub compiled_cache_text_valid(action: String): Bool ->
-    fragments_present(
-        action,
-        [
-            "outputs:",
-            "compiled-cache-hit:",
-            "value: \${{ steps.compiled-rust-cache.outputs.cache-hit }}",
-            "compiled-cache-key:",
-            "value: \${{ steps.compiled-cache-key.outputs.value }}",
-            "cache-build:",
-            "cache-profile:",
-            "Resolve compiled cache key",
-            "id: compiled-cache-key",
-            "Cache compiled Rust dependencies",
-            "id: compiled-rust-cache",
-            "target/debug/.fingerprint",
-            "target/debug/build",
-            "target/debug/deps",
-            "target/release/.fingerprint",
-            "target/release/build",
-            "target/release/deps",
-            "\"$GITHUB_SHA\"",
-            "TERLAN_CACHE_PROFILE",
-            "terlan-rust-build-v3-",
-            "restore-keys:",
-        ],
-    ).
+    not action.contains("\"$GITHUB_SHA\"")
+        and fragments_present(
+    action,
+    [
+        "outputs:",
+        "compiled-cache-hit:",
+        "value: \${{ steps.compiled-rust-cache.outputs.cache-hit }}",
+        "compiled-cache-key:",
+        "value: \${{ steps.compiled-cache-key.outputs.value }}",
+        "cache-build:",
+        "cache-registry:",
+        "if: inputs.cache-registry == 'true'",
+        "cache-profile:",
+        "Resolve compiled cache key",
+        "id: compiled-cache-key",
+        "Cache compiled Rust dependencies",
+        "id: compiled-rust-cache",
+        "target/debug/.fingerprint",
+        "target/debug/build",
+        "target/debug/deps",
+        "target/release/.fingerprint",
+        "target/release/build",
+        "target/release/deps",
+        "TERLAN_CACHE_PROFILE",
+        "terlan-rust-build-v4-",
+        "terlan-rust-build-v3-",
+        "restore-keys:",
+    ],
+).
 
 pub compiled_cache_preservation_text_valid(workflow: String): Bool ->
     fragments_present(

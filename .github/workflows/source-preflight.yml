@@ -130,9 +130,7 @@ jobs:
         uses: ./.github/actions/setup-rust
         with:
           components: rustfmt
-          cache-build: "true"
-          cache-scope: ubuntu-24.04
-          cache-profile: compiler-validation
+          cache-registry: "false"
       - name: Check changed Rust formatting
         if: ${{ inputs.rust_format }}
         env:
@@ -159,18 +157,13 @@ jobs:
             "${{ steps.script-runner.outputs.terlc }}"
       - name: Check source inventory and test ownership
         if: ${{ inputs.inventory }}
-        run: |
-          cargo test --locked -p terlan-rust-boundary-audit
-          cargo test --locked -p terlan-test-orchestrator --lib
+        run: ${{ steps.script-runner.outputs.terlc }} test scripts/self_validation/InventoryTest.terl --coverage --coverage-threshold 100
       - name: Install release-tool test dependencies
         if: ${{ inputs.hooks }}
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends ripgrep
           rg --version
-      - name: Check build-plan integration contract
-        if: ${{ inputs.release_tooling }}
-        run: cargo test --locked -p terlan-test-orchestrator --test hosted_release_make repository_report_consumer_propagates_typed_validation_failures -- --exact
       - name: Test staged Git hook isolation
         if: ${{ inputs.hooks }}
         run: |

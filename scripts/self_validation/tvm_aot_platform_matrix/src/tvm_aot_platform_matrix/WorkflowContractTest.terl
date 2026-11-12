@@ -3,7 +3,7 @@ module tvm_aot_platform_matrix.WorkflowContractTest.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.File.{read_text}.
-import tvm_aot_platform_matrix.Core.{release_audit_before_platform_text_valid, source_preflight_text_valid}.
+import tvm_aot_platform_matrix.Core.{compiled_cache_text_valid, release_audit_before_platform_text_valid, source_preflight_text_valid}.
 import tvm_aot_platform_matrix.MulticoreRelease.{validate_workflow as multicore_release_workflow_valid}.
 
 @test
@@ -59,6 +59,29 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
+
+@test
+pub compiled_dependency_cache_survives_source_only_commits(): Bool ->
+    when {
+        Ok(action) <- read_text(".github/actions/setup-rust/action.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    compiled_cache_text_valid(action)
+        and not action.contains("\"$GITHUB_SHA\"")
+        and action.contains("terlan-rust-build-v4-").
+
+@test
+pub source_preflight_never_compiles_rust_tests(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/source-preflight.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    workflow.contains("terlc }} test scripts/self_validation/InventoryTest.terl")
+        and not workflow.contains("cargo test")
+        and not workflow.contains("cache-build: \"true\"")
+        and workflow.contains("cache-registry: \"false\"").
 
 @test
 pub release_reuse_requires_full_dispatched_compiler_evidence(): Bool ->

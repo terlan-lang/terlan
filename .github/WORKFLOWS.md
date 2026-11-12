@@ -73,6 +73,12 @@ release-payload, and readability checks instead of rebuilding it. Script
 capability is deliberately separate from release
 eligibility: candidate tooling may orchestrate a red build, while only complete
 independent evidence permits publication.
+Source preflight does not restore Cargo registry or multi-gigabyte compiled
+Rust caches and does not compile Rust tests. Its inventory gate runs through the cached Terlan
+script runner; the compiler job is the sole owner of Rust test compilation.
+Compiled dependency caches are keyed by toolchain, target ABI, profile, and
+Cargo manifests rather than commit SHA, so source-only commits reuse the same
+dependency layer while Cargo fingerprints rebuild changed workspace code.
 Contract-only changes run formatting, actionlint, and publication/tooling
 regressions without starting compiler tests. Product pushes and pull requests
 execute only the changed-scope lanes selected by the same Terlan plan used for

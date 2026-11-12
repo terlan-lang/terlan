@@ -26,6 +26,10 @@ inputs:
     description: Restore and retain compiled Cargo dependencies for long validation jobs.
     required: false
     default: "false"
+  cache-registry:
+    description: Restore Cargo registry inputs for jobs that execute Cargo.
+    required: false
+    default: "true"
   cache-scope:
     description: Runner image or ABI label for compiled Cargo artifacts.
     required: false
@@ -88,12 +92,12 @@ runs:
           echo "cache-profile must be a stable compatibility label" >&2
           exit 1
         fi
-        printf 'value=terlan-rust-build-v3-%s-%s-%s-%s-%s-%s-%s\n' \
+        printf 'value=terlan-rust-build-v4-%s-%s-%s-%s-%s-%s\n' \
           "$TERLAN_CACHE_SCOPE" "$RUNNER_OS" "$RUNNER_ARCH" \
-          "$TERLAN_CACHE_TOOLCHAIN" "$TERLAN_CACHE_PROFILE" "$TERLAN_CACHE_MANIFEST" \
-          "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          "$TERLAN_CACHE_TOOLCHAIN" "$TERLAN_CACHE_PROFILE" "$TERLAN_CACHE_MANIFEST" >> "$GITHUB_OUTPUT"
 
     - name: Cache Cargo registry inputs
+      if: inputs.cache-registry == 'true'
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: |
@@ -118,6 +122,7 @@ runs:
           target/release/deps
         key: ${{ steps.compiled-cache-key.outputs.value }}
         restore-keys: |
+          terlan-rust-build-v4-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-
           terlan-rust-build-v3-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', '**/Cargo.toml') }}-
           terlan-rust-build-v3-${{ steps.compiled-cache-scope.outputs.value }}-${{ runner.os }}-${{ runner.arch }}-${{ inputs.toolchain }}-${{ inputs.cache-profile }}-
 
