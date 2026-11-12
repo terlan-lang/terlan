@@ -25,7 +25,7 @@ pub measure[T](value: T)[Measure[T]]: Int -> Measure.measure(value).
     ]);
 }
 
-/// Imported free-function receiver syntax keeps its provider through generic lowering.
+/// Imported receiver syntax keeps its provider through generic lowering.
 #[test]
 fn imported_builder_receiver_calls_keep_their_provider() {
     super::super::super::source_constructor_test::check_sources(&[
@@ -43,7 +43,7 @@ pub check(): Bool ->
 module builders.Library.
 pub struct Command { value: Int }.
 pub command(value: Int): Command -> Command { value: value }.
-pub with_arguments(command: Command, value: Int): Command ->
+pub (command: Command) with_arguments(value: Int): Command ->
     Command { value: command.value + value }.
 pub value(command: Command): Int -> command.value.
 "#,

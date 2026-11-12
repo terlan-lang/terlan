@@ -370,6 +370,8 @@ fn interface_identity_type_alias(interface: &ModuleInterface, name: &str) -> Typ
 /// Transformation:
 /// - Treats bare module imports such as `import std.collections.Set.` as
 ///   binding the leaf name `Set` to `std.collections.Set`.
+/// - Keeps the provider leaf available when selected members are imported, so
+///   lowercase modules can still be called through the normative dotted form.
 /// - Treats single imported upper names such as `import std.collections.Set.`
 ///   as binding `Set` to `std.collections.Set`.
 /// - Treats selected module aliases such as `import std.text.{format as fmt}.`
@@ -394,6 +396,16 @@ fn collect_syntax_module_aliases(
             continue;
         };
 
+        if interfaces.contains_key(module_name) {
+            if let Some(leaf) = module_name
+                .rsplit('.')
+                .next()
+                .filter(|leaf| !leaf.is_empty())
+            {
+                aliases.insert(leaf.to_string(), module_name.clone());
+            }
+        }
+
         if items.is_empty() {
             if let Some(leaf) = module_name
                 .rsplit('.')
@@ -413,6 +425,7 @@ fn collect_syntax_module_aliases(
                 continue;
             }
             let full_module_name = format!("{}.{}", module_name, item.name);
+            let imports_module = interfaces.contains_key(&full_module_name);
             if interfaces
                 .get(&full_module_name)
                 .is_some_and(|interface| interface.traits.contains_key(&item.name))
@@ -421,11 +434,12 @@ fn collect_syntax_module_aliases(
             }
             if let Some(alias) = &item.as_alias {
                 aliases.insert(alias.clone(), full_module_name);
-            } else if item
-                .name
-                .chars()
-                .next()
-                .is_some_and(|ch| ch.is_ascii_uppercase())
+            } else if imports_module
+                || item
+                    .name
+                    .chars()
+                    .next()
+                    .is_some_and(|ch| ch.is_ascii_uppercase())
             {
                 aliases.insert(item.name.clone(), full_module_name);
             }

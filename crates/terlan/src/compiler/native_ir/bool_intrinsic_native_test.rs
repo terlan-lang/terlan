@@ -77,6 +77,7 @@ fn bool_to_string_lowers_composed_scalar_boolean_through_native_ir() {
 module bool_intrinsic_native.
 
 import std.core.Bool.{to_string}.
+import std.core.String.
 
 pub render_composed(): String ->
     to_string("abc".contains("b") and "abc".length() == 3).

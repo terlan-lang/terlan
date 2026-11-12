@@ -35,7 +35,7 @@ pub type Comparison = Atom[\"lt\"] | Atom[\"eq\"] | Atom[\"gt\"].\n\
     .unwrap_or_else(|err| panic!("failed to parse ordering fixture: {:?}", err));
     let option = parse_interface_module_as_syntax_output(
         "\
-module option.\n\
+module fixture.option.\n\
 pub type Option[T] = Atom[\"none\"] | {Atom[\"some\"], T}.\n\
 pub constructor None {\n\
     (): Option[T] -> Atom[\"none\"]\n\
@@ -65,7 +65,8 @@ pub compare(\n\
     let consumer = parse_module_as_syntax_output(
         "\
 module option_consumer.\n\
-import option.{None, Some}.\n\
+import fixture.option.\n\
+import fixture.option.{None, Some}.\n\
 import type ordering.Comparison.\n\
 pub compare_int(left: Int, right: Int): Comparison -> Atom[\"lt\"].\n\
 pub demo(): Bool ->\n\
