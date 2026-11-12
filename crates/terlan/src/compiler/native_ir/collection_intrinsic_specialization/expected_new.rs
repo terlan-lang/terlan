@@ -11,7 +11,7 @@ pub(super) fn specialize_cast_contents(
     variables: &HashMap<String, CoreType>,
     functions: &FunctionTypes,
     module: &str,
-) {
+) -> Option<CoreType> {
     specialize_expected_collection_new(expr, target_type, functions, module);
     while matches!(expr.as_ref(), CoreExpr::Cast { target_type: inner, .. } if inner == target_type)
     {
@@ -24,13 +24,15 @@ pub(super) fn specialize_cast_contents(
     }
     if let CoreExpr::List(items) = expr.as_mut() {
         // The enclosing annotation already owns this list's schema.
-        specialize_elements(items, variables, functions, module);
+        specialize_elements(items, variables, functions, module)
+            .map(|element| CoreType::List(Box::new(element)))
     } else if let CoreExpr::RecordConstruct { fields, .. } = expr.as_mut() {
         for field in fields {
             specialize_expr(&mut field.value, variables, functions, module);
         }
+        None
     } else {
-        specialize_expr(expr, variables, functions, module);
+        specialize_expr(expr, variables, functions, module)
     }
 }
 

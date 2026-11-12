@@ -302,6 +302,44 @@ fn push_specialization_refines_empty_values_without_retyping_initializers() {
     assert_eq!(call.args[1], CoreExpr::Int(1));
 }
 
+/// A checked bottom-list result follows the concrete type proven by mutation.
+#[test]
+fn bottom_list_cast_tracks_specialized_mutation_result() {
+    let bottom = CoreType::List(Box::new(CoreType::Never));
+    let concrete = CoreType::List(Box::new(CoreType::Int));
+    let mut expression = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::MutableReceiverCall {
+            receiver: Box::new(CoreExpr::Var("state".to_string())),
+            method: "push".to_string(),
+            args: vec![CoreExpr::Int(1)],
+            effects: CoreEffectSet {
+                effects: vec!["receiver_mutation".to_string()],
+            },
+        }),
+        target_type: bottom.clone(),
+    };
+
+    assert_eq!(
+        super::super::specialize_expr(
+            &mut expression,
+            &HashMap::from([("state".to_string(), bottom)]),
+            &HashMap::new(),
+            "fixture",
+        ),
+        Some(concrete.clone())
+    );
+    let CoreExpr::Cast { expr, target_type } = expression else {
+        panic!("expected retained checked cast");
+    };
+    assert_eq!(target_type, concrete);
+    assert!(matches!(
+        expr.as_ref(),
+        CoreExpr::Intrinsic(call)
+            if call.return_type == target_type
+                && call.id == CoreIntrinsicId::Primitive(CorePrimitiveIntrinsic::ListPush)
+    ));
+}
+
 /// Qualified and local nominal constructors contextualize their collection fields.
 #[test]
 fn struct_constructor_specializes_collection_arguments_without_widening_foreign_names() {

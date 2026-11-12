@@ -791,7 +791,21 @@ pub(super) fn specialize_expr(
             result
         }
         CoreExpr::Cast { expr, target_type } => {
-            expected_new::specialize_cast_contents(expr, target_type, variables, functions, module);
+            let inferred = expected_new::specialize_cast_contents(
+                expr,
+                target_type,
+                variables,
+                functions,
+                module,
+            );
+            if super::empty_list_values::is_bottom_list(target_type)
+                && inferred.as_ref().is_some_and(|inferred| {
+                    matches!(inferred, CoreType::List(_))
+                        && !super::empty_list_values::is_bottom_list(inferred)
+                })
+            {
+                *target_type = inferred.expect("guard requires an inferred concrete list");
+            }
             Some(target_type.clone())
         }
         CoreExpr::UnaryOp { operand, .. } => specialize_expr(operand, variables, functions, module),
