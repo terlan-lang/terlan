@@ -16,7 +16,7 @@ runs:
       id: identity
       shell: bash
       run: |
-        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli') }}"
+        key="${RUNNER_OS}-${RUNNER_ARCH}-terlan-script-runner-v2-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**/Cargo.toml', 'crates/**/*.rs', 'std/**/*.terl', 'std/**/*.terli') }}"
         echo "key=$key" >> "$GITHUB_OUTPUT"
 
     - name: Restore script runner
@@ -26,6 +26,7 @@ runs:
         path: target/script-runner
         key: ${{ steps.identity.outputs.key }}
         restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-terlan-script-runner-v2-
           ${{ runner.os }}-${{ runner.arch }}-terlan-script-runner-
 
     - name: Validate restored script runner
@@ -60,6 +61,13 @@ runs:
         cargo build --locked -p terlan --bin terlc --bin terlan-vm
         install -D -m 0755 target/debug/terlc target/script-runner/terlc
         install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
+
+    - name: Compact candidate script runner
+      shell: bash
+      run: |
+        strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm
+        test "$(wc -c < target/script-runner/terlc)" -le 157286400
+        test "$(wc -c < target/script-runner/terlan-vm)" -le 125829120
 
     - name: Save candidate script runner
       if: ${{ steps.restore.outputs.cache-hit != 'true' }}

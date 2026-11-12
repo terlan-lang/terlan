@@ -47,3 +47,15 @@ pub generated_artifact_selection_is_statically_complete(): Bool ->
     ),
     makefile,
 ).
+
+@test
+pub script_runner_cache_is_compact_and_versioned(): Bool ->
+    when {
+        Ok(action) <- read_text(".github/actions/setup-terlan-script-runner/action.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    action.contains("terlan-script-runner-v2-")
+        and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
+        and action.contains("target/script-runner/terlc)\" -le 157286400")
+        and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
