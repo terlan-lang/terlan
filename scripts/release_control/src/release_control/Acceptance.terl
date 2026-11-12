@@ -175,7 +175,15 @@ pub run(vm: String, image: String): Bool ->
     root,
     "missing",
     true,
-    "dispatch ci.yml\ndispatch release.yml compiler_run_id=17\nsleep\npublish-prepare\npublish-upload\n",
+    "dispatch ci.yml\nsleep\ndispatch release.yml compiler_run_id=17\nsleep\npublish-prepare\npublish-upload\n",
+    vm,
+    image,
+)
+            and scenario(
+    root,
+    "missing-delayed",
+    true,
+    "dispatch ci.yml\nsleep\nsleep\ndispatch release.yml compiler_run_id=17\nsleep\nsleep\npublish-prepare\npublish-upload\n",
     vm,
     image,
 )
@@ -183,7 +191,7 @@ pub run(vm: String, image: String): Bool ->
     root,
     "skipped-compiler",
     true,
-    "dispatch ci.yml\npublish-prepare\npublish-upload\n",
+    "dispatch ci.yml\nsleep\npublish-prepare\npublish-upload\n",
     vm,
     image,
 )

@@ -17,6 +17,11 @@ import std.time.Clock.
 import type std.core.Result.
 import type std.data.Json.
 
+struct DispatchState {
+    compiler: Bool,
+    release: Bool,
+}.
+
 argument(index: Int, fallback: String): String ->
     case Arguments.get(index) {
         Some(value) -> value;
@@ -117,9 +122,25 @@ announce(document: Json): Result[Unit, String] ->
     );
 Ok(Unit)).
 
-dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
+dispatch_seen(state: DispatchState, index: Int): Bool ->
     if {
-        index >= 2 -> Ok(Unit);
+        index == 0 -> state.compiler;
+        true -> state.release
+    }.
+
+mark_dispatched(state: DispatchState, index: Int): DispatchState ->
+    if {
+        index == 0 -> DispatchState(compiler = true, release = state.release);
+        true -> DispatchState(compiler = state.compiler, release = true)
+    }.
+
+dispatch_missing(
+    document: Json,
+    index: Int,
+    state: DispatchState,
+): Result[DispatchState, String] ->
+    if {
+        index >= 2 -> Ok(state);
         true -> case document.get("checks") {
             Err(_reason) -> Err("status has no workflow checks");
             Ok(checks) ->
@@ -134,9 +155,13 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
                                     _ -> false
                                 }
                             };
+                        let needed =
+                            Support.text(row, "state") == "missing"
+                                and compiler_ready
+                                and not dispatch_seen(state, index);
                         let result =
                             if {
-                                Support.text(row, "state") != "missing" or not compiler_ready -> Ok("");
+                                not needed -> Ok("");
                                 index == 0 -> Support.run(
                                     "gh",
                                     [
@@ -185,13 +210,26 @@ dispatch_missing(document: Json, index: Int): Result[Unit, String] ->
                             };
                         case result {
                             Err(reason) -> Err(reason);
-                            Ok(_output) -> dispatch_missing(document, index + 1)
+                            Ok(_output) ->
+                                dispatch_missing(
+                                    document,
+                                    index + 1,
+                                    if {
+                                        needed -> mark_dispatched(state, index);
+                                        true -> state
+                                    },
+                                )
                         }
                 }
         }
     }.
 
-wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
+wait(
+    revision: String,
+    version: String,
+    deadline: Int,
+    dispatches: DispatchState,
+): Result[Json, String] ->
     when {
         Ok(_guarded) <- guard(revision);
         Ok(document) <- observe(revision, version);
@@ -208,13 +246,13 @@ wait(revision: String, version: String, deadline: Int): Result[Json, String] ->
             if {
                 Clock.monotonic_time_ns() >= deadline -> Err("release validation wait deadline reached; rerun the same command to resume");
                 true -> when {
-                    Ok(_dispatched) <- dispatch_missing(document, 0)
+                    Ok(next_dispatches) <- dispatch_missing(document, 0, dispatches)
                 } else {
                     Err(reason) -> Err(reason)
                 };
                 case Support.run("sleep", ["30"], 35_000) {
                     Err(reason) -> Err(reason);
-                    Ok(_output) -> wait(revision, version, deadline)
+                    Ok(_output) -> wait(revision, version, deadline, next_dispatches)
                 }
             }
     }.
@@ -329,12 +367,13 @@ if {
                 Support.text(initial, "state") == "failed" -> Err(Support.text(initial, "next_action"));
                 true -> Ok(Unit)
             };
-        Ok(_dispatched) <-
-            if {
-                Support.text(initial, "state") == "published" or command == "publish-tag" -> Ok(Unit);
-                true -> dispatch_missing(initial, 0)
-            };
-        Ok(ready) <- wait(revision, version, Clock.monotonic_time_ns() + seconds * 1_000_000_000)
+        Ok(ready) <-
+            wait(
+                revision,
+                version,
+                Clock.monotonic_time_ns() + seconds * 1_000_000_000,
+                DispatchState(compiler = false, release = false),
+            )
     } else {
         Err(reason) -> Err(reason)
     };

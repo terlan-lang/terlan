@@ -149,6 +149,9 @@ workflow(): Bool ->
     if {
         mode() == "failed-missing" and arg(9) == "release.yml" -> json(Json.array());
         mode() == "missing" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
+        mode() == "missing-delayed" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
+        mode() == "missing-delayed" and File.exists(String.append("observed-", arg(9))) == false -> let _written = write(String.append("observed-", arg(9)), "1");
+        json(Json.array());
         true -> workflow_row()
     }.
 
