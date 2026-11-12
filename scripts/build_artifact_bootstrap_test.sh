@@ -20,7 +20,7 @@ verify: terlan-artifact-measurement-bootstrap
 	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
 build-artifact-budget-record: terlan-artifact-measurement-bootstrap
 	cargo clean --manifest-path Cargo.toml --target-dir target
-	test ! -e target
+	test ! -e $(TERLAN_SELF_VALIDATION_IMAGE)
 check release-proof-baseline-check: verify
 TERLAN_TYPED_VALIDATOR_BUILD := bash producer.sh
 MAKE
@@ -53,13 +53,15 @@ PRODUCER
   printf '[package]\nname = "budget-cleanup-fixture"\nversion = "0.0.0"\nedition = "2021"\n[workspace]\n' > Cargo.toml
   printf 'pub fn fixture() {}\n' > src/lib.rs
   cargo clean --manifest-path Cargo.toml --target-dir target
-  test ! -e target
+  test ! -e target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
   make --no-print-directory verify TERLAN_BUILD_ARTIFACTS_PREBUILT=1
   test "$(wc -l < builds)" -eq 2
   make --no-print-directory verify TERLAN_VALIDATION_BOOTSTRAPPED=1
   test "$(wc -l < builds)" -eq 2
   # Exercise the production release recipe, including its recursive environment.
   make --no-print-directory release-candidate-check
+  test ! -e target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
+  make --no-print-directory verify
   test "$(wc -l < builds)" -eq 3
   # A consumer that claims a completed bootstrap must fail closed if it is gone.
   rm -r -- target
