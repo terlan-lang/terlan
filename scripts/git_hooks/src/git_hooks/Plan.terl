@@ -169,6 +169,34 @@ pub preflight_lanes(paths: List[String]): List[String] ->
 pub prefixed_preflight_lanes(paths: List[String]): List[String] ->
     prefix_preflight_lanes(preflight_lanes(paths)).
 
+/**
+ * Removes source gates already owned by the parallel hosted preflight job.
+ * Candidate compiler construction and semantic/compiler tests remain local to
+ * the compiler job.
+ */
+pub hosted_preflight_lanes(paths: List[String]): List[String] ->
+    without_hosted_preflight_lanes(preflight_lanes(paths)).
+
+pub prefixed_hosted_preflight_lanes(paths: List[String]): List[String] ->
+    prefix_preflight_lanes(hosted_preflight_lanes(paths)).
+
+without_hosted_preflight_lanes(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] ->
+            if {
+                hosted_preflight_owns(value) -> without_hosted_preflight_lanes(rest);
+                true -> [value | without_hosted_preflight_lanes(rest)]
+            }
+    }.
+
+hosted_preflight_owns(value: String): Bool ->
+    value == "inventory"
+        or value == "rust-format"
+        or value == "editor-release"
+        or value == "js-bindings"
+        or value == "terlan-format".
+
 prefix_preflight_lanes(values: List[String]): List[String] ->
     case values {
         [] -> List.new[String]();
@@ -533,6 +561,23 @@ pub lanes(paths: List[String]): List[String] ->
             true -> List.new[String]()
         };
     append(["shell" | native], append(proved, contracted)).
+
+/**
+ * Removes exact generated-summary and workflow-syntax duplicates from the
+ * compiler job when the hosted source-preflight job owns them in parallel.
+ */
+pub hosted_lanes(paths: List[String]): List[String] ->
+    without_hosted_lanes(lanes(paths)).
+
+without_hosted_lanes(values: List[String]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] ->
+            if {
+                value == "summaries" or value == "workflow" -> without_hosted_lanes(rest);
+                true -> [value | without_hosted_lanes(rest)]
+            }
+    }.
 
 append(left: List[String], right: List[String]): List[String] ->
     case left {

@@ -198,6 +198,15 @@ pub workflow_changes_validate_platform_contracts_early(): Bool ->
         and Plan.release_contract([".github/workflows/publish.yml"]).
 
 @test
+pub hosted_compiler_validation_omits_parallel_source_duplicates(): Bool ->
+    Plan.hosted_preflight_lanes([".github/workflows/ci.yml"]) == ["workflow-contract"]
+        and Plan.hosted_lanes([".github/workflows/ci.yml"]) == ["shell"]
+        and Plan.hosted_preflight_lanes(["std/core/Int.terl"]) == ["negative-api", "release-manifest"]
+        and Plan.hosted_lanes(["std/core/Int.terl"]) == ["shell", "proofs", "terlan"]
+        and Plan.hosted_preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "negative-api", "rust-docs"]
+        and Plan.hosted_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "clippy", "native-ir", "phase"].
+
+@test
 pub platform_validator_changes_validate_themselves_early(): Bool ->
     Plan.preflight_lanes(
     ["scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"],

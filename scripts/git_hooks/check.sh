@@ -5,6 +5,8 @@ changes=$1
 base=$2
 hook_mode=${TERLAN_HOOK_MODE:-fast}
 case "$hook_mode" in fast|full) ;; *) echo "unsupported hook mode: $hook_mode" >&2; exit 2 ;; esac
+hosted_source_preflight=${TERLAN_HOSTED_SOURCE_PREFLIGHT:-0}
+case "$hosted_source_preflight" in 0|1) ;; *) echo "unsupported hosted source-preflight mode: $hosted_source_preflight" >&2; exit 2 ;; esac
 target_terlc="$CARGO_TARGET_DIR/debug/terlc"
 terlc="$target_terlc"
 export TERLC="$terlc"
@@ -38,8 +40,12 @@ compiler_build=true
 if [[ "$exact_compiler_inputs" == true ]]; then compiler_build=false; fi
 run_plan() {
   local compiler=$1
+  local planner_arguments=("$changes")
+  if [[ "$hosted_source_preflight" == 1 ]]; then
+    planner_arguments+=(--hosted-source-preflight)
+  fi
   : > "$raw_plan"
-  "$compiler" run scripts/git_hooks/scripts/Plan.terls -- "$changes" > "$raw_plan" \
+  "$compiler" run scripts/git_hooks/scripts/Plan.terls -- "${planner_arguments[@]}" > "$raw_plan" \
     && [[ -s "$raw_plan" ]] \
     && rg -qx 'preflight:inventory' "$raw_plan" \
     && { [[ ! -f tests/language/RepeatedLetSyntaxTest.terl ]] \

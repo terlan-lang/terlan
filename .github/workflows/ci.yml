@@ -467,6 +467,7 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           BASE_REVISION: ${{ needs.changes.outputs.validation-base }}
+          TERLAN_HOSTED_SOURCE_PREFLIGHT: "1"
         run: |
           base="$BASE_REVISION"
           if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] ||

@@ -88,11 +88,15 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
 @test
 pub compiler_validation_starts_beside_source_preflight(): Bool ->
     when {
-        Ok(workflow) <- read_text(".github/workflows/ci.yml")
+        Ok(workflow) <- read_text(".github/workflows/ci.yml");
+        Ok(hook) <- read_text("scripts/git_hooks/check.sh")
     } else {
         Err(_reason) -> false
     };
     compiler_before_platform_text_valid(workflow)
+        and workflow.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT: \"1\"")
+        and hook.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT:-0")
+        and hook.contains("planner_arguments+=(--hosted-source-preflight)")
         and not compiler_before_platform_text_valid(
     workflow
         .replace(
