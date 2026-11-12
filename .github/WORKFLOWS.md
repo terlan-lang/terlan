@@ -79,6 +79,9 @@ script runner; the compiler job is the sole owner of Rust test compilation.
 Compiled dependency caches are keyed by toolchain, target ABI, profile, and
 Cargo manifests rather than commit SHA, so source-only commits reuse the same
 dependency layer while Cargo fingerprints rebuild changed workspace code.
+Release-candidate validation runs compiler tests before the destructive clean
+artifact-budget measurement. The measurement remains authoritative, but it can
+no longer erase restored compiler inputs before the first test result appears.
 Contract-only changes run formatting, actionlint, and publication/tooling
 regressions without starting compiler tests. Product pushes and pull requests
 execute only the changed-scope lanes selected by the same Terlan plan used for

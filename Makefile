@@ -1825,15 +1825,12 @@ release-check: release-evidence-refresh
 	$(MAKE) --no-print-directory release-preflight RELEASE_VERSION="$(RELEASE_VERSION)"
 
 release-candidate-check: editor-release-contract-check
-release-candidate-check: build-artifact-budget-record
-	TERLAN_BUILD_ARTIFACTS_PREBUILT=0 \
-		$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	bash scripts/clean_build_outputs.sh --check-partials
-	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
-		$(MAKE) --no-print-directory check
+	$(MAKE) --no-print-directory check
 	bash scripts/clean_build_outputs.sh --check-partials
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 		$(MAKE) --no-print-directory release-proof-baseline-check
+	$(MAKE) --no-print-directory build-artifact-budget-record
 
 .PHONY: generated-contract-artifacts proof-release-baseline release-proof-baseline-check
 generated-contract-artifacts: syntax-contract-artifacts proof-release-baseline

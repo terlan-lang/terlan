@@ -3,6 +3,7 @@
  */
 module scripts.self_validation.SingleRootContract.
 
+import std.core.Option.{Some}.
 import std.core.Result.{Ok}.
 import std.core.String.
 import std.io.File.{read_text}.
@@ -70,7 +71,23 @@ makefile_holds(makefile: String): Bool ->
         and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-capabilities-check")
         and make_variable_contains(makefile, "CHECK_GATES", "runtime-aot-only-check")
         and make_variable_contains(makefile, "CHECK_GATES", "vm-multicore-release-contract-check")
-        and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check").
+        and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check")
+        and release_candidate_tests_before_budget(makefile).
+
+@pure
+release_candidate_tests_before_budget(makefile: String): Bool ->
+    when {
+        Some({_prefix, candidate}) <- String.split_once(makefile, "release-candidate-check:");
+        Some({_before_check, after_check}) <- String.split_once(candidate, "$(MAKE) --no-print-directory check");
+        Some({_before_budget, after_budget}) <-
+            String.split_once(
+                after_check,
+                "$(MAKE) --no-print-directory build-artifact-budget-record",
+            )
+    } else {
+        _ -> false
+    };
+    not String.contains(after_budget, "$(MAKE) --no-print-directory check").
 
 @pure
 workflow_holds(workflow: String): Bool ->
@@ -185,7 +202,7 @@ valid_makefile(): String ->
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\nrelease-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check\nrelease-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check\n",
         String.append(
             "CHECK_GATES := \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\n",
-            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check:\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
+            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check:\n\t$(MAKE) --no-print-directory check\n\t$(MAKE) --no-print-directory build-artifact-budget-record\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).
 
@@ -235,4 +252,16 @@ pub nested_scratch_checkout_escape_is_rejected(): Bool ->
     valid_makefile(),
     valid_ci_workflow(),
     String.append(valid_release_workflow(), "  - run: cd terlan\n"),
+).
+
+@test
+pub artifact_measurement_cannot_destroy_test_inputs(): Bool ->
+    not contract_holds(
+    String.replace(
+        valid_makefile(),
+        "\t$(MAKE) --no-print-directory check\n\t$(MAKE) --no-print-directory build-artifact-budget-record",
+        "\t$(MAKE) --no-print-directory build-artifact-budget-record\n\t$(MAKE) --no-print-directory check",
+    ),
+    valid_ci_workflow(),
+    valid_release_workflow(),
 ).
