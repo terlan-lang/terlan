@@ -161,7 +161,7 @@ impl DeclarationCoverage {
 }
 
 fn is_compiler_generated_callable(function: &str) -> bool {
-    function.starts_with("$aot_")
+    function.starts_with("$aot_") && !function.starts_with("$aot_generic_")
 }
 
 fn canonical_path(path: &Path) -> Result<PathBuf, String> {

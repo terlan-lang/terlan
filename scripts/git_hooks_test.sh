@@ -571,8 +571,8 @@ workspace_lane=$(sed -n '/^    workspace)/,/^      ;;/p' \
 grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
 grep -Fq 'ensure_native_test_companions' <<< "$workspace_lane"
 
-# A dependency change regenerates its checked report from the exact staged
-# snapshot and refuses admission until that generated output is staged too.
+# A Rust compilation-input change regenerates its checked report from the exact
+# staged snapshot and refuses admission until that generated output is staged.
 git init --quiet --initial-branch=main "$temporary/dependency-report"
 (
   cd "$temporary/dependency-report"
@@ -584,9 +584,17 @@ git init --quiet --initial-branch=main "$temporary/dependency-report"
 set -eu
 report=docs/quality/RUST_DEPENDENCY_IMPACT.json
 if [[ ${TERLAN_RUST_REPORT_MODE:-check} == --record-dependency-impact ]]; then
-  printf 'generated\n' > "$report"
+  if [[ -f src/lib.rs ]]; then
+    printf 'generated-rust\n' > "$report"
+  else
+    printf 'generated\n' > "$report"
+  fi
 else
-  test "$(cat "$report")" = generated
+  if [[ -f src/lib.rs ]]; then
+    test "$(cat "$report")" = generated-rust
+  else
+    test "$(cat "$report")" = generated
+  fi
 fi
 CHECK
   printf 'old-lock\n' > Cargo.lock
@@ -605,6 +613,18 @@ CHECK
     "$temporary/dependency-report-first.log"
   git add docs/quality/RUST_DEPENDENCY_IMPACT.json
   bash "$driver" check > "$temporary/dependency-report-second.log" 2>&1
+  git commit --quiet --no-verify -m Dependency
+  mkdir -p src
+  printf 'pub fn value() {}\n' > src/lib.rs
+  git add src/lib.rs
+  if bash "$driver" check > "$temporary/dependency-report-rust-first.log" 2>&1; then
+    echo 'Hook admitted a Rust source change without its generated report' >&2
+    exit 1
+  fi
+  test "$(cat docs/quality/RUST_DEPENDENCY_IMPACT.json)" = generated-rust
+  test "$(git show :docs/quality/RUST_DEPENDENCY_IMPACT.json)" = generated
+  git add docs/quality/RUST_DEPENDENCY_IMPACT.json
+  bash "$driver" check > "$temporary/dependency-report-rust-second.log" 2>&1
 )
 
 # Adjacent legacy `*Test.terl` modules without `@test` declarations are still

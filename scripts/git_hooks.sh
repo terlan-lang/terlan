@@ -110,12 +110,13 @@ while IFS= read -r -d '' path; do
 done < "$cache/changed-paths.nul"
 node scripts/git_hooks/filter_version_changes.cjs "$base" "$tree" "$raw_changes" "$changes"
 
-# Dependency metadata owns the checked dependency-impact report. Generate a
-# missing update from the exact staged snapshot, copy it into the real working
-# tree, and stop so the generated file cannot be omitted from the commit.
+# Rust compilation inputs and the report generator own the checked
+# dependency-impact report. Generate a missing update from the exact staged
+# snapshot, copy it into the real working tree, and stop so the generated file
+# cannot be omitted from the commit.
 dependency_report=docs/quality/RUST_DEPENDENCY_IMPACT.json
 dependency_report_refresh=false
-if rg -q '(^|/)Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^\.cargo/' "$changes" \
+if rg -q '\.rs$|(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
   && ! rg -Fqx -- "$dependency_report" "$changes"; then
   if ! git diff --quiet -- "$dependency_report"; then
     echo "pre-commit: $dependency_report is already modified; stage it before retrying" >&2
