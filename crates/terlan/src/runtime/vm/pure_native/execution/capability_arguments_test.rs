@@ -68,6 +68,21 @@ fn batch_text_write_has_a_fixed_typed_capability_frame() {
 }
 
 #[test]
+fn batch_byte_write_has_a_fixed_typed_capability_frame() {
+    assert_eq!(
+        crate::runtime::native_image::control::tvm_fixed_capability_frame_words(64),
+        Some(5)
+    );
+    assert_eq!(
+        capability_identity(64).unwrap(),
+        (
+            "filesystem".to_string(),
+            "std.io.file.write_bytes_many".to_string()
+        )
+    );
+}
+
+#[test]
 fn console_input_is_a_vm_owned_fixed_capability_not_an_external_worker_operation() {
     assert_eq!(
         crate::runtime::native_image::control::tvm_fixed_capability_frame_words(62),

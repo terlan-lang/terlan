@@ -14,17 +14,17 @@ use super::{
     encode_aggregate_append_pair_operation, encode_aggregate_field_operation,
     encode_aggregate_replace_field_operation, encode_aggregate_scalar_field_operation,
     encode_binary_pattern_extract_operation, encode_binary_pattern_matches_operation,
-    encode_bitstring_operation, encode_bytes_from_list_operation, encode_bytes_length_operation,
-    encode_bytes_to_list_operation, encode_list_append_operation, encode_list_empty_operation,
-    encode_list_first_operation, encode_list_from_elements_operation, encode_list_get_operation,
-    encode_list_is_empty_operation, encode_list_prepend_operation, encode_list_rest_operation,
-    encode_managed_value_equal_operation, encode_map_contains_operation,
-    encode_map_from_entries_operation, encode_map_get_operation, encode_set_add_operation,
-    encode_set_clear_operation, encode_set_contains_operation, encode_set_empty_operation,
-    encode_set_from_list_operation, encode_set_is_empty_operation, encode_set_iterator_operation,
-    encode_set_length_operation, encode_set_remove_operation, encode_string_append_operation,
-    encode_string_byte_size_operation, encode_string_compare_operation,
-    encode_string_concat_operation, encode_string_equal_operation,
+    encode_bitstring_operation, encode_bytes_from_list_operation, encode_bytes_from_utf8_operation,
+    encode_bytes_length_operation, encode_bytes_to_list_operation, encode_list_append_operation,
+    encode_list_empty_operation, encode_list_first_operation, encode_list_from_elements_operation,
+    encode_list_get_operation, encode_list_is_empty_operation, encode_list_prepend_operation,
+    encode_list_rest_operation, encode_managed_value_equal_operation,
+    encode_map_contains_operation, encode_map_from_entries_operation, encode_map_get_operation,
+    encode_set_add_operation, encode_set_clear_operation, encode_set_contains_operation,
+    encode_set_empty_operation, encode_set_from_list_operation, encode_set_is_empty_operation,
+    encode_set_iterator_operation, encode_set_length_operation, encode_set_remove_operation,
+    encode_string_append_operation, encode_string_byte_size_operation,
+    encode_string_compare_operation, encode_string_concat_operation, encode_string_equal_operation,
     encode_string_escape_html_attribute_operation, encode_string_escape_html_text_operation,
     encode_string_length_operation, encode_string_list_join_operation,
     encode_string_map_get_option_operation, encode_string_prepend_literal_operation,
@@ -441,6 +441,24 @@ fn string_length_operations_distinguish_unicode_scalars_and_utf8_bytes() {
     assert!(!managed_abi_result_is_reference(
         &encode_string_byte_size_operation()
     ));
+}
+
+#[test]
+fn bytes_from_utf8_copies_exact_runtime_string_octets() {
+    let mut heap = heap();
+    let layouts = ManagedLayoutRegistry::default();
+    let text = heap.allocate_string("Aé🔥").expect("string");
+    let encoded = execute_managed_operation(
+        &mut heap,
+        &layouts,
+        &encode_bytes_from_utf8_operation(),
+        &[word(text)],
+    )
+    .expect("UTF-8 bytes");
+    let bytes = TvmRef::<super::super::ManagedBytes>::from_encoded(
+        std::num::NonZeroUsize::new(encoded as usize).expect("byte reference"),
+    );
+    assert_eq!(heap.read_bytes(bytes), Ok("Aé🔥".as_bytes()));
 }
 
 #[test]

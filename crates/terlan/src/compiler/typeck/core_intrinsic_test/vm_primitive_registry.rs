@@ -31,6 +31,12 @@ pub(super) fn core_primitive_intrinsic_resolves_vm_library_primitives() {
     let cases = [
         (
             "std.vm.Bytes",
+            "from_utf8_native",
+            1,
+            CorePrimitiveIntrinsic::VmBytesFromUtf8,
+        ),
+        (
+            "std.vm.Bytes",
             "from_list",
             1,
             CorePrimitiveIntrinsic::VmBytesFromList,
@@ -217,6 +223,10 @@ pub(super) fn vm_library_primitive_registry_keys_are_stable() {
             "vm.native_bridge.stop",
         ),
         (
+            CorePrimitiveIntrinsic::VmBytesFromUtf8,
+            "vm.bytes.from_utf8",
+        ),
+        (
             CorePrimitiveIntrinsic::VmBytesFromList,
             "vm.bytes.from_list",
         ),
@@ -281,6 +291,10 @@ pub(super) fn vm_library_primitive_registry_keys_are_stable() {
 ///   specific target backend.
 #[test]
 pub(super) fn vm_library_primitive_return_types_are_registered() {
+    assert_eq!(
+        core_primitive_intrinsic_return_type(&CorePrimitiveIntrinsic::VmBytesFromUtf8),
+        CoreType::Named("Bytes".to_string())
+    );
     assert_eq!(
         core_primitive_intrinsic_return_type(&CorePrimitiveIntrinsic::VmBytesLength),
         CoreType::Int

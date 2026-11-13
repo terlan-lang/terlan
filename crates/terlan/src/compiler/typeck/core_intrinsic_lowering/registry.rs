@@ -169,6 +169,7 @@ pub(super) fn core_runtime_capability(
         ("std.io.File", "read_text", 1) => Some(CoreRuntimeCapability::FileReadText),
         ("std.io.File", "read_bytes", 1) => Some(CoreRuntimeCapability::FileReadBytes),
         ("std.io.File", "write_bytes", 2) => Some(CoreRuntimeCapability::FileWriteBytes),
+        ("std.io.File", "write_bytes_many", 1) => Some(CoreRuntimeCapability::FileWriteBytesMany),
         ("std.io.File", "size", 1) => Some(CoreRuntimeCapability::FileSize),
         ("std.io.File", "timestamps", 1) => Some(CoreRuntimeCapability::FileTimestamps),
         ("std.io.File", "set_timestamps", 3) => Some(CoreRuntimeCapability::FileSetTimestamps),
@@ -615,6 +616,7 @@ fn core_vm_bytes_primitive_intrinsic(
     arity: usize,
 ) -> Option<CorePrimitiveIntrinsic> {
     match (function, arity) {
+        ("from_utf8_native", 1) => Some(CorePrimitiveIntrinsic::VmBytesFromUtf8),
         ("from_list", 1) => Some(CorePrimitiveIntrinsic::VmBytesFromList),
         ("to_list", 1) => Some(CorePrimitiveIntrinsic::VmBytesToList),
         ("length", 1) => Some(CorePrimitiveIntrinsic::VmBytesLength),

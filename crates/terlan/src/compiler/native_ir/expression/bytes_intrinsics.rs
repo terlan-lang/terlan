@@ -5,10 +5,11 @@ use std::collections::HashMap;
 use crate::runtime::native_image::managed::{
     encode_bytes_concat_operation, encode_bytes_contains_operation,
     encode_bytes_first_non_ascii_whitespace_operation, encode_bytes_from_list_operation,
-    encode_bytes_length_operation, encode_bytes_read_int_be_operation,
-    encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
-    encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
-    encode_bytes_starts_with_operation, encode_bytes_to_list_operation, SemanticTypeId,
+    encode_bytes_from_utf8_operation, encode_bytes_length_operation,
+    encode_bytes_read_int_be_operation, encode_bytes_read_int_le_operation,
+    encode_bytes_read_uint_be_operation, encode_bytes_read_uint_le_operation,
+    encode_bytes_slice_operation, encode_bytes_starts_with_operation,
+    encode_bytes_to_list_operation, SemanticTypeId,
 };
 use crate::terlan_typeck::{CoreIntrinsicCall, CoreIntrinsicId, CorePrimitiveIntrinsic, CoreType};
 
@@ -67,6 +68,7 @@ pub(super) fn lower_bytes_intrinsic(
         lowered.push(value);
     }
     let encoded = match intrinsic {
+        CorePrimitiveIntrinsic::VmBytesFromUtf8 => encode_bytes_from_utf8_operation(),
         CorePrimitiveIntrinsic::VmBytesFromList => encode_bytes_from_list_operation(list_semantic),
         CorePrimitiveIntrinsic::VmBytesToList => encode_bytes_to_list_operation(list_semantic),
         CorePrimitiveIntrinsic::VmBytesLength => encode_bytes_length_operation(list_semantic),
@@ -104,7 +106,8 @@ pub(super) fn lower_bytes_intrinsic(
 pub(super) fn infer_bytes_intrinsic_type(call: &CoreIntrinsicCall) -> Option<NativeType> {
     match call.id {
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::VmBytesFromList
+            CorePrimitiveIntrinsic::VmBytesFromUtf8
+            | CorePrimitiveIntrinsic::VmBytesFromList
             | CorePrimitiveIntrinsic::VmBytesToList
             | CorePrimitiveIntrinsic::VmBytesLength
             | CorePrimitiveIntrinsic::VmBytesStartsWith

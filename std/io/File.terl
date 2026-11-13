@@ -95,6 +95,26 @@ pub text_write_plan(path: String, contents: String): TextWritePlan ->
     TextWritePlan(path, contents).
 
 /**
+ * One exact byte file requested as part of an atomic batch publication.
+ */
+pub struct BytesWritePlan {
+    path: String,
+    contents: Bytes,
+}.
+
+pub constructor BytesWritePlan {
+    (path: String, contents: Bytes): BytesWritePlan ->
+        BytesWritePlan {path: path, contents: contents}
+}.
+
+/**
+ * Constructs one typed exact-byte publication plan.
+ */
+@pure
+pub bytes_write_plan(path: String, contents: Bytes): BytesWritePlan ->
+    BytesWritePlan(path, contents).
+
+/**
  * One regular-file copy requested as part of a bounded batch.
  */
 pub struct CopyPlan {
@@ -176,6 +196,18 @@ pub read_bytes(path: String): Result[Bytes, FileError] ->
 @compiler.intrinsic
 pub write_bytes(path: String, content: Bytes): Result[Unit, FileError] ->
     Err(new(Unknown, "unknown file error", path)).
+
+/**
+ * Publishes a bounded ordered set of exact byte files atomically.
+ *
+ * Destinations must be unique and absent. Missing destination parents are
+ * created in input order. Every file and directory created by this operation
+ * is removed if a later write fails, so callers never observe a partial batch.
+ * Bytes are persisted exactly without UTF-8 validation or transcoding.
+ */
+@compiler.intrinsic
+pub write_bytes_many(plans: List[BytesWritePlan]): Result[Unit, FileError] ->
+    Err(new(Unknown, "unknown file error", "")).
 
 /**
  * Returns the logical byte length of one regular file without reading it.

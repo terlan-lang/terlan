@@ -267,6 +267,7 @@ impl PureNativeBoundary {
                     (48, 0) => managed_capability_type("Named(std.system.Process.FramedRequest)")?,
                     (54, 0) => managed_capability_type("List(Named(std.io.File.CopyPlan))")?,
                     (63, 0) => managed_capability_type("List(Named(std.io.File.TextWritePlan))")?,
+                    (64, 0) => managed_capability_type("List(Named(std.io.File.BytesWritePlan))")?,
                     (61, 1) => TvmBoundaryType::Bytes,
                     (55 | 56 | 58, 0) => {
                         managed_capability_type("List(Named(std.crypto.Hash.LabeledFile))")?

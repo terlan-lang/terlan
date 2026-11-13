@@ -4,9 +4,9 @@ import std.collections.List.
 import std.core.Result.{Err, Ok}.
 import std.core.Unit.
 import std.io.Directory.{create_all, remove_all}.
-import std.io.File.{NotFound, append_text, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, text_write_plan, timestamps, write_bytes, write_text, write_text_many}.
+import std.io.File.{NotFound, append_text, bytes_write_plan, copy, copy_many, copy_plan, delete, exists, is_executable, read_bytes, read_text, read_text_directory, read_text_many, read_text_tree_excluding, read_text_tree_matching, set_executable, set_timestamps, size, text_write_plan, timestamps, write_bytes, write_bytes_many, write_text, write_text_many}.
 import std.test.Test.{assert_equal}.
-import std.vm.Bytes.{from_list}.
+import std.vm.Bytes.{from_list, from_utf8}.
 
 import type std.core.Result.
 import type std.io.File.{CopyPlan, FileError}.
@@ -15,6 +15,11 @@ import type std.io.File.{CopyPlan, FileError}.
 pub text_write_plan_retains_both_string_fields(): Bool ->
     let plan = text_write_plan("target/report.txt", "complete");
     plan.path == "target/report.txt" and plan.contents == "complete".
+
+@test
+pub bytes_write_plan_retains_path_and_exact_contents(): Bool ->
+    let plan = bytes_write_plan("target/report.csv", from_utf8("Aé"));
+    plan.path == "target/report.csv" and plan.contents.to_list() == [65, 195, 169].
 
 copy_many_after_directory_creation(
     plans: List[CopyPlan],
@@ -275,6 +280,41 @@ pub write_text_many_rejects_duplicates_without_partial_output(): Bool ->
     let plans = List(first_plan, second_plan);
     let written = write_text_many(plans);
     case {written, read_text(path)} {
+        {Err(_reason), Err(_missing)} -> true;
+        _ -> false
+    }.
+
+@test
+pub write_bytes_many_publishes_text_and_binary_atomically(): Bool ->
+    let root = "target/terlan-file-write-bytes-many";
+    let csv = "target/terlan-file-write-bytes-many/nested/report.csv";
+    let plot = "target/terlan-file-write-bytes-many/plot.svg";
+    let _old = remove_all(root);
+    let written =
+        write_bytes_many(
+            [
+                bytes_write_plan(csv, from_utf8("symbol,price\nSPY,é\n")),
+                bytes_write_plan(plot, from_list([0, 60, 115, 118, 103, 62, 255])),
+            ],
+        );
+    let csv_contents = read_bytes(csv);
+    let plot_contents = read_bytes(plot);
+    let removed = remove_all(root);
+    case {written, csv_contents, plot_contents, removed} {
+        {Ok(Unit), Ok(csv_bytes), Ok(plot_bytes), Ok(Unit)} ->
+            csv_bytes == from_utf8("symbol,price\nSPY,é\n")
+                and plot_bytes == from_list([0, 60, 115, 118, 103, 62, 255]);
+        _ -> false
+    }.
+
+@test
+pub write_bytes_many_rejects_duplicates_without_partial_output(): Bool ->
+    let path = "target/terlan-file-write-bytes-many-duplicate.bin";
+    let written =
+        write_bytes_many(
+            [bytes_write_plan(path, from_list([1])), bytes_write_plan(path, from_list([2]))],
+        );
+    case {written, read_bytes(path)} {
         {Err(_reason), Err(_missing)} -> true;
         _ -> false
     }.

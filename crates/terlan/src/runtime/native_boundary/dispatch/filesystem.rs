@@ -15,7 +15,7 @@ mod traversal;
 pub(super) use directory_copy::{
     copy_directory_tree_excluding, create_directory_symbolic_link, dispatch_directory_error,
 };
-use text_batch::write_text_files;
+use text_batch::{write_byte_files, write_text_files};
 pub(super) use traversal::{
     expect_text_list, normalized_host_path, recursive_file_paths, text_files_recursive,
     text_files_recursive_matching,
@@ -31,6 +31,9 @@ pub(super) fn dispatch_direct_file_operation(
     }
     if operation == "std.io.file.write_text_many" {
         return write_text_files(args).map(|()| NativeBoundaryValue::Unit);
+    }
+    if operation == "std.io.file.write_bytes_many" {
+        return write_byte_files(args).map(|()| NativeBoundaryValue::Unit);
     }
     let path = expect_text(operation, args, 0)?;
     match operation {
@@ -84,6 +87,28 @@ fn plan_text_field<'a>(
             DispatchError::new(
                 "boundary.type",
                 format!("{operation} argument 0 item {index} must contain String field `{field}`"),
+                0,
+            )
+        })
+}
+
+fn plan_bytes_field<'a>(
+    operation: &str,
+    fields: &'a [(String, NativeBoundaryValue)],
+    field: &str,
+    index: usize,
+) -> Result<&'a [u8], DispatchError> {
+    fields
+        .iter()
+        .find_map(|(name, value)| (name == field).then_some(value))
+        .and_then(|value| match value {
+            NativeBoundaryValue::Bytes(bytes) => Some(bytes.as_slice()),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            DispatchError::new(
+                "boundary.type",
+                format!("{operation} argument 0 item {index} must contain Bytes field `{field}`"),
                 0,
             )
         })

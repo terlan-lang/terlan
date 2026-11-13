@@ -58,10 +58,11 @@ pub use bitstring::{encode_bitstring_operation, ManagedBitStringOperation};
 pub use bytes::{
     encode_bytes_concat_operation, encode_bytes_contains_operation,
     encode_bytes_first_non_ascii_whitespace_operation, encode_bytes_from_list_operation,
-    encode_bytes_length_operation, encode_bytes_read_int_be_operation,
-    encode_bytes_read_int_le_operation, encode_bytes_read_uint_be_operation,
-    encode_bytes_read_uint_le_operation, encode_bytes_slice_operation,
-    encode_bytes_starts_with_operation, encode_bytes_to_list_operation,
+    encode_bytes_from_utf8_operation, encode_bytes_length_operation,
+    encode_bytes_read_int_be_operation, encode_bytes_read_int_le_operation,
+    encode_bytes_read_uint_be_operation, encode_bytes_read_uint_le_operation,
+    encode_bytes_slice_operation, encode_bytes_starts_with_operation,
+    encode_bytes_to_list_operation,
 };
 pub use collections::{
     encode_iterator_next_operation, encode_list_append_operation, encode_list_clear_operation,

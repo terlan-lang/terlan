@@ -384,6 +384,10 @@ pub(super) fn capability_identity(tag: i64) -> VmRuntimeResult<(String, String)>
             "filesystem".to_string(),
             "std.io.file.write_text_many".to_string(),
         )),
+        64 => Ok((
+            "filesystem".to_string(),
+            "std.io.file.write_bytes_many".to_string(),
+        )),
         39 => Ok((
             "filesystem".to_string(),
             "std.io.directory.find_named_recursive_excluding".to_string(),

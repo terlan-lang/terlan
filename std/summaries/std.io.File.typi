@@ -10,6 +10,13 @@ import std.core.Result.{*}.
 import std.core.Unit.{*}.
 import std.vm.Bytes.{*}.
 
+/// One exact byte file requested as part of an atomic batch publication.
+
+pub struct BytesWritePlan {
+    path: String,
+    contents: std.vm.Bytes
+}.
+
 /// One regular-file copy requested as part of a bounded batch.
 
 pub struct CopyPlan {
@@ -99,6 +106,11 @@ pub type Unknown =
 /// successful append returns `Unit`.
 
 pub append_text(path: String, content: String): Result[Unit, FileError].
+
+/// Constructs one typed exact-byte publication plan.
+
+@pure
+pub bytes_write_plan(path: String, contents: std.vm.Bytes): BytesWritePlan.
 
 /// Copies one regular file to a new path while preserving host permissions.
 ///
@@ -255,6 +267,15 @@ pub timestamps(path: String): Result[FileTimestamps, FileError].
 
 pub write_bytes(path: String, content: std.vm.Bytes): Result[Unit, FileError].
 
+/// Publishes a bounded ordered set of exact byte files atomically.
+///
+/// Destinations must be unique and absent. Missing destination parents are
+/// created in input order. Every file and directory created by this operation
+/// is removed if a later write fails, so callers never observe a partial batch.
+/// Bytes are persisted exactly without UTF-8 validation or transcoding.
+
+pub write_bytes_many(plans: List[BytesWritePlan]): Result[Unit, FileError].
+
 /// Writes a UTF-8 text file.
 ///
 /// Input: a UTF-8 path string and UTF-8 text content.
@@ -272,6 +293,11 @@ pub write_text(path: String, content: String): Result[Unit, FileError].
 /// directory created by this operation is removed before the error is returned.
 
 pub write_text_many(plans: List[TextWritePlan]): Result[Unit, FileError].
+
+pub constructor BytesWritePlan {
+    (path: String, contents: std.vm.Bytes): BytesWritePlan ->
+        BytesWritePlan {path: path, contents: contents}
+}.
 
 pub constructor TextWritePlan {
     (path: String, contents: String): TextWritePlan ->

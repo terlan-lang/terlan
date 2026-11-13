@@ -228,6 +228,7 @@ pub fn dispatch(
         | "std.io.file.set_executable"
         | "std.io.file.copy"
         | "std.io.file.copy_many"
+        | "std.io.file.write_bytes_many"
         | "std.io.file.write_text_many") => dispatch_direct_file_operation(operation, args),
         "std.io.file.read_text_many" => {
             let paths = expect_text_list(operation, args, 0)?;

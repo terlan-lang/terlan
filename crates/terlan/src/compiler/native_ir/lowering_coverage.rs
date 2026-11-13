@@ -196,6 +196,9 @@ pub(super) fn intrinsic_coverage(intrinsic: &CoreIntrinsicId) -> LoweringCoverag
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteText) => {
             LoweringCoverage::native("Intrinsic.runtime.file.write_text")
         }
+        CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteBytesMany) => {
+            LoweringCoverage::native("Intrinsic.runtime.file.write_bytes_many")
+        }
         CoreIntrinsicId::Runtime(CoreRuntimeCapability::FileWriteTextMany) => {
             LoweringCoverage::native("Intrinsic.runtime.file.write_text_many")
         }
@@ -431,6 +434,7 @@ fn primitive_intrinsic_coverage(intrinsic: &CorePrimitiveIntrinsic) -> LoweringC
         P::SetAdd => LoweringCoverage::native("Intrinsic.collections.set.add"),
         P::SetRemove => LoweringCoverage::native("Intrinsic.collections.set.remove"),
         P::SetClear => LoweringCoverage::native("Intrinsic.collections.set.clear"),
+        P::VmBytesFromUtf8 => LoweringCoverage::native("Intrinsic.vm.bytes.from_utf8"),
         P::VmBytesFromList => LoweringCoverage::native("Intrinsic.vm.bytes.from_list"),
         P::VmBytesToList => LoweringCoverage::native("Intrinsic.vm.bytes.to_list"),
         P::VmBytesLength => LoweringCoverage::native("Intrinsic.vm.bytes.length"),

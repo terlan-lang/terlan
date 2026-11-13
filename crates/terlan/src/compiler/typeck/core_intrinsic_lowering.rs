@@ -793,7 +793,8 @@ pub fn core_primitive_intrinsic_return_type(intrinsic: &CorePrimitiveIntrinsic) 
             constructor: "NativeBridge".to_string(),
             args: vec![CoreType::Named("Dynamic".to_string())],
         },
-        CorePrimitiveIntrinsic::VmBytesFromList
+        CorePrimitiveIntrinsic::VmBytesFromUtf8
+        | CorePrimitiveIntrinsic::VmBytesFromList
         | CorePrimitiveIntrinsic::VmBytesConcat
         | CorePrimitiveIntrinsic::VmBytesSlice => CoreType::Named("Bytes".to_string()),
         CorePrimitiveIntrinsic::VmBytesToList => CoreType::List(Box::new(CoreType::Int)),

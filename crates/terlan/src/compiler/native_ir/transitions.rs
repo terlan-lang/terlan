@@ -302,6 +302,7 @@ fn capability_transition(
         CoreRuntimeCapability::FileReadText => (3, 1),
         CoreRuntimeCapability::FileReadBytes => (30, 1),
         CoreRuntimeCapability::FileWriteBytes => (61, 2),
+        CoreRuntimeCapability::FileWriteBytesMany => (64, 1),
         CoreRuntimeCapability::FileSize => (38, 1),
         CoreRuntimeCapability::FileTimestamps => (40, 1),
         CoreRuntimeCapability::FileSetTimestamps => (41, 3),
@@ -376,6 +377,7 @@ fn capability_collection_argument(
     use CoreRuntimeCapability::*;
     let element = match (capability, index) {
         (FileCopyMany, 0) => CoreType::Named("std.io.File.CopyPlan".into()),
+        (FileWriteBytesMany, 0) => CoreType::Named("std.io.File.BytesWritePlan".into()),
         (FileWriteTextMany, 0) => CoreType::Named("std.io.File.TextWritePlan".into()),
         (
             HashSha256LabeledFileDigests | HashSha256LabeledFileContents | HashAuditLabeledFiles,

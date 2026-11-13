@@ -69,6 +69,7 @@ pub(super) fn core_runtime_capability_return_type(capability: &CoreRuntimeCapabi
             ],
         },
         CoreRuntimeCapability::FileWriteBytes
+        | CoreRuntimeCapability::FileWriteBytesMany
         | CoreRuntimeCapability::FileWriteText
         | CoreRuntimeCapability::FileWriteTextMany
         | CoreRuntimeCapability::FileAppendText

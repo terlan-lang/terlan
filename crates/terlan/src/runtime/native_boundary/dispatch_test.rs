@@ -587,6 +587,22 @@ fn text_write_plan(path: &std::path::Path, contents: &str) -> NativeBoundaryValu
     }
 }
 
+fn bytes_write_plan(path: &std::path::Path, contents: &[u8]) -> NativeBoundaryValue {
+    NativeBoundaryValue::Record {
+        name: "BytesWritePlan".to_string(),
+        fields: vec![
+            (
+                "path".to_string(),
+                NativeBoundaryValue::Text(path.to_string_lossy().into_owned()),
+            ),
+            (
+                "contents".to_string(),
+                NativeBoundaryValue::Bytes(contents.to_vec()),
+            ),
+        ],
+    }
+}
+
 #[test]
 fn batch_text_writes_create_parents_and_preserve_exact_utf8() {
     let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_text_writes");
@@ -660,6 +676,58 @@ fn batch_text_writes_reject_lexically_aliased_destinations() {
     .expect_err("aliased destinations must be rejected before writing");
     assert_eq!(error.code(), "file.invalid_path");
     assert!(!direct.exists());
+}
+
+#[test]
+fn batch_byte_writes_preserve_octets_and_rollback_created_tree() {
+    let root = crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_byte_writes");
+    let first = root.join("created/report.csv");
+    let second = root.join("artifact.bin");
+    dispatch(
+        "std.io.file.write_bytes_many",
+        &[NativeBoundaryValue::List(vec![
+            bytes_write_plan(&first, "symbol,price\nSPY,é\n".as_bytes()),
+            bytes_write_plan(&second, &[0, 127, 128, 255]),
+        ])],
+    )
+    .expect("publish byte batch");
+    assert_eq!(
+        std::fs::read(&first).unwrap(),
+        "symbol,price\nSPY,é\n".as_bytes()
+    );
+    assert_eq!(std::fs::read(&second).unwrap(), [0, 127, 128, 255]);
+
+    let rolled_back = root.join("rollback/first.bin");
+    let blocked_parent = root.join("blocked");
+    std::fs::write(&blocked_parent, b"not a directory").expect("blocking parent");
+    let error = dispatch(
+        "std.io.file.write_bytes_many",
+        &[NativeBoundaryValue::List(vec![
+            bytes_write_plan(&rolled_back, &[1, 2, 3]),
+            bytes_write_plan(&blocked_parent.join("second.bin"), &[4, 5, 6]),
+        ])],
+    )
+    .expect_err("later byte failure must roll back the complete batch");
+    assert!(matches!(error.code(), "file.not_found" | "file.unknown"));
+    assert!(!rolled_back.exists());
+    assert!(!root.join("rollback").exists());
+}
+
+#[test]
+fn batch_byte_writes_reject_duplicate_destinations_before_writing() {
+    let root =
+        crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_byte_duplicate");
+    let path = root.join("same.bin");
+    let error = dispatch(
+        "std.io.file.write_bytes_many",
+        &[NativeBoundaryValue::List(vec![
+            bytes_write_plan(&path, &[1]),
+            bytes_write_plan(&path, &[2]),
+        ])],
+    )
+    .expect_err("duplicate byte destinations must reject the batch");
+    assert_eq!(error.code(), "file.invalid_path");
+    assert!(!path.exists());
 }
 
 #[test]

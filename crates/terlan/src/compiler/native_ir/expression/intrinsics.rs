@@ -107,7 +107,8 @@ pub(super) fn lower_intrinsic(
             )
         }
         CoreIntrinsicId::Primitive(
-            CorePrimitiveIntrinsic::VmBytesFromList
+            CorePrimitiveIntrinsic::VmBytesFromUtf8
+            | CorePrimitiveIntrinsic::VmBytesFromList
             | CorePrimitiveIntrinsic::VmBytesToList
             | CorePrimitiveIntrinsic::VmBytesLength
             | CorePrimitiveIntrinsic::VmBytesStartsWith

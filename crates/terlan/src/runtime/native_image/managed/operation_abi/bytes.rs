@@ -1,8 +1,8 @@
 //! Generated-code operations for actor-owned immutable byte sequences.
 
 use super::super::{
-    ActorHeap, ManagedBytes, ManagedFieldValue, ManagedLayoutRegistry, ManagedList,
-    ManagedMemoryError, SemanticTypeId, TvmRef,
+    managed_string_semantic_id, ActorHeap, ManagedBytes, ManagedFieldValue, ManagedLayoutRegistry,
+    ManagedList, ManagedMemoryError, ManagedString, SemanticTypeId, TvmRef,
 };
 use super::reference_word;
 
@@ -23,6 +23,7 @@ const READ_INT_LE: u8 = 9;
 const STARTS_WITH: u8 = 10;
 const CONTAINS: u8 = 11;
 const FIRST_NON_ASCII_WHITESPACE: u8 = 12;
+const FROM_UTF8: u8 = 13;
 
 pub(super) fn is_bytes_operation(encoded: &[u8]) -> bool {
     encoded.starts_with(MAGIC)
@@ -31,6 +32,11 @@ pub(super) fn is_bytes_operation(encoded: &[u8]) -> bool {
 /// Encodes conversion from the identified managed byte list into immutable bytes.
 pub fn encode_bytes_from_list_operation(list_semantic: SemanticTypeId) -> Vec<u8> {
     operation(FROM_LIST, list_semantic, true)
+}
+
+/// Encodes an exact UTF-8 string-to-bytes conversion.
+pub fn encode_bytes_from_utf8_operation() -> Vec<u8> {
+    operation(FROM_UTF8, managed_string_semantic_id(), true)
 }
 
 /// Encodes conversion from immutable bytes into the identified managed byte list.
@@ -101,6 +107,16 @@ pub(super) fn execute_bytes_operation(
 ) -> Result<u64, ManagedMemoryError> {
     let (operation, list_semantic) = decode(encoded)?;
     match operation {
+        FROM_UTF8 => {
+            let [text] = words else {
+                return Err(ManagedMemoryError::InvalidAggregateArity);
+            };
+            let bytes = heap
+                .read_string(reference_word(*text)?.cast::<ManagedString>())?
+                .as_bytes()
+                .to_vec();
+            heap.allocate_bytes(&bytes).map(TvmRef::encoded_abi_word)
+        }
         FROM_LIST => {
             let [list] = words else {
                 return Err(ManagedMemoryError::InvalidAggregateArity);

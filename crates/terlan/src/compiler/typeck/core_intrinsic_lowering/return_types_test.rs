@@ -119,6 +119,7 @@ fn runtime_capability_return_type_maps_file_read_text_many() {
 fn runtime_capability_return_type_maps_file_mutations() {
     for capability in [
         CoreRuntimeCapability::FileWriteBytes,
+        CoreRuntimeCapability::FileWriteBytesMany,
         CoreRuntimeCapability::FileWriteText,
         CoreRuntimeCapability::FileWriteTextMany,
         CoreRuntimeCapability::FileAppendText,
