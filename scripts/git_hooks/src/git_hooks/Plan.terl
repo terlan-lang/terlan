@@ -442,7 +442,8 @@ pub clippy(paths: List[String]): Bool ->
         or affected(paths, "", "clippy.toml").
 
 pub reports(paths: List[String]): Bool ->
-    clippy(paths) and has_non_native_lowering(paths)
+    dependency_inputs(paths)
+        or clippy(paths) and has_non_native_lowering(paths)
         or affected(paths, "docs/quality/", "")
         or affected(paths, "scripts/self_validation/rust_quality/", "")
         or affected(paths, "scripts/git_hooks/rust_reports.sh", "").

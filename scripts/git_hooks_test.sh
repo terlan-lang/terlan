@@ -559,6 +559,8 @@ grep -Fq 'build required native test companions once' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'TERLAN_RUST_REPORT_MODE:-check' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 terlan_lane=$(sed -n '/^if lane_has terlan;/,/^fi$/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$terlan_lane"
@@ -568,6 +570,42 @@ workspace_lane=$(sed -n '/^    workspace)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
 grep -Fq 'ensure_native_test_companions' <<< "$workspace_lane"
+
+# A dependency change regenerates its checked report from the exact staged
+# snapshot and refuses admission until that generated output is staged too.
+git init --quiet --initial-branch=main "$temporary/dependency-report"
+(
+  cd "$temporary/dependency-report"
+  git config user.name 'Dependency report test'
+  git config user.email 'dependency-report@example.invalid'
+  mkdir -p scripts/git_hooks docs/quality
+  cp "$version_filter" scripts/git_hooks/
+  cat > scripts/git_hooks/check.sh <<'CHECK'
+set -eu
+report=docs/quality/RUST_DEPENDENCY_IMPACT.json
+if [[ ${TERLAN_RUST_REPORT_MODE:-check} == --record-dependency-impact ]]; then
+  printf 'generated\n' > "$report"
+else
+  test "$(cat "$report")" = generated
+fi
+CHECK
+  printf 'old-lock\n' > Cargo.lock
+  printf 'old-report\n' > docs/quality/RUST_DEPENDENCY_IMPACT.json
+  git add .
+  git commit --quiet -m Initial
+  printf 'new-lock\n' > Cargo.lock
+  git add Cargo.lock
+  if bash "$driver" check > "$temporary/dependency-report-first.log" 2>&1; then
+    echo 'Hook admitted a dependency change without its generated report' >&2
+    exit 1
+  fi
+  test "$(cat docs/quality/RUST_DEPENDENCY_IMPACT.json)" = generated
+  test "$(git show :docs/quality/RUST_DEPENDENCY_IMPACT.json)" = old-report
+  grep -Fq 'regenerated docs/quality/RUST_DEPENDENCY_IMPACT.json; stage it and retry' \
+    "$temporary/dependency-report-first.log"
+  git add docs/quality/RUST_DEPENDENCY_IMPACT.json
+  bash "$driver" check > "$temporary/dependency-report-second.log" 2>&1
+)
 
 # Adjacent legacy `*Test.terl` modules without `@test` declarations are still
 # compiled with their package, but must not be sent to an empty test runner.
@@ -998,4 +1036,4 @@ if PATH="$temporary/exact-cargo/bin:$PATH" \
   echo 'Exact Cargo runner ignored Cargo failure' >&2; exit 1
 fi
 
-echo 'Git hook regression tests passed (28 scenarios).'
+echo 'Git hook regression tests passed (29 scenarios).'

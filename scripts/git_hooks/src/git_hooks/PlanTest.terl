@@ -111,8 +111,8 @@ pub runtime_changes_use_workspace_fallback(): Bool ->
 
 @test
 pub dependency_changes_compile_without_unrelated_suites(): Bool ->
-    Plan.lanes(["Cargo.lock"]) == ["shell", "dependencies"]
-        and Plan.lanes(["Cargo.toml"]) == ["shell", "dependencies"]
+    Plan.lanes(["Cargo.lock"]) == ["shell", "rust-reports", "dependencies"]
+        and Plan.lanes(["Cargo.toml"]) == ["shell", "rust-reports", "dependencies"]
         and not Plan.native_bindings(["Cargo.lock", "Cargo.toml"]).
 
 @test
@@ -373,7 +373,7 @@ pub bootstrap_changes_already_cover_orchestrator_regressions(): Bool ->
 
 @test
 pub workspace_tests_already_cover_bootstrap(): Bool ->
-    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "bootstrap", "dependencies", "release-contract"].
+    Plan.lanes(["mk/hermetic-support.mk", "Cargo.lock"]) == ["shell", "bootstrap", "rust-reports", "dependencies", "release-contract"].
 
 @test
 pub mixed_rust_changes_run_clippy_once(): Bool ->

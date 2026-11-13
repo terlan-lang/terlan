@@ -110,6 +110,20 @@ while IFS= read -r -d '' path; do
 done < "$cache/changed-paths.nul"
 node scripts/git_hooks/filter_version_changes.cjs "$base" "$tree" "$raw_changes" "$changes"
 
+# Dependency metadata owns the checked dependency-impact report. Generate a
+# missing update from the exact staged snapshot, copy it into the real working
+# tree, and stop so the generated file cannot be omitted from the commit.
+dependency_report=docs/quality/RUST_DEPENDENCY_IMPACT.json
+dependency_report_refresh=false
+if rg -q '(^|/)Cargo\.(toml|lock)$|^rust-toolchain\.toml$|^\.cargo/' "$changes" \
+  && ! rg -Fqx -- "$dependency_report" "$changes"; then
+  if ! git diff --quiet -- "$dependency_report"; then
+    echo "pre-commit: $dependency_report is already modified; stage it before retrying" >&2
+    exit 1
+  fi
+  dependency_report_refresh=true
+fi
+
 snapshot="$cache/source"
 echo "pre-commit: validating staged tree $tree in $snapshot"
 (
@@ -154,6 +168,11 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   else
     unset TERLAN_HOOK_SHARED_TARGET
   fi
+  if [[ "$dependency_report_refresh" == true ]]; then
+    export TERLAN_RUST_REPORT_MODE=--record-dependency-impact
+  else
+    unset TERLAN_RUST_REPORT_MODE
+  fi
   # Unrelated global Git checkouts must not enter the staged resolver inventory.
   if [[ -z "${CARGO_HOME:-}" ]]; then
     test ! -L "$cache/cargo-home"
@@ -171,7 +190,18 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   else
     bash scripts/git_hooks/check.sh "$changes" "$base"
   fi
-  # Validation must never silently repair the source it is approving.
+  if [[ "$dependency_report_refresh" == true ]] \
+    && ! git diff --quiet -- "$dependency_report"; then
+    test "$(git diff --name-only)" = "$dependency_report"
+    test -f "$dependency_report"
+    test -f "$root/$dependency_report"
+    test ! -L "$dependency_report"
+    test ! -L "$root/$dependency_report"
+    cp -- "$dependency_report" "$root/$dependency_report"
+    echo "pre-commit: regenerated $dependency_report; stage it and retry" >&2
+    exit 1
+  fi
+  # Every other validation path remains read-only.
   git diff --exit-code
   test "$(git write-tree)" = "$tree"
 )

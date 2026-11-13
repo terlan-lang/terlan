@@ -435,7 +435,7 @@ run_rust_reports_lane() {
   TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
   TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
   TERLAN_RUST_REPORT_CACHE_DIR="$CARGO_TARGET_DIR/validation-results/rust-reports" \
-    bash scripts/git_hooks/rust_reports.sh
+    bash scripts/git_hooks/rust_reports.sh "${TERLAN_RUST_REPORT_MODE:-check}"
 }
 run_summaries_lane() {
   TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
