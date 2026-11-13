@@ -505,6 +505,10 @@ fi
 # Terlan compilation. Directly affected compiler and source ownership follows.
 if lane_has terlan; then
   echo 'pre-commit: early terlan ownership and coverage'
+  # Terlan tests may cross a capability boundary even when no Rust test lane
+  # is selected.  Provision the worker at the test boundary so a clean CI
+  # checkout behaves exactly like a developer checkout with cached binaries.
+  ensure_native_test_companions
   TERLAN_HOOK_TERLAN_CACHE_DIR="$CARGO_TARGET_DIR/terlan-cache" \
     bash scripts/git_hooks/terlan.sh \
     "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan" \

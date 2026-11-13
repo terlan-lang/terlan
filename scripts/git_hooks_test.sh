@@ -559,6 +559,9 @@ grep -Fq 'build required native test companions once' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
   "$(dirname "$driver")/git_hooks/check.sh"
+terlan_lane=$(sed -n '/^if lane_has terlan;/,/^fi$/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'ensure_native_test_companions' <<< "$terlan_lane"
 commands_lane=$(sed -n '/^    commands)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 workspace_lane=$(sed -n '/^    workspace)/,/^      ;;/p' \
