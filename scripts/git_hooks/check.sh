@@ -137,6 +137,12 @@ rg -v '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
 preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
 
+if preflight_has proof-baseline-missing; then
+  echo 'pre-commit: proof evidence changed without refreshed release baseline' >&2
+  echo 'run make proof-release-baseline and stage proofs/lean/release_evidence/baseline.json' >&2
+  exit 1
+fi
+
 if [[ "$hook_mode" == fast ]]; then
   admission_started=$SECONDS
   admission_status=0
@@ -442,6 +448,28 @@ run_summaries_lane() {
     bash scripts/git_hooks/stdlib_summaries.sh
 }
 
+vm_contract_modules=(
+  BitString Bytes Cluster DistributedState DistributedStorage Fault ModelSync
+  PersistentActor Process Scheduler Task Timeout
+)
+run_vm_contracts_lane() {
+  local module elapsed started=$SECONDS
+  local command=(test) coverage=()
+  ensure_native_test_companions
+  for module in "${vm_contract_modules[@]}"; do
+    command+=("std/vm/${module}Test.terl")
+    coverage+=(--coverage-source "std/vm/${module}.terl")
+  done
+  echo 'pre-commit: early VM source contracts'
+  "$terlc" --cache-dir "$CARGO_TARGET_DIR/terlan-cache/vm-contracts" \
+    "${command[@]}" --coverage "${coverage[@]}" --coverage-threshold 100
+  elapsed=$((SECONDS - started))
+  echo "pre-commit: VM source contracts finished in ${elapsed}s"
+  if (( elapsed > 60 )); then
+    echo 'pre-commit: red flag: VM source contracts exceeded 60s' >&2
+  fi
+}
+
 run_affected_rust_lane() {
   local lane=$1 filter
   case "$lane" in
@@ -469,6 +497,10 @@ run_affected_rust_lane() {
     native-ir)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
       ;;
+    runtime)
+      ensure_native_test_companions
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib runtime::
+      ;;
     syntax|compiler)
       filter=compiler::
       if [[ "$lane" == syntax ]]; then filter=compiler::syntax::; fi
@@ -491,6 +523,20 @@ run_affected_rust_lane() {
 if lane_has rust-reports; then
   echo 'pre-commit: early Rust report drift'
   run_rust_reports_lane
+fi
+
+# Native representation changes are cross-cutting: validate all bounded VM
+# source contracts before broad Cargo lanes, then mark them as consumed so
+# directly changed stdlib modules are not executed again by terlan.sh.
+if lane_has vm-contracts; then
+  run_vm_contracts_lane
+  for module in "${vm_contract_modules[@]}"; do
+    printf 'std/vm/%s.terl\nstd/vm/%sTest.terl\n' "$module" "$module" \
+      >> "$prechecked_terlan"
+  done
+  remaining_plan="${plan%.plan}.without-vm-contracts.plan"
+  rg -vx 'vm-contracts' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
 fi
 
 typed_css_checked=false
@@ -684,7 +730,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|syntax|compiler|workspace|dependencies|test-orchestrator)
+    phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

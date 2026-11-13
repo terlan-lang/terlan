@@ -414,6 +414,138 @@ pub constructor Parsed { (total: Int): Parsed -> Parsed {total: total} }.
 }
 
 #[test]
+fn nested_result_binding_preserves_its_outer_error_identity() {
+    check_sources(&[
+        r#"
+module nested_result_binding.
+import nested_result_binding.Change.{Change}.
+import nested_result_binding.Item.{Item}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import type nested_result_binding.Change.{Change, ChangeFailure}.
+import type nested_result_binding.Item.{Item, ItemFailure}.
+import type std.core.Option.{Option}.
+import type std.core.Result.{Result}.
+pub struct Book { items: List[Item], total: Int }.
+pub type BookFailure: Int = ITEM_REJECTED = 3
+    | CHANGE_REJECTED = 4
+    | BOOK_REJECTED = 5.
+find_item(items: List[Item]): Option[Item] -> case items {
+    [] -> None;
+    [item | remaining] -> if {
+        item.value() == 42 -> Some(item);
+        true -> find_item(remaining)
+    }
+}.
+items_valid(items: List[Item]): Bool -> case items {
+    [] -> true;
+    [item | remaining] -> item.value() > 0 and items_valid(remaining)
+}.
+replace_item(items: List[Item], replacement: Option[Item]): List[Item] ->
+    case items {
+        [] -> case replacement {None -> []; Some(item) -> [item]};
+        [_item | remaining] -> case replacement {
+            None -> remaining;
+            Some(item) -> [item | remaining]
+        }
+    }.
+snapshot(items: List[Item], total: Int): Result[Book, BookFailure] -> if {
+    items_valid(items) -> Ok(Book {items: items, total: total});
+    true -> Err(BookFailure.BOOK_REJECTED)
+}.
+(book: Book) first(): Option[Item] -> book.items.first().
+pub (book: Book) total_value(): Int -> book.total.
+book_valid(book: Book): Bool -> items_valid(book.items).
+apply(
+    book: Book,
+    adjustment: Int,
+    request: Item,
+    payload: Item,
+): Result[Book, BookFailure] ->
+    if {
+        not book_valid(book) -> Err(BookFailure.BOOK_REJECTED);
+        true -> let existing = find_item(book.items);
+            let change = case existing {
+                None -> case Item(42) {
+                    Err(_reason) -> Err(BookFailure.ITEM_REJECTED);
+                    Ok(created) -> case Change(Some(created), 0) {
+                        Err(_reason) -> Err(BookFailure.CHANGE_REJECTED);
+                        Ok(projected) -> Ok(projected)
+                    }
+                };
+                Some(item) -> case Change(Some(item), 0) {
+                    Err(_reason) -> Err(BookFailure.CHANGE_REJECTED);
+                    Ok(projected) -> Ok(projected)
+                }
+            };
+            case change {
+                Err(reason) -> Err(reason);
+                Ok(projected) ->
+                    let remaining = projected.remaining();
+                    let realized = projected.total_value();
+                    snapshot(
+                        replace_item(book.items, remaining),
+                        book.total
+                            + request.value()
+                            + payload.value()
+                            + realized
+                            + adjustment,
+                    )
+            }
+    }.
+pub check(): Bool -> when {
+    Ok(anchor) <- Item(42);
+    Ok(book) <- apply(Book {items: [], total: 0}, 0, anchor, anchor);
+    Some(item) <- book.first()
+} else {
+    _ -> false
+};
+book.total_value() == 84 and item.value() == 42.
+"#,
+        r#"
+module nested_result_binding.Item.
+import std.core.Result.{Ok}.
+import type std.core.Result.{Result}.
+pub type ItemFailure: Int = INVALID_ITEM = 1.
+pub struct Item { value: Int }.
+pub constructor Item {
+    (value: Int): Result[Item, ItemFailure] -> Ok(Item {value: value})
+}.
+pub (item: Item) value(): Int -> item.value.
+"#,
+        r#"
+module nested_result_binding.Change.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import type nested_result_binding.Item.{Item}.
+import type std.core.Option.{Option}.
+import type std.core.Result.{Result}.
+pub type ChangeFailure: Int = INVALID_CHANGE = 2.
+pub struct Change { remaining_item: Option[Item], realized_value: Int }.
+pub constructor Change {
+    (remaining_item: Option[Item], realized_value: Int): Result[Change, ChangeFailure] ->
+        case remaining_item {
+            None -> Ok(Change {
+                remaining_item: None,
+                realized_value: realized_value,
+            });
+            Some(item) -> Ok(Change {
+                remaining_item: Some(item),
+                realized_value: realized_value,
+            })
+        }
+}.
+pub (change: Change) remaining(): Option[Item] -> change.remaining_item.
+pub (change: Change) total_value(): Int -> change.realized_value.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+        include_str!("../../../../../std/core/Result.terl"),
+        include_str!("../../../../../std/collections/List.terl"),
+    ]);
+}
+
+#[test]
 fn mapped_result_identity_survives_consecutive_refutable_let_bindings() {
     check_sources(&[
         r#"
@@ -437,7 +569,8 @@ run(): Result[Int, Failure] ->
         _ -> Err(Failure.PATTERN)
     };
     Ok(output).
-pub check(): Bool -> run() == Ok(7).
+pub check(): Bool ->
+    run() == Ok(7).
 "#,
         r#"
 module mapped_result_identity.ConfigViolation.

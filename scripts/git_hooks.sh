@@ -116,7 +116,12 @@ node scripts/git_hooks/filter_version_changes.cjs "$base" "$tree" "$raw_changes"
 # cannot be omitted from the commit.
 dependency_report=docs/quality/RUST_DEPENDENCY_IMPACT.json
 dependency_report_refresh=false
-if rg -q '\.rs$|(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
+rust_report_input=false
+if rg -q '(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
+  || awk '/\.rs$/ && $0 !~ /\.native_boundary\.rs$/ { found = 1 } END { exit found ? 0 : 1 }' "$changes"; then
+  rust_report_input=true
+fi
+if [[ "$rust_report_input" == true ]] \
   && ! rg -Fqx -- "$dependency_report" "$changes"; then
   if ! git diff --quiet -- "$dependency_report"; then
     echo "pre-commit: $dependency_report is already modified; stage it before retrying" >&2
@@ -128,6 +133,10 @@ fi
 snapshot="$cache/source"
 echo "pre-commit: validating staged tree $tree in $snapshot"
 (
+  # The parent hook retains both advisory locks while waiting for this child.
+  # Do not let long-lived validators or interrupted test fixtures inherit and
+  # accidentally retain either lease after the hook itself has exited.
+  exec 7>&- 8>&-
   # Git sets these for hooks (including a temporary index for `commit --only`).
   # Child Git commands must belong to the validation clone, not the user's index.
   while IFS= read -r variable; do unset "$variable"; done < <(git rev-parse --local-env-vars)

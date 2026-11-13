@@ -877,12 +877,12 @@ fn infer_core_type(
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();
             for binding in bindings {
-                let CorePattern::Var(name) = &binding.pattern else {
-                    return None;
-                };
-                let ty =
-                    infer_core_type(&binding.value, &locals, functions, targets, types, module)?;
-                locals.insert(name.clone(), ty);
+                if let (CorePattern::Var(name), Some(ty)) = (
+                    &binding.pattern,
+                    infer_core_type(&binding.value, &locals, functions, targets, types, module),
+                ) {
+                    locals.insert(name.clone(), ty);
+                }
             }
             infer_core_type(body, &locals, functions, targets, types, module)
         }

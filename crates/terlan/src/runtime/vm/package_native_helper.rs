@@ -9,13 +9,18 @@ mod package_native_helper_test;
 mod capability;
 #[path = "package_native_helper/cluster.rs"]
 mod cluster;
+mod descriptor;
 #[path = "package_native_helper/direct_std.rs"]
 mod direct_std;
 #[path = "package_native_helper/distributed_state.rs"]
 mod distributed_state;
 mod distributed_storage;
 mod execution;
+#[path = "package_native_helper/model_sync.rs"]
+mod model_sync;
 mod owned_native_dispatch;
+#[path = "package_native_helper/persistent_actor.rs"]
+mod persistent_actor;
 mod postgres;
 mod postgres_dispatch;
 mod postgres_transport;
@@ -85,6 +90,8 @@ pub(crate) struct VmPackageNativeHelpers {
     direct_std_resources: ResourceStore,
     cluster: cluster::VmClusterRuntime,
     distributed_state: distributed_state::VmDistributedStateRuntime,
+    model_sync: model_sync::VmModelSyncRuntime,
+    persistent_actor: persistent_actor::VmPersistentActorRuntime,
     scheduling: scheduling::VmSchedulingRuntime,
     distributed_storage: distributed_storage::VmDistributedStorageRuntime,
     storage_workers: storage_transport::VmStorageWorkers,
@@ -169,6 +176,12 @@ impl VmPackageNativeHelpers {
         }
         if request.operation.starts_with("std.vm.distributed_state.") {
             return self.distributed_state.call(owner_process_id, request);
+        }
+        if request.operation.starts_with("std.vm.model_sync.") {
+            return self.model_sync.call(owner_process_id, request);
+        }
+        if request.operation.starts_with("std.vm.persistent_actor.") {
+            return self.persistent_actor.call(owner_process_id, request);
         }
         if request.operation.starts_with("std.vm.cluster.") {
             return self
@@ -260,6 +273,8 @@ impl VmPackageNativeHelpers {
         self.direct_std_resources.dispose_owner(owner_process_id);
         self.cluster.close_owner(owner_process_id);
         self.distributed_state.close_owner(owner_process_id);
+        self.model_sync.close_owner(owner_process_id);
+        self.persistent_actor.close_owner(owner_process_id);
         self.scheduling.close_owner(owner_process_id);
         self.distributed_storage.close_owner(owner_process_id);
     }

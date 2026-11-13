@@ -309,7 +309,30 @@ fn allocate_aggregate(
     }
     heap.allocate_aggregate_ref(descriptor, &values)
         .map(TvmRef::erase)
-        .map_err(|error| format!("error[execution_shard.managed_allocate]: {error}"))
+        .map_err(|error| {
+            let references = descriptor
+                .fields()
+                .iter()
+                .zip(&values)
+                .filter_map(|(field, value)| {
+                    let (ManagedFieldType::Reference(expected), ManagedFieldValue::Reference(actual)) =
+                        (field.field_type(), value)
+                    else {
+                        return None;
+                    };
+                    let actual = heap
+                        .descriptor(*actual)
+                        .map(|descriptor| descriptor.semantic_id().bytes())
+                        .ok();
+                    Some((field.name(), expected.bytes(), actual))
+                })
+                .collect::<Vec<_>>();
+            format!(
+                "error[execution_shard.managed_allocate]: {error}; aggregate={}; variant={:?}; references={references:?}",
+                descriptor.canonical_type(),
+                descriptor.variant_name(),
+            )
+        })
 }
 
 /// Converts one public field according to its exact physical field category.

@@ -21,7 +21,7 @@
     "crates/terlan/src/runtime/native_boundary/worker.rs": "sha256:861eb2c6f71d7eb8eb36cfb3132469e1aad2d4b7600e7cd8f7f903f07e65245d",
     "proofs/lean/native_boundary/promotion-policy.json": "sha256:475f6bbafe0c5749b919cfb196b6d0ba05026429cf58374adb67c5aacdfb45f8",
     "scripts/self_validation/LeanProofNativeBoundaryTest.terl": "sha256:d2207415124d8b40e7ecd137e833b5b7d02de9e0892382f1e577f10685645fda",
-    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:be34d7216e4e6edd5a3944b4de2b975f048ae23f7e776234b7313a31fea2fdef",
+    "std/NATIVE_BOUNDARY_SECURITY.tsv": "sha256:fb4e5047613ec0844e4b23de4f800c6417c6dc2a259de5e70b4c62c55632ae1b",
     "std/http/Request.terl": "sha256:a08dc4456d4b55456a14ef931436d560a1291406ab9a8d59d269bade17316c00",
     "std/http/Response.terl": "sha256:f4f0a6b55ce44e608b79b3c93de03c0a51e97c20d998fac6916344019e8db1a0",
     "std/http/WebSocket.terl": "sha256:094d8d1848d2855f255b6c2674ced4c9f3c4c4bdac2a3181b7abf397746a7053",
@@ -45,6 +45,8 @@
     "std/summaries/std.system.Arguments.native_boundary.json": "sha256:daad841493325e5338f909dd67dcc35b9e069f71e82b04ba8a0e3be2baa8b09c",
     "std/summaries/std.system.Environment.native_boundary.json": "sha256:5b571bd57dd72cace3924ea121fe4503029cfce8f18b04fa5f14fb8aa441abed",
     "std/summaries/std.system.Platform.native_boundary.json": "sha256:7f89b4490e2199caf68cee17bc41f6c518317b18fd04fa9279cc76f722ed4c96",
+    "std/summaries/std.vm.ModelSync.native_boundary.json": "sha256:aca941caf10627ecf140cbd8f71a2959eb9ea8e6830bccd071b7c3d329eaa063",
+    "std/summaries/std.vm.PersistentActor.native_boundary.json": "sha256:a0ef06f06003d90dfdca373b502918c6b1cfb6808c1dce3abd068d682c08c57a",
     "std/summaries/terlan_libpq.Driver.native_boundary.json": "sha256:dfac5564c98683a9e3e4d1d7f8c4930d1760530358b00391217e92e59e7edcc7"
   },
   "output_signature": {

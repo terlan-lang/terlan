@@ -16,11 +16,8 @@ use super::{
     emit_expr, emit_suspending_body, NativeFunctionCatalog, NativeTailFrame, NativeTransitionFrame,
 };
 
-/// Context plus the allocator, closure resolver, and dispatch lookup services.
 pub(super) const RUNTIME_ARGUMENT_COUNT: usize = 5;
-/// Scalar recursive edges admitted before the actor cooperatively yields.
 pub(super) const SCALAR_REDUCTIONS_PER_NATIVE_SLICE: i64 = 4_000;
-
 /// Body, ABI, and tail-loop identity of one function definition.
 pub(super) struct NativeFunctionDefinition<'a> {
     pub(super) id: FuncId,
@@ -492,6 +489,9 @@ fn emit_pure_tail_body(
         }
         NativeExpr::If { clauses } => {
             for (condition, body) in clauses {
+                if matches!(condition, NativeExpr::Bool(true)) {
+                    return emit_pure_tail_body(builder, module, body, params, catalog, tail);
+                }
                 let condition = emit_expr(
                     builder,
                     module,
@@ -827,7 +827,7 @@ fn emit_pure_component_dispatch(
     }
     let status = builder
         .ins()
-        .iconst(types::I32, i64::from(status::NO_MATCHING_BRANCH));
+        .iconst(types::I32, i64::from(status::PURE_TAIL_COMPONENT));
     builder.ins().jump(error_block, &[BlockArg::Value(status)]);
     Ok(())
 }
@@ -913,7 +913,7 @@ fn emit_suspending_component_dispatch(
     }
     let status = builder
         .ins()
-        .iconst(types::I32, i64::from(status::NO_MATCHING_BRANCH));
+        .iconst(types::I32, i64::from(status::SUSPENDING_TAIL_COMPONENT));
     builder.ins().jump(error_block, &[BlockArg::Value(status)]);
     Ok(())
 }

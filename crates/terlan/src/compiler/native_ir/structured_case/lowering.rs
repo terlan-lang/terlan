@@ -149,12 +149,33 @@ pub(super) fn lower_containing_case(
                 }
                 let structured = contains_case(&binding.value);
                 let ty = if structured {
-                    structured_result_type(
+                    core_expr_type_with_constructors(
                         &binding.value,
-                        &local_types,
                         &local_core_types,
-                        environment,
-                    )?
+                        function_core_types,
+                        constructors,
+                    )
+                    .and_then(|ty| {
+                        crate::compiler::native_ir::native_type_with_constructors(
+                            Some(&ty),
+                            &ty.contract_text(),
+                            constructors,
+                        )
+                    })
+                    .or_else(|| {
+                        structured_result_type(
+                            &binding.value,
+                            &local_types,
+                            &local_core_types,
+                            environment,
+                        )
+                        .ok()
+                    })
+                    .ok_or_else(|| {
+                        format!(
+                            "error[native_ir.structured_case_let_type]: cannot infer binding `{name}`"
+                        )
+                    })?
                 } else {
                     infer_native_type_with_constructors(
                         &binding.value,
@@ -206,6 +227,13 @@ pub(super) fn lower_containing_case(
                 local_types.insert(name.clone(), ty);
                 if let Some(core_type) =
                     core_expr_type(&binding.value, &local_core_types, function_core_types)
+                    .or_else(|| {
+                        crate::compiler::native_ir::constructors::result_core_type_for_native(
+                            ty,
+                            constructors,
+                        )
+                    })
+                    .map(|core_type| super::canonical_control_type(core_type, constructors))
                 {
                     local_core_types.insert(name.clone(), core_type);
                 }
@@ -284,7 +312,8 @@ fn lower_case(
         core_types,
         function_core_types,
         constructors,
-    );
+    )
+    .map(|core_type| super::canonical_control_type(core_type, constructors));
     let managed_result_core = result_core.as_ref().filter(|result| {
         matches!(
             crate::compiler::native_ir::native_type_with_constructors(
@@ -348,27 +377,32 @@ fn lower_case(
             );
         }
     }
-    let scrutinee_type =
-        infer_native_type_with_constructors(scrutinee, param_types, function_types, constructors)
-            .or_else(|| {
-                core_expr_type_with_constructors(
-                    scrutinee,
-                    core_types,
-                    function_core_types,
-                    constructors,
-                )
-                .and_then(|ty| {
-                    crate::compiler::native_ir::native_type(Some(&ty), &ty.contract_text())
-                })
-            })
-            .ok_or_else(|| {
-                format!(
-                    "error[native_ir.structured_case_type]: unknown scrutinee type for `{}`",
-                    scrutinee.contract_text()
-                )
-            })?;
     let scrutinee_core =
-        core_expr_type_with_constructors(scrutinee, core_types, function_core_types, constructors);
+        core_expr_type_with_constructors(scrutinee, core_types, function_core_types, constructors)
+            .map(|ty| super::canonical_control_type(ty, constructors));
+    let checked_scrutinee_type = || {
+        scrutinee_core.as_ref().and_then(|ty| {
+            crate::compiler::native_ir::native_type_with_constructors(
+                Some(ty),
+                &ty.contract_text(),
+                constructors,
+            )
+        })
+    };
+    let inferred_scrutinee_type = || {
+        infer_native_type_with_constructors(scrutinee, param_types, function_types, constructors)
+    };
+    let scrutinee_type = if contains_case(scrutinee) {
+        checked_scrutinee_type().or_else(inferred_scrutinee_type)
+    } else {
+        inferred_scrutinee_type().or_else(checked_scrutinee_type)
+    }
+    .ok_or_else(|| {
+        format!(
+            "error[native_ir.structured_case_type]: unknown scrutinee type for `{}`",
+            scrutinee.contract_text()
+        )
+    })?;
     let scrutinee = if contains_case(scrutinee) {
         lower_containing_case(scrutinee, params, param_types, core_types, environment)?
     } else {
@@ -678,10 +712,10 @@ pub(in crate::compiler::native_ir) fn lower_lexical_expr_as(
                 .map(|clause| crate::terlan_typeck::CoreCaseClause {
                     pattern: clause.pattern.clone(),
                     guard: clause.guard.clone(),
-                    body: CoreExpr::Cast {
-                        expr: Box::new(clause.body.clone()),
-                        target_type: expected.clone(),
-                    },
+                    body: super::super::case_lowering::contextualize_control_result(
+                        clause.body.clone(),
+                        expected,
+                    ),
                 })
                 .collect(),
         };

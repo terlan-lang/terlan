@@ -33,3 +33,5 @@ pub(crate) const INVALID_SHIFT_COUNT: i32 = 29;
 pub(crate) const UNLINK: i32 = 30;
 pub(crate) const DEMONITOR: i32 = 31;
 pub(crate) const RESOURCE_RELEASE: i32 = 32;
+pub(crate) const PURE_TAIL_COMPONENT: i32 = 33;
+pub(crate) const SUSPENDING_TAIL_COMPONENT: i32 = 34;

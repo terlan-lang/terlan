@@ -1,0 +1,128 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "actor_id",
+      "operation": "std.vm.persistent_actor.actor_id"
+    },
+    {
+      "arity": 2,
+      "name": "schema_id",
+      "operation": "std.vm.persistent_actor.schema_id"
+    },
+    {
+      "arity": 4,
+      "name": "schema",
+      "operation": "std.vm.persistent_actor.schema"
+    },
+    {
+      "arity": 5,
+      "name": "event_variant_schema",
+      "operation": "std.vm.persistent_actor.event_variant_schema"
+    },
+    {
+      "arity": 5,
+      "name": "durable_adapter_schema",
+      "operation": "std.vm.persistent_actor.durable_adapter_schema"
+    },
+    {
+      "arity": 3,
+      "name": "persistent_actor",
+      "operation": "std.vm.persistent_actor.persistent_actor"
+    },
+    {
+      "arity": 3,
+      "name": "retention_policy",
+      "operation": "std.vm.persistent_actor.retention_policy"
+    },
+    {
+      "arity": 3,
+      "name": "family_retention_defaults",
+      "operation": "std.vm.persistent_actor.family_retention_defaults"
+    },
+    {
+      "arity": 3,
+      "name": "audit_retention",
+      "operation": "std.vm.persistent_actor.audit_retention"
+    },
+    {
+      "arity": 3,
+      "name": "package_retention_policy",
+      "operation": "std.vm.persistent_actor.package_retention_policy"
+    },
+    {
+      "arity": 4,
+      "name": "model_sync_retention_continuity",
+      "operation": "std.vm.persistent_actor.model_sync_retention_continuity"
+    },
+    {
+      "arity": 3,
+      "name": "redaction_policy",
+      "operation": "std.vm.persistent_actor.redaction_policy"
+    },
+    {
+      "arity": 4,
+      "name": "snapshot",
+      "operation": "std.vm.persistent_actor.snapshot"
+    },
+    {
+      "arity": 2,
+      "name": "replay",
+      "operation": "std.vm.persistent_actor.replay"
+    },
+    {
+      "arity": 2,
+      "name": "resource_checkpoint",
+      "operation": "std.vm.persistent_actor.resource_checkpoint"
+    },
+    {
+      "arity": 2,
+      "name": "restore_resource",
+      "operation": "std.vm.persistent_actor.restore_resource"
+    },
+    {
+      "arity": 2,
+      "name": "mailbox_checkpoint",
+      "operation": "std.vm.persistent_actor.mailbox_checkpoint"
+    },
+    {
+      "arity": 2,
+      "name": "restore_mailbox",
+      "operation": "std.vm.persistent_actor.restore_mailbox"
+    },
+    {
+      "arity": 5,
+      "name": "migration_rollback",
+      "operation": "std.vm.persistent_actor.migration_rollback"
+    },
+    {
+      "arity": 5,
+      "name": "register_package_migration",
+      "operation": "std.vm.persistent_actor.register_package_migration"
+    },
+    {
+      "arity": 3,
+      "name": "timer_checkpoint",
+      "operation": "std.vm.persistent_actor.timer_checkpoint"
+    },
+    {
+      "arity": 2,
+      "name": "restore_timer",
+      "operation": "std.vm.persistent_actor.restore_timer"
+    },
+    {
+      "arity": 3,
+      "name": "package_store",
+      "operation": "std.vm.persistent_actor.package_store"
+    },
+    {
+      "arity": 2,
+      "name": "compatible_schema",
+      "operation": "std.vm.persistent_actor.compatible_schema"
+    }
+  ],
+  "module": "std_vm_persistent_actor_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.PersistentActor"
+}

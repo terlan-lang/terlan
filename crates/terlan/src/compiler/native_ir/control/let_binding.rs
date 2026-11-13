@@ -64,11 +64,9 @@ pub(super) fn lower_suspending_let_binding(
         entry_names.push(name.clone());
         entry_vars.insert(name.clone(), next_entry_local);
         entry_types.insert(name.clone(), value_type);
-        if let Some(core_type) = super::super::structured_case::core_expr_type(
-            &binding.value,
-            &entry_core_types,
-            environment.function_core_types,
-        ) {
+        if let Some(core_type) =
+            lexical_core_result_type(&binding.value, value_type, &entry_core_types, environment)
+        {
             entry_core_types.insert(name.clone(), core_type);
         }
         entry_bindings.push(value);
@@ -83,11 +81,6 @@ pub(super) fn lower_suspending_let_binding(
                 .into(),
         );
     };
-    let result_core_type = super::super::structured_case::core_expr_type(
-        &binding.value,
-        &entry_core_types,
-        environment.function_core_types,
-    );
     let result_type = lexical_result_type(
         &binding.value,
         &entry_types,
@@ -99,6 +92,8 @@ pub(super) fn lower_suspending_let_binding(
             "error[native_ir.let_result]: cannot infer native type for suspending binding `{result_name}`"
         )
     })?;
+    let result_core_type =
+        lexical_core_result_type(&binding.value, result_type, &entry_core_types, environment);
     let resume = if binding_index + 1 == bindings.len() {
         body.clone()
     } else {

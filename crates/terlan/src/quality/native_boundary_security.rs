@@ -34,6 +34,8 @@ struct NativeBoundaryPolicyRule {
 
 const RUST_BACKED_MANIFEST_PATH: &str = "std/RUST_BACKED_MANIFEST.tsv";
 const SECURITY_MANIFEST_PATH: &str = "std/NATIVE_BOUNDARY_SECURITY.tsv";
+const GENERATED_MANIFEST_DIRECTORY: &str = "std/summaries";
+const GENERATED_MANIFEST_SUFFIX: &str = ".native_boundary.json";
 
 const RUST_BACKED_HEADER: &[&str] = &[
     "module",
@@ -95,7 +97,7 @@ const FORBIDDEN_BOUNDARY_WORDS: &[&str] = &[
 ///   new native operations cannot cross into Terlan without an explicit
 ///   capability and lifecycle contract.
 pub fn run_native_boundary_security(root: &Path) -> QualityResult<NativeBoundarySecuritySummary> {
-    let operations = read_rust_backed_manifest(root)?;
+    let operations = read_native_boundary_operations(root)?;
     let rules = read_native_boundary_security_manifest(root)?;
     let diagnostics = check_native_boundary_security(&rules, &operations);
     if !diagnostics.is_empty() {
@@ -105,6 +107,82 @@ pub fn run_native_boundary_security(root: &Path) -> QualityResult<NativeBoundary
         operation_count: operations.len(),
         policy_rule_count: rules.len(),
     })
+}
+
+/// Reads and deduplicates every source of generated NativeBoundary operations.
+fn read_native_boundary_operations(root: &Path) -> QualityResult<Vec<RustBackedOperation>> {
+    let mut operations = read_rust_backed_manifest(root)?;
+    operations.extend(read_generated_native_boundary_manifests(root)?);
+    let mut unique = BTreeMap::new();
+    for operation in operations {
+        unique.insert(
+            (operation.module.clone(), operation.operation.clone()),
+            operation,
+        );
+    }
+    Ok(unique.into_values().collect())
+}
+
+/// Reads compiler-generated source manifests so policy drift fails this early gate.
+fn read_generated_native_boundary_manifests(
+    root: &Path,
+) -> QualityResult<Vec<RustBackedOperation>> {
+    let directory = root.join(GENERATED_MANIFEST_DIRECTORY);
+    if !directory.exists() {
+        return Ok(Vec::new());
+    }
+    let mut paths = fs::read_dir(&directory)
+        .map_err(|error| format!("{}: {error}", directory.display()))?
+        .map(|entry| entry.map(|value| value.path()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("{}: {error}", directory.display()))?;
+    paths.sort();
+
+    let mut operations = Vec::new();
+    for path in paths {
+        let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if !name.ends_with(GENERATED_MANIFEST_SUFFIX) {
+            continue;
+        }
+        let text =
+            fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))?;
+        operations.extend(parse_generated_native_boundary_manifest(&path, &text)?);
+    }
+    Ok(operations)
+}
+
+/// Parses the operation identity fields used by the proof manifest generator.
+fn parse_generated_native_boundary_manifest(
+    path: &Path,
+    text: &str,
+) -> QualityResult<Vec<RustBackedOperation>> {
+    let value: serde_json::Value =
+        serde_json::from_str(text).map_err(|error| format!("{}: {error}", path.display()))?;
+    let module = value
+        .get("source_module")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| format!("{}: missing string `source_module`", path.display()))?;
+    let functions = value
+        .get("functions")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| format!("{}: missing array `functions`", path.display()))?;
+    functions
+        .iter()
+        .map(|function| {
+            let operation = function
+                .get("operation")
+                .and_then(serde_json::Value::as_str)
+                .ok_or_else(|| {
+                    format!("{}: function missing string `operation`", path.display())
+                })?;
+            Ok(RustBackedOperation {
+                module: module.to_string(),
+                operation: operation.to_string(),
+            })
+        })
+        .collect()
 }
 
 /// Reads the Rust-backed operation manifest from disk.

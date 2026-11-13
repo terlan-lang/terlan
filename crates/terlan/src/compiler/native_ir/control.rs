@@ -20,6 +20,9 @@ use super::{
     YieldRegionEnvironment, YieldRegionRequest,
 };
 
+mod type_inference;
+use type_inference::{lexical_core_result_type, lexical_result_type};
+
 /// Returns the first unoccupied NativeIR local even when hidden continuation
 /// parameters make the source-variable map sparse.
 pub(super) fn next_local_index(params: &HashMap<String, usize>) -> usize {
@@ -57,44 +60,6 @@ pub(super) struct YieldLoweringEnvironment<'a> {
 pub(super) struct YieldLoweringState<'a> {
     pub(super) ordinal: &'a mut usize,
     pub(super) stable_ids: &'a mut HashSet<u64>,
-}
-
-/// Recovers the native result type of one lexical expression, including
-/// structured cases whose pattern bindings are not visible to scalar inference.
-pub(super) fn lexical_result_type(
-    expr: &CoreExpr,
-    native_types: &HashMap<String, NativeType>,
-    core_types: &HashMap<String, CoreType>,
-    environment: &YieldLoweringEnvironment<'_>,
-) -> Option<NativeType> {
-    super::infer_native_type_with_constructors(
-        expr,
-        native_types,
-        environment.function_types,
-        environment.constructors,
-    )
-    .or_else(|| {
-        super::structured_case::core_expr_type(expr, core_types, environment.function_core_types)
-            .and_then(|core_type| super::native_type(Some(&core_type), &core_type.contract_text()))
-    })
-    .or_else(|| {
-        super::structured_case::contains_case(expr)
-            .then(|| {
-                super::structured_case::structured_result_type(
-                    expr,
-                    native_types,
-                    core_types,
-                    super::structured_case::StructuredCaseEnvironment {
-                        functions: environment.functions,
-                        function_types: environment.function_types,
-                        function_core_types: environment.function_core_types,
-                        constructors: environment.constructors,
-                    },
-                )
-                .ok()
-            })
-            .flatten()
-    })
 }
 
 pub(super) fn lower_expr_with_yields(
@@ -311,33 +276,26 @@ pub(super) fn lower_owned_expr_with_yields(
                          native control prefix requires variable bindings"
                         .to_string());
                 };
-                let value_core_type = super::structured_case::core_expr_type_with_constructors(
+                let value_type = lexical_result_type(
                     &binding.value,
+                    &entry_types,
                     &entry_core_types,
-                    function_core_types,
-                    constructors,
+                    environment,
+                )
+                .ok_or_else(|| {
+                    format!(
+                        "error[native_ir.control_prefix]: cannot infer native type for `{name}`"
+                    )
+                })?;
+                let value_core_type = lexical_core_result_type(
+                    &binding.value,
+                    value_type,
+                    &entry_core_types,
+                    environment,
                 )
                 .map(|core_type| {
                     super::structured_case::canonical_control_type(core_type, constructors)
                 });
-                let value_type = value_core_type
-                    .as_ref()
-                    .and_then(|core_type| {
-                        super::native_type(Some(core_type), &core_type.contract_text())
-                    })
-                    .or_else(|| {
-                        super::infer_native_type_with_constructors(
-                            &binding.value,
-                            &entry_types,
-                            function_types,
-                            constructors,
-                        )
-                    })
-                    .ok_or_else(|| {
-                        format!(
-                        "error[native_ir.control_prefix]: cannot infer native type for `{name}`"
-                    )
-                    })?;
                 let structured_environment = super::structured_case::StructuredCaseEnvironment {
                     functions,
                     function_types,

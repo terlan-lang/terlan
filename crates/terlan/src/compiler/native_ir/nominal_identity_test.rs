@@ -99,6 +99,21 @@ fn record_union_patterns_and_construction_share_the_discriminated_layout() {
 }
 
 #[test]
+fn record_patterns_use_boxed_union_physical_discriminants() {
+    let core = checked_core(
+        "module app.MixedRecordUnion.
+         pub type Accepted.
+         pub type Duplicate.
+         pub struct OutOfOrder { expected: Int }.
+         pub type Outcome = Accepted | Duplicate | OutOfOrder.
+         pub read(outcome: Outcome): Int ->
+             case outcome { OutOfOrder {expected: value} -> value; _ -> 0 }.",
+    );
+    super::super::NativeModule::lower_application(&[&core])
+        .expect("record patterns must project through boxed mixed-union payloads");
+}
+
+#[test]
 fn record_union_pattern_rejects_a_foreign_nominal_identity() {
     use crate::terlan_typeck::{CoreExpr, CorePattern};
     let mut core = checked_core(

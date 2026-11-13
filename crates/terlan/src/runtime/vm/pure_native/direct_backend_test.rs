@@ -570,6 +570,64 @@ fn public_aggregate_failure_is_atomic_and_rejects_unknown_shapes() {
     assert_eq!(managed.heap_usage(94), Some((0, 0)));
 }
 
+#[test]
+fn public_boxed_union_accepts_a_named_payload_and_duplicate_metadata() {
+    let member = ManagedAggregateDescriptor::record(
+        "Named(app.OutOfOrder)",
+        vec![("expected_message_id".into(), ManagedFieldType::Int)],
+    )
+    .expect("named member");
+    let union = ManagedAggregateDescriptor::constructor(
+        "Union(AtomLiteral(accepted),Named(app.OutOfOrder))",
+        "$native.union.1",
+        1,
+        2,
+        vec![(
+            Some("value".into()),
+            ManagedFieldType::Reference(semantic("Named(app.OutOfOrder)")),
+        )],
+    )
+    .expect("boxed union");
+    let atom = ManagedAggregateDescriptor::constructor(
+        "Union(AtomLiteral(accepted),Named(app.OutOfOrder))",
+        "$native.union.0",
+        0,
+        2,
+        vec![(Some("value".into()), ManagedFieldType::Atom)],
+    )
+    .expect("boxed atom member");
+    let duplicate = admitted_layout(union.clone());
+    let layouts = vec![
+        admitted_layout(member),
+        admitted_layout(atom),
+        admitted_layout(union),
+        duplicate,
+    ];
+    let mut managed =
+        ManagedExecutionRuntime::with_image_metadata(&layouts, &[], &["accepted".into()])
+            .expect("boxed union runtime");
+    let value = ReplValue::Record {
+        name: "OutOfOrder".into(),
+        fields: vec![("expected_message_id".into(), ReplValue::Int(7))],
+    };
+    let boundary = TvmBoundaryType::Managed(
+        semantic("Union(AtomLiteral(accepted),Named(app.OutOfOrder))").bytes(),
+    );
+    let word = encode_public_argument(&mut managed, 97, &boundary, &value)
+        .expect("encode named union payload");
+    assert_eq!(
+        decode_public_result(&managed, 97, &boundary, word).expect("decode named union payload"),
+        value
+    );
+    let accepted = ReplValue::Atom("accepted".into());
+    let word = encode_public_argument(&mut managed, 98, &boundary, &accepted)
+        .expect("encode boxed atom member");
+    assert_eq!(
+        decode_public_result(&managed, 98, &boundary, word).expect("decode boxed atom member"),
+        accepted
+    );
+}
+
 /// Rejects recursive public graphs beyond the conversion bound before publication.
 #[test]
 fn public_aggregate_depth_limit_and_atom_metadata_fail_closed() {

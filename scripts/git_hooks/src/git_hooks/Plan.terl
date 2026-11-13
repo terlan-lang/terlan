@@ -62,7 +62,7 @@ pub release_manifest(paths: List[String]): Bool ->
         or affected(paths, "tests/std/RELEASE_API_TESTS.tsv", "").
 
 pub rust_docs(paths: List[String]): Bool ->
-    affected(paths, "", ".rs").
+    RustFormatting.sources(paths) != [].
 
 pub preparation(paths: List[String]): Bool ->
     affected(paths, "scripts/self_validation/release_promotion/", "")
@@ -89,6 +89,20 @@ pub terlan_format(paths: List[String]): Bool ->
 pub version_metadata(paths: List[String]): Bool ->
     affected(paths, ".terlan-hook/version-metadata", "").
 
+pub proof_baseline_missing(paths: List[String]): Bool ->
+    proof_evidence_input(paths)
+        and not affected(paths, "proofs/lean/release_evidence/baseline.json", "").
+
+proof_evidence_input(paths: List[String]): Bool ->
+    affected(paths, "proofs/lean/artifacts/", "")
+        or affected(paths, "proofs/lean/ci/lean-proof-artifacts.tsv", "")
+        or affected(paths, "proofs/lean/gaps/", "")
+        or affected(paths, "docs/compiler/proof_track/", "")
+        or affected(paths, "std/NATIVE_BOUNDARY_SECURITY.tsv", "")
+        or affected(paths, "std/summaries/", ".native_boundary.json")
+        or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
+        or affected(paths, "scripts/self_validation/LeanProof", "").
+
 selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
     if {
         condition -> [name | lanes];
@@ -97,57 +111,61 @@ selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
 
 pub preflight_lanes(paths: List[String]): List[String] ->
     ["inventory" | selected(
-    compiler_bootstrap(paths),
-    "compiler-build",
+    proof_baseline_missing(paths),
+    "proof-baseline-missing",
     selected(
-        RustFormatting.required(paths, false),
-        "rust-format",
+        compiler_bootstrap(paths),
+        "compiler-build",
         selected(
-            version_metadata(paths),
-            "version-metadata",
+            RustFormatting.required(paths, false),
+            "rust-format",
             selected(
-                platform_workflow_contract(paths),
-                "workflow-contract",
+                version_metadata(paths),
+                "version-metadata",
                 selected(
-                    rust_security(paths),
-                    "rust-security",
+                    platform_workflow_contract(paths),
+                    "workflow-contract",
                     selected(
-                        node_security(paths),
-                        "node-security",
+                        rust_security(paths),
+                        "rust-security",
                         selected(
-                            editor_release(paths),
-                            "editor-release",
+                            node_security(paths),
+                            "node-security",
                             selected(
-                                artifact_bootstrap(paths),
-                                "artifact-bootstrap",
+                                editor_release(paths),
+                                "editor-release",
                                 selected(
-                                    grammar(paths),
-                                    "grammar",
+                                    artifact_bootstrap(paths),
+                                    "artifact-bootstrap",
                                     selected(
-                                        js_bindings(paths),
-                                        "js-bindings",
+                                        grammar(paths),
+                                        "grammar",
                                         selected(
-                                            negative_api(paths),
-                                            "negative-api",
+                                            js_bindings(paths),
+                                            "js-bindings",
                                             selected(
-                                                artifact_budget(paths),
-                                                "artifact-budget",
+                                                negative_api(paths),
+                                                "negative-api",
                                                 selected(
-                                                    release_manifest(paths),
-                                                    "release-manifest",
+                                                    artifact_budget(paths),
+                                                    "artifact-budget",
                                                     selected(
-                                                        rust_docs(paths),
-                                                        "rust-docs",
+                                                        release_manifest(paths),
+                                                        "release-manifest",
                                                         selected(
-                                                            preparation(paths),
-                                                            "preparation",
+                                                            rust_docs(paths),
+                                                            "rust-docs",
                                                             selected(
-                                                                hook_policy(paths),
-                                                                "hook-policy",
+                                                                preparation(paths),
+                                                                "preparation",
                                                                 selected(
-                                                                    terlan_format(paths),
-                                                                    "terlan-format",
-                                                                    List.new[String](),
+                                                                    hook_policy(paths),
+                                                                    "hook-policy",
+                                                                    selected(
+                                                                        terlan_format(paths),
+                                                                        "terlan-format",
+                                                                        List.new[String](),
+                                                                    ),
                                                                 ),
                                                             ),
                                                         ),
@@ -234,8 +252,13 @@ specialized_terlan_test(path: String): Bool ->
         or String.starts_with(path, "scripts/llm_native/") and String.ends_with(path, "Test.terl")
         or String.ends_with(path, "BenchmarkTest.terl").
 
+pub runtime(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/runtime/", ".rs")
+        or affected(paths, "crates/terlan/src/runtime.rs", "")
+        or affected(paths, "crates/terlan/src/vm/", ".rs").
+
 pub workspace(paths: List[String]): Bool ->
-    general_fixtures(paths) or non_compiler_rust(paths).
+    general_fixtures(paths) or non_owned_rust(paths).
 
 pub dependency_inputs(paths: List[String]): Bool ->
     affected(paths, "", "Cargo.toml")
@@ -244,7 +267,7 @@ pub dependency_inputs(paths: List[String]): Bool ->
         or affected(paths, ".cargo/", "").
 
 pub compiler_bootstrap(paths: List[String]): Bool ->
-    affected(paths, "", ".rs") or dependency_inputs(paths).
+    RustFormatting.sources(paths) != [] or dependency_inputs(paths).
 
 pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").
@@ -262,18 +285,22 @@ general_fixtures(paths: List[String]): Bool ->
                 or general_fixtures(rest)
     }.
 
-non_compiler_rust(paths: List[String]): Bool ->
+non_owned_rust(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
             String.ends_with(path, ".rs")
     and not String.starts_with(path, "crates/terlan/src/compiler/")
     and not String.starts_with(path, "crates/terlan/src/commands/")
+    and not String.starts_with(path, "crates/terlan/src/runtime/")
+    and path != "crates/terlan/src/runtime.rs"
+    and not String.starts_with(path, "crates/terlan/src/vm/")
     and path != "crates/terlan/build.rs"
     and not String.starts_with(path, "crates/terlan-test-orchestrator/")
     and not String.starts_with(path, "tools/rust_boundary_audit/")
     and not String.starts_with(path, "tree-sitter-terlan/")
-                or non_compiler_rust(rest)
+    and not String.ends_with(path, ".native_boundary.rs")
+                or non_owned_rust(rest)
     }.
 
 pub rust_boundary_audit(paths: List[String]): Bool ->
@@ -368,6 +395,17 @@ has_non_native_lowering(paths: List[String]): Bool ->
 pub native_lowering(paths: List[String]): Bool ->
     compiler(paths) and not has_non_native_lowering(paths).
 
+/**
+ * Cross-cutting native representation and VM dispatch changes can invalidate
+ * otherwise unchanged source contracts. Run their bounded source-level suite
+ * before broad Rust validation so one lowering failure cannot hide the next.
+ */
+pub vm_contracts(paths: List[String]): Bool ->
+    native_lowering(paths)
+        or affected(paths, "crates/terlan/src/runtime/native_image/managed/", "")
+        or affected(paths, "crates/terlan/src/runtime/vm/package_native_helper", "")
+        or affected(paths, "crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_values", "").
+
 pub phase(paths: List[String]): Bool ->
     syntax(paths) or compiler(paths) or affected(paths, "tests/fixtures/phase_contract/", "").
 
@@ -438,7 +476,7 @@ pub clippy(paths: List[String]): Bool ->
     workspace(paths)
         or compiler(paths)
         or syntax(paths)
-        or affected(paths, "", ".rs")
+        or RustFormatting.sources(paths) != []
         or affected(paths, "", "clippy.toml").
 
 pub reports(paths: List[String]): Bool ->
@@ -465,12 +503,20 @@ pub proofs(paths: List[String]): Bool ->
         or affected(paths, "proofs/lean/", "")
         or affected(paths, "docs/compiler/", "")
         or affected(paths, "docs/runtime/", "")
-        or affected(paths, "std/", "")
+        or stdlib_proof_input(paths)
         or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
         or affected(paths, "crates/terlan/src/backends/wasm/README.md", "")
         or affected(paths, "scripts/self_validation/LeanProof", "")
         or affected(paths, "scripts/self_validation/LalrpopGrammarContractTest.terl", "")
         or affected(paths, "scripts/git_hooks/proofs.sh", "").
+
+stdlib_proof_input(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.starts_with(path, "std/") and not String.ends_with(path, ".native_boundary.rs")
+                or stdlib_proof_input(rest)
+    }.
 
 pub lanes(paths: List[String]): List[String] ->
     let orchestrator_rust =
@@ -496,6 +542,11 @@ pub lanes(paths: List[String]): List[String] ->
             phase(paths) -> ["phase"];
             true -> List.new[String]()
         };
+    let runtime_rust =
+        if {
+            runtime(paths) -> ["runtime"];
+            true -> List.new[String]()
+        };
     let workspace_rust =
         if {
             workspace(paths) -> ["workspace"];
@@ -504,7 +555,10 @@ pub lanes(paths: List[String]): List[String] ->
     let source_rust =
         append(
             orchestrator_rust,
-            append(boundary_rust, append(command_rust, append(compiler_rust, workspace_rust))),
+            append(
+                boundary_rust,
+                append(command_rust, append(compiler_rust, append(runtime_rust, workspace_rust))),
+            ),
         );
     let rust =
         if {
@@ -561,7 +615,12 @@ pub lanes(paths: List[String]): List[String] ->
             native_bindings(paths) -> ["native-bindings"];
             true -> List.new[String]()
         };
-    append(["shell" | native], append(proved, contracted)).
+    let vm =
+        if {
+            vm_contracts(paths) -> ["vm-contracts"];
+            true -> List.new[String]()
+        };
+    append(["shell" | native], append(vm, append(proved, contracted))).
 
 /**
  * Removes exact generated-summary and workflow-syntax duplicates from the
@@ -610,6 +669,7 @@ workspace_test_subset(lane: String): Bool ->
         or lane == "compiler"
         or lane == "syntax"
         or lane == "phase"
+        or lane == "runtime"
         or lane == "test-orchestrator"
         or lane == "rust-boundary-audit"
         or lane == "dependencies".
@@ -630,6 +690,7 @@ prioritize_test_lanes(values: List[String]): List[String] ->
 test_lane_priority(): List[String] ->
     [
         "shell",
+        "vm-contracts",
         "commands-test",
         "commands-clean",
         "commands-doctor",
@@ -640,6 +701,7 @@ test_lane_priority(): List[String] ->
         "compiler",
         "syntax",
         "phase",
+        "runtime",
         "workspace",
         "test-orchestrator",
         "rust-boundary-audit",

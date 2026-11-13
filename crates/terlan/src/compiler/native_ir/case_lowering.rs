@@ -630,7 +630,10 @@ impl ScalarCaseLowerer {
 /// discovery see calls inside their selected branches. It also preserves
 /// effectful prefixes such as diagnostic logging before a nullary `None`
 /// result instead of replacing the entire wrapper during typed allocation.
-fn contextualize_control_result(expr: CoreExpr, target_type: &CoreType) -> CoreExpr {
+pub(in crate::compiler::native_ir) fn contextualize_control_result(
+    expr: CoreExpr,
+    target_type: &CoreType,
+) -> CoreExpr {
     match expr {
         CoreExpr::If { clauses } => CoreExpr::If {
             clauses: clauses
@@ -659,10 +662,14 @@ fn contextualize_control_result(expr: CoreExpr, target_type: &CoreType) -> CoreE
         CoreExpr::Cast {
             expr,
             target_type: existing,
-        } if existing == *target_type => CoreExpr::Cast {
-            expr,
-            target_type: existing,
-        },
+        } if existing == *target_type
+            || super::structured_case::control_types_equivalent(&existing, target_type) =>
+        {
+            CoreExpr::Cast {
+                expr,
+                target_type: target_type.clone(),
+            }
+        }
         other => CoreExpr::Cast {
             expr: Box::new(other),
             target_type: target_type.clone(),

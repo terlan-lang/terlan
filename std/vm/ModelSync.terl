@@ -130,8 +130,8 @@ pub opaque type SyncableModel[T].
  * Transformation: validates non-empty model identity through the VM.
  */
 @target.vm {process_mailbox: true}
-pub key(model: String, id: String): Key ->
-    native.
+@compiler.native
+pub key(model: String, id: String): Key.
 
 /**
  * Builds an optimistic version descriptor.
@@ -141,8 +141,8 @@ pub key(model: String, id: String): Key ->
  * Transformation: validates monotonic write metadata through the VM.
  */
 @target.vm {process_mailbox: true}
-pub version(sequence: Int, writer_id: String): Version ->
-    native.
+@compiler.native
+pub version(sequence: Int, writer_id: String): Version.
 
 /**
  * Returns the initial optimistic version for a writer.
@@ -152,8 +152,8 @@ pub version(sequence: Int, writer_id: String): Version ->
  * Transformation: gives source code a stable constructor for first writes.
  */
 @target.vm {process_mailbox: true}
-pub initial_version(writer_id: String): Version ->
-    native.
+@compiler.native
+pub initial_version(writer_id: String): Version.
 
 /**
  * Advances an optimistic version for a writer.
@@ -163,8 +163,8 @@ pub initial_version(writer_id: String): Version ->
  * Transformation: keeps sequence advancement in one VM-validated API.
  */
 @target.vm {process_mailbox: true}
-pub (current: Version) next_version(writer_id: String): Version ->
-    native.
+@compiler.native
+pub (current: Version) next_version(writer_id: String): Version.
 
 /**
  * Builds an optimistic write descriptor.
@@ -174,8 +174,8 @@ pub (current: Version) next_version(writer_id: String): Version ->
  * Transformation: exposes compare-and-swap write intent to Terlan code.
  */
 @target.vm {process_mailbox: true}
-pub (key: Key) write(expected_version: Version, next_version: Version, value: Dynamic): Write ->
-    native.
+@compiler.native
+pub (key: Key) write[Value](expected_version: Version, next_version: Version, value: Value): Write.
 
 /**
  * Builds an optimistic delete descriptor.
@@ -185,8 +185,8 @@ pub (key: Key) write(expected_version: Version, next_version: Version, value: Dy
  * Transformation: exposes compare-and-swap delete intent to Terlan code.
  */
 @target.vm {process_mailbox: true}
-pub (key: Key) delete(expected_version: Version, tombstone_version: Version): Delete ->
-    native.
+@compiler.native
+pub (key: Key) delete(expected_version: Version, tombstone_version: Version): Delete.
 
 /**
  * Builds a typed conflict descriptor.
@@ -196,8 +196,8 @@ pub (key: Key) delete(expected_version: Version, tombstone_version: Version): De
  * Transformation: lets tools and source tests model stale writes explicitly.
  */
 @target.vm {process_mailbox: true}
-pub (key: Key) conflict(current_version: Version, incoming_version: Version): Conflict ->
-    native.
+@compiler.native
+pub (key: Key) conflict(current_version: Version, incoming_version: Version): Conflict.
 
 /**
  * Returns true when an expected version is older than the current version.
@@ -208,8 +208,8 @@ pub (key: Key) conflict(current_version: Version, incoming_version: Version): Co
  * store access.
  */
 @target.vm {process_mailbox: true}
-pub (expected: Version) stale(current: Version): Bool ->
-    native.
+@compiler.native
+pub (expected: Version) stale(current: Version): Bool.
 
 /**
  * Returns true when the expected version matches the current version.
@@ -219,8 +219,8 @@ pub (expected: Version) stale(current: Version): Bool ->
  * Transformation: exposes compare-and-swap eligibility as a typed predicate.
  */
 @target.vm {process_mailbox: true}
-pub (expected: Version) can_apply(current: Version): Bool ->
-    native.
+@compiler.native
+pub (expected: Version) can_apply(current: Version): Bool.
 
 /**
  * Builds a model-sync adapter capability descriptor.
@@ -231,8 +231,8 @@ pub (expected: Version) can_apply(current: Version): Bool ->
  * boundary.
  */
 @target.vm {process_mailbox: true}
-pub capability(name: String): Capability ->
-    native.
+@compiler.native
+pub capability(name: String): Capability.
 
 /**
  * Builds a portable adapter contract.
@@ -242,12 +242,12 @@ pub capability(name: String): Capability ->
  * Transformation: exposes model-sync portability requirements to Terlan code.
  */
 @target.vm {process_mailbox: true}
+@compiler.native
 pub adapter_contract(
     name: String,
     storage_family: String,
     capabilities: List[Capability],
-): AdapterContract ->
-    native.
+): AdapterContract.
 
 /**
  * Binds a model-sync adapter contract to a persistent actor store.
@@ -258,8 +258,8 @@ pub adapter_contract(
  * VM-owned persistent actor lane.
  */
 @target.vm {process_mailbox: true}
-pub persistent_actor_adapter(actor: ActorId, contract: AdapterContract): PersistentActorAdapter ->
-    native.
+@compiler.native
+pub persistent_actor_adapter(actor: ActorId, contract: AdapterContract): PersistentActorAdapter.
 
 /**
  * Binds a model-sync adapter contract to a package store.
@@ -270,8 +270,8 @@ pub persistent_actor_adapter(actor: ActorId, contract: AdapterContract): Persist
  * package-owned storage lane without relying on ORM identity maps.
  */
 @target.vm {process_mailbox: true}
-pub package_store_adapter(package_id: String, contract: AdapterContract): PackageStoreAdapter ->
-    native.
+@compiler.native
+pub package_store_adapter(package_id: String, contract: AdapterContract): PackageStoreAdapter.
 
 /**
  * Declares one typed syncable model.
@@ -283,5 +283,5 @@ pub package_store_adapter(package_id: String, contract: AdapterContract): Packag
  * adapter validation.
  */
 @target.vm {process_mailbox: true}
-pub syncable_model[T](name: String, key: Key, contract: AdapterContract): SyncableModel[T] ->
-    native.
+@compiler.native
+pub syncable_model[T](name: String, key: Key, contract: AdapterContract): SyncableModel[T].

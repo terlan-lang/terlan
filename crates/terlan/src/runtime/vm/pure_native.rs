@@ -874,6 +874,10 @@ fn native_status_error(status: i32) -> String {
             .to_string(),
         19 => "error[division_by_zero]: native Float operation cannot divide by zero".to_string(),
         29 => "error[invalid_shift_count]: native shift count must be between 0 and 63".to_string(),
+        33 => "error[native_tail_dispatch]: pure tail component received an unknown function"
+            .to_string(),
+        34 => "error[native_tail_dispatch]: suspending tail component received an unknown function"
+            .to_string(),
         crate::runtime::native_image::managed::MANAGED_ALLOCATION_FAILED_STATUS => {
             "error[managed_allocation]: native managed allocation failed".to_string()
         }

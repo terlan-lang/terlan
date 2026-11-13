@@ -544,6 +544,11 @@ pub(super) fn emit_suspending_body(
         ),
         NativeExpr::If { clauses } => {
             for (condition, body) in clauses {
+                if matches!(condition, NativeExpr::Bool(true)) {
+                    return emit_suspending_body(
+                        builder, module, body, params, catalog, tail, transition,
+                    );
+                }
                 let condition = emit_expr(
                     builder,
                     module,

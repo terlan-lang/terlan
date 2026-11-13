@@ -23,6 +23,7 @@ mod pattern_types;
 #[path = "generic_specialization/primitive_receivers.rs"]
 mod primitive_receivers;
 mod templates;
+mod type_relation;
 #[path = "generic_specialization/type_substitution.rs"]
 mod type_substitution;
 pub(super) use generic_unification::substitute;
@@ -39,73 +40,8 @@ pub(super) use nominal_parameters::{
 };
 pub(super) use pattern_types::{bind_pattern_types, lambda_type_scope, structural_tuple_variant};
 pub(super) use templates::CallableTemplates;
+use type_relation::contextual_type_specializes;
 use type_substitution::substitute_function_types;
-
-fn contextual_type_specializes(symbolic: &CoreType, concrete: &CoreType) -> bool {
-    fn relation(symbolic: &CoreType, concrete: &CoreType) -> Option<bool> {
-        if symbolic == concrete {
-            return Some(false);
-        }
-        match (symbolic, concrete) {
-            (CoreType::Named(name), _)
-                if name != "Unit"
-                    && !name.contains('.')
-                    && name.starts_with(|character: char| character.is_ascii_uppercase()) =>
-            {
-                Some(true)
-            }
-            (
-                CoreType::Apply {
-                    constructor: symbolic_constructor,
-                    args: symbolic_args,
-                },
-                CoreType::Apply {
-                    constructor: concrete_constructor,
-                    args: concrete_args,
-                },
-            ) if symbolic_constructor == concrete_constructor => {
-                sequence_relation(symbolic_args, concrete_args)
-            }
-            (CoreType::Union(symbolic), CoreType::Union(concrete)) => {
-                sequence_relation(symbolic, concrete)
-            }
-            (CoreType::List(symbolic), CoreType::List(concrete)) => relation(symbolic, concrete),
-            (CoreType::Tuple(symbolic), CoreType::Tuple(concrete))
-                if symbolic.len() == concrete.len() =>
-            {
-                symbolic
-                    .iter()
-                    .zip(concrete)
-                    .try_fold(false, |changed, (symbolic, concrete)| {
-                        let symbolic = match symbolic {
-                            crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
-                            | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => ty,
-                        };
-                        let concrete = match concrete {
-                            crate::terlan_typeck::CoreTupleTypeElem::Type(ty)
-                            | crate::terlan_typeck::CoreTupleTypeElem::Field { ty, .. } => ty,
-                        };
-                        relation(symbolic, concrete).map(|item| changed || item)
-                    })
-            }
-            _ => None,
-        }
-    }
-
-    fn sequence_relation(symbolic: &[CoreType], concrete: &[CoreType]) -> Option<bool> {
-        if symbolic.len() != concrete.len() {
-            return None;
-        }
-        symbolic
-            .iter()
-            .zip(concrete)
-            .try_fold(false, |changed, (symbolic, concrete)| {
-                relation(symbolic, concrete).map(|item| changed || item)
-            })
-    }
-
-    relation(symbolic, concrete) == Some(true)
-}
 
 #[path = "generic_specialization/module.rs"]
 mod module;
@@ -224,12 +160,20 @@ fn rewrite_expr(
                 }
                 return Ok(());
             }
-            let function = receiver_type
-                .as_ref()
-                .and_then(|receiver| {
-                    templates.receiver_callable(function, args.len(), receiver, module)
-                })
-                .unwrap_or_else(|| function.clone());
+            let Some(function) = receiver_type.as_ref().and_then(|receiver| {
+                templates.receiver_callable(function, args.len(), receiver, module)
+            }) else {
+                // A receiver call is not an unqualified free call. Nested
+                // control flow can postpone its concrete receiver type until
+                // later application normalization; preserve the marker so a
+                // same-named local method cannot capture it in the meantime.
+                for argument in args.iter_mut() {
+                    rewrite_expr(
+                        argument, variables, templates, cache, generated, module, budget,
+                    )?;
+                }
+                return Ok(());
+            };
             let args = std::mem::take(args);
             *expr = CoreExpr::Call {
                 type_args: std::mem::take(type_args),

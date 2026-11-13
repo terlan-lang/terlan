@@ -178,6 +178,64 @@ fn native_boundary_security_gate_accepts_matching_manifests() {
     fs::remove_dir_all(root).expect("remove temp dir");
 }
 
+/// Verifies generated manifests participate in the same early policy gate.
+#[test]
+fn native_boundary_security_gate_rejects_uncovered_generated_manifests() {
+    let root = make_quality_temp_dir("native_boundary_security_generated_gate");
+    fs::create_dir_all(root.join("std/summaries")).expect("create summaries");
+    fs::write(
+        root.join(RUST_BACKED_MANIFEST_PATH),
+        "module\tsource\tcrate\toperation\tfunction\tarity\n",
+    )
+    .expect("write rust-backed manifest");
+    fs::write(
+        root.join(SECURITY_MANIFEST_PATH),
+        format!(
+            "{SECURITY_HEADER_ROW}std.data.Json\tjson\tnonblocking\tnot-required\tnone\tdirect\tvalue-only\ttyped-result\tvalue\n"
+        ),
+    )
+    .expect("write security manifest");
+    fs::write(
+        root.join("std/summaries/std.vm.ModelSync.native_boundary.json"),
+        r#"{"source_module":"std.vm.ModelSync","functions":[{"operation":"std.vm.model_sync.key"}]}"#,
+    )
+    .expect("write generated manifest");
+
+    let failure = run_native_boundary_security(&root).expect_err("reject uncovered manifest");
+
+    assert!(failure.contains("std.vm.ModelSync"), "failure: {failure}");
+    fs::remove_dir_all(root).expect("remove temp dir");
+}
+
+/// Verifies duplicate operations from both inventories count only once.
+#[test]
+fn native_boundary_security_gate_deduplicates_generated_operations() {
+    let root = make_quality_temp_dir("native_boundary_security_deduplicates");
+    fs::create_dir_all(root.join("std/summaries")).expect("create summaries");
+    fs::write(
+        root.join(RUST_BACKED_MANIFEST_PATH),
+        "module\tsource\tcrate\toperation\tfunction\tarity\nstd.data.Json\tstd/data/Json.terl\tserde_json\tstd.data.json.null\tnull\t0\n",
+    )
+    .expect("write rust-backed manifest");
+    fs::write(
+        root.join(SECURITY_MANIFEST_PATH),
+        format!(
+            "{SECURITY_HEADER_ROW}std.data.Json\tjson\tnonblocking\tnot-required\tnone\tdirect\tvalue-only\ttyped-result\tvalue\n"
+        ),
+    )
+    .expect("write security manifest");
+    fs::write(
+        root.join("std/summaries/std.data.Json.native_boundary.json"),
+        r#"{"source_module":"std.data.Json","functions":[{"operation":"std.data.json.null"}]}"#,
+    )
+    .expect("write generated manifest");
+
+    let summary = run_native_boundary_security(&root).expect("run combined gate");
+
+    assert_eq!(summary.operation_count, 1);
+    fs::remove_dir_all(root).expect("remove temp dir");
+}
+
 /// Constructs a valid default NativeBoundary policy rule.
 fn policy(module_prefix: &str) -> NativeBoundaryPolicyRule {
     NativeBoundaryPolicyRule {

@@ -5,7 +5,10 @@ use std::collections::HashMap;
 use crate::compiler::native_ir::{infer_native_type_with_constructors, NativeExpr, NativeType};
 use crate::terlan_typeck::{CoreExpr, CorePattern, CoreType};
 
-use super::{core_expr_type, pattern_plan, type_excludes_pattern, StructuredCaseEnvironment};
+use super::{
+    core_expr_type, core_expr_type_with_constructors, pattern_plan, type_excludes_pattern,
+    StructuredCaseEnvironment,
+};
 
 pub(super) fn contains_indirect_call(expr: &CoreExpr) -> bool {
     match expr {
@@ -58,12 +61,33 @@ pub(in crate::compiler::native_ir) fn structured_result_type(
                     );
                 };
                 let ty = if contains_case(&binding.value) {
-                    structured_result_type(
+                    core_expr_type_with_constructors(
                         &binding.value,
-                        &local_types,
                         &local_core_types,
-                        environment,
-                    )?
+                        function_core_types,
+                        constructors,
+                    )
+                    .and_then(|ty| {
+                        crate::compiler::native_ir::native_type_with_constructors(
+                            Some(&ty),
+                            &ty.contract_text(),
+                            constructors,
+                        )
+                    })
+                    .or_else(|| {
+                        structured_result_type(
+                            &binding.value,
+                            &local_types,
+                            &local_core_types,
+                            environment,
+                        )
+                        .ok()
+                    })
+                    .ok_or_else(|| {
+                        format!(
+                            "error[native_ir.structured_case_result_type]: cannot infer binding `{name}`"
+                        )
+                    })?
                 } else {
                     infer_native_type_with_constructors(
                         &binding.value,
@@ -89,6 +113,18 @@ pub(in crate::compiler::native_ir) fn structured_result_type(
                 local_types.insert(name.clone(), ty);
                 if let Some(core_type) =
                     core_expr_type(&binding.value, &local_core_types, function_core_types)
+                        .or_else(|| {
+                            crate::compiler::native_ir::constructors::result_core_type_for_native(
+                                ty,
+                                constructors,
+                            )
+                        })
+                        .map(|core_type| {
+                            crate::compiler::native_ir::structured_case::canonical_control_type(
+                                core_type,
+                                constructors,
+                            )
+                        })
                 {
                     local_core_types.insert(name.clone(), core_type);
                 }
@@ -193,6 +229,7 @@ pub(crate) fn contains_case(expr: &CoreExpr) -> bool {
         CoreExpr::If { clauses } => clauses
             .iter()
             .any(|clause| contains_case(&clause.condition) || contains_case(&clause.body)),
+        CoreExpr::Cast { expr, .. } => contains_case(expr),
         CoreExpr::BinaryOp { left, right, .. } => contains_case(left) || contains_case(right),
         _ => false,
     }

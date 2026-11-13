@@ -11,20 +11,41 @@ pub(super) fn union_record_plan(
     constructors: &NativeConstructorLayouts,
     depth: usize,
 ) -> Result<Option<PatternPlan>, String> {
-    let Some(CoreType::Union(variants)) = subject.core_type else {
+    let Some(union @ CoreType::Union(variants)) = subject.core_type else {
         return Ok(None);
     };
-    let Some((index, CoreType::Struct { fields, .. })) = variants.iter().enumerate().find(|(_, variant)| {
+    let Some((source_index, variant @ CoreType::Struct { fields, .. })) = variants.iter().enumerate().find(|(_, variant)| {
         matches!(variant, CoreType::Struct { name: identity, .. } if identity == name)
     }) else {
         return Err(format!("error[native_ir.record_identity]: `{name}` is not a declared record variant"));
     };
-    let semantic = managed_semantic(subject.native_type)?;
-    let discriminant = u32::try_from(index)
-        .map_err(|_| "error[native_ir.union_pattern_arity]: union exceeds discriminant capacity")?;
+    let union_semantic = managed_semantic(subject.native_type)?;
+    let (discriminant, record_value, record_semantic) =
+        if super::super::union_values::is_boxed(union) {
+            let record_native = native_core_type(variant)?;
+            let (_, layout) = super::super::union_values::layouts(union)?
+                .into_iter()
+                .find(|(candidate, _)| *candidate == record_native)
+                .ok_or_else(|| {
+                    format!("error[native_ir.record_layout]: `{name}` has no boxed union layout")
+                })?;
+            let discriminant = layout.discriminant().ok_or_else(|| {
+                format!("error[native_ir.record_layout]: `{name}` has no discriminant")
+            })?;
+            let value = project(subject.value.clone(), union_semantic, 0, record_native)?;
+            (discriminant, value, managed_semantic(record_native)?)
+        } else {
+            let discriminant = u32::try_from(source_index).map_err(|_| {
+                "error[native_ir.union_pattern_arity]: union exceeds discriminant capacity"
+            })?;
+            (discriminant, subject.value.clone(), union_semantic)
+        };
     let mut plans = vec![PatternPlan {
         predicate: NativeExpr::ManagedOperation {
-            encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
+            encoded: Arc::from(encode_managed_variant_is_operation(
+                union_semantic,
+                discriminant,
+            )),
             args: vec![subject.value.clone()],
         },
         bindings: Vec::new(),
@@ -50,7 +71,7 @@ pub(super) fn union_record_plan(
         let native = native_core_type(&field.ty)?;
         plans.push(pattern_plan(
             &pattern.value,
-            project(subject.value.clone(), semantic, index, native)?,
+            project(record_value.clone(), record_semantic, index, native)?,
             native,
             Some(&field.ty),
             constructors,

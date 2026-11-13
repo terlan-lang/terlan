@@ -1,0 +1,78 @@
+{
+  "functions": [
+    {
+      "arity": 2,
+      "name": "key",
+      "operation": "std.vm.model_sync.key"
+    },
+    {
+      "arity": 2,
+      "name": "version",
+      "operation": "std.vm.model_sync.version"
+    },
+    {
+      "arity": 1,
+      "name": "initial_version",
+      "operation": "std.vm.model_sync.initial_version"
+    },
+    {
+      "arity": 2,
+      "name": "next_version",
+      "operation": "std.vm.model_sync.next_version"
+    },
+    {
+      "arity": 4,
+      "name": "write",
+      "operation": "std.vm.model_sync.write"
+    },
+    {
+      "arity": 3,
+      "name": "delete",
+      "operation": "std.vm.model_sync.delete"
+    },
+    {
+      "arity": 3,
+      "name": "conflict",
+      "operation": "std.vm.model_sync.conflict"
+    },
+    {
+      "arity": 2,
+      "name": "stale",
+      "operation": "std.vm.model_sync.stale"
+    },
+    {
+      "arity": 2,
+      "name": "can_apply",
+      "operation": "std.vm.model_sync.can_apply"
+    },
+    {
+      "arity": 1,
+      "name": "capability",
+      "operation": "std.vm.model_sync.capability"
+    },
+    {
+      "arity": 3,
+      "name": "adapter_contract",
+      "operation": "std.vm.model_sync.adapter_contract"
+    },
+    {
+      "arity": 2,
+      "name": "persistent_actor_adapter",
+      "operation": "std.vm.model_sync.persistent_actor_adapter"
+    },
+    {
+      "arity": 2,
+      "name": "package_store_adapter",
+      "operation": "std.vm.model_sync.package_store_adapter"
+    },
+    {
+      "arity": 3,
+      "name": "syncable_model",
+      "operation": "std.vm.model_sync.syncable_model"
+    }
+  ],
+  "module": "std_vm_model_sync_native_boundary",
+  "native_policy": "native_boundary_optional",
+  "scheduler": "normal",
+  "source_module": "std.vm.ModelSync"
+}

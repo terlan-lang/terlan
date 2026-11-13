@@ -397,6 +397,20 @@ pub(super) fn emit_expr(
             let merge = builder.create_block();
             builder.append_block_param(merge, types::I64);
             for (condition, body) in clauses {
+                if matches!(condition, NativeExpr::Bool(true)) {
+                    let value = emit_expr(
+                        builder,
+                        module,
+                        body,
+                        params,
+                        function_ids,
+                        managed_layouts,
+                        error_block,
+                    )?;
+                    builder.ins().jump(merge, &[BlockArg::Value(value)]);
+                    builder.switch_to_block(merge);
+                    return Ok(builder.block_params(merge)[0]);
+                }
                 let condition = emit_expr(
                     builder,
                     module,

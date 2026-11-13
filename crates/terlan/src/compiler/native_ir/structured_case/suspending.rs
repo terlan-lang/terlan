@@ -6,7 +6,8 @@ use super::type_support::type_excludes_pattern;
 use crate::terlan_typeck::{CoreExpr, CoreIfClause};
 
 use super::{
-    bind_values, bool_and, core_expr_type_with_constructors, extend_bindings,
+    bind_values, bool_and, canonical_control_type, core_expr_type_with_constructors,
+    extend_bindings,
     lowering::{contains_case, lower_containing_case, lower_plain, StructuredCaseEnvironment},
     pattern_plan, validate_bindings, NativeExpr,
 };
@@ -70,34 +71,45 @@ pub(crate) fn lower_suspending_case(
             ),
         );
     }
-    let scrutinee_type =
-        infer_native_type_with_constructors(scrutinee, param_types, function_types, constructors)
-            .or_else(|| {
-                core_expr_type_with_constructors(
-                    scrutinee,
-                    param_core_types,
-                    function_core_types,
-                    constructors,
-                )
-                .and_then(|core_type| {
-                    crate::compiler::native_ir::native_type(
-                        Some(&core_type),
-                        &core_type.contract_text(),
-                    )
-                })
-            })
-            .ok_or_else(|| {
-                format!(
-                    "error[native_ir.suspending_case_type]: unknown scrutinee type for `{}`",
-                    scrutinee.contract_text()
-                )
-            })?;
+    let result_core =
+        core_expr_type_with_constructors(expr, param_core_types, function_core_types, constructors)
+            .map(|core_type| canonical_control_type(core_type, constructors));
+    let managed_result_core = result_core.as_ref().filter(|result| {
+        matches!(
+            crate::compiler::native_ir::native_type(Some(result), &result.contract_text(),),
+            Some(crate::compiler::native_ir::NativeType::ManagedRef(_))
+        )
+    });
     let scrutinee_core = core_expr_type_with_constructors(
         scrutinee,
         param_core_types,
         function_core_types,
         constructors,
-    );
+    )
+    .map(|core_type| canonical_control_type(core_type, constructors));
+    let scrutinee_type = scrutinee_core
+        .as_ref()
+        .and_then(|core_type| {
+            crate::compiler::native_ir::native_type_with_constructors(
+                Some(core_type),
+                &core_type.contract_text(),
+                constructors,
+            )
+        })
+        .or_else(|| {
+            infer_native_type_with_constructors(
+                scrutinee,
+                param_types,
+                function_types,
+                constructors,
+            )
+        })
+        .ok_or_else(|| {
+            format!(
+                "error[native_ir.suspending_case_type]: unknown scrutinee type for `{}`",
+                scrutinee.contract_text()
+            )
+        })?;
     let structured_environment = StructuredCaseEnvironment {
         functions,
         function_types,
@@ -232,6 +244,9 @@ pub(crate) fn lower_suspending_case(
         } else {
             clause.body.clone()
         };
+        let selected_core = managed_result_core.map_or(selected_core.clone(), |expected| {
+            super::super::case_lowering::contextualize_control_result(selected_core, expected)
+        });
         let (selected, mut selected_continuations) = control::lower_owned_expr_with_yields(
             selected_core,
             YieldLoweringScope {

@@ -67,11 +67,9 @@ pub(super) fn lower_gated_prepared_call(
         entry_names.push(name.clone());
         entry_vars.insert(name.clone(), next_entry_local);
         entry_types.insert(name.clone(), value_type);
-        if let Some(core_type) = super::super::structured_case::core_expr_type(
-            &binding.value,
-            &entry_core_types,
-            function_core_types,
-        ) {
+        if let Some(core_type) =
+            lexical_core_result_type(&binding.value, value_type, &entry_core_types, environment)
+        {
             entry_core_types.insert(name.clone(), core_type);
         }
         entry_bindings.push(value);

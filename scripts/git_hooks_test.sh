@@ -39,6 +39,15 @@ if test -n "${EXPECTED_HOOK_CARGO_HOME:-}"; then
   test "$CARGO_HOME" = "$EXPECTED_HOOK_CARGO_HOME"
 fi
 test "$CARGO_INCREMENTAL" = "${EXPECTED_HOOK_CARGO_INCREMENTAL:-0}"
+for descriptor in /proc/$$/fd/*; do
+  target=$(readlink "$descriptor" 2>/dev/null || true)
+  case "$target" in
+    */terlan-publication.lock|*/validation.lock)
+      echo "Validation child inherited hook lease: $target" >&2
+      exit 1
+      ;;
+  esac
+done
 CHECK
 printf 'initial\n' > tracked.txt
 printf 'original\n' > marker.txt
@@ -192,6 +201,32 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
   test "$(grep -Ec '^$' changes.candidate-plan)" = 0
   grep -Eq 'pass inventory \([0-9]+s\)' "$temporary/fast-admission.log"
   grep -q 'candidate validation deferred' "$temporary/fast-admission.log"
+)
+
+# Proof evidence changes without their generated baseline fail before any
+# inventory, build, or proof workload starts.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+case "$*" in
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
+    printf 'preflight:inventory\npreflight:proof-baseline-missing\nshell\n'
+    ;;
+  *) exit 96 ;;
+esac
+TERLC
+chmod +x "$temporary/early-bindings/cache/debug/terlc"
+(
+  cd "$temporary/early-bindings"
+  status=0
+  TERLAN_HOOK_MODE=fast \
+    TERLAN_HOOK_LATEST_TERLC="$PWD/cache/debug/terlc" \
+    CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/proof-baseline-pairing.log" 2>&1 || status=$?
+  test "$status" = 1
+  grep -q 'proof evidence changed without refreshed release baseline' \
+    "$temporary/proof-baseline-pairing.log"
 )
 
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'

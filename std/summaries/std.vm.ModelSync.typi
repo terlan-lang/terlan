@@ -216,4 +216,4 @@ pub version(sequence: Int, writer_id: String): Version.
 /// Output: write descriptor.
 /// Transformation: exposes compare-and-swap write intent to Terlan code.
 
-pub (key: Key) write(expected_version: Version, next_version: Version, value: Dynamic): Write.
+pub (key: Key) write[Value](expected_version: Version, next_version: Version, value: Value): Write.

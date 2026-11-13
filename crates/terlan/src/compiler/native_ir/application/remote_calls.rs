@@ -52,20 +52,19 @@ fn normalize_remote_expr(
                 }
             }
             if module == "__receiver__" {
+                // Receiver identity is type-directed. A local function with
+                // the same name is not evidence that it owns this receiver.
+                // An explicit, unambiguous provider import is also sufficient;
+                // otherwise keep the marker for mutable_receivers and fail
+                // admission rather than silently calling a local namesake.
+                let identity = (function.clone(), args.len());
                 if phase == RemoteCallPhase::Final {
-                    let identity = (function.clone(), args.len());
-                    let target = if local_functions.contains(&identity) {
-                        Some(function.clone())
-                    } else {
-                        application_functions.get(&identity).cloned().flatten()
-                    };
-                    if let Some(target) = target {
+                    if let Some(target) = application_functions.get(&identity).cloned().flatten() {
                         *expr = CoreExpr::Call {
                             type_args: std::mem::take(type_args),
                             function: target,
                             args: std::mem::take(args),
                         };
-                        normalize_selected_primitive(expr);
                     }
                 }
                 return;

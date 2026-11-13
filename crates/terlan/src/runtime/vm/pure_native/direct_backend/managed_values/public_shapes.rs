@@ -2,7 +2,9 @@
 
 use super::managed_allocation_error;
 use crate::runtime::native_image::managed::{
-    ManagedAggregateDescriptor, ManagedAggregateKind, ManagedLayoutRegistry, SemanticTypeId,
+    managed_binary_semantic_id, managed_bytes_semantic_id, managed_string_semantic_id,
+    ManagedAggregateDescriptor, ManagedAggregateKind, ManagedCollectionKind, ManagedFieldType,
+    ManagedLayoutRegistry, SemanticTypeId,
 };
 use crate::runtime::vm::ReplValue;
 
@@ -16,18 +18,20 @@ pub(super) fn select_layout<'layout, 'value>(
         let index = layouts
             .atom_index(identity)
             .map_err(managed_allocation_error)?;
-        let descriptor = crate::runtime::native_image::managed::immediate_variant(
+        if let Ok(descriptor) = crate::runtime::native_image::managed::immediate_variant(
             layouts,
             semantic,
             i64::from(index.get()),
-        )
-        .map_err(managed_allocation_error)?;
-        return Ok((descriptor, PublicFields::Positional(&[])));
+        ) {
+            return Ok((descriptor, PublicFields::Positional(&[])));
+        }
     }
     let mut matched = None;
     let mut match_count = 0;
     for layout in layouts.layouts(semantic) {
-        if let Some(fields) = public_fields(layout, value) {
+        if let Some(fields) =
+            public_fields(layout, value).or_else(|| union_wrapper_fields(layouts, layout, value, 0))
+        {
             match_count += 1;
             if matched.is_none() {
                 matched = Some((layout.as_ref(), fields));
@@ -58,6 +62,7 @@ pub(super) fn select_layout<'layout, 'value>(
 pub(super) enum PublicFields<'a> {
     Positional(&'a [ReplValue]),
     Named(&'a [(String, ReplValue)]),
+    Wrapped(&'a ReplValue),
 }
 
 impl<'a> PublicFields<'a> {
@@ -66,6 +71,7 @@ impl<'a> PublicFields<'a> {
         match self {
             Self::Positional(values) => values.len(),
             Self::Named(fields) => fields.len(),
+            Self::Wrapped(_) => 1,
         }
     }
 
@@ -74,7 +80,85 @@ impl<'a> PublicFields<'a> {
         match self {
             Self::Positional(values) => &values[index],
             Self::Named(fields) => &fields[index].1,
+            Self::Wrapped(value) if index == 0 => value,
+            Self::Wrapped(_) => unreachable!("checked wrapped field index"),
         }
+    }
+}
+
+/// Treats a boxed union's single payload slot as a transparent public boundary.
+fn union_wrapper_fields<'a>(
+    layouts: &ManagedLayoutRegistry,
+    descriptor: &ManagedAggregateDescriptor,
+    value: &'a ReplValue,
+    depth: usize,
+) -> Option<PublicFields<'a>> {
+    if depth >= 32
+        || !descriptor
+            .variant_name()
+            .is_some_and(|name| name.starts_with("$native.union."))
+        || descriptor.fields().len() != 1
+        || descriptor.fields()[0].name() != Some("value")
+        || !public_value_matches(
+            layouts,
+            descriptor.fields()[0].field_type(),
+            value,
+            depth + 1,
+        )
+    {
+        return None;
+    }
+    Some(PublicFields::Wrapped(value))
+}
+
+/// Selects the boxed union member from its admitted physical field type.
+fn public_value_matches(
+    layouts: &ManagedLayoutRegistry,
+    field_type: ManagedFieldType,
+    value: &ReplValue,
+    depth: usize,
+) -> bool {
+    match (field_type, value) {
+        (ManagedFieldType::Unit, ReplValue::Unit)
+        | (ManagedFieldType::Bool, ReplValue::Bool(_))
+        | (ManagedFieldType::Int, ReplValue::Int(_))
+        | (ManagedFieldType::Float, ReplValue::Float(_))
+        | (ManagedFieldType::Atom, ReplValue::Atom(_)) => true,
+        (ManagedFieldType::Reference(semantic), value) => {
+            if semantic == managed_string_semantic_id() {
+                return matches!(value, ReplValue::String(_));
+            }
+            if semantic == managed_bytes_semantic_id() {
+                return matches!(value, ReplValue::Bytes(_));
+            }
+            if semantic == managed_binary_semantic_id() {
+                return matches!(value, ReplValue::BitString(_));
+            }
+            if let Some(collection) = layouts.collection(semantic) {
+                return matches!(
+                    (collection.kind(), value),
+                    (ManagedCollectionKind::List, ReplValue::List(_))
+                        | (ManagedCollectionKind::Map, ReplValue::Map(_))
+                        | (ManagedCollectionKind::Set, ReplValue::Set(_))
+                );
+            }
+            if let ReplValue::Atom(identity) = value {
+                let Ok(index) = layouts.atom_index(identity) else {
+                    return false;
+                };
+                return crate::runtime::native_image::managed::immediate_variant(
+                    layouts,
+                    semantic,
+                    i64::from(index.get()),
+                )
+                .is_ok();
+            }
+            layouts.layouts(semantic).iter().any(|candidate| {
+                public_fields(candidate, value).is_some()
+                    || union_wrapper_fields(layouts, candidate, value, depth).is_some()
+            })
+        }
+        _ => false,
     }
 }
 

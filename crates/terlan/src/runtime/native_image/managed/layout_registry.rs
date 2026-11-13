@@ -42,7 +42,13 @@ impl ManagedLayoutRegistry {
                         .to_string(),
                 );
             }
-            grouped.entry(semantic).or_default().push(descriptor);
+            let descriptors = grouped.entry(semantic).or_default();
+            if !descriptors
+                .iter()
+                .any(|existing| existing.as_ref() == descriptor.as_ref())
+            {
+                descriptors.push(descriptor);
+            }
         }
         let mut decoded_collections = BTreeMap::new();
         for collection in collections {
