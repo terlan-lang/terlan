@@ -67,6 +67,35 @@ or bounded context for a source proposal. Successful verification establishes
 the declared properties within the recorded scope; it does not prove arbitrary
 program correctness or user intent.
 
+## Machine-paced interaction, not human-paced
+
+Compiler diagnostics, incrementality, and concurrency control were tuned for a
+reader with persistent working memory and a slow, serial edit-compile cadence:
+stop after a few errors to protect attention, recompile at file/save
+granularity, serialize access to one workspace because there is one pair of
+hands. An agent reconstructs context from what is supplied each call, has no
+attention cost for a longer diagnostic response, and gains by evaluating
+several disposable candidates at once rather than one at a time. Round-trip
+count and sustained concurrent throughput are the resources later gates must
+budget; single-call responsiveness alone is a human-paced metric and is not
+sufficient by itself. This does not relax verification; it changes what "fast
+enough" and "complete enough" mean for the same checks. M5 states this as
+measured, ratified acceptance criteria, not aspiration, and LNC-006/LNC-017
+apply it to diagnostic completeness as well as latency.
+
+Terlan already has a concurrency and isolation model built for exactly this
+shape: actors with bounded capabilities and no shared mutable state. Candidate
+isolation (LNC-007) and concurrent candidate verification (LNC-018) must reuse
+that model rather than invent a second, compiler-specific isolation mechanism
+in Rust. Each prepared candidate runs as a bounded actor with only the
+capabilities its analysis needs; the existing ownership and capability-sandbox
+contracts already establish what such an actor can and cannot do. This is a
+concrete reason the self-hosting roadmap is a prerequisite here, not a parallel
+effort: a self-hosted compiler can express candidate concurrency directly in
+the language's own actor model, where a Rust-hosted compiler would otherwise
+need a second, bespoke isolation mechanism that duplicates what the runtime
+already guarantees.
+
 ## MCP standardization and Terlan implementation
 
 Use MCP as the standard agent interface from the first query and rename
@@ -115,6 +144,13 @@ are compiler query results, distinct from the standard tool catalogue.
 MCP capabilities and tool annotations do not establish program-execution
 permissions or verified compiler facts. Transaction handles are explicit
 compiler data and cannot rely on an implicit connection remaining alive.
+
+The server dispatches concurrent `tools/call` requests for independent
+candidates rather than serializing them per connection; M5's concurrent-
+candidate throughput budget is unreachable if the transport layer processes
+calls one at a time regardless of what the compiler service supports
+underneath. Independent-client interoperability evidence (LNC-005, LNC-025)
+must include concurrent in-flight calls, not only sequential ones.
 
 Validate the Terlan implementation with protocol fixtures and independent MCP
 clients, including clients built with official SDKs. SDKs can serve as test
@@ -268,9 +304,9 @@ These are integration starting points, not completed roadmap milestones:
 | LSP binding rename | `crates/terlan/src/lsp/mod.rs`, `backend/navigation.rs` | Reuse its binding analysis; add checked workspace transactions and version guards |
 | Typed CoreIR and interface loading | `crates/terlan/src/compiler/typeck/`, `compiler/hir/`, `formal_pipeline/` | Expose bounded, versioned semantic views without leaking private structures |
 | Phase and artifact evidence | [phase manifest internals](../../crates/terlan/src/validation/phase_manifest/README.md) | Bind query, proposal, verification, and application to one candidate |
-| Incremental cache and latency experiments | [incremental contract](../compiler/COMPILER_INCREMENTAL_CACHE.md), `scripts/benchmarks/compilation/` | Add semantic query invalidation, focused verification, and interaction budgets |
-| VM ownership and capabilities | [ownership contract](../runtime/TERLAN_VM_OWNERSHIP.md), `crates/terlan/src/runtime/native_boundary/capability_sandbox.rs` | Bound generated execution and expose which guarantees are actually enforced |
-| Self-hosted compiler schemas | [schemas](../../compiler/self_host/SCHEMAS.md), [self-hosting roadmap](ROADMAP_SELF_HOSTING.md) | Preserve the same public contract through compiler authority transfer |
+| Incremental cache and latency experiments | [incremental contract](../compiler/COMPILER_INCREMENTAL_CACHE.md), `scripts/benchmarks/compilation/` | Add semantic query invalidation, focused verification, and interaction budgets, including cache sharing across sibling candidates |
+| VM ownership and capabilities | [ownership contract](../runtime/TERLAN_VM_OWNERSHIP.md), `crates/terlan/src/runtime/native_boundary/capability_sandbox.rs` | Bound generated execution and expose which guarantees are actually enforced; reuse the same actor/capability isolation for concurrent candidate preparation and verification (LNC-007, 018), not only generated-code execution |
+| Self-hosted compiler schemas | [schemas](../../compiler/self_host/SCHEMAS.md), [self-hosting roadmap](ROADMAP_SELF_HOSTING.md) | Preserve the same public contract through compiler authority transfer; a self-hosted compiler expresses candidate concurrency (M5) as ordinary actors instead of a second, Rust-specific isolation mechanism — self-hosting authority transfer is a prerequisite for that reuse, not an unrelated parallel effort |
 
 `terlc inspect --snapshot` currently describes the runtime and installed release
 layout. It is not a semantic query endpoint. Add a separate `semantic` command
@@ -296,7 +332,7 @@ second semantic implementation in Rust.
 | M2 | M1 | Verified rename over MCP with transactional application | LNC-007–009 |
 | M3 | M2 | Bounded task context and repair proposals | LNC-010–012 |
 | M4 | M3 | Checked function, trait, and pattern edits | LNC-013–015 |
-| M5 | M2; close before M7 | Incremental feedback budgets | LNC-016–018 |
+| M5 | M2; close before M7 | Incremental feedback and concurrent-candidate throughput budgets | LNC-016–018 |
 | M6 | M2; close before generated tests execute | Bounded execution and test evidence | LNC-019–021 |
 | M7 | M4, M5, M6 | Actor protocol edits and retry demonstration | LNC-022–024 |
 | M8 | M7 | Shared adapters and release qualification | LNC-025–027 |
@@ -373,7 +409,11 @@ M0 does not claim a working semantic editing API.
   requirements. Acceptance: type mismatch, unresolved symbol, trait failure,
   non-exhaustive pattern, and effect/capability violation fixtures expose these
   fields. Inapplicable fields carry a reason; no safe automatic repair produces
-  an empty candidate list with an explanation, not an invented fix.
+  an empty candidate list with an explanation, not an invented fix. A single
+  diagnostics call returns every independently derivable diagnostic for the
+  supplied candidate, not a human-attention-sized subset; LNC-017 measures and
+  ratifies the latency/throughput cost of that completeness later, but the
+  completeness requirement itself starts here, not at M5.
 
 M1 gate: fresh, stale, invalid, imported, and partial-snapshot queries match
 clean compiler results; diagnostics are stable across equivalent runs. MCP
@@ -384,12 +424,17 @@ cases for the declared revision, with protocol handling implemented in Terlan.
 
 - [ ] **LNC-007 Implement candidate isolation and atomic publication.**
   Prerequisite: M1. Add `prepare`, `verify`, `apply`, `abort`, and `status`
-  transaction operations. Prepare changes in an isolated candidate; bind
+  transaction operations. Prepare changes in an isolated candidate, run as a
+  bounded actor under the existing ownership/capability-sandbox contracts
+  rather than a separate process or thread isolation mechanism; bind
   verification to its content digest. Apply requires unchanged source,
   document versions, dependencies, and policy, and the exact verified bytes.
   Acceptance: concurrent edits, deleted files, symlink escapes, interrupted
-  writes, and candidate tampering preserve user work and fail safely. Compiler
-  readers observe one published snapshot. For ordinary multi-file working
+  writes, and candidate tampering preserve user work and fail safely. An audit
+  case confirms candidate preparation is actually backed by the capability-sandbox
+  actor mechanism, not an ad hoc process or thread pool matching its external
+  behavior by coincidence. Compiler readers observe one published snapshot. For
+  ordinary multi-file working
   trees, use a workspace lock and recovery journal; document visibility to
   external tools rather than claiming the filesystem offers a multi-file
   atomic write. Crash recovery produces the complete old or new compiler
@@ -437,7 +482,10 @@ executes. This milestone must also report the initial interaction budgets.
   required fact outside the budget yields `needs_expansion` or a rejected
   operation, never silent omission. Completeness is relative to the declared
   analysis and operation; verification still uses the necessary dependency
-  closure. No claim of globally smallest context is required.
+  closure. No claim of globally smallest context is required. Share a computed
+  slice across sibling candidates built from the same base snapshot and
+  operation — the same reuse LNC-016 requires for query/verification results —
+  rather than recomputing it per candidate.
 - [ ] **LNC-012 Connect diagnostics to structured repair.** Prerequisite:
   LNC-006, LNC-011. Convert applicable repairs into ordinary versioned proposals
   that use the same prepare/verify/apply path. Acceptance: a repair has explicit
@@ -480,25 +528,45 @@ query, verification, provenance, and adversarial cases together.
 - [ ] **LNC-016 Reuse semantic query and verification results.** Prerequisite:
   M2. Extend existing cache policy to snapshot queries and candidate overlays.
   Track body, interface, dependency, target, effect, and policy changes
-  separately where sound. Acceptance: body edits avoid unrelated analysis;
+  separately where sound, down to the smallest unit a single edit can affect
+  (an expression or statement, not only a whole function body). Share unchanged
+  cached analysis across sibling candidates prepared from the same base
+  snapshot, so evaluating several candidates concurrently does not each pay
+  full re-analysis cost. Acceptance: body edits avoid unrelated analysis;
   public contract changes invalidate dependent queries and checks. Cold and
   warm results have identical canonical diagnostics and artifact identities.
-- [ ] **LNC-017 Enforce measured latency and context budgets.** Prerequisite:
-  LNC-003, LNC-016. Extend the compilation benchmark harness with query, slice,
-  prepare, and verify measurements on the registered workloads. Acceptance:
-  report p50/p95, memory, context bytes, cache hits, and phase work counts;
-  compare against the budgets below on a declared reference host. Cold startup,
-  index creation, focused tests, and release validation remain separate costs.
-- [ ] **LNC-018 Make interaction cancellation and scheduling reliable.**
-  Prerequisite: LNC-016. Bound concurrent proposals and cache storage; cancel
-  obsolete work and clean only owned temporary artifacts. Acceptance: stop,
-  timeout, resource exhaustion, and concurrent sessions release resources,
-  retain useful diagnostics, and cannot apply cancelled candidates. A focused
-  iteration does not silently invoke the full browser or release matrix;
-  broader required gates are separately reported and still required for release.
+  Ten sibling candidates built from one base snapshot retain cache hits for
+  their shared, unchanged portions.
+- [ ] **LNC-017 Enforce measured latency, throughput, and context budgets.**
+  Prerequisite: LNC-003, LNC-016. Extend the compilation benchmark harness with
+  query, slice, prepare, and verify measurements on the registered workloads,
+  including sustained concurrent-candidate throughput, not only single-call
+  latency. Acceptance: report p50/p95, memory, context bytes, cache hits,
+  phase work counts, and the concurrent-candidate throughput row below;
+  compare against the budgets below on a declared reference host. A
+  verification call reports every independently derivable diagnostic for the
+  supplied candidate in one response; an analysis that genuinely cannot
+  proceed further states why, and any diagnostic count cap exists only for a
+  declared resource reason, never to shorten a response for a human reader.
+  Cold startup, index creation, focused tests, and release validation remain
+  separate costs.
+- [ ] **LNC-018 Make concurrent candidate interaction reliable and scalable.**
+  Prerequisite: LNC-016. Sustain a declared minimum number of isolated
+  candidates — each run as a bounded actor per the capability-sandbox contract
+  — prepared and verified concurrently against one base snapshot without
+  serializing beyond the publication lock. Treat that sustained concurrency as
+  the primary scaling target; bounding and cancellation are its safety net, not
+  its purpose. Cancel obsolete work and clean only owned temporary artifacts.
+  Acceptance: the declared concurrency level completes within the throughput
+  budget; stop, timeout, resource exhaustion, and sessions beyond that level
+  degrade explicitly, release resources, retain useful diagnostics, and cannot
+  apply cancelled candidates. A focused iteration does not silently invoke the
+  full browser or release matrix; broader required gates are separately
+  reported and still required for release.
 
-M5 gate: the edit/invalidation matrix passes clean/incremental parity and
-interaction budgets; cancellation and corrupted-cache injection fail safely.
+M5 gate: the edit/invalidation matrix passes clean/incremental parity,
+concurrent-candidate throughput, and exhaustive-diagnostic acceptance;
+cancellation and corrupted-cache injection fail safely.
 
 ### M6 Safe execution and focused test evidence
 
@@ -511,8 +579,12 @@ interaction budgets; cancellation and corrupted-cache injection fail safely.
   and static queries require no program-execution permission.
 - [ ] **LNC-020 Run focused evidence in isolated candidates.** Prerequisite:
   LNC-019, LNC-010. Use compiler dependency data to select relevant tests and
-  report selection reasons, unknown coverage, and required broader checks.
-  Acceptance: missing coverage cannot be reported as success; deterministic
+  report selection reasons, unknown coverage, and required broader checks. Run
+  each candidate's selected tests as bounded actors under the same
+  capability-sandbox contract used for candidate verification (LNC-007, 018),
+  so concurrent, untrusted test execution reuses one isolation mechanism
+  instead of a second ad hoc sandbox. Acceptance: missing coverage cannot be
+  reported as success; deterministic
   fixture tests bind to exact candidate and runner identities. Timeout,
   nondeterminism, crashes, and capability denial have distinct outcomes. Child
   workers terminate when the transaction is cancelled.
@@ -598,7 +670,7 @@ these documents do not replace them:
 | Proposal | Intent and operation IDs; base snapshot; selected entity; typed arguments; source/body payload where needed; constraints; compatibility policy; expected entity/source digests |
 | Diagnostic | Stable invariant code; entity and ranges; expected/actual values; dependency explanation; analysis limits; repair candidates and their preconditions |
 | Verification | Candidate digest; compiler/target/policy; checks required/executed/skipped; diagnostics; test inventory/results; proof kind and scope; exit status; artifact digests |
-| Transaction | Prepared/verified/applied/aborted/conflicted state; cancellation; candidate and base identities; verified publication preconditions; recovery journal; before/after identity mapping |
+| Transaction | Prepared/verified/applied/aborted/conflicted state; cancellation; candidate and base identities; verified publication preconditions; recovery journal; before/after identity mapping. Candidates sharing one base snapshot are siblings and may share cached analysis, but each still verifies and publishes independently |
 | Provenance | Intent, proposal, and context digests; before/after snapshots; verification and patch digests; artifact identities; actor/client attribution where supplied |
 
 Canonical documents exclude wall-clock timings, random IDs, and machine paths
@@ -663,6 +735,7 @@ Record function count, source bytes, graph shape, and supported feature mix.
 | Local rename preparation and static verification | 1 s | Small fixture, no execution or code generation |
 | One private body edit and focused semantic verification | 2 s | Warm 128-module fixture, no public contract change |
 | Cancellation acknowledgement | 250 ms | Publication disabled immediately on cancellation |
+| 8 isolated candidates prepared and verified concurrently against one base snapshot | ≤1.5× single-candidate p95 total, not 8× | Warm 128-module fixture, shared base snapshot, no public contract change |
 
 These targets apply to the declared fixtures and scopes. Large public API
 changes, cold indexing, native code generation, and tests report separate
@@ -671,11 +744,18 @@ token counts are optional and identify the tokenizer. Limit expansions and
 total attempts. Cancellation must also bound worker termination, cleanup time,
 and temporary storage, with explicit values established in LNC-003.
 
+A verification call's diagnostic completeness is a correctness property, not a
+latency row: report every independently derivable diagnostic for the supplied
+candidate, bounded only by a declared resource limit, never by a fixed count
+tuned for a human reader. State the resource limit and whether it was reached.
+
 M2 must measure its query and rename rows even before M5 optimizations. M2 can
 close its correctness gate with measured latency debt assigned to LNC-017; M5
-cannot close until the ratified budgets pass. Changing a budget requires a
-reviewed roadmap update with measurements. Do not reduce fixture coverage,
-skip required analysis, or relabel failures to meet a latency target.
+cannot close until the ratified budgets pass, including the concurrent-candidate
+throughput row, which is part of M5's closing budget and not an optional
+extension. Changing a budget requires a reviewed roadmap update with
+measurements. Do not reduce fixture coverage, skip required analysis, or
+relabel failures to meet a latency target.
 
 ## Required property coverage
 
@@ -691,6 +771,7 @@ that every row has current retained evidence.
 | Bounded context construction | LNC-010, 011, 017 | Dependency inclusion, explicit omissions, and enforced budgets |
 | Transactional changes | LNC-007–009, 018 | Conflict, crash, recovery, cancellation, and rollback cases |
 | Fast incremental feedback | LNC-003, 016–018 | Latency distributions, work counts, and invalidation parity |
+| Machine-paced interaction | LNC-006, 007, 016–018, 020 | Concurrent-candidate throughput via actor isolation, exhaustive (not attention-capped) diagnostic calls, and the same isolation reused for test execution |
 | Canonical output | LNC-009, 026 | Idempotent normalization and deterministic patches/artifacts |
 | Safe execution | LNC-019–021 | Capability denial, ownership boundaries, resource limits, containment |
 | Provenance | LNC-009, 026, 027 | Verified intent-to-artifact chain with freshness and integrity checks |
