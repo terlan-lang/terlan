@@ -16,7 +16,8 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
     } else {
         _ -> false
     };
-    String.contains(ci, "rust-format: \${{ steps.classify.outputs.rust-format }}")
+    String.contains(ci, "cancel-in-progress: \${{ github.ref != 'refs/heads/main' }}")
+        and String.contains(ci, "rust-format: \${{ steps.classify.outputs.rust-format }}")
         and String.contains(ci, "rust_format: \${{ needs.changes.outputs.rust-format == 'true' }}")
         and String.contains(preflight, "if: \${{ inputs.rust_format }}")
         and String.contains(runner, "scripts/ci/scripts/CheckRustFormatting.terls")

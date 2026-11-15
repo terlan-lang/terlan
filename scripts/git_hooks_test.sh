@@ -644,6 +644,12 @@ grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'dependency-impact report regenerated; return it for staging' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'workflow_contract_cache="$CARGO_TARGET_DIR/terlan-validators/tvm-aot-platform-matrix"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq -- '--cache-dir "$workflow_contract_cache/self-test-cache"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq -- '--cache-dir "$workflow_contract_cache/test-cache"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'TERLAN_RUST_REPORT_MODE:-check' \
   "$(dirname "$driver")/git_hooks/check.sh"
 reports_lane=$(sed -n '/^run_rust_reports_lane()/,/^}/p' \

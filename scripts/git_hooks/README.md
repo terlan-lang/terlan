@@ -300,6 +300,9 @@ Script entries outside a package's source roots use package-aware builds so
 their imports resolve with the same configuration as normal compilation.
 Run `TERLC=target/debug/terlc bash scripts/git_hooks_formatting_test.sh` to check
 this comparison with the real formatter; the hook runs it with its staged compiler.
+Workflow-contract script and test compilation use compiler-owned caches under
+the persistent hook Cargo target, so changing workflow YAML does not rebuild
+the unchanged platform validator from an empty staged-checkout directory.
 
 The larger Rust fallback can take as long as the local workspace suite. The
 focused suites do not prove all dependency impacts, all editor packages, every

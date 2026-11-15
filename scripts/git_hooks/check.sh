@@ -674,10 +674,15 @@ if preflight_has version-metadata; then
 fi
 if preflight_has workflow-contract; then
   echo 'pre-commit: workflow and compiled-cache contracts'
+  workflow_contract_cache="$CARGO_TARGET_DIR/terlan-validators/tvm-aot-platform-matrix"
   "$terlc" run scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls \
+    --out-dir "$workflow_contract_cache/self-test-build" \
+    --cache-dir "$workflow_contract_cache/self-test-cache" \
     -- self-test
   "$terlc" test \
     scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/WorkflowContractTest.terl \
+    --out-dir "$workflow_contract_cache/test-build" \
+    --cache-dir "$workflow_contract_cache/test-cache" \
     --coverage --coverage-threshold 100
   printf '%s\n' \
     scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl \

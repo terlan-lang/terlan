@@ -85,7 +85,9 @@ permissions:
 
 concurrency:
   group: compiler-ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Main runs establish the cumulative validation base and preserve compiled
+  # caches for their successor. Pull requests may still discard stale work.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   changes:

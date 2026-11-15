@@ -90,6 +90,10 @@ Main-push classification is cumulative from the newest successful Compiler CI
 run whose compiler job actually passed. Cancelling an obsolete run therefore
 cannot make its unvalidated compiler or dependency changes disappear from the
 next push's validation scope.
+Main runs are serialized without cancellation so each admitted run can finish
+its compiler evidence and preserve its compiled cache for the queued successor.
+Pull-request runs still cancel stale revisions because they do not establish
+the cumulative `main` validation base.
 Terlan readability checks operate only on changed Terlan sources. Changing the
 linter or formatter implementation does not retroactively lint thousands of
 unmodified files; an explicit full style invocation remains available when a
