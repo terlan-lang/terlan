@@ -7,6 +7,8 @@ hook_mode=${TERLAN_HOOK_MODE:-fast}
 case "$hook_mode" in fast|full) ;; *) echo "unsupported hook mode: $hook_mode" >&2; exit 2 ;; esac
 hosted_source_preflight=${TERLAN_HOSTED_SOURCE_PREFLIGHT:-0}
 case "$hosted_source_preflight" in 0|1) ;; *) echo "unsupported hosted source-preflight mode: $hosted_source_preflight" >&2; exit 2 ;; esac
+hosted_dependency_audit=${TERLAN_HOSTED_DEPENDENCY_AUDIT:-0}
+case "$hosted_dependency_audit" in 0|1) ;; *) echo "unsupported hosted dependency-audit mode: $hosted_dependency_audit" >&2; exit 2 ;; esac
 target_terlc="$CARGO_TARGET_DIR/debug/terlc"
 terlc="$target_terlc"
 export TERLC="$terlc"
@@ -691,12 +693,20 @@ if preflight_has workflow-contract; then
     >> "$prechecked_terlan"
 fi
 if preflight_has rust-security; then
-  echo 'pre-commit: Rust dependency security audit'
-  make --no-print-directory rust-security-audit-check
+  if [[ "$hosted_dependency_audit" == 1 ]]; then
+    echo 'pre-commit: Rust dependency security audit owned by dedicated hosted job'
+  else
+    echo 'pre-commit: Rust dependency security audit'
+    make --no-print-directory rust-security-audit-check
+  fi
 fi
 if preflight_has node-security; then
-  echo 'pre-commit: locked Node dependency security audit'
-  make --no-print-directory node-security-audit-check
+  if [[ "$hosted_dependency_audit" == 1 ]]; then
+    echo 'pre-commit: locked Node dependency security audit owned by dedicated hosted job'
+  else
+    echo 'pre-commit: locked Node dependency security audit'
+    make --no-print-directory node-security-audit-check
+  fi
 fi
 if preflight_has editor-release; then
   echo 'pre-commit: editor release contracts'

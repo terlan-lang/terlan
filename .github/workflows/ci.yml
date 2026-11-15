@@ -471,6 +471,10 @@ jobs:
         env:
           BASE_REVISION: ${{ needs.changes.outputs.validation-base }}
           TERLAN_HOSTED_SOURCE_PREFLIGHT: "1"
+          # The parallel dependency-audit job is the sole hosted owner. Local
+          # full hooks retain both audits, while compiler validation avoids a
+          # duplicate late invocation and does not require audit tooling.
+          TERLAN_HOSTED_DEPENDENCY_AUDIT: "1"
         run: |
           base="$BASE_REVISION"
           if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] ||

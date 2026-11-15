@@ -145,6 +145,12 @@ registry failures, and lockfile drift therefore stop locally before the
 corresponding release and scheduled security workflows run the identical
 target.
 
+Hosted changed-scope compiler validation delegates both dependency audits to
+the parallel `Locked dependency security audit` job. That job installs the
+pinned auditor and owns the identical Rust and Node targets once per workflow;
+the compiler job does not replay them after its expensive test lanes. Local
+full hooks never enable this delegation and continue to run both audits.
+
 Proof-owned changes generate fresh proof-lane and semantic-kernel reports and
 check the proof release baseline with the staged compiler before their focused
 proof tests. The baseline binds
