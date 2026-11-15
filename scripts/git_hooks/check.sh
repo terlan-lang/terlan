@@ -435,9 +435,6 @@ run_commands_test_lane() {
     tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 }
 run_rust_reports_lane() {
-  ensure_quality_tools
-  ensure_orchestrator
-  TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
   TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
   TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
   TERLAN_RUST_REPORT_CACHE_DIR="$CARGO_TARGET_DIR/validation-results/rust-reports" \
@@ -467,6 +464,26 @@ run_vm_contracts_lane() {
   echo "pre-commit: VM source contracts finished in ${elapsed}s"
   if (( elapsed > 60 )); then
     echo 'pre-commit: red flag: VM source contracts exceeded 60s' >&2
+  fi
+}
+
+core_contract_modules=(
+  Atom Bool Effect Float Functional GuardResult Int Option Ordering Result Secret Unit
+)
+run_core_contracts_lane() {
+  local module elapsed started=$SECONDS
+  local command=(test) coverage=()
+  for module in "${core_contract_modules[@]}"; do
+    command+=("std/core/${module}Test.terl")
+    coverage+=(--coverage-source "std/core/${module}.terl")
+  done
+  echo 'pre-commit: early core source contracts'
+  "$terlc" --cache-dir "$CARGO_TARGET_DIR/terlan-cache/core-contracts" \
+    "${command[@]}" --coverage "${coverage[@]}" --coverage-threshold 100
+  elapsed=$((SECONDS - started))
+  echo "pre-commit: core source contracts finished in ${elapsed}s"
+  if (( elapsed > 60 )); then
+    echo 'pre-commit: red flag: core source contracts exceeded 60s' >&2
   fi
 }
 
@@ -536,6 +553,16 @@ if lane_has vm-contracts; then
   done
   remaining_plan="${plan%.plan}.without-vm-contracts.plan"
   rg -vx 'vm-contracts' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
+fi
+if lane_has core-contracts; then
+  run_core_contracts_lane
+  for module in "${core_contract_modules[@]}"; do
+    printf 'std/core/%s.terl\nstd/core/%sTest.terl\n' "$module" "$module" \
+      >> "$prechecked_terlan"
+  done
+  remaining_plan="${plan%.plan}.without-core-contracts.plan"
+  rg -vx 'core-contracts' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 
@@ -730,7 +757,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|test-orchestrator)
+    core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

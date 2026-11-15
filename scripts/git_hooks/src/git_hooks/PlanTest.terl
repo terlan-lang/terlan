@@ -102,8 +102,23 @@ pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
 
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
-    Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "clippy", "native-ir", "phase"]
-        and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "vm-contracts", "clippy", "native-ir", "phase"]
+    Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"]
+        and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"]
+        and Plan.lanes(
+    [
+        "crates/terlan/src/compiler/native_ir/application/mutable_receivers.rs",
+        "docs/quality/RUST_DEPENDENCY_IMPACT.json",
+    ],
+) == [
+    "shell",
+    "vm-contracts",
+    "core-contracts",
+    "clippy",
+    "rust-reports",
+    "summaries",
+    "native-ir",
+    "phase",
+]
         and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "compiler-build", "rust-format", "negative-api", "rust-docs"]
         and Plan.lanes(
     [
@@ -115,7 +130,7 @@ pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
         "crates/terlan/src/compiler/native_ir/structured_case/lowering.rs",
         "",
     ],
-) == ["shell", "vm-contracts", "clippy", "native-ir", "phase"].
+) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
 
 @test
 pub runtime_changes_use_owned_tests(): Bool ->
@@ -217,11 +232,11 @@ pub hosted_compiler_validation_omits_parallel_source_duplicates(): Bool ->
         and Plan.hosted_preflight_lanes(["std/core/Int.terl"]) == ["negative-api", "release-manifest"]
         and Plan.hosted_lanes(["std/core/Int.terl"]) == ["shell", "proofs", "terlan"]
         and Plan.hosted_preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "negative-api", "rust-docs"]
-        and Plan.hosted_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "clippy", "native-ir", "phase"].
+        and Plan.hosted_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
 
 @test
 pub affected_tests_execute_before_broad_validation(): Bool ->
-    Plan.execution_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "native-ir", "phase", "clippy"]
+    Plan.execution_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "native-ir", "phase", "clippy"]
         and Plan.execution_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "commands-doctor", "clippy", "rust-reports"]
         and Plan.execution_lanes(["README.md"]) == ["shell"].
 
@@ -315,7 +330,16 @@ pub broad_rust_lanes_remove_their_narrow_duplicates(): Bool ->
         "crates/terlan/src/compiler/native_ir/collection_values.rs",
         "crates/terlan/src/compiler/typeck/import_maps.rs",
     ],
-) == ["shell", "compiler", "phase", "clippy", "rust-reports", "summaries"].
+) == [
+    "shell",
+    "vm-contracts",
+    "core-contracts",
+    "compiler",
+    "phase",
+    "clippy",
+    "rust-reports",
+    "summaries",
+].
 
 @test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->

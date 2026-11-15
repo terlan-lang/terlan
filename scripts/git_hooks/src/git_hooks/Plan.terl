@@ -393,7 +393,20 @@ has_non_native_lowering(paths: List[String]): Bool ->
     }.
 
 pub native_lowering(paths: List[String]): Bool ->
-    compiler(paths) and not has_non_native_lowering(paths).
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            path == "crates/terlan/src/compiler/native_ir.rs"
+                or String.starts_with(path, "crates/terlan/src/compiler/native_ir/")
+                or native_lowering(rest)
+    }.
+
+non_native_compiler(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            compiler([path]) and not native_lowering([path]) or non_native_compiler(rest)
+    }.
 
 /**
  * Cross-cutting native representation and VM dispatch changes can invalidate
@@ -405,6 +418,14 @@ pub vm_contracts(paths: List[String]): Bool ->
         or affected(paths, "crates/terlan/src/runtime/native_image/managed/", "")
         or affected(paths, "crates/terlan/src/runtime/vm/package_native_helper", "")
         or affected(paths, "crates/terlan/src/runtime/vm/pure_native/direct_backend/managed_values", "").
+
+/**
+ * Native lowering must execute the foundational core source contracts. Rust
+ * unit tests cannot prove that unchanged Terlan sources still form a native
+ * application with the candidate compiler.
+ */
+pub core_contracts(paths: List[String]): Bool ->
+    native_lowering(paths).
 
 pub phase(paths: List[String]): Bool ->
     syntax(paths) or compiler(paths) or affected(paths, "tests/fixtures/phase_contract/", "").
@@ -536,6 +557,7 @@ pub lanes(paths: List[String]): List[String] ->
         };
     let compiler_rust =
         if {
+            native_lowering(paths) and non_native_compiler(paths) -> ["compiler", "phase"];
             native_lowering(paths) -> ["native-ir", "phase"];
             compiler(paths) -> ["compiler", "phase"];
             syntax(paths) or build_support(paths) -> ["syntax", "phase"];
@@ -620,7 +642,12 @@ pub lanes(paths: List[String]): List[String] ->
             vm_contracts(paths) -> ["vm-contracts"];
             true -> List.new[String]()
         };
-    append(["shell" | native], append(vm, append(proved, contracted))).
+    let core =
+        if {
+            core_contracts(paths) -> ["core-contracts"];
+            true -> List.new[String]()
+        };
+    append(["shell" | native], append(vm, append(core, append(proved, contracted)))).
 
 /**
  * Removes exact generated-summary and workflow-syntax duplicates from the
@@ -691,6 +718,7 @@ test_lane_priority(): List[String] ->
     [
         "shell",
         "vm-contracts",
+        "core-contracts",
         "commands-test",
         "commands-clean",
         "commands-doctor",

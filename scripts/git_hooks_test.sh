@@ -596,6 +596,13 @@ grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-wor
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'TERLAN_RUST_REPORT_MODE:-check' \
   "$(dirname "$driver")/git_hooks/check.sh"
+reports_lane=$(sed -n '/^run_rust_reports_lane()/,/^}/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'TERLAN_RUST_REPORT_CACHE_DIR=' <<< "$reports_lane"
+if grep -Eq 'ensure_|TERLAN_HOOK_ARTIFACTS_PREBUILT' <<< "$reports_lane"; then
+  echo 'Rust report tools are provisioned before cache lookup' >&2
+  exit 1
+fi
 terlan_lane=$(sed -n '/^if lane_has terlan;/,/^fi$/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$terlan_lane"
@@ -940,8 +947,9 @@ grep -Fx 'quality-tools' "$temporary/prebuilt/owned-target/debug/.terlan-prebuil
 test "$(wc -l < "$temporary/prebuilt-cargo.calls")" = 1
 test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
 
-# Rust report reuse is bound to the exact staged tree and Rust toolchain.
-# Corruption and failed validation never grant reuse.
+# Rust report reuse is bound to each report's staged inputs and Rust toolchain.
+# Unrelated staged files reuse every report; corruption and failed validation
+# never grant reuse.
 mkdir -p "$temporary/report-cache/scripts/git_hooks" "$temporary/report-cache/bin" \
   "$temporary/report-cache/owned-target/debug"
 cp "$(dirname "$driver")/git_hooks/rust_reports.sh" \
@@ -1010,28 +1018,30 @@ run_report_cache() {
     TERLAN_RUST_REPORT_TERLC="$PWD/owned-target/debug/terlc" \
     TERLAN_RUST_REPORT_VM="$PWD/owned-target/debug/terlan-vm" \
     TERLAN_RUST_REPORT_CACHE_DIR="$PWD/owned-target/validation-results/rust-reports" \
-      bash scripts/git_hooks/rust_reports.sh
+      bash scripts/git_hooks/rust_reports.sh "$@"
   )
 }
 run_report_cache > "$temporary/report-cache-first.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 5
 run_report_cache > "$temporary/report-cache-reused.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 5
-grep -Fq 'Rust quality reports unchanged; reusing' "$temporary/report-cache-reused.log"
+test "$(grep -c 'Rust quality report unchanged:' "$temporary/report-cache-reused.log")" = 5
 receipt=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' -print -quit)
 printf 'corrupt\n' > "$receipt"
 run_report_cache > "$temporary/report-cache-corrupt.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 10
+test "$(grep -c '^vm:' "$report_cache_calls")" = 6
 printf 'second\n' > "$temporary/report-cache/input.txt"
 git -C "$temporary/report-cache" add input.txt
 run_report_cache > "$temporary/report-cache-tree.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 15
+test "$(grep -c '^vm:' "$report_cache_calls")" = 6
+test "$(grep -c 'Rust quality report unchanged:' "$temporary/report-cache-tree.log")" = 5
 printf '\n# changed toolchain executable\n' >> "$temporary/report-cache/bin/rustc"
 run_report_cache > "$temporary/report-cache-tool.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 20
-printf 'third\n' > "$temporary/report-cache/input.txt"
-git -C "$temporary/report-cache" add input.txt
+test "$(grep -c '^vm:' "$report_cache_calls")" = 11
+mkdir -p "$temporary/report-cache/src"
+printf 'pub fn value() {}\n' > "$temporary/report-cache/src/lib.rs"
+git -C "$temporary/report-cache" add src/lib.rs
 receipt_count=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' | wc -l)
 if REPORT_VM_FAILURE=49 run_report_cache > "$temporary/report-cache-failure.log" 2>&1; then
@@ -1039,10 +1049,17 @@ if REPORT_VM_FAILURE=49 run_report_cache > "$temporary/report-cache-failure.log"
 fi
 test "$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' | wc -l)" = "$receipt_count"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 12
 run_report_cache > "$temporary/report-cache-recovery.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 26
+test "$(grep -c '^vm:' "$report_cache_calls")" = 17
 TERLAN_TEST_FORCE_RERUN=1 run_report_cache > "$temporary/report-cache-forced.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 31
+test "$(grep -c '^vm:' "$report_cache_calls")" = 22
+receipt_count=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
+  -type f -name '*.passed' | wc -l)
+run_report_cache --record-dependency-impact > "$temporary/report-cache-record.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 27
+test "$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
+  -type f -name '*.passed' | wc -l)" = "$receipt_count"
 
 # Exact Cargo selection must stream compilation progress rather than holding all
 # output in memory until a long-running test process exits.

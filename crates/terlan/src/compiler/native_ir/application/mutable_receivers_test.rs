@@ -384,6 +384,63 @@ fn unresolved_receiver_call_uses_checked_receiver_type() {
 }
 
 #[test]
+fn generic_union_receiver_accepts_its_concrete_tuple_variant() {
+    let some = |value| {
+        CoreExpr::Tuple(vec![
+            CoreExpr::Atom("some".to_string()),
+            CoreExpr::Int(value),
+        ])
+    };
+    let mut expression = CoreExpr::RemoteCall {
+        type_args: Vec::new(),
+        module: "__receiver__".to_string(),
+        function: "compare".to_string(),
+        args: vec![some(1), some(2), CoreExpr::Var("compare_int".to_string())],
+    };
+    let targets = HashMap::from([(
+        ("compare".to_string(), 3),
+        vec![ReceiverTarget {
+            module: "std.core.Option".to_string(),
+            function: "compare".to_string(),
+            receiver: CoreType::Union(vec![
+                CoreType::AtomLiteral("none".to_string()),
+                CoreType::Tuple(vec![
+                    crate::terlan_typeck::CoreTupleTypeElem::Type(CoreType::AtomLiteral(
+                        "some".to_string(),
+                    )),
+                    crate::terlan_typeck::CoreTupleTypeElem::Field {
+                        name: "value".to_string(),
+                        ty: CoreType::Named("A".to_string()),
+                    },
+                ]),
+            ]),
+            result: Some(CoreType::Int),
+            public: true,
+            trait_fallback: false,
+            scope_preferred: false,
+            mutable: false,
+            command: false,
+            generic_params: vec!["A".to_string()],
+        }],
+    )]);
+
+    resolve_expr(
+        &mut expression,
+        "app.Support",
+        &HashMap::new(),
+        &HashMap::new(),
+        &targets,
+        &HashMap::new(),
+    )
+    .expect("resolve structural union receiver call");
+
+    assert!(matches!(
+        expression,
+        CoreExpr::Call { function, .. } if function == "std.core.Option.compare"
+    ));
+}
+
+#[test]
 fn intrinsic_receiver_does_not_require_provider_in_application_closure() {
     let iterator = CoreType::Apply {
         constructor: "Iterator".to_string(),

@@ -4,6 +4,10 @@ use std::collections::HashMap;
 
 use crate::terlan_typeck::{core_type_from_text, CoreExpr, CoreModule, CorePattern, CoreType};
 
+#[path = "mutable_receivers/type_match.rs"]
+mod type_match;
+pub(in crate::compiler::native_ir::application) use type_match::receiver_types_match;
+
 #[derive(Clone)]
 struct NominalType {
     params: Vec<String>,
@@ -746,76 +750,6 @@ fn receiver_matches(target: &ReceiverTarget, actual: &CoreType) -> bool {
         )
 }
 
-/// Compares receiver types after nominal qualification and opaque-type
-/// expansion have exposed equivalent short and structural names.
-pub(in crate::compiler::native_ir::application) fn receiver_types_match(
-    expected: &CoreType,
-    actual: &CoreType,
-) -> bool {
-    if expected == actual {
-        return true;
-    }
-    if let (
-        CoreType::Apply {
-            constructor: expected_constructor,
-            args: expected_args,
-        },
-        CoreType::Apply {
-            constructor: actual_constructor,
-            args: actual_args,
-        },
-    ) = (expected, actual)
-    {
-        return expected_args.len() == actual_args.len()
-            && receiver_nominal_names_match(expected_constructor, actual_constructor)
-            && expected_args
-                .iter()
-                .zip(actual_args)
-                .all(|(expected, actual)| receiver_types_match(expected, actual));
-    }
-    let (Some(expected), Some(actual)) = (nominal_name(expected), nominal_name(actual)) else {
-        return false;
-    };
-    receiver_nominal_names_match(expected, actual)
-}
-
-fn receiver_nominal_names_match(expected: &str, actual: &str) -> bool {
-    let expected = canonical_receiver_name(expected);
-    let actual = canonical_receiver_name(actual);
-    if expected == actual {
-        return true;
-    }
-    // `Map` and `Set` are the canonical ABI spellings for Terlan's built-in
-    // collections. They are identities, not unresolved short names. Treating
-    // them as leaf-name aliases makes an imported type such as
-    // `std.js.Map.Map[K, V]` collide with `std.collections.Map[K, V]` during
-    // receiver dispatch.
-    if matches!(expected, "Map" | "Set") || matches!(actual, "Map" | "Set") {
-        return false;
-    }
-    (!expected.contains('.') || !actual.contains('.'))
-        && expected.rsplit('.').next() == actual.rsplit('.').next()
-}
-
-fn canonical_receiver_name(name: &str) -> &str {
-    let Some((owner, leaf)) = name.rsplit_once('.') else {
-        return name;
-    };
-    if owner.rsplit('.').next() == Some(leaf) {
-        owner
-    } else {
-        name
-    }
-}
-
-/// Returns the declared name carried by a nominal or expanded structural type.
-fn nominal_name(ty: &CoreType) -> Option<&str> {
-    match ty {
-        CoreType::Named(name) | CoreType::Struct { name, .. } => Some(name.as_str()),
-        _ => None,
-    }
-}
-
 fn infer_core_type(
     expr: &CoreExpr,
     variables: &HashMap<String, CoreType>,
@@ -828,7 +762,7 @@ fn infer_core_type(
         CoreExpr::Var(name) if matches!(name.as_str(), "true" | "false") => Some(CoreType::Bool),
         CoreExpr::Var(name) => variables.get(name).cloned(),
         CoreExpr::Atom(value) if matches!(value.as_str(), "true" | "false") => Some(CoreType::Bool),
-        CoreExpr::Atom(_) => Some(CoreType::Atom),
+        CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
         CoreExpr::Int(_) => Some(CoreType::Int),
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),

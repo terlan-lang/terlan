@@ -50,6 +50,35 @@ pub value(command: Command): Int -> command.value.
     ]);
 }
 
+/// A concrete constructor variant retains the generic union receiver method
+/// selected by source typechecking after structural constructor lowering.
+#[test]
+fn imported_generic_union_variant_receiver_keeps_its_provider() {
+    super::super::super::source_constructor_test::check_sources(&[
+        r#"
+module option_receiver.Caller.
+import option_receiver.Library.{Some}.
+import option_receiver.Library.
+compare_int(left: Int, right: Int): Int -> left - right.
+pub check(): Bool -> Some(1).compare(Some(2), compare_int) < 0.
+"#,
+        r#"
+module option_receiver.Library.
+pub type None.
+pub type Some[T] = {Atom["some"], value: T}.
+pub type Option[T] = None | Some[T].
+pub (left: Option[A]) compare(right: Option[A], value_compare: (A, A) -> Int): Int ->
+    case left {
+        None -> 0;
+        Some(left_value) -> case right {
+            None -> 1;
+            Some(right_value) -> value_compare(left_value, right_value)
+        }
+    }.
+"#,
+    ]);
+}
+
 /// Receiver qualification precedes renaming same-arity free-function overloads.
 #[test]
 fn method_and_free_function_overloads_keep_their_distinct_receiver_targets() {
