@@ -141,18 +141,28 @@ run_terlc() {
   return "$status"
 }
 run_project_check() {
-  local root=$1 path relative; shift
+  local root=$1 path relative full_project=false; shift
   local paths=()
   if [[ -f "$root/terlan.toml" ]]; then
-    (cd "$root" && run_terlc check src)
     for path in "$@"; do
+      if [[ "$path" == "$root" ]]; then
+        full_project=true
+        continue
+      fi
       relative=${path#"$root"/}
       case "$relative" in
-        src/*|terlan.toml) ;;
+        terlan.toml) full_project=true ;;
         *) paths+=("$relative") ;;
       esac
     done
-    if [[ ${#paths[@]} -gt 0 ]]; then
+    if [[ "$full_project" == true || ${#paths[@]} -eq 0 ]]; then
+      # `terlc` owns manifest interpretation. Checking the project directory
+      # makes it resolve every configured `[build].source_roots` entry instead
+      # of teaching this hook that projects conventionally use `src`.
+      (cd "$root" && run_terlc check .)
+    else
+      # A selected-file batch still loads the complete manifest source graph,
+      # but checks each affected entry only once.
       (cd "$root" && run_terlc check "${paths[@]}")
     fi
   else

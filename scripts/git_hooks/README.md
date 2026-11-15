@@ -127,7 +127,9 @@ Changed Terlan sources and `.terls` entries are passed to one ordered
 `terlc check` batch. The compiler groups files by their owning project, prepares
 each source graph once, and checks only the changed modules and entries without
 linking native images. Bash only collects paths; Terlan owns project discovery,
-dependency resolution, and validation.
+dependency resolution, and validation. A changed `terlan.toml` checks the
+project directory itself, so `terlc` resolves every configured
+`[build].source_roots` entry; the hook never assumes a `src` layout.
 
 Commits that change Rust dependency or toolchain inputs run `make
 rust-security-audit-check` against the staged lockfile and the current RustSec

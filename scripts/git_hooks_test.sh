@@ -858,7 +858,7 @@ git -C "$temporary/terlan-lane" add .
       changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
     > "$temporary/terlan-lane.log" 2>&1
 )
-rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check src$" "$temporary/terlan-lane.calls"
+rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check src/Legacy.terl src/LegacyTest.terl src/SpecializedTest.terl$" "$temporary/terlan-lane.calls"
 rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} test src/DeclaredTest.terl src/SecondTest.terl --coverage --coverage-source src/Declared.terl --coverage-source src/Second.terl --coverage-threshold 100$" "$temporary/terlan-lane.calls"
 if rg -q -- ' build ' "$temporary/terlan-lane.calls"; then
   echo 'Hook linked a native image during source validation' >&2; exit 1
@@ -978,6 +978,38 @@ if (
 fi
 grep -Fq 'Invalid staged compiler input identity' \
   "$temporary/terlan-lane-invalid-identity.log"
+
+# Project checks must honor compiler-owned source roots instead of assuming
+# every package has a `src` directory.
+mkdir -p "$temporary/terlan-lane/manifest-only/tests"
+cat > "$temporary/terlan-lane/manifest-only/terlan.toml" <<'MANIFEST'
+[package]
+name = "manifest-only"
+version = "0.0.1"
+
+[build]
+source_roots = ["tests"]
+MANIFEST
+cat > "$temporary/terlan-lane/manifest-only/tests/Only.terl" <<'SOURCE'
+module fixture.Only.
+pub only(): Bool -> true.
+SOURCE
+printf '%s\n' manifest-only/tests/Only.terl > "$temporary/terlan-lane/manifest-only-changes.txt"
+git -C "$temporary/terlan-lane" add manifest-only
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$temporary/terlan-manifest-only.calls" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$temporary/terlan-lane-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$temporary/terlan-manifest-only-receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      manifest-only-changes.txt unused "$PWD/terlc" false /dev/null /dev/null \
+    > "$temporary/terlan-manifest-only.log" 2>&1
+)
+rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check tests/Only.terl$" \
+  "$temporary/terlan-manifest-only.calls"
+if rg -q -- 'check src($| )' "$temporary/terlan-manifest-only.calls"; then
+  echo 'Hook ignored manifest source roots and assumed src' >&2; exit 1
+fi
 
 # A test-only edit in one standard-library project must not invalidate the
 # receipt for an unrelated project. Shared production changes still invalidate
