@@ -875,8 +875,8 @@ git -C "$temporary/terlan-receipt-scope" add std/test/Test.terl
 run_receipt_scope
 test "$(wc -l < "$temporary/terlan-receipt-scope.calls")" = 5
 
-# Fast package tests run before compiler self-validation even when the changed
-# path inventory lists the compiler first.
+# Changed compiler tests run before downstream package tests even when both
+# appear in the same staged path inventory.
 mkdir -p "$temporary/terlan-order/compiler/self_host" \
   "$temporary/terlan-order/std/native" \
   "$temporary/terlan-order/scripts/git_hooks"
@@ -914,9 +914,9 @@ git -C "$temporary/terlan-order" add .
       changes.txt unused "$PWD/terlc" false /dev/null /dev/null
 )
 test "$(sed -n '1p' "$temporary/terlan-order.calls")" = \
-  'test std/native/FastTest.terl --coverage --coverage-source std/native/Fast.terl --coverage-threshold 100'
-test "$(sed -n '2p' "$temporary/terlan-order.calls")" = \
   'test compiler/self_host/SlowTest.terl --coverage --coverage-source compiler/self_host/Slow.terl --coverage-threshold 100'
+test "$(sed -n '2p' "$temporary/terlan-order.calls")" = \
+  'test std/native/FastTest.terl --coverage --coverage-source std/native/Fast.terl --coverage-threshold 100'
 
 # Prebuilt workspace binaries must honor the hook's isolated Cargo target.
 # A relative target/debug path points at the staged checkout instead and made

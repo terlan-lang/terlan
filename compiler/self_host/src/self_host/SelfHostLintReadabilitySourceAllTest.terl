@@ -1,14 +1,17 @@
-/** Integration contracts for source-owned readability diagnostics. */
+/**
+ * Integration contracts for source-owned readability diagnostics.
+ */
 module self_host.SelfHostLintReadabilitySourceAllTest.
 
 import self_host.SelfHostLintReadabilitySourceAll.
 
 @test
 pub emits_source_rules_in_global_registry_order(): Bool ->
-    let values = SelfHostLintReadabilitySourceAll.diagnostics(
-        "Api.terl",
-        "// value.\nvalue;\npub undocumented(): Int -> 1.\n/**\n*bad spacing\n */\nif { ready and valid or forced -> value\n",
-    );
+    let values =
+        SelfHostLintReadabilitySourceAll.diagnostics(
+            "Api.terl",
+            "// value.\nvalue;\npub undocumented(): Int -> 1.\n/**\n*bad spacing\n */\nif { ready and valid or forced -> value\n",
+        );
     case values {
         [comment, docs, spacing, branch] ->
             comment.rule_id == "TL0005"
@@ -29,8 +32,18 @@ pub public_docs_path_exemption_does_not_suppress_other_source_rules(): Bool ->
     }.
 
 @test
+pub inline_function_arrows_do_not_hide_branch_conditions(): Bool ->
+    case SelfHostLintReadabilitySourceAll.diagnostics(
+        "ApiTest.terl",
+        "branch(a: Bool, b: Bool, c: Bool): Bool -> if { a and b or c -> true; _ -> false }.\n",
+    ) {
+        [branch] -> branch.rule_id == "TL0008" and branch.line == 1;
+        _ -> false
+    }.
+
+@test
 pub clean_source_has_no_readability_diagnostics(): Bool ->
     SelfHostLintReadabilitySourceAll.diagnostics(
-        "Api.terl",
-        "/** Returns one. */\npub one(): Int ->\n    if { true -> 1; false -> 0 }.\n",
-    ) == [].
+    "Api.terl",
+    "/** Returns one. */\npub one(): Int ->\n    if { true -> 1; false -> 0 }.\n",
+) == [].

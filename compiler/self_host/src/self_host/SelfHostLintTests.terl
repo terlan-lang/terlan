@@ -1,4 +1,6 @@
-/** Normalized test lint authority for TL0401-TL0404. */
+/**
+ * Normalized test lint authority for TL0401-TL0404.
+ */
 module self_host.SelfHostLintTests.
 
 import std.core.String.
@@ -10,7 +12,7 @@ pub struct FakeTestFinding {
 
 pub constructor FakeTestFinding {
     (start_byte: Int, message: String): FakeTestFinding ->
-        FakeTestFinding { start_byte: start_byte, message: message }
+        FakeTestFinding {start_byte: start_byte, message: message}
 }.
 
 pub struct TestDeclaration {
@@ -62,7 +64,10 @@ pub constructor TestDiagnostic {
 }.
 
 last(values: List[String], value: String): String ->
-    case values { [] -> value; [next | rest] -> last(rest, next) }.
+    case values {
+        [] -> value;
+        [next | rest] -> last(rest, next)
+    }.
 
 pub test_source_path(path: String): Bool ->
     let filename = last(String.split(path, "/"), "");
@@ -72,6 +77,7 @@ pub declaration_only_name(name: String): Bool ->
     name == "surface_is_declared"
         or name == "generated_surface_is_declared"
         or name == "is_declared"
+        or String.contains(name, "surface_is_declared")
         or String.ends_with(name, "_is_declared")
         or String.ends_with(name, "_surface_is_declared").
 
@@ -84,28 +90,23 @@ pub property_candidate_name(name: String): Bool ->
         or String.contains(name, "deserialize")
         or String.contains(name, "serialization")
         or String.contains(name, "invariant")
-        or (String.contains(name, "parse") and String.contains(name, "to_string"))
-        or (
-            String.contains(name, "ordering")
-                and (
-                    String.contains(name, "law")
-                        or String.contains(name, "transitive")
-                        or String.contains(name, "antisymmetric")
-                        or String.contains(name, "reflexive")
-                        or String.contains(name, "total")
-                )
-        ).
+        or String.contains(name, "parse") and String.contains(name, "to_string")
+        or String.contains(name, "ordering")
+    and (String.contains(name, "law")
+    or String.contains(name, "transitive")
+    or String.contains(name, "antisymmetric")
+    or String.contains(name, "reflexive")
+    or String.contains(name, "total")).
 
 pub property_runner(name: String, remote: String): Bool ->
-    (
-        name == "for_all"
-            or name == "for_all_limit"
-            or name == "report"
-            or name == "run_report"
-            or name == "step_report"
-            or name == "shrink_failure"
-            or name == "shrink_report"
-    ) and (remote == "" or remote == "std.test.Gen").
+    (name == "for_all"
+    or name == "for_all_limit"
+    or name == "report"
+    or name == "run_report"
+    or name == "step_report"
+    or name == "shrink_failure"
+    or name == "shrink_report")
+        and (remote == "" or remote == "std.test.Gen").
 
 struct SourcePosition {
     line: Int,
@@ -114,14 +115,13 @@ struct SourcePosition {
 
 constructor SourcePosition {
     (line: Int, column: Int): SourcePosition ->
-        SourcePosition { line: line, column: column }
+        SourcePosition {line: line, column: column}
 }.
 
 position_at(source: String, target: Int, offset: Int, line: Int, column: Int): SourcePosition ->
     if {
         offset >= target or offset >= String.byte_size(source) -> SourcePosition(line, column);
-        String.utf8_byte_at(source, offset) == 10 ->
-            position_at(source, target, offset + 1, line + 1, 1);
+        String.utf8_byte_at(source, offset) == 10 -> position_at(source, target, offset + 1, line + 1, 1);
         true -> position_at(source, target, offset + 1, line, column + 1)
     }.
 
@@ -136,12 +136,21 @@ diagnostic(
 ): TestDiagnostic ->
     let position = position_at(source, offset, 0, 1, 1);
     TestDiagnostic(
-        path, position.line, position.column, rule_id, rule_name,
-        severity, message, false,
+        path,
+        position.line,
+        position.column,
+        rule_id,
+        rule_name,
+        severity,
+        message,
+        false,
     ).
 
 append[T](left: List[T], right: List[T]): List[T] ->
-    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
 
 fake_diagnostics(
     source: String,
@@ -150,15 +159,8 @@ fake_diagnostics(
 ): List[TestDiagnostic] ->
     case findings {
         [] -> [];
-        [value | rest] -> [diagnostic(
-            source,
-            path,
-            value.start_byte,
-            "TL0401",
-            "tests.fake",
-            "error",
-            value.message,
-        ) | fake_diagnostics(source, path, rest)]
+        [value | rest] ->
+            [diagnostic(source, path, value.start_byte, "TL0401", "tests.fake", "error", value.message) | fake_diagnostics(source, path, rest)]
     }.
 
 declaration_diagnostics(
@@ -166,38 +168,66 @@ declaration_diagnostics(
     path: String,
     value: TestDeclaration,
 ): List[TestDiagnostic] ->
-    let name_values = if {
-        declaration_only_name(value.name) -> [diagnostic(
-            source, path, value.start_byte,
-            "TL0401", "tests.fake", "error",
-            "declaration-only test name does not prove behavior",
-        )];
-        true -> []
-    };
-    let volume_values = if {
-        value.assertion_count > 3 -> [diagnostic(
-            source, path, value.start_byte,
-            "TL0402", "tests.assertion-volume", "suggestion",
-            "test has too many assertions; split it or use a table-driven test",
-        )];
-        true -> []
-    };
-    let table_values = if {
-        value.assert_equal_count >= 3 -> [diagnostic(
-            source, path, value.start_byte,
-            "TL0403", "tests.table-driven-candidate", "suggestion",
-            "repeated assert_equal rows should move to a table-driven test",
-        )];
-        true -> []
-    };
-    let property_values = if {
-        property_candidate_name(value.name) and not value.has_property_runner -> [diagnostic(
-            source, path, value.start_byte,
-            "TL0404", "tests.property-candidate", "suggestion",
-            "property-shaped test should use std.test.Gen property runners",
-        )];
-        true -> []
-    };
+    let name_values =
+        if {
+            declaration_only_name(value.name) -> [
+                diagnostic(
+                    source,
+                    path,
+                    value.start_byte,
+                    "TL0401",
+                    "tests.fake",
+                    "error",
+                    "declaration-only test name does not prove behavior",
+                ),
+            ];
+            true -> []
+        };
+    let volume_values =
+        if {
+            value.assertion_count > 3 -> [
+                diagnostic(
+                    source,
+                    path,
+                    value.start_byte,
+                    "TL0402",
+                    "tests.assertion-volume",
+                    "suggestion",
+                    "test has too many assertions; split it or use a table-driven test",
+                ),
+            ];
+            true -> []
+        };
+    let table_values =
+        if {
+            value.assert_equal_count >= 3 -> [
+                diagnostic(
+                    source,
+                    path,
+                    value.start_byte,
+                    "TL0403",
+                    "tests.table-driven-candidate",
+                    "suggestion",
+                    "repeated assert_equal rows should move to a table-driven test",
+                ),
+            ];
+            true -> []
+        };
+    let property_values =
+        if {
+            property_candidate_name(value.name) and not value.has_property_runner -> [
+                diagnostic(
+                    source,
+                    path,
+                    value.start_byte,
+                    "TL0404",
+                    "tests.property-candidate",
+                    "suggestion",
+                    "property-shaped test should use std.test.Gen property runners",
+                ),
+            ];
+            true -> []
+        };
     append(
         name_values,
         append(
@@ -226,11 +256,16 @@ declarations_at(
             }
     }.
 
-/** Emits normalized test diagnostics only for `*Test.terl[i]` sources. */
+/**
+ * Emits normalized test diagnostics only for `*Test.terl[i]` sources.
+ */
 @pure
 pub diagnostics(
     path: String,
     source: String,
     declarations: List[TestDeclaration],
 ): List[TestDiagnostic] ->
-    if { test_source_path(path) -> declarations_at(source, path, declarations); true -> [] }.
+    if {
+        test_source_path(path) -> declarations_at(source, path, declarations);
+        true -> []
+    }.

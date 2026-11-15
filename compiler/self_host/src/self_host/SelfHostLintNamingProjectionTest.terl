@@ -9,7 +9,7 @@ import self_host.{SelfHostLintNamingProjection, SelfHostToolingDocument}.
 pub projects_callable_type_and_binding_subjects(): Bool ->
     let document =
         SelfHostToolingDocument.build(
-            "module sample.\ntype Value = Int.\nrender(input_value: Value): Value -> case input_value { {item_id, label} -> item_id }.\n",
+            "module sample.\ntype Value = Int.\nrender(input_value: Value): Value -> let {item_id, label} = input_value; item_id.\n",
         );
     case SelfHostLintNamingProjection.subjects(document) {
         [type_name, function_name, parameter, item_id, label] ->
@@ -43,6 +43,6 @@ pub emits_all_naming_rules_in_family_order(): Bool ->
 pub accepts_canonical_names_without_diagnostics(): Bool ->
     let document =
         SelfHostToolingDocument.build(
-            "module sample.\nstruct RenderValue { item_id: Int }.\nrender_value(input_value: RenderValue): Int -> let item_count = 1; item_count.\n",
+            "module sample.\nstruct RenderValue { item_id: Int }.\ncount_items(input_value: RenderValue): Int -> let item_count = 1; item_count.\n",
         );
     SelfHostLintNamingProjection.diagnostics("Sample.terl", document) == [].

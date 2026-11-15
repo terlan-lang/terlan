@@ -248,6 +248,47 @@ pub parenthesized_semicolon_sequence_is_preserved(): Bool ->
         and second.kind == "call".
 
 @test
+pub call_argument_lambda_accepts_irrefutable_let_body(): Bool ->
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("atom", "values", 0, 6),
+                token(".", ".", 6, 7),
+                token("atom", "each", 7, 11),
+                token("(", "(", 11, 12),
+                token("lambda-(", "(", 12, 13),
+                token("atom", "item", 13, 17),
+                token(")", ")", 17, 18),
+                token("->", "->", 19, 21),
+                token("let", "let", 22, 25),
+                token("atom", "doubled", 26, 33),
+                token("=", "=", 34, 35),
+                token("atom", "item", 36, 40),
+                token("+", "+", 41, 42),
+                token("atom", "item", 43, 47),
+                token("lambda-sequence-semicolon", ";", 47, 48),
+                token("atom", "consume", 49, 56),
+                token("(", "(", 56, 57),
+                token("atom", "doubled", 57, 64),
+                token(")", ")", 64, 65),
+                token(")", ")", 65, 66),
+            ],
+        );
+    when {
+        Some(call) <- parsed.node;
+        [_receiver, arguments] <- call.children;
+        [lambda] <- arguments.children;
+        [_parameters, body] <- lambda.children
+    } else {
+        _ -> false
+    };
+    parsed.valid
+        and parsed.rest == []
+        and call.kind == "call"
+        and lambda.kind == "lambda"
+        and body.kind == "let".
+
+@test
 pub private_postfix_field_preserves_marker(): Bool ->
     let parsed =
         ProjectedExpressionParser.parse(
@@ -548,6 +589,35 @@ pub structured_let_accepts_irrefutable_product_pattern(): Bool ->
                 token("var", "pair", 20, 24),
                 token(";", ";", 24, 25),
                 token("var", "left", 26, 30),
+            ],
+        );
+    case parsed.node {
+        Some(value) ->
+            parsed.valid
+                and parsed.rest == []
+                and value.kind == "let"
+                and case value.children {
+    [pattern, _bound, _continuation] -> pattern.kind == "tuple-pattern";
+    _ -> false
+};
+        None -> false
+    }.
+
+@test
+pub projected_let_accepts_irrefutable_product_pattern(): Bool ->
+    let parsed =
+        ProjectedExpressionParser.parse(
+            [
+                token("let", "let", 0, 3),
+                token("{", "{", 4, 5),
+                token("atom", "left", 5, 9),
+                token(",", ",", 9, 10),
+                token("atom", "right", 11, 16),
+                token("}", "}", 16, 17),
+                token("=", "=", 18, 19),
+                token("atom", "pair", 20, 24),
+                token(";", ";", 24, 25),
+                token("atom", "left", 26, 30),
             ],
         );
     case parsed.node {

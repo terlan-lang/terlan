@@ -187,7 +187,7 @@ leaf_raw_kind(token: ProjectedCanonicalToken): String ->
 @pure
 leaf_variable_kind(token: ProjectedCanonicalToken): String ->
     if {
-        token.terminal == "var" -> "identifier";
+        token.terminal == "atom" or token.terminal == "var" -> "identifier";
         true -> leaf_constructor_kind(token)
     }.
 
@@ -939,12 +939,23 @@ parse_argument_item(values: List[ProjectedCanonicalToken]): ProjectedExpressionR
     }.
 
 @pure
+named_argument_prefix(values: List[ProjectedCanonicalToken]): Bool ->
+    case values {
+        [name] -> name.terminal == "atom" or name.terminal == "var";
+        _ -> false
+    }.
+
+@pure
+named_argument_assignment(assignment: TokenPartition): Bool ->
+    assignment.found and named_argument_prefix(assignment.left).
+
+@pure
 parse_argument_value(
     item: TokenPartition,
     assignment: TokenPartition,
 ): ProjectedExpressionResult ->
     if {
-        assignment.found -> parse(assignment.right);
+        named_argument_assignment(assignment) -> parse(assignment.right);
         true -> parse(item.left)
     }.
 
@@ -969,10 +980,7 @@ build_argument_result(
 ): ProjectedExpressionResult ->
     let argument = argument_node(assignment, value);
     ProjectedExpressionResult(
-        parsed.valid
-            and parsed.rest == []
-            and following.valid
-            and argument.kind != "invalid-named-argument",
+        parsed.valid and parsed.rest == [] and following.valid,
         Some(
             node(
                 "call-arguments",
@@ -992,7 +1000,7 @@ argument_node(
     value: ProjectedExpressionNode,
 ): ProjectedExpressionNode ->
     if {
-        assignment.found -> named_argument_node(assignment.left, value);
+        named_argument_assignment(assignment) -> named_argument_node(assignment.left, value);
         true -> value
     }.
 
@@ -1002,24 +1010,9 @@ named_argument_node(
     value: ProjectedExpressionNode,
 ): ProjectedExpressionNode ->
     case values {
-        [name | rest] -> named_argument_tail(name, rest, value);
-        [] -> invalid_named_argument(value)
+        [name] -> node("named-argument", name.text, name.start_byte, value.end_byte, [value]);
+        _ -> value
     }.
-
-@pure
-named_argument_tail(
-    name: ProjectedCanonicalToken,
-    rest: List[ProjectedCanonicalToken],
-    value: ProjectedExpressionNode,
-): ProjectedExpressionNode ->
-    case rest {
-        [] -> node("named-argument", name.text, name.start_byte, value.end_byte, [value]);
-        [_extra | _tail] -> invalid_named_argument(value)
-    }.
-
-@pure
-invalid_named_argument(value: ProjectedExpressionNode): ProjectedExpressionNode ->
-    node("invalid-named-argument", "", value.start_byte, value.end_byte, [value]).
 
 @pure
 argument_message(parsed: ProjectedExpressionResult, following: String): String ->
@@ -1395,6 +1388,87 @@ build_lambda_expression(
     ).
 
 @pure
+irrefutable_let_children(values: List[ProjectedExpressionNode]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> irrefutable_let_pattern(value) and irrefutable_let_children(rest)
+    }.
+
+@pure
+irrefutable_let_pattern(value: ProjectedExpressionNode): Bool ->
+    if {
+        value.kind == "binding-pattern" or value.kind == "wildcard-pattern" -> true;
+        value.kind == "tuple-pattern" -> irrefutable_let_children(value.children);
+        true -> false
+    }.
+
+@pure
+parse_let_primary(
+    keyword: ProjectedCanonicalToken,
+    values: List[ProjectedCanonicalToken],
+): ProjectedExpressionResult ->
+    let assignment = partition(values, "=");
+    let separator = partition(assignment.right, ";");
+    let pattern = ProjectedPatternParser.parse(assignment.left);
+    let bound = parse(separator.left);
+    let continuation = parse(separator.right);
+    case {pattern.node, bound.node, continuation.node} {
+        {Some(pattern_node), Some(bound_node), Some(continuation_node)} ->
+            build_let_primary(
+                keyword,
+                assignment,
+                separator,
+                pattern,
+                pattern_node,
+                bound,
+                bound_node,
+                continuation,
+                continuation_node,
+            );
+        _ -> ProjectedExpressionResult(false, None, [], "let expression is invalid")
+    }.
+
+@pure
+build_let_primary(
+    keyword: ProjectedCanonicalToken,
+    assignment: TokenPartition,
+    separator: TokenPartition,
+    pattern: ProjectedExpressionResult,
+    pattern_node: ProjectedExpressionNode,
+    bound: ProjectedExpressionResult,
+    bound_node: ProjectedExpressionNode,
+    continuation: ProjectedExpressionResult,
+    continuation_node: ProjectedExpressionNode,
+): ProjectedExpressionResult ->
+    let valid =
+        assignment.found
+            and separator.found
+            and pattern.valid
+            and pattern.rest == []
+            and irrefutable_let_pattern(pattern_node)
+            and bound.valid
+            and bound.rest == []
+            and continuation.valid
+            and continuation.rest == [];
+    ProjectedExpressionResult(
+        valid,
+        Some(
+            node(
+                "let",
+                "let",
+                keyword.start_byte,
+                continuation_node.end_byte,
+                [pattern_node, bound_node, continuation_node],
+            ),
+        ),
+        continuation.rest,
+        if {
+            valid -> "";
+            true -> "let expression is invalid"
+        },
+    ).
+
+@pure
 parse_primary(values: List[ProjectedCanonicalToken]): ProjectedExpressionResult ->
     case values {
         [] -> ProjectedExpressionResult(false, None, values, "expression is missing a primary");
@@ -1407,6 +1481,7 @@ parse_primary_first(
     rest: List[ProjectedCanonicalToken],
 ): ProjectedExpressionResult ->
     if {
+        first.text == "let" -> parse_let_primary(first, rest);
         first.terminal == "lambda-(" -> parse_lambda_primary(first, rest);
         first.text == "if" -> parse_if_primary(first, rest);
         true -> parse_primary_case(first, rest)

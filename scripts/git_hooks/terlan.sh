@@ -216,15 +216,16 @@ run_queued_terlan_tests() {
     for previous in "${roots[@]}"; do [[ "$previous" == "$root" ]] && continue 2; done
     roots+=("$root")
   done
-  # Cheap package failures must surface before compiler self-validation. The
-  # latter can take minutes even when a later stdlib unit fails in seconds.
-  for priority in fast compiler; do
+  # Changed compiler contracts can invalidate every downstream package. Run
+  # their focused owners first so a compiler failure cannot hide behind a
+  # sequence of otherwise-cheap package tests.
+  for priority in compiler package; do
     for root in "${roots[@]}"; do
       case "$root" in
         compiler/self_host|compiler/semantic)
           [[ "$priority" == compiler ]] || continue
           ;;
-        *) [[ "$priority" == fast ]] || continue ;;
+        *) [[ "$priority" == package ]] || continue ;;
       esac
       run_queued_test_root "$root"
     done
