@@ -130,6 +130,12 @@ if [[ "$compiler_build" == true ]]; then
 else
   echo 'pre-commit: reuse compiler; no compiler inputs changed'
 fi
+compiler_validation_identity=$compiler_input_key
+if [[ "$terlc" != "$target_terlc" ]]; then
+  # A compatible external compiler may bootstrap planning, but its validation
+  # evidence is not interchangeable with the staged candidate compiler.
+  compiler_validation_identity=$(git hash-object "$terlc")
+fi
 sed -n 's/^preflight://p' "$raw_plan" > "$preflight_plan"
 sed -n 's/^specialized-test://p' "$raw_plan" > "$specialized_tests"
 rg -v '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
@@ -424,7 +430,7 @@ ensure_orchestrator() {
 ensure_native_test_companions() {
   if [[ "$native_test_companions_ready" == false ]]; then
     echo 'pre-commit: build required native test companions once'
-    cargo build --locked -p terlan --bin terlan-native-worker
+    cargo build --locked -p terlan --bin terlan-native-worker --features quality-tools
     native_test_companions_ready=true
   fi
   export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"
@@ -534,12 +540,53 @@ run_affected_rust_lane() {
   esac
 }
 
+rust_lane_receipt_schema=terlan-affected-rust-lane-v1
+rust_lane_receipt_dir="$CARGO_TARGET_DIR/validation-results/rust-lanes"
+rust_lane_key() {
+  local lane=$1
+  {
+    printf '%s\n%s\n' "$rust_lane_receipt_schema" "$lane"
+    git ls-files -s -z -- . \
+      ':(exclude)docs/quality/RUST_DEPENDENCY_IMPACT.json'
+    printf '%s\n%s\n' \
+      "CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-<default>}" \
+      "CARGO_PROFILE_DEV_DEBUG=${CARGO_PROFILE_DEV_DEBUG:-<default>}"
+    cargo -Vv
+    rustc -Vv
+  } | git hash-object --stdin
+}
+run_cached_affected_rust_lane() {
+  local lane=$1 key receipt temporary status
+  key=$(rust_lane_key "$lane")
+  receipt="$rust_lane_receipt_dir/$lane-$key.passed"
+  if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 \
+    && -f "$receipt" \
+    && $(wc -l < "$receipt") == 2 \
+    && $(sed -n '1p' "$receipt") == "$rust_lane_receipt_schema" \
+    && $(sed -n '2p' "$receipt") == "$key" ]]; then
+    echo "pre-commit: reuse affected Rust lane $lane ($key)"
+    return 0
+  fi
+  if run_affected_rust_lane "$lane"; then status=0; else status=$?; fi
+  if (( status != 0 )); then return "$status"; fi
+  test ! -L "$rust_lane_receipt_dir"
+  mkdir -p "$rust_lane_receipt_dir"
+  temporary=$(mktemp "$rust_lane_receipt_dir/.rust-lane.XXXXXX")
+  printf '%s\n%s\n' "$rust_lane_receipt_schema" "$key" > "$temporary"
+  mv "$temporary" "$receipt"
+}
+
 # Derived Rust inventories are cheap structural inputs compared with affected
 # test suites. Reject their drift before compiling or executing those suites so
 # a stale generated report cannot invalidate a long compiler validation run.
 if lane_has rust-reports; then
   echo 'pre-commit: early Rust report drift'
   run_rust_reports_lane
+  if [[ ${TERLAN_RUST_REPORT_MODE:-check} == --record-dependency-impact ]] \
+    && ! git diff --quiet -- docs/quality/RUST_DEPENDENCY_IMPACT.json; then
+    echo 'pre-commit: dependency-impact report regenerated; return it for staging'
+    exit 0
+  fi
 fi
 
 # Native representation changes are cross-cutting: validate all bounded VM
@@ -583,6 +630,7 @@ if lane_has terlan; then
   # checkout behaves exactly like a developer checkout with cached binaries.
   ensure_native_test_companions
   TERLAN_HOOK_TERLAN_CACHE_DIR="$CARGO_TARGET_DIR/terlan-cache" \
+    TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity" \
     bash scripts/git_hooks/terlan.sh \
     "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan" \
     "$specialized_tests"
@@ -598,7 +646,7 @@ fi
 remaining_plan="${plan%.plan}.remaining-plan"
 : > "$remaining_plan"
 while IFS= read -r lane; do
-  if run_affected_rust_lane "$lane"; then
+  if run_cached_affected_rust_lane "$lane"; then
     echo "pre-commit: early affected Rust lane passed: $lane"
   else
     lane_status=$?

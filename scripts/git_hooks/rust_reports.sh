@@ -118,17 +118,22 @@ write_receipt() {
   mv "$temporary_receipt" "$receipt"
 }
 
-if [[ "$mode" == check && -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
+if [[ -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
   cache_enabled=true
   cache_dir=$TERLAN_RUST_REPORT_CACHE_DIR
   test ! -L "$cache_dir"
   mkdir -p "$cache_dir"
   for check in "${checks[@]}"; do
-    key=$(report_input_key "$check")
-    receipt="$cache_dir/$check/$key.passed"
+    cache_check=$check
+    if [[ "$cache_check" == dependency-impact-record ]]; then
+      cache_check=dependency-impact-check
+    fi
+    key=$(report_input_key "$cache_check")
+    receipt="$cache_dir/$cache_check/$key.passed"
     cache_keys[$check]=$key
     cache_receipts[$check]=$receipt
-    if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 ]] \
+    if [[ "$check" != dependency-impact-record \
+      && ${TERLAN_TEST_FORCE_RERUN:-0} != 1 ]] \
       && receipt_is_valid "$receipt" "$key"; then
       echo "Rust quality report unchanged: $check; reusing $key"
     else
@@ -152,9 +157,13 @@ needs_check() {
 }
 
 need_boundary=false
+need_quality=false
 need_metadata=false
 if needs_check api-boundary-check || needs_check build-graph-boundary-check; then
   need_boundary=true
+fi
+if [[ "$need_boundary" == true ]] || needs_check "$dependency_impact_command"; then
+  need_quality=true
 fi
 if needs_check "$dependency_impact_command" || needs_check build-graph-boundary-check; then
   need_metadata=true
@@ -167,14 +176,16 @@ if [[ ${TERLAN_HOOK_ARTIFACTS_PREBUILT:-0} != 1 ]]; then
   if (( ${#packages[@]} > 0 )); then
     cargo build --locked "${packages[@]}"
   fi
-  if [[ "$need_boundary" == true ]]; then
+  if [[ "$need_quality" == true ]]; then
     cargo build --locked -p terlan --bin terlan-quality --features quality-tools
   fi
 elif [[ "$need_boundary" == true ]]; then
   cargo build --locked -p terlan-rust-boundary-audit
 fi
-if [[ "$need_boundary" == true ]]; then
+if [[ "$need_quality" == true ]]; then
   "$quality" rust-quality
+fi
+if [[ "$need_boundary" == true ]]; then
   mkdir -p target/quality
   "$boundary" . \
     --api-boundary-input target/quality/rust-api-boundary-input.tsv \
@@ -187,13 +198,24 @@ if [[ "$need_metadata" == true ]]; then
   "$orchestrator" --cargo-metadata \
     "$PWD/target/quality/rust-cargo-metadata.json" -- cargo --locked
 fi
-output=target/git-hooks-rust-quality
-"$terlc" build scripts/self_validation/rust_quality/scripts/RustQuality.terls \
+output=${TERLAN_RUST_REPORT_OUTPUT_DIR:-"$CARGO_TARGET_DIR/terlan-validators/rust-quality"}
+output_parent=$(dirname "$output")
+test ! -L "$output_parent"
+mkdir -p "$output_parent"
+output_lock="$output_parent/rust-quality.lock"
+test ! -L "$output_lock"
+exec 9>>"$output_lock"
+flock --exclusive 9
+# This validator is unchanged across most commits. Keep its compiler-owned
+# summaries outside the disposable staged checkout so exact modules survive a
+# retry; the compiler still validates every source and dependency identity.
+"$terlc" build --incremental \
+  scripts/self_validation/rust_quality/scripts/RustQuality.terls \
   --target terlan-vm --out-dir "$output"
 for check in "${checks_to_run[@]}"; do
   TERLAN_RUST_QUALITY_ROOT="$PWD" "$vm" run "$output/vm/scripts_RustQuality.tvm" \
     --script-eval -- "$check"
-  if [[ "$cache_enabled" == true ]]; then
+  if [[ "$cache_enabled" == true && "$check" != dependency-impact-record ]]; then
     write_receipt "$check"
   fi
 done

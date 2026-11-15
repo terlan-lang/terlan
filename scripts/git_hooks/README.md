@@ -252,9 +252,22 @@ summary generation batches the independent CSS property modules separately.
 Successful Rust report checks are reused only for an exact staged Git tree,
 which owns all report producers and validators, plus the selected Cargo and
 Rust compiler identities and executable bytes.
+Recording a regenerated dependency-impact report preserves the four independent
+report receipts. After the generated report is staged, the retry executes only
+its dependency-impact check rather than rebuilding every unchanged report.
+The compiled Terlan report validator keeps its incremental summaries in the
+hook-owned Cargo target rather than the disposable staged checkout. Its modules
+therefore survive retries while `terlc` still validates their source and
+dependency identities.
 The hook stores a two-line, content-addressed receipt outside the disposable
 snapshot and rejects malformed receipts. A failed check never seals a receipt;
 set `TERLAN_TEST_FORCE_RERUN=1` to deliberately repeat an identical result.
+
+Successful affected Rust lanes also receive content-addressed receipts. Their
+input includes the exact staged tree, lane, build environment, and Rust
+toolchain, except for the dependency-impact report that the preceding producer
+may regenerate. A staged retry therefore does not repeat an already-passing
+compiler suite merely because that generated report was added.
 
 Owning workflow, hook-policy, and release-contract gates record the Terlan
 sources they already compiled. The generic Terlan lane treats that record as
@@ -270,6 +283,11 @@ rerun. Set `TERLAN_TEST_FORCE_RERUN=1` to bypass them deliberately.
 Project compiler caches have a separate compiler-and-project identity so a
 small source or test edit reuses unchanged module artifacts without granting a
 validation pass. Exact-content receipts remain the only source of gate reuse.
+The admitted candidate compiler identity is derived from its staged inputs
+rather than its current executable bytes. Cargo may relink the same compiler
+sources while switching feature profiles; this no longer invalidates successful
+Terlan units. A merely compatible external bootstrap compiler remains bound to
+its executable bytes.
 
 For Terlan files, Git plumbing compares the staged bytes with the staged
 compiler's formatting of the same file at the commit's original base. Exact

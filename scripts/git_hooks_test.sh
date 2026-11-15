@@ -390,6 +390,7 @@ esac
 TERLC
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
+if [[ "${1:-}" == -Vv ]]; then printf 'cargo fixture 1\n'; exit 0; fi
 printf 'cargo:%s\n' "$*" >> "$HOOK_ORDER_CALLS"
 exit 42
 CARGO
@@ -409,6 +410,47 @@ chmod +x "$temporary/early-bindings/cache/debug/terlc" \
   test "$(wc -l < "$calls")" = 1
   grep -Fq 'early affected Rust lane failed: commands-doctor' \
     "$temporary/early-rust-order.log"
+)
+# Successful affected Rust lanes are sealed by their admitted inputs. A retry
+# reuses that result, while an explicit forced run executes it again.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+case "$*" in
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
+    printf 'preflight:inventory\ncommands-doctor\n'
+    ;;
+  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
+  *) exit 98 ;;
+esac
+TERLC
+cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+if [[ "${1:-}" == -Vv ]]; then printf 'cargo fixture 1\n'; exit 0; fi
+printf 'cargo:%s\n' "$*" >> "$HOOK_ORDER_CALLS"
+printf 'running 1 test\n'
+CARGO
+chmod +x "$temporary/early-bindings/cache/debug/terlc" \
+  "$temporary/early-bindings/bin/cargo"
+(
+  cd "$temporary/early-bindings"
+  calls="$temporary/early-rust-cache.calls"
+  : > "$calls"
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" HOOK_ORDER_CALLS="$calls" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-rust-cache-first.log" 2>&1
+  test "$(wc -l < "$calls")" = 1
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" HOOK_ORDER_CALLS="$calls" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-rust-cache-reused.log" 2>&1
+  test "$(wc -l < "$calls")" = 1
+  grep -Fq 'reuse affected Rust lane commands-doctor' \
+    "$temporary/early-rust-cache-reused.log"
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" HOOK_ORDER_CALLS="$calls" \
+    TERLAN_TEST_FORCE_RERUN=1 \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/early-rust-cache-forced.log" 2>&1
+  test "$(wc -l < "$calls")" = 2
 )
 # Retained-source inventory drift must stop before planning or optimized builds.
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
@@ -592,7 +634,15 @@ test "$native_worker_build_line" -lt "$executable_budget_line"
 # their declared companion once and pass its exact path to every test child.
 grep -Fq 'build required native test companions once' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'build --locked -p terlan --bin terlan-native-worker --features quality-tools' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse affected Rust lane' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'dependency-impact report regenerated; return it for staging' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'TERLAN_RUST_REPORT_MODE:-check' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -612,6 +662,70 @@ workspace_lane=$(sed -n '/^    workspace)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
 grep -Fq 'ensure_native_test_companions' <<< "$workspace_lane"
+
+# A regenerated dependency report returns immediately to the outer staging
+# guard. If regeneration is a no-op, affected validation must continue.
+mkdir -p "$temporary/report-handoff/scripts/git_hooks" \
+  "$temporary/report-handoff/docs/quality" "$temporary/report-handoff/cache/debug" \
+  "$temporary/report-handoff/bin"
+cp "$exact_cargo_test" "$temporary/report-handoff/scripts/run_exact_cargo_test.sh"
+printf 'old\n' > "$temporary/report-handoff/docs/quality/RUST_DEPENDENCY_IMPACT.json"
+printf 'README.md\n' > "$temporary/report-handoff/changes.txt"
+cat > "$temporary/report-handoff/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+case "$*" in
+  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
+    printf 'preflight:inventory\nrust-reports\ncommands-doctor\n'
+    ;;
+  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
+  *) exit 98 ;;
+esac
+TERLC
+cat > "$temporary/report-handoff/scripts/git_hooks/rust_reports.sh" <<'REPORT'
+#!/usr/bin/env bash
+printf 'generated\n' > docs/quality/RUST_DEPENDENCY_IMPACT.json
+REPORT
+cat > "$temporary/report-handoff/bin/cargo" <<'CARGO'
+#!/usr/bin/env bash
+if [[ "${1:-}" == -Vv ]]; then printf 'cargo fixture 1\n'; exit 0; fi
+printf 'cargo:%s\n' "$*" >> "$REPORT_HANDOFF_CALLS"
+exit 44
+CARGO
+chmod +x "$temporary/report-handoff/cache/debug/terlc" \
+  "$temporary/report-handoff/scripts/git_hooks/rust_reports.sh" \
+  "$temporary/report-handoff/scripts/run_exact_cargo_test.sh" \
+  "$temporary/report-handoff/bin/cargo"
+git init --quiet --initial-branch=main "$temporary/report-handoff"
+git -C "$temporary/report-handoff" add .
+(
+  cd "$temporary/report-handoff"
+  {
+    printf '%s\n' terlan-staged-compiler-input-v2
+    git ls-files -s -z -- \
+      Cargo.toml Cargo.lock rust-toolchain.toml .cargo \
+      ':(glob)**/Cargo.toml' ':(glob)**/*.rs' ':(glob)**/*.lalrpop' \
+      ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop'
+  } | git hash-object --stdin > cache/.terlan-compiler-input
+  : > "$temporary/report-handoff.calls"
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    REPORT_HANDOFF_CALLS="$temporary/report-handoff.calls" \
+    TERLAN_RUST_REPORT_MODE=--record-dependency-impact \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/report-handoff-generated.log" 2>&1
+  test ! -s "$temporary/report-handoff.calls"
+  grep -Fq 'dependency-impact report regenerated; return it for staging' \
+    "$temporary/report-handoff-generated.log"
+  git add docs/quality/RUST_DEPENDENCY_IMPACT.json
+  status=0
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    REPORT_HANDOFF_CALLS="$temporary/report-handoff.calls" \
+    TERLAN_RUST_REPORT_MODE=--record-dependency-impact \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/report-handoff-unchanged.log" 2>&1 || status=$?
+  test "$status" = 44
+  grep -Fq 'cargo:test --locked -p terlan --lib commands::doctor::doctor_test' \
+    "$temporary/report-handoff.calls"
+)
 
 # A Rust compilation-input change regenerates its checked report from the exact
 # staged snapshot and refuses admission until that generated output is staged.
@@ -814,6 +928,50 @@ if (
 fi
 test "$(find "$temporary/terlan-lane-failure-receipts" -type f -name '*.passed' | wc -l)" = 0
 
+# Cargo may relink the staged compiler for a different feature graph without
+# changing its semantic source inputs. Project receipts use the admitted input
+# identity and therefore survive that executable-byte churn.
+stable_compiler_identity=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+stable_calls="$temporary/terlan-lane-stable.calls"
+stable_receipts="$temporary/terlan-lane-stable-receipts"
+stable_cache="$temporary/terlan-lane-stable-cache"
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$stable_calls" \
+    TERLAN_HOOK_COMPILER_INPUT_KEY="$stable_compiler_identity" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$stable_cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$stable_receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    > "$temporary/terlan-lane-stable.log" 2>&1
+)
+stable_call_count=$(wc -l < "$stable_calls")
+printf '\n# relinked feature graph\n' >> "$temporary/terlan-lane/terlc"
+(
+  cd "$temporary/terlan-lane"
+  TERLAN_LANE_CALLS="$stable_calls" \
+    TERLAN_HOOK_COMPILER_INPUT_KEY="$stable_compiler_identity" \
+    TERLAN_HOOK_TERLAN_CACHE_DIR="$stable_cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$stable_receipts" \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    >> "$temporary/terlan-lane-stable.log" 2>&1
+)
+test "$(wc -l < "$stable_calls")" = "$stable_call_count"
+grep -Fq 'reuse test validation for . ' "$temporary/terlan-lane-stable.log"
+grep -Fq 'reuse check validation for . ' "$temporary/terlan-lane-stable.log"
+if (
+  cd "$temporary/terlan-lane"
+  TERLAN_HOOK_COMPILER_INPUT_KEY=invalid \
+    bash "$(dirname "$driver")/git_hooks/terlan.sh" \
+      changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
+    > "$temporary/terlan-lane-invalid-identity.log" 2>&1
+); then
+  echo 'Terlan lane accepted an invalid compiler input identity' >&2; exit 1
+fi
+grep -Fq 'Invalid staged compiler input identity' \
+  "$temporary/terlan-lane-invalid-identity.log"
+
 # A test-only edit in one standard-library project must not invalidate the
 # receipt for an unrelated project. Shared production changes still invalidate
 # both receipts.
@@ -951,10 +1109,12 @@ test ! -e "$temporary/prebuilt/target/debug/terlan-quality"
 # Unrelated staged files reuse every report; corruption and failed validation
 # never grant reuse.
 mkdir -p "$temporary/report-cache/scripts/git_hooks" "$temporary/report-cache/bin" \
-  "$temporary/report-cache/owned-target/debug"
+  "$temporary/report-cache/owned-target/debug" "$temporary/report-cache/docs/quality"
 cp "$(dirname "$driver")/git_hooks/rust_reports.sh" \
   "$temporary/report-cache/scripts/git_hooks/"
 printf 'first\n' > "$temporary/report-cache/input.txt"
+printf 'initial-report\n' > \
+  "$temporary/report-cache/docs/quality/RUST_DEPENDENCY_IMPACT.json"
 cat > "$temporary/report-cache/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 if [[ "${1:-}" == -Vv ]]; then printf 'cargo fixture 1\n'; exit 0; fi
@@ -970,8 +1130,8 @@ cat > "$temporary/report-cache/owned-target/debug/terlan-quality" <<'QUALITY'
 printf 'quality:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
 mkdir -p target/quality
 touch target/quality/rust-api-boundary-input.tsv \
-  target/quality/rust-shared-helper-input.tsv \
-  target/quality/rust-structural-input.json
+  target/quality/rust-shared-helper-input.tsv
+printf '{}\n' > target/quality/rust-structural-input.json
 QUALITY
 cat > "$temporary/report-cache/owned-target/debug/terlan-rust-boundary-audit" <<'BOUNDARY'
 #!/usr/bin/env bash
@@ -994,6 +1154,14 @@ TERLC
 cat > "$temporary/report-cache/owned-target/debug/terlan-vm" <<'VM'
 #!/usr/bin/env bash
 printf 'vm:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+command=${!#}
+if [[ "$command" == dependency-impact-check \
+  || "$command" == dependency-impact-record ]]; then
+  test -s target/quality/rust-structural-input.json
+fi
+if [[ "$command" == dependency-impact-record ]]; then
+  printf 'generated-report\n' > docs/quality/RUST_DEPENDENCY_IMPACT.json
+fi
 exit "${REPORT_VM_FAILURE:-0}"
 VM
 chmod +x "$temporary/report-cache/bin/"* \
@@ -1003,7 +1171,8 @@ git init --quiet --initial-branch=main "$temporary/report-cache"
   cd "$temporary/report-cache"
   git config user.name 'Report cache test'
   git config user.email 'reports@example.invalid'
-  git add input.txt scripts/git_hooks/rust_reports.sh
+  git add input.txt scripts/git_hooks/rust_reports.sh \
+    docs/quality/RUST_DEPENDENCY_IMPACT.json
   git commit --quiet -m Initial
 )
 report_cache_calls="$temporary/report-cache.calls"
@@ -1023,6 +1192,8 @@ run_report_cache() {
 }
 run_report_cache > "$temporary/report-cache-first.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 5
+grep -Eq '^terlc:build --incremental .* --out-dir .*/owned-target/terlan-validators/rust-quality$' \
+  "$report_cache_calls"
 run_report_cache > "$temporary/report-cache-reused.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 5
 test "$(grep -c 'Rust quality report unchanged:' "$temporary/report-cache-reused.log")" = 5
@@ -1057,9 +1228,17 @@ test "$(grep -c '^vm:' "$report_cache_calls")" = 22
 receipt_count=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' | wc -l)
 run_report_cache --record-dependency-impact > "$temporary/report-cache-record.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 27
+test "$(grep -c '^vm:' "$report_cache_calls")" = 23
 test "$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' | wc -l)" = "$receipt_count"
+git -C "$temporary/report-cache" add docs/quality/RUST_DEPENDENCY_IMPACT.json
+: > "$temporary/report-cache/target/quality/rust-structural-input.json"
+: > "$report_cache_calls"
+run_report_cache > "$temporary/report-cache-after-record.log"
+test "$(grep -c '^vm:' "$report_cache_calls")" = 1
+test "$(grep -c 'Rust quality report unchanged:' \
+  "$temporary/report-cache-after-record.log")" = 4
+grep -Eq '^vm:.*dependency-impact-check$' "$report_cache_calls"
 
 # Exact Cargo selection must stream compilation progress rather than holding all
 # output in memory until a long-running test process exits.
@@ -1108,4 +1287,4 @@ if PATH="$temporary/exact-cargo/bin:$PATH" \
   echo 'Exact Cargo runner ignored Cargo failure' >&2; exit 1
 fi
 
-echo 'Git hook regression tests passed (29 scenarios).'
+echo 'Git hook regression tests passed.'

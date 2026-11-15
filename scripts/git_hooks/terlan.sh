@@ -10,6 +10,15 @@ specialized_tests=${6:-/dev/null}
 terlan_cache_dir=${TERLAN_HOOK_TERLAN_CACHE_DIR:-}
 receipt_dir=${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-}
 receipt_schema=terlan-hook-validation-v2
+compiler_identity=${TERLAN_HOOK_COMPILER_INPUT_KEY:-}
+if [[ -n "$compiler_identity" \
+  && ! "$compiler_identity" =~ ^[0-9a-f]{40,64}$ ]]; then
+  echo 'Invalid staged compiler input identity' >&2
+  exit 2
+fi
+if [[ -z "$compiler_identity" ]]; then
+  compiler_identity=$(git hash-object "$terlc")
+fi
 coverage_sources_supported=false
 if "$terlc" test --help 2>&1 | rg -q -- '--coverage-source'; then
   coverage_sources_supported=true
@@ -73,10 +82,8 @@ unit_input_blobs() {
 }
 unit_key() {
   local kind=$1 root=$2; shift 2
-  local compiler_hash
-  compiler_hash=$(git hash-object "$terlc")
   {
-    printf '%s\n' "$receipt_schema" "$kind" "$root" "$compiler_hash"
+    printf '%s\n' "$receipt_schema" "$kind" "$root" "$compiler_identity"
     printf 'argument:%s\n' "$@"
     # The staged validation checkout has a clean index. Each unit owns its
     # tests, while shared stdlib and path dependencies contribute production
@@ -86,7 +93,7 @@ unit_key() {
 }
 run_cached_unit() {
   local kind=$1 root=$2 runner=$3; shift 3
-  local compiler_hash key receipt temporary unit_cache= unit_cache_key
+  local key receipt temporary unit_cache= unit_cache_key
   if [[ -z "$receipt_dir" ]]; then
     "$runner" "$root" "$@"
     return
@@ -95,8 +102,7 @@ run_cached_unit() {
   mkdir -p "$receipt_dir"
   key=$(unit_key "$kind" "$root" "$runner" "$@")
   if [[ -n "$terlan_cache_dir" ]]; then
-    compiler_hash=$(git hash-object "$terlc")
-    unit_cache_key="$(printf '%s\n' terlan-project-cache-v1 "$compiler_hash" "$root" | hash_stream)"
+    unit_cache_key="$(printf '%s\n' terlan-project-cache-v1 "$compiler_identity" "$root" | hash_stream)"
     unit_cache="$terlan_cache_dir/$unit_cache_key"
   fi
   receipt="$receipt_dir/$key.passed"
