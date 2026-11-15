@@ -285,8 +285,13 @@ hex_characters(characters: List[String]): Bool ->
 pub valid_revision(value: String): Bool ->
     String.length(value) == 40 and hex_characters(String.characters(value)).
 
+/**
+ * Treats Git's empty tree as a full-candidate sentinel without enumerating history.
+ */
 pub indeterminate_base(value: String): Bool ->
-    not valid_revision(value) or value == "0000000000000000000000000000000000000000".
+    not valid_revision(value)
+        or value == "0000000000000000000000000000000000000000"
+        or value == "4b825dc642cb6eb9a060e54bf8d69288fbee4904".
 
 boolean(value: Bool): String ->
     if {

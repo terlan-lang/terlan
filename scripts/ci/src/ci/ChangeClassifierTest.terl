@@ -241,6 +241,7 @@ pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
         and not ChangeClassifier.valid_revision("short")
         and ChangeClassifier.indeterminate_base("")
         and ChangeClassifier.indeterminate_base("0000000000000000000000000000000000000000")
+        and ChangeClassifier.indeterminate_base("4b825dc642cb6eb9a060e54bf8d69288fbee4904")
         and not ChangeClassifier.indeterminate_base("0123456789abcdef0123456789abcdef01234567").
 
 @test
