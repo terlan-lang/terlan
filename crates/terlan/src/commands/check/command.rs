@@ -63,6 +63,24 @@ pub(crate) fn run(cmd: CliCommand, mut state: CliState) -> ExitCode {
     if batch && !interfaces_only && paths.iter().all(|path| !Path::new(path).is_dir()) {
         return run_file_batch(&paths, state, phase_manifest_path.as_deref());
     }
+    if !batch
+        && !interfaces_only
+        && phase_manifest_path
+            .as_deref()
+            .is_none_or(|path| path.extension().is_none())
+        && !Path::new(&paths[0]).is_dir()
+    {
+        if let Some(project) =
+            crate::commands::build::owning_project_dir_for_source(Path::new(&paths[0]))
+        {
+            return super::project::run_selected(
+                &project,
+                &paths,
+                state,
+                phase_manifest_path.as_deref(),
+            );
+        }
+    }
     for path in paths {
         let started = Instant::now();
         if batch {

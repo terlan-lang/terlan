@@ -20,7 +20,8 @@ on process entry, global argument parsing, and command routing.
   readiness startup for local VM commands.
 - `run`: executes `terlc run` by building a package and running its launcher.
 - `syntax_contract`: executes `terlc syntax-contract`.
-- `check`: executes `terlc check`.
+- `check`: executes `terlc check`; selected files, including a single script,
+  load their owning manifest's complete source and dependency graph.
 - `fmt`: executes `terlc fmt`.
 - `hover`: executes `terlc hover`.
 - `init`: executes `terlc init`.

@@ -140,6 +140,45 @@ fn batch_check_reuses_project_graph_and_checks_only_selected_files() {
 }
 
 #[test]
+fn single_file_check_uses_owning_project_graph() {
+    let root = crate::support::test_fs::temp_dir("check", "single_project_script");
+    let source_root = root.join("source");
+    let scripts = root.join("scripts");
+    std::fs::create_dir_all(source_root.join("app")).expect("source root");
+    std::fs::create_dir_all(&scripts).expect("scripts root");
+    std::fs::write(
+        root.join("terlan.toml"),
+        "[package]\nname = \"single-check\"\nversion = \"0.0.1\"\n\n[build]\nsource_roots = [\"source\"]\n",
+    )
+    .expect("project manifest");
+    std::fs::write(
+        source_root.join("app/Value.terl"),
+        "module app.Value.\npub answer(): Int -> 42.\n",
+    )
+    .expect("project source");
+    let script = scripts.join("ReadValue.terls");
+    std::fs::write(
+        &script,
+        "import app.Value.\nassert(Value.answer() == 42);\nUnit.\n",
+    )
+    .expect("project script");
+
+    let result = run(
+        CliCommand {
+            verb: Some("check".into()),
+            args: vec![script.to_string_lossy().into_owned()],
+        },
+        CliState {
+            cache_dir: Some(root.join("cache")),
+            ..CliState::default()
+        },
+    );
+
+    assert_eq!(result, std::process::ExitCode::SUCCESS);
+    std::fs::remove_dir_all(root).expect("remove check fixture");
+}
+
+#[test]
 fn batch_check_rejects_file_phase_manifest_destination() {
     let result = run(
         CliCommand {
