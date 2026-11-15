@@ -159,7 +159,9 @@ needs_check() {
 need_boundary=false
 need_quality=false
 need_metadata=false
-if needs_check api-boundary-check || needs_check build-graph-boundary-check; then
+if needs_check api-boundary-check \
+  || needs_check build-graph-boundary-check \
+  || needs_check "$dependency_impact_command"; then
   need_boundary=true
 fi
 if [[ "$need_boundary" == true ]] || needs_check "$dependency_impact_command"; then

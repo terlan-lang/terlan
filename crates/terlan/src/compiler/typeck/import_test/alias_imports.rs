@@ -8,6 +8,48 @@ use crate::terlan_syntax::{
     parse_interface_module_as_syntax_output, parse_module_as_syntax_output,
 };
 
+/// Verifies an implicit selected-import provider leaf cannot replace an
+/// explicitly imported module with the same leaf name.
+///
+/// Inputs:
+/// - An explicit child-module import named `Process`.
+/// - A selected function imported from a different provider also named
+///   `Process`.
+///
+/// Output:
+/// - No type diagnostics.
+///
+/// Transformation:
+/// - Resolves the qualified call through the explicit module while retaining
+///   the selected function's own provider identity.
+#[test]
+fn explicit_module_import_outranks_selected_provider_leaf() {
+    for source in [
+        "\
+module import_leaf_precedence.\n\
+import tools.{Process}.\n\
+import runtime.Process.{exit_reason}.\n\
+pub run(): Int -> Process.value() + exit_reason(1).\n\
+",
+        "\
+module reverse_import_leaf_precedence.\n\
+import runtime.Process.{exit_reason}.\n\
+import tools.{Process}.\n\
+pub run(): Int -> Process.value() + exit_reason(1).\n\
+",
+    ] {
+        let diagnostics = check_syntax_output_with_interfaces(
+            source,
+            &[
+                "module tools.Process. pub value(): Int -> 41.",
+                "module runtime.Process. pub exit_reason(value: Int): Int -> value.",
+            ],
+        );
+
+        assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:?}");
+    }
+}
+
 /// Verifies local structs qualify selected imported opaque field types.
 ///
 /// Inputs:

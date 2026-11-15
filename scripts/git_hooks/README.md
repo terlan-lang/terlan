@@ -254,7 +254,9 @@ which owns all report producers and validators, plus the selected Cargo and
 Rust compiler identities and executable bytes.
 Recording a regenerated dependency-impact report preserves the four independent
 report receipts. After the generated report is staged, the retry executes only
-its dependency-impact check rather than rebuilding every unchanged report.
+its dependency-impact check rather than rebuilding every unchanged report. The
+Rust boundary producer still rematerializes its disposable structural input in
+the fresh staged checkout before that validator runs.
 The compiled Terlan report validator keeps its incremental summaries in the
 hook-owned Cargo target rather than the disposable staged checkout. Its modules
 therefore survive retries while `terlc` still validates their source and
@@ -273,9 +275,12 @@ Owning workflow, hook-policy, and release-contract gates record the Terlan
 sources they already compiled. The generic Terlan lane treats that record as
 terminal and does not rebuild, reformat, or retest those files.
 
-Affected Terlan tests run as project-scoped units before broad repository and
-platform gates. A source with an executable owning test is not checked a second
-time first. Successful check and test units receive content-addressed receipts
+Queued Terlan source admission runs before native test images, broad repository
+work, and platform gates. Source-only paths sharing a project execute in one
+`terlc check` process so interface loading is paid once; after that, affected
+Terlan tests run as project-scoped units. A source with an executable owning
+test is not checked a second time first. Successful check and test units receive
+content-addressed receipts
 bound to the compiler, command, project inputs, standard library, and local path
 dependencies. Receipts live outside the disposable staged checkout, survive a
 later gate failure, reject corruption, and are replaced only after a successful

@@ -9,7 +9,7 @@ prechecked=${5:-/dev/null}
 specialized_tests=${6:-/dev/null}
 terlan_cache_dir=${TERLAN_HOOK_TERLAN_CACHE_DIR:-}
 receipt_dir=${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-}
-receipt_schema=terlan-hook-validation-v2
+receipt_schema=terlan-hook-validation-v3
 compiler_identity=${TERLAN_HOOK_COMPILER_INPUT_KEY:-}
 if [[ -n "$compiler_identity" \
   && ! "$compiler_identity" =~ ^[0-9a-f]{40,64}$ ]]; then
@@ -142,17 +142,21 @@ run_terlc() {
 }
 run_project_check() {
   local root=$1 path relative; shift
+  local paths=()
   if [[ -f "$root/terlan.toml" ]]; then
     (cd "$root" && run_terlc check src)
     for path in "$@"; do
       relative=${path#"$root"/}
       case "$relative" in
         src/*|terlan.toml) ;;
-        *) (cd "$root" && run_terlc check "$relative") ;;
+        *) paths+=("$relative") ;;
       esac
     done
+    if [[ ${#paths[@]} -gt 0 ]]; then
+      (cd "$root" && run_terlc check "${paths[@]}")
+    fi
   else
-    for path in "$@"; do run_terlc check "$path"; done
+    run_terlc check "$@"
   fi
 }
 tested_terlan=(scripts/git_hooks/src/git_hooks/PlanTest.terl scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl)
@@ -298,5 +302,8 @@ while IFS= read -r path; do
   fi
 done < "$changes"
 
-run_queued_terlan_tests
+# Reject source and interface errors before paying for native test images.
+# One compiler process checks every queued path in a project so dependency
+# discovery and interface loading are shared rather than repeated per file.
 run_queued_checks
+run_queued_terlan_tests

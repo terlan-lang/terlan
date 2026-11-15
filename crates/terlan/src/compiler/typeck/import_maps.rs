@@ -404,7 +404,12 @@ fn collect_syntax_module_aliases(
                             && item.as_alias.as_deref().unwrap_or(&item.name) == *leaf
                     })
             }) {
-                aliases.insert(leaf.to_string(), module_name.clone());
+                // A selected member import keeps its provider leaf available
+                // as a convenience, but that implicit binding must not replace
+                // an explicit whole-module import with the same leaf.
+                aliases
+                    .entry(leaf.to_string())
+                    .or_insert_with(|| module_name.clone());
             }
         }
 

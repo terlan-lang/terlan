@@ -891,7 +891,8 @@ grep -Fq 'reuse test validation for . ' "$temporary/terlan-lane.log"
 grep -Fq 'reuse check validation for . ' "$temporary/terlan-lane.log"
 
 # Exact input changes invalidate only their project units. Corrupt receipts are
-# rejected, and a failed unit never records success.
+# rejected, and a failed unit never records its own success while an earlier
+# independent source check remains reusable.
 printf '\n// changed\n' >> "$temporary/terlan-lane/src/Declared.terl"
 git -C "$temporary/terlan-lane" add src/Declared.terl
 (
@@ -932,7 +933,7 @@ if (
 ); then
   echo 'Failed Terlan validation unexpectedly passed' >&2; exit 1
 fi
-test "$(find "$temporary/terlan-lane-failure-receipts" -type f -name '*.passed' | wc -l)" = 0
+test "$(find "$temporary/terlan-lane-failure-receipts" -type f -name '*.passed' | wc -l)" = 1
 
 # Cargo may relink the staged compiler for a different feature graph without
 # changing its semantic source inputs. Project receipts use the admitted input
@@ -1039,10 +1040,11 @@ git -C "$temporary/terlan-receipt-scope" add std/test/Test.terl
 run_receipt_scope
 test "$(wc -l < "$temporary/terlan-receipt-scope.calls")" = 5
 
-# Changed compiler tests run before downstream package tests even when both
-# appear in the same staged path inventory.
+# Source-only checks run in one batch before native tests. Changed compiler
+# tests still run before downstream package tests once source admission passes.
 mkdir -p "$temporary/terlan-order/compiler/self_host" \
   "$temporary/terlan-order/std/native" \
+  "$temporary/terlan-order/tools" \
   "$temporary/terlan-order/scripts/git_hooks"
 cp "$(dirname "$driver")/git_hooks/formatting_only.sh" \
   "$temporary/terlan-order/scripts/git_hooks/"
@@ -1063,7 +1065,14 @@ module fixture.FastTest.
 @test
 fast_test(): Bool -> true.
 SOURCE
+cat > "$temporary/terlan-order/tools/First.terls" <<'SOURCE'
+assert(true).
+SOURCE
+cat > "$temporary/terlan-order/tools/Second.terls" <<'SOURCE'
+assert(true).
+SOURCE
 printf '%s\n' compiler/self_host/Slow.terl std/native/Fast.terl \
+  tools/First.terls tools/Second.terls \
   > "$temporary/terlan-order/changes.txt"
 chmod +x "$temporary/terlan-order/terlc" \
   "$temporary/terlan-order/scripts/git_hooks/formatting_only.sh"
@@ -1078,8 +1087,10 @@ git -C "$temporary/terlan-order" add .
       changes.txt unused "$PWD/terlc" false /dev/null /dev/null
 )
 test "$(sed -n '1p' "$temporary/terlan-order.calls")" = \
-  'test compiler/self_host/SlowTest.terl --coverage --coverage-source compiler/self_host/Slow.terl --coverage-threshold 100'
+  'check tools/First.terls tools/Second.terls'
 test "$(sed -n '2p' "$temporary/terlan-order.calls")" = \
+  'test compiler/self_host/SlowTest.terl --coverage --coverage-source compiler/self_host/Slow.terl --coverage-threshold 100'
+test "$(sed -n '3p' "$temporary/terlan-order.calls")" = \
   'test std/native/FastTest.terl --coverage --coverage-source std/native/Fast.terl --coverage-threshold 100'
 
 # Prebuilt workspace binaries must honor the hook's isolated Cargo target.
@@ -1134,14 +1145,14 @@ RUSTC
 cat > "$temporary/report-cache/owned-target/debug/terlan-quality" <<'QUALITY'
 #!/usr/bin/env bash
 printf 'quality:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
-mkdir -p target/quality
-touch target/quality/rust-api-boundary-input.tsv \
-  target/quality/rust-shared-helper-input.tsv
-printf '{}\n' > target/quality/rust-structural-input.json
 QUALITY
 cat > "$temporary/report-cache/owned-target/debug/terlan-rust-boundary-audit" <<'BOUNDARY'
 #!/usr/bin/env bash
 printf 'boundary:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+mkdir -p target/quality
+touch target/quality/rust-api-boundary-input.tsv \
+  target/quality/rust-shared-helper-input.tsv
+printf '{}\n' > target/quality/rust-structural-input.json
 printf '{}\n'
 BOUNDARY
 cat > "$temporary/report-cache/owned-target/debug/terlan-test-orchestrator" <<'ORCHESTRATOR'
@@ -1245,6 +1256,7 @@ test "$(grep -c '^vm:' "$report_cache_calls")" = 1
 test "$(grep -c 'Rust quality report unchanged:' \
   "$temporary/report-cache-after-record.log")" = 4
 grep -Eq '^vm:.*dependency-impact-check$' "$report_cache_calls"
+grep -Eq '^boundary:' "$report_cache_calls"
 
 # Exact Cargo selection must stream compilation progress rather than holding all
 # output in memory until a long-running test process exits.
