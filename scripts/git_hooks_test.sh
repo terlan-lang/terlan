@@ -642,7 +642,7 @@ grep -Fq 'reuse affected Rust lane' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'dependency-impact report regenerated; return it for staging' \
+grep -Fq 'generated Rust reports regenerated; return them for staging' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'workflow_contract_cache="$CARGO_TARGET_DIR/terlan-validators/tvm-aot-platform-matrix"' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -719,7 +719,7 @@ git -C "$temporary/report-handoff" add .
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/report-handoff-generated.log" 2>&1
   test ! -s "$temporary/report-handoff.calls"
-  grep -Fq 'dependency-impact report regenerated; return it for staging' \
+  grep -Fq 'generated Rust reports regenerated; return them for staging' \
     "$temporary/report-handoff-generated.log"
   git add docs/quality/RUST_DEPENDENCY_IMPACT.json
   status=0
@@ -778,13 +778,16 @@ CHECK
   git commit --quiet --no-verify -m Dependency
   mkdir -p src
   printf 'pub fn value() {}\n' > src/lib.rs
-  git add src/lib.rs
+  printf 'manually-stale\n' > docs/quality/RUST_DEPENDENCY_IMPACT.json
+  git add src/lib.rs docs/quality/RUST_DEPENDENCY_IMPACT.json
   if bash "$driver" check > "$temporary/dependency-report-rust-first.log" 2>&1; then
-    echo 'Hook admitted a Rust source change without its generated report' >&2
+    echo 'Hook admitted a Rust source change with a stale staged report' >&2
     exit 1
   fi
   test "$(cat docs/quality/RUST_DEPENDENCY_IMPACT.json)" = generated-rust
-  test "$(git show :docs/quality/RUST_DEPENDENCY_IMPACT.json)" = generated
+  test "$(git show :docs/quality/RUST_DEPENDENCY_IMPACT.json)" = manually-stale
+  grep -Fq 'regenerated docs/quality/RUST_DEPENDENCY_IMPACT.json; stage it and retry' \
+    "$temporary/dependency-report-rust-first.log"
   git add docs/quality/RUST_DEPENDENCY_IMPACT.json
   bash "$driver" check > "$temporary/dependency-report-rust-second.log" 2>&1
 )
@@ -1164,6 +1167,8 @@ cp "$(dirname "$driver")/git_hooks/rust_reports.sh" \
 printf 'first\n' > "$temporary/report-cache/input.txt"
 printf 'initial-report\n' > \
   "$temporary/report-cache/docs/quality/RUST_DEPENDENCY_IMPACT.json"
+printf 'initial-headroom\n' > \
+  "$temporary/report-cache/docs/quality/RUST_FILE_HEADROOM.tsv"
 cat > "$temporary/report-cache/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 if [[ "${1:-}" == -Vv ]]; then printf 'cargo fixture 1\n'; exit 0; fi
@@ -1210,6 +1215,8 @@ if [[ "$command" == dependency-impact-check \
 fi
 if [[ "$command" == dependency-impact-record ]]; then
   printf 'generated-report\n' > docs/quality/RUST_DEPENDENCY_IMPACT.json
+elif [[ "$command" == file-headroom-record ]]; then
+  printf 'generated-headroom\n' > docs/quality/RUST_FILE_HEADROOM.tsv
 fi
 exit "${REPORT_VM_FAILURE:-0}"
 VM
@@ -1221,7 +1228,8 @@ git init --quiet --initial-branch=main "$temporary/report-cache"
   git config user.name 'Report cache test'
   git config user.email 'reports@example.invalid'
   git add input.txt scripts/git_hooks/rust_reports.sh \
-    docs/quality/RUST_DEPENDENCY_IMPACT.json
+    docs/quality/RUST_DEPENDENCY_IMPACT.json \
+    docs/quality/RUST_FILE_HEADROOM.tsv
   git commit --quiet -m Initial
 )
 report_cache_calls="$temporary/report-cache.calls"
@@ -1277,17 +1285,19 @@ test "$(grep -c '^vm:' "$report_cache_calls")" = 22
 receipt_count=$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' | wc -l)
 run_report_cache --record-dependency-impact > "$temporary/report-cache-record.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 23
+test "$(grep -c '^vm:' "$report_cache_calls")" = 24
 test "$(find "$temporary/report-cache/owned-target/validation-results/rust-reports" \
   -type f -name '*.passed' | wc -l)" = "$receipt_count"
-git -C "$temporary/report-cache" add docs/quality/RUST_DEPENDENCY_IMPACT.json
+git -C "$temporary/report-cache" add docs/quality/RUST_DEPENDENCY_IMPACT.json \
+  docs/quality/RUST_FILE_HEADROOM.tsv
 : > "$temporary/report-cache/target/quality/rust-structural-input.json"
 : > "$report_cache_calls"
 run_report_cache > "$temporary/report-cache-after-record.log"
-test "$(grep -c '^vm:' "$report_cache_calls")" = 1
+test "$(grep -c '^vm:' "$report_cache_calls")" = 2
 test "$(grep -c 'Rust quality report unchanged:' \
-  "$temporary/report-cache-after-record.log")" = 4
+  "$temporary/report-cache-after-record.log")" = 3
 grep -Eq '^vm:.*dependency-impact-check$' "$report_cache_calls"
+grep -Eq '^vm:.*file-headroom-check$' "$report_cache_calls"
 grep -Eq '^boundary:' "$report_cache_calls"
 
 # Exact Cargo selection must stream compilation progress rather than holding all

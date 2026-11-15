@@ -8,7 +8,7 @@ fn names(values: &[&str]) -> BTreeSet<String> {
 }
 
 fn normal_phases() -> Vec<TestPhase> {
-    vec![terlan_library_phase(), terlan_integration_phase()]
+    vec![terlan_integration_phase(), terlan_library_phase()]
 }
 
 #[test]

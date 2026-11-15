@@ -43,10 +43,12 @@ pub(in crate::compiler::native_ir) fn try_lower_typed_value(
         )
         .map(Some);
     }
-    if matches!(
-        value,
-        CoreExpr::Case { .. } | CoreExpr::If { .. } | CoreExpr::Try { .. }
-    ) {
+    // A case nested in a scalar owner still belongs to the structured-control
+    // lowerer. Treating the owner as a concrete typed value recursively sends
+    // the retained case through the scalar profile and loses its join.
+    if super::super::structured_case::contains_case(value)
+        || matches!(value, CoreExpr::If { .. } | CoreExpr::Try { .. })
+    {
         return Ok(None);
     }
     if let Some(expr) = super::super::expression::collection_cast_source(

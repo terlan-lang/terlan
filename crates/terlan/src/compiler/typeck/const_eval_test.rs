@@ -478,6 +478,43 @@ pub classify(value: Status): Int ->
 }
 
 #[test]
+fn directly_imported_valued_union_arm_substitutes_its_alias() {
+    let provider = parse_module_as_syntax_output(
+        r#"
+module lifecycle.direction_provider.
+pub type Direction: Int = FORWARD = 1 | REVERSE = -1.
+"#,
+    )
+    .expect("parse direction provider");
+    let interface = syntax_module_output_to_interface(&provider);
+    let interfaces = HashMap::from([("lifecycle.direction_provider".to_string(), interface)]);
+    let consumer = parse_module_as_syntax_output(
+        r#"
+module lifecycle.direction_consumer.
+import lifecycle.direction_provider.{FORWARD as SELECTED}.
+import type lifecycle.direction_provider.{Direction}.
+pub selected(): Direction -> SELECTED.
+"#,
+    )
+    .expect("parse direction consumer");
+    let (prepared, diagnostics) =
+        super::prepare_syntax_constants_with_interfaces(&consumer, &interfaces);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let body = prepared
+        .declarations
+        .iter()
+        .find_map(|declaration| match &declaration.payload {
+            SyntaxDeclarationPayload::Function { name, clauses, .. } if name == "selected" => {
+                clauses.first().map(|clause| &clause.body)
+            }
+            _ => None,
+        })
+        .expect("selected body");
+    assert_eq!(body.kind, SyntaxExprKind::Int);
+    assert_eq!(body.text.as_deref(), Some("1"));
+}
+
+#[test]
 fn constants_are_rejected_in_non_value_metadata_and_annotations() {
     let annotation = parse_module_as_syntax_output(
         "module lifecycle.annotation_constant.\nconst LIMIT: Int = 2.\npub bad(value: LIMIT): Int -> value.\n",

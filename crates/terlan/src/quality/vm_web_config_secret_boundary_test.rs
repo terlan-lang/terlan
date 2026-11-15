@@ -75,10 +75,17 @@ pub manual(cert: String, key: String): Config.
         self.write(
             "std/db/Postgres.terl",
             r#"
+module std.db.Postgres.
+pub opaque type Pool.
+pub opaque type Connection.
+pub opaque type Row.
 pub type Config = {url: String}.
-pub connect(config: Config): Result[Pool, Error]
-pub query(target: Pool | Connection, sql: String, params: List[Json])
-pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error])
+@compiler.native
+pub (config: Config) connect(): Result[Pool, Error].
+@compiler.native
+pub (target: Pool | Connection) query(sql: String, params: List[Json]): Result[List[Row], Error].
+pub (pool: Pool) transaction[T](body: (Connection) -> Result[T, Error]): Result[T, Error] ->
+    body(pool).
 "#,
         )?;
         self.write(
@@ -91,16 +98,17 @@ pub env(key: String, value: String): EnvVar
         self.write(
             "std/core/Secret.terl",
             r#"
-pub struct Secret
-pub new(value: String): Secret
-pub redacted(): String
-pub diagnostic(secret: Secret): String
-pub editor_hover(secret: Secret): String
-pub generated_doc(secret: Secret): String
-pub panic_error(secret: Secret): String
-pub support_bundle(secret: Secret): String
-pub to_string(secret: Secret): String
-pub trace(secret: Secret): String
+module std.core.Secret.
+pub struct Secret { value: String }.
+pub new(value: String): Secret -> Secret(value = value).
+pub redacted(): String -> "[secret]".
+pub (secret: Secret) diagnostic(): String -> redacted().
+pub (secret: Secret) editor_hover(): String -> redacted().
+pub (secret: Secret) generated_doc(): String -> redacted().
+pub (secret: Secret) panic_error(): String -> redacted().
+pub (secret: Secret) support_bundle(): String -> redacted().
+pub (secret: Secret) to_string(): String -> redacted().
+pub (secret: Secret) trace(): String -> redacted().
 "#,
         )?;
         self.write(
@@ -297,6 +305,27 @@ fn vm_web_config_secret_boundary_rejects_placeholder_report_entries() {
 fn vm_web_config_secret_boundary_accepts_repository_sources() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     run_vm_web_config_secret_boundary(&root).expect("repository config and secret policy");
+}
+
+#[test]
+fn vm_web_config_secret_boundary_rejects_receiver_signature_drift() {
+    let repo = TestRepo::new("receiver-signature-drift").expect("fixture");
+    repo.write_complete_fixture().expect("write fixture");
+    let path = repo.root().join("std/db/Postgres.terl");
+    let source = fs::read_to_string(&path).expect("Postgres source");
+    repo.write(
+        "std/db/Postgres.terl",
+        &source.replace(
+            "pub (config: Config) connect(): Result[Pool, Error].",
+            "pub connect(config: Config): Result[Pool, Error].",
+        ),
+    )
+    .expect("rewrite Postgres source");
+
+    let error = run_vm_web_config_secret_boundary(repo.root())
+        .expect_err("free-function drift should fail");
+
+    assert!(error.contains("pub (config: Config) connect()"), "{error}");
 }
 
 #[test]

@@ -127,6 +127,117 @@ pub check(): Bool -> case make() { Some(value) -> value.length() == 2; None -> f
 }
 
 #[test]
+fn exhaustive_receiver_option_case_composes_after_suspension() {
+    check_sources(&[
+        r#"
+module suspending_receiver_option_case.
+import app.Model.{count, current, current_state, make, value}.
+import std.core.Option.{None, Some}.
+import type std.core.Option.{Option}.
+import type app.Model.{Transition}.
+import std.vm.Process.
+load(): Option[Transition] ->
+    let _parked = Process.yield_now();
+    Some(make()).
+pub check(): Bool ->
+    when {
+        Some(opened) <- load();
+        Some(partial) <- load();
+        Some(closed) <- load()
+    } else {
+        _ -> false
+    };
+    opened.current_state().count() == 1
+        and case opened.current_state().current() {
+            None -> false;
+            Some(payload) -> payload.value() == 42
+        }
+        and partial.current_state().count() == 1
+        and closed.current_state().count() == 1.
+"#,
+        r#"
+module app.Model.
+import std.core.Option.{Some}.
+import type std.core.Option.{Option}.
+pub struct Payload { value: Int }.
+pub struct State { count: Int, current: Option[Payload] }.
+pub struct Transition { state: State }.
+pub (payload: Payload) value(): Int -> payload.value.
+pub (state: State) count(): Int -> state.count.
+pub (state: State) current(): Option[Payload] -> state.current.
+pub (transition: Transition) current_state(): State -> transition.state.
+pub make(): Transition ->
+    Transition {state: State {count: 1, current: Some(Payload {value: 42})}}.
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+    ]);
+}
+
+#[test]
+fn typed_scalar_owner_defers_nested_case_to_control_lowering() {
+    let case = crate::terlan_typeck::CoreExpr::Case {
+        scrutinee: Box::new(crate::terlan_typeck::CoreExpr::Int(1)),
+        clauses: vec![
+            crate::terlan_typeck::CoreCaseClause {
+                pattern: crate::terlan_typeck::CorePattern::Int(1),
+                guard: None,
+                body: crate::terlan_typeck::CoreExpr::Var("true".to_string()),
+            },
+            crate::terlan_typeck::CoreCaseClause {
+                pattern: crate::terlan_typeck::CorePattern::Wildcard,
+                guard: None,
+                body: crate::terlan_typeck::CoreExpr::Var("false".to_string()),
+            },
+        ],
+    };
+    let owner = crate::terlan_typeck::CoreExpr::BinaryOp {
+        operator: "and".to_string(),
+        left: Box::new(crate::terlan_typeck::CoreExpr::Var("true".to_string())),
+        right: Box::new(case),
+    };
+    let params = std::collections::HashMap::new();
+    let param_types = std::collections::HashMap::new();
+    let functions = std::collections::HashMap::new();
+    let function_types = std::collections::HashMap::new();
+    let constructors = super::constructors::NativeConstructorLayouts::new();
+    let lowered = super::collection_values::try_lower_typed_value(
+        &owner,
+        &crate::terlan_typeck::CoreType::Bool,
+        &params,
+        &param_types,
+        &functions,
+        &function_types,
+        &constructors,
+    )
+    .expect("defer nested case");
+    assert!(lowered.is_none());
+}
+
+#[test]
+fn imported_integer_union_arm_is_constant_after_suspension() {
+    check_sources(&[
+        r#"
+module imported_integer_union_consumer.
+import app.Direction.{FORWARD}.
+import type app.Direction.{Direction}.
+import std.vm.Process.
+pub struct Completed { direction: Direction }.
+pub (completed: Completed) direction(): Direction -> completed.direction.
+load(): Completed ->
+    let _parked = Process.yield_now();
+    Completed {direction: FORWARD}.
+pub check(): Bool ->
+    let completed = load();
+    completed.direction() == FORWARD.
+"#,
+        r#"
+module app.Direction.
+pub type Direction: Int = FORWARD = 1 | REVERSE = -1.
+"#,
+    ]);
+}
+
+#[test]
 fn tuple_option_patterns_retain_scalar_payloads_in_boolean_bindings() {
     check_sources(&[
         r#"

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use serde_json::json;
 
 use crate::terlan_quality::QualityResult;
+use crate::terlan_syntax::{parse_module_as_syntax_output, SyntaxDeclarationPayload};
 
 const REPORT_PATH: &str = "target/quality/vm-web-config-secret-boundary-report.json";
 
@@ -40,31 +41,11 @@ const REQUIRED_GENERATED_TLS_CONFIG_ANCHORS: &[&str] = &[
     "pub internal(server_name: String): Config.",
 ];
 
-const REQUIRED_POSTGRES_STD_ANCHORS: &[&str] = &[
-    "pub type Config = {url: String}.",
-    "pub connect(config: Config): Result[Pool, Error]",
-    "pub query(target: Pool | Connection, sql: String, params: List[Json])",
-    "pub transaction[T](pool: Pool, body: (Connection) -> Result[T, Error])",
-];
-
 const REQUIRED_PORT_STD_ANCHORS: &[&str] = &[
     "pub struct EnvVar",
     "pub struct Command",
     "environment: List[EnvVar]",
     "pub env(key: String, value: String): EnvVar",
-];
-
-const REQUIRED_SECRET_STD_ANCHORS: &[&str] = &[
-    "pub struct Secret",
-    "pub new(value: String): Secret",
-    "pub redacted(): String",
-    "pub diagnostic(secret: Secret): String",
-    "pub editor_hover(secret: Secret): String",
-    "pub generated_doc(secret: Secret): String",
-    "pub panic_error(secret: Secret): String",
-    "pub support_bundle(secret: Secret): String",
-    "pub to_string(secret: Secret): String",
-    "pub trace(secret: Secret): String",
 ];
 
 const REQUIRED_MANIFEST_ANCHORS: &[&str] = &[
@@ -286,24 +267,14 @@ pub fn run_vm_web_config_secret_boundary(
         REQUIRED_GENERATED_TLS_CONFIG_ANCHORS,
         "generated TLS config summary",
     )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "std/db/Postgres.terl",
-        REQUIRED_POSTGRES_STD_ANCHORS,
-        "typed Postgres stdlib config",
-    )?);
+    diagnostics.extend(validate_postgres_contract(root)?);
     diagnostics.extend(validate_required_terms(
         root,
         "std/vm/Port.terl",
         REQUIRED_PORT_STD_ANCHORS,
         "typed process environment config",
     )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "std/core/Secret.terl",
-        REQUIRED_SECRET_STD_ANCHORS,
-        "non-loggable Secret stdlib value",
-    )?);
+    diagnostics.extend(validate_secret_contract(root)?);
     diagnostics.extend(validate_required_terms(
         root,
         "crates/terlan/src/commands/build/project_manifest/config.rs",
@@ -427,6 +398,338 @@ fn validate_required_terms(
         .filter(|term| !text.contains(**term))
         .map(|term| format!("{relative}: missing {label} anchor `{term}`"))
         .collect())
+}
+
+#[derive(Clone, Copy)]
+struct RequiredParameter {
+    name: &'static str,
+    annotation: &'static str,
+}
+
+#[derive(Clone, Copy)]
+struct RequiredCallable {
+    name: &'static str,
+    receiver: Option<RequiredParameter>,
+    generic_params: &'static [&'static str],
+    params: &'static [RequiredParameter],
+    return_type: &'static str,
+}
+
+const NO_PARAMETERS: &[RequiredParameter] = &[];
+const NO_GENERICS: &[&str] = &[];
+const STRING_PARAMETER: &[RequiredParameter] = &[RequiredParameter {
+    name: "value",
+    annotation: "String",
+}];
+const QUERY_PARAMETERS: &[RequiredParameter] = &[
+    RequiredParameter {
+        name: "sql",
+        annotation: "String",
+    },
+    RequiredParameter {
+        name: "params",
+        annotation: "List[Json]",
+    },
+];
+const TRANSACTION_PARAMETERS: &[RequiredParameter] = &[RequiredParameter {
+    name: "body",
+    annotation: "(Connection) -> Result[T, Error]",
+}];
+const TRANSACTION_GENERICS: &[&str] = &["T"];
+
+const POSTGRES_CALLABLES: &[RequiredCallable] = &[
+    RequiredCallable {
+        name: "connect",
+        receiver: Some(RequiredParameter {
+            name: "config",
+            annotation: "Config",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "Result[Pool, Error]",
+    },
+    RequiredCallable {
+        name: "query",
+        receiver: Some(RequiredParameter {
+            name: "target",
+            annotation: "Pool | Connection",
+        }),
+        generic_params: NO_GENERICS,
+        params: QUERY_PARAMETERS,
+        return_type: "Result[List[Row], Error]",
+    },
+    RequiredCallable {
+        name: "transaction",
+        receiver: Some(RequiredParameter {
+            name: "pool",
+            annotation: "Pool",
+        }),
+        generic_params: TRANSACTION_GENERICS,
+        params: TRANSACTION_PARAMETERS,
+        return_type: "Result[T, Error]",
+    },
+];
+
+const SECRET_CALLABLES: &[RequiredCallable] = &[
+    RequiredCallable {
+        name: "new",
+        receiver: None,
+        generic_params: NO_GENERICS,
+        params: STRING_PARAMETER,
+        return_type: "Secret",
+    },
+    RequiredCallable {
+        name: "redacted",
+        receiver: None,
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "diagnostic",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "editor_hover",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "generated_doc",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "panic_error",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "support_bundle",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "to_string",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+    RequiredCallable {
+        name: "trace",
+        receiver: Some(RequiredParameter {
+            name: "secret",
+            annotation: "Secret",
+        }),
+        generic_params: NO_GENERICS,
+        params: NO_PARAMETERS,
+        return_type: "String",
+    },
+];
+
+fn validate_postgres_contract(root: &Path) -> QualityResult<Vec<String>> {
+    const RELATIVE: &str = "std/db/Postgres.terl";
+    let module = parse_terlan_contract(root, RELATIVE, "typed Postgres stdlib config")?;
+    let mut diagnostics = validate_callables(RELATIVE, &module.declarations, POSTGRES_CALLABLES);
+    let config_matches = module.declarations.iter().any(|declaration| {
+        matches!(
+            &declaration.payload,
+            SyntaxDeclarationPayload::Type {
+                name,
+                is_public: true,
+                variants,
+                ..
+            } if name == "Config"
+                && variants.len() == 1
+                && normalized_type(&variants[0].text) == normalized_type("{url: String}")
+        )
+    });
+    if !config_matches {
+        diagnostics.push(format!(
+            "{RELATIVE}: missing public `Config = {{url: String}}` declaration"
+        ));
+    }
+    Ok(diagnostics)
+}
+
+fn validate_secret_contract(root: &Path) -> QualityResult<Vec<String>> {
+    const RELATIVE: &str = "std/core/Secret.terl";
+    let module = parse_terlan_contract(root, RELATIVE, "non-loggable Secret stdlib value")?;
+    let mut diagnostics = validate_callables(RELATIVE, &module.declarations, SECRET_CALLABLES);
+    let secret_matches = module.declarations.iter().any(|declaration| {
+        matches!(
+            &declaration.payload,
+            SyntaxDeclarationPayload::Struct {
+                name,
+                is_public: true,
+                fields,
+                ..
+            } if name == "Secret"
+                && fields.len() == 1
+                && fields[0].name == "value"
+                && normalized_type(&fields[0].annotation.text) == "String"
+        )
+    });
+    if !secret_matches {
+        diagnostics.push(format!(
+            "{RELATIVE}: missing public `Secret` struct with one `value: String` field"
+        ));
+    }
+    Ok(diagnostics)
+}
+
+fn parse_terlan_contract(
+    root: &Path,
+    relative: &str,
+    label: &str,
+) -> QualityResult<crate::terlan_syntax::SyntaxModuleOutput> {
+    let source = fs::read_to_string(root.join(relative))
+        .map_err(|error| format!("{relative}: failed to read {label}: {error}"))?;
+    parse_module_as_syntax_output(&source)
+        .map_err(|error| format!("{relative}: failed to parse {label}: {error:?}"))
+}
+
+fn validate_callables(
+    relative: &str,
+    declarations: &[crate::terlan_syntax::SyntaxDeclarationOutput],
+    required: &[RequiredCallable],
+) -> Vec<String> {
+    required
+        .iter()
+        .filter(|contract| {
+            !declarations
+                .iter()
+                .any(|declaration| callable_matches(&declaration.payload, **contract))
+        })
+        .map(|contract| {
+            format!(
+                "{relative}: missing public callable declaration `{}`",
+                render_callable(*contract)
+            )
+        })
+        .collect()
+}
+
+fn callable_matches(payload: &SyntaxDeclarationPayload, required: RequiredCallable) -> bool {
+    let (receiver, name, generic_params, params, return_type, is_public) = match payload {
+        SyntaxDeclarationPayload::Function {
+            name,
+            generic_params,
+            params,
+            return_type,
+            is_public,
+            ..
+        } => (None, name, generic_params, params, return_type, *is_public),
+        SyntaxDeclarationPayload::Method {
+            receiver,
+            name,
+            generic_params,
+            params,
+            return_type,
+            is_public,
+            ..
+        } => (
+            Some(receiver.as_ref()),
+            name,
+            generic_params,
+            params,
+            return_type,
+            *is_public,
+        ),
+        _ => return false,
+    };
+    is_public
+        && name == required.name
+        && receiver_matches(receiver, required.receiver)
+        && generic_params
+            == &required
+                .generic_params
+                .iter()
+                .map(|parameter| (*parameter).to_string())
+                .collect::<Vec<_>>()
+        && params.len() == required.params.len()
+        && params
+            .iter()
+            .zip(required.params)
+            .all(|(actual, expected)| {
+                actual.name == expected.name
+                    && normalized_type(&actual.annotation.text)
+                        == normalized_type(expected.annotation)
+            })
+        && normalized_type(&return_type.text) == normalized_type(required.return_type)
+}
+
+fn receiver_matches(
+    actual: Option<&crate::terlan_syntax::SyntaxParamOutput>,
+    expected: Option<RequiredParameter>,
+) -> bool {
+    match (actual, expected) {
+        (None, None) => true,
+        (Some(actual), Some(expected)) => {
+            actual.name == expected.name
+                && normalized_type(&actual.annotation.text) == normalized_type(expected.annotation)
+        }
+        _ => false,
+    }
+}
+
+fn normalized_type(value: &str) -> String {
+    value
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect()
+}
+
+fn render_callable(required: RequiredCallable) -> String {
+    let receiver = required
+        .receiver
+        .map(|receiver| format!("({}: {}) ", receiver.name, receiver.annotation))
+        .unwrap_or_default();
+    let generics = if required.generic_params.is_empty() {
+        String::new()
+    } else {
+        format!("[{}]", required.generic_params.join(", "))
+    };
+    let params = required
+        .params
+        .iter()
+        .map(|parameter| format!("{}: {}", parameter.name, parameter.annotation))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "pub {receiver}{}{generics}({params}): {}",
+        required.name, required.return_type
+    )
 }
 
 fn validate_required_test_terms(root: &Path) -> QualityResult<Vec<String>> {

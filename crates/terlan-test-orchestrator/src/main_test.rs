@@ -14,7 +14,12 @@ use super::{
 #[test]
 fn orchestrator_runs_shared_runtime_tests_in_the_library_harness() {
     let phases = test_phases(false);
-    let library = phases.first().expect("Terlan library phase");
+    let integration = phases.first().expect("Terlan integration phase");
+    assert_eq!(integration.name, "Terlan union-feature integration");
+    let library = phases
+        .iter()
+        .find(|phase| phase.name == "Terlan commands")
+        .expect("Terlan library phase");
 
     assert_eq!(library.name, "Terlan commands");
     assert_eq!(library.executor, PhaseExecutor::TerlanHarness);
@@ -24,6 +29,37 @@ fn orchestrator_runs_shared_runtime_tests_in_the_library_harness() {
             .windows(2)
             .any(|arguments| arguments == ["--skip", filter]));
     }
+}
+
+#[test]
+fn every_candidate_contract_precedes_broad_and_platform_validation() {
+    let phases = test_phases(false);
+    assert_eq!(
+        phases
+            .iter()
+            .take(3)
+            .map(|phase| phase.name)
+            .collect::<Vec<_>>(),
+        [
+            "Terlan union-feature integration",
+            "ignored std collection contract",
+            "workspace support crates",
+        ]
+    );
+    let broad = phases
+        .iter()
+        .position(|phase| phase.name == "Terlan commands")
+        .expect("broad compiler suite");
+    let platform = phases
+        .iter()
+        .position(|phase| phase.name == "generated C++ package evidence")
+        .expect("platform evidence");
+    assert_eq!(broad, 3);
+    assert!(platform > broad);
+    assert!(phases[platform..].iter().all(|phase| matches!(
+        phase.tier,
+        ValidationTier::AotNativeLink | ValidationTier::ControlledHost
+    )));
 }
 
 #[test]
@@ -113,6 +149,9 @@ fn orchestrator_runs_ignored_contract_once_in_the_library() {
 fn release_orchestrator_leaves_only_normal_library_tests_to_coverage() {
     let phases = test_phases(true);
 
+    assert_eq!(phases[0].name, "Terlan union-feature integration");
+    assert_eq!(phases[1].name, "ignored std collection contract");
+    assert_eq!(phases[2].name, "workspace support crates");
     assert!(!phases.iter().any(|phase| phase.name == "Terlan library"));
     assert!(phases
         .iter()

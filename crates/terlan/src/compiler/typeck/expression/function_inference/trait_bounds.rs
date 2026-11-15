@@ -168,6 +168,7 @@ fn check_function_bounds_with_structural_subst(
             .iter()
             .map(|arg| {
                 let arg = apply_subst(arg, bound_subst);
+                let arg = qualify_imported_named_heads(&arg, ctx);
                 expand_type_aliases(&arg, ctx.aliases)
             })
             .collect::<Vec<_>>();

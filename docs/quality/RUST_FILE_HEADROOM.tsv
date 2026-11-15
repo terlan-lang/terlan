@@ -19,9 +19,8 @@ crates/terlan/src/compiler/syntax/syntax_output.rs	implementation	901	900	1000	c
 crates/terlan/src/compiler/syntax/syntax_output/annotations.rs	implementation	978	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/syntax/syntax_output/shapes.rs	implementation	939	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/core_lowering.rs	implementation	900	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/typeck/expression/function_inference/trait_bounds.rs	implementation	908	900	1000	compiler-structure	0.0.9
+crates/terlan/src/compiler/typeck/expression/function_inference/trait_bounds.rs	implementation	909	900	1000	compiler-structure	0.0.9
 crates/terlan/src/compiler/typeck/mod.rs	implementation	904	900	1000	compiler-structure	0.0.9
-crates/terlan/src/compiler/value_lifecycle.rs	implementation	924	900	1000	compiler-structure	0.0.9
 crates/terlan/src/lsp/backend/navigation.rs	implementation	931	900	1000	lsp-structure	0.0.9
 crates/terlan/src/lsp/hover.rs	implementation	942	900	1000	lsp-structure	0.0.9
 crates/terlan/src/quality/executable_docs_vm.rs	implementation	907	900	1000	quality-structure	0.0.9

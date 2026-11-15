@@ -620,7 +620,7 @@ fn named_type_heads_match(left: &Type, right: &Type) -> bool {
     }
 }
 
-/// Qualifies imported local type names inside one inferred type tree.
+/// Canonicalizes visible type names inside one inferred type tree.
 ///
 /// Inputs:
 /// - `ty`: source-visible type inferred at a call site or stored on a trait
@@ -629,13 +629,15 @@ fn named_type_heads_match(left: &Type, right: &Type) -> bool {
 ///
 /// Output:
 /// - Type tree with imported unqualified named heads rewritten to their
-///   provider-qualified nominal names.
+///   provider-qualified nominal names and explicit references to the current
+///   module rewritten to the local spelling used by declarations.
 ///
 /// Transformation:
 /// - Recurses through generic arguments, tuple/list/map/function shapes, and
 ///   higher-kinded applications so imported opaque types such as
 ///   `List[Int]` compare with provider conformances recorded as
-///   `std.collections.List.List[Int]`.
+///   `std.collections.List.List[Int]`, while `app.Model.State` compares with
+///   the local declaration spelling `State` inside `app.Model`.
 pub(crate) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>) -> Type {
     match ty {
         Type::Named { module, name, args } => {
@@ -653,7 +655,10 @@ pub(crate) fn qualify_imported_named_heads(ty: &Type, ctx: &ExprInferContext<'_>
                 }
             }
             Type::Named {
-                module: module.clone(),
+                module: module
+                    .as_ref()
+                    .filter(|module| module.as_str() != ctx.current_module)
+                    .cloned(),
                 name: name.clone(),
                 args,
             }

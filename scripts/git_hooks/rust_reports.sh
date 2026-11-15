@@ -3,8 +3,14 @@
 set -euo pipefail
 mode=${1:-check}
 case "$mode" in
-  check) dependency_impact_command=dependency-impact-check ;;
-  --record-dependency-impact) dependency_impact_command=dependency-impact-record ;;
+  check)
+    dependency_impact_command=dependency-impact-check
+    file_headroom_command=file-headroom-check
+    ;;
+  --record-dependency-impact)
+    dependency_impact_command=dependency-impact-record
+    file_headroom_command=file-headroom-record
+    ;;
   *) echo "unsupported Rust report mode: $mode" >&2; exit 2 ;;
 esac
 # The commit hook supplies its already-built staged debug tools. Standalone and
@@ -37,7 +43,7 @@ hash_file() {
 checks=(
   api-boundary-check
   "$dependency_impact_command"
-  file-headroom-check
+  "$file_headroom_command"
   workspace-policy-check
   build-graph-boundary-check
 )
@@ -127,12 +133,15 @@ if [[ -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
     cache_check=$check
     if [[ "$cache_check" == dependency-impact-record ]]; then
       cache_check=dependency-impact-check
+    elif [[ "$cache_check" == file-headroom-record ]]; then
+      cache_check=file-headroom-check
     fi
     key=$(report_input_key "$cache_check")
     receipt="$cache_dir/$cache_check/$key.passed"
     cache_keys[$check]=$key
     cache_receipts[$check]=$receipt
     if [[ "$check" != dependency-impact-record \
+      && "$check" != file-headroom-record \
       && ${TERLAN_TEST_FORCE_RERUN:-0} != 1 ]] \
       && receipt_is_valid "$receipt" "$key"; then
       echo "Rust quality report unchanged: $check; reusing $key"
@@ -217,7 +226,9 @@ flock --exclusive 9
 for check in "${checks_to_run[@]}"; do
   TERLAN_RUST_QUALITY_ROOT="$PWD" "$vm" run "$output/vm/scripts_RustQuality.tvm" \
     --script-eval -- "$check"
-  if [[ "$cache_enabled" == true && "$check" != dependency-impact-record ]]; then
+  if [[ "$cache_enabled" == true \
+    && "$check" != dependency-impact-record \
+    && "$check" != file-headroom-record ]]; then
     write_receipt "$check"
   fi
 done

@@ -585,8 +585,9 @@ if lane_has rust-reports; then
   echo 'pre-commit: early Rust report drift'
   run_rust_reports_lane
   if [[ ${TERLAN_RUST_REPORT_MODE:-check} == --record-dependency-impact ]] \
-    && ! git diff --quiet -- docs/quality/RUST_DEPENDENCY_IMPACT.json; then
-    echo 'pre-commit: dependency-impact report regenerated; return it for staging'
+    && { ! git diff --quiet -- docs/quality/RUST_DEPENDENCY_IMPACT.json \
+      || ! git diff --quiet -- docs/quality/RUST_FILE_HEADROOM.tsv; }; then
+    echo 'pre-commit: generated Rust reports regenerated; return them for staging'
     exit 0
   fi
 fi

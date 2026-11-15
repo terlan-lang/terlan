@@ -4,21 +4,36 @@ use crate::{native_worker_path, PhaseExecutor, TestPhase, ValidationTier, INTEGR
 
 /// Declares each correctness tier once, preserving execution order.
 pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
-    let mut phases = vec![
+    let mut phases = candidate_contract_phases();
+    if !coverage_owns_terlc {
+        phases.extend(terlan_library_partitions());
+    }
+    phases.push(workspace_doctest_phase());
+    phases.extend(platform_evidence_phases());
+    phases
+}
+
+/// Cheap deterministic contracts run immediately after the shared build.
+/// Keeping them in one list makes it impossible to add a candidate contract
+/// after broad compiler suites without changing this explicit boundary.
+fn candidate_contract_phases() -> Vec<TestPhase> {
+    vec![
         terlan_integration_phase(),
-        workspace_support_phase(),
-        workspace_doctest_phase(),
-        generated_cpp_package_phase(),
         ignored_std_collection_phase(),
+        workspace_support_phase(),
+    ]
+}
+
+/// Host, linker, and process-bound evidence remains after source correctness.
+fn platform_evidence_phases() -> Vec<TestPhase> {
+    let mut phases = vec![
+        generated_cpp_package_phase(),
         capability_worker_transport_phase(),
         capability_worker_sandbox_phase(),
         capability_event_pump_phase(),
         capability_protocol_reactor_phase(),
         epmd_bootstrap_phase(),
     ];
-    if !coverage_owns_terlc {
-        phases.splice(0..0, terlan_library_partitions());
-    }
     #[cfg(target_os = "linux")]
     {
         phases.push(capability_storage_phase());

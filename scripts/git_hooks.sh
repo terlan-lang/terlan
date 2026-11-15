@@ -115,18 +115,20 @@ node scripts/git_hooks/filter_version_changes.cjs "$base" "$tree" "$raw_changes"
 # snapshot, copy it into the real working tree, and stop so the generated file
 # cannot be omitted from the commit.
 dependency_report=docs/quality/RUST_DEPENDENCY_IMPACT.json
+headroom_report=docs/quality/RUST_FILE_HEADROOM.tsv
 dependency_report_refresh=false
 rust_report_input=false
 if rg -q '(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
   || awk '/\.rs$/ && $0 !~ /\.native_boundary\.rs$/ { found = 1 } END { exit found ? 0 : 1 }' "$changes"; then
   rust_report_input=true
 fi
-if [[ "$rust_report_input" == true ]] \
-  && ! rg -Fqx -- "$dependency_report" "$changes"; then
-  if ! git diff --quiet -- "$dependency_report"; then
-    echo "pre-commit: $dependency_report is already modified; stage it before retrying" >&2
-    exit 1
-  fi
+if [[ "$rust_report_input" == true ]]; then
+  for generated_report in "$dependency_report" "$headroom_report"; do
+    if ! git diff --quiet -- "$generated_report"; then
+      echo "pre-commit: $generated_report is already modified; stage it before retrying" >&2
+      exit 1
+    fi
+  done
   dependency_report_refresh=true
 fi
 
@@ -201,14 +203,25 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
     bash scripts/git_hooks/check.sh "$changes" "$base"
   fi
   if [[ "$dependency_report_refresh" == true ]] \
-    && ! git diff --quiet -- "$dependency_report"; then
-    test "$(git diff --name-only)" = "$dependency_report"
-    test -f "$dependency_report"
-    test -f "$root/$dependency_report"
-    test ! -L "$dependency_report"
-    test ! -L "$root/$dependency_report"
-    cp -- "$dependency_report" "$root/$dependency_report"
-    echo "pre-commit: regenerated $dependency_report; stage it and retry" >&2
+    && { ! git diff --quiet -- "$dependency_report" \
+      || ! git diff --quiet -- "$headroom_report"; }; then
+    while IFS= read -r generated_report; do
+      case "$generated_report" in
+        "$dependency_report"|"$headroom_report") ;;
+        *) echo "pre-commit: unexpected generated path $generated_report" >&2; exit 1 ;;
+      esac
+    done < <(git diff --name-only)
+    for generated_report in "$dependency_report" "$headroom_report"; do
+      if git diff --quiet -- "$generated_report"; then
+        continue
+      fi
+      test -f "$generated_report"
+      test -f "$root/$generated_report"
+      test ! -L "$generated_report"
+      test ! -L "$root/$generated_report"
+      cp -- "$generated_report" "$root/$generated_report"
+      echo "pre-commit: regenerated $generated_report; stage it and retry" >&2
+    done
     exit 1
   fi
   # Every other validation path remains read-only.
