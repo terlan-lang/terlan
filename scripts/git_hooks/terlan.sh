@@ -85,15 +85,15 @@ unit_key() {
   } | hash_stream
 }
 run_cached_unit() {
-  local kind=$1 root=$2; shift 2
+  local kind=$1 root=$2 runner=$3; shift 3
   local compiler_hash key receipt temporary unit_cache= unit_cache_key
   if [[ -z "$receipt_dir" ]]; then
-    run_terlc "$@"
+    "$runner" "$root" "$@"
     return
   fi
   test ! -L "$receipt_dir"
   mkdir -p "$receipt_dir"
-  key=$(unit_key "$kind" "$root" "$@")
+  key=$(unit_key "$kind" "$root" "$runner" "$@")
   if [[ -n "$terlan_cache_dir" ]]; then
     compiler_hash=$(git hash-object "$terlc")
     unit_cache_key="$(printf '%s\n' terlan-project-cache-v1 "$compiler_hash" "$root" | hash_stream)"
@@ -108,15 +108,14 @@ run_cached_unit() {
     echo "pre-commit: reuse $kind validation for $root ($key)"
     return 0
   fi
-  if [[ $1 == project-check ]]; then
-    shift
-    TERLAN_ACTIVE_UNIT_CACHE_DIR="$unit_cache" run_project_check "$root" "$@"
-  else
-    TERLAN_ACTIVE_UNIT_CACHE_DIR="$unit_cache" run_terlc "$@"
-  fi
+  TERLAN_ACTIVE_UNIT_CACHE_DIR="$unit_cache" "$runner" "$root" "$@"
   temporary=$(mktemp "$receipt_dir/.terlan-validation.XXXXXX")
   printf '%s\n%s\n' "$receipt_schema" "$key" > "$temporary"
   mv "$temporary" "$receipt"
+}
+run_terlc_unit() {
+  local _root=$1; shift
+  run_terlc "$@"
 }
 run_terlc() {
   local started=$SECONDS status selected_cache_dir
@@ -166,19 +165,19 @@ queue_check() {
   queued_check_roots+=("$root")
 }
 run_queued_checks() {
-  local roots=() root index previous command
+  local roots=() root index previous paths
   if [[ ${#queued_checks[@]} -eq 0 ]]; then return 0; fi
   for root in "${queued_check_roots[@]}"; do
     for previous in "${roots[@]}"; do [[ "$previous" == "$root" ]] && continue 2; done
     roots+=("$root")
   done
   for root in "${roots[@]}"; do
-    command=(project-check)
+    paths=()
     for index in "${!queued_checks[@]}"; do
-      [[ ${queued_check_roots[$index]} == "$root" ]] && command+=("${queued_checks[$index]}")
+      [[ ${queued_check_roots[$index]} == "$root" ]] && paths+=("${queued_checks[$index]}")
     done
     echo "pre-commit: project-scoped Terlan source check: $root"
-    run_cached_unit check "$root" "${command[@]}"
+    run_cached_unit check "$root" run_project_check "${paths[@]}"
   done
 }
 run_terlan_test() {
@@ -248,7 +247,7 @@ run_queued_test_root() {
   fi
   command+=(--coverage-threshold 100)
   echo "pre-commit: project-scoped affected Terlan tests: $root"
-  run_cached_unit test "$root" "${command[@]}"
+  run_cached_unit test "$root" run_terlc_unit "${command[@]}"
 }
 check_terlan_source() {
   if [[ "$1" == *terlan.toml ]]; then

@@ -592,6 +592,34 @@ pub make(value: Int): Result[Int, Failure] -> Ok(value + 1).
 }
 
 #[test]
+fn suspending_condition_result_survives_refutable_let_binding() {
+    check_sources(&[
+        r#"
+module suspending_condition_result.
+import std.core.Result.{Err, Ok}.
+import std.vm.Process.
+import type std.core.Result.{Result}.
+state(): String ->
+    let _yielded = Process.yield_now();
+    "ready".
+run(): Result[Unit, String] ->
+    when {
+        Ok(_admitted) <- if {
+            state() == "failed" -> Err("failed");
+            true -> Ok(Unit)
+        }
+    } else {
+        Err(reason) -> Err(reason);
+        _ -> Err("pattern")
+    };
+    Ok(Unit).
+pub check(): Bool -> run() == Ok(Unit).
+"#,
+        include_str!("../../../../../std/core/Result.terl"),
+    ]);
+}
+
+#[test]
 fn contextual_option_identity_survives_case_if_and_record_storage() {
     check_sources(&[
         r#"

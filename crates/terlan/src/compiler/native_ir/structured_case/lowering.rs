@@ -403,10 +403,27 @@ fn lower_case(
             scrutinee.contract_text()
         )
     })?;
-    let scrutinee = if contains_case(scrutinee) {
-        lower_containing_case(scrutinee, params, param_types, core_types, environment)?
+    let contextual_scrutinee = super::contextualize_managed_control_result(
+        scrutinee,
+        scrutinee_core.as_ref(),
+        constructors,
+    );
+    let scrutinee = if contains_case(&contextual_scrutinee) {
+        lower_containing_case(
+            &contextual_scrutinee,
+            params,
+            param_types,
+            core_types,
+            environment,
+        )?
     } else {
-        lower_plain(scrutinee, params, param_types, core_types, environment)?
+        lower_plain(
+            &contextual_scrutinee,
+            params,
+            param_types,
+            core_types,
+            environment,
+        )?
     };
     let scrutinee_slot = params
         .values()

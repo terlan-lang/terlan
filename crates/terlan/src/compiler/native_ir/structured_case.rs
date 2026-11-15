@@ -74,6 +74,29 @@ pub(super) fn core_expr_type_with_constructors(
     type_support::core_expr_type_with_constructors(expr, types, functions, constructors)
 }
 
+fn contextualize_managed_control_result(
+    expr: &CoreExpr,
+    core_type: Option<&CoreType>,
+    constructors: &NativeConstructorLayouts,
+) -> CoreExpr {
+    core_type
+        .filter(|core_type| {
+            matches!(core_type, CoreType::Union(_))
+                && matches!(
+                    super::native_type_with_constructors(
+                        Some(core_type),
+                        &core_type.contract_text(),
+                        constructors,
+                    ),
+                    Some(NativeType::ManagedRef(_))
+                )
+        })
+        .map_or_else(
+            || expr.clone(),
+            |core_type| super::case_lowering::contextualize_control_result(expr.clone(), core_type),
+        )
+}
+
 #[derive(Clone)]
 pub(super) struct PatternBinding {
     pub(super) name: String,

@@ -116,9 +116,14 @@ pub(crate) fn lower_suspending_case(
         function_core_types,
         constructors,
     };
-    let scrutinee = if contains_case(scrutinee) {
+    let contextual_scrutinee = super::contextualize_managed_control_result(
+        scrutinee,
+        scrutinee_core.as_ref(),
+        constructors,
+    );
+    let scrutinee = if contains_case(&contextual_scrutinee) {
         lower_containing_case(
-            scrutinee,
+            &contextual_scrutinee,
             params,
             param_types,
             param_core_types,
@@ -126,7 +131,7 @@ pub(crate) fn lower_suspending_case(
         )?
     } else {
         lower_plain(
-            scrutinee,
+            &contextual_scrutinee,
             params,
             param_types,
             param_core_types,

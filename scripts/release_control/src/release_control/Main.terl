@@ -362,11 +362,6 @@ if {
         Ok(_guarded) <- guard(revision);
         Ok(initial) <- observe(revision, version);
         Ok(_reported) <- announce(initial);
-        Ok(_admitted) <-
-            if {
-                Support.text(initial, "state") == "failed" -> Err(Support.text(initial, "next_action"));
-                true -> Ok(Unit)
-            };
         Ok(ready) <-
             wait(
                 revision,
