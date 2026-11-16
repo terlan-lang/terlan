@@ -2,7 +2,13 @@
 
 Status: implementation in progress on main
 Created: 2026-08-29
-Latest implementation checkpoint: 2026-10-22
+Latest narrative checkpoint: 2026-10-20 (Phase 4)
+
+This document's dated checkpoint sections are a historical narrative, written
+by hand per phase, and they lag real progress. `compiler/self_host/phase/`
+already holds `PHASE_5.toml` through `PHASE_9.toml` with per-gate status for
+work this narrative has not caught up to. Read "Status Tracking And Known
+Gaps" below before treating this file alone as current.
 
 ## Implementation Status
 
@@ -44,9 +50,53 @@ has an explicit acceptance/rejection inventory in
 - Promotion smoke evidence: guarded root `case` lowering contains
   `root_case_guard_1`, and the visibility fixture exports only `value/0`.
 
+Known gap: this `bootstrap-current-N` lineage and the phase-local
+`phaseN-image-M` identifiers used in the checkpoints below (for example
+`self-host-phase3-image-21`, `self-host-phase4-image-24`) are not
+cross-referenced anywhere in this document or in `compiler/self_host/`.
+Nothing here states whether they share lineage or are independent snapshots.
+Treat any claim about "the current compiler" as scoped to whichever
+identifier it names until this is reconciled.
+
 Target-directory paths are working evidence, not release provenance. A release
 promotion record must replace them with source revision, source-closure digest,
 artifact digest, compiler ancestry, target identity, and recovery identity.
+That record must also state how the bootstrap-current and phase-local image
+lineages above relate, closing the gap noted.
+
+## Status Tracking And Known Gaps
+
+Two status systems describe self-hosting progress, and they are not kept in
+sync:
+
+1. This markdown file's dated checkpoint sections (prose, hand-written per
+   phase, updated irregularly).
+2. `compiler/self_host/phase/PHASE_0.toml` through `PHASE_9.toml`, which
+   declare per-gate `status` strings and are updated alongside source changes.
+
+As of 2026-11-16, `PHASE_5.toml` through `PHASE_9.toml` declare 42 gates
+across their `[[gate]]` tables. None currently carries a `passed` (or
+equivalent complete) status. Those 42 gates use 14 distinct ad hoc status
+strings (`pending`, `pending-validation`, `implemented-unverified`,
+`pending-regeneration-and-validation`, and ten more bespoke variants) with no
+shared vocabulary. `implemented-unverified` in particular means "the check
+exists in code; nobody has confirmed what it reports" -- it is not evidence of
+a passing gate and must not be read as one. None of these 42 gates has a
+corresponding `make` target today; only Phase 0-4 checks (for example
+`self-host-phase2-complete-check`) are reachable from `make`, so Phase 5-9
+gates cannot yet block a release regardless of their declared status.
+
+Going forward:
+
+- A gate's `status` field must be one of `pending`, `implemented-unverified`,
+  or `passed`. Bespoke descriptive detail (which corpus is pending, which
+  regeneration is outstanding) belongs in an adjacent `note` field, not folded
+  into `status`, so a reader can count passing gates without parsing prose.
+- Whenever a `PHASE_N.toml` gate flips to `passed` with recorded evidence, the
+  commit that flips it must also add or update this file's dated checkpoint
+  section for that phase. The two sources must not diverge silently again.
+- A phase's exit gates becoming real `make` targets is itself a tracked
+  deliverable of that phase, not an afterthought left implicit.
 
 ## Objective
 
@@ -141,6 +191,15 @@ Release gates compare against an explicit checked-in baseline and fail on an
 unapproved regression. Performance work must not bypass canonical evidence,
 reduce corpus coverage, or weaken bootstrap fixed-point comparison.
 
+Current evidence is far from this bar. The Phase 4 correctness checkpoint
+below measured a single-module compile (`ProjectedParser.syntax`) at 84.77
+seconds before a register-liveness fix and 12.06 seconds after it. With 559
+source files already under `compiler/self_host/`, per-module cost at that
+order of magnitude is only viable if Phase 7's incremental invalidation and
+parallel workers land before most of that corpus accumulates. Treat Phase 7
+as a load-bearing dependency for the whole objective, not a late-stage
+optimization pass layered on top of an otherwise-finished compiler.
+
 ## Backend Contract
 
 The self-hosted compiler will not bind directly to Cranelift's Rust API. It will
@@ -180,6 +239,15 @@ removed before clean-bootstrap and failure-recovery procedures exist.
 
 Each differential comparison must use canonical semantic outputs rather than
 unstable debug text or native object bytes.
+
+Phase numbers are a reporting and gating checklist, not a strict execution
+waterfall. Backend or runtime integration work may start before a later
+phase's gates formally open, when it is needed to produce end-to-end
+differential evidence for an earlier phase -- this has already happened in
+practice, since ABI-1 backend emission (nominally Phase 6) was exercised
+during the Phase 2-4 checkpoints below. A phase's own exit gates, not its
+position in the numbered sequence, determine whether its deliverables are
+authoritative.
 
 ## Phase 0: Boundary And Evidence Foundations
 
@@ -501,6 +569,12 @@ self-hosted compiler.
 
 ### Current workaround inventory
 
+This subsection is a frozen snapshot from when it was last written, not a
+live tracker. `compiler/self_host/phase/PHASE_9.toml` and
+`PRODUCTION_EVIDENCE_PLAN.tsv` are authoritative for current gate and
+workaround status; update this snapshot only when leaving it stale would
+mislead a reader about which workarounds remain.
+
 - `ProjectedBindingTypeMerge` now uses typed `Map` indexes constructed from
   canonical entries; its association-list bootstrap substitution is removed.
 - `ProjectedTypeConstraintResolution` now uses
@@ -740,3 +814,11 @@ a non-empty finite list of callable identities. Duplicate functions, result
 names, or callable targets are rejected. The backend still resolves those
 identities against the converged actor suspension-profile catalog; the artifact
 cannot directly claim suspension behavior or continuation metadata.
+
+**Open question (unresolved):** this closed-world requirement is described
+only in terms of the compiler's own bootstrap corpus. It does not state
+whether ordinary Terlan programs with legitimate dynamic dispatch (trait
+objects, plugin-style callback parameters) must satisfy the same closed-world
+or manifest requirement once the self-hosted compiler compiles general user
+code, or whether the rule is scoped to the bootstrap corpus only. Resolve and
+document the scope before Phase 9 exit.

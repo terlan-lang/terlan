@@ -281,6 +281,13 @@ methods, and generated standard-library declarations.
 
 ## Development Checks
 
+Install the native OS packages Cargo build scripts require (a C toolchain,
+pkg-config, and libpq's development headers) once per machine:
+
+```sh
+make setup
+```
+
 Install the repository's pre-commit hook once per checkout:
 
 ```sh
