@@ -1404,6 +1404,7 @@ mkdir -p "$temporary/report-cache/scripts/git_hooks" "$temporary/report-cache/bi
   "$temporary/report-cache/src"
 cp "$(dirname "$driver")/git_hooks/rust_reports.sh" \
   "$temporary/report-cache/scripts/git_hooks/"
+real_timeout=$(command -v timeout)
 printf 'first\n' > "$temporary/report-cache/input.txt"
 printf 'pub fn value() {}\n' > "$temporary/report-cache/src/lib.rs"
 printf 'initial-report\n' > \
@@ -1422,6 +1423,11 @@ cat > "$temporary/report-cache/bin/rustc" <<'RUSTC'
 test "${1:-}" = -Vv
 printf 'rustc fixture 1\n'
 RUSTC
+cat > "$temporary/report-cache/bin/timeout" <<'TIMEOUT'
+#!/usr/bin/env bash
+printf 'timeout:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
+exec "$REPORT_REAL_TIMEOUT" "$@"
+TIMEOUT
 cat > "$temporary/report-cache/owned-target/debug/terlan-quality" <<'QUALITY'
 #!/usr/bin/env bash
 printf 'quality:%s\n' "$*" >> "$REPORT_CACHE_CALLS"
@@ -1455,6 +1461,9 @@ if [[ ${REPORT_VM_BLOCK:-0} == 1 ]]; then
   printf '%s\n' "$$" >> "$REPORT_VM_STARTED"
   trap 'exit 0' TERM INT HUP
   while :; do sleep 1; done
+fi
+if [[ -n ${REPORT_VM_SLEEP_SECONDS:-} ]]; then
+  sleep "$REPORT_VM_SLEEP_SECONDS"
 fi
 command=${!#}
 if [[ "$command" == dependency-impact-check \
@@ -1491,6 +1500,9 @@ run_report_cache() {
     PATH="$PWD/bin:$PATH" \
     CARGO_TARGET_DIR="$PWD/owned-target" \
     REPORT_CACHE_CALLS="$report_cache_calls" \
+    REPORT_REAL_TIMEOUT="$real_timeout" \
+    REPORT_VM_SLEEP_SECONDS="${REPORT_VM_SLEEP_SECONDS:-}" \
+    TERLAN_RUST_REPORT_TIMEOUT_SECONDS="${TERLAN_RUST_REPORT_TIMEOUT_SECONDS:-}" \
     TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
     TERLAN_RUST_REPORT_TERLC="$PWD/owned-target/debug/terlc" \
     TERLAN_RUST_REPORT_VM="$PWD/owned-target/debug/terlan-vm" \
@@ -1500,6 +1512,7 @@ run_report_cache() {
 }
 run_report_cache > "$temporary/report-cache-first.log"
 test "$(grep -c '^vm:' "$report_cache_calls")" = 6
+test "$(grep -c '^timeout:--kill-after=5s 120s ' "$report_cache_calls")" = 6
 test "$(grep -c '^quality:' "$report_cache_calls")" = 0
 grep -Eq '^terlc:build --incremental .* --out-dir .*/owned-target/terlan-validators/rust-quality$' \
   "$report_cache_calls"
@@ -1557,6 +1570,17 @@ test "$(grep -c 'Rust quality report unchanged:' \
   "$temporary/report-cache-after-record.log")" = 6
 test ! -s "$report_cache_calls"
 
+# A report deadline is an explicit diagnostic, not an unexplained generic
+# failure. Force execution so stale receipts from earlier fixture identities
+# cannot accidentally select the cache path instead of the deadline path.
+if REPORT_VM_SLEEP_SECONDS=2 TERLAN_RUST_REPORT_TIMEOUT_SECONDS=1 \
+  TERLAN_TEST_FORCE_RERUN=1 \
+  run_report_cache > "$temporary/report-cache-timeout.log" 2>&1; then
+  echo 'Timed-out Rust report validation unexpectedly passed' >&2; exit 1
+fi
+grep -Fq 'Rust quality report exceeded 1s:' \
+  "$temporary/report-cache-timeout.log"
+
 # Report validation admits only two concurrent CPU-heavy workers. Interrupting
 # the owner terminates that bounded set and removes its private job directory.
 report_vm_started="$temporary/report-cache.started"
@@ -1567,6 +1591,7 @@ report_vm_started="$temporary/report-cache.started"
     PATH="$PWD/bin:$PATH" \
     CARGO_TARGET_DIR="$PWD/owned-target" \
     REPORT_CACHE_CALLS="$report_cache_calls" \
+    REPORT_REAL_TIMEOUT="$real_timeout" \
     REPORT_VM_BLOCK=1 \
     REPORT_VM_STARTED="$report_vm_started" \
     TERLAN_TEST_FORCE_RERUN=1 \

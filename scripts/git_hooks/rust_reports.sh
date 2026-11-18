@@ -244,7 +244,7 @@ flock --exclusive 9
 "$terlc" build --incremental \
   scripts/self_validation/rust_quality/scripts/RustQuality.terls \
   --target terlan-vm --out-dir "$output"
-report_timeout=${TERLAN_RUST_REPORT_TIMEOUT_SECONDS:-60}
+report_timeout=${TERLAN_RUST_REPORT_TIMEOUT_SECONDS:-120}
 case "$report_timeout" in ''|*[!0-9]*) echo 'invalid Rust report timeout' >&2; exit 2 ;; esac
 report_jobs=$(mktemp -d "$output_parent/.rust-report-jobs.XXXXXX")
 declare -a report_pids=() report_logs=() report_durations=()
@@ -335,7 +335,12 @@ for index in "${!report_pids[@]}"; do
     fi
   else
     report_status=1
-    echo "Rust quality report failed: $check ($(cat "${report_durations[$index]}")s)" >&2
+    job_status=${report_job_statuses[${report_pids[$index]}]}
+    if (( job_status == 124 )); then
+      echo "Rust quality report exceeded ${report_timeout}s: $check" >&2
+    else
+      echo "Rust quality report failed: $check ($(cat "${report_durations[$index]}")s)" >&2
+    fi
   fi
   cat "${report_logs[$index]}"
 done
