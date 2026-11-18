@@ -1,6 +1,29 @@
 //! Declarative test-tier selectors, separate from execution and admission.
 
-use crate::{native_worker_path, PhaseExecutor, TestPhase, ValidationTier, INTEGRATION_FILTERS};
+use crate::{
+    native_worker_path, PhaseExecutor, TestPhase, TestShard, ValidationTier, INTEGRATION_FILTERS,
+};
+use std::ffi::OsStr;
+
+pub(super) const COMPACT_PHASE_PLAN_ENV: &str = "TERLAN_TEST_COMPACT_PHASE_PLAN";
+
+/// Selects the recorded production or compact acceptance plan from one strict setting.
+pub(super) fn selected_test_phases(
+    coverage_owns_terlc: bool,
+    setting: Option<&OsStr>,
+) -> Result<Vec<TestPhase>, crate::PhaseFailure> {
+    match setting {
+        None => Ok(test_phases(coverage_owns_terlc)),
+        Some(value) if value.is_empty() || value == OsStr::new("0") => {
+            Ok(test_phases(coverage_owns_terlc))
+        }
+        Some(value) if value == OsStr::new("1") => Ok(compact_test_phases(coverage_owns_terlc)),
+        Some(_) => Err(crate::PhaseFailure {
+            outcome: "suite-inputs-failed",
+            detail: "invalid compact test phase plan setting".into(),
+        }),
+    }
+}
 
 /// Declares each correctness tier once, preserving execution order.
 pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
@@ -8,6 +31,21 @@ pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
     if !coverage_owns_terlc {
         phases.extend(terlan_library_partitions());
     }
+    phases.push(workspace_support_phase());
+    phases.push(workspace_integration_phase());
+    phases.push(workspace_doctest_phase());
+    phases.extend(platform_evidence_phases());
+    phases
+}
+
+/// Keeps synthetic acceptance workspaces small without weakening production phases.
+pub(super) fn compact_test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
+    let mut phases = candidate_contract_phases();
+    if !coverage_owns_terlc {
+        phases.push(terlan_library_phase());
+    }
+    phases.push(workspace_support_phase());
+    phases.push(workspace_integration_phase());
     phases.push(workspace_doctest_phase());
     phases.extend(platform_evidence_phases());
     phases
@@ -17,11 +55,7 @@ pub(super) fn test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
 /// Keeping them in one list makes it impossible to add a candidate contract
 /// after broad compiler suites without changing this explicit boundary.
 fn candidate_contract_phases() -> Vec<TestPhase> {
-    vec![
-        terlan_integration_phase(),
-        ignored_std_collection_phase(),
-        workspace_support_phase(),
-    ]
+    vec![terlan_integration_phase(), ignored_std_collection_phase()]
 }
 
 /// Host, linker, and process-bound evidence remains after source correctness.
@@ -46,8 +80,226 @@ fn platform_evidence_phases() -> Vec<TestPhase> {
 /// Keep each process serial: compiler fixtures change process-wide environment.
 /// Libtest filters are substrings, so each owner excludes every earlier selector.
 pub(super) fn terlan_library_partitions() -> Vec<TestPhase> {
-    let groups: [(&str, &[&str]); 6] = [
-        ("Terlan commands", &["commands::"]),
+    let groups: &[(&str, &[&str])] = &[
+        (
+            "Terlan build arguments",
+            &[
+                "commands::build::build_test::tests::annotation_isolation_artifact_test::",
+                "commands::build::build_test::tests::args_test::",
+            ],
+        ),
+        (
+            "Terlan browser build artifacts",
+            &["commands::build::build_test::tests::artifact_test::browser_artifacts::"],
+        ),
+        (
+            "Terlan VM build artifacts",
+            &["commands::build::build_test::tests::artifact_test::vm_artifacts::"],
+        ),
+        (
+            "Terlan build debug evidence",
+            &[
+                "commands::build::build_test::tests::asm_labels_artifact_test::",
+                "commands::build::build_test::tests::debug_info_artifact_test::",
+                "commands::build::build_test::tests::deterministic_artifact_test::",
+                "commands::build::build_test::tests::embedded_line_coverage_artifact_test::",
+                "commands::build::build_test::tests::key_compatibility_test::",
+                "commands::build::build_test::tests::latin1_source_policy_test::",
+            ],
+        ),
+        (
+            "Terlan build dependency closure",
+            &[
+                "commands::build::build_test::tests::dependency_test::",
+                "commands::build::build_test::tests::executable_vm_artifact_test::",
+                "commands::build::build_test::tests::import_constructor_test::",
+            ],
+        ),
+        (
+            "Terlan build project layout",
+            &[
+                "commands::build::build_test::tests::parallel_compilation_test::",
+                "commands::build::build_test::tests::project_layout_test::",
+            ],
+        ),
+        (
+            "Terlan JavaScript build shapes",
+            &[
+                "commands::build::build_test::tests::js_target_diagnostics_test::",
+                "commands::build::build_test::tests::shape_js_test::",
+            ],
+        ),
+        ("Terlan build test remainder", &["commands::build::build_test::"]),
+        (
+            "Terlan build manifests",
+            &["commands::build::project_manifest::"],
+        ),
+        (
+            "Terlan VM artifact builds",
+            &["commands::build::vm_artifact::"],
+        ),
+        (
+            "Terlan build orchestration",
+            &["commands::build::build_orchestration::"],
+        ),
+        (
+            "Terlan browser build primitives",
+            &[
+                "commands::build::css::",
+                "commands::build::js::",
+                "commands::build::js_source_classification::",
+            ],
+        ),
+        (
+            "Terlan browser manifest discovery",
+            &["commands::build::js_browser::js_browser_test::asset_and_response_manifests::discover_web_handlers"],
+        ),
+        (
+            "Terlan browser manifest validation",
+            &["commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_manifest"],
+        ),
+        (
+            "Terlan browser package source",
+            &["commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_package"],
+        ),
+        (
+            "Terlan browser callbacks",
+            &[
+                "commands::build::js_browser::js_browser_test::callback_source_execution::",
+                "commands::build::js_browser::js_browser_test::response_source_execution::",
+            ],
+        ),
+        (
+            "Terlan browser handler routes",
+            &["commands::build::js_browser::js_browser_test::route_fixtures::discover_web_handlers"],
+        ),
+        (
+            "Terlan browser route manifests",
+            &["commands::build::js_browser::js_browser_test::route_fixtures::discover_web_route_manifest"],
+        ),
+        (
+            "Terlan browser route serialization",
+            &["commands::build::js_browser::js_browser_test::route_fixtures::write_browser_package"],
+        ),
+        (
+            "Terlan browser VM routes",
+            &[
+                "commands::build::js_browser::js_browser_test::vm_service_staging",
+                "commands::build::js_browser::js_browser_test::vm_source_routes::",
+            ],
+        ),
+        (
+            "Terlan browser WebSockets",
+            &["commands::build::js_browser::js_browser_test::websocket_source_execution::"],
+        ),
+        (
+            "Terlan package registry builds",
+            &["commands::build::package_registry"],
+        ),
+        (
+            "Terlan package publication builds",
+            &[
+                "commands::build::package_artifact::",
+                "commands::build::package_git::",
+                "commands::build::package_publish",
+            ],
+        ),
+        ("Terlan build command remainder", &["commands::build::"]),
+        (
+            "Terlan serve arguments",
+            &["commands::serve::serve_test::arguments_and_fixtures::"],
+        ),
+        (
+            "Terlan dynamic serve dispatch",
+            &["commands::serve::serve_test::dynamic_dispatch::"],
+        ),
+        (
+            "Terlan serve package validation",
+            &["commands::serve::serve_test::observability_and_packages::"],
+        ),
+        (
+            "Terlan serve route dispatch",
+            &["commands::serve::serve_test::route_dispatch::"],
+        ),
+        (
+            "Terlan serve static fallbacks",
+            &["commands::serve::serve_test::static_fallbacks::"],
+        ),
+        (
+            "Terlan serve upgrades",
+            &["commands::serve::serve_test::upgrades_and_acme::"],
+        ),
+        (
+            "Terlan serve cache invocation",
+            &["commands::serve::handler_cache::invocation::"],
+        ),
+        (
+            "Terlan serve response policy",
+            &["commands::serve::handler_cache::response_policy_test::"],
+        ),
+        (
+            "Terlan serve request routing",
+            &[
+                "commands::serve::handler_cache::request_projection::",
+                "commands::serve::handler_cache::source_router::",
+            ],
+        ),
+        (
+            "Terlan serve cache generation",
+            &[
+                "commands::serve::handler_cache::handler_cache_generation_test::",
+                "commands::serve::handler_cache::multicore_performance_test::",
+                "commands::serve::handler_cache::shard_owner::",
+            ],
+        ),
+        (
+            "Terlan serve cache protocols",
+            &[
+                "commands::serve::handler_cache::closure_invocation_test::",
+                "commands::serve::handler_cache::protocol_capability::",
+            ],
+        ),
+        (
+            "Terlan serve response bridge",
+            &["commands::serve::handler::response_bridge::"],
+        ),
+        (
+            "Terlan serve WebSocket invocation",
+            &["commands::serve::handler::websocket_invocation::"],
+        ),
+        ("Terlan serve handler remainder", &["commands::serve::handler::"]),
+        (
+            "Terlan TLS cache custody",
+            &["commands::serve::tls::acme_runtime::tls_test::cache_custody::"],
+        ),
+        (
+            "Terlan TLS and ACME fixtures",
+            &["commands::serve::tls::acme_runtime::tls_test::tls_and_acme_fixtures::"],
+        ),
+        (
+            "Terlan Hyper JSON bodies",
+            &["commands::serve::hyper_server::hyper_server_test::json_body::"],
+        ),
+        (
+            "Terlan Hyper SSE source",
+            &["commands::serve::hyper_server::hyper_server_test::sse_source::"],
+        ),
+        ("Terlan Hyper remainder", &["commands::serve::hyper_server::"]),
+        ("Terlan serve command remainder", &["commands::serve::"]),
+        (
+            "Terlan C bindings",
+            &["commands::bind::c_abi_binding_generator::"],
+        ),
+        (
+            "Terlan C++ bindings",
+            &["commands::bind::cpp_binding_generator::"],
+        ),
+        ("Terlan binding command remainder", &["commands::bind::"]),
+        ("Terlan lint commands", &["commands::lint::"]),
+        ("Terlan JavaScript emission", &["commands::emit_js::"]),
+        ("Terlan database commands", &["commands::db::"]),
+        ("Terlan test commands", &["commands::test::"]),
+        ("Terlan command remainder", &["commands::"]),
         ("Terlan native IR", &["compiler::native_ir::"]),
         ("Terlan type checker", &["compiler::typeck::"]),
         ("Terlan compiler", &["compiler::"]),
@@ -56,16 +308,58 @@ pub(super) fn terlan_library_partitions() -> Vec<TestPhase> {
     ];
     let mut previous_filters = Vec::new();
     groups
-        .into_iter()
+        .iter()
+        .copied()
         .map(|(name, filters)| {
             let mut phase = terlan_library_phase();
             phase.name = name;
+            phase.test_threads = match name {
+                "Terlan serve cache invocation"
+                | "Terlan serve response policy"
+                | "Terlan serve request routing"
+                | "Terlan Hyper JSON bodies"
+                | "Terlan Hyper SSE source" => Some(4),
+                _ => None,
+            };
             phase.args.extend_from_slice(filters);
             for &filter in &previous_filters {
                 phase.args.extend(["--skip", filter]);
             }
             previous_filters.extend_from_slice(filters);
             phase
+        })
+        .flat_map(|phase| {
+            let total = match phase.name {
+                "Terlan C bindings"
+                | "Terlan C++ bindings"
+                | "Terlan lint commands"
+                | "Terlan JavaScript emission" => 4,
+                "Terlan database commands" | "Terlan test commands" => 3,
+                "Terlan command remainder"
+                | "Terlan native IR"
+                | "Terlan type checker"
+                | "Terlan compiler"
+                | "Terlan runtime"
+                | "Terlan library remainder" => 32,
+                _ => 1,
+            };
+            shard_phase(phase, total)
+        })
+        .collect()
+}
+
+fn shard_phase(phase: TestPhase, total: usize) -> Vec<TestPhase> {
+    if total == 1 {
+        return vec![phase];
+    }
+    (0..total)
+        .map(|index| {
+            let mut shard = phase.clone();
+            shard.name = Box::leak(
+                format!("{} shard {:02}/{total:02}", phase.name, index + 1).into_boxed_str(),
+            );
+            shard.shard = Some(TestShard { index, total });
+            shard
         })
         .collect()
 }
@@ -82,6 +376,8 @@ pub(super) fn terlan_library_phase() -> TestPhase {
         executor: PhaseExecutor::TerlanHarness,
         args,
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }
 
@@ -95,30 +391,66 @@ pub(super) fn terlan_integration_phase() -> TestPhase {
         executor: PhaseExecutor::TerlanHarness,
         args,
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }
 
 fn workspace_support_phase() -> TestPhase {
     TestPhase {
-        name: "workspace support crates",
+        name: "workspace support unit targets",
         tier: ValidationTier::Integration,
         executor: PhaseExecutor::CargoNative,
-        args: workspace_native_arguments(),
+        args: workspace_support_arguments(),
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }
 
-/// Identical build and execution selection keeps the main library's Cargo unit reusable.
-pub(super) fn workspace_native_arguments() -> Vec<&'static str> {
-    vec![
-        "test",
-        "--locked",
-        "--workspace",
-        "--tests",
-        "--features",
-        "terlan/quality-tools,terlan/editor-lsp,terlan/benchmark-tools,terlan/serve-runtime-bin",
-        "--message-format=json",
-    ]
+fn workspace_integration_phase() -> TestPhase {
+    TestPhase {
+        name: "workspace integration targets",
+        tier: ValidationTier::Integration,
+        executor: PhaseExecutor::CargoNative,
+        args: workspace_integration_arguments(),
+        environment: Vec::new(),
+        shard: None,
+        test_threads: None,
+    }
+}
+
+const UNION_FEATURES: &str = "terlan/validation-union";
+
+pub(super) fn cargo_test_arguments(selection: &[&'static str]) -> Vec<&'static str> {
+    let mut arguments = vec!["test", "--profile", "dev", "--locked"];
+    arguments.extend_from_slice(selection);
+    arguments.push("--message-format=json");
+    arguments
+}
+
+pub(super) fn union_feature_arguments(selection: &[&'static str]) -> Vec<&'static str> {
+    let mut arguments = cargo_test_arguments(selection);
+    arguments.splice(
+        arguments.len() - 1..arguments.len() - 1,
+        ["--features", UNION_FEATURES],
+    );
+    arguments
+}
+
+/// Builds only the directly executed library harness before its early phases.
+pub(super) fn terlan_harness_arguments() -> Vec<&'static str> {
+    union_feature_arguments(&["-p", "terlan", "--lib"])
+}
+
+/// Runs non-Terlan unit targets without selecting the already-owned compiler targets.
+pub(super) fn workspace_support_arguments() -> Vec<&'static str> {
+    cargo_test_arguments(&["--workspace", "--exclude", "terlan", "--lib", "--bins"])
+}
+
+/// Runs every integration target without selecting any package library or binary target.
+pub(super) fn workspace_integration_arguments() -> Vec<&'static str> {
+    cargo_test_arguments(&["--workspace", "--test", "*"])
 }
 
 /// Keeps Rustdoc execution independent of the native Cargo runner.
@@ -137,6 +469,8 @@ pub(super) fn workspace_doctest_phase() -> TestPhase {
             "--",
         ],
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }
 
@@ -151,6 +485,8 @@ fn generated_cpp_package_phase() -> TestPhase {
             "--exact",
         ],
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }
 
@@ -166,6 +502,8 @@ pub(super) fn ignored_std_collection_phase() -> TestPhase {
             "--exact",
         ],
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }
 
@@ -180,6 +518,8 @@ fn ignored_native_phase(
         executor: PhaseExecutor::TerlanHarness,
         args: vec![selector, "--ignored", "--exact"],
         environment,
+        shard: None,
+        test_threads: None,
     }
 }
 
@@ -230,6 +570,7 @@ fn public_storage_phase() -> TestPhase {
         vec![
             ("TERLAN_TEST_COMPILER", crate::prebuilt_binary_path("terlc")),
             ("TERLAN_TEST_VM", crate::prebuilt_binary_path("terlan-vm")),
+            ("TERLAN_TEST_CAPABILITY_WORKER", native_worker_path()),
         ],
     )
 }
@@ -253,5 +594,7 @@ fn epmd_bootstrap_phase() -> TestPhase {
             "--exact",
         ],
         environment: Vec::new(),
+        shard: None,
+        test_threads: None,
     }
 }

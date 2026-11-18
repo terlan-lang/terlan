@@ -51,12 +51,13 @@ resolution notices. Calls are bounded acceptance operations and never grant a
 sink authority to fail a valid customer request. The disabled, bounded-memory,
 local human, and local JSON sinks require no collector or Cloud account.
 
-The reference adapter pins Foundations 5.9.2 with
-`default-features = false` and explicitly enables only `logging`, `metrics`,
-and `testing`. It excludes tracing and OTLP until their upstream OpenTelemetry
-dependency closure is patched, as well as settings, CLI, platform defaults,
-telemetry bundles/server, Sentry, security/seccomp, jemalloc, and memory
-profiling. It creates no Tokio runtime or public listener.
+The reference adapter pins Foundations 5.11.0 with
+`default-features = false` and explicitly enables only `metrics` and `testing`.
+Terlan keeps complete log payloads in its bounded mirror instead of installing
+a second native logger. It excludes tracing and OTLP until their upstream
+OpenTelemetry dependency closure is patched, as well as settings, CLI,
+platform defaults, telemetry bundles/server, Sentry, security/seccomp,
+jemalloc, and memory profiling. It creates no Tokio runtime or public listener.
 
 The adapter's BSD-3-Clause metadata, exact dependency closure, selected and
 excluded features, semantic corpus, platform policy, security decisions,

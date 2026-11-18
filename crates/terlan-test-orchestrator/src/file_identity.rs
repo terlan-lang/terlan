@@ -56,7 +56,7 @@ fn visit_file(
 ) -> Result<u64, PhaseFailure> {
     control.check(started).map_err(process_failure)?;
     let mut file = regular_file(path)?;
-    let before = file.metadata().map_err(failure)?;
+    let before = file.metadata().map_err(|error| path_failure(path, error))?;
     if before.len() > budget {
         return Err(failure(format!(
             "input exceeds its byte budget: {} has {} bytes, limit {budget}",
@@ -78,7 +78,9 @@ fn visit_file(
     let mut buffer = [0_u8; 64 * 1024];
     loop {
         control.check(started).map_err(process_failure)?;
-        let count = file.read(&mut buffer).map_err(failure)?;
+        let count = file
+            .read(&mut buffer)
+            .map_err(|error| path_failure(path, error))?;
         if count == 0 {
             break;
         }
@@ -90,8 +92,14 @@ fn visit_file(
         consume(&buffer[..count]);
     }
     if read != before.len()
-        || !same_file(&before, &file.metadata().map_err(failure)?)
-        || !same_file(&before, &fs::metadata(path).map_err(failure)?)
+        || !same_file(
+            &before,
+            &file.metadata().map_err(|error| path_failure(path, error))?,
+        )
+        || !same_file(
+            &before,
+            &fs::metadata(path).map_err(|error| path_failure(path, error))?,
+        )
     {
         return Err(failure("input changed while being hashed"));
     }
@@ -99,7 +107,10 @@ fn visit_file(
 }
 
 fn regular_file(path: &Path) -> Result<File, PhaseFailure> {
-    if !fs::symlink_metadata(path).map_err(failure)?.is_file() {
+    if !fs::symlink_metadata(path)
+        .map_err(|error| path_failure(path, error))?
+        .is_file()
+    {
         return Err(failure("input is not a regular file"));
     }
     // NONBLOCK prevents a concurrently substituted FIFO from hanging open.
@@ -113,14 +124,22 @@ fn regular_file(path: &Path) -> Result<File, PhaseFailure> {
                 | rustix::fs::OFlags::NOFOLLOW,
             rustix::fs::Mode::empty(),
         )
-        .map_err(failure)?,
+        .map_err(|error| path_failure(path, error))?,
     );
     #[cfg(not(unix))]
-    let file = File::open(path).map_err(failure)?;
-    if !file.metadata().map_err(failure)?.is_file() {
+    let file = File::open(path).map_err(|error| path_failure(path, error))?;
+    if !file
+        .metadata()
+        .map_err(|error| path_failure(path, error))?
+        .is_file()
+    {
         return Err(failure("opened input is not regular"));
     }
     Ok(file)
+}
+
+fn path_failure(path: &Path, error: impl ToString) -> PhaseFailure {
+    failure(format!("{}: {}", path.display(), error.to_string()))
 }
 
 /// Detects replacement and metadata changes around a bounded byte read.
@@ -172,3 +191,7 @@ fn failure(detail: impl ToString) -> PhaseFailure {
         detail: detail.to_string(),
     }
 }
+
+#[cfg(test)]
+#[path = "file_identity_test.rs"]
+mod tests;

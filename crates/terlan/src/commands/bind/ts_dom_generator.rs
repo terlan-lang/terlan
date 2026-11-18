@@ -60,6 +60,7 @@ pub(super) fn generate_js_dom_bindings(
     manifest_path: &Path,
     out_dir: &Path,
 ) -> Result<(), String> {
+    ensure_empty_output_dir(out_dir)?;
     let manifest = load_ts_input_manifest(repo_root, manifest_path)?;
     let declarations = parse_manifest_inputs(repo_root, &manifest)?;
     let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
@@ -77,6 +78,7 @@ pub(super) fn generate_js_dom_bindings_from_manifest(
     out_dir: &Path,
     manifest: TsInputManifest,
 ) -> Result<(), String> {
+    ensure_empty_output_dir(out_dir)?;
     super::ts_input_manifest::validate_ts_input_manifest(repo_root, &manifest)?;
     let declarations = parse_manifest_inputs(repo_root, &manifest)?;
     let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
@@ -202,40 +204,74 @@ fn generated_files(
     mapping: &DomModuleMapping,
 ) -> Result<Vec<GeneratedBindingFile>, String> {
     let mut files = Vec::new();
-    for module in &mapping.modules {
-        let source = canonicalize(
-            &module.source_path,
-            render_module_source(module, manifest, manifest_path),
-        )?;
-        let interface = canonicalize(
-            &module.interface_path,
-            render_module_interface(module, manifest, manifest_path),
-        )?;
-        let summary = render_module_summary(module, manifest, manifest_path);
-        let test = canonicalize(
-            &module.test_path,
-            render_module_test(module, manifest, manifest_path),
-        )?;
-        files.push(GeneratedBindingFile {
-            path: module.source_path.clone(),
-            contents: source.clone(),
-        });
-        files.push(GeneratedBindingFile {
-            path: module.interface_path.clone(),
-            contents: interface,
-        });
-        files.push(GeneratedBindingFile {
-            path: module.summary_path.clone(),
-            contents: summary.clone(),
-        });
-        files.push(GeneratedBindingFile {
-            path: format!("{}.deps", module.summary_path),
-            contents: render_module_summary_deps(module, &source, &summary)?,
-        });
-        files.push(GeneratedBindingFile {
-            path: module.test_path.clone(),
-            contents: test,
-        });
+    let worker_count = std::thread::available_parallelism()
+        .map(usize::from)
+        .unwrap_or(1)
+        .min(mapping.modules.len().max(1));
+    let chunk_size = mapping.modules.len().div_ceil(worker_count).max(1);
+    let rendered = std::thread::scope(|scope| {
+        let workers = mapping
+            .modules
+            .chunks(chunk_size)
+            .map(|modules| {
+                scope.spawn(move || {
+                    modules
+                        .iter()
+                        .map(|module| {
+                            let source = canonicalize(
+                                &module.source_path,
+                                render_module_source(module, manifest, manifest_path),
+                            )?;
+                            let interface = canonicalize(
+                                &module.interface_path,
+                                render_module_interface(module, manifest, manifest_path),
+                            )?;
+                            let summary = render_module_summary(module, manifest, manifest_path);
+                            let test = canonicalize(
+                                &module.test_path,
+                                render_module_test(module, manifest, manifest_path),
+                            )?;
+                            Ok(vec![
+                                GeneratedBindingFile {
+                                    path: module.source_path.clone(),
+                                    contents: source.clone(),
+                                },
+                                GeneratedBindingFile {
+                                    path: module.interface_path.clone(),
+                                    contents: interface,
+                                },
+                                GeneratedBindingFile {
+                                    path: module.summary_path.clone(),
+                                    contents: summary.clone(),
+                                },
+                                GeneratedBindingFile {
+                                    path: format!("{}.deps", module.summary_path),
+                                    contents: render_module_summary_deps(
+                                        module, &source, &summary,
+                                    )?,
+                                },
+                                GeneratedBindingFile {
+                                    path: module.test_path.clone(),
+                                    contents: test,
+                                },
+                            ])
+                        })
+                        .collect::<Result<Vec<_>, String>>()
+                })
+            })
+            .collect::<Vec<_>>();
+        let mut rendered = Vec::with_capacity(mapping.modules.len());
+        for worker in workers {
+            let batch = match worker.join() {
+                Ok(batch) => batch?,
+                Err(payload) => std::panic::resume_unwind(payload),
+            };
+            rendered.extend(batch);
+        }
+        Ok::<_, String>(rendered)
+    })?;
+    for module_files in rendered {
+        files.extend(module_files);
     }
     let generated_file_hashes = generated_file_hashes(&files)?;
     files.push(GeneratedBindingFile {

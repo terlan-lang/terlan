@@ -1,5 +1,6 @@
 CARGO := cargo --locked
-RUST_TEST := $(CARGO) test
+RUST_TEST := $(CARGO) test --profile dev
+.DEFAULT_GOAL := terlan-serve-runtime-bootstrap
 RELEASE_VERSION ?= $(shell sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
 EXACT_CARGO_TEST := bash scripts/run_exact_cargo_test.sh
 # Requests with explicit execution policy must run, even with hosted coverage.
@@ -171,7 +172,6 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	angular-ts-terlan-app-ownership-check \
 	changelog-public-scope-check \
 	rust-code-quality-adversarial-check \
-	rust-artifact-retention-check \
 	rust-artifact-retention-clean-shared-debug \
 	release-version-metadata-check \
 	release-version-bump \
@@ -213,7 +213,6 @@ TERLAN_CUDA_DIR ?= ../terlan-cuda
 TERLAN_POLARS_DIR ?=
 TERLAN_PYTORCH_DIR ?=
 TERLAN_PYTORCH_LIBTORCH ?=
-export TERLAN_CUDA_DIR
 SHELL := bash
 .SHELLFLAGS := -eo pipefail -c
 
@@ -587,7 +586,7 @@ else
 		set -eu; \
 		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
 		mkdir -p target/quality; \
-		build_command='$(CARGO) build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/quality-tools'; \
+		build_command='$(CARGO) build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/validation-union'; \
 		cargo_program='$(firstword $(CARGO))'; \
 		cargo_args='$(wordlist 2,99,$(CARGO))'; \
 		if git diff --quiet \
@@ -616,7 +615,7 @@ else
 				-- /bin/sh -c "$$build_command"; \
 		else \
 			$(TERLAN_BOOTSTRAP_LOCK) \
-			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/quality-tools; \
+			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/validation-union; \
 		fi; \
 	else \
 		$(CARGO) build \
@@ -633,7 +632,7 @@ else
 			--bin terlan-accelerator-vm-integration \
 			--bin terlan-accelerator-specialized-artifact \
 			--bin terlan-rust-boundary-audit \
-			--features terlan/quality-tools; \
+			--features terlan/validation-union; \
 	fi
 endif
 endif
@@ -724,7 +723,8 @@ endif
 terlan-make-recipe-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_MAKE_RECIPE_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/MakeRecipeThinness.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/MakeRecipeThinness.terls \
+		scripts/self_validation/MakeRecipeThinnessMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/MakeRecipeThinness.terls \
 		--target terlan-vm --out-dir $(TERLAN_MAKE_RECIPE_DIR)
@@ -746,7 +746,8 @@ endif
 terlan-ebnf-validator-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_EBNF_VALIDATOR_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/EbnfValidator.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/EbnfValidator.terls \
+		scripts/self_validation/EbnfValidatorMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/EbnfValidator.terls \
 		--target terlan-vm --out-dir $(TERLAN_EBNF_VALIDATOR_DIR)
@@ -757,7 +758,8 @@ endif
 terlan-shared-helper-bootstrap: terlan-compiler-bootstrap terlan-validation-vm-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SHARED_HELPER_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SharedHelperCheck.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/SharedHelperCheck.terls \
+		scripts/self_validation/SharedHelperCheckMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/SharedHelperCheck.terls \
 		--target terlan-vm --out-dir $(TERLAN_SHARED_HELPER_DIR)
@@ -768,7 +770,8 @@ endif
 terlan-external-package-matrix-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_EXTERNAL_PACKAGE_MATRIX_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/ExternalPackageExecutionMatrix.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/ExternalPackageExecutionMatrix.terls \
+		scripts/self_validation/ExternalPackageExecutionMatrixMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/ExternalPackageExecutionMatrix.terls \
 		--target terlan-vm --out-dir $(TERLAN_EXTERNAL_PACKAGE_MATRIX_DIR)
@@ -779,7 +782,8 @@ endif
 terlan-tvm-package-consumer-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_TVM_PACKAGE_CONSUMER_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/TvmPackageInstallConsumer.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/TvmPackageInstallConsumer.terls \
+		scripts/self_validation/TvmPackageInstallConsumerMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/TvmPackageInstallConsumer.terls \
 		--target terlan-vm --out-dir $(TERLAN_TVM_PACKAGE_CONSUMER_DIR)
@@ -800,7 +804,7 @@ endif
 .PHONY: terlan-validation-vm-bootstrap
 # Builds the release terlan-vm binary (unless prebuilt/bootstrapped) and verifies it exists.
 terlan-validation-vm-bootstrap: terlan-compiler-bootstrap
-ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_BUILD_ARTIFACTS_PREBUILT) $(TERLAN_RELEASE_BINARIES_PREBUILT)),)
+ifeq ($(filter 1,$(TERLAN_VALIDATION_BOOTSTRAPPED) $(TERLAN_VALIDATION_VM_PREBUILT) $(TERLAN_RELEASE_BINARIES_PREBUILT)),)
 	$(TERLAN_BOOTSTRAP_LOCK) \
 		$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- \
 		$(CARGO) build --release -p terlan --bin terlan-vm
@@ -878,7 +882,8 @@ endif
 terlan-stdlib-validation-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_STDLIB_VALIDATION_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/StdlibValidation.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/StdlibValidation.terls \
+		scripts/self_validation/StdlibValidationMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/StdlibValidation.terls \
 		--target terlan-vm --out-dir $(TERLAN_STDLIB_VALIDATION_DIR)
@@ -900,7 +905,8 @@ endif
 terlan-repository-validation-bootstrap: terlan-compiler-bootstrap
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_REPOSITORY_VALIDATION_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/RepositoryValidation.terls -- \
+		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/RepositoryValidation.terls \
+		scripts/self_validation/RepositoryValidationMain.terl -- \
 		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
 		scripts/self_validation/RepositoryValidation.terls \
 		--target terlan-vm --out-dir $(TERLAN_REPOSITORY_VALIDATION_DIR)
@@ -940,14 +946,16 @@ ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
 rust-test-suite:
 	$(TERLAN_RUST_ORCHESTRATOR) --coverage-request --whole-suite
 else
-# Retention may delete old harnesses; finish it before recording test identities.
-rust-test-suite: rust-cargo-metadata-report rust-artifact-retention-check
+# Validation never deletes artifacts needed by later consumers. Retention runs
+# only after the complete check graph has finished.
+rust-test-suite: rust-cargo-metadata-report
 	@set -eu; \
 	for binary in terlc terlan-vm terlan-native-worker; do \
 		test -x "target/debug/$$binary"; \
 	done; \
 	test -x $(TERLAN_RUST_ORCHESTRATOR); \
 	TERLAN_RUST_SUITE_REPORT=$(CURDIR)/target/quality/rust-test-suite-report.json \
+	TERLAN_RUST_PHASE_RECEIPT_DIR=$${TERLAN_RUST_PHASE_RECEIPT_DIR:-$${CARGO_TARGET_DIR:-$(CURDIR)/target}/validation-results/rust-phases} \
 		$(TERLAN_RUST_ORCHESTRATOR)
 	test -s target/quality/rust-test-suite-report.json
 endif
@@ -1209,12 +1217,16 @@ endif
 terlan-release-control-fingerprint:
 	test -x $(TERLAN_BOOTSTRAP_COMPILER)
 	test -x $(TERLAN_BOOTSTRAP_VM)
+ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
+	test -s $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
+else
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	@identity=$$($(TERLAN_BOOTSTRAP_COMPILER) build --print-toolchain-identity) || exit $$?; \
 	TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$$identity" \
 	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std
+endif
 endif
 
 # Builds the release-control VM image, reusing it when already validated
@@ -1250,6 +1262,7 @@ check: rust-test-suite
 		--graph-timeout-seconds "$(TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS)" -- \
 		$(MAKE) --no-print-directory \
 		check-gates $(if $(filter 1,$(TERLAN_CHECK_RELEASE_EVIDENCE)),release-evidence-compose)
+	$(MAKE) --no-print-directory rust-artifact-retention-check
 
 
 # Aggregates every target listed in CHECK_GATES.
@@ -1328,8 +1341,8 @@ value-lifecycle-contract-check: validate-ebnf tree-sitter-cli-check editor-check
 	$(RUST_TEST) -p terlan --lib expression_macro -- --nocapture
 	$(RUST_TEST) -p terlan --lib value_lifecycle_ -- --nocapture
 	$(RUST_TEST) -p terlan --lib repl_rejects_local_constants_but_accepts_constant_imports -- --nocapture
-	$(RUST_TEST) -p terlan --lib --features editor-lsp completion_items_include_local_and_imported_shapes_and_functions -- --nocapture
-	$(RUST_TEST) -p terlan --lib --features editor-lsp value_lifecycle_ -- --nocapture
+	$(RUST_TEST) -p terlan --lib --features validation-union completion_items_include_local_and_imported_shapes_and_functions -- --nocapture
+	$(RUST_TEST) -p terlan --lib --features validation-union value_lifecycle_ -- --nocapture
 	$(TERLC) test tests/language/ValueLifecycleTest.terl --target terlan-vm
 	$(TERLC) --target-profile js.shared test tests/language/ValueLifecycleTest.terl --target js
 
@@ -1475,7 +1488,7 @@ diff-whitespace-check:
 
 # Detects dormant/unused runtime code.
 dormant-runtime-code-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools dormant_runtime_code_test
+	$(RUST_TEST) -p terlan --lib --features validation-union dormant_runtime_code_test
 	$(TERLAN_QUALITY) dormant-runtime-code
 
 
@@ -1486,25 +1499,25 @@ safe-rust-runtime-check:
 
 # Validates the test hierarchy/organization conventions.
 test-hierarchy-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools test_hierarchy_test
+	$(RUST_TEST) -p terlan --lib --features validation-union test_hierarchy_test
 	$(TERLAN_QUALITY) test-hierarchy
 
 
 # Validates the fast-feedback profile used for local dev builds.
 dev-fast-feedback-profile-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools dev_fast_feedback_profile_test
+	$(RUST_TEST) -p terlan --lib --features validation-union dev_fast_feedback_profile_test
 	$(TERLAN_QUALITY) dev-fast-feedback-profile
 
 
 # Validates exact test-selector support in the CLI.
 cli-exact-selector-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools cli_exact_selectors_test
+	$(RUST_TEST) -p terlan --lib --features validation-union cli_exact_selectors_test
 	$(TERLAN_QUALITY) cli-exact-selectors
 
 
 # Validates the core type system against its specification.
 core-typing-spec-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools core_typing_spec_test
+	$(RUST_TEST) -p terlan --lib --features validation-union core_typing_spec_test
 	$(TERLAN_QUALITY) core-typing-spec
 
 
@@ -1567,14 +1580,14 @@ installer-contract-check: | terlan-compiler-bootstrap
 
 # Validates 100% language feature test coverage.
 language-feature-coverage-100-check: comprehension-guards-check shape-implications-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools language_feature_full_coverage_test
+	$(RUST_TEST) -p terlan --lib --features validation-union language_feature_full_coverage_test
 	$(TERLAN_QUALITY) language-feature-coverage-100
 	$(TERLC) test tests/language/LanguageFeatureCoverageTest.terl
 
 
 # Validates 100% operator test coverage.
 operator-coverage-100-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools operator_full_coverage_test
+	$(RUST_TEST) -p terlan --lib --features validation-union operator_full_coverage_test
 	$(TERLAN_QUALITY) operator-coverage-100
 	$(TERLC) test tests/operator/OperatorCoverageTest.terl
 	$(TERLC) test tests/comparison/ComparisonTest.terl
@@ -1660,7 +1673,7 @@ coverage-check:
 
 # Checks Erlang backend classification via Rust tests and the quality tool
 erlang-backend-classification-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools erlang_backend_classification_test
+	$(RUST_TEST) -p terlan --lib --features validation-union erlang_backend_classification_test
 	$(TERLAN_QUALITY) erlang-backend-classification
 
 
@@ -1698,7 +1711,7 @@ binding-shadowing-safety-check:
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib compiler::native_ir::binding_identity_source_test::native_lowering_preserves_outer_and_nested_binding_identities -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::emit_js::binding_identity_emit_test::javascript_preserves_outer_and_nested_binding_identities -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib formal_pipeline::formal_pipeline_test::checked_evidence::formal_pipeline_exposes_validated_binding_identity_evidence -- --exact
-	$(RUST_TEST) -p terlan --features editor-lsp --lib binding_navigation_test
+	$(RUST_TEST) -p terlan --features validation-union --lib binding_navigation_test
 
 
 # Verifies the JSON VM-IR artifact format is fully rejected in favor of native TVM images
@@ -1803,25 +1816,25 @@ no-default-beam-runtime-check: no-implicit-otp-runtime-check terlan-vm-no-otp-ru
 
 # Verifies the VM has no default Tokio runtime dependency
 no-default-tokio-runtime-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools no_default_tokio_runtime_test
+	$(RUST_TEST) -p terlan --lib --features validation-union no_default_tokio_runtime_test
 	$(TERLAN_QUALITY) no-default-tokio-runtime
 
 
 # Verifies the Rust implementation has no ERTS dependency via the Terlan VM
 no-terlan-vm-erts-rust-dependency-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools no_terlan_vm_erts_rust_dependency_test
+	$(RUST_TEST) -p terlan --lib --features validation-union no_terlan_vm_erts_rust_dependency_test
 	$(TERLAN_QUALITY) no-terlan-vm-erts-rust-dependency
 
 
 # Verifies no implicit OTP runtime dependency is introduced
 no-implicit-otp-runtime-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools no_implicit_otp_runtime_test
+	$(RUST_TEST) -p terlan --lib --features validation-union no_implicit_otp_runtime_test
 	$(TERLAN_QUALITY) no-implicit-otp-runtime
 
 
 # Verifies the OTP test pipeline inventory is complete and current
 otp-test-pipeline-inventory-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools otp_test_pipeline_inventory_test
+	$(RUST_TEST) -p terlan --lib --features validation-union otp_test_pipeline_inventory_test
 	$(TERLAN_QUALITY) otp-test-pipeline-inventory
 
 
@@ -1856,13 +1869,13 @@ callable-syntax-cleanup-check:
 
 # Verifies the Terlan lint style profile configuration
 terlan-lint-style-profile-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools terlan_lint_style_profile_test
+	$(RUST_TEST) -p terlan --lib --features validation-union terlan_lint_style_profile_test
 	$(TERLAN_QUALITY) terlan-lint-style-profile
 
 
 # Verifies the JS backend's type emission contract
 js-type-emission-contract-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools js_type_emission_contract_test
+	$(RUST_TEST) -p terlan --lib --features validation-union js_type_emission_contract_test
 	$(TERLAN_QUALITY) js-type-emission-contract
 
 
@@ -1882,7 +1895,7 @@ terlan-release-train-check:
 
 # Verifies the OTP reference inventory is complete and current
 otp-reference-inventory-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools otp_reference_inventory_test
+	$(RUST_TEST) -p terlan --lib --features validation-union otp_reference_inventory_test
 	$(TERLAN_QUALITY) otp-reference-inventory
 
 
@@ -1892,7 +1905,7 @@ terlan-vm-no-otp-runtime-fallback-check: otp-reference-inventory-check otp-test-
 
 # Verifies Hex package target metadata
 hex-target-metadata-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools hex_target_metadata_test
+	$(RUST_TEST) -p terlan --lib --features validation-union hex_target_metadata_test
 	$(TERLAN_QUALITY) hex-target-metadata
 
 
@@ -1908,7 +1921,7 @@ device-target-planner-check: native-no-std-target-feasibility-check
 
 # Verifies package manifest git-source dependency parsing and validation
 terlan-package-git-source-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools package_git_source_test
+	$(RUST_TEST) -p terlan --lib --features validation-union package_git_source_test
 	$(TERLAN_QUALITY) package-git-source
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::build::project_manifest::project_manifest_test::project_manifest_parses_dependency_source_metadata -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::build::project_manifest::project_manifest_test::project_manifest_rejects_git_dependency_without_rev -- --exact
@@ -1916,7 +1929,7 @@ terlan-package-git-source-check:
 
 # Verifies the package lockfile contract
 terlan-package-lockfile-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools package_lockfile_contract_test
+	$(RUST_TEST) -p terlan --lib --features validation-union package_lockfile_contract_test
 	$(TERLAN_QUALITY) package-lockfile-contract
 
 
@@ -1943,19 +1956,19 @@ watch-mode-hot-reload-check: compiler-incremental-cache-check
 # Verifies AOT developer hot reload is atomic and safe on failed edits
 aot-developer-hot-reload-check: watch-mode-hot-reload-check
 	$(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::handler_cache_generation_test::developer_reload_is_atomic_compatible_and_failed_edit_safe -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib --features quality-tools quality::aot_developer_hot_reload::aot_developer_hot_reload_test
+	$(EXACT_CARGO_TEST) -p terlan --lib --features validation-union quality::aot_developer_hot_reload::aot_developer_hot_reload_test
 	$(TERLAN_QUALITY) aot-developer-hot-reload
 
 
 # Verifies the Terlan VM internal crate boundary
 terlan-vm-internal-crate-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools terlan_vm_internal_crate_test
+	$(RUST_TEST) -p terlan --lib --features validation-union terlan_vm_internal_crate_test
 	$(TERLAN_QUALITY) terlan-vm-internal-crate
 
 
 # Checks the VM does not leak implementation details across the external repo boundary
 terlan-vm-external-repo-boundary-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools terlan_vm_external_repo_boundary_test
+	$(RUST_TEST) -p terlan --lib --features validation-union terlan_vm_external_repo_boundary_test
 	$(TERLAN_QUALITY) terlan-vm-external-repo-boundary
 
 .PHONY: generated-package-contract-check
@@ -1987,13 +2000,13 @@ html-boundary-check:
 
 # Checks adversarial coverage of the scheduler under memory pressure
 achamp-adversarial-coverage-check: vm-memory-heap-pressure-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools achamp_adversarial_coverage_test
+	$(RUST_TEST) -p terlan --lib --features validation-union achamp_adversarial_coverage_test
 	$(TERLAN_QUALITY) achamp-adversarial-coverage
 
 
 # Checks that documentation code blocks compile and run against the VM
 executable-docs-vm-check: | terlan-repository-validation-bootstrap
-	$(RUST_TEST) -p terlan --lib --features quality-tools executable_docs_vm_test
+	$(RUST_TEST) -p terlan --lib --features validation-union executable_docs_vm_test
 	$(TERLAN_QUALITY) executable-docs-vm
 	$(EXACT_CARGO_TEST) -p terlan --lib tests::doc_test::readme_hello_world_terlan_block_compiles -- --exact
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
@@ -2017,19 +2030,19 @@ changelog-public-scope-check:
 
 # Checks internal documentation
 internal-docs-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools internal_docs_test
+	$(RUST_TEST) -p terlan --lib --features validation-union internal_docs_test
 	$(TERLAN_QUALITY) internal-docs
 
 
 # Checks module README files
 module-readme-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools module_readmes_test
+	$(RUST_TEST) -p terlan --lib --features validation-union module_readmes_test
 	$(TERLAN_QUALITY) module-readmes
 
 
 # Checks Rust doc comments
 rustdoc-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools rustdoc_
+	$(RUST_TEST) -p terlan --lib --features validation-union rustdoc_
 	$(TERLAN_QUALITY) rust-docs
 
 

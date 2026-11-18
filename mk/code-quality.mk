@@ -16,6 +16,7 @@
 # somewhat larger bounded VM allowance than the narrower quality gates.
 TERLAN_RUST_DEPENDENCY_IMPACT_VIRTUAL_MEMORY_KIB := 196608
 TERLAN_RUST_BUILD_GRAPH_VIRTUAL_MEMORY_KIB := 196608
+TERLAN_CARGO_ARTIFACT_DEBUG_ROOT := $(if $(strip $(CARGO_TARGET_DIR)),$(abspath $(CARGO_TARGET_DIR)),$(CURDIR)/target)/debug
 .PHONY: rust-module-structure-check rust-build-graph-boundary-check rust-cargo-metadata-report
 .PHONY: rust-structure-timings-self-test rust-module-structure-self-test
 .PHONY: rust-canonical-type-ownership-check
@@ -66,8 +67,8 @@ rust-build-graph-timings-record: rust-build-graph-timings-self-test
 
 rust-code-quality-adversarial-check:
 	target/debug/terlc test scripts/self_validation/RustCodeQualityAdversarialTest.terl
-	$(RUST_TEST) -p terlan --lib --features quality-tools rustdoc_rejects_
-	$(RUST_TEST) -p terlan --lib --features quality-tools rust_quality_rejects_
+	$(RUST_TEST) -p terlan --lib --features validation-union rustdoc_rejects_
+	$(RUST_TEST) -p terlan --lib --features validation-union rust_quality_rejects_
 
 rust-code-quality-preflight-check: \
 	rust-workspace-policy-check \
@@ -191,12 +192,14 @@ rust-artifact-retention-check:
 		target/debug/terlc test scripts/self_validation/CargoArtifactRetentionTest.terl
 	TERLAN_CARGO_ARTIFACT_RETENTION_MODE=clean-check \
 	TERLAN_CARGO_ARTIFACT_RETENTION_TARGET="$(CURDIR)/target" \
+	TERLAN_CARGO_ARTIFACT_RETENTION_DEBUG_ROOT="$(TERLAN_CARGO_ARTIFACT_DEBUG_ROOT)" \
 	TERLAN_CARGO_ARTIFACT_RETENTION_REPORT="$(CURDIR)/target/quality/cargo-artifact-retention.json" \
 		target/debug/terlc test scripts/self_validation/CargoArtifactRetentionTest.terl
 
 rust-artifact-retention-clean-shared-debug:
 	TERLAN_CARGO_ARTIFACT_RETENTION_MODE=clean-shared-debug \
 	TERLAN_CARGO_ARTIFACT_RETENTION_TARGET="$(CURDIR)/target" \
+	TERLAN_CARGO_ARTIFACT_RETENTION_DEBUG_ROOT="$(TERLAN_CARGO_ARTIFACT_DEBUG_ROOT)" \
 		target/debug/terlc test scripts/self_validation/CargoArtifactRetentionTest.terl
 
 rust-code-quality-0-0-9-milestone-check: \
@@ -252,5 +255,5 @@ code-quality-0-0-7-feedback-loop-check: rust-module-structure-self-test
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::typeck::adversarial_test::adversarial_typecheck_rejects_generic_arity_mismatch -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib compiler::native_ir::application_admission_test::closed_application_passes_admission_and_graph_validation -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::actor::actor_dynamic_module::actor_dynamic_module_test::actor_dynamic_module_lifecycle_is_vm_owned_and_exit_driven -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib --features editor-lsp lsp::binding_navigation::binding_navigation_test::navigation_index_keeps_nested_same_spelled_bindings_separate -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --lib --features quality-tools quality::lib_test::rustdoc_passes_documented_items -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --lib --features validation-union lsp::binding_navigation::binding_navigation_test::navigation_index_keeps_nested_same_spelled_bindings_separate -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --lib --features validation-union quality::lib_test::rustdoc_passes_documented_items -- --exact

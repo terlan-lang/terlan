@@ -58,24 +58,40 @@ pub(in crate::commands::serve) fn compile_native_handler_fixture(
     image_name: &str,
     source: &str,
 ) -> CompiledNativeHandlerFixture {
+    compile_native_handler_fixtures(fixture, image_name, &[(source_path, source)])
+}
+
+/// Compiles several Terlan modules into one reusable native handler fixture.
+pub(in crate::commands::serve) fn compile_native_handler_fixtures(
+    fixture: &str,
+    image_name: &str,
+    sources: &[(&str, &str)],
+) -> CompiledNativeHandlerFixture {
     let root = test_fs::temp_path("serve", fixture);
     let web_root = root.join("_build/web");
     fs::create_dir_all(&web_root).expect("create native handler output");
-    let artifacts = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
-        source_path,
-        source,
-        DiagnosticFormat::Text {
-            color: ColorChoice::Never,
-        },
-        None,
-        crate::validation::native_policy::NativePolicy::NativeBoundaryOptional,
-        crate::validation::target_profile::TargetProfile::Vm,
-    )
-    .expect("compile native handler source");
-    let image = crate::commands::build::vm_artifact::native_image::compile_serve_native_image(
-        &web_root,
-        image_name,
-        &artifacts.core,
+    let artifacts = sources
+        .iter()
+        .map(|(source_path, source)| {
+            crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+                source_path,
+                source,
+                DiagnosticFormat::Text {
+                    color: ColorChoice::Never,
+                },
+                None,
+                crate::validation::native_policy::NativePolicy::NativeBoundaryOptional,
+                crate::validation::target_profile::TargetProfile::Vm,
+            )
+            .expect("compile native handler source")
+        })
+        .collect::<Vec<_>>();
+    let cores = artifacts
+        .iter()
+        .map(|artifacts| &artifacts.core)
+        .collect::<Vec<_>>();
+    let image = crate::commands::build::vm_artifact::native_image::compile_serve_native_modules(
+        &web_root, image_name, &cores,
     )
     .expect("compile native handler image")
     .expect("handler produces native image");

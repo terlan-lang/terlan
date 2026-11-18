@@ -412,7 +412,7 @@ pub fn run_vm_live_template_client_protocol(
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile")).map_err(|err| {
+    let text = crate::quality::support::read_make_graph(root).map_err(|err| {
         format!("Makefile: failed to read VM live template client protocol gate: {err}")
     })?;
     Ok(REQUIRED_GATE_TERMS

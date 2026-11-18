@@ -96,7 +96,6 @@ fn run_registered(
     let mut artifacts = CargoArtifactStream::new(&root, |message| {
         message["profile"]["test"] == true && message["executable"].is_string()
     })?;
-    artifacts.require_fresh_main();
     let mut owners = BTreeMap::new();
     let mut executable_bytes = 0_u64;
     let mut delegated_count = 0;
@@ -106,6 +105,11 @@ fn run_registered(
     }, |declaration| {
         crate::cargo_metadata_owner::Handoff::admit_harness(tools.2, &declaration.json())?;
         let delegated = main_owner(&declaration.json(), tools.3)?;
+        if delegated {
+            return Err(failure(
+                "workspace phase selected the already-owned main library target",
+            ));
+        }
         delegated_count += usize::from(delegated);
         let key = executable_key(&declaration.executable)?;
         registry.register_target(&key)?;
@@ -124,7 +128,7 @@ fn run_registered(
         Ok(())
     })?;
     let declarations = artifacts.finish()?;
-    if declarations.is_empty() || declarations.len() != owners.len() || delegated_count != 1 {
+    if declarations.is_empty() || declarations.len() != owners.len() || delegated_count != 0 {
         return Err(failure(
             "workspace build has missing or unmatched native targets",
         ));

@@ -93,7 +93,6 @@ TERLAN_OWNED_PROOF_POLICIES = $(TERLAN_PREPARATION_OWNER) $(TERLAN_RELEASE_PROMO
 
 # Validates Lean proof reproducibility tracking.
 proof-repro-check: lean-proof-track-runtime-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_track
 	$(TERLAN_PROOF_TRACK_RUN)
 
 
@@ -103,8 +102,6 @@ proof_repro_check: proof-repro-check
 
 # Runs the Lean proof PR gate check.
 lean-proof-track-pr-gate:
-	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_pr_test
-
 	$(TERLAN_PROOF_PR_RUN)
 # Runs the Lean semantic-kernel checks for the templates/routes family.
 lean-proof-templates-routes-check:
@@ -154,13 +151,11 @@ lean-proof-semantic-kernels-check: lean-proof-feature-cull-check
 
 # Validates the Lean proof runtime track.
 lean-proof-track-runtime-check: lean-proof-feature-cull-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_runtime_test
 	$(TERLAN_PROOF_RUNTIME_RUN)
 
 
 # Validates the Lean proof regression track.
 lean-proof-track-regression-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_regression_test
 	$(TERLAN_PROOF_REGRESSION_RUN)
 
 
@@ -181,9 +176,9 @@ proof-coverage-release-artifacts-smoke: release-artifacts-closeout-check
 proof-readiness-release-mode-check: release-artifacts-closeout-check
 
 
-# Checks the lean-proof track for gaps via the Rust test and quality tool
+# Checks the lean-proof track for gaps through the production quality tool.
+# The workspace Rust suite owns the matching unit tests exactly once.
 lean-proof-track-gap-hygiene-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools lean_proof_gap_hygiene
 	$(TERLAN_QUALITY) lean-proof-gap-hygiene
 
 

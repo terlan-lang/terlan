@@ -240,6 +240,65 @@ fn spawn_failure_is_an_attempt_not_a_cargo_launch() {
 }
 
 #[test]
+fn failed_phase_allows_only_input_closeout_and_never_becomes_pass() {
+    let root = temporary_fixture("failed-phase-closeout");
+    let report_path = root.0.join("report.json");
+    let mut ledger = LaunchLedger::new(&report_path, 1, Duration::from_secs(2)).unwrap();
+    let source = source_inventory::SourceSnapshot {
+        sha256: "a".repeat(64),
+        files: 1,
+        bytes: 1,
+        covered_paths: std::collections::BTreeSet::new(),
+    };
+    let admitted = ledger
+        .execute(
+            "working-tree source admission",
+            ValidationTier::FastUnit,
+            "git-source-inventory",
+            |observe| {
+                observe(10).map_err(failure)?;
+                Ok(source.clone())
+            },
+        )
+        .unwrap();
+    ledger.bind_source(admitted).unwrap();
+    assert!(ledger
+        .execute(
+            "failing fixture",
+            ValidationTier::FastUnit,
+            "direct-fixture",
+            |observe| {
+                observe(11).map_err(failure)?;
+                Err::<(), _>(failure("fixture failed"))
+            },
+        )
+        .is_err());
+
+    ledger.begin_failed_closeout().unwrap();
+    let closed = ledger
+        .execute(
+            "working-tree source closeout",
+            ValidationTier::FastUnit,
+            "git-source-inventory",
+            |observe| {
+                observe(12).map_err(failure)?;
+                Ok(source)
+            },
+        )
+        .unwrap();
+    ledger.verify_source(closed).unwrap();
+    assert!(ledger.finish_failed_closeout().is_err());
+    let report = snapshot(&report_path);
+    assert_eq!(report["decision"], "fail");
+    assert_eq!(report["source_binding"]["verified"], true);
+    assert!(report["phases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|phase| phase["outcome"] != "passed"));
+}
+
+#[test]
 fn success_without_a_spawn_is_rejected_and_empty_suite_cannot_pass() {
     let root = temporary_fixture("launch-required");
     let path = root.0.join("report.json");
@@ -358,7 +417,7 @@ fn duplicate_owner_poisoning_and_launch_budget_prevent_more_processes() {
         let root = temporary_fixture("launch-budget");
         let path = root.0.join("report.json");
         let mut ledger = LaunchLedger::new(&path, 1, Duration::from_secs(2)).unwrap();
-        for name in ["first", "second", "third"] {
+        for name in ["first", "second", "third", "fourth"] {
             ledger
                 .execute(name, ValidationTier::FastUnit, "cargo-build", |observe| {
                     terlan_process_owner::run_with_launch(
@@ -373,7 +432,7 @@ fn duplicate_owner_poisoning_and_launch_budget_prevent_more_processes() {
         let mut called = false;
         assert!(ledger
             .execute(
-                if duplicate { "first" } else { "fourth" },
+                if duplicate { "first" } else { "fifth" },
                 ValidationTier::FastUnit,
                 if duplicate {
                     "direct-terlan-harness"
@@ -390,7 +449,7 @@ fn duplicate_owner_poisoning_and_launch_budget_prevent_more_processes() {
         assert!(ledger.finish().is_err());
         let report = snapshot(&path);
         assert_eq!(report["decision"], "fail");
-        assert_eq!(report["direct_cargo_launch_count"], 3);
+        assert_eq!(report["direct_cargo_launch_count"], MAX_CARGO_PHASES);
     }
 }
 

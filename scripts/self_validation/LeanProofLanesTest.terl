@@ -461,6 +461,25 @@ feature_gates_hold(gates: List[String], accepted: List[String], makefile: String
                 and feature_gates_hold(rest, accepted, makefile)
     }.
 
+make_source_contents(files: List[TextFile]): List[String] ->
+    case files {
+        [] -> [];
+        [file | rest] -> [file.contents | make_source_contents(rest)]
+    }.
+
+make_sources(root: String, root_makefile: String): Result[String, FileError] ->
+    case read_text_tree_matching(
+        root,
+        [".git", "target", "node_modules", "vendor", "dist", "build"],
+        [".mk"],
+        [],
+        0,
+        512,
+    ) {
+        Ok(files) -> Ok(String.concat([root_makefile | make_source_contents(files)]));
+        Err(reason) -> Err(reason)
+    }.
+
 feature_map_holds(
     rows: List[FeatureRow],
     matrix: List[MatrixRow],
@@ -1203,6 +1222,38 @@ seal_lane_reports(inputs: Inputs, gate: Json, checksum: String, lanes: LaneColle
 lane_lines(): String ->
     "[lean-proof-lane] 1/8 parser status=pass coverage=executable_current families=2 gaps=0 smoke=100\n[lean-proof-lane] 2/8 coreir status=pass coverage=executable_current families=3 gaps=1 smoke=100\n[lean-proof-lane] 3/8 target_profile status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 4/8 vm_runtime status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 5/8 native_boundary status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 6/8 wasm status=pass coverage=executable_current families=1 gaps=1 smoke=100\n[lean-proof-lane] 7/8 distribution status=pass coverage=accepted_gap families=0 gaps=1 smoke=100\n[lean-proof-lane] 8/8 std_packages status=pass coverage=accepted_gap families=0 gaps=1 smoke=100".
 
+run_feature_map_check(): Bool ->
+    let root = environment_or("TERLAN_LEAN_PROOF_LANES_ROOT", Environment.current_directory());
+    case read_text_many(
+        [
+            root_path(root, "docs/compiler/LEAN_PROOF_SLICE_MATRIX.tsv"),
+            root_path(root, "docs/compiler/LEAN_PROOF_FEATURE_LANES.tsv"),
+            root_path(root, "Makefile"),
+            root_path(root, "docs/roadmap/ROADMAP_0_0_7.md"),
+            root_path(
+                root,
+                "docs/roadmap/archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md",
+            ),
+        ],
+    ) {
+        Ok([matrix, features, makefile, roadmap, archive]) ->
+            when {
+                Some(matrix_rows_value) <- matrix_rows(matrix.contents);
+                Some(feature_rows_value) <- feature_rows(features.contents);
+                Ok(make_source) <- make_sources(root, makefile.contents)
+            } else {
+                _ -> false
+            };
+            feature_map_holds(
+                feature_rows_value,
+                matrix_rows_value,
+                make_source,
+                roadmap.contents,
+                archive.contents,
+            );
+        _ -> false
+    }.
+
 run_repository_check(): Bool ->
     let root = environment_or("TERLAN_LEAN_PROOF_LANES_ROOT", Environment.current_directory());
     when {
@@ -1229,9 +1280,10 @@ run_repository_check(): Bool ->
     ) {
         Ok([matrix, features, gaps, gate, replay, smoke, smoke_attempt, makefile, roadmap, archive]) ->
             when {
-                true <- smoke_attempt_holds(smoke_attempt.contents, smoke.contents)
+                true <- smoke_attempt_holds(smoke_attempt.contents, smoke.contents);
+                Ok(make_source) <- make_sources(root, makefile.contents)
             } else {
-                _ -> fail("smoke report has no matching completed current attempt")
+                _ -> fail("smoke report or repository Make sources are invalid")
             };
             (let inputs =
     Inputs(
@@ -1241,7 +1293,7 @@ run_repository_check(): Bool ->
         gate = gate.contents,
         replay = replay.contents,
         smoke = smoke.contents,
-        makefile = makefile.contents,
+        makefile = make_source,
         roadmap = roadmap.contents,
         archive = archive.contents,
         prior_lanes = prior,
@@ -1509,6 +1561,35 @@ pub feature_owner_mismatch_is_rejected(): Bool ->
 ).
 
 @test
+pub feature_gate_from_make_fragment_is_accepted(): Bool ->
+    let matrix =
+        [
+            MatrixRow(
+                order = "1",
+                lane = "coreir",
+                lane_kind = "core",
+                proof_families = "proof",
+                proof_prerequisites = "contract",
+                acceptance_gates = "fragment-check",
+                owner = "compiler",
+                closeout_dependency = "lean-proof-track-release-closeout-check",
+                accepted_gap_features = "",
+            ),
+        ];
+    feature_rows_hold(
+        [
+            FeatureRow(
+                roadmap_slice = "Slice 4",
+                lane = "coreir",
+                owner = "compiler",
+                acceptance_gate = "fragment-check",
+            ),
+        ],
+        matrix,
+        "root-check:\n\t@true\nfragment-check:\n\t@true\n",
+    ).
+
+@test
 pub unapproved_proof_root_is_rejected(): Bool ->
     let family =
         Json.object()
@@ -1519,6 +1600,10 @@ pub unapproved_proof_root_is_rejected(): Bool ->
 @test
 pub repository_lean_proof_lanes_are_current(): Bool ->
     run_repository_check().
+
+@test
+pub repository_lean_proof_feature_map_is_current(): Bool ->
+    run_feature_map_check().
 
 checksum_gap(age: Int, status: String, source: String): Json ->
     let origin = Json.object().put("toml_checksum", Json.string(source));

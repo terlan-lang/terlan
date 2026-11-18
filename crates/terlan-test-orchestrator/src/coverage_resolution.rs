@@ -23,16 +23,35 @@ pub(super) fn resolver(
     environment: &ExecutionEnvironment,
     scope: Scope,
 ) -> Result<impl FnMut(&Value) -> Result<Value, PhaseFailure> + Send + 'static, PhaseFailure> {
-    let (base, phases) = phase_environments(environment)?;
+    let coverage_owned = environment
+        .value(crate::RELEASE_COVERAGE_OWNS_TERLC_ENV)
+        .as_deref()
+        == Some(std::ffi::OsStr::new("1"));
+    let plan = crate::phase_plan::selected_test_phases(
+        coverage_owned,
+        environment
+            .value(crate::phase_plan::COMPACT_PHASE_PLAN_ENV)
+            .as_deref(),
+    )?;
+    let (base, phases) = phase_environments(environment, plan)?;
     Ok(move |request: &Value| {
-        let actual = request["environment"]
+        let actual_digest = request["environment"]
             .as_str()
             .ok_or_else(|| failure("missing request environment identity"))?;
+        let actual = make_environment::TestIdentity::read(&request["environment_components"])?;
+        if actual.digest != actual_digest {
+            return Err(failure(
+                "request environment evidence disagrees with its identity",
+            ));
+        }
         let arguments = &request["request"]["arguments"];
         let coverage =
             if arguments == &json!(["--whole-suite"]) || arguments == &json!(["--metadata"]) {
-                if actual != base {
-                    return Err(failure("canonical suite request environment changed"));
+                if actual.digest != base.digest {
+                    return Err(failure(format!(
+                        "canonical suite request environment changed ({})",
+                        base.difference(&actual)
+                    )));
                 }
                 if arguments == &json!(["--metadata"]) {
                     if matches!(scope, Scope::HostedSource) {
@@ -53,10 +72,13 @@ pub(super) fn resolver(
                     .map(String::as_str)
                     .collect::<Vec<_>>();
                 if selection.package == "terlan" && selection.kind == "lib" {
-                    inventory.inspect_request(&args, actual, &phases)?
+                    inventory.inspect_request(&args, &actual, &phases)?
                 } else {
-                    if actual != base {
-                        return Err(failure("native request environment changed"));
+                    if actual.digest != base.digest {
+                        return Err(failure(format!(
+                            "native request environment changed ({})",
+                            base.difference(&actual)
+                        )));
                     }
                     let target = native
                         .iter()
@@ -80,17 +102,24 @@ pub(super) fn resolver(
 
 fn phase_environments(
     environment: &ExecutionEnvironment,
-) -> Result<(String, BTreeMap<String, String>), PhaseFailure> {
+    phases: Vec<crate::TestPhase>,
+) -> Result<
+    (
+        make_environment::TestIdentity,
+        BTreeMap<String, make_environment::TestIdentity>,
+    ),
+    PhaseFailure,
+> {
     let program = Path::new("coverage-environment");
-    let base = make_environment::test_identity(&environment.test_command(program))?;
-    let phases = crate::phase_plan::test_phases(false)
+    let base = make_environment::test_observation(&environment.test_command(program))?;
+    let phases = phases
         .into_iter()
         .map(|phase| {
             let mut command = environment.test_command(program);
             command.envs(phase.environment);
             Ok((
                 phase.name.to_owned(),
-                make_environment::test_identity(&command)?,
+                make_environment::test_observation(&command)?,
             ))
         })
         .collect::<Result<_, PhaseFailure>>()?;

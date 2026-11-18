@@ -12,19 +12,16 @@ native-binding-consistency-check:
 
 # Checks native boundary terminology stays consistent
 native-boundary-terminology-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools native_boundary_terminology_test
 	$(TERLAN_QUALITY) native-boundary-terminology
 
 
 # Checks the native boundary security test suite
 native-boundary-security-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools native_boundary_security_test
 	$(TERLAN_QUALITY) native-boundary-security
 
 
 # Checks the native binding generator's contract test suite
 native-binding-generator-contract-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools native_binding_generator_contract_test
 	$(TERLAN_QUALITY) native-binding-generator-contract
 
 # Rust warnings are denied by rust-clippy-check. Keep these test requests in
@@ -158,7 +155,7 @@ libpq-c-abi-check: c-abi-binding-generator-check
 
 # Checks CUDA package availability detection
 cuda-package-availability-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools cuda_package_availability::tests
+	$(RUST_TEST) -p terlan --lib --features validation-union cuda_package_availability::tests
 	$(TERLAN_QUALITY) cuda-package-availability
 	$(TERLAN_EXTERNAL_PACKAGE_MATRIX) record \
 		--gate cuda-package-availability-check --state passed --reason-code none
@@ -166,7 +163,7 @@ cuda-package-availability-check:
 
 # Checks the CUDA package contract against the configured CUDA toolchain
 cuda-package-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools cuda_package_availability::tests
+	$(RUST_TEST) -p terlan --lib --features validation-union cuda_package_availability::tests
 	$(TERLAN_QUALITY) cuda-package-check
 	TERLAN_CUDA_PACKAGE_DIR="$(abspath $(TERLAN_CUDA_DIR))" \
 	TERLAN_CUDA_TERLC="$(CURDIR)/target/debug/terlc" \

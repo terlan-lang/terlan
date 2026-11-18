@@ -27,11 +27,13 @@ pub(super) fn request(arguments: impl Iterator<Item = OsString>) -> ExitCode {
             .value(CONTEXT)
             .and_then(|value| value.into_string().ok())
             .ok_or_else(|| failure("test reuse requires a live coverage owner"))?;
-        let environment =
-            make_environment::test_identity(&environment.command(Path::new("coverage-request")))?;
+        let environment = make_environment::test_observation(
+            &environment.command(Path::new("coverage-request")),
+        )?;
         coverage_bridge::request(
             &endpoint,
-            json!({"request":{"id":"make-request","arguments":arguments},"environment":environment}),
+            json!({"request":{"id":"make-request","arguments":arguments},
+                "environment":environment.digest,"environment_components":environment.json()}),
         )?;
         Ok(())
     })())

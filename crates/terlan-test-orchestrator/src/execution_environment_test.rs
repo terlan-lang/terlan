@@ -35,6 +35,53 @@ fn environment_identity_is_order_independent_and_preserves_empty_values() {
 }
 
 #[test]
+fn validation_routes_do_not_change_the_bound_execution_identity() {
+    let fixture = temporary_fixture("environment-routes");
+    let first = snapshot(
+        &[
+            ("TERLAN_RUST_SUITE_REPORT", "first.json"),
+            ("TERLAN_RUST_PHASE_RECEIPT_DIR", "first-receipts"),
+            ("TERLAN_RUST_SUITE_TERLC", "first/terlc"),
+            ("TERLAN_RUST_SUITE_VM", "first/terlan-vm"),
+            (
+                "TERLAN_RUST_SUITE_NATIVE_WORKER",
+                "first/terlan-native-worker",
+            ),
+            ("INPUT", "same"),
+        ],
+        &fixture.0,
+    );
+    let second = snapshot(
+        &[
+            ("TERLAN_RUST_SUITE_REPORT", "second.json"),
+            ("TERLAN_RUST_PHASE_RECEIPT_DIR", "second-receipts"),
+            ("TERLAN_RUST_SUITE_TERLC", "second/terlc"),
+            ("TERLAN_RUST_SUITE_VM", "second/terlan-vm"),
+            (
+                "TERLAN_RUST_SUITE_NATIVE_WORKER",
+                "second/terlan-native-worker",
+            ),
+            ("INPUT", "same"),
+        ],
+        &fixture.0,
+    );
+
+    assert_eq!(first.json(&[]), second.json(&[]));
+    assert_eq!(
+        first.value("TERLAN_RUST_SUITE_REPORT"),
+        Some("first.json".into())
+    );
+    assert_eq!(
+        first.value("TERLAN_RUST_SUITE_TERLC"),
+        Some("first/terlc".into())
+    );
+    assert_ne!(
+        first.json(&[]),
+        snapshot(&[("INPUT", "changed")], &fixture.0).json(&[])
+    );
+}
+
+#[test]
 fn captured_validation_disables_cargo_global_cache_collection() {
     let captured = ExecutionEnvironment::capture().unwrap();
     assert_eq!(
@@ -97,15 +144,80 @@ fn certificate_defaults_are_frozen_bounded_and_preserve_existing_valid_choices()
 }
 
 #[test]
-fn environment_identity_separates_fields_and_binds_working_directory() {
+fn environment_identity_separates_fields_without_binding_checkout_location() {
     let one = temporary_fixture("environment-directory-one");
     let two = temporary_fixture("environment-directory-two");
     let first = snapshot(&[("AB", "C")], &one.0);
     assert_ne!(first.json(&[]), snapshot(&[("A", "BC")], &one.0).json(&[]));
-    assert_ne!(first.json(&[]), snapshot(&[("AB", "C")], &two.0).json(&[]));
+    assert_eq!(first.json(&[]), snapshot(&[("AB", "C")], &two.0).json(&[]));
     assert_eq!(
         first.command(Path::new("tool")).get_current_dir(),
         Some(one.0.as_path())
+    );
+}
+
+#[test]
+fn tool_routes_do_not_change_validation_identity() {
+    let fixture = temporary_fixture("environment-tool-routes");
+    let first = snapshot(&[("INPUT", "same")], &fixture.0);
+    let mut phase = crate::terlan_library_phase();
+    phase.environment = vec![
+        ("TERLAN_TEST_CAPABILITY_WORKER", "/first/worker".into()),
+        ("TERLAN_NATIVE_WORKER", "/first/native-worker".into()),
+        ("TERLAN_TEST_COMPILER", "/first/terlc".into()),
+        ("TERLAN_TEST_VM", "/first/vm".into()),
+        ("SEMANTIC_MODE", "same".into()),
+    ];
+    let first_identity = first.json(&[phase.clone()]);
+    for (_, value) in &mut phase.environment[..4] {
+        *value = "/second/route".into();
+    }
+    assert_eq!(first_identity, first.json(&[phase.clone()]));
+    phase.environment[4].1 = "changed".into();
+    assert_ne!(first_identity, first.json(&[phase]));
+}
+
+#[test]
+fn bootstrap_routing_does_not_change_validation_identity() {
+    let fixture = temporary_fixture("environment-bootstrap-route");
+    let absent = snapshot(&[("INPUT", "same"), ("SHLVL", "1")], &fixture.0);
+    let present = snapshot(
+        &[
+            ("INPUT", "same"),
+            ("TERLAN_VALIDATION_BOOTSTRAPPED", "1"),
+            ("SHLVL", "2"),
+        ],
+        &fixture.0,
+    );
+    assert_eq!(absent.json(&[]), present.json(&[]));
+}
+
+#[test]
+fn cargo_identity_ignores_make_and_project_routes_but_binds_cargo_inputs() {
+    let fixture = temporary_fixture("environment-cargo-projection");
+    let command = |cargo_index: &str, routed: bool| {
+        let environment = snapshot(
+            &[
+                ("PATH", "/bin"),
+                ("CARGO_REGISTRIES_EXAMPLE_INDEX", cargo_index),
+                ("RUSTFLAGS", "-Cdebuginfo=1"),
+                ("TERLAN_CUDA_DIR", if routed { "/first" } else { "/second" }),
+                ("MAKEFLAGS", if routed { "-j8" } else { "-j2" }),
+            ],
+            &fixture.0,
+        );
+        environment.command(Path::new("cargo"))
+    };
+    let first = command("https://example.invalid/one", true);
+    let routed = command("https://example.invalid/one", false);
+    let changed = command("https://example.invalid/two", false);
+    assert_eq!(
+        cargo_validation_identity(&first),
+        cargo_validation_identity(&routed)
+    );
+    assert_ne!(
+        cargo_validation_identity(&first),
+        cargo_validation_identity(&changed)
     );
 }
 
@@ -119,7 +231,10 @@ fn declared_overrides_bind_effective_values_without_changing_snapshot() {
     let report = environment.json(&[phase.clone()]);
     let mut expected = environment.test_command(Path::new("tool"));
     expected.env("MODE", "phase");
-    assert_eq!(report["phases"][0]["identity_sha256"], identity(&expected));
+    assert_eq!(
+        report["phases"][0]["identity_sha256"],
+        validation_identity(&expected)
+    );
     assert_ne!(
         report["phases"][0]["identity_sha256"],
         report["test_identity_sha256"]
@@ -204,7 +319,18 @@ fn actual_children_receive_only_snapshot_and_declared_phase_overrides() {
     use std::time::Duration;
     use terlan_process_owner::ProcessControl;
     let fixture = temporary_fixture("environment-real-child");
-    let environment = snapshot(&[("FIXTURE_VALUE", "base")], &fixture.0);
+    let environment = snapshot(
+        &[
+            ("FIXTURE_VALUE", "base"),
+            ("TERLAN_RUST_SUITE_TERLC", "/outer/terlc"),
+            ("TERLAN_RUST_SUITE_VM", "/outer/terlan-vm"),
+            (
+                "TERLAN_RUST_SUITE_NATIVE_WORKER",
+                "/outer/terlan-native-worker",
+            ),
+        ],
+        &fixture.0,
+    );
     let control = ProcessControl::new(Duration::from_secs(5));
     let mut launched = 0;
     let mut observe = |pid| {
@@ -220,7 +346,7 @@ fn actual_children_receive_only_snapshot_and_declared_phase_overrides() {
     control.run(&mut command, &mut observe).unwrap();
     let mut phase = crate::terlan_library_phase();
     phase.environment = vec![("FIXTURE_VALUE", "override".into())];
-    phase.args = vec!["-c", "test \"$FIXTURE_VALUE\" = override && test -z \"${HOME+x}\" && test \"${PATH%%:*}\" = \"$PWD/target/debug\" || exit 9; while test \"$1\" != --logfile; do shift; done; printf 'ok fixture\\n' > \"$2\""];
+    phase.args = vec!["-c", "test \"$FIXTURE_VALUE\" = override && test -z \"${HOME+x}\" && test -z \"${TERLAN_RUST_SUITE_TERLC+x}\" && test -z \"${TERLAN_RUST_SUITE_VM+x}\" && test -z \"${TERLAN_RUST_SUITE_NATIVE_WORKER+x}\" && test \"${PATH%%:*}\" = \"$PWD/target/debug\" || exit 9; while test \"$1\" != --logfile; do shift; done; printf 'ok fixture\\n' > \"$2\""];
     crate::test_execution::run(
         &phase,
         Path::new("/bin/sh"),

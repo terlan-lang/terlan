@@ -211,6 +211,7 @@ pub preflight_domains_are_selected_by_their_own_inputs(): Bool ->
     let ci = ChangeClassifier.classify(["scripts/ci/src/ci/ChangeClassifier.terl"], false);
     let editor = ChangeClassifier.classify(["editors/vscode/package.json"], false);
     let inventory = ChangeClassifier.classify(["tools/example.py"], false);
+    let script_inventory = ChangeClassifier.classify(["scripts/example.terls"], false);
     let release = ChangeClassifier.classify(["mk/hermetic-support.mk"], false);
     let hooks = ChangeClassifier.classify(["scripts/git_hooks/check.sh"], false);
     let workflow = ChangeClassifier.classify([".github/workflows/security.yml"], false);
@@ -218,12 +219,14 @@ pub preflight_domains_are_selected_by_their_own_inputs(): Bool ->
         and not ci.editor
         and editor.editor
         and inventory.inventory
+        and script_inventory.inventory
         and release.release_tooling
         and hooks.hooks
         and workflow.workflow
         and ChangeClassifier.is_ci_contract_file(".github/actions/setup-terlan-script-runner/action.yml")
         and ChangeClassifier.is_editor_file("tree-sitter-terlan/grammar.js")
         and ChangeClassifier.is_inventory_file("crates/terlan/src/main.rs")
+        and ChangeClassifier.is_inventory_file("scripts/example.terls")
         and ChangeClassifier.is_release_tooling_file(".github/workflows/release.yml")
         and ChangeClassifier.is_hook_file(".githooks/pre-commit")
         and ChangeClassifier.is_workflow_file(".github/actions/security-audit/action.yml")

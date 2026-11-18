@@ -13,9 +13,57 @@ fn normal_phases() -> Vec<TestPhase> {
 
 #[test]
 fn library_partitions_cover_every_namespace_once_including_future_modules() {
-    let all = names(&[
+    let mut all = names(&[
         "commands::serve::probe",
         "commands::build::probe",
+        "commands::build::build_test::probe",
+        "commands::build::build_test::tests::args_test::probe",
+        "commands::build::build_test::tests::artifact_test::browser_artifacts::probe",
+        "commands::build::build_test::tests::artifact_test::vm_artifacts::probe",
+        "commands::build::build_test::tests::debug_info_artifact_test::probe",
+        "commands::build::build_test::tests::dependency_test::probe",
+        "commands::build::build_test::tests::project_layout_test::probe",
+        "commands::build::build_test::tests::js_target_diagnostics_test::probe",
+        "commands::build::project_manifest::probe",
+        "commands::build::vm_artifact::probe",
+        "commands::build::build_orchestration::probe",
+        "commands::build::css::probe",
+        "commands::build::js_browser::js_browser_test::asset_and_response_manifests::discover_web_handlers_probe",
+        "commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_manifest_probe",
+        "commands::build::js_browser::js_browser_test::asset_and_response_manifests::write_browser_package_probe",
+        "commands::build::js_browser::js_browser_test::callback_source_execution::probe",
+        "commands::build::js_browser::js_browser_test::route_fixtures::discover_web_handlers_probe",
+        "commands::build::js_browser::js_browser_test::route_fixtures::discover_web_route_manifest_probe",
+        "commands::build::js_browser::js_browser_test::route_fixtures::write_browser_package_probe",
+        "commands::build::js_browser::js_browser_test::vm_source_routes::probe",
+        "commands::build::js_browser::js_browser_test::websocket_source_execution::probe",
+        "commands::build::package_registry_solver::probe",
+        "commands::build::package_publish::probe",
+        "commands::bind::probe",
+        "commands::bind::c_abi_binding_generator::probe",
+        "commands::bind::cpp_binding_generator::probe",
+        "commands::lint::probe",
+        "commands::db::probe",
+        "commands::test::probe",
+        "commands::serve::serve_test::arguments_and_fixtures::probe",
+        "commands::serve::serve_test::dynamic_dispatch::probe",
+        "commands::serve::serve_test::observability_and_packages::probe",
+        "commands::serve::serve_test::route_dispatch::probe",
+        "commands::serve::serve_test::static_fallbacks::probe",
+        "commands::serve::serve_test::upgrades_and_acme::probe",
+        "commands::serve::handler_cache::invocation::probe",
+        "commands::serve::handler_cache::response_policy_test::probe",
+        "commands::serve::handler_cache::request_projection::probe",
+        "commands::serve::handler_cache::handler_cache_generation_test::probe",
+        "commands::serve::handler_cache::protocol_capability::probe",
+        "commands::serve::handler::probe",
+        "commands::serve::handler::response_bridge::probe",
+        "commands::serve::handler::websocket_invocation::probe",
+        "commands::serve::tls::acme_runtime::tls_test::cache_custody::probe",
+        "commands::serve::tls::acme_runtime::tls_test::tls_and_acme_fixtures::probe",
+        "commands::serve::hyper_server::hyper_server_test::json_body::probe",
+        "commands::serve::hyper_server::hyper_server_test::sse_source::probe",
+        "commands::serve::hyper_server::probe",
         "commands::emit_js::template_runtime::template_runtime_test::generated_js_template_runtime_matches_vm_shared_fixture_corpus",
         "commands::compiler::native_ir::probe",
         "compiler::native_ir::probe",
@@ -29,6 +77,24 @@ fn library_partitions_cover_every_namespace_once_including_future_modules() {
         "quality::probe",
         "compiler::comprehension::probe",
     ]);
+    for (prefix, additional) in [
+        ("commands::bind::c_abi_binding_generator::future_", 3),
+        ("commands::bind::cpp_binding_generator::future_", 3),
+        ("commands::lint::future_", 3),
+        ("commands::emit_js::future_", 3),
+        ("commands::db::future_", 2),
+        ("commands::test::future_", 2),
+        ("commands::future_", 31),
+        ("compiler::native_ir::future_", 30),
+        ("compiler::typeck::future_", 30),
+        ("compiler::future_", 30),
+        ("runtime::future_", 31),
+        ("new_top_level_", 31),
+    ] {
+        for index in 0..additional {
+            all.insert(format!("{prefix}{index}::probe"));
+        }
+    }
     let mut phases = crate::phase_plan::terlan_library_partitions();
     phases.push(terlan_integration_phase());
     let expected = validate(&all, &BTreeSet::new(), &phases, false, TIER_INVENTORY).unwrap();
@@ -39,18 +105,86 @@ fn library_partitions_cover_every_namespace_once_including_future_modules() {
             .sum::<usize>(),
         all.len()
     );
+    let selected_by = |prefix: &str| {
+        expected
+            .iter()
+            .filter(|(phase, _)| phase.starts_with(prefix))
+            .map(|(_, selection)| selection.passed.len())
+            .sum::<usize>()
+    };
+    assert_eq!(selected_by("Terlan library remainder shard "), 32);
+    assert_eq!(expected["Terlan build arguments"].passed.len(), 1);
+    assert_eq!(expected["Terlan browser build artifacts"].passed.len(), 1);
+    assert_eq!(expected["Terlan VM build artifacts"].passed.len(), 1);
+    assert_eq!(expected["Terlan build debug evidence"].passed.len(), 1);
+    assert_eq!(expected["Terlan build dependency closure"].passed.len(), 1);
+    assert_eq!(expected["Terlan build project layout"].passed.len(), 1);
+    assert_eq!(expected["Terlan JavaScript build shapes"].passed.len(), 1);
+    assert_eq!(expected["Terlan build test remainder"].passed.len(), 1);
+    assert_eq!(expected["Terlan build manifests"].passed.len(), 1);
+    assert_eq!(expected["Terlan VM artifact builds"].passed.len(), 1);
+    assert_eq!(expected["Terlan build orchestration"].passed.len(), 1);
+    assert_eq!(expected["Terlan browser build primitives"].passed.len(), 1);
     assert_eq!(
-        expected["Terlan library remainder"].passed,
-        names(&["new_top_level::probe"])
+        expected["Terlan browser manifest discovery"].passed.len(),
+        1
     );
-    assert_eq!(expected["Terlan commands"].passed.len(), 4);
-    assert_eq!(expected["Terlan native IR"].passed.len(), 2);
-    assert_eq!(expected["Terlan type checker"].passed.len(), 2);
-    assert_eq!(expected["Terlan compiler"].passed.len(), 2);
     assert_eq!(
-        expected["Terlan runtime"].passed,
-        names(&["runtime::vm::probe"])
+        expected["Terlan browser manifest validation"].passed.len(),
+        1
     );
+    assert_eq!(expected["Terlan browser package source"].passed.len(), 1);
+    assert_eq!(expected["Terlan browser callbacks"].passed.len(), 1);
+    assert_eq!(expected["Terlan browser handler routes"].passed.len(), 1);
+    assert_eq!(expected["Terlan browser route manifests"].passed.len(), 1);
+    assert_eq!(
+        expected["Terlan browser route serialization"].passed.len(),
+        1
+    );
+    assert_eq!(expected["Terlan browser VM routes"].passed.len(), 1);
+    assert_eq!(expected["Terlan browser WebSockets"].passed.len(), 1);
+    assert_eq!(expected["Terlan package registry builds"].passed.len(), 1);
+    assert_eq!(
+        expected["Terlan package publication builds"].passed.len(),
+        1
+    );
+    assert_eq!(expected["Terlan build command remainder"].passed.len(), 1);
+    for phase in [
+        "Terlan serve arguments",
+        "Terlan dynamic serve dispatch",
+        "Terlan serve package validation",
+        "Terlan serve route dispatch",
+        "Terlan serve static fallbacks",
+        "Terlan serve upgrades",
+        "Terlan serve response policy",
+        "Terlan serve request routing",
+        "Terlan serve cache generation",
+        "Terlan serve cache protocols",
+        "Terlan serve response bridge",
+        "Terlan serve WebSocket invocation",
+        "Terlan serve handler remainder",
+        "Terlan TLS cache custody",
+        "Terlan TLS and ACME fixtures",
+        "Terlan Hyper JSON bodies",
+        "Terlan Hyper SSE source",
+        "Terlan Hyper remainder",
+    ] {
+        assert_eq!(expected[phase].passed.len(), 1, "{phase}");
+    }
+    assert_eq!(expected["Terlan serve cache invocation"].passed.len(), 1);
+    assert_eq!(expected["Terlan serve command remainder"].passed.len(), 1);
+    assert_eq!(selected_by("Terlan C bindings shard "), 4);
+    assert_eq!(selected_by("Terlan C++ bindings shard "), 4);
+    assert_eq!(expected["Terlan binding command remainder"].passed.len(), 1);
+    assert_eq!(selected_by("Terlan lint commands shard "), 4);
+    assert_eq!(selected_by("Terlan JavaScript emission shard "), 4);
+    assert_eq!(selected_by("Terlan database commands shard "), 3);
+    assert_eq!(selected_by("Terlan test commands shard "), 3);
+    assert_eq!(selected_by("Terlan command remainder shard "), 32);
+    assert_eq!(selected_by("Terlan native IR shard "), 32);
+    assert_eq!(selected_by("Terlan type checker shard "), 32);
+    assert_eq!(selected_by("Terlan compiler shard "), 32);
+    assert_eq!(selected_by("Terlan runtime shard "), 32);
     phases[0].args.push("runtime::");
     assert!(validate(&all, &BTreeSet::new(), &phases, false, TIER_INVENTORY).is_err());
 }

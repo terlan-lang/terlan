@@ -1372,8 +1372,21 @@ pub(super) fn check_sources(sources: &[&str]) -> Vec<NativeModule> {
     check_sources_with_core_mutator(sources, |_| {})
 }
 
+/// Compiles multiple independent `check/0` roots through one native application.
+pub(super) fn check_source_roots(sources: &[&str], root_indices: &[usize]) -> Vec<NativeModule> {
+    check_sources_with_core_mutator_and_roots(sources, root_indices, |_| {})
+}
+
 fn check_sources_with_core_mutator(
     sources: &[&str],
+    mutate: impl FnOnce(&mut Vec<crate::terlan_typeck::CoreModule>),
+) -> Vec<NativeModule> {
+    check_sources_with_core_mutator_and_roots(sources, &[0], mutate)
+}
+
+fn check_sources_with_core_mutator_and_roots(
+    sources: &[&str],
+    root_indices: &[usize],
     mutate: impl FnOnce(&mut Vec<crate::terlan_typeck::CoreModule>),
 ) -> Vec<NativeModule> {
     let syntaxes = sources
@@ -1404,12 +1417,31 @@ fn check_sources_with_core_mutator(
         })
         .collect::<Vec<_>>();
     mutate(&mut cores);
-    let root = cores[0].module.clone();
-    super::prune_application_to_function_roots(
-        &mut cores,
-        &[(root.clone(), "check".to_string(), 0)],
-    )
-    .expect("retain source constructor dependencies");
+    assert!(
+        !root_indices.is_empty(),
+        "native source roots cannot be empty"
+    );
+    let roots = root_indices
+        .iter()
+        .map(|index| {
+            cores
+                .get(*index)
+                .unwrap_or_else(|| panic!("native source root index {index} is absent"))
+                .module
+                .clone()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        roots.len(),
+        root_indices.len(),
+        "native source roots must be unique"
+    );
+    let retained = roots
+        .iter()
+        .map(|root| (root.clone(), "check".to_string(), 0))
+        .collect::<Vec<_>>();
+    super::prune_application_to_function_roots(&mut cores, &retained)
+        .expect("retain source constructor dependencies");
     let modules = NativeModule::lower_application(&cores.iter().collect::<Vec<_>>())
         .unwrap_or_else(|error| {
             panic!(
@@ -1417,22 +1449,43 @@ fn check_sources_with_core_mutator(
                 cores[0].contract_text()
             )
         });
-    let object = emit_native_application_object(&root, &modules).expect("emit constructor body");
-    let entry = modules
+    let application = roots.first().expect("native source application root");
+    let object =
+        emit_native_application_object(application, &modules).expect("emit constructor body");
+    let check_exports = roots
         .iter()
-        .flat_map(|module| &module.functions)
-        .find(|function| function.name == "check")
-        .expect("check export");
-    assert_managed_native_object_invocations(
-        &root,
-        &modules,
-        &object,
-        &[NativeObjectInvocation {
-            export_id: entry.export_id,
+        .map(|root| {
+            let module = modules
+                .iter()
+                .find(|module| &module.name == root)
+                .unwrap_or_else(|| panic!("native source root `{root}` was not lowered"));
+            let exports = module
+                .functions
+                .iter()
+                .filter(|function| {
+                    function.public
+                        && function.source_function == "check"
+                        && function.source_arity == 0
+                })
+                .map(|function| function.export_id)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                exports.len(),
+                1,
+                "native source root `{root}` must retain one public check export"
+            );
+            exports[0]
+        })
+        .collect::<Vec<_>>();
+    let invocations = check_exports
+        .into_iter()
+        .map(|export_id| NativeObjectInvocation {
+            export_id,
             arguments: vec![],
             expected_status: status::OK,
             expected_result: Some(1),
-        }],
-    );
+        })
+        .collect::<Vec<_>>();
+    assert_managed_native_object_invocations(application, &modules, &object, &invocations);
     modules
 }

@@ -3,6 +3,7 @@
  */
 module scripts.self_validation.Inventory.
 
+import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Ok}.
 import std.core.String.
@@ -18,6 +19,39 @@ pub inventory_matches(root: String): Bool ->
             let lines = String.split(inventory, "\n");
             sorted_inventory_matches(children, lines);
         _ -> false
+    }.
+
+pub script_line_limit(): Int -> 300.
+
+pub source_line_count(source: String): Int ->
+    let count = List.length(String.split(source, "\n"));
+    if {
+        String.ends_with(source, "\n") -> count - 1;
+        true -> count
+    }.
+
+pub source_within_line_limit(source: String, maximum: Int): Bool ->
+    source_line_count(source) <= maximum.
+
+pub script_size_budget_holds(root: String): Bool ->
+    case files_recursive_excluding(root, [".git", "target", "build", "_build", "node_modules"]) {
+        Ok(files) -> script_files_hold(files);
+        _ -> false
+    }.
+
+script_files_hold(files: List[String]): Bool ->
+    case files {
+        [] -> true;
+        [path | rest] ->
+            if {
+                not String.ends_with(path, ".terls") -> script_files_hold(rest);
+                true -> case read_text(path) {
+                    Ok(source) ->
+                        source_within_line_limit(source, script_line_limit())
+                            and script_files_hold(rest);
+                    _ -> false
+                }
+            }
     }.
 
 sorted_inventory_matches(files: List[String], lines: List[String]): Bool ->
@@ -67,6 +101,17 @@ no_python_files(files: List[String]): Bool ->
 @test
 pub repository_python_inventory_is_exhaustive(): Bool ->
     inventory_matches(".").
+
+@test
+pub repository_scripts_fit_entry_size_budget(): Bool ->
+    script_size_budget_holds(".").
+
+@test
+pub source_line_budget_counts_trailing_newlines_exactly(): Bool ->
+    source_line_count("one\ntwo\nthree") == 3
+        and source_line_count("one\ntwo\nthree\n") == 3
+        and source_within_line_limit("one\ntwo\nthree\n", 3)
+        and not source_within_line_limit("one\ntwo\nthree\n", 2).
 
 @test
 pub sorted_inventory_accepts_exact_paths(): Bool ->

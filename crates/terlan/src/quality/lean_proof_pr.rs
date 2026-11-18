@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use serde::Serialize;
 
@@ -98,7 +98,7 @@ fn run_to(root: &Path, path: &Path) -> QualityResult<LeanProofPrSummary> {
     let inventory = parse_inventory(&read_text(root, INVENTORY_PATH)?)?;
     let gaps = parse_gaps(&read_text(root, GAP_PATH)?)?;
     let owners = parse_owners(&read_text(root, OWNER_PATH)?)?;
-    let make_targets = collect_make_targets(&read_text(root, "Makefile")?);
+    let make_targets = collect_make_targets(root)?;
 
     let mut diagnostics = validate_owners(&owners, &make_targets);
     diagnostics.extend(validate_inventory_ownership(&inventory, &owners));
@@ -166,22 +166,75 @@ fn split_list(text: &str) -> Vec<String> {
         .collect()
 }
 
-fn collect_make_targets(makefile: &str) -> BTreeSet<String> {
-    makefile
-        .lines()
-        .filter_map(|line| {
-            let trimmed = line.trim_end();
-            if trimmed.starts_with('\t')
-                || trimmed.starts_with('.')
-                || trimmed.starts_with('#')
-                || trimmed.is_empty()
+fn collect_make_targets(root: &Path) -> QualityResult<BTreeSet<String>> {
+    let mut targets = BTreeSet::new();
+    let mut pending = vec![PathBuf::from("Makefile")];
+    let mut visited = BTreeSet::new();
+
+    while let Some(relative) = pending.pop() {
+        if !visited.insert(relative.clone()) {
+            continue;
+        }
+        let text = fs::read_to_string(root.join(&relative)).map_err(|err| {
+            format!(
+                "{}: failed to read included Make file: {err}",
+                relative.display()
+            )
+        })?;
+        collect_targets_from_text(&text, &mut targets);
+        collect_includes_from_text(&text, &mut pending)?;
+    }
+
+    Ok(targets)
+}
+
+fn collect_targets_from_text(makefile: &str, targets: &mut BTreeSet<String>) {
+    for line in makefile.lines() {
+        let trimmed = line.trim_end();
+        if trimmed.starts_with('\t')
+            || trimmed.starts_with('.')
+            || trimmed.starts_with('#')
+            || trimmed.is_empty()
+        {
+            continue;
+        }
+        let Some((names, _)) = trimmed.split_once(':') else {
+            continue;
+        };
+        targets.extend(
+            names
+                .split_whitespace()
+                .filter(|name| !name.contains('%'))
+                .map(str::to_string),
+        );
+    }
+}
+
+fn collect_includes_from_text(makefile: &str, pending: &mut Vec<PathBuf>) -> QualityResult<()> {
+    for line in makefile.lines() {
+        let trimmed = line.trim();
+        let includes = trimmed
+            .strip_prefix("include ")
+            .or_else(|| trimmed.strip_prefix("-include "));
+        let Some(includes) = includes else {
+            continue;
+        };
+        for include in includes.split_whitespace() {
+            let path = PathBuf::from(include);
+            if include.contains('$')
+                || path.is_absolute()
+                || path
+                    .components()
+                    .any(|component| matches!(component, Component::ParentDir))
             {
-                return None;
+                return Err(format!(
+                    "Makefile include `{include}` is not a literal repository-relative path"
+                ));
             }
-            let (name, _) = trimmed.split_once(':')?;
-            Some(name.trim().to_string())
-        })
-        .collect()
+            pending.push(path);
+        }
+    }
+    Ok(())
 }
 
 fn validate_owners(owners: &[OwnerRow], make_targets: &BTreeSet<String>) -> Vec<String> {

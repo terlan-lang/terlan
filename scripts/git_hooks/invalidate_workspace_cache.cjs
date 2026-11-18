@@ -29,10 +29,45 @@ function invalidateWorkspaceCache(metadata, target) {
   return removed;
 }
 
-module.exports = { invalidateWorkspaceCache };
+function prepareWorkspaceCache(metadata, target, sourceRoot) {
+  if (!path.isAbsolute(target) || !path.isAbsolute(sourceRoot)) {
+    throw new Error('absolute Cargo target and source root required');
+  }
+  const marker = path.join(target, '.terlan-workspace-source-root');
+  let status;
+  try {
+    status = fs.lstatSync(marker);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  if (status) {
+    if (!status.isFile() || status.isSymbolicLink()) {
+      throw new Error('invalid workspace source-root marker');
+    }
+    if (fs.readFileSync(marker, 'utf8') === `${sourceRoot}\n`) {
+      return { removed: 0, reused: true };
+    }
+  }
+  const removed = invalidateWorkspaceCache(metadata, target);
+  fs.mkdirSync(target, { recursive: true });
+  const temporary = `${marker}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, `${sourceRoot}\n`, { flag: 'wx' });
+  fs.renameSync(temporary, marker);
+  return { removed, reused: false };
+}
+
+module.exports = { invalidateWorkspaceCache, prepareWorkspaceCache };
 if (require.main === module) {
-  const [metadata, target] = process.argv.slice(2);
-  if (!metadata || !target || !path.isAbsolute(target)) throw new Error('metadata and absolute Cargo target required');
-  const removed = invalidateWorkspaceCache(JSON.parse(fs.readFileSync(metadata, 'utf8')), target);
-  console.log(`pre-commit: invalidated ${removed} workspace fingerprints; dependency caches and executables retained`);
+  const [metadata, target, sourceRoot] = process.argv.slice(2);
+  if (!metadata || !target || !sourceRoot) throw new Error('metadata, Cargo target and source root required');
+  const result = prepareWorkspaceCache(
+    JSON.parse(fs.readFileSync(metadata, 'utf8')),
+    target,
+    sourceRoot,
+  );
+  if (result.reused) {
+    console.log(`pre-commit: reuse workspace fingerprints for stable source root ${sourceRoot}`);
+  } else {
+    console.log(`pre-commit: source root changed; invalidated ${result.removed} workspace fingerprints`);
+  }
 }

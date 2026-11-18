@@ -2,7 +2,7 @@
 
 # Verifies the VM hashmap implementation is deterministic.
 vm-deterministic-hashmap-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_deterministic_hashmap_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_deterministic_hashmap_test
 	$(TERLAN_QUALITY) vm-deterministic-hashmap
 
 
@@ -1131,7 +1131,7 @@ vm-supervision-restart-check: vm-supervision-primitives-check vm-timer-deadline-
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_deadline_forces_typed_exit_and_restarts_child -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_normal_exit_honors_transient_restart_class -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::supervision::shutdown::shutdown_test::supervision_shutdown_rejects_duplicate_and_deadline_overflow_atomically -- --exact
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_supervision_restart_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_supervision_restart_test
 	$(TERLAN_QUALITY) vm-supervision-restart
 
 
@@ -2369,7 +2369,7 @@ vm-runtime-semantics-check: \
 
 # Verifies VM diagnostics quality via the quality tool and targeted runtime diagnostic tests
 vm-diagnostics-quality-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_diagnostics_quality_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_diagnostics_quality_test
 	$(TERLAN_QUALITY) vm-diagnostics-quality
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::native_image::native_image_test::native_inspection_rejects_json_and_non_executables -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::native_image::native_image_test::descriptor_rejects_tampering_and_noncanonical_records -- --exact
@@ -2398,7 +2398,7 @@ vm-hibernate-suite-parity-check: vm-gc-suite-parity-check vm-scheduler-contract-
 
 # Verifies VM OTP abstractions are exposed correctly through the Terlan stdlib
 vm-otp-abstractions-terlan-stdlib-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_otp_abstractions_terlan_stdlib_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_otp_abstractions_terlan_stdlib_test
 	$(TERLAN_QUALITY) vm-otp-abstractions-terlan-stdlib
 	$(TERLC) test tests/language/VmServiceActorTest.terl
 	$(TERLC) test std/vm/TaskTest.terl
@@ -2406,19 +2406,19 @@ vm-otp-abstractions-terlan-stdlib-check:
 
 # Verifies VM value ownership classification rules
 vm-ownership-classification-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_ownership_classification_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_ownership_classification_test
 	$(TERLAN_QUALITY) vm-ownership-classification
 
 
 # Verifies the VM runtime concept inventory is complete and current
 vm-runtime-concept-inventory-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_runtime_concept_inventory_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_runtime_concept_inventory_test
 	$(TERLAN_QUALITY) vm-runtime-concept-inventory
 
 
 # Verifies the VM multicore invariant inventory is complete and current
 vm-multicore-invariant-inventory-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools multicore_invariant_inventory_test
+	$(RUST_TEST) -p terlan --lib --features validation-union multicore_invariant_inventory_test
 	$(TERLAN_QUALITY) vm-multicore-invariant-inventory
 
 
@@ -2434,7 +2434,7 @@ vm-native-boundary-contract-check: lean-proof-track-check vm-runtime-report-arti
 # Checks SQL macro validation and the SQL form boundary
 vm-sql-macro-validation-check: vm-db-migration-command-check
 	$(CURDIR)/target/debug/terlc test scripts/self_validation/SqlFormBoundaryTest.terl
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features quality-tools sql
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features validation-union sql
 	$(TERLAN_QUALITY) vm-sql-macro-validation
 	test -s target/quality/vm-sql-macro-validation-report.json
 
@@ -2442,7 +2442,7 @@ vm-sql-macro-validation-check: vm-db-migration-command-check
 # Checks the VM database migration command against a live Postgres
 vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-check
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib commands::db::live_test::run_db_migration_and_snapshot_lifecycle_against_docker_postgres -- --ignored --exact --nocapture
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features quality-tools vm_db_migration_command
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features validation-union vm_db_migration_command
 	$(TERLAN_QUALITY) vm-db-migration-command
 	test -s target/quality/vm-db-migration-report.json
 
@@ -2450,7 +2450,7 @@ vm-db-migration-command-check: vm-dev-dependency-orchestration-check db-command-
 # Checks VM dev-dependency orchestration
 vm-dev-dependency-orchestration-check:
 	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib commands::dev_dependencies
-	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features quality-tools vm_dev_dependency_orchestration
+	env RUSTFLAGS='-D warnings' $(RUST_TEST) -p terlan --lib --features validation-union vm_dev_dependency_orchestration
 	$(TERLAN_QUALITY) vm-dev-dependency-orchestration
 	test -s target/quality/vm-dev-dependency-report.json
 
@@ -2462,7 +2462,7 @@ vm-postgres-runtime-check: stdlib-postgres-server-check stdlib-postgres-worker-c
 
 # Benchmarks VM performance against its baseline
 vm-performance-baseline-check: achamp-adversarial-coverage-check
-	$(RUST_TEST) -p terlan --lib --features benchmark-tools benchmark::database::tests
+	$(RUST_TEST) -p terlan --lib --features validation-union benchmark::database::tests
 	$(TERLAN_BENCHMARK) vm-performance-baseline
 
 

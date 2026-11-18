@@ -279,6 +279,21 @@ toolchain, except for the dependency-impact report that the preceding producer
 may regenerate. A staged retry therefore does not repeat an already-passing
 compiler suite merely because that generated report was added.
 
+The shared Rust harness also retains per-phase receipts so a late failure does
+not replay every earlier library partition. Phase results remain provisional
+until normal closeout, or until a failed suite rechecks its complete admitted
+source, executable, compiler, toolchain, configuration, and metadata inputs.
+Only then are exact phase definition, thread policy, and selected-test evidence
+published atomically. Changed inputs, malformed receipts, or forced reruns
+execute the phase again.
+
+Receipt identities bind semantic inputs, not where validation happened to put
+them. Report and receipt destinations, checkout locations, and compiler, VM,
+or worker routing paths do not invalidate a result. The selected executable
+bytes are admitted and checked separately. Compiler, VM, and worker snapshots
+share one content-addressed directory with stable filenames so runtime
+adjacency contracts do not depend on mutable build outputs.
+
 Owning workflow, hook-policy, and release-contract gates record the Terlan
 sources they already compiled. The generic Terlan lane treats that record as
 terminal and does not rebuild, reformat, or retest those files.

@@ -217,6 +217,33 @@ fn expression_spanned_tokens(
     projected_tokens(tokens, true, true, grouped_list_lambdas).into_iter()
 }
 
+fn tight_dot(tokens: &[Token], index: usize) -> bool {
+    let token = &tokens[index];
+    token.kind == TokenKind::Dot
+        && tokens.get(index + 1).is_some_and(|next| {
+            token.end == next.start
+                && matches!(
+                    next.kind,
+                    TokenKind::Atom | TokenKind::Var | TokenKind::Template | TokenKind::Hash
+                )
+        })
+}
+
+fn module_header_tokens(mut tokens: Vec<Token>) -> Vec<Token> {
+    let Some(module) = tokens
+        .iter()
+        .position(|token| token.kind == TokenKind::Module)
+    else {
+        return tokens;
+    };
+    if let Some(end) = (module + 1..tokens.len())
+        .find(|&index| tokens[index].kind == TokenKind::Dot && !tight_dot(&tokens, index))
+    {
+        tokens.truncate(end + 1);
+    }
+    tokens
+}
+
 fn projected_tokens(
     tokens: Vec<Token>,
     classify_lambda_delimiters: bool,
@@ -393,15 +420,7 @@ fn projected_tokens(
             LalrpopToken::Placeholder
         } else if lambda_openings.binary_search(&index).is_ok() {
             LalrpopToken::LambdaLParen
-        } else if token.kind == TokenKind::Dot
-            && tokens.get(index + 1).is_some_and(|next| {
-                token.end == next.start
-                    && matches!(
-                        next.kind,
-                        TokenKind::Atom | TokenKind::Var | TokenKind::Template | TokenKind::Hash
-                    )
-            })
-        {
+        } else if tight_dot(&tokens, index) {
             LalrpopToken::TightDot
         } else {
             contextual_keyword(&token.text).map_or_else(
@@ -599,9 +618,9 @@ pub fn parse_lalrpop_token_output(input: &str) -> LalrpopBoundaryResult<LalrpopS
 
 /// Parses and returns the canonical module header through LALRPOP.
 ///
-/// The body is retained as an unclassified token tail while declaration
-/// productions migrate. This function therefore proves header ownership only;
-/// it is not the full parser parity entrypoint.
+/// The input is lexed completely, then only the exact header prefix is passed
+/// to the generated parser. This function therefore proves header ownership
+/// only; it is not the full parser parity entrypoint.
 pub fn parse_lalrpop_module_header(
     input: &str,
 ) -> LalrpopBoundaryResult<LalrpopModuleHeaderOutput> {
@@ -627,7 +646,7 @@ pub fn parse_lalrpop_module_header(
             input,
             &source_index,
             identity.as_str(),
-            spanned_tokens(tokens),
+            spanned_tokens(module_header_tokens(tokens)),
         )
         .map_err(lalrpop_error)
 }

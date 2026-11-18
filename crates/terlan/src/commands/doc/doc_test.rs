@@ -280,7 +280,7 @@ fn doc_command_generates_std_html_reference() {
 /// Transformation:
 /// - Combines the label, process id, and clock time to avoid collisions,
 ///   then recreates the directory under the OS temporary directory.
-fn make_doc_command_test_dir(label: &str) -> PathBuf {
+pub(super) fn make_doc_command_test_dir(label: &str) -> PathBuf {
     let nanos = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |duration| duration.as_nanos());

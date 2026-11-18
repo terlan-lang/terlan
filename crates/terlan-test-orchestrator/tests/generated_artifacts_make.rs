@@ -9,6 +9,8 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+mod support;
+
 const GATES: [&str; 5] = [
     "stdlib-summary-drift-check",
     "stdlib-js-bindings-drift-check",
@@ -22,6 +24,14 @@ impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
     }
+}
+
+fn make_rule<'a>(source: &'a str, target: &str) -> &'a str {
+    let start = source.find(&format!("\n{target}:")).unwrap() + 1;
+    let end = source[start..]
+        .find("\n\n")
+        .map_or(source.len(), |offset| start + offset);
+    &source[start..end]
 }
 
 /// Instrumented leaf worker; the production typed snapshot validator is tested separately.
@@ -99,12 +109,21 @@ fn fixture() -> Fixture {
     fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
     fs::write(fixture.0.join("artifact"), "unchanged").unwrap();
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let source = support::read_make_sources();
     let start = source
         .find("GENERATED_ARTIFACT_FRESHNESS_GATES :=")
         .unwrap();
-    let end = source[start..].find("\npackage-test-exec-check:").unwrap() + start;
+    let end = source[start..].find("\npublish-preparation-cold:").unwrap() + start;
     let mut make = source[start..end].to_owned();
+    for target in [
+        "release-generated-artifacts-before",
+        "release-generated-artifacts-freshness-pass",
+        "release-generated-artifacts-check",
+    ] {
+        make.push('\n');
+        make.push_str(make_rule(&source, target));
+        make.push('\n');
+    }
     for phase in ["self-test", "record", "finalize"] {
         let operation = format!("release-generated-artifacts-{phase}");
         make = make.replace(&format!("$(TERLAN_TVM_PLATFORM_MATRIX) {operation}"), &format!("@TERLAN_ARTIFACT_PHASE={operation} \"$(FIXTURE_CHILD)\" --exact artifact_gate_child --nocapture"));

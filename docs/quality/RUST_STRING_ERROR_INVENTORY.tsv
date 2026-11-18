@@ -85,7 +85,7 @@ crates/terlan/src/commands/build/source_roots.rs	5	internal-helper	command-error
 crates/terlan/src/commands/build/target_gate.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_debug.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_image.rs	7	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/build/vm_artifact/native_image/serve_fixture.rs	1	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/build/vm_artifact/native_image/serve_fixture.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/native_reuse.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/orchestration.rs	4	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/vm_artifact/source_exports.rs	2	internal-helper	command-errors	0.0.9

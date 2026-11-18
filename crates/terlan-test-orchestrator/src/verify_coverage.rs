@@ -108,7 +108,12 @@ pub(super) fn verify_with_operation(
         .value(crate::RELEASE_COVERAGE_OWNS_TERLC_ENV)
         .as_deref()
         == Some(OsStr::new("1"));
-    let phases = phase_plan::test_phases(coverage_owned);
+    let phases = phase_plan::selected_test_phases(
+        coverage_owned,
+        environment
+            .value(phase_plan::COMPACT_PHASE_PLAN_ENV)
+            .as_deref(),
+    )?;
     let timeout = crate::phase_timeout(environment);
     let mut observation = path.as_os_str().to_owned();
     observation.push(if operation.is_some() {

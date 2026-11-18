@@ -98,14 +98,58 @@ pub(super) fn compare(
     current: &serde_json::Value,
     previous: &serde_json::Value,
 ) -> Result<(), PhaseFailure> {
+    fn changed_paths(
+        current: &serde_json::Value,
+        previous: &serde_json::Value,
+        prefix: &str,
+        output: &mut Vec<String>,
+    ) {
+        if output.len() == 16 || current == previous {
+            return;
+        }
+        match (current.as_object(), previous.as_object()) {
+            (Some(current), Some(previous)) => {
+                let names = current
+                    .keys()
+                    .chain(previous.keys())
+                    .collect::<std::collections::BTreeSet<_>>();
+                for name in names {
+                    let path = if prefix.is_empty() {
+                        name.clone()
+                    } else {
+                        format!("{prefix}.{name}")
+                    };
+                    match (current.get(name), previous.get(name)) {
+                        (Some(current), Some(previous)) => {
+                            changed_paths(current, previous, &path, output)
+                        }
+                        _ => output.push(path),
+                    }
+                    if output.len() == 16 {
+                        break;
+                    }
+                }
+            }
+            _ => output.push(prefix.to_owned()),
+        }
+    }
+
     let bindings = current
         .as_object()
         .filter(|rows| rows.len() == 8)
         .ok_or_else(|| failure("missing current input bindings"))?;
     for (name, current) in bindings {
         if current.is_null() || previous.get(name) != Some(current) {
+            let mut paths = Vec::new();
+            changed_paths(
+                current,
+                previous.get(name).unwrap_or(&serde_json::Value::Null),
+                name,
+                &mut paths,
+            );
             return Err(failure(format!(
-                "completed suite has different current inputs: {name}"
+                "completed suite has different current inputs: {}",
+                paths.join(", ")
             )));
         }
     }

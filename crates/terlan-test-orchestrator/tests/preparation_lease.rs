@@ -1,6 +1,8 @@
 //! Exercise the actual Make lease wrapper, including inherited kernel locks.
 #![cfg(target_os = "linux")]
 
+mod support;
+
 use std::fs::{self, File};
 use std::io::Write;
 use std::os::unix::fs::{symlink, DirBuilderExt, MetadataExt, PermissionsExt};
@@ -71,8 +73,7 @@ fn fixture() -> Fixture {
     fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
     let fixture = Fixture(path);
     fs::create_dir_all(fixture.0.join("target/quality")).unwrap();
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let logical = source.replace("\\\n", " ");
     let wrapper = logical
         .lines()

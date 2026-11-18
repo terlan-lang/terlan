@@ -52,6 +52,17 @@ impl TestSelections {
                 "missing or inconsistent complete compiled inventory",
             ));
         }
+        let admitted_phase_count = phases
+            .iter()
+            .filter(|phase| phase.executor == PhaseExecutor::TerlanHarness)
+            .count();
+        // Every admitted harness phase must own at least one distinct passing test,
+        // so the compiled inventory is the exact data-derived phase budget.
+        if admitted_phase_count == 0 || admitted_phase_count > plan.all.len() {
+            return Err(failure(
+                "selection phase count exceeds the compiled inventory",
+            ));
+        }
         for name in plan.all.iter().chain(&plan.ignored) {
             name_count += 1;
             name_bytes = name_bytes.saturating_add(name.len());
@@ -112,13 +123,15 @@ impl TestSelections {
                     ));
                 }
             }
-            if selections.len() == 256
-                || selections
-                    .insert(phase.name.to_owned(), selected.clone())
-                    .is_some()
+            if selections
+                .insert(phase.name.to_owned(), selected.clone())
+                .is_some()
             {
-                return Err(failure("duplicate or excessive selection phases"));
+                return Err(failure("duplicate selection phase"));
             }
+        }
+        if selections.len() != admitted_phase_count {
+            return Err(failure("selection phase admission is incomplete"));
         }
         if selections.is_empty()
             || run_id.is_empty()
@@ -188,7 +201,13 @@ impl TestSelections {
             if !seen.insert(result.name) {
                 return Err(failure("test completion does not match admitted selection"));
             }
-            validate_completion(result.outcome, result.child_pid, evidence, selected)?;
+            validate_completion(
+                result.outcome,
+                result.child_pid,
+                result.reused,
+                evidence,
+                selected,
+            )?;
         }
         let mut digest = Sha256::new();
         hash_file_contents(&self.path, &mut digest, MAX_BYTES, control, Instant::now())?;
@@ -237,8 +256,8 @@ impl TestSelections {
     pub(super) fn inspect_request(
         &self,
         selectors: &[&str],
-        environment: &str,
-        phases: &BTreeMap<String, String>,
+        environment: &crate::make_environment::TestIdentity,
+        phases: &BTreeMap<String, crate::make_environment::TestIdentity>,
     ) -> Result<Value, PhaseFailure> {
         let coverage = self.inspect_coverage(selectors)?;
         if coverage["covered"] != true {
@@ -255,10 +274,14 @@ impl TestSelections {
         let selected = crate::test_inventory::select(&names, selectors)?;
         for (phase, tests) in &self.selections {
             if selected.iter().any(|name| tests.passed.contains(*name))
-                && phases.get(phase).map(String::as_str) != Some(environment)
+                && phases.get(phase).map(|expected| &expected.digest) != Some(&environment.digest)
             {
+                let difference = phases
+                    .get(phase)
+                    .map(|expected| expected.difference(environment))
+                    .unwrap_or_else(|| "missing phase environment".to_owned());
                 return Err(failure(format!(
-                    "request environment differs from completed phase {phase}"
+                    "request environment differs from completed phase {phase} ({difference})"
                 )));
             }
         }
@@ -269,11 +292,13 @@ impl TestSelections {
 fn validate_completion(
     outcome: &str,
     pid: Option<u32>,
+    reused: bool,
     evidence: &Value,
     selected: &ExpectedTests,
 ) -> Result<(), PhaseFailure> {
     if outcome != "passed"
-        || pid.is_none_or(|pid| pid == 0)
+        || (reused && pid.is_some())
+        || (!reused && pid.is_none_or(|pid| pid == 0))
         || evidence["scope"] != "admitted-libtest-records-v1"
         || evidence["selection_identity_sha256"] != selected.identity()
         || evidence["passed"] != selected.passed.len()

@@ -38,6 +38,34 @@ fn lean_proof_pr_accepts_complete_owner_map() {
     fs::remove_dir_all(root).expect("remove fixture");
 }
 
+/// Verifies proof gates defined in repository Make fragments are recognized.
+///
+/// Inputs:
+/// - A root Makefile that includes a fragment containing the required gate.
+///
+/// Output:
+/// - A successful proof ownership report.
+///
+/// Transformation:
+/// - Keeps Makefile reorganization from invalidating proof gate discovery.
+#[test]
+fn lean_proof_pr_accepts_gate_from_included_makefile() {
+    let root = temp_repo("lean_proof_pr_included_gate");
+    write_fixture(&root, owners_fixture());
+    fs::create_dir_all(root.join("mk")).expect("create Make fragment directory");
+    fs::write(root.join("Makefile"), "include mk/proofs.mk\n").expect("write root Makefile");
+    fs::write(
+        root.join("mk/proofs.mk"),
+        "lean-proof-track-check:\n\tcargo test\n",
+    )
+    .expect("write Make fragment");
+
+    let summary = run_lean_proof_pr(&root).expect("included proof gate should resolve");
+
+    assert_eq!(summary.owner_count, 2);
+    fs::remove_dir_all(root).expect("remove fixture");
+}
+
 /// Verifies unresolved gaps require owners.
 ///
 /// Inputs:

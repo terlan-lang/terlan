@@ -28,6 +28,8 @@ pub mod benchmark;
 #[cfg(any(test, feature = "benchmark-tools"))]
 #[path = "benchmark/statistics.rs"]
 pub(crate) mod benchmark_statistics;
+#[cfg(test)]
+mod build_support;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub mod compiler;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]

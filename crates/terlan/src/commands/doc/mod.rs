@@ -7,6 +7,7 @@ use crate::terlan_html::escape_html_text;
 use crate::{CliCommand, CliState, DocFormat};
 
 mod render;
+mod source_inputs;
 mod validation;
 pub(crate) use render::*;
 pub(crate) use validation::*;
@@ -75,34 +76,34 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
 
     let mut json_modules = Vec::new();
     let mut html_modules = Vec::new();
-    for file in files {
-        let path_text = file.to_string_lossy().to_string();
-        let source = match crate::support::read_file(&path_text) {
-            Ok(source) => source,
-            Err(message) => {
-                eprintln!("{}", message);
+    for prepared in source_inputs::prepare(files) {
+        let source_inputs::Prepared {
+            path_text,
+            source,
+            syntax_output,
+        } = match prepared {
+            Ok(prepared) => prepared,
+            Err(source_inputs::Failure::Message(message)) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+            Err(source_inputs::Failure::Parse {
+                message,
+                path,
+                start,
+                end,
+            }) => {
+                crate::support::emit_diagnostic(
+                    "parse_error",
+                    &message,
+                    &path,
+                    start,
+                    end,
+                    state.diagnostic_format,
+                );
                 return ExitCode::from(1);
             }
         };
-        let syntax_output =
-            match crate::formal_pipeline::parse_source_as_syntax_output(&path_text, &source) {
-                Ok(syntax_output) => syntax_output,
-                Err(crate::terlan_syntax::ebnf::EbnfCompileError::Parse(message, span)) => {
-                    crate::support::emit_diagnostic(
-                        "parse_error",
-                        &message,
-                        &path_text,
-                        span.start,
-                        span.end,
-                        state.diagnostic_format,
-                    );
-                    return ExitCode::from(1);
-                }
-                Err(crate::terlan_syntax::ebnf::EbnfCompileError::Serialize(message)) => {
-                    eprintln!("{}", message);
-                    return ExitCode::from(1);
-                }
-            };
         if let Err(err) = validate_syntax_module_doc_links(&syntax_output, &source) {
             crate::support::emit_diagnostic(
                 "doc_error",
@@ -170,6 +171,9 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
             );
             return ExitCode::from(1);
         }
+        if check_only {
+            continue;
+        }
         let (contents, extension) = match state.doc_format {
             DocFormat::Markdown => (render_syntax_module_docs_markdown(&syntax_output), "md"),
             DocFormat::Html => (render_syntax_module_docs_html(&syntax_output), "html"),
@@ -183,9 +187,6 @@ pub(crate) fn run(cmd: CliCommand, state: CliState) -> ExitCode {
                 module_name: syntax_output.module_name.clone(),
                 file_name: format!("{}.{}", syntax_output.module_name, extension),
             });
-        }
-        if check_only {
-            continue;
         }
         let target = state
             .out_dir

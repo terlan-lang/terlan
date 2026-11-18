@@ -34,7 +34,7 @@ mod output_cleanup;
 #[path = "vm_artifact/output_cleanup_test.rs"]
 #[cfg(test)]
 mod output_cleanup_test;
-mod parallel_compile;
+pub(crate) mod parallel_compile;
 #[cfg(test)]
 #[path = "vm_artifact/parallel_compile_test.rs"]
 #[cfg(test)]

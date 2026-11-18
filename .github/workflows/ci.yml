@@ -424,9 +424,9 @@ jobs:
           retention-days: 90
 
   check:
-    # Compiler validation is the longest and most valuable early signal. Run it
-    # beside source preflight; every downstream consumer still requires both.
-    needs: changes
+    # Cheap source and build-graph contracts must pass before the longest job.
+    # This prevents a late deterministic failure after the compiler suite.
+    needs: [changes, source-preflight]
     name: Compiler check and test
     runs-on: ubuntu-24.04
     if: ${{ needs.changes.outputs.compiler == 'true' && (github.event_name != 'push' || !startsWith(github.ref_name, 'release-validation/')) }}

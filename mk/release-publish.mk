@@ -59,11 +59,11 @@ release-supply-chain-provenance-check: rust-cargo-metadata-report terlan-release
 
 # Runs security-boundary Rust tests and quality checks, then the release closeout "security" lane.
 release-security-hardening-check: release-supply-chain-provenance-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools native_boundary_security_test
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_web_security_policy_test
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_web_config_secret_boundary_test
-	$(RUST_TEST) -p terlan --lib --features quality-tools package_capability_contract_test
-	$(RUST_TEST) -p terlan --lib --features quality-tools package_cache_integrity_test
+	$(RUST_TEST) -p terlan --lib --features validation-union native_boundary_security_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_web_security_policy_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_web_config_secret_boundary_test
+	$(RUST_TEST) -p terlan --lib --features validation-union package_capability_contract_test
+	$(RUST_TEST) -p terlan --lib --features validation-union package_cache_integrity_test
 	$(TERLAN_QUALITY) native-boundary-security
 	$(TERLAN_QUALITY) vm-web-security-policy
 	$(TERLAN_QUALITY) vm-web-config-secret-boundary
@@ -116,7 +116,7 @@ release-mutation-check: release-adversarial-corpus-check
 
 # Runs lifecycle-health checks and the release closeout "fault" injection lane.
 release-fault-injection-check: release-mutation-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools vm_web_lifecycle_health_test
+	$(RUST_TEST) -p terlan --lib --features validation-union vm_web_lifecycle_health_test
 	$(TERLAN_QUALITY) vm-web-lifecycle-health
 	test -s target/quality/vm-multicore-release-closeout.json
 	@rg -q '"decision": "pass"' target/quality/vm-multicore-release-closeout.json
@@ -370,14 +370,19 @@ release-check: release-evidence-refresh
 	$(MAKE) --no-print-directory release-preflight RELEASE_VERSION="$(RELEASE_VERSION)"
 
 
-# Runs the full check suite and proof baseline to validate a release candidate
-release-candidate-check: editor-release-contract-check
+# Measures build artifacts before the full check, then validates with the
+# compiler and release VM left by that measurement. Quality tools are built
+# after the destructive measurement so no later gate can lose them.
+release-candidate-check: editor-release-contract-check terlan-artifact-measurement-bootstrap
 	bash scripts/clean_build_outputs.sh --check-partials
-	$(MAKE) --no-print-directory check
+	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+		$(MAKE) --no-print-directory build-artifact-budget-record
+	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
+	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 TERLAN_VALIDATION_VM_PREBUILT=1 \
+		$(MAKE) --no-print-directory check
 	bash scripts/clean_build_outputs.sh --check-partials
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 		$(MAKE) --no-print-directory release-proof-baseline-check
-	$(MAKE) --no-print-directory build-artifact-budget-record
 
 
 # Checks lane freshness and verifies the recorded proof-release baseline

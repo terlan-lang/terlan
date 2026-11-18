@@ -6,6 +6,7 @@ use report_file::ReportFile;
 #[derive(PartialEq, Eq)]
 enum LedgerState {
     Running,
+    ClosingFailure,
     Failed,
     Sealed,
 }
@@ -88,13 +89,26 @@ impl LaunchLedger {
         operation: impl FnOnce(&mut dyn FnMut(u32) -> Result<(), String>) -> Result<T, PhaseFailure>,
         observation: impl FnOnce(&Result<T, PhaseFailure>) -> Option<serde_json::Value>,
     ) -> Result<T, PhaseFailure> {
-        if self.state != LedgerState::Running {
+        if !matches!(
+            self.state,
+            LedgerState::Running | LedgerState::ClosingFailure
+        ) {
             return Err(failure("suite is failed or already sealed"));
+        }
+        let closing_failure = self.state == LedgerState::ClosingFailure;
+        if closing_failure
+            && (name != "working-tree source closeout" || executor != "git-source-inventory")
+        {
+            self.state = LedgerState::Failed;
+            self.save("fail").map_err(failure)?;
+            return Err(failure(
+                "failed-suite closeout may only recapture source inputs",
+            ));
         }
         let duplicate = self
             .results
             .iter()
-            .any(|result| result.name == name || result.outcome != "passed");
+            .any(|result| result.name == name || (!closing_failure && result.outcome != "passed"));
         let over_budget = executor.starts_with("cargo")
             && self
                 .results
@@ -119,6 +133,7 @@ impl LaunchLedger {
             outcome: "starting",
             child_pid: None,
             test_execution: None,
+            reused: false,
         });
         self.save("running").map_err(failure)?;
         let mut observation_failed = false;
@@ -153,9 +168,71 @@ impl LaunchLedger {
         if outcome.is_err() {
             self.state = LedgerState::Failed;
         }
-        self.save(if outcome.is_ok() { "running" } else { "fail" })
-            .map_err(failure)?;
+        self.save(if outcome.is_ok() && !closing_failure {
+            "running"
+        } else {
+            "fail"
+        })
+        .map_err(failure)?;
         outcome
+    }
+
+    /// Records a content-addressed completion without pretending a new child
+    /// process ran during this observation cycle.
+    pub(super) fn reuse_test(
+        &mut self,
+        phase: &TestPhase,
+        evidence: test_execution::TestEvidence,
+    ) -> Result<(), PhaseFailure> {
+        if self.state != LedgerState::Running
+            || self.results.iter().any(|result| result.name == phase.name)
+            || phase.executor != PhaseExecutor::TerlanHarness
+        {
+            return Err(failure("phase receipt cannot be admitted here"));
+        }
+        self.results.push(PhaseResult {
+            name: phase.name,
+            tier: phase.tier,
+            executor: phase.executor.as_str(),
+            wall_time_ms: 0,
+            outcome: "passed",
+            child_pid: None,
+            test_execution: Some(evidence.json()),
+            reused: true,
+        });
+        self.save("running").map_err(failure)
+    }
+
+    /// Stable admitted-input identity used only as one component of an exact
+    /// phase receipt key.
+    pub(super) fn phase_receipt_input_identity(&self) -> Result<String, PhaseFailure> {
+        if self.state != LedgerState::Running {
+            return Err(failure("phase receipt inputs require a running suite"));
+        }
+        self.inputs.phase_receipt_identity()
+    }
+
+    /// Allows one input-only closeout after a phase failure so successful work
+    /// can be sealed only when every admitted input remained unchanged.
+    pub(super) fn begin_failed_closeout(&mut self) -> Result<(), PhaseFailure> {
+        if self.state != LedgerState::Failed {
+            return Err(failure(
+                "failed closeout requires one recorded phase failure",
+            ));
+        }
+        self.state = LedgerState::ClosingFailure;
+        self.save("fail").map_err(failure)
+    }
+
+    /// Confirms that failure closeout completed without relabelling the run as passing.
+    pub(super) fn finish_failed_closeout(&mut self) -> Result<(), PhaseFailure> {
+        if self.state != LedgerState::ClosingFailure || !self.inputs.fully_verified() {
+            self.state = LedgerState::Failed;
+            self.save("fail").map_err(failure)?;
+            return Err(failure("failed suite inputs did not close unchanged"));
+        }
+        self.state = LedgerState::Failed;
+        self.save("fail").map_err(failure)
     }
 
     /// Seals success only after every recorded producer has succeeded.
@@ -381,7 +458,11 @@ impl LaunchLedger {
         &mut self,
         source: source_inventory::SourceSnapshot,
     ) -> Result<(), String> {
-        if self.state != LedgerState::Running || self.inputs.source.after.is_some() {
+        if !matches!(
+            self.state,
+            LedgerState::Running | LedgerState::ClosingFailure
+        ) || self.inputs.source.after.is_some()
+        {
             self.state = LedgerState::Failed;
             self.save("fail")?;
             return Err("source closeout is already recorded or suite is not running".into());
@@ -792,15 +873,23 @@ impl LaunchLedger {
         &mut self,
         operation: impl FnOnce(&mut validation_inputs::ValidationInputs) -> Result<(), PhaseFailure>,
     ) -> Result<(), PhaseFailure> {
-        if self.state != LedgerState::Running {
+        if !matches!(
+            self.state,
+            LedgerState::Running | LedgerState::ClosingFailure
+        ) {
             return Err(failure("suite is not running"));
         }
+        let closing_failure = self.state == LedgerState::ClosingFailure;
         let result = operation(&mut self.inputs);
         if result.is_err() {
             self.state = LedgerState::Failed;
         }
-        self.save(if result.is_ok() { "running" } else { "fail" })
-            .map_err(failure)?;
+        self.save(if result.is_ok() && !closing_failure {
+            "running"
+        } else {
+            "fail"
+        })
+        .map_err(failure)?;
         result
     }
 

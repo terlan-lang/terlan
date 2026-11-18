@@ -1,7 +1,9 @@
 //! One bounded metadata producer; observations are not reusable build receipts.
 
 use crate::executable_binding::{resolve_program, ExecutableBinding};
-use crate::execution_environment::{identity, ExecutionEnvironment};
+use crate::execution_environment::{
+    retain_cargo_environment, validation_identity, ExecutionEnvironment,
+};
 use crate::report_file::ReportFile;
 use crate::source_inventory::{capture_with_git, SourceBinding};
 use crate::tool_configuration::ToolConfiguration;
@@ -25,14 +27,32 @@ pub(super) use handoff::Handoff;
 
 fn command(environment: &ExecutionEnvironment, cargo: &Path) -> std::process::Command {
     let mut command = environment.command(cargo);
+    // Cargo metadata has explicit owners for its source, configuration,
+    // executables and resolver cache. Terlan and Make routing must not make
+    // that same observation unusable when a later consumer runs directly.
+    retain_cargo_environment(&mut command);
     for key in [
         "MAKEFLAGS",
+        "MAKEOVERRIDES",
         "MFLAGS",
+        "MAKELEVEL",
+        "MAKE_RESTARTS",
+        "MAKEFILES",
+        "MAKE_TERMERR",
+        "MAKE_TERMOUT",
+        "GNUMAKEFLAGS",
         "CARGO_MAKEFLAGS",
+        "CARGO_MAKE_JOBSERVER_FDS",
         "TERLAN_RUST_SUITE_REPORT",
+        "TERLAN_RUST_SUITE_TERLC",
+        "TERLAN_RUST_SUITE_VM",
+        "TERLAN_RUST_SUITE_NATIVE_WORKER",
         "TERLAN_RELEASE_COVERAGE_OWNS_TERLC_TESTS",
+        "TERLAN_RUST_PHASE_RECEIPT_DIR",
         "TERLAN_TEST_THREADS",
+        "TERLAN_TEST_FORCE_RERUN",
         "TERLAN_TEST_PHASE_TIMEOUT_SECONDS",
+        "TERLAN_VALIDATION_BOOTSTRAPPED",
         "SHLVL",
         "_",
     ] {
@@ -214,7 +234,7 @@ fn query(
         "schema":"terlan.cargo-metadata-observation.v1", "run_id":attempt.run_id,
         "reusable":false, "source":source.json(), "configuration":configuration.json(),
         "executables":tools.json(), "resolver_cache":resolver_cache.json(),
-        "environment_sha256":identity(&command), "launches":attempt.launches,
+        "environment_sha256":validation_identity(&command), "launches":attempt.launches,
         "cargo_dispatch":{
             "kind":if selected_cargo.is_some() { "rustup-proxy" } else { "supplied-entry-point" },
             "native_cargo":selected_cargo.as_ref().map(ExecutableBinding::json),

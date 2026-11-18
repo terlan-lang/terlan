@@ -4,7 +4,7 @@
  */
 module rust_quality.WorkspacePolicy.
 
-import rust_quality.{RustAllowances, SourceInventory}.
+import rust_quality.{SourceInventory, WorkspacePolicyInput}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Ordering.{Lt}.
@@ -12,10 +12,10 @@ import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.data.{Json, Toml}.
 import std.io.Console.{eprintln, println}.
-import std.io.{Directory, File}.
+import std.io.File.
 
-import type rust_quality.RustAllowances.Allowance.
-import type rust_quality.SourceInventory.{RustSource, SourceDiscovery}.
+import type rust_quality.SourceInventory.SourceDiscovery.
+import type rust_quality.WorkspacePolicyInput.Allowance.
 import type std.core.{Option, Result}.
 import type std.data.Json.
 import type std.io.File.TextFile.
@@ -41,12 +41,6 @@ struct MemberValidation {
     diagnostics: List[String],
     owners: List[Owner],
     crate_roots: List[String],
-}.
-
-struct ScanResult {
-    valid: Bool,
-    diagnostics: List[String],
-    message: String,
 }.
 
 @pure
@@ -281,7 +275,6 @@ policy_paths(root: String): SourceDiscovery ->
     SourceInventory.discover_visible(
         root,
         [
-            "*.rs",
             "rust-toolchain",
             "rust-toolchain.toml",
             "rustfmt.toml",
@@ -627,27 +620,13 @@ contains_any_lint(lints: List[String], forbidden: List[String]): Bool ->
 
 @pure
 crate_root_allowance(value: Allowance): Bool ->
-    String.starts_with(value.source_line, "#![allow")
+    value.inner
         and (String.contains(value.lints, "dead_code") or String.contains(value.lints, "unused_imports")).
-
-@pure
-scan_source_policy(
-    source: RustSource,
-    crate_roots: List[String],
-    diagnostics: List[String],
-): List[String] ->
-    scan_allowances(
-        RustAllowances.scan_source(source.path, source.contents),
-        source.path,
-        contains(crate_roots, source.path),
-        diagnostics,
-    ).
 
 @pure
 scan_allowances(
     values: List[Allowance],
-    path: String,
-    crate_root: Bool,
+    crate_roots: List[String],
     diagnostics: List[String],
 ): List[String] ->
     case values {
@@ -655,63 +634,15 @@ scan_allowances(
         [value | rest] ->
             let with_root =
                 if {
-                    crate_root and crate_root_allowance(value) -> [String.concat([path, ": crate-root dead_code/unused_imports allowance is forbidden"]) | diagnostics];
+                    contains(crate_roots, value.path) and crate_root_allowance(value) -> [String.concat([value.path, ": crate-root dead_code/unused_imports allowance is forbidden"]) | diagnostics];
                     true -> diagnostics
                 };
             let with_clippy =
                 if {
-                    broad_clippy(value.lints) -> [String.concat([path, ": broad Clippy category allowance is forbidden"]) | with_root];
+                    broad_clippy(value.lints) -> [String.concat([value.path, ": broad Clippy category allowance is forbidden"]) | with_root];
                     true -> with_root
                 };
-            scan_allowances(rest, path, crate_root, with_clippy)
-    }.
-
-scan_rust_batches(
-    root: String,
-    paths: List[String],
-    crate_roots: List[String],
-    diagnostics: List[String],
-): ScanResult ->
-    case paths {
-        [] -> ScanResult(valid = true, diagnostics = diagnostics, message = "");
-        _ ->
-            let batch = SourceInventory.load_next(root, paths);
-            if {
-                not batch.valid -> ScanResult(valid = false, diagnostics = diagnostics, message = batch.message);
-                true -> scan_rust_batches(
-                    root,
-                    batch.remaining,
-                    crate_roots,
-                    scan_sources_policy(batch.sources, crate_roots, diagnostics),
-                )
-            }
-    }.
-
-@pure
-scan_sources_policy(
-    sources: List[RustSource],
-    crate_roots: List[String],
-    diagnostics: List[String],
-): List[String] ->
-    case sources {
-        [] -> diagnostics;
-        [source | rest] ->
-            scan_sources_policy(
-                rest,
-                crate_roots,
-                scan_source_policy(source, crate_roots, diagnostics),
-            )
-    }.
-
-@pure
-rust_paths(paths: List[String], output: List[String]): List[String] ->
-    case paths {
-        [] -> SourceInventory.reverse(output);
-        [path | rest] ->
-            if {
-                String.ends_with(path, ".rs") -> rust_paths(rest, [path | output]);
-                true -> rust_paths(rest, output)
-            }
+            scan_allowances(rest, crate_roots, with_clippy)
     }.
 
 print_diagnostics(values: List[String]): Bool ->
@@ -739,6 +670,7 @@ pub check(root: String): Bool ->
                     false;
                 Ok(document) ->
                     let discovered = policy_paths(root);
+                    let structural = WorkspacePolicyInput.load(root);
                     if {
                         not discovered.valid -> let _printed =
                             eprintln(
@@ -747,7 +679,14 @@ pub check(root: String): Bool ->
                                 ),
                             );
                         false;
-                        true -> let files = discovered.paths;
+                        not structural.valid -> let _printed =
+                            eprintln(
+                                String.concat(
+                                    ["[rust-workspace-policy] failure: ", structural.message],
+                                ),
+                            );
+                        false;
+                        true -> let files = List.concat(discovered.paths, structural.paths);
                         let members =
                             case json_get(document, "workspace") {
                                 Some(workspace) -> string_array(workspace, "members");
@@ -782,28 +721,20 @@ pub check(root: String): Bool ->
                                     List.new[String](),
                                     member.diagnostics,
                                 );
-                            let scanned =
-                                scan_rust_batches(
-                                    root,
-                                    rust_paths(files, List.new[String]()),
+                            let diagnostics =
+                                scan_allowances(
+                                    structural.allowances,
                                     member.crate_roots,
                                     duplicate,
                                 );
                             if {
-                                not scanned.valid -> let _printed =
-                                    eprintln(
-                                        String.concat(
-                                            ["[rust-workspace-policy] failure: ", scanned.message],
-                                        ),
-                                    );
-                                false;
-                                List.length(scanned.diagnostics) == 0 -> let _printed =
+                                List.length(diagnostics) == 0 -> let _printed =
                                     println(
                                         "[rust-workspace-policy] root package, dependency, formatting, and lint policy verified.",
                                     );
                                 true;
                                 true -> let _printed = eprintln("[rust-workspace-policy] failures:");
-                                print_diagnostics(SourceInventory.reverse(scanned.diagnostics))
+                                print_diagnostics(SourceInventory.reverse(diagnostics))
                             }
                         }
                     }
@@ -811,23 +742,16 @@ pub check(root: String): Bool ->
     }.
 
 pub self_test(): Bool ->
-    let broad = RustAllowances.scan_source("crates/example/src/lib.rs", "#![allow(clippy::all)]\n");
+    let broad = WorkspacePolicyInput.allowance("crates/example/src/lib.rs", "clippy::all", true);
     let crate_root =
-        RustAllowances.scan_source(
+        WorkspacePolicyInput.allowance(
             "crates/example/src/lib.rs",
-            "#![allow(dead_code, unused_imports)]\n",
+            "dead_code,unused_imports",
+            true,
         );
     let nested = nested_policy_diagnostics(["crates/example/rustfmt.toml"], List.new[String]());
-    let broad_holds =
-        case broad {
-            [value | _rest] -> broad_clippy(value.lints);
-            [] -> false
-        };
-    let crate_root_holds =
-        case crate_root {
-            [value | _rest] -> crate_root_allowance(value);
-            [] -> false
-        };
+    let broad_holds = broad_clippy(broad.lints);
+    let crate_root_holds = crate_root_allowance(crate_root);
     if {
         not broad_holds -> let _printed =
             eprintln(

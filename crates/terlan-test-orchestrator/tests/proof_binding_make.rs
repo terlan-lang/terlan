@@ -1,6 +1,8 @@
 //! Exercise the production proof-binding DAG with instrumented tool boundaries.
 #![cfg(unix)]
 
+mod support;
+
 use std::fs;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -49,8 +51,7 @@ fn fixture(owned: bool) -> Fixture {
         "target/debug/terlc",
         "#!/bin/sh\nset -eu\ntest \"$1 $2\" = 'test --incremental'\ncase \"$3\" in\nscripts/self_validation/LeanProofFeatureBindingTest.terl)\n test $# = 3\n test -f passed-lanes\n exec ./record matrix;;\nscripts/self_validation/LeanProofSnapshotTest.terl)\n test \"$TERLAN_LEAN_PROOF_ROOT\" = \"$PWD\"\n case \"$TERLAN_LEAN_SNAPSHOT_TASK\" in\n diff) test $# = 3; test -f passed-matrix;;\n impact) test -f passed-diff;;\n review) test -f passed-impact;;\n snapshot) test -f passed-review;;\n *) exit 9;;\n esac\n if test \"$TERLAN_LEAN_SNAPSHOT_TASK\" != diff; then\n test $# = 5; test \"$4 $5\" = '--name selected_snapshot_task_holds'; fi\n exec ./record \"$TERLAN_LEAN_SNAPSHOT_TASK\";;\n*) exit 9;;\nesac\n",
     );
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let begin = source.find("\nTERLAN_PROOF_BINDING_RUN =").unwrap();
     let end = begin
         + source[begin..]

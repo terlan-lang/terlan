@@ -87,6 +87,18 @@ debug = "line-tables-only"
 [profile.test]
 debug = "line-tables-only"
 
+# The compiler crate is large enough that even line-table generation dominates
+# local admission builds and creates multi-gigabyte artifacts. Developer and
+# test validation exercise compiler-generated source maps separately; Rust
+# symbol tables are not part of those contracts. Keep dependency profiles
+# unchanged so this optimization does not invalidate the complete dependency
+# cache whenever compiler sources change.
+[profile.dev.package.terlan]
+debug = 0
+
+[profile.test.package.terlan]
+debug = 0
+
 # Shipped tools do not need static symbol tables. Keep the canonical release
 # executables within their size budget, including the embedded service runtime.
 [profile.release]

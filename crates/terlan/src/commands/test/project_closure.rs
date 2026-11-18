@@ -3,7 +3,11 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::Instant;
 
+use crate::commands::build::vm_artifact::parallel_compile::{
+    bounded_worker_limit, run_indexed_bounded, ParallelTaskError,
+};
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
 use crate::CliState;
 
@@ -27,7 +31,7 @@ pub(super) fn compile_project_source_core_modules(
         })?;
         compiled_paths.insert(active_test);
     }
-    let mut modules = Vec::new();
+    let mut files_to_compile = Vec::new();
     for root in &context.compilation_source_roots {
         let files = match crate::formal_pipeline::terlan_sources_in_dir(root) {
             Ok(files) => files,
@@ -44,10 +48,35 @@ pub(super) fn compile_project_source_core_modules(
             if !compiled_paths.insert(canonical) {
                 continue;
             }
-            modules.push(compile_project_source_core_module(&file, state)?);
+            files_to_compile.push(file);
         }
     }
-    Ok(modules)
+    let started = Instant::now();
+    if state.timings {
+        eprintln!(
+            "terlc timing: test.project-complete.start: modules={} workers={}",
+            files_to_compile.len(),
+            bounded_worker_limit()
+        );
+    }
+    let result = run_indexed_bounded(&files_to_compile, bounded_worker_limit(), |file| {
+        compile_project_source_core_module(file, state)
+    });
+    if state.timings {
+        eprintln!(
+            "terlc timing: test.project-complete.finish: modules={} elapsed={}ms",
+            files_to_compile.len(),
+            started.elapsed().as_millis()
+        );
+    }
+    match result {
+        Ok(modules) => Ok(modules),
+        Err(ParallelTaskError::Task(exit_code)) => Err(exit_code),
+        Err(ParallelTaskError::WorkerPanicked) => {
+            eprintln!("complete test project compilation worker panicked");
+            Err(ExitCode::from(1))
+        }
+    }
 }
 
 /// Compiles only project modules reachable from focused test imports.
@@ -104,35 +133,66 @@ pub(super) fn compile_project_source_core_closure(
         .collect::<VecDeque<_>>();
     let mut seen = BTreeSet::new();
     let mut modules = Vec::new();
-    while let Some(module) = pending.pop_front() {
-        if !seen.insert(module.clone()) {
-            continue;
+    while !pending.is_empty() {
+        let mut frontier = Vec::new();
+        while let Some(module) = pending.pop_front() {
+            if !seen.insert(module.clone()) {
+                continue;
+            }
+            let Some(file) = sources.get(&module) else {
+                continue;
+            };
+            if file
+                .canonicalize()
+                .ok()
+                .is_some_and(|path| active_paths.contains(&path))
+            {
+                continue;
+            }
+            frontier.push(file.clone());
         }
-        let Some(file) = sources.get(&module) else {
-            continue;
+        let started = Instant::now();
+        if state.timings {
+            eprintln!(
+                "terlc timing: test.project-frontier.start: modules={} workers={}",
+                frontier.len(),
+                bounded_worker_limit()
+            );
+        }
+        let result = run_indexed_bounded(&frontier, bounded_worker_limit(), |file| {
+            compile_project_source_core_module(file, state)
+        });
+        if state.timings {
+            eprintln!(
+                "terlc timing: test.project-frontier.finish: modules={} elapsed={}ms",
+                frontier.len(),
+                started.elapsed().as_millis()
+            );
+        }
+        let compiled = match result {
+            Ok(compiled) => compiled,
+            Err(ParallelTaskError::Task(exit_code)) => return Err(exit_code),
+            Err(ParallelTaskError::WorkerPanicked) => {
+                eprintln!("focused test project compilation worker panicked");
+                return Err(ExitCode::from(1));
+            }
         };
-        if file
-            .canonicalize()
-            .ok()
-            .is_some_and(|path| active_paths.contains(&path))
-        {
-            continue;
+        for compiled in compiled {
+            pending.extend(
+                compiled
+                    .core
+                    .imports
+                    .iter()
+                    .filter(|import| {
+                        matches!(
+                            import.kind,
+                            CoreImportKind::Module | CoreImportKind::TypeModule
+                        )
+                    })
+                    .map(|import| import.module.clone()),
+            );
+            modules.push(compiled);
         }
-        let compiled = compile_project_source_core_module(file, state)?;
-        pending.extend(
-            compiled
-                .core
-                .imports
-                .iter()
-                .filter(|import| {
-                    matches!(
-                        import.kind,
-                        CoreImportKind::Module | CoreImportKind::TypeModule
-                    )
-                })
-                .map(|import| import.module.clone()),
-        );
-        modules.push(compiled);
     }
     modules.sort_by(|left, right| left.core.module.cmp(&right.core.module));
     Ok(modules)

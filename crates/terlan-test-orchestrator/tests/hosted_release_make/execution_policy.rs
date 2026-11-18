@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn explicit_execution_policies_run_locally_and_propagate_failure() {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let assignment = source
         .lines()
         .find(|line| line.starts_with("POLICY_CARGO_TEST = $(TERLAN_RUST_ORCHESTRATOR)"))

@@ -137,15 +137,41 @@ fn main() {
     assert_eq!(admitted.json()["resolver_cache"]["verified"], true);
 
     let mut command = environment.command(Path::new("not-executed"));
-    command.env("TERLAN_RUST_SUITE_REPORT", "a-different-report");
-    let report_environment = ExecutionEnvironment::from_entries(
-        command
-            .get_envs()
-            .filter_map(|(key, value)| value.map(|value| (key.to_owned(), value.to_owned()))),
-        root,
-    )
-    .unwrap();
-    Handoff::admit(&inputs, &report_environment, control).unwrap();
+    for (key, value) in [
+        ("TERLAN_CARGO_METADATA_OWNER", "target/another-owner"),
+        ("TERLAN_RUST_ORCHESTRATOR", "target/another-orchestrator"),
+        ("TERLAN_RUST_SUITE_REPORT", "a-different-report"),
+        (
+            "TERLAN_RUST_PHASE_RECEIPT_DIR",
+            "target/different-phase-receipts",
+        ),
+        ("TERLAN_TEST_FORCE_RERUN", "1"),
+        ("TERLAN_VALIDATION_BOOTSTRAPPED", "1"),
+        ("TERLAN_CUDA_DIR", "../another-cuda-package"),
+        ("CODEX_TOOL_CALL_ID", "another-invocation"),
+        ("CI_JOB_STATUS", "post-suite"),
+        ("MAKEFLAGS", "-j4 --jobserver-auth=3,4"),
+        ("MAKEOVERRIDES", "TERLAN_VALIDATION_BOOTSTRAPPED=1"),
+        ("MFLAGS", "-j4"),
+        ("MAKELEVEL", "2"),
+        ("MAKE_RESTARTS", "1"),
+        ("MAKEFILES", "mk/validation.mk"),
+        ("MAKE_TERMERR", "/dev/pts/2"),
+        ("MAKE_TERMOUT", "/dev/pts/2"),
+        ("GNUMAKEFLAGS", "--no-print-directory"),
+        ("CARGO_MAKEFLAGS", "-j4 --jobserver-auth=3,4"),
+        ("CARGO_MAKE_JOBSERVER_FDS", "3,4"),
+    ] {
+        command.env(key, value);
+        let control_environment = ExecutionEnvironment::from_entries(
+            command
+                .get_envs()
+                .filter_map(|(key, value)| value.map(|value| (key.to_owned(), value.to_owned()))),
+            root,
+        )
+        .unwrap();
+        Handoff::admit(&inputs, &control_environment, control).unwrap();
+    }
     command.env("CARGO_REGISTRIES_EXAMPLE_INDEX", "changed-resolution");
     let changed_environment = ExecutionEnvironment::from_entries(
         command

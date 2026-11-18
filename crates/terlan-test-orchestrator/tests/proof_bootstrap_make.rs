@@ -1,10 +1,12 @@
 //! Focused proof validation shares its image owner without unrelated bootstraps.
 #![cfg(unix)]
 
+mod support;
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::os::unix::fs::DirBuilderExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
@@ -52,17 +54,32 @@ fn instrument(source: &str) -> String {
     result
 }
 
+fn recipe(source: &str, target: &str) -> String {
+    let prefix = format!("\n{target}:");
+    source
+        .match_indices(&prefix)
+        .find_map(|(offset, _)| {
+            let start = offset + 1;
+            let end = source[start..]
+                .find("\n\n")
+                .map_or(source.len(), |length| start + length);
+            let block = &source[start..end];
+            block
+                .lines()
+                .any(|line| line.starts_with('\t'))
+                .then(|| block.to_owned())
+        })
+        .unwrap_or_else(|| panic!("production recipe `{target}`"))
+}
+
 #[test]
 fn proof_bootstrap_is_focused_shared_and_fail_closed() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
-    let start = source.find("\nterlan-self-validation-bootstrap:").unwrap();
-    let end = source[start..]
-        .find("\n$(TERLAN_COMPILER_CONSUMER_GATES):")
-        .unwrap()
-        + start;
-    let mut make = instrument(&source[start..end]);
-    let aggregate = source[start..].lines().nth(1).unwrap();
+    let source = crate::support::read_make_sources();
+    let aggregate = source
+        .lines()
+        .find(|line| line.starts_with("terlan-self-validation-bootstrap:"))
+        .unwrap();
+    let mut make = format!("{aggregate}\n");
     let dependencies: BTreeSet<_> = aggregate
         .split_once(':')
         .unwrap()
@@ -79,13 +96,15 @@ fn proof_bootstrap_is_focused_shared_and_fail_closed() {
             ".PHONY: {owner}\n{owner}:\n\tproducer\n"
         )));
     }
+    make.push_str(&instrument(&recipe(
+        &source,
+        "terlan-proof-release-bootstrap",
+    )));
     for target in [
         "release-proof-baseline-check",
         "release-artifacts-closeout-check",
     ] {
-        let start = source.find(&format!("\n{target}:")).unwrap() + 1;
-        let end = source[start..].find("\n\n").unwrap() + start;
-        make.push_str(&instrument(&source[start..end]));
+        make.push_str(&instrument(&recipe(&source, target)));
     }
     for (goals, failure, broad) in [
         (vec!["release-proof-baseline-check"], "", false),

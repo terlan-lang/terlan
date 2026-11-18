@@ -2,6 +2,18 @@
 # Execute the production Make entry point in private Git fixtures; never push.
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
+make_sources=("$root/Makefile")
+while IFS= read -r source; do make_sources+=("$source"); done < <(
+  find "$root/mk" -maxdepth 1 -type f -name '*.mk' -print | sort
+)
+make_rule() {
+  local target=$1
+  awk -v target="$target" '
+    $0 ~ "^" target ":" { active=1 }
+    active && seen && /^$/ { exit }
+    active { print; seen=1 }
+  ' "${make_sources[@]}"
+}
 mkdir -p "$root/target"
 temporary=$(mktemp -d "$root/target/publish-command-test.XXXXXX")
 trap 'status=$?; if (( status != 0 )); then cat "$temporary"/*.log >&2; fi; rm -rf "$temporary"' EXIT
@@ -20,8 +32,10 @@ for mode in ready failed dirty staged untracked drift head-drift version dry-run
     printf 'SHELL := /bin/bash\nRELEASE_VERSION := 0.0.9\nTERLAN_RELEASE_CONTROL := bash submit.sh\n' > Makefile
     mkdir -p scripts
     cp "$root/scripts/publication_process_preflight.sh" scripts/
-    awk '/^publish-source-preflight:/ { active=1 } active && /^# Network\/tag/ { exit } active { print }' "$root/Makefile" >> Makefile
-    awk '/^\.PHONY: publish publish-local / { active=1 } active && /^publish-local-check:/ { exit } active { print }' "$root/Makefile" >> Makefile
+    printf '.PHONY: publish publish-local publish-source-preflight\n' >> Makefile
+    make_rule publish-source-preflight >> Makefile
+    make_rule publish >> Makefile
+    make_rule publish-local >> Makefile
     cat >> Makefile <<'MAKE'
 .PHONY: release-plan publish-local-check terlan-release-control-bootstrap
 release-plan:
@@ -79,9 +93,9 @@ echo 'Publication command regressions passed (11 scenarios).'
 # The public entry point owns the clean-tree preflight once. The Terlan
 # controller guards the source again before dispatch and submission, so the
 # recursive publish-local graph must not replay the Make preflight.
-grep -Fxq 'publish: release-plan publish-source-preflight' "$root/Makefile"
-grep -Fxq 'publish-local:' "$root/Makefile"
-publish_local=$(awk '/^publish-local:$/ { active=1 } active && /^publish-release-input-check:/ { exit } active { print }' "$root/Makefile")
+grep -Fxq 'publish: release-plan publish-source-preflight' "${make_sources[@]}"
+grep -Fxq 'publish-local:' "${make_sources[@]}"
+publish_local=$(make_rule publish-local)
 if printf '%s\n' "$publish_local" | rg -q 'publish-source-preflight'; then
   echo 'publish-local redundantly replays publish-source-preflight.' >&2
   exit 1
@@ -89,12 +103,12 @@ fi
 
 # Publication must not replay the compiler, AOT, sanitizer, or browser suites.
 # The exact hosted release workflow owns those gates and the sealed bundle.
-publish_local_check=$(awk '/^publish-local-check:/ { active=1 } active && /^browser-release-check:/ { exit } active { print }' "$root/Makefile")
+publish_local_check=$(make_rule publish-local-check)
 if printf '%s\n' "$publish_local_check" | rg -q 'release-candidate-check|browser-release-check|thread-sanitizer-check|tvm-aot-platform-target-check'; then
   echo 'make publish still replays an expensive validation gate.' >&2
   exit 1
 fi
-grep -Fq 'CARGO_TARGET_DIR="$(CURDIR)/target" bash scripts/git_hooks/js_browser.sh' "$root/Makefile"
+grep -Fq 'CARGO_TARGET_DIR="$(CURDIR)/target" bash scripts/git_hooks/js_browser.sh' "${make_sources[@]}"
 if rg -q 'scripts/git_hooks/js_browser\.sh' "$root/scripts/git_hooks/check.sh"; then
   echo 'The complete browser matrix must run once at publication, not per commit.' >&2
   exit 1
@@ -103,8 +117,8 @@ fi
 # Exercise the hosted tag guard itself, including retries from a newer main.
 # Checkout must use the named tag: the implicit event SHA flattens annotations.
 grep -Fxq '          ref: refs/tags/${{ inputs.tag || github.ref_name }}' "$root/.github/workflows/publish.yml"
-grep -Fxq 'TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600' "$root/Makefile"
-grep -Fq 'timeout --kill-after=10s "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)s"' "$root/Makefile"
+grep -Fxq 'TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600' "${make_sources[@]}"
+grep -Fq 'timeout --kill-after=10s "$(TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS)s"' "${make_sources[@]}"
 prewarm_line=$(grep -n -F '      - name: Restore the sealed publication bundle' "$root/.github/workflows/publish.yml" | cut -d: -f1)
 publish_line=$(grep -n -F '      - name: Publish the existing sealed tag' "$root/.github/workflows/publish.yml" | cut -d: -f1)
 test -n "$prewarm_line" && test -n "$publish_line" && test "$prewarm_line" -lt "$publish_line"

@@ -5,13 +5,10 @@ module rust_quality.CompilationInputs.
 
 import rust_quality.SourceInventory.
 import std.collections.List.
-import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String}.
 import std.crypto.Hash.
-import std.io.{Directory, File}.
 
-import type std.core.Option.
 import type std.crypto.Hash.LabeledFile.
 
 pub struct DigestResult {
@@ -34,18 +31,6 @@ pub struct DigestResult {
 }.
 
 @pure
-relative_path(root: String, path: String): Option[String] ->
-    let prefix =
-        if {
-            String.ends_with(root, "/") -> root;
-            true -> String.append(root, "/")
-        };
-    if {
-        String.starts_with(path, prefix) -> Some(path.utf8_slice(prefix.byte_size(), path.byte_size() - prefix.byte_size()));
-        true -> None
-    }.
-
-@pure
 candidate(path: String): Bool ->
     let name = SourceInventory.basename(path);
     String.ends_with(name, ".rs")
@@ -59,46 +44,49 @@ select(root: String, files: List[String], output: List[LabeledFile]): List[Label
     case files {
         [] -> SourceInventory.reverse(output);
         [path | rest] ->
-            case relative_path(root, path) {
-                None -> select(root, rest, output);
-                Some(relative) ->
-                    if {
-                        candidate(relative) -> select(root, rest, [Hash.labeled_file(path, relative) | output]);
-                        true -> select(root, rest, output)
-                    }
+            if {
+                candidate(path) -> select(
+                    root,
+                    rest,
+                    [Hash.labeled_file(SourceInventory.child(root, path), path) | output],
+                );
+                true -> select(root, rest, output)
             }
     }.
 
 pub digest(root: String): DigestResult ->
-    case Directory.files_recursive_excluding(root, ["target", ".git"]) {
-        Err(reason) ->
-            DigestResult(valid = false, digest = "", file_count = 0, message = reason.message);
-        Ok(files) ->
-            let selected = select(root, files, List.new[LabeledFile]());
-            if {
-                List.length(selected) == 0 -> DigestResult(
-                    valid = false,
-                    digest = "",
-                    file_count = 0,
-                    message = "Rust compilation input inventory is empty",
-                );
-                true -> case Hash.sha256_labeled_file_contents(selected) {
-                    Err(reason) ->
-                        DigestResult(
-                            valid = false,
-                            digest = "",
-                            file_count = 0,
-                            message = reason.message,
-                        );
-                    Ok(value) ->
-                        DigestResult(
-                            valid = true,
-                            digest = value,
-                            file_count = List.length(selected),
-                            message = "",
-                        )
-                }
+    let discovery =
+        SourceInventory.discover_visible(
+            root,
+            ["*.rs", "Cargo.toml", "Cargo.lock", "rustfmt.toml", "clippy.toml"],
+        );
+    if {
+        not discovery.valid -> DigestResult(valid = false, digest = "", file_count = 0, message = discovery.message);
+        true -> let selected = select(root, discovery.paths, List.new[LabeledFile]());
+        if {
+            List.length(selected) == 0 -> DigestResult(
+                valid = false,
+                digest = "",
+                file_count = 0,
+                message = "Rust compilation input inventory is empty",
+            );
+            true -> case Hash.sha256_labeled_file_contents(selected) {
+                Err(reason) ->
+                    DigestResult(
+                        valid = false,
+                        digest = "",
+                        file_count = 0,
+                        message = reason.message,
+                    );
+                Ok(value) ->
+                    DigestResult(
+                        valid = true,
+                        digest = value,
+                        file_count = List.length(selected),
+                        message = "",
+                    )
             }
+        }
     }.
 
 pub self_test(): Bool ->

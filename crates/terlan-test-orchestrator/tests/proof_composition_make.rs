@@ -1,6 +1,8 @@
 //! Run the production proof-composition recipes with an instrumented VM boundary.
 #![cfg(unix)]
 
+mod support;
+
 use std::fs;
 use std::io::Write;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
@@ -15,6 +17,24 @@ impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
     }
+}
+
+fn recipe(source: &str, target: &str) -> String {
+    let prefix = format!("\n{target}:");
+    source
+        .match_indices(&prefix)
+        .find_map(|(offset, _)| {
+            let start = offset + 1;
+            let end = source[start..]
+                .find("\n\n")
+                .map_or(source.len(), |length| start + length);
+            let block = &source[start..end];
+            block
+                .lines()
+                .any(|line| line.starts_with('\t'))
+                .then(|| format!("{block}\n"))
+        })
+        .unwrap_or_else(|| panic!("production recipe `{target}`"))
 }
 
 /// The VM boundary records actual invocations and enforces prerequisite order.
@@ -75,8 +95,7 @@ fn fixture(owned: bool) -> Fixture {
     )
     .unwrap();
     fs::set_permissions(fixture.0.join("vm"), fs::Permissions::from_mode(0o700)).unwrap();
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let begin = source.find("\nTERLAN_PROOF_RELEASE_RUN =").unwrap();
     let end = source[begin..]
         .find("\nlean-proof-track-gap-hygiene-check:")
@@ -86,6 +105,7 @@ fn fixture(owned: bool) -> Fixture {
         "TERLAN_BOOTSTRAP_VM := ./vm\nTERLAN_RELEASE_PROMOTION := ./promotion\nTERLAN_PROOF_RELEASE_IMAGE := proof.tvm\n{}\n",
         &source[begin..end]
     );
+    make.push_str(&recipe(&source, "release-artifacts-closeout-check"));
     if owned {
         for prefix in [
             "release-artifacts-closeout-check: TERLAN_PROOF_RELEASE_RUN =",

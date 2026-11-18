@@ -329,7 +329,7 @@ pub fn run_vm_web_observability(root: &Path) -> QualityResult<VmWebObservability
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile"))
+    let text = crate::quality::support::read_make_graph(root)
         .map_err(|err| format!("Makefile: failed to read VM web observability gate: {err}"))?;
     Ok(REQUIRED_GATE_TERMS
         .iter()

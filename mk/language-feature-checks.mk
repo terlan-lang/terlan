@@ -2,7 +2,7 @@
 
 # Validates pattern-matching feature support.
 pattern-matching-support-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools pattern_matching_support_test
+	$(RUST_TEST) -p terlan --lib --features validation-union pattern_matching_support_test
 	$(TERLAN_QUALITY) pattern-matching-support
 	$(TERLC) test tests/pattern/PatternMatchingTest.terl
 
@@ -121,7 +121,7 @@ binary-protocol-benchmark-check:
 	$(EXACT_CARGO_TEST) -p terlan --lib vm::framing_benchmark::tests::adversarial_framing_matrix_reports_typed_failures -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib vm::framing_benchmark::tests::framing_workload_parser_rejects_unknown_names -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib vm::framing_benchmark::tests::framing_percentiles_use_nearest_rank_for_tail_samples -- --exact
-	$(RUST_TEST) -p terlan --lib --features benchmark-tools binary_protocol::
+	$(RUST_TEST) -p terlan --lib --features validation-union binary_protocol::
 	TERLAN_PROTOCOL_BENCHMARK_AUTORUN=1 \
 	TERLAN_PROTOCOL_BENCHMARK_ALREADY_RUN="$(TERLAN_PROTOCOL_BENCHMARK_ALREADY_RUN)" \
 		target/debug/terlc test scripts/benchmarks/protocol/ProtocolBenchmarkTest.terl \
@@ -278,11 +278,11 @@ shape-synonyms-check: shape-implications-check tree-sitter-package-check tree-si
 	$(TERLC_EXACT_TEST) compiler::typeck::diagnostic_test::macros_sql_and_shapes::syntax_output_typechecks_composed_shape_guards -- --exact
 	$(TERLC_EXACT_TEST) compiler::typeck::diagnostic_test::macros_sql_and_shapes::syntax_output_rejects_non_bool_shape_guard_after_expansion -- --exact
 	$(TERLC_EXACT_TEST) compiler::typeck::shape_purity_test::syntax_output_rejects_effectful_helper_in_shape_guard_after_expansion -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::lib_test::documents_and_shapes::lsp_document_accepts_shape_synonym_declarations -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::lib_test::documents_and_shapes::document_symbols_include_raw_shape_declarations -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::lib_test::completion_inventory::completion_items_include_local_and_imported_shapes_and_functions -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::hover::hover_test::hover_returns_same_document_raw_shape_docs -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::hover::hover_test::hover_returns_imported_shape_docs_from_interface -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::lib_test::documents_and_shapes::lsp_document_accepts_shape_synonym_declarations -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::lib_test::documents_and_shapes::document_symbols_include_raw_shape_declarations -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::lib_test::completion_inventory::completion_items_include_local_and_imported_shapes_and_functions -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::hover::hover_test::hover_returns_same_document_raw_shape_docs -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::hover::hover_test::hover_returns_imported_shape_docs_from_interface -- --exact
 	$(TERLC_EXACT_TEST) commands::doc::render::render_test::renders_public_shape_declarations -- --exact
 	$(TERLC_EXACT_TEST) compiler::hir::interface_conversion::lib_test::interface_rendering::interface_rendering_preserves_public_shape_declarations -- --exact
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_decl_test::trait_declarations::parses_ordinary_function_named_shape -- --exact
@@ -368,8 +368,8 @@ shape-implications-check: syntax-contract-check
 	$(TERLC_EXACT_TEST) commands::test::test_shape_import_test::project_vm_tests_execute_imported_receiver_method_implication -- --exact
 	$(TERLC_EXACT_TEST) commands::test::test_shape_import_test::project_vm_tests_execute_imported_generic_struct_implication -- --exact
 	$(TERLC_EXACT_TEST) commands::build::build_test::tests::shape_js_test::build_command_executes_structural_implication_for_js_target -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::hover::hover_test::hover_preserves_local_structural_implication_signature -- --exact
-	$(EXACT_CARGO_TEST) -p terlan --features editor-lsp --lib lsp::hover::hover_test::editor_surfaces_preserve_imported_structural_implication -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::hover::hover_test::hover_preserves_local_structural_implication_signature -- --exact
+	$(EXACT_CARGO_TEST) -p terlan --features validation-union --lib lsp::hover::hover_test::editor_surfaces_preserve_imported_structural_implication -- --exact
 	TERLAN_LEAN_PROOF_ROOT="$(CURDIR)" \
 	TERLAN_LEAN_PROOF_PATH=Terlan/Type/ShapeImplication.lean \
 		target/debug/terlc test scripts/self_validation/LeanProofExecutionTest.terl

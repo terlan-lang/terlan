@@ -69,7 +69,7 @@ pub fn ensure_canonical_syntax_contract_valid() -> Result<(), SyntaxContractErro
 pub fn cached_canonical_terlan_syntax_contract_artifact(
 ) -> Result<SyntaxContractArtifact, SyntaxContractError> {
     let contract = cached_canonical_terlan_syntax_contract()?;
-    let identity = syntax_contract_identity(contract)?;
+    let identity = cached_canonical_terlan_syntax_contract_identity()?;
     Ok(SyntaxContractArtifact {
         schema: identity.schema,
         fingerprint_algorithm: identity.fingerprint_algorithm,
@@ -84,8 +84,15 @@ pub fn cached_canonical_terlan_syntax_contract_artifact(
 /// fingerprints the cached contract and wraps it in artifact identity metadata.
 pub fn cached_canonical_terlan_syntax_contract_identity(
 ) -> Result<SyntaxContractIdentity, SyntaxContractError> {
-    let contract = cached_canonical_terlan_syntax_contract()?;
-    syntax_contract_identity(contract)
+    static RESULT: OnceLock<Result<SyntaxContractIdentity, SyntaxContractError>> = OnceLock::new();
+
+    match RESULT.get_or_init(|| {
+        let contract = cached_canonical_terlan_syntax_contract()?;
+        syntax_contract_identity(contract)
+    }) {
+        Ok(identity) => Ok(identity.clone()),
+        Err(error) => Err(error.clone()),
+    }
 }
 
 /// Serializes the cached canonical syntax contract identity as JSON.

@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::Path;
 #[cfg(test)]
 use std::path::PathBuf;
+use std::path::{Component, Path};
 #[cfg(test)]
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -139,6 +139,65 @@ pub(crate) fn make_target_prerequisites(make_graph: &str, target: &str) -> Optio
             .map(str::to_owned)
             .collect(),
     )
+}
+
+/// Reads the root Makefile and every literal included Make source in parse order.
+pub(crate) fn read_make_graph(root: &Path) -> QualityResult<String> {
+    let mut graph = String::new();
+    let mut visited = BTreeSet::new();
+    append_make_source(root, "Makefile", false, &mut visited, &mut graph)?;
+    Ok(graph)
+}
+
+fn append_make_source(
+    root: &Path,
+    relative: &str,
+    optional: bool,
+    visited: &mut BTreeSet<String>,
+    graph: &mut String,
+) -> QualityResult<()> {
+    let path = Path::new(relative);
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_) | Component::CurDir))
+    {
+        return Err(format!(
+            "{relative}: literal Make include must stay inside the repository"
+        ));
+    }
+    if !visited.insert(relative.to_string()) {
+        return Ok(());
+    }
+    let text = match fs::read_to_string(root.join(path)) {
+        Ok(text) => text,
+        Err(error) if optional && error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(format!("{relative}: failed to read Make source: {error}")),
+    };
+    graph.push_str(&text);
+    graph.push('\n');
+    for (include, optional) in literal_make_includes(&text) {
+        append_make_source(root, &include, optional, visited, graph)?;
+    }
+    Ok(())
+}
+
+fn literal_make_includes(text: &str) -> Vec<(String, bool)> {
+    text.lines()
+        .filter(|line| !line.starts_with('\t'))
+        .filter_map(|line| {
+            let line = line.trim_start();
+            line.strip_prefix("include ")
+                .map(|paths| (paths, false))
+                .or_else(|| line.strip_prefix("-include ").map(|paths| (paths, true)))
+        })
+        .flat_map(|(paths, optional)| {
+            paths
+                .split_whitespace()
+                .filter(|path| !path.contains(['$', '%']))
+                .map(move |path| (path.to_string(), optional))
+        })
+        .collect()
 }
 
 /// Writes one canonical, newline-terminated JSON quality report.

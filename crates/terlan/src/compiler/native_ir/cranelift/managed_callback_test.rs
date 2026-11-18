@@ -917,11 +917,17 @@ fn source_if_selects_distinct_executable_captured_closures() {
     assert_eq!(targets.len(), 2);
     assert_eq!(
         targets[0].name,
-        "$closure_$aot_closure_factory_choose_0_1_0"
+        format!(
+            "$closure_$aot_closure_factory_choose_0_1_0__{:016x}",
+            targets[0].export_id
+        )
     );
     assert_eq!(
         targets[1].name,
-        "$closure_$aot_closure_factory_choose_1_1_0"
+        format!(
+            "$closure_$aot_closure_factory_choose_1_1_0__{:016x}",
+            targets[1].export_id
+        )
     );
     assert_ne!(targets[0].export_id, targets[1].export_id);
     assert!(targets
@@ -1035,6 +1041,45 @@ fn source_if_selects_distinct_executable_captured_closures() {
     }
     drop(library);
     fs::remove_dir_all(root).expect("remove source branch closure fixture");
+}
+
+#[test]
+fn lifted_callback_symbols_are_unique_across_source_modules() {
+    let cores = [
+        (
+            "module first.\n\npub choose(left: Int, _right: Int): ((Int) -> Int) ->\n    ((value: Int) -> value + left).\n",
+            "first",
+        ),
+        (
+            "module second.\n\npub choose(left: Int, right: Int): ((Int) -> Int) ->\n    ((value: Int) -> value + left + right).\n",
+            "second",
+        ),
+    ]
+    .map(|(source, module)| {
+        let syntax = parse_module_as_syntax_output(source).expect("parse callback source");
+        let resolved = resolve_syntax_module_output(&syntax).module;
+        let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+        assert_eq!(core.module, module);
+        core
+    });
+    let modules = NativeModule::lower_application(&[&cores[0], &cores[1]])
+        .expect("multi-module callbacks lower");
+    let closures = modules
+        .iter()
+        .find(|module| module.name == "$terlan.closures")
+        .expect("shared closure module");
+    let chosen = closures
+        .functions
+        .iter()
+        .filter(|function| function.name.starts_with("$closure_choose_"))
+        .collect::<Vec<_>>();
+    assert_eq!(chosen.len(), 2);
+    assert_ne!(chosen[0].name, chosen[1].name);
+    assert_ne!(chosen[0].export_id, chosen[1].export_id);
+    assert_ne!(chosen[0].params, chosen[1].params);
+    assert!(chosen.iter().all(|function| function
+        .name
+        .ends_with(&format!("__{:016x}", function.export_id))));
 }
 
 #[test]

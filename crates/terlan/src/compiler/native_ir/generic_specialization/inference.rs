@@ -301,6 +301,12 @@ fn infer_call_type(
     module: &str,
 ) -> Option<CoreType> {
     let candidates = callable_templates(templates, module, function, args.len())?;
+    // Checked calls whose candidates share one concrete result need no
+    // argument inference to determine that result. Performing it first walks
+    // nested fluent receiver chains once per ancestor and grows exponentially.
+    if let Some(result) = common_concrete_return_type(candidates) {
+        return Some(result);
+    }
     let mut matched_return = None;
     for template in candidates {
         let Ok(mut values) = explicit_type_bindings(template, type_args) else {
@@ -339,7 +345,7 @@ fn infer_call_type(
         }
         matched_return = Some(result);
     }
-    matched_return.or_else(|| common_concrete_return_type(candidates))
+    matched_return
 }
 
 /// Resolves a checked bare function value from its contextual arrow arity.

@@ -1,5 +1,6 @@
+use std::collections::BTreeSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path};
 
 use crate::terlan_quality::QualityResult;
 
@@ -123,6 +124,7 @@ pub fn run_vm_release_install_validation(
     root: &Path,
 ) -> QualityResult<VmReleaseInstallValidationSummary> {
     let workspace_version = read_workspace_version(root)?;
+    let make_graph = read_make_graph_text(root)?;
     let mut diagnostics = Vec::new();
     diagnostics.extend(validate_required_terms(
         root,
@@ -159,16 +161,16 @@ pub fn run_vm_release_install_validation(
         "crates/terlan/cli.mk",
         REQUIRED_CLI_MK_TERMS,
     )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "Makefile",
+    diagnostics.extend(validate_required_terms_text(
+        "Makefile include graph",
+        &make_graph,
         REQUIRED_MAKEFILE_TERMS,
-    )?);
-    diagnostics.extend(validate_required_terms(
-        root,
-        "Makefile",
+    ));
+    diagnostics.extend(validate_required_terms_text(
+        "Makefile include graph",
+        &make_graph,
         REQUIRED_LOCAL_UPGRADE_TERMS,
-    )?);
+    ));
     diagnostics.extend(validate_installer_versions(root, &workspace_version)?);
     diagnostics.extend(validate_editor_package_versions(root, &workspace_version)?);
     diagnostics.extend(validate_vsix_artifacts(root, &workspace_version)?);
@@ -232,6 +234,65 @@ fn validate_required_terms_text(
         .filter(|term| !text.contains(**term))
         .map(|term| format!("{relative}: missing required release/install term `{term}`"))
         .collect()
+}
+
+/// Reads the root Makefile and every literal Makefile it includes.
+fn read_make_graph_text(root: &Path) -> QualityResult<String> {
+    let mut pending = vec![("Makefile".to_string(), false)];
+    let mut visited = BTreeSet::new();
+    let mut graph = String::new();
+
+    while let Some((relative, optional)) = pending.pop() {
+        if optional && !root.join(&relative).exists() {
+            continue;
+        }
+        if !visited.insert(relative.clone()) {
+            continue;
+        }
+        let text = read_repo_text(root, &relative)?;
+        graph.push_str("\n# source: ");
+        graph.push_str(&relative);
+        graph.push('\n');
+        graph.push_str(&text);
+
+        for (include, optional) in make_include_paths(&relative, &text)? {
+            if !visited.contains(&include) {
+                pending.push((include, optional));
+            }
+        }
+    }
+
+    Ok(graph)
+}
+
+/// Extracts safe literal paths from Make include directives.
+fn make_include_paths(relative: &str, text: &str) -> QualityResult<Vec<(String, bool)>> {
+    let mut paths = Vec::new();
+    for (line_index, line) in text.lines().enumerate() {
+        let mut fields = line.split_whitespace();
+        let Some(directive) = fields.next() else {
+            continue;
+        };
+        if !matches!(directive, "include" | "-include" | "sinclude") {
+            continue;
+        }
+        for field in fields {
+            let path = Path::new(field);
+            if field.contains('$')
+                || path.is_absolute()
+                || path
+                    .components()
+                    .any(|component| !matches!(component, Component::Normal(_)))
+            {
+                return Err(format!(
+                    "{relative}:{}: Make include must use a literal repository-relative path: `{field}`",
+                    line_index + 1
+                ));
+            }
+            paths.push((field.to_string(), directive != "include"));
+        }
+    }
+    Ok(paths)
 }
 
 /// Validates installer default versions match the workspace version.

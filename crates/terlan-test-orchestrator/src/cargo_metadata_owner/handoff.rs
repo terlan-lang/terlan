@@ -1,7 +1,7 @@
 //! Suite admission of a completed metadata generation, not cross-cycle cache reuse.
 
 use super::{failure, package_sources, resolver_cache};
-use crate::execution_environment::{identity, ExecutionEnvironment};
+use crate::execution_environment::{validation_identity, ExecutionEnvironment};
 use crate::file_identity::read_hashed_file;
 use crate::validation_inputs::ValidationInputs;
 use crate::PhaseFailure;
@@ -75,7 +75,7 @@ impl Handoff {
             }
         }
         if observation["environment_sha256"]
-            != identity(&super::command(environment, Path::new("cargo")))
+            != validation_identity(&super::command(environment, Path::new("cargo")))
         {
             return Err(failure("metadata environment differs from suite admission"));
         }

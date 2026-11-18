@@ -3,6 +3,7 @@
 
 pub mod build_inputs;
 
+#[cfg(test)]
 use phase_plan::test_phases;
 #[cfg(test)]
 use phase_plan::{terlan_library_phase, workspace_doctest_phase};
@@ -45,6 +46,7 @@ mod make_environment;
 mod native_coverage;
 mod owned_command;
 mod phase_plan;
+mod phase_receipts;
 mod phase_timings;
 mod report_file;
 mod rust_toolchain;
@@ -80,14 +82,15 @@ mod cargo_runner_test;
 // fixture's compiler, so the canonical evidence run is serial by default.
 const DEFAULT_TEST_THREADS: usize = 1;
 const DEFAULT_PHASE_TIMEOUT_SECONDS: u64 = 1_800;
+const FAILED_CLOSEOUT_TIMEOUT_SECONDS: u64 = 30;
 const RELEASE_COVERAGE_OWNS_TERLC_ENV: &str = "TERLAN_RELEASE_COVERAGE_OWNS_TERLC_TESTS";
-const VALIDATION_FEATURES: &str = "quality-tools,editor-lsp,benchmark-tools,serve-runtime-bin";
+const VALIDATION_FEATURES: &str = "validation-union";
 const REPORT_PATH_ENV: &str = "TERLAN_RUST_SUITE_REPORT";
 const PHASE_TIMEOUT_ENV: &str = "TERLAN_TEST_PHASE_TIMEOUT_SECONDS";
 const TIER_INVENTORY_PATH: &str = "docs/quality/RUST_VALIDATION_TIERS.tsv";
 const TIER_INVENTORY: &str = include_str!("../../../docs/quality/RUST_VALIDATION_TIERS.tsv");
 const INTEGRATION_FILTERS: [&str; 4] = ["quality::", "lsp::", "benchmark::", "comprehension"];
-const MAX_CARGO_PHASES: usize = 3;
+const MAX_CARGO_PHASES: usize = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ValidationTier {
@@ -119,6 +122,13 @@ impl ValidationTier {
             Self::ControlledHost => "controlled-host",
         }
     }
+
+    const fn maximum_timeout(self) -> Option<Duration> {
+        match self {
+            Self::FastUnit => Some(Duration::from_secs(60)),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,6 +138,14 @@ struct TestPhase {
     executor: PhaseExecutor,
     args: Vec<&'static str>,
     environment: Vec<(&'static str, String)>,
+    shard: Option<TestShard>,
+    test_threads: Option<usize>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TestShard {
+    index: usize,
+    total: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,6 +178,7 @@ struct PhaseResult {
     outcome: &'static str,
     child_pid: Option<u32>,
     test_execution: Option<serde_json::Value>,
+    reused: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -284,7 +303,18 @@ pub fn run_cli() -> ExitCode {
         .value(RELEASE_COVERAGE_OWNS_TERLC_ENV)
         .as_deref()
         == Some(std::ffi::OsStr::new("1"));
-    let phases = test_phases(coverage_owns_terlc);
+    let phases = match phase_plan::selected_test_phases(
+        coverage_owns_terlc,
+        environment
+            .value(phase_plan::COMPACT_PHASE_PLAN_ENV)
+            .as_deref(),
+    ) {
+        Ok(phases) => phases,
+        Err(error) => {
+            eprintln!("[rust-test-suite] {}", error.detail);
+            return ExitCode::from(2);
+        }
+    };
     if phases
         .iter()
         .filter(|phase| phase.executor.is_cargo())
@@ -329,7 +359,7 @@ pub fn run_cli() -> ExitCode {
     if coverage_owns_terlc {
         println!("[rust-test-suite] release coverage owns the normal Terlan library phase");
     }
-    println!("[rust-test-suite] building union-feature Terlan harness once");
+    println!("[rust-test-suite] building the union-feature Terlan library harness");
     let harness = match ledger.execute(
         "Terlan union-feature harness build",
         ValidationTier::FastUnit,
@@ -388,22 +418,66 @@ pub fn run_cli() -> ExitCode {
         );
         return ExitCode::FAILURE;
     }
+    let receipt_identity = match ledger.phase_receipt_input_identity() {
+        Ok(identity) => identity,
+        Err(error) => {
+            eprintln!("[rust-test-suite] phase receipt inputs: {}", error.detail);
+            return ExitCode::FAILURE;
+        }
+    };
+    let mut phase_receipts = match phase_receipts::Store::new(&environment, receipt_identity) {
+        Ok(receipts) => receipts,
+        Err(error) => {
+            eprintln!(
+                "[rust-test-suite] phase receipt admission: {}",
+                error.detail
+            );
+            return ExitCode::FAILURE;
+        }
+    };
     for phase in phases {
         if phase.executor == PhaseExecutor::Cargo && rustdoc_inputs.targets.is_empty() {
             continue;
         }
         println!("[rust-test-suite] running {}", phase.name);
         let phase_started = Instant::now();
-        if let Err(error) = ledger.execute_test(
+        let phase_control = phase
+            .tier
+            .maximum_timeout()
+            .map_or(control, |maximum| control.limited_to(maximum));
+        let effective_threads = phase.test_threads.unwrap_or(test_threads);
+        let expected = (phase.executor == PhaseExecutor::TerlanHarness)
+            .then(|| selections.selections.get(phase.name).cloned())
+            .flatten();
+        if let Some(expected) = expected.as_ref() {
+            match phase_receipts.restore(&phase, effective_threads, expected, phase_control) {
+                Ok(Some(evidence)) => {
+                    if let Err(error) = ledger.reuse_test(&phase, evidence) {
+                        eprintln!("[rust-test-suite] {} receipt: {}", phase.name, error.detail);
+                        return ExitCode::FAILURE;
+                    }
+                    println!("[rust-test-suite] {} reused exact receipt", phase.name);
+                    continue;
+                }
+                Ok(None) => {}
+                Err(error) => {
+                    eprintln!("[rust-test-suite] {} receipt: {}", phase.name, error.detail);
+                    return ExitCode::FAILURE;
+                }
+            }
+        }
+        let completion = ledger.execute_test(
             phase.name,
             phase.tier,
             phase.executor.as_str(),
             |launched, partial| {
                 let executable = match phase.executor {
                     PhaseExecutor::Cargo | PhaseExecutor::CargoNative => {
-                        executable_inputs.verify_program("cargo", control)?
+                        executable_inputs.verify_program("cargo", phase_control)?
                     }
-                    PhaseExecutor::TerlanHarness => executable_inputs.verify_harness(control)?,
+                    PhaseExecutor::TerlanHarness => {
+                        executable_inputs.verify_harness(phase_control)?
+                    }
                 };
                 if phase.executor == PhaseExecutor::CargoNative {
                     let runner =
@@ -418,7 +492,7 @@ pub fn run_cli() -> ExitCode {
                         ),
                         &environment,
                         test_threads,
-                        control,
+                        phase_control,
                         launched,
                         partial,
                     );
@@ -431,7 +505,7 @@ pub fn run_cli() -> ExitCode {
                         (&executable, &runner, &rustdoc_inputs),
                         &environment,
                         test_threads,
-                        control,
+                        phase_control,
                         launched,
                         partial,
                     );
@@ -440,18 +514,47 @@ pub fn run_cli() -> ExitCode {
                     &phase,
                     &executable,
                     &environment,
-                    test_threads,
-                    selections.selections.get(phase.name).cloned(),
-                    control,
+                    effective_threads,
+                    expected.clone(),
+                    phase_control,
                     launched,
                 )
             },
-        ) {
-            eprintln!(
-                "[rust-test-suite] {} {}: {}",
-                phase.name, error.outcome, error.detail
-            );
-            return ExitCode::from(1);
+        );
+        let evidence = match completion {
+            Ok(evidence) => evidence,
+            Err(error) => {
+                eprintln!(
+                    "[rust-test-suite] {} {}: {}",
+                    phase.name, error.outcome, error.detail
+                );
+                let closeout = ledger
+                    .begin_failed_closeout()
+                    .and_then(|()| {
+                        suite_inputs::close(&mut ledger, &environment, failed_closeout_control())
+                    })
+                    .and_then(|()| ledger.finish_failed_closeout());
+                if let Err(closeout) = closeout {
+                    eprintln!(
+                        "[rust-test-suite] failed-suite input closeout: {}",
+                        closeout.detail
+                    );
+                } else if let Err(receipt) = phase_receipts.seal() {
+                    eprintln!(
+                        "[rust-test-suite] failed-suite receipt seal: {}",
+                        receipt.detail
+                    );
+                }
+                return ExitCode::from(1);
+            }
+        };
+        if let Some(expected) = expected.as_ref() {
+            if let Err(error) =
+                phase_receipts.remember(&phase, effective_threads, expected, &evidence)
+            {
+                eprintln!("[rust-test-suite] {} receipt: {}", phase.name, error.detail);
+                return ExitCode::FAILURE;
+            }
         }
         println!(
             "[rust-test-suite] {} passed in {:.2}s",
@@ -473,6 +576,11 @@ pub fn run_cli() -> ExitCode {
         );
         return ExitCode::FAILURE;
     }
+    if let Err(error) = phase_receipts.seal() {
+        let _ = ledger.reject_input_verification();
+        eprintln!("[rust-test-suite] phase receipt seal: {}", error.detail);
+        return ExitCode::FAILURE;
+    }
     if let Err(error) = ledger.finish_unless_cancelled(shutdown.flag()) {
         eprintln!("[rust-test-suite] cannot seal launch inventory: {error}");
         return ExitCode::from(1);
@@ -482,6 +590,13 @@ pub fn run_cli() -> ExitCode {
         started.elapsed().as_secs_f64()
     );
     ExitCode::SUCCESS
+}
+
+/// Verifies immutable inputs after cancellation without relabelling the failed
+/// suite as successful. The cancelled execution control cannot perform this
+/// bounded closeout and would discard every already-passed phase receipt.
+fn failed_closeout_control() -> ProcessControl<'static> {
+    ProcessControl::new(Duration::from_secs(FAILED_CLOSEOUT_TIMEOUT_SECONDS))
 }
 
 #[derive(Debug)]
@@ -498,7 +613,7 @@ fn prepare_terlan_harness(
 ) -> Result<cargo_harness_admission::DeclaredHarness, PhaseFailure> {
     let mut command = environment.test_command(cargo);
     command
-        .args(phase_plan::workspace_native_arguments())
+        .args(phase_plan::terlan_harness_arguments())
         .arg("--no-run");
     let root = home::env::Env::current_dir(environment).map_err(|error| PhaseFailure {
         outcome: "harness-declaration-failed",
@@ -566,7 +681,7 @@ fn write_report(
         .iter()
         .map(|result| {
             format!(
-                "    {{\"name\":\"{}\",\"tier\":\"{}\",\"executor\":\"{}\",\"outcome\":\"{}\",\"wall_time_ms\":{},\"child_pid\":{},\"test_execution\":{},\"timeout_seconds\":{},\"near_deadline\":{},\"recommended_timeout_seconds\":{}}}",
+                "    {{\"name\":\"{}\",\"tier\":\"{}\",\"executor\":\"{}\",\"outcome\":\"{}\",\"wall_time_ms\":{},\"child_pid\":{},\"test_execution\":{},\"reused\":{},\"timeout_seconds\":{},\"near_deadline\":{},\"recommended_timeout_seconds\":{}}}",
                 result.name,
                 result.tier.as_str(),
                 result.executor,
@@ -574,6 +689,7 @@ fn write_report(
                 result.wall_time_ms,
                 serde_json::json!(result.child_pid),
                 serde_json::json!(result.test_execution),
+                result.reused,
                 phase_timeout.as_secs(),
                 result.wall_time_ms >= phase_timeout.as_millis().saturating_mul(4) / 5,
                 phase_timings::recommended_seconds(result.wall_time_ms),
@@ -728,6 +844,23 @@ fn prebuilt_binary_path(name: &str) -> String {
 }
 
 fn prebuilt_binary(name: &str) -> PathBuf {
+    let override_name = prebuilt_binary_override_name(name);
+    prebuilt_binary_from(name, override_name.and_then(env::var_os))
+}
+
+fn prebuilt_binary_override_name(name: &str) -> Option<&'static str> {
+    match name {
+        "terlc" => Some("TERLAN_RUST_SUITE_TERLC"),
+        "terlan-vm" => Some("TERLAN_RUST_SUITE_VM"),
+        "terlan-native-worker" => Some("TERLAN_RUST_SUITE_NATIVE_WORKER"),
+        _ => None,
+    }
+}
+
+fn prebuilt_binary_from(name: &str, override_path: Option<std::ffi::OsString>) -> PathBuf {
+    if let Some(path) = override_path {
+        return PathBuf::from(path);
+    }
     PathBuf::from("target/debug").join(format!("{name}{}", env::consts::EXE_SUFFIX))
 }
 

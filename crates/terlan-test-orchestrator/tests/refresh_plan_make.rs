@@ -8,6 +8,8 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+mod support;
+
 struct Fixture(PathBuf);
 
 impl Drop for Fixture {
@@ -34,15 +36,9 @@ fn fixture() -> Fixture {
 fn cold_refresh_plan_needs_no_prebuilt_executables() {
     let fixture = fixture();
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    support::copy_make_sources(&fixture.0);
     for path in [
-        "Makefile",
         "Cargo.toml",
-        "mk/rust-coverage.mk",
-        "mk/hermetic-support.mk",
-        "mk/code-quality.mk",
-        "crates/terlan/cli.mk",
-        "std/stdlib.mk",
-        "editors/editor.mk",
         "tree-sitter-terlan/package.json",
         "tree-sitter-terlan/package-lock.json",
     ] {
@@ -76,8 +72,7 @@ fn cold_refresh_plan_needs_no_prebuilt_executables() {
 #[test]
 fn executing_refresh_still_requires_live_coverage_owner() {
     let fixture = fixture();
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source.find("\npublish-evidence-refresh:").unwrap() + 1;
     let recipe = &source[start..start + source[start..].find("\n\n").unwrap()];
     let recipe = &recipe[recipe.find('\n').unwrap()..];
@@ -118,8 +113,7 @@ fn executing_refresh_still_requires_live_coverage_owner() {
 /// Renaming or duplicating a report graph must not conceal its isolated Cargo work.
 #[test]
 fn refresh_plan_counts_report_owner_and_rejects_missing_or_repeated_work() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = support::read_make_sources();
     let start = source
         .find("\npublish-evidence-refresh-plan-check:\n")
         .unwrap()

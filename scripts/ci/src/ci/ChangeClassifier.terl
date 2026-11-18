@@ -149,6 +149,7 @@ pub is_editor_file(path: String): Bool ->
 pub is_inventory_file(path: String): Bool ->
     String.ends_with(path, ".rs")
         or String.ends_with(path, ".py")
+        or String.ends_with(path, ".terls")
         or starts_with_any(path, ["tools/rust_boundary_audit/", "scripts/self_validation/Inventory"]).
 
 pub is_release_tooling_file(path: String): Bool ->

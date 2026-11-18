@@ -1813,8 +1813,11 @@ third producer can start; duplicate phase owners fail before another launch.
 One report writer holds a stable file lease. Snapshots use exclusive bounded
 staging, file sync, replacement, and Unix directory sync. An interrupted pending
 snapshot is retained in one bounded diagnostic slot, never promoted to passing
-evidence. New runs have new IDs; these observations are **not** input-bound
-successful-test receipts. Recording failure terminates the observed child and
+evidence. New runs have new IDs; the live observation report is not itself a
+reusable test receipt. Main-harness phase completions have a separate
+content-addressed receipt contract. They are published only after normal
+closeout or a failed run's full input closeout proves all admitted identities
+remained unchanged. Recording failure still terminates the observed child and
 poisons the run. The lease explicitly unlocks on drop, including unsuccessful
 initialization, so a concurrent fork-before-exec descriptor cannot accidentally
 retain ownership after the writer closes its descriptor.

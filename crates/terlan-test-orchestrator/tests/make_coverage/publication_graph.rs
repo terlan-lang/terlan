@@ -15,8 +15,7 @@ pub(super) fn prepare(root: &Path, publication: &str) -> String {
     let downloader =
         "bash scripts/download_validated_release_artifacts.sh \"$$(git rev-parse HEAD)\" --restore";
     assert_eq!(publication.matches(downloader).count(), 1);
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let expanded = source.replace("\\\n", " ");
     let lease = expanded
         .lines()

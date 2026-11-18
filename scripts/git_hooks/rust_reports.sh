@@ -4,10 +4,12 @@ set -euo pipefail
 mode=${1:-check}
 case "$mode" in
   check)
+    api_boundary_command=api-boundary-check
     dependency_impact_command=dependency-impact-check
     file_headroom_command=file-headroom-check
     ;;
   --record-dependency-impact)
+    api_boundary_command=api-boundary-record
     dependency_impact_command=dependency-impact-record
     file_headroom_command=file-headroom-record
     ;;
@@ -17,7 +19,6 @@ esac
 # release callers retain the canonical release-profile defaults.
 terlc=${TERLAN_RUST_REPORT_TERLC:-"$CARGO_TARGET_DIR/release/terlc"}
 vm=${TERLAN_RUST_REPORT_VM:-"$CARGO_TARGET_DIR/release/terlan-vm"}
-quality="$CARGO_TARGET_DIR/debug/terlan-quality"
 boundary="$CARGO_TARGET_DIR/debug/terlan-rust-boundary-audit"
 orchestrator="$CARGO_TARGET_DIR/debug/terlan-test-orchestrator"
 
@@ -41,20 +42,22 @@ hash_file() {
 }
 
 checks=(
-  api-boundary-check
+  "$api_boundary_command"
   "$dependency_impact_command"
   "$file_headroom_command"
+  module-structure-check
   workspace-policy-check
   build-graph-boundary-check
 )
 checks_to_run=()
 cache_enabled=false
-cache_schema=terlan-rust-report-result-v2
+cache_schema=terlan-rust-report-result-v3
 declare -A cache_keys=()
 declare -A cache_receipts=()
 
 report_input_key() {
   local check=$1
+  local generated_report=
   local paths=(
     ':(glob)**/*.rs'
     ':(glob)**/Cargo.toml'
@@ -69,20 +72,25 @@ report_input_key() {
   )
   case "$check" in
     api-boundary-check)
+      generated_report=docs/quality/RUST_STRING_ERROR_INVENTORY.tsv
       paths+=(
         docs/quality/RUST_STRING_ERROR_BUDGETS.tsv
         docs/quality/RUST_STRING_ERROR_INVENTORY.tsv
       )
       ;;
     dependency-impact-check)
+      generated_report=docs/quality/RUST_DEPENDENCY_IMPACT.json
       paths+=(
         docs/quality/RUST_DEPENDENCY_IMPACT.json
         docs/quality/RUST_DUPLICATE_DEPENDENCY_CLASSIFICATION.tsv
         docs/quality/RUST_STRUCTURE_TIMINGS_CLOSEOUT.json
       )
       ;;
-    file-headroom-check) paths+=(docs/quality/RUST_FILE_HEADROOM.tsv) ;;
-    workspace-policy-check) ;;
+    file-headroom-check)
+      generated_report=docs/quality/RUST_FILE_HEADROOM.tsv
+      paths+=(docs/quality/RUST_FILE_HEADROOM.tsv)
+      ;;
+    module-structure-check|workspace-policy-check) ;;
     build-graph-boundary-check)
       paths+=(
         docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json
@@ -91,9 +99,32 @@ report_input_key() {
       ;;
     *) echo "unsupported cached Rust report: $check" >&2; return 2 ;;
   esac
+  local -a working_paths=("${paths[@]}")
+  if [[ -n "$generated_report" ]]; then
+    working_paths+=(":(exclude)$generated_report")
+  fi
   {
     printf '%s\n%s\n' "$cache_schema" "$check"
-    git ls-files -s -- "${paths[@]}"
+    if [[ -n "$generated_report" ]]; then
+      git ls-files -s -- "${paths[@]}" ":(exclude)$generated_report"
+      printf 'generated-report:%s:%s\n' "$generated_report" \
+        "$(hash_file "$generated_report")"
+    else
+      git ls-files -s -- "${paths[@]}"
+    fi
+    local -a working_files=()
+    while IFS= read -r -d '' path; do
+      printf 'working-path:%s\0' "$path"
+      if [[ -e "$path" || -L "$path" ]]; then
+        working_files+=("$path")
+      else
+        printf 'working-object:missing\0'
+      fi
+    done < <(git ls-files -z --cached --others --exclude-standard -- "${working_paths[@]}")
+    local offset
+    for ((offset = 0; offset < ${#working_files[@]}; offset += 256)); do
+      git hash-object --no-filters -- "${working_files[@]:offset:256}"
+    done
     # Hash external toolchain executables, not checkout-path-sensitive Rust
     # outputs whose bytes can differ despite identical admitted source.
     local executable
@@ -131,7 +162,9 @@ if [[ -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
   mkdir -p "$cache_dir"
   for check in "${checks[@]}"; do
     cache_check=$check
-    if [[ "$cache_check" == dependency-impact-record ]]; then
+    if [[ "$cache_check" == api-boundary-record ]]; then
+      cache_check=api-boundary-check
+    elif [[ "$cache_check" == dependency-impact-record ]]; then
       cache_check=dependency-impact-check
     elif [[ "$cache_check" == file-headroom-record ]]; then
       cache_check=file-headroom-check
@@ -140,9 +173,7 @@ if [[ -n ${TERLAN_RUST_REPORT_CACHE_DIR:-} ]]; then
     receipt="$cache_dir/$cache_check/$key.passed"
     cache_keys[$check]=$key
     cache_receipts[$check]=$receipt
-    if [[ "$check" != dependency-impact-record \
-      && "$check" != file-headroom-record \
-      && ${TERLAN_TEST_FORCE_RERUN:-0} != 1 ]] \
+    if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 ]] \
       && receipt_is_valid "$receipt" "$key"; then
       echo "Rust quality report unchanged: $check; reusing $key"
     else
@@ -166,15 +197,11 @@ needs_check() {
 }
 
 need_boundary=false
-need_quality=false
 need_metadata=false
-if needs_check api-boundary-check \
+if needs_check "$api_boundary_command" \
   || needs_check build-graph-boundary-check \
   || needs_check "$dependency_impact_command"; then
   need_boundary=true
-fi
-if [[ "$need_boundary" == true ]] || needs_check "$dependency_impact_command"; then
-  need_quality=true
 fi
 if needs_check "$dependency_impact_command" || needs_check build-graph-boundary-check; then
   need_metadata=true
@@ -187,14 +214,8 @@ if [[ ${TERLAN_HOOK_ARTIFACTS_PREBUILT:-0} != 1 ]]; then
   if (( ${#packages[@]} > 0 )); then
     cargo build --locked "${packages[@]}"
   fi
-  if [[ "$need_quality" == true ]]; then
-    cargo build --locked -p terlan --bin terlan-quality --features quality-tools
-  fi
 elif [[ "$need_boundary" == true ]]; then
   cargo build --locked -p terlan-rust-boundary-audit
-fi
-if [[ "$need_quality" == true ]]; then
-  "$quality" rust-quality
 fi
 if [[ "$need_boundary" == true ]]; then
   mkdir -p target/quality
@@ -223,12 +244,101 @@ flock --exclusive 9
 "$terlc" build --incremental \
   scripts/self_validation/rust_quality/scripts/RustQuality.terls \
   --target terlan-vm --out-dir "$output"
-for check in "${checks_to_run[@]}"; do
-  TERLAN_RUST_QUALITY_ROOT="$PWD" "$vm" run "$output/vm/scripts_RustQuality.tvm" \
-    --script-eval -- "$check"
-  if [[ "$cache_enabled" == true \
-    && "$check" != dependency-impact-record \
-    && "$check" != file-headroom-record ]]; then
-    write_receipt "$check"
+report_timeout=${TERLAN_RUST_REPORT_TIMEOUT_SECONDS:-60}
+case "$report_timeout" in ''|*[!0-9]*) echo 'invalid Rust report timeout' >&2; exit 2 ;; esac
+report_jobs=$(mktemp -d "$output_parent/.rust-report-jobs.XXXXXX")
+declare -a report_pids=() report_logs=() report_durations=()
+declare -A report_job_statuses=()
+report_max_jobs=${TERLAN_RUST_REPORT_MAX_JOBS:-2}
+case "$report_max_jobs" in
+  ''|*[!0-9]*|0) echo 'invalid Rust report worker limit' >&2; exit 2 ;;
+esac
+report_active_jobs=0
+cleanup_report_jobs() {
+  local status=$? pid
+  trap - EXIT INT TERM HUP
+  for pid in "${report_pids[@]}"; do
+    kill -TERM "$pid" 2>/dev/null || true
+  done
+  for pid in "${report_pids[@]}"; do
+    wait "$pid" 2>/dev/null || true
+  done
+  [[ ! -d "$report_jobs" ]] || find "$report_jobs" -depth -delete
+  exit "$status"
+}
+trap cleanup_report_jobs EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+collect_report_job() {
+  local completed_pid status=0
+  wait -n -p completed_pid || status=$?
+  report_job_statuses[$completed_pid]=$status
+  report_active_jobs=$((report_active_jobs - 1))
+}
+for index in "${!checks_to_run[@]}"; do
+  check=${checks_to_run[$index]}
+  log="$report_jobs/$index.log"
+  duration="$report_jobs/$index.duration"
+  (
+    started=$SECONDS child=
+    status=0
+    cleanup_report_child() {
+      local child_status=$?
+      trap - EXIT INT TERM HUP
+      if [[ -n "$child" ]]; then
+        kill -TERM "$child" 2>/dev/null || true
+        wait "$child" 2>/dev/null || true
+      fi
+      exit "$child_status"
+    }
+    trap cleanup_report_child EXIT INT TERM HUP
+    timeout --kill-after=5s "${report_timeout}s" \
+      env TERLAN_RUST_QUALITY_ROOT="$PWD" \
+      "$vm" run "$output/vm/scripts_RustQuality.tvm" \
+      --script-eval -- "$check" > "$log" 2>&1 &
+    child=$!
+    wait "$child" || status=$?
+    child=
+    trap - EXIT INT TERM HUP
+    printf '%s\n' "$((SECONDS - started))" > "$duration"
+    exit "$status"
+  ) &
+  report_pids+=("$!")
+  report_logs+=("$log")
+  report_durations+=("$duration")
+  report_active_jobs=$((report_active_jobs + 1))
+  if (( report_active_jobs >= report_max_jobs )); then
+    collect_report_job
   fi
 done
+while (( report_active_jobs > 0 )); do collect_report_job; done
+report_status=0
+for index in "${!report_pids[@]}"; do
+  check=${checks_to_run[$index]}
+  if (( report_job_statuses[${report_pids[$index]}] == 0 )); then
+    echo "Rust quality report passed: $check ($(cat "${report_durations[$index]}")s)"
+    if [[ "$cache_enabled" == true ]]; then
+      cache_check=$check
+      if [[ "$cache_check" == api-boundary-record ]]; then
+        cache_check=api-boundary-check
+      elif [[ "$cache_check" == dependency-impact-record ]]; then
+        cache_check=dependency-impact-check
+      elif [[ "$cache_check" == file-headroom-record ]]; then
+        cache_check=file-headroom-check
+      fi
+      if [[ "$cache_check" != "$check" ]]; then
+        key=$(report_input_key "$cache_check")
+        cache_keys[$check]=$key
+        cache_receipts[$check]="$cache_dir/$cache_check/$key.passed"
+      fi
+      write_receipt "$check"
+    fi
+  else
+    report_status=1
+    echo "Rust quality report failed: $check ($(cat "${report_durations[$index]}")s)" >&2
+  fi
+  cat "${report_logs[$index]}"
+done
+trap - EXIT INT TERM HUP
+find "$report_jobs" -depth -delete
+exit "$report_status"

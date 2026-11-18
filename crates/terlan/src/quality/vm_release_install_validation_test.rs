@@ -1,4 +1,6 @@
 use super::*;
+use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
 /// Verifies required release/install terms are accepted.
 ///
 /// Inputs:
@@ -39,6 +41,71 @@ fn required_terms_text_rejects_missing_vm_term() {
             .iter()
             .any(|diagnostic| diagnostic.contains("terlan-vm")),
         "diagnostics should report missing VM binary term: {diagnostics:?}"
+    );
+}
+
+/// Verifies release rules may live in recursively included Make fragments.
+#[test]
+fn make_graph_reads_recursive_literal_includes_once() {
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock should follow the Unix epoch")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "terlan-vm-release-install-make-{}-{unique}",
+        std::process::id()
+    ));
+    fs::create_dir_all(root.join("mk")).expect("fixture directory should be created");
+    fs::write(
+        root.join("Makefile"),
+        "include mk/release.mk\ninclude mk/release.mk\n-include mk/missing.mk\n",
+    )
+    .expect("root Makefile should be written");
+    fs::write(
+        root.join("mk/release.mk"),
+        "include mk/install.mk\npublish-preflight:\n",
+    )
+    .expect("release fragment should be written");
+    fs::write(root.join("mk/install.mk"), "upgrade-local:\n")
+        .expect("install fragment should be written");
+
+    let graph = read_make_graph_text(&root).expect("literal include graph should load");
+
+    assert!(graph.contains("publish-preflight:"));
+    assert!(graph.contains("upgrade-local:"));
+    assert_eq!(graph.matches("# source: mk/release.mk").count(), 1);
+    fs::remove_dir_all(root).expect("fixture directory should be removed");
+}
+
+/// Verifies dynamic or escaping includes cannot make validation incomplete.
+#[test]
+fn make_include_paths_rejects_unbounded_paths() {
+    for source in [
+        "include $(FRAGMENT)\n",
+        "include ../outside.mk\n",
+        "include /tmp/file.mk\n",
+    ] {
+        let error = make_include_paths("Makefile", source)
+            .expect_err("unbounded include should fail closed");
+        assert!(error.contains("literal repository-relative path"));
+    }
+}
+
+/// Verifies every supported optional include spelling is discovered.
+#[test]
+fn make_include_paths_accepts_optional_literal_paths() {
+    let paths = make_include_paths(
+        "Makefile",
+        "-include mk/optional.mk\nsinclude mk/secondary.mk\n",
+    )
+    .expect("literal optional includes should be accepted");
+
+    assert_eq!(
+        paths,
+        [
+            ("mk/optional.mk".to_string(), true),
+            ("mk/secondary.mk".to_string(), true)
+        ]
     );
 }
 

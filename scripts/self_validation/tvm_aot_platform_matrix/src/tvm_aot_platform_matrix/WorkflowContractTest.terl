@@ -3,7 +3,7 @@ module tvm_aot_platform_matrix.WorkflowContractTest.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.File.{read_text}.
-import tvm_aot_platform_matrix.Core.{compiled_cache_text_valid, compiler_before_platform_text_valid, release_audit_before_platform_text_valid, source_preflight_text_valid}.
+import tvm_aot_platform_matrix.Core.{compiled_cache_text_valid, compiler_before_platform_text_valid, hosted_release_graph_valid, release_audit_before_platform_text_valid, source_preflight_text_valid}.
 import tvm_aot_platform_matrix.MulticoreRelease.{validate_workflow as multicore_release_workflow_valid}.
 
 @test
@@ -29,6 +29,16 @@ let bypassed = String.replace(normalized, "needs: [revision, dependency-audit]",
 normalized != bypassed
     and not release_audit_before_platform_text_valid(bypassed)
     and not multicore_release_workflow_valid(bypassed)).
+
+@test
+pub hosted_release_graph_requires_every_publication_owner(): Bool ->
+    when {
+        Ok(makefile) <- read_text("mk/release-publish.mk")
+    } else {
+        Err(_reason) -> false
+    };
+    hosted_release_graph_valid(makefile)
+        and not hosted_release_graph_valid(String.replace(makefile, " release-hosted-publication-verifier", "")).
 
 @test
 pub generated_artifact_selection_is_statically_complete(): Bool ->
@@ -104,7 +114,7 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
         and workflow.contains("--script-eval --").
 
 @test
-pub compiler_validation_starts_beside_source_preflight(): Bool ->
+pub source_contracts_gate_compiler_validation(): Bool ->
     when {
         Ok(workflow) <- read_text(".github/workflows/ci.yml");
         Ok(hook) <- read_text("scripts/git_hooks/check.sh")
@@ -128,8 +138,8 @@ pub compiler_validation_starts_beside_source_preflight(): Bool ->
         and not compiler_before_platform_text_valid(
     workflow
         .replace(
-            "needs: changes\n    name: Compiler check and test",
             "needs: [changes, source-preflight]\n    name: Compiler check and test",
+            "needs: changes\n    name: Compiler check and test",
         ),
 ).
 

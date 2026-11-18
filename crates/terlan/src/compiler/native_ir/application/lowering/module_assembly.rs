@@ -153,7 +153,7 @@ pub(super) struct ApplicationFinalizationContext<'a> {
 pub(super) fn finalize_native_application(
     context: ApplicationFinalizationContext<'_>,
     mut modules: Vec<NativeModule>,
-    lifted_functions: Vec<super::super::super::NativeFunction>,
+    mut lifted_functions: Vec<super::super::super::NativeFunction>,
 ) -> Result<Vec<NativeModule>, super::super::super::NativeIrError> {
     let ApplicationFinalizationContext {
         started,
@@ -164,6 +164,14 @@ pub(super) fn finalize_native_application(
         suspending_targets,
     } = context;
     if !lifted_functions.is_empty() {
+        // Lifted callbacks from every source module share one synthetic native
+        // module. Their local factory names can therefore coincide even though
+        // their application-wide export identities are distinct. Include the
+        // already collision-checked export identity in the emitted symbol name
+        // without changing callable dispatch or source provenance.
+        for function in &mut lifted_functions {
+            function.name = format!("{}__{:016x}", function.name, function.export_id);
+        }
         let mut managed_layouts = modules
             .iter()
             .flat_map(|module| module.managed_layouts.iter().cloned())

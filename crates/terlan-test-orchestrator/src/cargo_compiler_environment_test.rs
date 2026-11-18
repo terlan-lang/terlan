@@ -19,6 +19,14 @@ fn proxy_environment_precedes_config_and_cargo_identity_wins_last() {
             ),
             ("RUSTUP_TOOLCHAIN".into(), "inherited".into()),
             ("RUST_RECURSION_COUNT".into(), "3".into()),
+            ("MAKEFLAGS".into(), "-j4 --jobserver-auth=3,4".into()),
+            ("MAKELEVEL".into(), "2".into()),
+            ("MAKE_RESTARTS".into(), "1".into()),
+            ("MAKEFILES".into(), "mk/validation.mk".into()),
+            ("MAKE_TERMERR".into(), "/dev/pts/2".into()),
+            ("MAKE_TERMOUT".into(), "/dev/pts/2".into()),
+            ("GNUMAKEFLAGS".into(), "--no-print-directory".into()),
+            ("CARGO_MAKEFLAGS".into(), "-j4 --jobserver-auth=3,4".into()),
             ("PATH".into(), "/usr/bin:/bin".into()),
         ],
         &fixture.0,
@@ -57,6 +65,18 @@ fn proxy_environment_precedes_config_and_cargo_identity_wins_last() {
             command_value(&command, "RUST_RECURSION_COUNT"),
             Some(if force { "7" } else { "4" }.into())
         );
+        for key in [
+            "MAKEFLAGS",
+            "MAKELEVEL",
+            "MAKE_RESTARTS",
+            "MAKEFILES",
+            "MAKE_TERMERR",
+            "MAKE_TERMOUT",
+            "GNUMAKEFLAGS",
+            "CARGO_MAKEFLAGS",
+        ] {
+            assert_eq!(command_value(&command, key), None);
+        }
         let actual = command_value(&command, loader).unwrap();
         if force {
             assert_eq!(actual, "configured-loader");

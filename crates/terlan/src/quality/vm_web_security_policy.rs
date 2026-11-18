@@ -422,7 +422,7 @@ fn validate_required_security_test_terms(root: &Path) -> QualityResult<Vec<Strin
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile"))
+    let text = crate::quality::support::read_make_graph(root)
         .map_err(|err| format!("Makefile: failed to read VM web security policy gate: {err}"))?;
     Ok(REQUIRED_GATE_TERMS
         .iter()

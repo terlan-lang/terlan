@@ -755,8 +755,8 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
 
 pub compiler_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [changes, source-preflight, check]") == 3
-        and occurrences(workflow, "needs: changes\n    name: Compiler check and test") == 1
-        and not workflow.contains("needs: [changes, source-preflight]\n    name: Compiler check and test").
+        and occurrences(workflow, "needs: [changes, source-preflight]\n    name: Compiler check and test") == 1
+        and not workflow.contains("needs: changes\n    name: Compiler check and test").
 
 pub release_audit_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [revision, dependency-audit]") == 3.
@@ -917,7 +917,8 @@ pub workflow_contract(): Bool ->
                     "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl",
                 ),
             );
-        Ok(makefile) <- read_text(child(root, "Makefile"))
+        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Ok(release_makefile) <- read_text(child(root, "mk/release-publish.mk"))
     } else {
         _ -> failure("workflow", "cannot read workflow contract inputs")
     };
@@ -935,15 +936,30 @@ pub workflow_contract(): Bool ->
         occurrences(ci, "      - \"docs/**\"") != 2 -> failure("workflow", "CI path filters drifted");
         release.contains("    tags:\n") -> failure("workflow", "release validation must not rerun after tagging");
         not release.contains("run: make release-hosted-validation-check") -> failure("workflow", "hosted release contract gate is missing");
-        not makefile
-    .contains(
-        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",
-    ) -> failure("workflow", "hosted release graph is incomplete");
+        not hosted_release_graph_valid(release_makefile) -> failure("workflow", "hosted release graph is incomplete");
         release.contains("self-hosted") -> failure("workflow", "release validation must use hosted runners only");
         release.contains("run: make vm-multicore-performance-check") -> failure("workflow", "host-sensitive performance must remain diagnostic-only");
         not evidence_present(release, release_evidence()) -> failure("workflow", "release evidence retention is incomplete");
         true -> true
     }.
+
+pub hosted_release_graph_valid(makefile: String): Bool ->
+    when {
+        [_before, suffix] <- String.split(makefile, "release-hosted-validation-check:");
+        [declaration | _rest] <- String.split(suffix, "\n\n")
+    } else {
+        _ -> false
+    };
+    fragments_present(
+        declaration,
+        [
+            "tvm-aot-platform-aggregate-check",
+            "release-artifact-set-check",
+            "release-hosted-multicore-evidence-check",
+            "tvm-aot-release-closeout-contract-check",
+            "release-hosted-publication-verifier",
+        ],
+    ).
 
 pub is_sha256(value: String): Bool ->
     case Regex.compile("^[0-9a-f]{64}$") {

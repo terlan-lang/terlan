@@ -116,6 +116,7 @@ node scripts/git_hooks/filter_version_changes.cjs "$base" "$tree" "$raw_changes"
 # cannot be omitted from the commit.
 dependency_report=docs/quality/RUST_DEPENDENCY_IMPACT.json
 headroom_report=docs/quality/RUST_FILE_HEADROOM.tsv
+api_inventory_report=docs/quality/RUST_STRING_ERROR_INVENTORY.tsv
 dependency_report_refresh=false
 rust_report_input=false
 if rg -q '(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
@@ -123,7 +124,7 @@ if rg -q '(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\
   rust_report_input=true
 fi
 if [[ "$rust_report_input" == true ]]; then
-  for generated_report in "$dependency_report" "$headroom_report"; do
+  for generated_report in "$api_inventory_report" "$dependency_report" "$headroom_report"; do
     if ! git diff --quiet -- "$generated_report"; then
       echo "pre-commit: $generated_report is already modified; stage it before retrying" >&2
       exit 1
@@ -203,15 +204,16 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
     bash scripts/git_hooks/check.sh "$changes" "$base"
   fi
   if [[ "$dependency_report_refresh" == true ]] \
-    && { ! git diff --quiet -- "$dependency_report" \
+    && { ! git diff --quiet -- "$api_inventory_report" \
+      || ! git diff --quiet -- "$dependency_report" \
       || ! git diff --quiet -- "$headroom_report"; }; then
     while IFS= read -r generated_report; do
       case "$generated_report" in
-        "$dependency_report"|"$headroom_report") ;;
+        "$api_inventory_report"|"$dependency_report"|"$headroom_report") ;;
         *) echo "pre-commit: unexpected generated path $generated_report" >&2; exit 1 ;;
       esac
     done < <(git diff --name-only)
-    for generated_report in "$dependency_report" "$headroom_report"; do
+    for generated_report in "$api_inventory_report" "$dependency_report" "$headroom_report"; do
       if git diff --quiet -- "$generated_report"; then
         continue
       fi

@@ -1,6 +1,6 @@
 //! Router declarations must be real source values, not unchanged placeholders.
 
-use super::source_constructor_test::check_sources;
+use super::source_constructor_test::{check_source_roots, check_sources};
 
 const ROUTER: &str = include_str!("../../../../../std/http/Router.terl");
 
@@ -200,21 +200,47 @@ pub check(): Bool ->
     scope_sizes(original.#entries) == [{1, 1}]
         and scope_sizes(router.#entries) == [{2, 2}, {5, 5}, {5, 5}, {5, 5}, {4, 4}, {2, 2}, {2, 2}].
 "#;
-    check_router(body, "std.http.Router");
-    check_router(body, "app.Routes");
     let changed = ROUTER.replace(
         "insert_callbacks(scoped.#callbacks, middleware_offset, middleware)",
         "scoped.#callbacks",
     );
     assert_ne!(changed, ROUTER);
-    check_router_provider(
-        &changed,
-        &body
-            .replace("{1, 1}", "{0, 1}")
-            .replace("{2, 2}", "{0, 2}")
-            .replace("{4, 4}", "{0, 4}")
-            .replace("{5, 5}", "{0, 5}"),
-        "std.http.Router",
+    let changed_body = body
+        .replace("{1, 1}", "{0, 1}")
+        .replace("{2, 2}", "{0, 2}")
+        .replace("{4, 4}", "{0, 4}")
+        .replace("{5, 5}", "{0, 5}");
+    check_router(body, "std.http.Router");
+    let provider = |source: &str, body: &str, owner: &str| {
+        let mut source = format!("{source}\nimport std.http.{{Response, Sse, WebSocket}}.\n{body}")
+            .replace("std.http.Router", owner);
+        if owner != "std.http.Router" {
+            source = source
+                .replace("pub type LifecycleAllow.", "")
+                .replace("pub type Continue.", "")
+                .replacen(
+                    &format!("module {owner}."),
+                    &format!(
+                        "module {owner}.\n\nimport type std.http.Router.{{Continue, LifecycleAllow}}."
+                    ),
+                    1,
+                );
+        }
+        source
+    };
+    let relocated = provider(ROUTER, body, "app.Routes");
+    let mutated = provider(&changed, &changed_body, "app.ChangedRoutes");
+    check_source_roots(
+        &[
+            &relocated,
+            &mutated,
+            include_str!("../../../../../std/http/Response.terl"),
+            include_str!("../../../../../std/http/Request.terl"),
+            include_str!("../../../../../std/http/Sse.terl"),
+            include_str!("../../../../../std/http/WebSocket.terl"),
+            include_str!("../../../../../std/http/Error.terl"),
+        ],
+        &[0, 1],
     );
 }
 

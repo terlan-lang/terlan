@@ -100,8 +100,8 @@ fn release_gate_shard_resume_rejects_owner_bypass_and_recursive_composition() {
 /// Production declarations, including target-specific exports, satisfy the contract.
 #[test]
 fn release_gate_shard_resume_accepts_repository_live_coverage_graph() {
-    let makefile =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let makefile = crate::quality::support::read_make_graph(&root).unwrap();
     assert_eq!(validate_release_makefile(&makefile), Vec::<String>::new());
 }
 

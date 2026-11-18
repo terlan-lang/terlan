@@ -1,6 +1,8 @@
 //! Execute the production preparation recipe with fixture-owned external services.
 #![cfg(unix)]
 
+mod support;
+
 use std::fs;
 use std::io::Write;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
@@ -111,6 +113,59 @@ fn executable(path: &Path, contents: &str) {
     fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
 }
 
+fn make_recipe(source: &str, target: &str) -> String {
+    let prefix = format!("{target}:");
+    let lines = source.lines().collect::<Vec<_>>();
+    for (index, line) in lines.iter().enumerate() {
+        if !line.starts_with(&prefix) || line[prefix.len()..].starts_with('=') {
+            continue;
+        }
+        let end = lines[index + 1..]
+            .iter()
+            .position(|candidate| !candidate.starts_with('\t'))
+            .map_or(lines.len(), |offset| index + 1 + offset);
+        if lines[index + 1..end]
+            .iter()
+            .any(|candidate| candidate.starts_with('\t'))
+        {
+            return format!("{}\n", lines[index..end].join("\n"));
+        }
+    }
+    panic!("{target} has no recipe");
+}
+
+fn make_declarations(source: &str, target: &str) -> String {
+    let prefix = format!("{target}:");
+    let mut declarations = source
+        .lines()
+        .filter(|line| line.starts_with(&prefix))
+        .collect::<Vec<_>>();
+    assert!(!declarations.is_empty(), "{target} is not declared");
+    declarations.push("");
+    declarations.join("\n")
+}
+
+fn source_line(source: &str, prefix: &str) -> String {
+    format!(
+        "{}\n",
+        source
+            .lines()
+            .find(|line| line.starts_with(prefix))
+            .unwrap_or_else(|| panic!("missing Make source line: {prefix}"))
+    )
+}
+
+fn preparation_goal_guard(source: &str) -> String {
+    let start = source
+        .find("ifneq ($(filter publish-preparation-cold,$(MAKECMDGOALS)),)")
+        .expect("cold preparation goal guard is declared");
+    let end = source[start..]
+        .find("\n.PHONY: terlan-build-owner-bootstrap")
+        .expect("preparation goal guard has a boundary")
+        + start;
+    format!("{}\n", &source[start..end])
+}
+
 fn successful_owner_outputs(root: &Path) -> Vec<(String, Vec<u8>)> {
     let mut outputs = fs::read_dir(root)
         .unwrap()
@@ -204,23 +259,20 @@ fn fixture() -> Fixture {
             .join("scripts/download_validated_release_artifacts.sh"),
         "#!/bin/sh\ntest \"$1\" = fixture-revision\n",
     );
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let publication_input_timeout = source
         .lines()
         .find(|line| line.starts_with("TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?="))
         .expect("publication input timeout default is declared");
-    let begin = source
-        .find("\npublish-prepare: publish-source-preflight\n")
-        .unwrap()
-        + 1;
-    let end = source[begin..]
-        .find("\npublish-cache-prune: | terlan-release-promotion-bootstrap")
-        .unwrap()
-        + begin;
     let mut make = format!(
-        "SHELL := /bin/bash\nVERSION := fixture\n{publication_input_timeout}\n{}\n",
-        &source[begin..end],
+        "SHELL := /bin/bash\nVERSION := fixture\n{publication_input_timeout}\n{}{}{}{}{}{}{}",
+        make_recipe(&source, "publish-prepare"),
+        make_recipe(&source, "publish-prepare-locked"),
+        make_recipe(&source, "publish-preparation-verified"),
+        make_declarations(&source, "publish-preparation-checks"),
+        make_declarations(&source, "publish-preparation-cold"),
+        make_declarations(&source, "publish-preparation-warm"),
+        preparation_goal_guard(&source),
     );
     let recipe =
         "\t@TERLAN_PREPARE_STAGE=$@ \"$(FIXTURE_CHILD)\" --exact preparation_leaf --nocapture\n";
@@ -465,8 +517,7 @@ fn full_candidate_rehearsal_covers_cold_warm_resume_and_upload_retry() {
     let fixture = fixture();
     let make_path = fixture.0.join("Makefile");
     let mut make = fs::read_to_string(&make_path).unwrap();
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source.find("\npublish-upload:\n").unwrap();
     let end = start
         + source[start..]
@@ -651,8 +702,7 @@ fn mismatched_rust_channel_is_rejected_before_preparation_producers() {
 
 #[test]
 fn preparation_network_and_binary_probes_have_outer_deadlines() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\npublish-prepare: publish-source-preflight\n")
         .unwrap()
@@ -800,8 +850,7 @@ fn preparation_rejects_symlinked_directories_before_creating_lock_storage() {
 
 #[test]
 fn clean_bootstrap_uses_one_receipt_owner_and_dirty_bootstrap_falls_back_safely() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\nterlan-compiler-bootstrap:\n")
         .expect("compiler bootstrap target is declared")
@@ -824,8 +873,7 @@ fn clean_bootstrap_uses_one_receipt_owner_and_dirty_bootstrap_falls_back_safely(
 
 #[test]
 fn aot_release_default_feature_check_records_an_owned_cargo_launch() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     assert!(source.contains(
         "AOT_RELEASE_CARGO_CHECK := $(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds"
     ));
@@ -834,8 +882,7 @@ fn aot_release_default_feature_check_records_an_owned_cargo_launch() {
 
 #[test]
 fn hosted_proof_scripts_use_private_owner_outputs() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     for (stage, variable, script) in [
         ("smoke", "SMOKE", "LeanProofSmokeTest"),
         ("lanes", "LANES", "LeanProofLanesTest"),
@@ -867,8 +914,7 @@ fn hosted_proof_scripts_use_private_owner_outputs() {
 
 #[test]
 fn every_typed_aot_release_producer_declares_the_compiler_owner() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let producers = [
         "terlan-artifact-measurement-bootstrap",
         "terlan-make-recipe-bootstrap",
@@ -900,8 +946,7 @@ fn every_typed_aot_release_producer_declares_the_compiler_owner() {
 /// Execute the production dependency edges with fixture-owned leaf commands.
 #[test]
 fn hosted_native_proof_failure_blocks_parallel_distribution() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let stages = [
         "publish-evidence-source-prerequisites",
         "lean-proof-track-runtime-check",
@@ -981,8 +1026,7 @@ fn hosted_native_proof_failure_blocks_parallel_distribution() {
 
 #[test]
 fn owner_graph_closeout_has_one_entry_point_for_every_rehearsal() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("release-preparation-owner-graph-check:")
         .expect("owner graph closeout target is declared");
@@ -1014,8 +1058,7 @@ fn owner_graph_closeout_has_one_entry_point_for_every_rehearsal() {
 
 #[test]
 fn quality_tools_bootstrap_uses_shared_receipt_owner_for_clean_candidates() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\nterlan-quality-tools-bootstrap:")
         .expect("quality-tools bootstrap target is declared")
@@ -1047,8 +1090,7 @@ fn quality_tools_bootstrap_uses_shared_receipt_owner_for_clean_candidates() {
 
 #[test]
 fn benchmark_release_bootstrap_binds_all_release_binaries_to_one_owner() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\nterlan-benchmark-release-bootstrap:")
         .expect("benchmark bootstrap target is declared")
@@ -1071,8 +1113,7 @@ fn benchmark_release_bootstrap_binds_all_release_binaries_to_one_owner() {
 
 #[test]
 fn http_benchmark_bootstrap_binds_all_comparison_binaries_to_one_owner() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\nterlan-http-benchmark-release-bootstrap:")
         .expect("HTTP benchmark bootstrap target is declared")
@@ -1102,8 +1143,7 @@ fn http_benchmark_bootstrap_binds_all_comparison_binaries_to_one_owner() {
 
 #[test]
 fn serve_runtime_bootstrap_binds_profile_binary_to_one_owner() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\nterlan-serve-runtime-bootstrap:")
         .expect("serve runtime bootstrap target is declared")
@@ -1122,8 +1162,7 @@ fn serve_runtime_bootstrap_binds_profile_binary_to_one_owner() {
 
 #[test]
 fn preparation_always_runs_locked_publication_cache_retirement() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     for mode in ["cold", "warm"] {
         let target = format!("publish-preparation-{mode}:");
         let line = source
@@ -1148,8 +1187,7 @@ fn preparation_always_runs_locked_publication_cache_retirement() {
 
 #[test]
 fn preparation_branches_share_one_resource_admission() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let prepare_start = source
         .find("\npublish-prepare: publish-source-preflight\n")
         .expect("publish preparation entry point is declared");
@@ -1212,17 +1250,8 @@ fn preparation_branches_share_one_resource_admission() {
             .any(|dependency| dependency == "lean-proof-lanes-check"),
         "the canonical refresh owner must include smoke/lane/native-boundary gates"
     );
-    let resource_start = source
-        .find("\nrust-build-resource-admission: rust-build-cache-bootstrap\n")
-        .expect("resource admission recipe is declared")
-        + 1;
-    let resource_end = source[resource_start..]
-        .find("\n\nrust-incremental-cache-audit:")
-        .expect("resource admission recipe has a boundary")
-        + resource_start;
-    assert!(
-        source[resource_start..resource_end].contains("$(TERLAN_PREPARATION_OWNER) timeout 120s")
-    );
+    assert!(make_recipe(&source, "rust-build-resource-admission")
+        .contains("$(TERLAN_PREPARATION_OWNER) timeout 120s"));
 }
 
 #[test]
@@ -1282,21 +1311,20 @@ fn interrupted_preparation_resumes_only_the_failed_owner() {
 /// Cold hosted and warm publication paths select the same checkpoint command.
 #[test]
 fn distribution_routing_preserves_standalone_checks_and_candidate_failure() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
-    let start = source.find("\nTERLAN_STAGED_DISTRIBUTION_RUN =").unwrap() + 1;
-    let end = source[start..]
-        .find("\nterlan-web-manifest-preflight-bootstrap:")
-        .unwrap()
-        + start;
-    let hosted = source
-        .lines()
-        .find(|line| {
-            line.starts_with(
-                "release-staged-distribution-verification-check: TERLAN_STAGED_DISTRIBUTION_RUN =",
-            )
-        })
-        .unwrap();
+    let source = crate::support::read_make_sources();
+    let routing = format!(
+        "{}{}{}{}{}{}",
+        source_line(&source, "TERLAN_STAGED_DISTRIBUTION_RUN ="),
+        source_line(&source, "TERLAN_OWNED_STAGED_DISTRIBUTION ="),
+        make_recipe(&source, "release-staged-distribution-verification-check"),
+        make_recipe(&source, "release-staged-distribution-verification-refresh"),
+        make_declarations(&source, "publish-staged-distribution-prepare"),
+        make_declarations(&source, "release-preparation-staged-distribution-check"),
+    );
+    let hosted = source_line(
+        &source,
+        "release-staged-distribution-verification-check: TERLAN_STAGED_DISTRIBUTION_RUN =",
+    );
     for (goal, is_hosted, fault, owned) in [
         (
             "release-staged-distribution-verification-check",
@@ -1350,11 +1378,10 @@ fi
             "SHELL := /bin/bash\nTERLAN_RELEASE_PROMOTION := {}\nTERLAN_TVM_PLATFORM_MATRIX := {}\nTERLAN_TVM_PLATFORM_MATRIX_IMAGE := matrix.tvm\nTERLAN_BOOTSTRAP_VM := fixture-vm\nRELEASE_VERSION := fixture\n{}\nrelease-readiness-attestation-check release-readiness-attestation-refresh terlan-tvm-platform-matrix-bootstrap terlan-release-promotion-bootstrap:\n\t@true\n",
             service.display(),
             service.display(),
-            &source[start..end]
+            routing
         );
         if is_hosted {
-            make.push_str(hosted);
-            make.push('\n');
+            make.push_str(&hosted);
         }
         fs::write(fixture.0.join("Makefile"), make).unwrap();
         let mut command = Command::new("make");
@@ -1392,8 +1419,7 @@ fi
 
 #[test]
 fn readiness_routing_uses_one_owned_producer_and_stops_on_failure() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source.find("\nTERLAN_READINESS_RUN =").unwrap() + 1;
     let end = source[start..]
         .find("\nTERLAN_STAGED_DISTRIBUTION_RUN =")

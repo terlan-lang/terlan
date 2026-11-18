@@ -29,23 +29,6 @@ fn record(artifact: &Value) -> Vec<u8> {
     format!("{artifact}\n").into_bytes()
 }
 
-#[test]
-fn workspace_phase_rejects_a_recompiled_or_unproven_main_library_unit() {
-    let (root, artifact) = fixture();
-    for fresh in [
-        Value::Null,
-        serde_json::json!(false),
-        serde_json::json!(true),
-    ] {
-        let mut message = artifact.clone();
-        message["fresh"] = fresh.clone();
-        let mut stream = CargoArtifactStream::terlan_library(&root.0).unwrap();
-        stream.require_fresh_main();
-        let result = stream.observe(&record(&message), control(), |_| Ok(()));
-        assert_eq!(result.is_ok(), fresh == true);
-    }
-}
-
 fn second(root: &Path, artifact: &Value) -> Value {
     let mut artifact = artifact.clone();
     artifact["target"] =

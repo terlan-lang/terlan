@@ -1,0 +1,136 @@
+/**
+ * Reads the compact Rust audit projection used by workspace policy checks.
+ */
+module rust_quality.WorkspacePolicyInput.
+
+import rust_quality.SourceInventory.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, Int, String}.
+import std.data.Json.
+import std.io.File.{read_text}.
+
+import type std.core.Option.
+import type std.data.Json.
+
+pub struct Allowance {
+    path: String,
+    lints: String,
+    inner: Bool,
+}.
+
+pub struct Input {
+    valid: Bool,
+    paths: List[String],
+    allowances: List[Allowance],
+    message: String,
+}.
+
+@pure
+pub allowance(path: String, lints: String, inner: Bool): Allowance ->
+    Allowance(path = path, lints = lints, inner = inner).
+
+@pure
+failure(message: String): Input ->
+    Input(
+        valid = false,
+        paths = List.new[String](),
+        allowances = List.new[Allowance](),
+        message = message,
+    ).
+
+@pure
+json_get(value: Json, key: String): Option[Json] ->
+    case Json.get(value, key) {
+        Ok(child) -> Some(child);
+        Err(_reason) -> None
+    }.
+
+@pure
+json_string(value: Json, key: String): Option[String] ->
+    when {
+        Some(child) <- json_get(value, key);
+        Ok(selected) <- Json.as_string(child)
+    } else {
+        _ -> None
+    };
+    Some(selected).
+
+@pure
+json_bool(value: Json, key: String): Option[Bool] ->
+    when {
+        Some(child) <- json_get(value, key);
+        Ok(selected) <- Json.as_bool(child)
+    } else {
+        _ -> None
+    };
+    Some(selected).
+
+@pure
+source_paths(rows: Json, index: Int, count: Int, output: List[String]): Input ->
+    if {
+        index == count -> Input(
+            valid = true,
+            paths = SourceInventory.reverse(output),
+            allowances = List.new[Allowance](),
+            message = "",
+        );
+        true -> when {
+            Ok(row) <- Json.at(rows, index);
+            Some(path) <- json_string(row, "path")
+        } else {
+            _ -> failure("Rust structural input has a malformed source file row")
+        };
+        source_paths(rows, index + 1, count, [path | output])
+    }.
+
+@pure
+allowance_rows(rows: Json, index: Int, count: Int, output: List[Allowance]): Input ->
+    if {
+        index == count -> Input(
+            valid = true,
+            paths = List.new[String](),
+            allowances = SourceInventory.reverse(output),
+            message = "",
+        );
+        true -> when {
+            Ok(row) <- Json.at(rows, index);
+            Some(path) <- json_string(row, "path");
+            Some(kind) <- json_string(row, "kind");
+            Some(lints) <- json_string(row, "lints");
+            Some(inner) <- json_bool(row, "inner")
+        } else {
+            _ -> failure("Rust structural input has a malformed lint attribute row")
+        };
+        (let next =
+    if {
+        kind == "allow" -> [Allowance(path = path, lints = lints, inner = inner) | output];
+        true -> output
+    };
+allowance_rows(rows, index + 1, count, next))
+    }.
+
+pub load(root: String): Input ->
+    case read_text(SourceInventory.child(root, "target/quality/rust-structural-input.json")) {
+        Err(_reason) -> failure("target/quality/rust-structural-input.json is missing");
+        Ok(source) ->
+            when {
+                Ok(document) <- Json.parse(source);
+                Some(schema) <- json_string(document, "schema");
+                Some(files) <- json_get(document, "source_files");
+                Ok(file_count) <- Json.length(files);
+                Some(attributes) <- json_get(document, "policy_lint_attributes");
+                Ok(attribute_count) <- Json.length(attributes)
+            } else {
+                _ -> failure("Rust structural input is malformed")
+            };
+            (let paths = source_paths(files, 0, file_count, List.new[String]());
+let allowances = allowance_rows(attributes, 0, attribute_count, List.new[Allowance]());
+if {
+    schema != "terlan.rust-structural-input.v1" -> failure("Rust structural input has an unsupported schema");
+    not paths.valid -> paths;
+    not allowances.valid -> allowances;
+    true -> Input(valid = true, paths = paths.paths, allowances = allowances.allowances, message = "")
+})
+    }.

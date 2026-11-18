@@ -17,12 +17,56 @@ preflight_plan="${changes%.txt}.preflight-plan"
 plan="${changes%.txt}.plan"
 specialized_tests="${changes%.txt}.specialized-tests.txt"
 prechecked_terlan="${changes%.txt}.prechecked-terlan.txt"
+compiler_package_roots() {
+  if [[ ! -f Cargo.toml ]]; then
+    if [[ -d scripts ]]; then printf 'scripts\n'; else printf '.\n'; fi
+    return
+  fi
+  cargo metadata --locked --format-version 1 --features terlan/validation-union \
+    | jq -r '
+      . as $metadata
+      | ($metadata.packages[] | select(.name == "terlan") | .id) as $root
+      | def expand:
+          . as $ids
+          | reduce ($metadata.resolve.nodes[]
+              | select(.id as $id | $ids | index($id))
+              | .deps[].pkg) as $dependency
+              ($ids; if index($dependency) then . else . + [$dependency] end);
+        [$root]
+      | until((expand) == .; expand)
+      | . as $ids
+      | $metadata.packages[]
+      | select(.source == null and (.id as $id | $ids | index($id)))
+      | .manifest_path
+    ' \
+    | while IFS= read -r manifest; do
+        realpath --relative-to="$PWD" "$(dirname "$manifest")"
+      done \
+    | LC_ALL=C sort -u
+}
+compiler_source_is_test_only() {
+  local path=$1
+  case "/$path/" in
+    */tests/*|*/*_test/*|*/*_tests/*) return 0 ;;
+  esac
+  case "$path" in
+    *_test.rs|*_test_support.rs|*_test_fixture.rs) return 0 ;;
+  esac
+  return 1
+}
 compiler_input_key="$({
-  printf '%s\n' terlan-staged-compiler-input-v2
+  printf '%s\n' terlan-staged-compiler-input-v4
   git ls-files -s -z -- \
-    Cargo.toml Cargo.lock rust-toolchain.toml .cargo \
-    ':(glob)**/Cargo.toml' ':(glob)**/*.rs' ':(glob)**/*.lalrpop' \
-    ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop'
+    Cargo.toml Cargo.lock rust-toolchain.toml .cargo
+  while IFS= read -r package_root; do
+    while IFS= read -r -d '' entry; do
+      path=${entry#*$'\t'}
+      if ! compiler_source_is_test_only "$path"; then
+        printf '%s\0' "$entry"
+      fi
+    done < <(git ls-files -s -z -- "$package_root" \
+      ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop')
+  done < <(compiler_package_roots)
   if [[ -f crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop ]]; then
     printf 'normalized-lalrpop:'
     sed '/^\/\/ canonical-ebnf-sha256: /d' \
@@ -110,19 +154,19 @@ if [[ "$compiler_build" == true ]]; then
   # Invalidate workspace-owned fingerprints before every required rebuild.
   cache_metadata=$(mktemp)
   cargo metadata --locked --no-deps --format-version 1 > "$cache_metadata"
-  invalidate_workspace_cache() {
+  cleanup_cache_metadata() {
     local result=$?
     trap - EXIT
-    node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR" || result=1
     rm -f "$cache_metadata"
     exit "$result"
   }
-  trap invalidate_workspace_cache EXIT
-  node scripts/git_hooks/invalidate_workspace_cache.cjs "$cache_metadata" "$CARGO_TARGET_DIR"
+  trap cleanup_cache_metadata EXIT
+  node scripts/git_hooks/invalidate_workspace_cache.cjs \
+    "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
   echo 'pre-commit: build the changed staged compiler'
   # Use the quality superset once. Building without it and the report binary
   # with it would alternate two `terlan` feature graphs.
-  cargo build --locked -p terlan --bin terlc --bin terlan-vm --features quality-tools
+  cargo build --locked -p terlan --bin terlc --bin terlan-vm --features validation-union
   terlc="$target_terlc"
   export TERLC="$terlc"
   run_plan "$terlc"
@@ -406,7 +450,9 @@ fi
 release_tools_ready=false
 quality_tools_ready=false
 orchestrator_ready=false
+orchestrator_path=
 native_test_companions_ready=false
+test_program_snapshots_ready=false
 ensure_release_tools() {
   if [[ "$release_tools_ready" == false ]]; then
     echo 'pre-commit: build required release tools once'
@@ -419,27 +465,111 @@ ensure_release_tools() {
 }
 ensure_quality_tools() {
   if [[ "$quality_tools_ready" == false ]]; then
-    cargo build --locked -p terlan --bin terlan-quality --features quality-tools
+    cargo build --locked -p terlan --bin terlan-quality --features validation-union
     quality_tools_ready=true
   fi
 }
 ensure_orchestrator() {
   if [[ "$orchestrator_ready" == false ]]; then
+    local source digest directory temporary
     cargo build --locked -p terlan-test-orchestrator
+    source="$CARGO_TARGET_DIR/debug/terlan-test-orchestrator"
+    digest=$(sha256sum "$source" | awk '{print $1}')
+    directory="$CARGO_TARGET_DIR/validation-tools"
+    orchestrator_path="$directory/terlan-test-orchestrator-$digest"
+    mkdir -p "$directory"
+    if [[ ! -x "$orchestrator_path" \
+      || "$(sha256sum "$orchestrator_path" | awk '{print $1}')" != "$digest" ]]; then
+      temporary="$orchestrator_path.tmp.$$"
+      install -m 755 "$source" "$temporary"
+      mv "$temporary" "$orchestrator_path"
+    fi
     orchestrator_ready=true
   fi
 }
 ensure_native_test_companions() {
   if [[ "$native_test_companions_ready" == false ]]; then
-    echo 'pre-commit: build required native test companions once'
-    cargo build --locked -p terlan --bin terlan-native-worker --features quality-tools
+    local worker="$CARGO_TARGET_DIR/debug/terlan-native-worker"
+    local receipt="$CARGO_TARGET_DIR/.terlan-native-worker-input"
+    if [[ -x "$worker" \
+      && ! -L "$worker" \
+      && -f "$receipt" \
+      && ! -L "$receipt" \
+      && $(wc -l < "$receipt") == 1 \
+      && $(sed -n '1p' "$receipt") == "$compiler_input_key" ]]; then
+      echo 'pre-commit: reuse exact native test companion'
+    else
+      echo 'pre-commit: build required native test companion once'
+      cargo build --locked -p terlan --bin terlan-native-worker --features validation-union
+      local temporary_receipt
+      temporary_receipt=$(mktemp "$CARGO_TARGET_DIR/.terlan-native-worker-input.XXXXXX")
+      printf '%s\n' "$compiler_input_key" > "$temporary_receipt"
+      mv "$temporary_receipt" "$receipt"
+    fi
     native_test_companions_ready=true
   fi
   export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"
 }
+snapshot_test_programs() {
+  local name source digest material= set_digest directory destination temporary
+  for name in terlc terlan-vm terlan-native-worker; do
+    source="$CARGO_TARGET_DIR/debug/$name"
+    test -x "$source"
+    digest=$(sha256sum "$source" | awk '{print $1}')
+    material+="$name $digest"$'\n'
+  done
+  set_digest=$(printf '%s' "$material" | sha256sum | awk '{print $1}')
+  directory="$CARGO_TARGET_DIR/validation-tools/test-programs-$set_digest"
+  mkdir -p "$directory"
+  for name in terlc terlan-vm terlan-native-worker; do
+    source="$CARGO_TARGET_DIR/debug/$name"
+    digest=$(sha256sum "$source" | awk '{print $1}')
+    destination="$directory/$name"
+    if [[ ! -x "$destination" \
+      || $(sha256sum "$destination" | awk '{print $1}') != "$digest" ]]; then
+      temporary="$destination.tmp.$$"
+      install -m 755 "$source" "$temporary"
+      mv "$temporary" "$destination"
+    fi
+  done
+  printf '%s\n' "$directory"
+}
+ensure_test_program_snapshots() {
+  if [[ "$test_program_snapshots_ready" == false ]]; then
+    local directory
+    ensure_native_test_companions
+    directory=$(snapshot_test_programs)
+    export TERLAN_RUST_SUITE_TERLC
+    export TERLAN_RUST_SUITE_VM
+    export TERLAN_RUST_SUITE_NATIVE_WORKER
+    TERLAN_RUST_SUITE_TERLC="$directory/terlc"
+    TERLAN_RUST_SUITE_VM="$directory/terlan-vm"
+    TERLAN_RUST_SUITE_NATIVE_WORKER="$directory/terlan-native-worker"
+    test_program_snapshots_ready=true
+  fi
+}
+compiler_heavy_test_shape() {
+  local host_threads build_threads test_threads
+  host_threads=$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1\n')
+  if [[ ! "$host_threads" =~ ^[1-9][0-9]*$ ]]; then host_threads=1; fi
+  build_threads=$(((host_threads + 1) / 2))
+  if (( build_threads > 4 )); then build_threads=4; fi
+  test_threads=$((host_threads / build_threads))
+  if (( test_threads < 1 )); then test_threads=1; fi
+  printf '%s %s\n' "$build_threads" "$test_threads"
+}
+run_compiler_heavy_rust_tests() {
+  local default_build_threads default_test_threads build_threads test_threads
+  read -r default_build_threads default_test_threads < <(compiler_heavy_test_shape)
+  build_threads=${TERLAN_BUILD_JOBS:-$default_build_threads}
+  test_threads=${RUST_TEST_THREADS:-$default_test_threads}
+  echo "pre-commit: compiler-heavy Rust shape: tests=$test_threads builds=$build_threads"
+  RUST_TEST_THREADS=$test_threads TERLAN_BUILD_JOBS=$build_threads \
+    bash scripts/run_exact_cargo_test.sh "$@"
+}
 run_commands_test_lane() {
-  bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::test:: \
-    && bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+  run_compiler_heavy_rust_tests --locked -p terlan --lib commands::test:: \
+    && run_compiler_heavy_rust_tests --locked -p terlan --lib \
     tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 }
 run_rust_reports_lane() {
@@ -497,11 +627,12 @@ run_core_contracts_lane() {
 
 run_affected_rust_lane() {
   local lane=$1 filter
+  affected_rust_lane_supported=true
   case "$lane" in
     commands-test) run_commands_test_lane ;;
     commands)
       ensure_native_test_companions
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::
+      run_compiler_heavy_rust_tests --locked -p terlan --lib commands::
       ;;
     commands-emit-js)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
@@ -532,18 +663,84 @@ run_affected_rust_lane() {
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib "$filter"
       ;;
     workspace)
-      ensure_native_test_companions
-      bash scripts/run_exact_cargo_test.sh --locked --workspace --all-targets
+      ensure_test_program_snapshots
+      ensure_orchestrator
+      run_workspace_suite
       ;;
     dependencies) cargo check --locked --workspace --all-targets ;;
-    test-orchestrator) cargo test --locked -p terlan-test-orchestrator ;;
-    rust-boundary-audit) cargo test --locked -p terlan-rust-boundary-audit ;;
-    *) return 2 ;;
+    test-orchestrator) cargo test --profile dev --locked -p terlan-test-orchestrator ;;
+    rust-boundary-audit) cargo test --profile dev --locked -p terlan-rust-boundary-audit ;;
+    *) affected_rust_lane_supported=false; return 2 ;;
   esac
+}
+
+run_workspace_suite() {
+  local status
+  local report="$PWD/target/quality/rust-test-suite-report.json"
+  local metadata="$PWD/target/quality/rust-cargo-metadata.json"
+  local receipts="${TERLAN_RUST_PHASE_RECEIPT_DIR:-${CARGO_TARGET_DIR:-$PWD/target}/validation-results/rust-phases}"
+  TERLC="$TERLAN_RUST_SUITE_TERLC" \
+  TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+  TERLAN_RUST_ORCHESTRATOR="$orchestrator_path" \
+  TERLAN_CARGO_METADATA_OWNER="$orchestrator_path" \
+    "$orchestrator_path" --cargo-metadata "$metadata" -- cargo
+  if TERLC="$TERLAN_RUST_SUITE_TERLC" \
+    TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+    TERLAN_RUST_ORCHESTRATOR="$orchestrator_path" \
+    TERLAN_CARGO_METADATA_OWNER="$orchestrator_path" \
+    TERLAN_RUST_SUITE_REPORT="$report" \
+    TERLAN_RUST_PHASE_RECEIPT_DIR="$receipts" \
+      "$orchestrator_path"; then
+    test -s "$report"
+    return 0
+  else
+    status=$?
+    echo "pre-commit: canonical Rust suite failed with status $status" >&2
+    return "$status"
+  fi
+}
+
+run_proof_coverage() {
+  ensure_quality_tools
+  ensure_test_program_snapshots
+  ensure_orchestrator
+  TERLC="$TERLAN_RUST_SUITE_TERLC" \
+  TERLAN_RUST_ORCHESTRATOR="$orchestrator_path" \
+    bash scripts/git_hooks/proofs.sh
+}
+
+run_release_contract_lane() {
+  ensure_quality_tools
+  ensure_orchestrator
+  "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
+  repository_validator_dir="$CARGO_TARGET_DIR/terlan-validators/repository-validation"
+  repository_validator_common="$repository_validator_dir/common.inputs.sha256"
+  repository_validator_image="$repository_validator_dir/vm/scripts_self_validation_RepositoryValidation.tvm"
+  repository_validator_identity=$("$terlc" build --print-toolchain-identity)
+  TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$repository_validator_identity" \
+    bash scripts/build_typed_validator.sh fingerprint \
+      "$repository_validator_common" "$terlc" std
+  bash scripts/build_typed_validator.sh \
+    "$repository_validator_image" \
+    "$repository_validator_common" \
+    scripts/self_validation/RepositoryValidation.terls \
+    scripts/self_validation/RepositoryValidationMain.terl -- \
+    "$terlc" build --incremental \
+      scripts/self_validation/RepositoryValidation.terls \
+      --target terlan-vm --out-dir "$repository_validator_dir"
+  make --no-print-directory vm-release-install-validation-check \
+    TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+    "TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality"
+  make --no-print-directory repository-build-release-contract-check \
+    TERLAN_VALIDATION_BOOTSTRAPPED=1 \
+    "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run $repository_validator_image --script-eval --"
+  printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
+  "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
 }
 
 rust_lane_receipt_schema=terlan-affected-rust-lane-v1
 rust_lane_receipt_dir="$CARGO_TARGET_DIR/validation-results/rust-lanes"
+workspace_lane_selected=false
 rust_lane_key() {
   local lane=$1
   {
@@ -559,6 +756,7 @@ rust_lane_key() {
 }
 run_cached_affected_rust_lane() {
   local lane=$1 key receipt temporary status
+  if [[ "$lane" == workspace ]]; then workspace_lane_selected=true; fi
   key=$(rust_lane_key "$lane")
   receipt="$rust_lane_receipt_dir/$lane-$key.passed"
   if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 \
@@ -585,7 +783,8 @@ if lane_has rust-reports; then
   echo 'pre-commit: early Rust report drift'
   run_rust_reports_lane
   if [[ ${TERLAN_RUST_REPORT_MODE:-check} == --record-dependency-impact ]] \
-    && { ! git diff --quiet -- docs/quality/RUST_DEPENDENCY_IMPACT.json \
+    && { ! git diff --quiet -- docs/quality/RUST_STRING_ERROR_INVENTORY.tsv \
+      || ! git diff --quiet -- docs/quality/RUST_DEPENDENCY_IMPACT.json \
       || ! git diff --quiet -- docs/quality/RUST_FILE_HEADROOM.tsv; }; then
     echo 'pre-commit: generated Rust reports regenerated; return them for staging'
     exit 0
@@ -642,6 +841,42 @@ if lane_has summaries; then
   echo 'pre-commit: early summary drift'
   run_summaries_lane
 fi
+if lane_has proofs; then
+  echo 'pre-commit: early proof source and policy contracts'
+  ensure_quality_tools
+  TERLC="$terlc" bash scripts/git_hooks/proof_baseline.sh
+fi
+
+# Static shell and Clippy diagnostics are candidate contracts. Run them before
+# any broad Rust test lane so a deterministic source failure never appears
+# after the canonical suite.
+if lane_has shell; then
+  echo 'pre-commit: early shell syntax'
+  while IFS= read -r path; do
+    if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
+  done < "$changes"
+  remaining_plan="${plan%.plan}.without-shell.plan"
+  rg -vx 'shell' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
+fi
+if lane_has clippy; then
+  echo 'pre-commit: early clippy'
+  make --no-print-directory rust-clippy-check
+  remaining_plan="${plan%.plan}.without-clippy.plan"
+  rg -vx 'clippy' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
+fi
+if lane_has release-contract; then
+  echo 'pre-commit: early release and install contract'
+  run_release_contract_lane
+  remaining_plan="${plan%.plan}.without-release-contract.plan"
+  rg -vx 'release-contract' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
+fi
+if preflight_has artifact-bootstrap; then
+  echo 'pre-commit: early artifact bootstrap ownership'
+  bash scripts/build_artifact_bootstrap_test.sh
+fi
 
 # Focused Terlan and generated-contract checks above are cheaper and produce
 # more actionable diagnostics than broad Cargo suites. Only after they pass,
@@ -649,11 +884,12 @@ fi
 remaining_plan="${plan%.plan}.remaining-plan"
 : > "$remaining_plan"
 while IFS= read -r lane; do
+  affected_rust_lane_supported=true
   if run_cached_affected_rust_lane "$lane"; then
     echo "pre-commit: early affected Rust lane passed: $lane"
   else
     lane_status=$?
-    if (( lane_status == 2 )); then
+    if [[ "$affected_rust_lane_supported" == false ]]; then
       printf '%s\n' "$lane" >> "$remaining_plan"
     else
       echo "pre-commit: early affected Rust lane failed: $lane" >&2
@@ -662,6 +898,19 @@ while IFS= read -r lane; do
   fi
 done < "$plan"
 mv "$remaining_plan" "$plan"
+if [[ "$workspace_lane_selected" == true ]] && lane_has native-bindings; then
+  echo 'pre-commit: canonical Rust suite owns native binding contracts'
+  remaining_plan="${plan%.plan}.without-native-bindings.plan"
+  rg -vx 'native-bindings' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
+fi
+if [[ "$workspace_lane_selected" == true ]] && lane_has proofs; then
+  echo 'pre-commit: proof runtime coverage immediately follows canonical Rust suite'
+  run_proof_coverage
+  remaining_plan="${plan%.plan}.without-proofs.plan"
+  rg -vx 'proofs' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
+fi
 
 if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'
@@ -713,10 +962,6 @@ if preflight_has editor-release; then
   echo 'pre-commit: editor release contracts'
   make --no-print-directory editor-release-contract-check
 fi
-if preflight_has artifact-bootstrap; then
-  echo 'pre-commit: artifact bootstrap ownership'
-  bash scripts/build_artifact_bootstrap_test.sh
-fi
 if preflight_has js-bindings; then
   echo 'pre-commit: generated JavaScript bindings'
   TERLAN_JS_BINDINGS_ROOT="$PWD" TERLAN_JS_BINDINGS_TERLC="$terlc" \
@@ -749,12 +994,6 @@ if preflight_has release-manifest; then
     --out-dir target/git-hooks-js-constructor-types
   TERLAN_RELEASE_MANIFEST_ROOT="$PWD" TERLAN_RELEASE_MANIFEST_TERLC="$terlc" \
     "$terlc" test scripts/self_validation/release_manifest
-fi
-if lane_has proofs; then
-  echo 'pre-commit: proof release baseline'
-  ensure_release_tools
-  ensure_quality_tools
-  bash scripts/git_hooks/proof_baseline.sh
 fi
 if preflight_has rust-docs; then
   echo 'pre-commit: Rust documentation'
@@ -795,14 +1034,23 @@ while IFS= read -r lane; do
       # Already checked once before release-profile consumers.
       ;;
     proofs)
-      ensure_quality_tools
-      bash scripts/git_hooks/proofs.sh
+      if [[ "$workspace_lane_selected" == false ]]; then
+        echo 'pre-commit: canonical Rust suite required by proof runtime oracles'
+        if run_workspace_suite; then
+          workspace_lane_selected=true
+        else
+          lane_status=$?
+          echo 'pre-commit: stopping after canonical Rust suite failure' >&2
+          exit "$lane_status"
+        fi
+      fi
+      run_proof_coverage
       ;;
     bootstrap)
       if [[ $(uname -s) == Linux ]]; then
-        cargo test --locked -p terlan-build-cache --test support_bootstrap_make
-        cargo test --locked -p terlan-test-orchestrator --test hosted_release_make
-        cargo test --locked -p terlan-test-orchestrator --test publish_preflight
+        cargo test --profile dev --locked -p terlan-build-cache --test support_bootstrap_make
+        cargo test --profile dev --locked -p terlan-test-orchestrator --test hosted_release_make
+        cargo test --profile dev --locked -p terlan-test-orchestrator --test publish_preflight
       else
         echo 'pre-commit: Linux bootstrap integration tests require a Linux host'
       fi
@@ -835,32 +1083,15 @@ while IFS= read -r lane; do
       go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
       ;;
     release-contract)
-      ensure_quality_tools
-      ensure_orchestrator
-      "$CARGO_TARGET_DIR/debug/terlan-test-orchestrator" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
-      repository_validator_dir="$CARGO_TARGET_DIR/terlan-validators/repository-validation"
-      repository_validator_common="$repository_validator_dir/common.inputs.sha256"
-      repository_validator_image="$repository_validator_dir/vm/scripts_self_validation_RepositoryValidation.tvm"
-      repository_validator_identity=$("$terlc" build --print-toolchain-identity)
-      TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$repository_validator_identity" \
-        bash scripts/build_typed_validator.sh fingerprint \
-          "$repository_validator_common" "$terlc" std
-      bash scripts/build_typed_validator.sh \
-        "$repository_validator_image" \
-        "$repository_validator_common" scripts/self_validation/RepositoryValidation.terls -- \
-        "$terlc" build --incremental \
-          scripts/self_validation/RepositoryValidation.terls \
-          --target terlan-vm --out-dir "$repository_validator_dir"
-      make --no-print-directory vm-release-install-validation-check \
-        TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-        "TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality"
-      make --no-print-directory repository-build-release-contract-check \
-        TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-        "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run $repository_validator_image --script-eval --"
-      printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
-      "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
+      echo 'pre-commit: release contract escaped early candidate validation' >&2
+      exit 1
       ;;
     '') ;;
     *) echo "Unknown pre-commit lane: $lane" >&2; exit 1 ;;
   esac
 done < "$plan"
+
+if [[ "$workspace_lane_selected" == true ]]; then
+  echo 'pre-commit: terminal Cargo artifact retention'
+  make --no-print-directory rust-artifact-retention-check
+fi

@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "a2cc2209ad753f83e9e5bffbc60c20768e6a3e86c4b97400e60259a77107db01",
+  "compilation_input_sha256": "ce88b96a3b3b382cb9b2efaf66f3867894c5cc68c28095fb46eae7e76ad64898",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -29,6 +29,11 @@
     },
     {
       "domain": "bin",
+      "reference_sites": 0,
+      "source_domains": []
+    },
+    {
+      "domain": "build_support",
       "reference_sites": 0,
       "source_domains": []
     },
@@ -248,6 +253,11 @@
       "dependent_count": 0,
       "dependent_domains": [],
       "domain": "bin"
+    },
+    {
+      "dependent_count": 0,
+      "dependent_domains": [],
+      "domain": "build_support"
     },
     {
       "dependent_count": 2,
@@ -544,14 +554,6 @@
       "owner": "dependency-health",
       "rationale": "sha1 and sha2 currently select different digest generations",
       "versions": "0.10.7,0.11.3"
-    },
-    {
-      "classification": "transitive-upgrade-blocked",
-      "milestone": "0.0.9",
-      "name": "erased-serde",
-      "owner": "dependency-health",
-      "rationale": "Foundations and its slog adapter currently select different erased-serde APIs",
-      "versions": "0.3.31,0.4.10"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -887,13 +889,18 @@
       "rust_files": 12
     },
     {
+      "name": "build_support",
+      "physical_lines": 22,
+      "rust_files": 2
+    },
+    {
       "name": "commands",
-      "physical_lines": 140765,
-      "rust_files": 424
+      "physical_lines": 141034,
+      "rust_files": 425
     },
     {
       "name": "compiler",
-      "physical_lines": 190093,
+      "physical_lines": 190162,
       "rust_files": 538
     },
     {
@@ -928,13 +935,13 @@
     },
     {
       "name": "quality",
-      "physical_lines": 51079,
+      "physical_lines": 51249,
       "rust_files": 153
     },
     {
       "name": "root:",
-      "physical_lines": 42578,
-      "rust_files": 235
+      "physical_lines": 102492,
+      "rust_files": 537
     },
     {
       "name": "root:accelerator_contract",
@@ -968,7 +975,7 @@
     },
     {
       "name": "root:lib",
-      "physical_lines": 748,
+      "physical_lines": 750,
       "rust_files": 1
     },
     {
@@ -1114,13 +1121,6 @@
       "versions": [
         "0.10.7",
         "0.11.3"
-      ]
-    },
-    {
-      "name": "erased-serde",
-      "versions": [
-        "0.3.31",
-        "0.4.10"
       ]
     },
     {
@@ -1352,13 +1352,18 @@
       "rust_files": 8
     },
     {
+      "name": "build_support",
+      "physical_lines": 29,
+      "rust_files": 1
+    },
+    {
       "name": "commands",
-      "physical_lines": 54782,
-      "rust_files": 242
+      "physical_lines": 54887,
+      "rust_files": 243
     },
     {
       "name": "compiler",
-      "physical_lines": 57383,
+      "physical_lines": 57533,
       "rust_files": 261
     },
     {
@@ -1388,8 +1393,8 @@
     },
     {
       "name": "quality",
-      "physical_lines": 29303,
-      "rust_files": 129
+      "physical_lines": 29477,
+      "rust_files": 130
     },
     {
       "name": "root:compiler_timings_test",
@@ -2313,19 +2318,11 @@
         {
           "default_features": false,
           "features": [
-            "logging",
             "metrics",
             "testing"
           ],
           "kind": "normal",
           "name": "foundations",
-          "optional": false
-        },
-        {
-          "default_features": true,
-          "features": [],
-          "kind": "normal",
-          "name": "serde_json",
           "optional": false
         },
         {

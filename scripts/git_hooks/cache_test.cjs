@@ -4,7 +4,7 @@ const cp = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { invalidateWorkspaceCache } = require('./invalidate_workspace_cache.cjs');
+const { prepareWorkspaceCache } = require('./invalidate_workspace_cache.cjs');
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'terlan-hook-cache-'));
 const target = path.join(root, 'target');
@@ -23,6 +23,7 @@ try {
     fs.writeFileSync(path.join(directory, 'src/main.rs'), `fn main() { println!("${value}"); }\n`);
   }
   const metadata = JSON.parse(cargo(first, ['metadata', '--offline', '--no-deps', '--format-version', '1']));
+  assert.deepEqual(prepareWorkspaceCache(metadata, target, first), { removed: 0, reused: false });
   cargo(first, ['build', '--offline']);
   assert.equal(output(), 'first');
   cargo(second, ['build', '--offline']);
@@ -30,14 +31,27 @@ try {
   const marker = path.join(target, 'debug/.fingerprint/registry-dependency-0000000000000000/retained');
   fs.mkdirSync(path.dirname(marker), { recursive: true });
   fs.writeFileSync(marker, 'keep');
-  assert.ok(invalidateWorkspaceCache(metadata, target) > 0);
+  const switched = prepareWorkspaceCache(metadata, target, second);
+  assert.equal(switched.reused, false);
+  assert.ok(switched.removed > 0);
   assert.ok(fs.existsSync(executable), 'invalidation must preserve installed executables');
   assert.equal(fs.readFileSync(marker, 'utf8'), 'keep', 'registry fingerprints must survive');
   cargo(second, ['build', '--offline']);
   assert.equal(output(), 'second', 'validation must compile the second checkout');
-  invalidateWorkspaceCache(metadata, target);
+  assert.deepEqual(prepareWorkspaceCache(metadata, target, second), { removed: 0, reused: true });
+  const returned = prepareWorkspaceCache(metadata, target, first);
+  assert.equal(returned.reused, false);
+  assert.ok(returned.removed > 0);
   cargo(first, ['build', '--offline']);
   assert.equal(output(), 'first', 'returning to the original checkout must also compile its source');
+  assert.throws(() => prepareWorkspaceCache(metadata, 'relative-target', first), /absolute Cargo target/);
+  const sourceMarker = path.join(target, '.terlan-workspace-source-root');
+  fs.rmSync(sourceMarker);
+  fs.symlinkSync(path.join(root, 'missing'), sourceMarker);
+  assert.throws(
+    () => prepareWorkspaceCache(metadata, target, first),
+    /invalid workspace source-root marker/,
+  );
   console.log(`Shared Cargo target regression passed (unprotected second checkout returned ${unprotected}).`);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });

@@ -8,7 +8,6 @@ darling	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	derive_build
 darling_core	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	darling generations require their matching core generation	0.0.9
 darling_macro	0.20.11,0.23.0	transitive-upgrade-blocked	dependency-health	darling generations require their matching macro generation	0.0.9
 digest	0.10.7,0.11.3	transitive-upgrade-blocked	dependency-health	sha1 and sha2 currently select different digest generations	0.0.9
-erased-serde	0.3.31,0.4.10	transitive-upgrade-blocked	dependency-health	Foundations and its slog adapter currently select different erased-serde APIs	0.0.9
 foldhash	0.1.5,0.2.0	transitive-upgrade-blocked	dependency-health	hashbrown generations require different foldhash generations	0.0.9
 getrandom	0.2.17,0.3.4,0.4.3	transitive-upgrade-blocked	dependency-health	ring and workspace consumers currently span three getrandom APIs	0.0.9
 hashbrown	0.12.3,0.14.5,0.15.5,0.16.1,0.17.1	transitive-upgrade-blocked	dependency-health	Foundations, parser, and code-generation dependencies span supported hashbrown generations	0.0.9

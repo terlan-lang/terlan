@@ -468,21 +468,28 @@ pub record(root: String): Bool ->
     if {
         not loaded.valid -> let _printed = eprintln(String.concat(["Rust file headroom failed: ", loaded.message]));
         false;
-        true -> let rendered = render_inventory(loaded.rows);
-        let count = List.length(loaded.rows);
-        case File.write_text(
-            SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv"),
-            rendered,
-        ) {
-            Ok(_unit) ->
-                let _printed =
-                    println(
-                        String.concat(["Recorded ", Int.to_string(count), " Rust headroom rows"]),
-                    );
-                true;
-            Err(reason) ->
-                let _printed = eprintln(String.concat(["Rust file headroom failed: ", reason.message]));
-                false
+        true -> let findings = validate_rows(loaded.rows, loaded.rows, false);
+        if {
+            List.length(findings) > 0 -> let _printed = eprintln("Rust file headroom failed:");
+            print_findings(findings);
+            true -> let rendered = render_inventory(loaded.rows);
+            let count = List.length(loaded.rows);
+            case File.write_text(
+                SourceInventory.child(root, "docs/quality/RUST_FILE_HEADROOM.tsv"),
+                rendered,
+            ) {
+                Ok(_unit) ->
+                    let _printed =
+                        println(
+                            String.concat(
+                                ["Recorded ", Int.to_string(count), " Rust headroom rows"],
+                            ),
+                        );
+                    true;
+                Err(reason) ->
+                    let _printed = eprintln(String.concat(["Rust file headroom failed: ", reason.message]));
+                    false
+            }
         }
     }.
 

@@ -1,6 +1,6 @@
 //! Frozen compiler-query commands retaining Cargo's wrapper argument contract.
 
-use crate::execution_environment::identity;
+use crate::execution_environment::validation_identity;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
@@ -45,6 +45,6 @@ impl CompilerInvocation {
     /// Records invocation inputs without publishing environment values.
     pub(super) fn json(&self) -> serde_json::Value {
         serde_json::json!({ "workspace": self.workspace, "program_chain": self.programs,
-            "environment_identity_sha256": identity(&self.command()), "directory": self.directory })
+            "environment_identity_sha256": validation_identity(&self.command()), "directory": self.directory })
     }
 }

@@ -15,6 +15,8 @@ use syn::{
 
 mod api_boundary_input;
 use api_boundary_input::write_api_boundary_input;
+mod lint_attributes;
+use lint_attributes::{normalized_lints, LintAttribute};
 mod structural_input;
 use structural_input::write_structural_input;
 mod shared_helper_input;
@@ -99,13 +101,6 @@ struct FunctionDeclaration {
     returns_string_error: bool,
     explicit_ffi_parameters: bool,
     implementation: bool,
-}
-
-#[derive(Clone, Debug)]
-struct LintAttribute {
-    path: String,
-    kind: String,
-    tokens: String,
 }
 
 #[derive(Clone, Debug)]
@@ -385,6 +380,8 @@ impl<'ast> Visit<'ast> for TypeVisitor<'_> {
                 path: self.path.to_owned(),
                 kind: kind.to_owned(),
                 tokens: attribute.meta.to_token_stream().to_string(),
+                lints: normalized_lints(attribute),
+                inner: matches!(attribute.style, syn::AttrStyle::Inner(_)),
             });
         }
         visit::visit_attribute(self, attribute);
@@ -526,12 +523,6 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
             })?
             .to_string_lossy()
             .into_owned();
-        if relative.starts_with("crates/terlan/src/") || relative.starts_with("std/") {
-            source_files.push(json!({
-                "path": relative,
-                "physical_lines": source.lines().count(),
-            }));
-        }
         match syn::parse_file(&source) {
             Ok(file) => {
                 let mut visitor = TypeVisitor {
@@ -558,11 +549,14 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
     }
 
     let mut boundary_files = Vec::new();
-    collect_files(&root.join("crates"), &mut boundary_files)?;
-    collect_files(&root.join("std"), &mut boundary_files)?;
+    for source_root in ["crates", "std", "tools", "tree-sitter-terlan"] {
+        collect_files(&root.join(source_root), &mut boundary_files)?;
+    }
+    collect_files(&root.join("std/summaries"), &mut boundary_files)?;
     boundary_files.sort();
     let mut cross_tree_path_attributes = Vec::new();
     let mut source_boundary_parse_failures = Vec::new();
+    let mut policy_lint_attributes = Vec::new();
     for path in boundary_files {
         let source = fs::read_to_string(&path).map_err(|error| {
             AuditError::Message(format!("cannot read `{}`: {error}", path.display()))
@@ -574,6 +568,10 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
             })?
             .to_string_lossy()
             .into_owned();
+        source_files.push(json!({
+            "path": relative,
+            "physical_lines": source.lines().count(),
+        }));
         match syn::parse_file(&source) {
             Ok(file) => {
                 let mut visitor = PathAttributeVisitor {
@@ -582,6 +580,12 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
                 };
                 visitor.visit_file(&file);
                 cross_tree_path_attributes.extend(visitor.attributes);
+                let mut lint_visitor = lint_attributes::Visitor {
+                    path: &relative,
+                    attributes: Vec::new(),
+                };
+                lint_visitor.visit_file(&file);
+                policy_lint_attributes.extend(lint_visitor.attributes);
             }
             Err(error) => source_boundary_parse_failures.push(json!({
                 "path": relative,
@@ -698,6 +702,15 @@ fn audit(root: &Path, api_boundary_input: Option<&Path>) -> Result<Value, AuditE
             "path": attribute.path,
             "kind": attribute.kind,
             "tokens": attribute.tokens,
+            "lints": attribute.lints,
+            "inner": attribute.inner,
+        })).collect::<Vec<_>>(),
+        "policy_lint_attributes": policy_lint_attributes.into_iter().map(|attribute| json!({
+            "path": attribute.path,
+            "kind": attribute.kind,
+            "tokens": attribute.tokens,
+            "lints": attribute.lints,
+            "inner": attribute.inner,
         })).collect::<Vec<_>>(),
         "crate_references": crate_references.into_iter().map(|reference| json!({
             "path": reference.path,
@@ -860,5 +873,27 @@ mod tests {
             .map(|reference| reference.target)
             .collect::<Vec<_>>();
         assert_eq!(targets, ["runtime", "support", "runtime"]);
+    }
+
+    #[test]
+    fn lint_inventory_preserves_inner_style_and_normalizes_names() {
+        let file = syn::parse_file(
+            r#"
+            #![allow(dead_code, clippy::all)]
+            #[allow(unused_imports)]
+            fn value() {}
+            "#,
+        )
+        .expect("parse lint fixture");
+        let mut visitor = crate::lint_attributes::Visitor {
+            path: "src/lib.rs",
+            attributes: Vec::new(),
+        };
+        visitor.visit_file(&file);
+        assert_eq!(visitor.attributes.len(), 2);
+        assert!(visitor.attributes[0].inner);
+        assert_eq!(visitor.attributes[0].lints, "dead_code,clippy::all");
+        assert!(!visitor.attributes[1].inner);
+        assert_eq!(visitor.attributes[1].lints, "unused_imports");
     }
 }

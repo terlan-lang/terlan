@@ -9,6 +9,8 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::{OwnedChild, ProcessControl};
 
+mod support;
+
 struct Fixture(PathBuf);
 
 impl Drop for Fixture {
@@ -56,18 +58,8 @@ fn fixture() -> Fixture {
     );
     fs::create_dir(&fixture.0).unwrap();
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    for file in [
-        "Makefile",
-        "mk/rust-coverage.mk",
-        "mk/hermetic-support.mk",
-        "crates/terlan/cli.mk",
-        "std/stdlib.mk",
-        "editors/editor.mk",
-        "mk/code-quality.mk",
-        "Cargo.toml",
-        "Cargo.lock",
-        "rust-toolchain.toml",
-    ] {
+    support::copy_make_sources(&fixture.0);
+    for file in ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"] {
         let target = fixture.0.join(file);
         fs::create_dir_all(target.parent().unwrap()).unwrap();
         fs::copy(source.join(file), target).unwrap();

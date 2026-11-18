@@ -1,5 +1,7 @@
 use super::*;
-use crate::commands::serve::handler_cache::handler_cache_test_support::compile_native_handler_fixture;
+use crate::commands::serve::handler_cache::handler_cache_test_support::{
+    compile_native_handler_fixture, compile_native_handler_fixtures,
+};
 use crate::runtime::vm::ReplValue;
 use terlan_http_native::routing::{RouteMethod, RouteTarget, RouterOutcome};
 
@@ -278,16 +280,44 @@ pub router(): Router ->
 
 #[test]
 fn source_router_rejects_invalid_executed_policy_before_admission() {
-    for (name, expression, expected) in [
-        ("duplicate_fallback", "Router.new().fallback(handle).fallback(handle)", "duplicate fallback"),
-        ("duplicate_group_fallback", "Router.new().group(\"/api\", (child: Router) -> child.fallback(handle).fallback(handle))", "duplicate fallback"),
-        ("duplicate_group_error", "Router.new().group(\"/api\", (child: Router) -> child.error(recover).error(recover))", "duplicate error handler"),
-        ("error_after_inheritance", "Router.new().group(\"/api\", (child: Router) -> child.error(recover)).error(recover)", "duplicate error handler"),
-        ("nested_error_after_inheritance", "Router.new().group(\"/api\", (child: Router) -> child.group(\"/nested\", (inner: Router) -> inner.error(recover)).error(recover))", "duplicate error handler"),
-        ("duplicate_sse", "Router.new().sse(\"/events\", Sse.endpoint(1, 8).callbacks(idle, event, idle, idle, event).callbacks(idle, event, idle, idle, event))", "SSE callbacks already configured"),
-        ("invalid_websocket", "Router.new().websocket(\"/socket\", WebSocket.endpoint(0, 8))", "positive Int limit"),
-    ] {
-        let source = format!(r#"module app.InvalidRouter.
+    let variants = [
+        (
+            "Router.new().fallback(handle).fallback(handle)",
+            "duplicate fallback",
+        ),
+        (
+            "Router.new().group(\"/api\", (child: Router) -> child.fallback(handle).fallback(handle))",
+            "duplicate fallback",
+        ),
+        (
+            "Router.new().group(\"/api\", (child: Router) -> child.error(recover).error(recover))",
+            "duplicate error handler",
+        ),
+        (
+            "Router.new().group(\"/api\", (child: Router) -> child.error(recover)).error(recover)",
+            "duplicate error handler",
+        ),
+        (
+            "Router.new().group(\"/api\", (child: Router) -> child.group(\"/nested\", (inner: Router) -> inner.error(recover)).error(recover))",
+            "duplicate error handler",
+        ),
+        (
+            "Router.new().sse(\"/events\", Sse.endpoint(1, 8).callbacks(idle, event, idle, idle, event).callbacks(idle, event, idle, idle, event))",
+            "SSE callbacks already configured",
+        ),
+        (
+            "Router.new().websocket(\"/socket\", WebSocket.endpoint(0, 8))",
+            "positive Int limit",
+        ),
+    ];
+    let sources = variants
+        .iter()
+        .enumerate()
+        .map(|(index, (expression, _))| {
+            let module = format!("app.InvalidRouter{index}");
+            let path = format!("src/app/InvalidRouter{index}.terl");
+            let source = format!(
+                r#"module {module}.
 import std.core.Unit.
 import std.http.{{Router, Response, Sse, WebSocket}}.
 import type std.http.Router.Router.
@@ -299,15 +329,27 @@ pub event(_value: String): Unit -> Unit.
 pub handle(_request: Request): Response -> Response.text("unused").
 pub recover(_error: HttpError): Response -> Response.text("recovered").
 pub router(): Router -> {expression}.
-"#);
-        let fixture = compile_native_handler_fixture(name, "src/app/InvalidRouter.terl", "app_InvalidRouter", &source);
-        let error = match AotHandlerRuntime::load_with_shard_count("app.InvalidRouter".into(), &fixture.image, None, 1) {
-            Ok(_) => panic!("invalid executed router was admitted"),
-            Err(error) => error,
-        };
-        assert!(error.contains(expected), "{name}: {error}");
-        std::fs::remove_dir_all(fixture.root).unwrap();
+"#
+            );
+            (module, path, source)
+        })
+        .collect::<Vec<_>>();
+    let source_refs = sources
+        .iter()
+        .map(|(_, path, source)| (path.as_str(), source.as_str()))
+        .collect::<Vec<_>>();
+    let fixture = compile_native_handler_fixtures(
+        "invalid_router_policies",
+        "app_InvalidRouters",
+        &source_refs,
+    );
+    for ((module, _, _), (_, expected)) in sources.iter().zip(variants) {
+        let error =
+            AotHandlerRuntime::load_with_shard_count(module.clone(), &fixture.image, None, 1)
+                .expect_err("invalid executed router was admitted");
+        assert!(error.contains(expected), "{module}: {error}");
     }
+    std::fs::remove_dir_all(fixture.root).unwrap();
 }
 
 #[test]

@@ -25,17 +25,26 @@ pub(super) fn inventory(report: &Value) -> Result<Vec<Target>, PhaseFailure> {
         .iter()
         .filter(|phase| phase["executor"] == "cargo-native-harnesses")
         .collect::<Vec<_>>();
-    if native.len() != 1
-        || native[0]["outcome"] != "passed"
-        || native[0]["test_execution"]["scope"] != "cargo-native-libtest-records-v1"
+    if native.is_empty()
+        || native.iter().any(|phase| {
+            phase["outcome"] != "passed"
+                || phase["test_execution"]["scope"] != "cargo-native-libtest-records-v1"
+        })
     {
         return Err(failure("missing completed canonical native phase"));
     }
-    let rows = native[0]["test_execution"]["targets"]
-        .as_array()
-        .ok_or_else(|| failure("missing native targets"))?;
     let mut targets = Vec::new();
     let mut unique = std::collections::BTreeSet::new();
+    let rows = native
+        .iter()
+        .map(|phase| {
+            phase["test_execution"]["targets"]
+                .as_array()
+                .ok_or_else(|| failure("missing native targets"))
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten();
     for row in rows {
         if row["delegated_main"] == true {
             continue;

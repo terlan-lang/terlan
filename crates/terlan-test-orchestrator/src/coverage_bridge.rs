@@ -131,7 +131,8 @@ pub(super) fn request(endpoint: &str, request: Value) -> Result<Value, PhaseFail
     }
     let mut stream =
         TcpStream::connect_timeout(&address, Duration::from_secs(2)).map_err(failure)?;
-    let envelope = json!({"token":token,"pid":std::process::id(),"request":request["request"],"environment":request["environment"]});
+    let envelope = json!({"token":token,"pid":std::process::id(),"request":request["request"],
+        "environment":request["environment"],"environment_components":request["environment_components"]});
     send(&mut stream, &envelope)?;
     stream.shutdown(Shutdown::Write).map_err(failure)?;
     let response = receive(&mut stream)?;

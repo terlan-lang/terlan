@@ -361,7 +361,7 @@ fn append_rs_sources(directory: &Path, text: &mut String) -> Result<(), std::io:
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile"))
+    let text = crate::quality::support::read_make_graph(root)
         .map_err(|err| format!("Makefile: failed to read VM HTTP ACME worker gate: {err}"))?;
     Ok(REQUIRED_GATE_TERMS
         .iter()

@@ -9,6 +9,8 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+mod support;
+
 struct Fixture(PathBuf);
 impl Drop for Fixture {
     fn drop(&mut self) {
@@ -39,18 +41,7 @@ fn fixture() -> Fixture {
     fs::create_dir(&root).unwrap();
     let fixture = Fixture(root);
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    for file in [
-        "Makefile",
-        "mk/rust-coverage.mk",
-        "crates/terlan/cli.mk",
-        "std/stdlib.mk",
-        "editors/editor.mk",
-        "mk/code-quality.mk",
-    ] {
-        let target = fixture.0.join(file);
-        fs::create_dir_all(target.parent().unwrap()).unwrap();
-        fs::copy(source.join(file), target).unwrap();
-    }
+    support::copy_make_sources(&fixture.0);
     fs::write(
         fixture.0.join("Cargo.toml"),
         "[workspace.package]\nversion = \"0.0.8\"\n",

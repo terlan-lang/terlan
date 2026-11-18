@@ -7,6 +7,6 @@ RUST_TEST := $(TERLAN_RUST_ORCHESTRATOR) --coverage-request
 EXACT_CARGO_TEST := $(RUST_TEST)
 TERLAN_VALIDATION_BOOTSTRAPPED := 1
 TERLAN_BUILD_ARTIFACTS_PREBUILT := 1
-TERLC := $(CURDIR)/target/debug/terlc
+TERLC ?= $(CURDIR)/target/debug/terlc
 TERLAN_QUALITY := $(CURDIR)/target/debug/terlan-quality
 endif

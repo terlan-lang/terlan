@@ -6,6 +6,8 @@ use sha2::{Digest, Sha256};
 
 #[path = "src/compiler/syntax/build_support/lalrpop_cache.rs"]
 mod lalrpop_cache;
+#[path = "src/build_support/source_revision.rs"]
+mod source_revision;
 
 fn main() {
     emit_checked_frontend_revision();
@@ -141,14 +143,6 @@ fn emit_test_runner_revision() {
     for root in roots {
         collect_rust_sources(root, &mut sources);
     }
-    sources.retain(|path| {
-        !path.components().any(|component| {
-            let component = component.as_os_str().to_string_lossy();
-            component == "tests" || component.ends_with("_test")
-        }) && !path
-            .file_name()
-            .is_some_and(|name| name.to_string_lossy().ends_with("_test.rs"))
-    });
     emit_source_revision("TERLAN_TEST_RUNNER_REVISION_SHA256", sources);
 }
 
@@ -189,7 +183,9 @@ fn collect_rust_sources(root: &Path, output: &mut Vec<PathBuf>) {
     for path in entries {
         if path.is_dir() {
             collect_rust_sources(&path, output);
-        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
+        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs")
+            && !source_revision::is_test_only_rust_source(&path)
+        {
             output.push(path);
         }
     }

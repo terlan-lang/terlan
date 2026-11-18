@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 
 use super::AuditError;
 
-const STRUCTURAL_FIELDS: [&str; 10] = [
+const STRUCTURAL_FIELDS: [&str; 11] = [
     "parse_failures",
     "source_boundary_parse_failures",
     "cross_tree_path_attributes",
@@ -16,6 +16,7 @@ const STRUCTURAL_FIELDS: [&str; 10] = [
     "same_name_candidates",
     "crate_references",
     "source_files",
+    "policy_lint_attributes",
 ];
 
 pub(super) fn write_structural_input(path: &Path, report: &Value) -> Result<(), AuditError> {

@@ -2,20 +2,27 @@
 # Exercise the production image owner across disposable output cleanup.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+make_sources=("$root/Makefile")
+while IFS= read -r source; do make_sources+=("$source"); done < <(
+  find "$root/mk" -maxdepth 1 -type f -name '*.mk' -print | sort
+)
+# Copy and execute the production recipes below. Their observable ownership,
+# cleanup, and fail-closed behavior is the contract; exact Makefile spelling is
+# deliberately not a contract because targets may move between included files.
 mkdir -p "$root/target"
 temporary=$(mktemp -d "$root/target/build-artifact-bootstrap-test.XXXXXX")
 trap 'rm -r -- "$temporary"' EXIT
 awk '/^TERLAN_SELF_VALIDATION_(DIR|IMAGE) :=/ { print }
   /^terlan-artifact-measurement-bootstrap:/ { copying=1 }
   copying && /^$/ { exit }
-  copying { print }' "$root/Makefile" > "$temporary/Makefile"
+  copying { print }' "${make_sources[@]}" > "$temporary/Makefile"
 awk '/^release-candidate-check:/ { copying=1 }
   copying && /^$/ { exit }
-  copying { print }' "$root/Makefile" >> "$temporary/Makefile"
+  copying { print }' "${make_sources[@]}" >> "$temporary/Makefile"
 cat >> "$temporary/Makefile" <<'MAKE'
-.PHONY: terlan-compiler-bootstrap verify editor-release-contract-check terlan-quality-tools-bootstrap build-artifact-budget-record check release-proof-baseline-check
+.PHONY: terlan-compiler-bootstrap terlan-validation-vm-bootstrap verify editor-release-contract-check terlan-quality-tools-bootstrap build-artifact-budget-record check release-proof-baseline-check
 terlan-compiler-bootstrap:
-editor-release-contract-check terlan-quality-tools-bootstrap:
+terlan-validation-vm-bootstrap editor-release-contract-check terlan-quality-tools-bootstrap:
 verify: terlan-artifact-measurement-bootstrap
 	test -s $(TERLAN_SELF_VALIDATION_IMAGE)
 build-artifact-budget-record: terlan-artifact-measurement-bootstrap
@@ -60,7 +67,8 @@ PRODUCER
   test "$(wc -l < builds)" -eq 2
   # Exercise the production release recipe, including its recursive environment.
   make --no-print-directory release-candidate-check
-  test ! -e target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
+  test -s target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
+  test "$(wc -l < builds)" -eq 3
   make --no-print-directory verify
   test "$(wc -l < builds)" -eq 3
   # A consumer that claims a completed bootstrap must fail closed if it is gone.
@@ -77,7 +85,7 @@ mkdir "$temporary/runtime"
 awk '/^TERLAN_VALIDATION_VM :=/ { print }
   /^terlan-validation-vm-bootstrap:/ { copying=1 }
   copying && /^$/ { exit }
-  copying { print }' "$root/Makefile" > "$temporary/runtime/Makefile"
+  copying { print }' "${make_sources[@]}" > "$temporary/runtime/Makefile"
 cat >> "$temporary/runtime/Makefile" <<'MAKE'
 .PHONY: terlan-compiler-bootstrap
 terlan-compiler-bootstrap:
@@ -106,15 +114,23 @@ printf 'built\n' >> builds
 CARGO
 (
   cd "$temporary/runtime"
-  unset MAKEFLAGS MAKEOVERRIDES MFLAGS TERLAN_VALIDATION_BOOTSTRAPPED TERLAN_BUILD_ARTIFACTS_PREBUILT TERLAN_RELEASE_BINARIES_PREBUILT
+  unset MAKEFLAGS MAKEOVERRIDES MFLAGS TERLAN_VALIDATION_BOOTSTRAPPED TERLAN_VALIDATION_VM_PREBUILT TERLAN_BUILD_ARTIFACTS_PREBUILT TERLAN_RELEASE_BINARIES_PREBUILT
   make --no-print-directory terlan-validation-vm-bootstrap
-  for mode in TERLAN_VALIDATION_BOOTSTRAPPED TERLAN_BUILD_ARTIFACTS_PREBUILT TERLAN_RELEASE_BINARIES_PREBUILT; do
+  for mode in TERLAN_VALIDATION_BOOTSTRAPPED TERLAN_VALIDATION_VM_PREBUILT TERLAN_RELEASE_BINARIES_PREBUILT; do
     make --no-print-directory terlan-validation-vm-bootstrap "$mode=1"
   done
   test "$(cat owners)" = owned
   test "$(cat builds)" = built
+  make --no-print-directory terlan-validation-vm-bootstrap TERLAN_BUILD_ARTIFACTS_PREBUILT=1
+  test "$(wc -l < owners)" -eq 2
+  test "$(wc -l < builds)" -eq 2
   rm target/release/terlan-vm
-  for mode in TERLAN_VALIDATION_BOOTSTRAPPED TERLAN_BUILD_ARTIFACTS_PREBUILT TERLAN_RELEASE_BINARIES_PREBUILT; do
+  make --no-print-directory terlan-validation-vm-bootstrap TERLAN_BUILD_ARTIFACTS_PREBUILT=1
+  test -x target/release/terlan-vm
+  test "$(wc -l < owners)" -eq 3
+  test "$(wc -l < builds)" -eq 3
+  rm target/release/terlan-vm
+  for mode in TERLAN_VALIDATION_BOOTSTRAPPED TERLAN_VALIDATION_VM_PREBUILT TERLAN_RELEASE_BINARIES_PREBUILT; do
     if make --no-print-directory terlan-validation-vm-bootstrap "$mode=1" > missing.log 2>&1; then
       echo 'Validation accepted a missing prebuilt runtime' >&2
       exit 1
@@ -127,7 +143,7 @@ echo 'Optimized validation runtime preserves process ownership and prebuilt chec
 mkdir -p "$temporary/contract/target/quality"
 awk '/^repository-build-release-contract-check:/ { copying=1 }
   copying && /^$/ { exit }
-  copying { print }' "$root/Makefile" > "$temporary/contract/Makefile"
+  copying { print }' "${make_sources[@]}" > "$temporary/contract/Makefile"
 cat >> "$temporary/contract/Makefile" <<'MAKE'
 .PHONY: terlan-repository-validation-bootstrap
 terlan-repository-validation-bootstrap:

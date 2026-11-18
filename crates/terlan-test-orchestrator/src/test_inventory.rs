@@ -116,7 +116,7 @@ fn validate(
         } else {
             &normal
         };
-        let selected = select(source, &phase.args)?;
+        let selected = apply_shard(select(source, &phase.args)?, phase.shard)?;
         if selected.is_empty() {
             return Err(failure(format!(
                 "phase `{}` selects zero runnable tests",
@@ -126,7 +126,7 @@ fn validate(
         let selected_ignored = if phase.args.contains(&"--ignored") {
             Vec::new()
         } else {
-            select(ignored, &phase.args)?
+            apply_shard(select(ignored, &phase.args)?, phase.shard)?
         };
         let total = selected.len() + selected_ignored.len();
         expected.insert(
@@ -180,6 +180,23 @@ fn validate(
         }
     }
     Ok(expected)
+}
+
+fn apply_shard(
+    selected: Vec<&String>,
+    shard: Option<crate::TestShard>,
+) -> Result<Vec<&String>, PhaseFailure> {
+    let Some(shard) = shard else {
+        return Ok(selected);
+    };
+    if shard.total < 2 || shard.index >= shard.total {
+        return Err(failure("invalid test phase shard"));
+    }
+    Ok(selected
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, name)| (index % shard.total == shard.index).then_some(name))
+        .collect())
 }
 
 /// Shares libtest selection semantics between execution planning and coverage inspection.

@@ -25,7 +25,6 @@ pub(super) struct CargoArtifactStream {
     build_finished: bool,
     capture_started: bool,
     failed: bool,
-    require_fresh_main: bool,
 }
 
 impl CargoArtifactStream {
@@ -51,13 +50,7 @@ impl CargoArtifactStream {
             build_finished: false,
             capture_started: false,
             failed: false,
-            require_fresh_main: false,
         })
-    }
-
-    /// The workspace execution phase must reuse the already-built main library unit.
-    pub(super) fn require_fresh_main(&mut self) {
-        self.require_fresh_main = true;
     }
 
     /// Runs the existing Cargo owner once and retains typed admission failures.
@@ -184,16 +177,6 @@ impl CargoArtifactStream {
                     ));
                 }
                 let harness = self.manifests.admit(&message, control)?;
-                let declaration = harness.json();
-                if self.require_fresh_main
-                    && declaration["package"] == "terlan"
-                    && declaration["kind"] == "lib"
-                    && message["fresh"] != true
-                {
-                    return Err(failure(
-                        "workspace execution rebuilt the already-owned main library unit",
-                    ));
-                }
                 let executable = std::fs::canonicalize(&harness.executable).map_err(failure)?;
                 if !self.executables.insert(executable) {
                     return Err(failure("Cargo test targets share an executable"));

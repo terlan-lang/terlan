@@ -121,6 +121,9 @@ axum-baseline = ["dep:axum", "dep:hyper-util", "dep:tokio", "tokio/macros", "tok
 benchmark-tools = []
 multicore-tsan-harness = ["native-codegen"]
 quality-tools = ["dep:shell-words"]
+# One canonical feature graph for local and hosted validation. Every validation
+# owner uses this alias so Cargo can reuse dependency and harness artifacts.
+validation-union = ["quality-tools", "editor-lsp", "benchmark-tools", "serve-runtime-bin"]
 native-codegen = [
   "registry-network",
   "service-foundation",

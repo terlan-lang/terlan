@@ -78,7 +78,13 @@ pub fn run_lean_proof_feature_cull(root: &Path) -> QualityResult<LeanProofFeatur
 /// Validates the complete feature-cull map against source and proof artifacts.
 fn validate_feature_cull(root: &Path, map: &FeatureCullMap) -> Vec<String> {
     let mut diagnostics = validate_map_header(map);
-    let make_text = read_make_graph(root, &mut diagnostics);
+    let make_text = match crate::quality::support::read_make_graph(root) {
+        Ok(text) => text,
+        Err(error) => {
+            diagnostics.push(error);
+            String::new()
+        }
+    };
     let make_targets = collect_make_targets(&make_text);
     let proof_text = read_for_validation(root, &map.proof, &mut diagnostics);
     let artifact_text = read_for_validation(root, &map.proof_artifact, &mut diagnostics);
@@ -300,15 +306,6 @@ fn stale_term_diagnostics(path: &str, text: &str, map: &FeatureCullMap) -> Vec<S
                 })
         })
         .collect()
-}
-
-/// Reads Make fragments used to resolve replacement and forbidden targets.
-fn read_make_graph(root: &Path, diagnostics: &mut Vec<String>) -> String {
-    ["Makefile", "crates/terlan/cli.mk"]
-        .iter()
-        .map(|relative| read_for_validation(root, relative, diagnostics))
-        .collect::<Vec<_>>()
-        .join("\n")
 }
 
 /// Collects concrete target names from the release Make graph.

@@ -2,13 +2,13 @@
 
 # Validates standard library source file naming conventions.
 std-source-naming-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools std_source_naming_test
+	$(RUST_TEST) -p terlan --lib --features validation-union std_source_naming_test
 	$(TERLAN_QUALITY) std-source-naming
 
 
 # Validates generated metadata for the standard library.
 std-generated-metadata-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools std_generated_metadata_test
+	$(RUST_TEST) -p terlan --lib --features validation-union std_generated_metadata_test
 	$(TERLAN_QUALITY) std-generated-metadata
 
 
@@ -18,7 +18,7 @@ std-vm-parity-matrix-check: all-terlan-tests-vm-check
 
 # Verifies stdlib tests do not contain dishonest/no-op assertions
 std-test-honesty-check:
-	$(RUST_TEST) -p terlan --lib --features quality-tools std_test_honesty_test
+	$(RUST_TEST) -p terlan --lib --features validation-union std_test_honesty_test
 	$(TERLAN_QUALITY) std-test-honesty
 
 
@@ -88,7 +88,7 @@ std-regex-check:
 
 # Verifies 100% stdlib package coverage, gated on the shape-implications check
 std-package-coverage-100-check: shape-implications-check
-	$(RUST_TEST) -p terlan --lib --features quality-tools std_package_full_coverage_test
+	$(RUST_TEST) -p terlan --lib --features validation-union std_package_full_coverage_test
 	$(TERLAN_QUALITY) std-package-coverage-100
 
 .PHONY: stdlib-postgres-worker-check

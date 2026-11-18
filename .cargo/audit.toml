@@ -1,0 +1,5 @@
+[advisories]
+# Foundations uses serde_with without its optional chrono feature. Cargo.lock
+# retains that optional package edge, while the complete active workspace graph
+# does not. rust-security-audit-check proves that absence before this exception.
+ignore = ["RUSTSEC-2026-0543"]

@@ -208,11 +208,14 @@ fn real_harness_private_results_reject_early_exit_despite_forged_or_nested_stdou
             |_| Ok(()),
         )
         .unwrap();
-    for mode in ["0", "1", "2", "ignored"] {
+    for mode in ["0", "1", "2", "ignored", "shard"] {
         let environment =
             ExecutionEnvironment::from_entries([("EARLY_EXIT".into(), mode.into())], &fixture.0)
                 .unwrap();
         let mut phase = crate::terlan_library_phase();
+        if mode == "shard" {
+            phase.shard = Some(crate::TestShard { index: 0, total: 2 });
+        }
         phase.args = if mode == "ignored" {
             vec!["--ignored"]
         } else {
@@ -223,6 +226,12 @@ fn real_harness_private_results_reject_early_exit_despite_forged_or_nested_stdou
                 passed: ["d_ignored".into()].into(),
                 ignored: Default::default(),
                 filtered: 3,
+            }
+        } else if mode == "shard" {
+            ExpectedTests {
+                passed: ["a_exit".into(), "c_pass".into()].into(),
+                ignored: ["d_ignored".into()].into(),
+                filtered: 1,
             }
         } else {
             ExpectedTests {
@@ -250,7 +259,7 @@ fn real_harness_private_results_reject_early_exit_despite_forged_or_nested_stdou
                 )
             },
         );
-        let passed = matches!(mode, "0" | "ignored");
+        let passed = matches!(mode, "0" | "ignored" | "shard");
         assert_eq!(result.is_ok(), passed, "{mode}: {result:?}");
         assert_eq!(ledger.finish().is_ok(), passed);
         let report: serde_json::Value = serde_json::from_slice(&fs::read(report).unwrap()).unwrap();

@@ -3,12 +3,13 @@
 # Checks the pinned cargo-audit version and runs a deny-on-warnings security audit.
 rust-security-audit-check:
 	@cargo-audit --version | grep -Fx 'cargo-audit 0.22.2'
+	@test -z "$$(cargo tree --locked --workspace --all-features --target all --invert chrono 2>/dev/null)"
 	cargo-audit audit --deny warnings
 
 
 # Validates which Rust build features ship in release artifacts.
 rust-build-feature-shipping-check: | terlan-tvm-platform-matrix-bootstrap
-	$(RUST_TEST) -p terlan --lib --features quality-tools rust_build_feature_shipping_test
+	$(RUST_TEST) -p terlan --lib --features validation-union rust_build_feature_shipping_test
 	$(TERLAN_QUALITY) rust-build-feature-shipping
 
 

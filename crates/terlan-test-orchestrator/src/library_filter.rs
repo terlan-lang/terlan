@@ -120,6 +120,8 @@ fn run(selection: Selection) -> Result<usize, PhaseFailure> {
     }
     command
         .args([
+            "--profile",
+            "dev",
             "--locked",
             "-p",
             "terlan",

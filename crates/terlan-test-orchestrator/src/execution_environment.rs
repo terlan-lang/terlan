@@ -11,6 +11,26 @@ use std::process::Command;
 const MAX_ENTRIES: usize = 4_096;
 const MAX_BYTES: usize = 1024 * 1024;
 const CARGO_CACHE_AUTO_CLEAN_FREQUENCY: &str = "CARGO_CACHE_AUTO_CLEAN_FREQUENCY";
+const VALIDATION_ROUTING_ENV: [&str; 13] = [
+    "TERLAN_CARGO_METADATA_OWNER",
+    "TERLAN_RUST_ORCHESTRATOR",
+    "TERLAN_RUST_SUITE_REPORT",
+    "TERLAN_RUST_PHASE_RECEIPT_DIR",
+    "TERLAN_RUST_SUITE_TERLC",
+    "TERLAN_RUST_SUITE_VM",
+    "TERLAN_RUST_SUITE_NATIVE_WORKER",
+    "TERLAN_TEST_CAPABILITY_WORKER",
+    "TERLAN_NATIVE_WORKER",
+    "TERLAN_TEST_COMPILER",
+    "TERLAN_TEST_VM",
+    "TERLAN_VALIDATION_BOOTSTRAPPED",
+    "SHLVL",
+];
+const TEST_PROGRAM_ROUTING_ENV: [&str; 3] = [
+    "TERLAN_RUST_SUITE_TERLC",
+    "TERLAN_RUST_SUITE_VM",
+    "TERLAN_RUST_SUITE_NATIVE_WORKER",
+];
 
 /// Owns one snapshot; subsequent launches never inherit the live environment.
 pub(super) struct ExecutionEnvironment {
@@ -143,6 +163,9 @@ impl ExecutionEnvironment {
     pub(super) fn test_command(&self, program: &Path) -> Command {
         let mut command = self.command(program);
         command.env("PATH", &self.test_path);
+        for key in TEST_PROGRAM_ROUTING_ENV {
+            command.env_remove(key);
+        }
         command
     }
 
@@ -159,13 +182,13 @@ impl ExecutionEnvironment {
             .map(|phase| {
                 let mut command = self.test_command(program);
                 command.envs(phase.environment.iter().map(|(key, value)| (key, value)));
-                serde_json::json!({"name": phase.name, "identity_sha256": identity(&command)})
+                serde_json::json!({"name": phase.name, "identity_sha256": validation_identity(&command)})
             })
             .collect::<Vec<_>>();
         serde_json::json!({
             "scope": "frozen-direct-child-environment-v1",
-            "inherited_identity_sha256": identity(&self.command(program)),
-            "test_identity_sha256": identity(&self.test_command(program)),
+            "inherited_identity_sha256": validation_identity(&self.command(program)),
+            "test_identity_sha256": validation_identity(&self.test_command(program)),
             "phases": phases,
         })
     }
@@ -232,6 +255,108 @@ pub(super) fn identity(command: &Command) -> String {
         );
     }
     hex(digest)
+}
+
+/// Excludes report/cache destinations that route validation without changing it.
+pub(super) fn validation_identity(command: &Command) -> String {
+    let mut normalized = Command::new(command.get_program());
+    normalized.args(command.get_args()).env_clear();
+    let generated_bin = command
+        .get_current_dir()
+        .map(|directory| directory.join("target/debug"));
+    let entries = command
+        .get_envs()
+        .filter_map(|(key, value)| {
+            let value = value?;
+            if is_validation_routing_env(key) {
+                return None;
+            }
+            let value = if key == OsStr::new("PATH") {
+                let paths = env::split_paths(value)
+                    .filter(|path| generated_bin.as_ref() != Some(path))
+                    .collect::<Vec<_>>();
+                env::join_paths(paths).ok()?
+            } else {
+                value.to_owned()
+            };
+            Some((key.to_owned(), value))
+        })
+        .collect::<Vec<_>>();
+    normalized.envs(entries);
+    identity(&normalized)
+}
+
+/// Binds only variables Cargo and Rust tooling can consume. Make, Terlan,
+/// editor, CI and agent routing are admitted by their own owners and must not
+/// invalidate the same Cargo tool selection when a later consumer runs
+/// outside Make.
+pub(super) fn cargo_validation_identity(command: &Command) -> String {
+    let mut projected = Command::new(command.get_program());
+    projected.args(command.get_args()).env_clear();
+    if let Some(directory) = command.get_current_dir() {
+        projected.current_dir(directory);
+    }
+    projected.envs(command.get_envs().filter_map(|(key, value)| {
+        if !is_cargo_environment(key) || is_validation_routing_env(key) {
+            return None;
+        }
+        Some((key.to_owned(), value?.to_owned()))
+    }));
+    validation_identity(&projected)
+}
+
+/// Projects a command onto the same Cargo/Rust environment boundary used by
+/// tool-selection identity and metadata production.
+pub(super) fn retain_cargo_environment(command: &mut Command) {
+    let removed = command
+        .get_envs()
+        .filter(|(key, _)| !is_cargo_environment(key) || is_validation_routing_env(key))
+        .map(|(key, _)| key.to_owned())
+        .collect::<Vec<_>>();
+    for key in removed {
+        command.env_remove(key);
+    }
+}
+
+fn is_cargo_environment(key: &OsStr) -> bool {
+    let Some(key) = key.to_str() else {
+        return false;
+    };
+    let upper = key.to_ascii_uppercase();
+    [
+        "CARGO_", "RUST", "RUSTUP_", "GIT_", "SSH_", "SSL_", "CURL_", "HTTP_", "HTTPS_", "LC_",
+    ]
+    .iter()
+    .any(|prefix| upper.starts_with(prefix))
+        || [
+            "ALL_PROXY",
+            "NO_PROXY",
+            "HOME",
+            "PATH",
+            "USERPROFILE",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "SYSTEMROOT",
+            "SYSTEMDRIVE",
+            "COMSPEC",
+            "PATHEXT",
+            "TMPDIR",
+            "TMP",
+            "TEMP",
+            "LANG",
+            "LANGUAGE",
+            "TZ",
+            "NETRC",
+        ]
+        .contains(&upper.as_str())
+}
+
+/// Recognizes destinations and executable routes whose selected bytes are
+/// admitted separately from their location.
+pub(super) fn is_validation_routing_env(key: &OsStr) -> bool {
+    VALIDATION_ROUTING_ENV
+        .iter()
+        .any(|route| key == OsStr::new(route))
 }
 
 fn failure(detail: impl ToString) -> PhaseFailure {

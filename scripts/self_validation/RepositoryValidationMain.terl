@@ -1,0 +1,1792 @@
+/**
+ * Owns repository, release, artifact, and executable-documentation validation.
+ */
+module scripts.self_validation.RepositoryValidationMain.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.crypto.Hash.
+import std.data.Json.
+import std.io.Console.{eprintln, println}.
+import std.io.{Directory, File}.
+import std.regex.Regex.
+import std.system.{Arguments, Environment, Process}.
+
+import type std.collections.List.
+import type std.core.Option.
+import type std.io.File.TextFile.
+import type std.regex.Regex.
+import type std.system.Process.{Command, Output}.
+
+struct JobScan {
+    valid: Bool,
+    active: Bool,
+    timeout: Bool,
+}.
+
+struct BuildPlanLimits {
+    cargo: Int,
+    tests: Int,
+    builds: Int,
+    requests: Int,
+    parallelism: Int,
+}.
+
+@pure
+reviewed_build_plan_limits(): BuildPlanLimits ->
+    BuildPlanLimits(cargo = 8, tests = 32, builds = 18, requests = 20, parallelism = 2).
+
+failure(code: String, message: String): Bool ->
+    let _printed = eprintln(String.concat(["error[repository_validation.", code, "]: ", message]));
+    false.
+
+root(): String ->
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    }.
+
+compiler(repository: String): String ->
+    case Environment.get("TERLAN_REPOSITORY_VALIDATION_TERLC") {
+        Some(value) -> value;
+        None -> child(repository, "target/debug/terlc")
+    }.
+
+@pure
+child(parent: String, relative: String): String ->
+    if {
+        parent == "." -> relative;
+        String.ends_with(parent, "/") -> String.append(parent, relative);
+        true -> String.append(parent, String.append("/", relative))
+    }.
+
+@pure
+reverse_strings(values: List[String], reversed: List[String]): List[String] ->
+    case values {
+        [] -> reversed;
+        [value | rest] -> reverse_strings(rest, [value | reversed])
+    }.
+
+@pure
+append_strings(left: List[String], right: List[String]): List[String] ->
+    prepend_reversed(reverse_strings(left, List.new[String]()), right).
+
+@pure
+prepend_reversed(left: List[String], right: List[String]): List[String] ->
+    case left {
+        [] -> right;
+        [value | rest] -> prepend_reversed(rest, [value | right])
+    }.
+
+@pure
+string_member(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or string_member(rest, expected)
+    }.
+
+all_files_exist(repository: String, paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            if {
+                File.exists(child(repository, path)) -> all_files_exist(repository, rest);
+                true -> failure("required_file", String.append("missing ", path))
+            }
+    }.
+
+@pure
+contains_any(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> false;
+        [fragment | rest] -> String.contains(source, fragment) or contains_any(source, rest)
+    }.
+
+contains_all(source: String, fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | rest] -> String.contains(source, fragment) and contains_all(source, rest)
+    }.
+
+@pure
+first_missing(source: String, fragments: List[String]): String ->
+    case fragments {
+        [] -> "";
+        [fragment | rest] ->
+            if {
+                String.contains(source, fragment) -> first_missing(source, rest);
+                true -> fragment
+            }
+    }.
+
+@pure
+ordered_fragments(lines: List[String], fragments: List[String]): Bool ->
+    case fragments {
+        [] -> true;
+        [fragment | remaining] ->
+            case lines {
+                [] -> false;
+                [line | rest] ->
+                    if {
+                        String.contains(line, fragment) -> ordered_fragments(rest, remaining);
+                        true -> ordered_fragments(rest, fragments)
+                    }
+            }
+    }.
+
+bounded(repository: String, program: String, arguments: List[String], timeout_ms: Int): Command ->
+    Process.with_output_limit_bytes(
+        Process.with_timeout_ms(
+            Process.with_working_directory(
+                Process.with_arguments(Process.command(program), arguments),
+                repository,
+            ),
+            timeout_ms,
+        ),
+        8_388_608,
+    ).
+
+run_output(
+    repository: String,
+    program: String,
+    arguments: List[String],
+    timeout_ms: Int,
+): Option[Output] ->
+    case Process.run(bounded(repository, program, arguments, timeout_ms)) {
+        Ok(output) -> Some(output);
+        Err(reason) ->
+            let _reported = failure("process", reason.message);
+            None
+    }.
+
+run_ok(repository: String, program: String, arguments: List[String], timeout_ms: Int): Bool ->
+    case run_output(repository, program, arguments, timeout_ms) {
+        Some(output) ->
+            if {
+                output.status == 0 -> true;
+                true -> failure("process.status", String.concat([program, " failed: ", output.stderr]))
+            };
+        None -> false
+    }.
+
+read(repository: String, relative: String): Option[String] ->
+    case File.read_text(child(repository, relative)) {
+        Ok(source) -> Some(source);
+        Err(reason) ->
+            let _reported = failure("read", reason.message);
+            None
+    }.
+
+@pure
+text_file_contents(files: List[TextFile]): List[String] ->
+    case files {
+        [] -> [];
+        [file | rest] -> [file.contents | text_file_contents(rest)]
+    }.
+
+@pure
+file_name(path: String): String ->
+    last_string(String.split(String.replace(path, "\\", "/"), "/"), path).
+
+@pure
+last_string(values: List[String], selected: String): String ->
+    case values {
+        [] -> selected;
+        [value | rest] -> last_string(rest, value)
+    }.
+
+workspace_version(repository: String): Bool ->
+    when {
+        Some(manifest) <- read(repository, "Cargo.toml")
+    } else {
+        None -> false
+    };
+    (when {
+    Ok(version_pattern) <- Regex.compile("(?m)^version = \"[0-9]+\\.[0-9]+\\.[0-9]+\"$");
+    Ok(edition_pattern) <- Regex.compile("(?m)^edition = \"[0-9]{4}\"$");
+    Ok(entries) <- Directory.entries(child(repository, "crates"))
+} else {
+    _ -> failure("workspace.regex", "cannot compile workspace metadata patterns")
+};
+if {
+    not String.contains(manifest, "[workspace.package]") -> failure("workspace.root", "Cargo.toml is missing [workspace.package]");
+    not Regex.is_match(version_pattern, manifest) -> failure("workspace.version", "root semantic version is missing");
+    not Regex.is_match(edition_pattern, manifest) -> failure("workspace.edition", "root workspace edition is missing");
+    true -> workspace_members(repository, entries)
+}).
+
+workspace_members(repository: String, entries: List[String]): Bool ->
+    case entries {
+        [] -> true;
+        [entry | rest] ->
+            let manifest_path = child(entry, "Cargo.toml");
+            if {
+                not File.exists(manifest_path) -> workspace_members(repository, rest);
+                true -> case File.read_text(manifest_path) {
+                    Err(reason) -> failure("workspace.member", reason.message);
+                    Ok(source) ->
+                        if {
+                            not String.contains(source, "version.workspace = true") -> failure(
+                                "workspace.member",
+                                String.append(manifest_path, " must inherit version"),
+                            );
+                            not String.contains(source, "edition.workspace = true") -> failure(
+                                "workspace.member",
+                                String.append(manifest_path, " must inherit edition"),
+                            );
+                            true -> workspace_members(repository, rest)
+                        }
+                }
+            }
+    }.
+
+@pure
+stale_extension(path: String): Bool ->
+    String.ends_with(path, ".tl")
+        or String.ends_with(path, ".tli")
+        or String.ends_with(path, ".tn")
+        or String.ends_with(path, ".tni")
+        or String.ends_with(path, ".ter").
+
+first_stale_extension(paths: List[String]): String ->
+    case paths {
+        [] -> "";
+        [path | rest] ->
+            if {
+                stale_extension(path) -> path;
+                true -> first_stale_extension(rest)
+            }
+    }.
+
+stale_reference(files: List[TextFile], pattern: Regex): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                String.ends_with(file.path, "RepositoryValidation.terls") -> stale_reference(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> file.path;
+                true -> stale_reference(rest, pattern)
+            }
+    }.
+
+source_extensions(repository: String): Bool ->
+    when {
+        Ok(paths) <-
+            Directory.files_recursive_excluding(
+                repository,
+                [".git", "target", "terlan", "otp", "node_modules"],
+            );
+        Ok(files) <-
+            File.read_text_tree_matching(
+                repository,
+                [".git", "target", "terlan", "otp", "node_modules"],
+                [
+                    "Makefile",
+                    ".mk",
+                    ".rs",
+                    ".terl",
+                    ".terli",
+                    ".terls",
+                    ".md",
+                    ".toml",
+                    ".yml",
+                    ".yaml",
+                    ".json",
+                    ".ts",
+                    ".js",
+                ],
+                List.new[String](),
+                0,
+                20_000,
+            );
+        Ok(pattern) <-
+            Regex.compile(
+                "\\.tl\\b|\\.tli\\b|\\.tn\\b|\\.tni\\b|\\.ter\\b|Some\\(\"(?:tl|tn|tli|tni|ter)\"\\)|== \"(?:tl|tn|tli|tni|ter)\"",
+            )
+    } else {
+        _ -> failure("extensions.scan", "cannot inventory Terlan source extensions")
+    };
+    (let stale = first_stale_extension(paths);
+let reference = stale_reference(files, pattern);
+if {
+    stale != "" -> failure("extensions.file", String.append("stale source extension: ", stale));
+    reference != "" -> failure("extensions.reference", String.append("stale extension reference: ", reference));
+    true -> true
+}).
+
+@pure
+scratch_path(path: String): Bool ->
+    String.contains(path, "/.terlan/")
+        or String.starts_with(path, ".terlan/")
+        or String.contains(path, "/__pycache__/")
+        or String.starts_with(path, "__pycache__/")
+        or String.ends_with(path, ".pyc")
+        or String.ends_with(path, ".pyo")
+        or String.ends_with(path, ".log")
+        or String.ends_with(path, ".tmp")
+        or String.ends_with(path, ".beam")
+        or String.starts_with(path, "std/summaries/")
+    and (String.ends_with(path, ".erl") or String.ends_with(path, ".hrl"))
+        or String.starts_with(path, ".agents/")
+        or String.starts_with(path, ".codex/")
+        or String.starts_with(path, "scratch/")
+        or String.starts_with(path, "gen/")
+        or String.starts_with(path, "proofs/lean/.lake/")
+        or path == ".github/README.md"
+        or String.starts_with(path, "scripts/check_0_0_0")
+        or String.starts_with(path, "scripts/check_0_0_1")
+        or String.starts_with(path, "scripts/check_0_0_2")
+        or String.starts_with(path, "scripts/check_0_0_3").
+
+first_existing_scratch(repository: String, paths: List[String]): String ->
+    case paths {
+        [] -> "";
+        [path | rest] ->
+            if {
+                scratch_path(path) and File.exists(child(repository, path)) -> path;
+                true -> first_existing_scratch(repository, rest)
+            }
+    }.
+
+release_boundary(repository: String): Bool ->
+    when {
+        Some(tracked_output) <- run_output(repository, "git", ["ls-files"], 30_000);
+        Some(untracked_output) <- run_output(repository, "git", ["ls-files", "--others", "--exclude-standard"], 30_000);
+        Some(makefile) <- read(repository, "Makefile");
+        Some(cli) <- read(repository, "crates/terlan/cli.mk")
+    } else {
+        _ -> false
+    };
+    (let tracked = first_existing_scratch(repository, String.split(tracked_output.stdout, "\n"));
+let untracked = first_existing_scratch(repository, String.split(untracked_output.stdout, "\n"));
+let surface = String.append(makefile, cli);
+if {
+    tracked_output.status != 0 or untracked_output.status != 0 -> failure("boundary.git", "cannot inventory repository paths");
+    tracked != "" -> failure("boundary.tracked", String.append("tracked scratch output: ", tracked));
+    untracked != "" -> failure("boundary.untracked", String.append("local scratch output: ", untracked));
+    String.contains(surface, "release-0-0-0")
+        or String.contains(surface, "release-0-0-1")
+        or String.contains(surface, "release-0-0-2")
+        or String.contains(surface, "release-0-0-3") -> failure("boundary.stale", "stale pre-0.0.4 release surface remains");
+    true -> true
+}).
+
+accelerator_files_hold(files: List[TextFile], pattern: Regex): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                String.contains(file.path, "test") -> accelerator_files_hold(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> failure(
+                    "accelerator.compiler",
+                    String.append("package-specific term in ", file.path),
+                );
+                true -> accelerator_files_hold(rest, pattern)
+            }
+    }.
+
+accelerator_roots_hold(repository: String, roots: List[String], pattern: Regex): Bool ->
+    case roots {
+        [] -> true;
+        [relative | rest] ->
+            let path = child(repository, relative);
+            if {
+                String.ends_with(relative, ".rs") -> case File.read_text(path) {
+                    Err(reason) -> failure("accelerator.read", reason.message);
+                    Ok(source) ->
+                        if {
+                            Regex.is_match(pattern, source) -> failure(
+                                "accelerator.compiler",
+                                String.append("package-specific term in ", relative),
+                            );
+                            true -> accelerator_roots_hold(repository, rest, pattern)
+                        }
+                };
+                true -> case File.read_text_tree_matching(
+                    path,
+                    List.new[String](),
+                    [".rs"],
+                    ["_test.rs"],
+                    0,
+                    10_000,
+                ) {
+                    Err(reason) -> failure("accelerator.read", reason.message);
+                    Ok(files) ->
+                        accelerator_files_hold(files, pattern)
+                            and accelerator_roots_hold(repository, rest, pattern)
+                }
+            }
+    }.
+
+cargo_accelerator_dependencies_absent(files: List[TextFile], pattern: Regex): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                not String.ends_with(file.path, "Cargo.toml") -> cargo_accelerator_dependencies_absent(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> failure(
+                    "accelerator.dependency",
+                    String.append("CUDA implementation dependency in ", file.path),
+                );
+                true -> cargo_accelerator_dependencies_absent(rest, pattern)
+            }
+    }.
+
+accelerator_hard_contract(repository: String): Bool ->
+    when {
+        Ok(cargo_files) <-
+            File.read_text_tree_matching(
+                repository,
+                [".git", "target", "node_modules"],
+                ["Cargo.toml"],
+                List.new[String](),
+                0,
+                1_000,
+            );
+        Ok(term) <- Regex.compile("(?i)\\b(?:cuda|nvidia|cudarc|ptx)\\b");
+        Ok(syntax_term) <- Regex.compile("(?i)\\b(?:cuda|gpu|kernel|device|accelerator)\\b");
+        Ok(dependency) <- Regex.compile("(?i)\\b(?:cudarc|cuda-sys|nvidia)\\b");
+        Some(grammar) <- read(repository, "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf")
+    } else {
+        _ -> failure("accelerator.scan", "cannot scan accelerator hard contract")
+    };
+    if {
+        not accelerator_roots_hold(
+    repository,
+    [
+        "crates/terlan/src/compiler/syntax",
+        "crates/terlan/src/compiler/typeck",
+        "crates/terlan/src/compiler/hir",
+        "crates/terlan/src/compiler/native_ir",
+        "crates/terlan/src/runtime/vm/scheduler.rs",
+        "crates/terlan/src/runtime/vm/resource.rs",
+    ],
+    term,
+) -> false;
+        Regex.is_match(syntax_term, grammar) -> failure("accelerator.syntax", "accelerator-specific syntax detected");
+        not cargo_accelerator_dependencies_absent(cargo_files, dependency) -> false;
+        not File.exists(child(repository, "crates/terlan/src/compiler/accelerator/aot/llvm_nvptx.rs")) -> failure("accelerator.aot", "isolated NVPTX backend is missing");
+        not File.exists(child(repository, "tests/fixtures/accelerator-synthetic/accelerator.toml")) -> failure("accelerator.fixture", "synthetic package fixture is missing");
+        true -> true
+    }.
+
+@pure
+fenced_block(source: String, language: String): String ->
+    fenced_lines(String.split(source, "\n"), String.append("```", language), false, "").
+
+@pure
+fenced_lines(lines: List[String], opener: String, active: Bool, output: String): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            if {
+                active and String.trim(line) == "```" -> output;
+                active -> fenced_lines(rest, opener, true, String.concat([output, line, "\n"]));
+                String.trim(line) == opener -> fenced_lines(rest, opener, true, output);
+                true -> fenced_lines(rest, opener, false, output)
+            }
+    }.
+
+cleanup_temporary(path: String, result: Bool): Bool ->
+    case Directory.remove_all(path) {
+        Ok(Unit) -> result;
+        Err(reason) -> failure("temporary.cleanup", reason.message)
+    }.
+
+readme_hello_world(repository: String): Bool ->
+    when {
+        Some(readme) <- read(repository, "README.md");
+        Ok(temporary) <- Directory.create_temporary("terlan-readme-hello-world.")
+    } else {
+        _ -> false
+    };
+    (let source = fenced_block(readme, "terlan");
+let expected = fenced_block(readme, "text");
+let source_dir = child(temporary, "src/hello");
+let home = child(temporary, "home");
+let prepared = prepare_readme_fixture(temporary, source_dir, home, source);
+let command =
+    Process.with_environment(
+        Process.with_working_directory(
+            Process.with_arguments(Process.command(compiler(repository)), ["run"]),
+            temporary,
+        ),
+        [
+            Process.environment_entry("HOME", home),
+            Process.environment_entry("XDG_CACHE_HOME", child(temporary, "xdg-cache")),
+            Process.environment_entry("XDG_CONFIG_HOME", child(temporary, "xdg-config")),
+            Process.environment_entry("XDG_DATA_HOME", child(temporary, "xdg-data")),
+        ],
+    );
+let result =
+    if {
+        source == "" or expected == "" -> failure("readme.block", "README example or output block is missing");
+        not prepared -> failure("readme.fixture", "cannot construct README example fixture");
+        true -> case Process.run(Process.with_timeout_ms(command, 120_000)) {
+            Err(reason) -> failure("readme.process", reason.message);
+            Ok(output) ->
+                if {
+                    output.status != 0 -> failure("readme.run", output.stderr);
+                    String.trim(output.stdout) != String.trim(expected) -> failure("readme.output", "README hello-world output mismatch");
+                    true -> true
+                }
+        }
+    };
+cleanup_temporary(temporary, result)).
+
+prepare_readme_fixture(
+    temporary: String,
+    source_dir: String,
+    home: String,
+    source: String,
+): Bool ->
+    when {
+        Ok(Unit) <- Directory.create_all(source_dir);
+        Ok(Unit) <- File.write_text(child(source_dir, "Main.terl"), source);
+        Ok(Unit) <-
+            File.write_text(
+                child(temporary, "terlan.toml"),
+                "[package]\nname = \"hello\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n",
+            );
+        Ok(Unit) <- Directory.create_all(home)
+    } else {
+        _ -> false
+    };
+    true.
+
+@pure
+release_archives(): List[String] ->
+    [
+        "terlc-linux-aarch64.tar.gz",
+        "terlc-linux-x86_64.tar.gz",
+        "terlc-macos-aarch64.tar.gz",
+        "terlc-macos-x86_64.tar.gz",
+        "terlc-windows-aarch64.zip",
+        "terlc-windows-x86_64.zip",
+    ].
+
+@pure
+release_expected(local_payload: Bool): List[String] ->
+    let archives = release_archives();
+    let with_sidecars = release_names(archives, List.new[String]());
+    if {
+        local_payload -> append_strings(
+            with_sidecars,
+            [
+                "SHA256SUMS",
+                "terlan-install-manifest.json",
+                "terlan-lsp",
+                "terlan-native-worker",
+                "terlan-release.json",
+                "terlan-vm",
+                "terlc",
+            ],
+        );
+        true -> with_sidecars
+    }.
+
+@pure
+release_names(archives: List[String], names: List[String]): List[String] ->
+    case archives {
+        [] -> reverse_strings(names, List.new[String]());
+        [archive | rest] ->
+            release_names(rest, [String.append(archive, ".sha256") | [archive | names]])
+    }.
+
+entry_names(paths: List[String], names: List[String]): List[String] ->
+    case paths {
+        [] -> reverse_strings(names, List.new[String]());
+        [path | rest] ->
+            let name = file_name(path);
+            entry_names(rest, [name | names])
+    }.
+
+same_set(left: List[String], right: List[String]): Bool ->
+    List.length(left) == List.length(right) and members_hold(left, right).
+
+members_hold(values: List[String], expected: List[String]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] -> string_member(expected, value) and members_hold(rest, expected)
+    }.
+
+nonempty_files(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            case File.size(path) {
+                Ok(size) -> size > 0 and nonempty_files(rest);
+                Err(_reason) -> false
+            }
+    }.
+
+checksums_hold(root_path: String, archives: List[String]): Bool ->
+    case archives {
+        [] -> true;
+        [archive | rest] ->
+            let sidecar = child(root_path, String.append(archive, ".sha256"));
+            when {
+                Ok(row) <- File.read_text(sidecar);
+                [expected, name] <- String.split(String.trim(row), "  ");
+                true <- name == archive;
+                Ok(pattern) <- Regex.compile("^[0-9a-f]{64}$");
+                true <- Regex.is_match(pattern, expected);
+                Ok(actual) <- Hash.sha256_file(child(root_path, archive));
+                true <- actual == expected
+            } else {
+                _ -> failure("artifacts.checksum", String.append("invalid checksum: ", archive))
+            };
+            checksums_hold(root_path, rest)
+    }.
+
+release_artifact_set(root_path: String, local_payload: Bool): Bool ->
+    case Directory.entries(root_path) {
+        Err(reason) -> failure("artifacts.directory", reason.message);
+        Ok(paths) ->
+            let actual = entry_names(paths, List.new[String]());
+            let expected = release_expected(local_payload);
+            if {
+                not same_set(actual, expected) -> failure("artifacts.inventory", "release artifact set is incomplete or unexpected");
+                not nonempty_files(paths) -> failure(
+                    "artifacts.files",
+                    "release artifact set must contain nonempty regular files",
+                );
+                true -> checksums_hold(root_path, release_archives())
+            }
+    }.
+
+write_release_fixture(path: String, archives: List[String]): Bool ->
+    case archives {
+        [] -> true;
+        [archive | rest] ->
+            let artifact = child(path, archive);
+            when {
+                Ok(Unit) <- File.write_text(artifact, String.append("fixture:", archive));
+                Ok(digest) <- Hash.sha256_file(artifact);
+                Ok(Unit) <-
+                    File.write_text(
+                        String.append(artifact, ".sha256"),
+                        String.concat([digest, "  ", archive, "\n"]),
+                    )
+            } else {
+                _ -> false
+            };
+            write_release_fixture(path, rest)
+    }.
+
+release_artifact_self_test(): Bool ->
+    case Directory.create_temporary("terlan-release-artifact-set.") {
+        Err(reason) -> failure("artifacts.self_test", reason.message);
+        Ok(temporary) ->
+            let base = write_release_fixture(temporary, release_archives());
+            if {
+                not base -> cleanup_temporary(temporary, false);
+                true -> let accepted = release_artifact_set(temporary, false);
+                when {
+                    Ok(Unit) <- File.write_text(child(temporary, "unexpected.txt"), "unexpected\n");
+                    Ok(paths) <- Directory.entries(temporary)
+                } else {
+                    _ -> cleanup_temporary(temporary, false)
+                };
+                (let rejected = not same_set(entry_names(paths, List.new[String]()), release_expected(false));
+case File.delete(child(temporary, "unexpected.txt")) {
+    Err(_reason) -> cleanup_temporary(temporary, false);
+    Ok(Unit) -> cleanup_temporary(temporary, accepted and rejected)
+})
+            }
+    }.
+
+@pure
+count_occurrences(source: String, needle: String): Int ->
+    List.length(String.split(source, needle)) - 1.
+
+/**
+ * Receipt hash fields print command words; they do not launch Cargo. Keep
+ * conditional command branches in this conservative dry-run count. Actual
+ * execution counts still come from the subprocess observation ledger.
+ */
+@pure
+planned_cargo_count(plan: String): Int ->
+    count_occurrences(
+        plan.replace("printf '%s\\n' cargo --locked ", "printf '%s\\n' <cargo-input> "),
+        "cargo --locked ",
+    ).
+
+@pure
+compiler_build_declaration(): String ->
+    "build_command='cargo --locked build -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker'".
+
+@pure
+quality_build_declaration(): String ->
+    "build_command='cargo --locked build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality".
+
+@pure
+bootstrap_declarations_hold(plan: String): Bool ->
+    count_occurrences(plan, compiler_build_declaration()) == 1
+        and count_occurrences(plan, quality_build_declaration()) == 1.
+
+@pure
+bootstrap_order_holds(plan: String): Bool ->
+    ordered_fragments(
+        String.split(plan, "\n"),
+        [
+            compiler_build_declaration(),
+            "-- --measure-if-stale",
+            quality_build_declaration(),
+            "TERLAN_BUILD_ARTIFACTS_PREBUILT=1",
+            "bash scripts/clean_build_outputs.sh --check-partials",
+        ],
+    ).
+
+@pure
+validator_parallelism(plan: String): Int ->
+    if {
+        String.contains(plan, "make --no-print-directory --jobs=2") -> 2;
+        String.contains(plan, "make --no-print-directory --jobs=1") -> 1;
+        true -> 0
+    }.
+
+@pure
+jobs_have_timeouts(source: String): Bool ->
+    let scan =
+        job_lines(
+            String.split(source, "\n"),
+            false,
+            JobScan(valid = true, active = false, timeout = false),
+        );
+    scan.valid.
+
+@pure
+job_lines(lines: List[String], in_jobs: Bool, scan: JobScan): JobScan ->
+    case lines {
+        [] ->
+            JobScan(
+                valid = scan.valid and (not scan.active or scan.timeout),
+                active = scan.active,
+                timeout = scan.timeout,
+            );
+        [line | rest] ->
+            if {
+                line == "jobs:" -> job_lines(rest, true, scan);
+                not in_jobs -> job_lines(rest, false, scan);
+                String.starts_with(line, "  ")
+                    and not String.starts_with(line, "    ")
+                    and String.ends_with(String.trim(line), ":") -> job_lines(
+                    rest,
+                    true,
+                    JobScan(
+                        valid = scan.valid and (not scan.active or scan.timeout),
+                        active = true,
+                        timeout = false,
+                    ),
+                );
+                String.starts_with(line, "    timeout-minutes:")
+                    or String.starts_with(line, "    uses: ./.github/workflows/") -> job_lines(
+                    rest,
+                    true,
+                    JobScan(valid = scan.valid, active = scan.active, timeout = true),
+                );
+                true -> job_lines(rest, true, scan)
+            }
+    }.
+
+workflow_contract(files: List[TextFile]): Bool ->
+    case files {
+        [] -> true;
+        [file | rest] ->
+            if {
+                String.ends_with(file.path, ".yml") and not jobs_have_timeouts(file.contents) -> failure("workflow.timeout", String.append("job missing timeout in ", file.path));
+                true -> workflow_contract(rest)
+            }
+    }.
+
+@pure
+approved_direct_cargo_script(path: String): Bool ->
+    String.ends_with(path, "/scripts/run_exact_cargo_test.sh")
+        or String.ends_with(path, "/scripts/run_prebuilt_terlan_binary.sh")
+        or String.ends_with(path, "/scripts/git_hooks/check.sh")
+        or String.ends_with(path, "/scripts/git_hooks/rust_reports.sh")
+        or path == "scripts/run_exact_cargo_test.sh"
+        or path == "scripts/run_prebuilt_terlan_binary.sh"
+        or path == "scripts/git_hooks/check.sh"
+        or path == "scripts/git_hooks/rust_reports.sh".
+
+@pure
+direct_cargo_line(line: String): Bool ->
+    let normalized = String.replace(String.trim(line), "\t", " ");
+    if {
+        normalized == "" or String.starts_with(normalized, "#") -> false;
+        true -> String.contains(normalized, "cargo run")
+            or String.contains(normalized, "cargo test")
+            or String.contains(normalized, "cargo build")
+            or String.contains(normalized, "cargo check")
+            or String.contains(normalized, "cargo --locked run")
+            or String.contains(normalized, "cargo --locked test")
+            or String.contains(normalized, "cargo --locked build")
+            or String.contains(normalized, "cargo --locked check")
+    }.
+
+@pure
+script_lines_have_direct_cargo(lines: List[String]): Bool ->
+    case lines {
+        [] -> false;
+        [line | rest] -> direct_cargo_line(line) or script_lines_have_direct_cargo(rest)
+    }.
+
+@pure
+script_has_direct_cargo(source: String): Bool ->
+    script_lines_have_direct_cargo(String.split(source, "\n")).
+
+@pure
+first_unowned_script_cargo(files: List[TextFile]): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            let path = file.path;
+            if {
+                approved_direct_cargo_script(path) -> first_unowned_script_cargo(rest);
+                script_has_direct_cargo(file.contents) -> path;
+                true -> first_unowned_script_cargo(rest)
+            }
+    }.
+
+build_release_contract(repository: String): Bool ->
+    let required =
+        [
+            "Makefile",
+            ".cargo/audit.toml",
+            "mk/rust-quality-checks.mk",
+            "mk/release-publish.mk",
+            "rust-toolchain.toml",
+            ".github/workflows/ci.yml",
+            ".github/workflows/codeql.yml",
+            ".github/workflows/codeql-language.yml",
+            ".github/workflows/codeql-rust.yml",
+            ".github/workflows/docs.yml",
+            ".github/workflows/publish.yml",
+            ".github/workflows/release.yml",
+            ".github/workflows/security.yml",
+            ".github/actions/security-audit/action.yml",
+            ".github/actions/setup-native-dependencies/action.yml",
+            ".github/actions/setup-terlan-script-runner/action.yml",
+            "scripts/ci/scripts/ClassifyChanges.terls",
+            "scripts/ci/src/ci/ChangeClassifier.terl",
+            "scripts/self_validation/RepositoryValidation.terls",
+            "scripts/build_typed_validator.sh",
+            "scripts/run_prebuilt_terlan_binary.sh",
+            "scripts/clean_build_outputs.sh",
+            "scripts/download_validated_release_artifacts.sh",
+            "scripts/publish_release_from_dist.sh",
+            "scripts/git_hooks.sh",
+        ];
+    when {
+        true <- all_files_exist(repository, required);
+        Some(toolchain) <- read(repository, "rust-toolchain.toml");
+        Some(makefile) <- read(repository, "Makefile");
+        Some(audit_policy) <- read(repository, ".cargo/audit.toml");
+        Some(editor) <- read(repository, "editors/editor.mk");
+        Some(release) <- read(repository, ".github/workflows/release.yml");
+        Some(ci) <- read(repository, ".github/workflows/ci.yml");
+        Some(codeql_actions) <- read(repository, ".github/workflows/codeql.yml");
+        Some(codeql_language) <- read(repository, ".github/workflows/codeql-language.yml");
+        Some(codeql_rust) <- read(repository, ".github/workflows/codeql-rust.yml");
+        Some(source_preflight) <- read(repository, ".github/workflows/source-preflight.yml");
+        Some(docs) <- read(repository, ".github/workflows/docs.yml");
+        Some(publish_workflow) <- read(repository, ".github/workflows/publish.yml");
+        Some(pages) <- read(repository, ".github/workflows/pages.yml");
+        Some(security) <- read(repository, ".github/workflows/security.yml");
+        Some(dependency_audit) <- read(repository, ".github/actions/security-audit/action.yml");
+        Some(native_setup) <- read(repository, ".github/actions/setup-native-dependencies/action.yml");
+        Some(script_runner) <- read(repository, ".github/actions/setup-terlan-script-runner/action.yml");
+        Some(cleanup) <- read(repository, "scripts/clean_build_outputs.sh");
+        Some(downloader) <- read(repository, "scripts/download_validated_release_artifacts.sh");
+        Some(publisher) <- read(repository, "scripts/publish_release_from_dist.sh");
+        Some(git_hook) <- read(repository, "scripts/git_hooks.sh");
+        Ok(workflows) <-
+            File.read_text_tree_matching(
+                child(repository, ".github"),
+                List.new[String](),
+                [".yml", ".yaml"],
+                List.new[String](),
+                0,
+                1_000,
+            );
+        Ok(make_sources) <-
+            File.read_text_tree_matching(
+                child(repository, "mk"),
+                List.new[String](),
+                [".mk"],
+                List.new[String](),
+                0,
+                1_000,
+            );
+        Ok(shell_scripts) <-
+            File.read_text_tree_matching(
+                child(repository, "scripts"),
+                List.new[String](),
+                [".sh"],
+                List.new[String](),
+                0,
+                10_000,
+            )
+    } else {
+        _ -> failure("build_release.inputs", "cannot load build/release contract inputs")
+    };
+    (let make_fragments =
+    [
+        "CARGO := cargo --locked",
+        "$(CARGO) clippy --workspace --bins -- -D warnings",
+        "$(CARGO) clippy --workspace --bins --all-features -- -D warnings",
+        "release-candidate-check: editor-release-contract-check terlan-artifact-measurement-bootstrap",
+        "$(MAKE) --no-print-directory build-artifact-budget-record",
+        "$(MAKE) --no-print-directory terlan-quality-tools-bootstrap",
+        "TERLAN_BUILD_ARTIFACTS_PREBUILT=1",
+        "error: missing prebuilt release Rust tool:",
+        "include mk/rust-coverage.mk",
+        "--with-cargo-coverage",
+        "--coverage-request --metadata",
+        "TERLAN_VALIDATION_BOOTSTRAPPED=1",
+        "VERSION ?= $(RELEASE_VERSION)",
+        "vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check",
+        "publish-evidence-plan-check:",
+        "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify",
+        "$(MAKE) --no-print-directory vm-multicore-publish-check",
+        "refusing to regenerate immutable publication inputs",
+        "release-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check",
+        "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",
+        "rust-security-audit-check:",
+        "cargo tree --locked --workspace --all-features --target all --invert chrono",
+        "cargo-audit audit --deny warnings",
+        "node-security-audit-check:",
+        "npm audit --prefix \"$$package_dir\" --package-lock-only --audit-level=moderate",
+        "publish-local-check: publish-release-input-check publish-workflow-input-check rust-security-audit-check node-security-audit-check",
+        "ReleasePayloadInputTest.terl \\",
+        "WorkflowContractTest.terl \\",
+        "--coverage --coverage-threshold 100",
+    ];
+let release_fragments =
+    [
+        "name: release VM multicore ThreadSanitizer",
+        "name: release-hosted-validation-evidence",
+        "run: make release-hosted-validation-check RELEASE_ARTIFACT_SET_ROOT=target/release-distribution",
+        "target/quality/vm-multicore-memory-model.json",
+        "target/quality/vm-multicore-release-closeout.json",
+        "name: release-distribution-\${{ matrix.target }}",
+        "actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6",
+        "artifact-metadata: write",
+        "attestations: write",
+        "id-token: write",
+        "name: release locked dependency security audit",
+        "compiler_run_id:",
+        "name: Reuse exact Compiler CI evidence",
+        "name: Publish workflow run identity",
+        "github.rest.actions.getWorkflowRun",
+        "run.path !== \".github/workflows/ci.yml\"",
+        "name: prepare sealed publication bundle",
+        "--script-eval -- publication-bundle --version \"$VERSION\"",
+        "name: release-publication-bundle",
+    ];
+let cleanup_fragments = ["-name 'terlan-file-*'", "-name 'terlan-directory-*'", "-name 'terlan-doc-format-*'"];
+let make_source = String.concat([makefile | text_file_contents(make_sources)]);
+let missing_make = first_missing(make_source, make_fragments);
+let missing_release = first_missing(release, release_fragments);
+let missing_cleanup = first_missing(cleanup, cleanup_fragments);
+let unowned_script_cargo = first_unowned_script_cargo(shell_scripts);
+if {
+    not String.contains(toolchain, "channel = \"1.96.0\"") -> failure("build_release.toolchain", "Rust toolchain must remain pinned");
+    missing_make != "" -> failure("build_release.make", String.append("missing invariant: ", missing_make));
+    not contains_all(audit_policy, ["RUSTSEC-2026-0543"]) -> failure("build_release.audit_policy", "inactive advisory policy drifted");
+    missing_cleanup != "" -> failure("build_release.cleanup", String.append("missing invariant: ", missing_cleanup));
+    String.contains(makefile, "\n.NOTPARALLEL:") -> failure(
+        "build_release.global_serialization",
+        "Make must express serial ordering locally; GNU Make 4.3 treats .NOTPARALLEL as process-global",
+    );
+    String.contains(makefile, "publish-local: publish-source-preflight")
+        or String.contains(makefile, "$(MAKE) --no-print-directory publish-source-preflight") -> failure(
+        "build_release.duplicate_publish_preflight",
+        "the public publish entry point must own the Make clean-tree preflight once",
+    );
+    not String.contains(makefile, "publication_lock=\"$$git_common/terlan-publication.lock\"")
+        or not String.contains(git_hook, "publication_lock=\"$git_common/terlan-publication.lock\"") -> failure(
+        "build_release.publication_commit_lease",
+        "publication and commit validation must share the Git common-directory lease",
+    );
+    String.contains(make_source, "\n\tcargo ") or String.contains(make_source, "\n\t@cargo ") -> failure(
+        "build_release.direct_cargo",
+        "Make recipes must use the locked Cargo wrapper or a shared artifact prerequisite",
+    );
+    unowned_script_cargo != "" -> failure(
+        "build_release.script_cargo",
+        String.append("shell check bypasses shared Cargo ownership: ", unowned_script_cargo),
+    );
+    missing_release != "" -> failure("build_release.workflow", String.append("missing invariant: ", missing_release));
+    String.contains(release, "uses: ./.github/workflows/source-preflight.yml") -> failure(
+        "build_release.duplicate_preflight",
+        "release validation must reuse exact successful Compiler CI evidence",
+    );
+    String.contains(release, "release-validation-identity:") -> failure(
+        "build_release.duplicate_identity_job",
+        "release revision evidence and pending identity must share one guarded job",
+    );
+    String.contains(release, "self-hosted") -> failure(
+        "build_release.self_hosted",
+        "release validation must not depend on a self-hosted runner",
+    );
+    not contains_all(
+    makefile,
+    [
+        "terlan-release-control-fingerprint:",
+        "test -x $(TERLAN_BOOTSTRAP_COMPILER)",
+        "test -x $(TERLAN_BOOTSTRAP_VM)",
+        "terlan-release-control-bootstrap: terlan-release-control-fingerprint",
+    ],
+)
+        or String.contains(makefile, "terlan-release-control-bootstrap: terlan-typed-validator-fingerprint") -> failure(
+        "build_release.release_control_bootstrap",
+        "release control must use working tools without rebuilding the candidate compiler",
+    );
+    String.contains(release, "run: make vm-multicore-performance-check") -> failure(
+        "build_release.performance_owner",
+        "host-sensitive multicore performance must remain diagnostic-only",
+    );
+    String.contains(release, "sha256sum")
+        or String.contains(release, "find . -type f")
+        or String.contains(release, "cp -p \"$artifact\"") -> failure(
+        "build_release.publication_bundle_owner",
+        "the Terlan release-promotion owner must construct publication bundles",
+    );
+    not String.contains(editor, "npm ci --prefix tree-sitter-terlan --no-audit --no-fund")
+        or not String.contains(editor, "NPM_PACK_CACHE ?= $(CURDIR)/target/tmp/npm-cache") -> failure("build_release.editor", "editor dependency/cache ownership drifted");
+    String.contains(release, "tags:") -> failure("build_release.tag", "tag pushes must not replay validation");
+    String.contains(release, "permissions:\n  actions: write") -> failure("build_release.permissions", "workflow-level actions write is forbidden");
+    not String.contains(ci, "name: Locked dependency security audit")
+        or not String.contains(security, "schedule:") -> failure("build_release.security", "locked dependency audits are incomplete");
+    not contains_all(
+    dependency_audit,
+    [
+        "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+        "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        "node-version: 24",
+        "path: ~/.cargo/bin/cargo-audit",
+        "key: cargo-audit-0.22.2-\${{ runner.os }}-\${{ runner.arch }}-\${{ hashFiles('rust-toolchain.toml') }}",
+        "steps.cargo-audit-cache.outputs.cache-hit != 'true'",
+        "cargo install cargo-audit --version 0.22.2 --locked --force",
+        "test \"$(cargo-audit --version)\" = \"cargo-audit 0.22.2\"",
+        "make --no-print-directory rust-security-audit-check",
+        "make --no-print-directory node-security-audit-check",
+    ],
+) -> failure(
+        "build_release.dependency_audit",
+        "locked Rust and Node dependency audit ownership drifted",
+    );
+    not contains_all(
+    source_preflight,
+    [
+        "Validate release payload inputs",
+        "ReleasePayloadInputTest.terl --coverage --coverage-threshold 100",
+        "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+        "go-version: \"1.25.0\"",
+        "actionlint-go1.25.0-v1.7.12",
+    ],
+) -> failure("build_release.actionlint", "actionlint toolchain/cache ownership drifted");
+    not contains_all(
+    String.concat([codeql_actions, codeql_language, codeql_rust]),
+    [
+        "name: CodeQL Actions",
+        "- \".github/**\"",
+        "language: actions",
+        "name: CodeQL Rust",
+        "- \"**/*.rs\"",
+        "language: rust",
+        "name: CodeQL language analysis",
+        "uses: ./.github/workflows/codeql-language.yml",
+        "languages: \${{ inputs.language }}",
+    ],
+) -> failure(
+        "build_release.codeql_scope",
+        "CodeQL languages must use path-scoped entry workflows and one shared analysis implementation",
+    );
+    not contains_all(
+    String.concat([ci, source_preflight, script_runner]),
+    [
+        "uses: ./.github/actions/setup-terlan-script-runner",
+        "scripts/ci/scripts/ClassifyChanges.terls",
+        "test scripts/ci --coverage --coverage-threshold 100",
+        "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        "actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+        "cargo build --locked -p terlan --bin terlc --bin terlan-vm",
+    ],
+) -> failure(
+        "build_release.terlan_script_runner",
+        "hosted control scripts must use the cached self-bootstrapped Terlan runner",
+    );
+    count_occurrences(ci, "uses: ./.github/actions/setup-native-dependencies") != 5
+        or count_occurrences(release, "uses: ./.github/actions/setup-native-dependencies") != 5
+        or count_occurrences(docs, "uses: ./.github/actions/setup-native-dependencies") != 1
+        or count_occurrences(pages, "uses: ./.github/actions/setup-native-dependencies") != 1
+        or not contains_all(
+    native_setup,
+    [
+        "libpq:$triplet",
+        "pkgconf:$triplet",
+        "PKG_CONFIG=$pkgConfig",
+        "$LASTEXITCODE -ne 0",
+        "name: Install pinned Lean toolchain",
+        "if: inputs.lean == 'true'",
+        "GH_TOKEN: \${{ github.token }}",
+        "packages+=(elan zstd)",
+        "leanprover/lean4:v4.31.0",
+        "repos/leanprover/lean4/releases/tags/$lean_tag",
+        "lean_download_attempts=4",
+        "elan toolchain link \"$lean_toolchain\" \"$lean_root\"",
+        "elan run \"$lean_toolchain\" lean --version",
+        "GITHUB_TOKEN: \${{ github.token }}",
+        "https://api.github.com/repos/lexxmark/winflexbison/releases/tags/v2.5.24",
+        "application/octet-stream",
+        "Get-FileHash -Algorithm SHA512 $flexArchive",
+        "$prefetchAttempts = 4",
+        "$installAttempts = 4",
+        "Start-Sleep -Seconds $delaySeconds",
+        "packages=(bubblewrap libpq-dev pkg-config ripgrep)",
+        "sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0",
+    ],
+)
+        or String.contains(ci, "run: elan toolchain install")
+        or String.contains(publish_workflow, "run: elan toolchain install")
+        or String.contains(native_setup, "pkgconfiglite") -> failure(
+        "build_release.native_setup",
+        "platform workflows must share fail-closed target-native dependency setup",
+    );
+    count_occurrences(ci, "uses: ./.github/actions/setup-rust") != count_occurrences(ci, "components: \"\"") + 1
+        or count_occurrences(release, "uses: ./.github/actions/setup-rust") != count_occurrences(release, "components: \"\"") + 1
+        or count_occurrences(docs, "uses: ./.github/actions/setup-rust") != count_occurrences(docs, "components: \"\"")
+        or count_occurrences(pages, "uses: ./.github/actions/setup-rust") != count_occurrences(pages, "components: \"\"")
+        or count_occurrences(security, "uses: ./.github/actions/setup-rust") != count_occurrences(security, "components: \"\"") -> failure(
+        "build_release.rust_components",
+        "only canonical exhaustive jobs may install Rustfmt and Clippy",
+    );
+    not String.contains(downloader, "release-validation/run")
+        or not String.contains(downloader, "gh attestation verify")
+        or not String.contains(downloader, "release-hosted-validation-evidence")
+        or not contains_all(
+    downloader,
+    [
+        "tvm-aot-platform-matrix-report.json",
+        "tvm-aot-thread-sanitizer-report.json",
+        "vm-multicore-thread-sanitizer-report.json",
+        "vm-multicore-memory-model-tsan.json",
+        "vm-multicore-memory-model.json",
+        "vm-multicore-release-closeout.json",
+        "hosted-candidate-validation.json",
+        "Compiler check and test",
+        ".github/workflows/ci.yml",
+    ],
+) -> failure("build_release.download", "validated artifact download contract drifted");
+    not contains_all(
+    publisher,
+    ["--draft --verify-tag", "uploaded asset set does not exactly match", "--draft=false"],
+) -> failure("build_release.publish", "draft publication verification drifted");
+    not workflow_contract(workflows) -> false;
+    true -> build_release_process_contract(repository)
+}).
+
+build_release_process_contract(repository: String): Bool ->
+    when {
+        true <- run_ok(repository, "bash", ["scripts/build_typed_validator.sh", "self-test"], 30_000);
+        true <- run_ok(repository, "bash", ["scripts/clean_build_outputs.sh", "--dry-run"], 30_000);
+        true <-
+            run_ok(
+                repository,
+                "bash",
+                ["scripts/clean_build_outputs.sh", "--check-partials"],
+                30_000,
+            );
+        Some(plan) <-
+            run_output(
+                repository,
+                "env",
+                [
+                    "-u",
+                    "MAKEFLAGS",
+                    "-u",
+                    "MAKEOVERRIDES",
+                    "-u",
+                    "MFLAGS",
+                    "-u",
+                    "TERLAN_RUST_COVERAGE_CONTEXT",
+                    "-u",
+                    "TERLAN_RUST_COVERAGE_SCOPE",
+                    "-u",
+                    "TERLAN_CHECK_RELEASE_EVIDENCE",
+                    "TERLAN_VALIDATION_BOOTSTRAPPED=0",
+                    "TERLAN_BUILD_ARTIFACTS_PREBUILT=0",
+                    "make",
+                    "-n",
+                    "release-candidate-check",
+                ],
+                120_000,
+            );
+        Some(publication) <-
+            run_output(
+                repository,
+                "env",
+                [
+                    "-u",
+                    "MAKEFLAGS",
+                    "-u",
+                    "MAKEOVERRIDES",
+                    "-u",
+                    "MFLAGS",
+                    "make",
+                    "-n",
+                    "publish-tag",
+                ],
+                30_000,
+            );
+        Some(tracked) <- run_output(repository, "git", ["ls-files"], 30_000)
+    } else {
+        _ -> false
+    };
+    (let plan_text = plan.stdout;
+let tracked_paths = String.split(tracked.stdout, "\n");
+let oversized = first_oversized(repository, tracked_paths);
+let duplicate_validator = duplicate_validator_output(plan_text);
+let rust_orchestrators = rust_orchestrator_count(plan_text);
+let cargo_invocations = planned_cargo_count(plan_text);
+let typed_validator_requests = count_occurrences(plan_text, "bash scripts/build_typed_validator.sh ");
+let terlc_test_invocations = count_occurrences(plan_text, "target/debug/terlc test ");
+let toolchain_probes = count_occurrences(plan_text, "target/debug/terlc build --print-toolchain-identity");
+let terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc build ") - toolchain_probes;
+let incremental_terlc_build_invocations = count_occurrences(plan_text, "target/debug/terlc build --incremental ");
+let lifecycle_partial_checks = count_occurrences(plan_text, "bash scripts/clean_build_outputs.sh --check-partials");
+let validator_build_parallelism = validator_parallelism(plan_text);
+let limits = reviewed_build_plan_limits();
+if {
+    plan.status != 0 or publication.status != 0 or tracked.status != 0 -> failure("build_release.plan", "cannot inspect release plan or tracked files");
+    contains_any(
+        publication.stdout,
+        [
+            "cargo ",
+            "terlc test ",
+            "terlc build ",
+            "npm ",
+            "download_validated_release_artifacts.sh",
+            "make --no-print-directory publish-evidence-refresh",
+        ],
+    ) -> failure(
+        "build_release.publication",
+        "tag upload must consume prepared evidence without builds, tests, downloads, or refreshes",
+    );
+    rust_orchestrators != 1 -> failure("build_release.suite", "release plan must own one Rust orchestrator");
+    not bootstrap_declarations_hold(plan_text) -> failure(
+        "build_release.bootstrap",
+        "release plan must build the compiler before destructive measurement and quality tools after it",
+    );
+    not bootstrap_order_holds(plan_text) -> failure(
+        "build_release.bootstrap_order",
+        "release plan must build quality tools after destructive measurement and before validation",
+    );
+    String.contains(plan_text, "cargo --locked cargo")
+        or String.contains(plan_text, "--locked --locked") -> failure("build_release.cargo", "release plan contains redundant Cargo policy flags");
+    String.contains(plan_text, "run_exact_cargo_test.sh") -> failure("build_release.replay", "release plan replays exact Cargo tests");
+    count_occurrences(plan_text, "cargo --locked run") != 0 -> failure("build_release.cargo_run", "release plan must execute sealed binaries directly");
+    lifecycle_partial_checks != 2 -> failure(
+        "build_release.lifecycle",
+        "release plan must reject partial builds before and after the exhaustive gate graph",
+    );
+    cargo_invocations > limits.cargo -> failure(
+        "build_release.cargo_budget",
+        "release plan exceeds the reviewed Cargo invocation budget",
+    );
+    count_occurrences(
+    plan_text,
+    "bash scripts/build_typed_validator.sh target/release-control/vm/scripts_Release.tvm ",
+) != 1 -> failure(
+        "build_release.release_control",
+        "release plan must build the tag-publication controller exactly once",
+    );
+    typed_validator_requests > limits.requests -> failure(
+        "build_release.validator_budget",
+        "release plan exceeds the typed-validator request budget",
+    );
+    validator_build_parallelism < 1 or validator_build_parallelism > limits.parallelism -> failure(
+        "build_release.validator_parallelism",
+        "release plan exceeds the reviewed typed-validator parallelism budget",
+    );
+    terlc_test_invocations > limits.tests -> failure(
+        "build_release.terlc_test_budget",
+        "release plan exceeds the Terlan test-process budget",
+    );
+    terlc_build_invocations > limits.builds -> failure(
+        "build_release.terlc_build_budget",
+        "release plan exceeds the Terlan AOT build-process budget",
+    );
+    toolchain_probes != 1 -> failure(
+        "build_release.toolchain_probe_budget",
+        "release plan must resolve the compiler-owned toolchain identity exactly once",
+    );
+    incremental_terlc_build_invocations != terlc_build_invocations -> failure(
+        "build_release.incremental_aot",
+        "every typed-validator AOT build must use verified incremental reuse",
+    );
+    duplicate_validator != "" -> failure(
+        "build_release.validator",
+        String.append("release plan requests a typed validator twice: ", duplicate_validator),
+    );
+    oversized != "" -> failure("build_release.size", String.append("oversized tracked file: ", oversized));
+    true -> case run_output(
+        repository,
+        "git",
+        ["check-ignore", "tests/example/.terlan/native-aot/module.o"],
+        30_000,
+    ) {
+        Some(output) ->
+            output.status == 0
+                and write_build_plan_report(repository, plan_text, duplicate_validator, rust_orchestrators)
+                and release_artifact_self_test();
+        None -> false
+    }
+}).
+
+write_build_plan_report(
+    repository: String,
+    plan: String,
+    duplicate_validator: String,
+    rust_orchestrators: Int,
+): Bool ->
+    let toolchain_probes = count_occurrences(plan, "target/debug/terlc build --print-toolchain-identity");
+    let limits = reviewed_build_plan_limits();
+    let report =
+        Json.object()
+            .put("schema", Json.string("terlan.validation-build-plan.v1"))
+            .put("decision", Json.string("pass"))
+            .put("plan", Json.string("release-candidate-check"))
+            .put("plan_sha256", Json.string(Hash.sha256(plan)))
+            .put("plan_line_count", Json.int(List.length(String.split(plan, "\n"))))
+            .put("cargo_invocation_count", Json.int(planned_cargo_count(plan)))
+            .put("cargo_invocation_maximum", Json.int(limits.cargo))
+            .put("count_scope", Json.string("conservative-dry-run-not-observed-execution"))
+            .put("rust_orchestrator_count", Json.int(rust_orchestrators))
+            .put(
+                "typed_validator_request_count",
+                Json.int(count_occurrences(plan, "bash scripts/build_typed_validator.sh ")),
+            )
+            .put("typed_validator_request_maximum", Json.int(limits.requests))
+            .put("typed_validator_parallelism", Json.int(validator_parallelism(plan)))
+            .put("typed_validator_parallelism_maximum", Json.int(limits.parallelism))
+            .put(
+                "terlc_test_invocation_count",
+                Json.int(count_occurrences(plan, "target/debug/terlc test ")),
+            )
+            .put("terlc_test_invocation_maximum", Json.int(limits.tests))
+            .put(
+                "terlc_build_invocation_count",
+                Json.int(count_occurrences(plan, "target/debug/terlc build ") - toolchain_probes),
+            )
+            .put("terlc_toolchain_probe_invocation_count", Json.int(toolchain_probes))
+            .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
+            .put("terlc_build_invocation_maximum", Json.int(limits.builds))
+            .put(
+                "incremental_terlc_build_invocation_count",
+                Json.int(count_occurrences(plan, "target/debug/terlc build --incremental ")),
+            )
+            .put(
+                "lifecycle_partial_check_count",
+                Json.int(
+                    count_occurrences(plan, "bash scripts/clean_build_outputs.sh --check-partials"),
+                ),
+            )
+            .put(
+                "duplicate_equivalent_build_count",
+                Json.int(
+                    if {
+                        duplicate_validator == "" -> 0;
+                        true -> 1
+                    },
+                ),
+            )
+            .put("cargo_run_count", Json.int(count_occurrences(plan, "cargo --locked run")));
+    when {
+        Ok(rendered) <- Json.stringify_pretty(report)
+    } else {
+        _ -> failure("build_release.report", "cannot encode validation build-plan report")
+    };
+    (let path = child(repository, "target/quality/validation-build-plan-report.json");
+let expected = String.append(rendered, "\n");
+(when {
+    Ok(Unit) <- Directory.create_all(child(repository, "target/quality"));
+    Ok(Unit) <- File.write_text(path, expected);
+    Ok(sealed) <- File.read_text(path)
+} else {
+    _ -> failure("build_release.report", "cannot write and read back validation build-plan report")
+};
+if {
+    sealed == expected -> build_plan_report_text_valid(sealed);
+    true -> failure("build_release.report", "validation build-plan report changed before seal")
+})).
+
+@pure
+report_integer(report: Json, name: String): Int ->
+    when {
+        Ok(value) <- report.get(name);
+        Ok(number) <- value.as_int()
+    } else {
+        _ -> -1
+    };
+    number.
+
+@pure
+report_string_is(report: Json, name: String, expected: String): Bool ->
+    when {
+        Ok(value) <- report.get(name);
+        Ok(text) <- value.as_string()
+    } else {
+        _ -> false
+    };
+    text == expected.
+
+@pure
+report_budget_valid(report: Json, count: String, maximum: String, limit: Int): Bool ->
+    let actual = report_integer(report, count);
+    actual >= 0 and actual <= limit and report_integer(report, maximum) == limit.
+
+@pure
+build_plan_report_valid(report: Json, limits: BuildPlanLimits): Bool ->
+    report_string_is(report, "schema", "terlan.validation-build-plan.v1")
+        and report_string_is(report, "decision", "pass")
+        and report_string_is(report, "plan", "release-candidate-check")
+        and report_string_is(report, "count_scope", "conservative-dry-run-not-observed-execution")
+        and report_budget_valid(report, "cargo_invocation_count", "cargo_invocation_maximum", limits.cargo)
+        and report_budget_valid(
+    report,
+    "terlc_test_invocation_count",
+    "terlc_test_invocation_maximum",
+    limits.tests,
+)
+        and report_budget_valid(
+    report,
+    "terlc_build_invocation_count",
+    "terlc_build_invocation_maximum",
+    limits.builds,
+)
+        and report_budget_valid(
+    report,
+    "typed_validator_request_count",
+    "typed_validator_request_maximum",
+    limits.requests,
+)
+        and report_budget_valid(
+    report,
+    "typed_validator_parallelism",
+    "typed_validator_parallelism_maximum",
+    limits.parallelism,
+)
+        and report_integer(report, "typed_validator_parallelism") >= 1
+        and report_budget_valid(
+    report,
+    "terlc_toolchain_probe_invocation_count",
+    "terlc_toolchain_probe_invocation_maximum",
+    1,
+)
+        and report_integer(report, "terlc_toolchain_probe_invocation_count") == 1
+        and report_integer(report, "rust_orchestrator_count") == 1
+        and report_integer(report, "duplicate_equivalent_build_count") == 0
+        and report_integer(report, "cargo_run_count") == 0
+        and report_integer(report, "lifecycle_partial_check_count") == 2
+        and report_integer(report, "incremental_terlc_build_invocation_count") == report_integer(report, "terlc_build_invocation_count").
+
+build_plan_report_text_valid(text: String): Bool ->
+    case Json.parse(text) {
+        Ok(report) -> build_plan_report_valid(report, reviewed_build_plan_limits());
+        Err(_) -> false
+    }.
+
+check_build_plan_report(repository: String): Bool ->
+    case File.read_text(child(repository, "target/quality/validation-build-plan-report.json")) {
+        Ok(text) ->
+            build_plan_report_text_valid(text)
+                or failure(
+    "build_release.report",
+    "build-plan report violates the reviewed policy; regenerate it with build-release-contract",
+);
+        Err(_) -> failure("build_release.report", "missing build-plan report")
+    }.
+
+duplicate_validator_output(plan: String): String ->
+    duplicate_validator_rows(String.split(plan, "\n"), List.new[String](), false).
+
+rust_orchestrator_count(plan: String): Int ->
+    when {
+        Ok(pattern) <-
+            Regex.compile(
+                "^(?:[A-Za-z_][A-Za-z0-9_]*=[^ \\t]+[ \\t]+)*(?:/[^ \\t]+/)?target/(?:debug|validation-tools)/terlan-test-orchestrator$",
+            )
+    } else {
+        _ -> -1
+    };
+    rust_orchestrator_rows(String.split(plan, "\n"), pattern, 0).
+
+rust_orchestrator_rows(lines: List[String], pattern: Regex, count: Int): Int ->
+    case lines {
+        [] -> count;
+        [line | rest] ->
+            let next =
+                if {
+                    Regex.is_match(pattern, String.trim(line)) -> count + 1;
+                    true -> count
+                };
+            rust_orchestrator_rows(rest, pattern, next)
+    }.
+
+/**
+ * Measurement deletes its own validator; allow one producer on each side.
+ */
+duplicate_validator_rows(
+    lines: List[String],
+    seen: List[String],
+    after_measurement: Bool,
+): String ->
+    case lines {
+        [] -> "";
+        [line | rest] ->
+            if {
+                String.ends_with(String.trim(line), " -- --measure-if-stale") -> duplicate_validator_rows(rest, seen, true);
+                not String.starts_with(line, "bash scripts/build_typed_validator.sh ") -> duplicate_validator_rows(rest, seen, after_measurement);
+                true -> when {
+                    Some({_prefix, suffix}) <- String.split_once(line, "bash scripts/build_typed_validator.sh ");
+                    Some({output, _arguments}) <- String.split_once(suffix, " ")
+                } else {
+                    _ -> duplicate_validator_rows(rest, seen, after_measurement)
+                };
+                (let key =
+    if {
+        after_measurement
+            and output == "target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm" -> String.append(output, "#after-measurement");
+        true -> output
+    };
+if {
+    string_member(seen, key) -> output;
+    true -> duplicate_validator_rows(rest, [key | seen], after_measurement)
+})
+            }
+    }.
+
+first_oversized(repository: String, paths: List[String]): String ->
+    case paths {
+        [] -> "";
+        [path | rest] ->
+            if {
+                path == "" or not File.exists(child(repository, path)) -> first_oversized(repository, rest);
+                true -> case File.size(child(repository, path)) {
+                    Ok(size) ->
+                        if {
+                            size >= 52_428_800 -> path;
+                            true -> first_oversized(repository, rest)
+                        };
+                    Err(_reason) -> first_oversized(repository, rest)
+                }
+            }
+    }.
+
+bootstrap_plan_self_test(): Bool ->
+    let compiler = compiler_build_declaration();
+    let quality = quality_build_declaration();
+    let plan =
+        String.concat(
+            [
+                compiler,
+                "\n-- --measure-if-stale\n",
+                quality,
+                "\nTERLAN_BUILD_ARTIFACTS_PREBUILT=1\nbash scripts/clean_build_outputs.sh --check-partials\n",
+            ],
+        );
+    bootstrap_declarations_hold(plan)
+        and bootstrap_order_holds(plan)
+        and not bootstrap_declarations_hold(String.append(plan, compiler))
+        and not bootstrap_declarations_hold(String.append(plan, quality))
+        and not bootstrap_order_holds(String.concat([quality, "\n", compiler])).
+
+cargo_plan_self_test(): Bool ->
+    planned_cargo_count("printf '%s\\n' cargo --locked build -p example\n") == 0
+        and planned_cargo_count("cargo --locked build -p example\ncargo --locked build -p example\n") == 2
+        and planned_cargo_count(
+    "build_command='cargo --locked build -p example'\nprintf '%s\\n' cargo --locked build -p example\n",
+) == 1.
+
+budget_validator_plan_self_test(): Bool ->
+    let budget = "bash scripts/build_typed_validator.sh target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm inputs -- build\n";
+    let other = "bash scripts/build_typed_validator.sh target/other.tvm inputs -- build\n";
+    let measure = "target/debug/terlan-vm run budget.tvm -- --measure-if-stale\n";
+    duplicate_validator_output(String.concat([budget, measure, budget])) == ""
+        and duplicate_validator_output(String.concat([budget, budget])) != ""
+        and duplicate_validator_output(String.concat([budget, measure, budget, budget])) != ""
+        and duplicate_validator_output(String.concat([measure, budget, budget])) != ""
+        and duplicate_validator_output(String.concat([other, measure, other])) != "".
+
+build_plan_report_fixture(limits: BuildPlanLimits): Json ->
+    Json.object()
+        .put("schema", Json.string("terlan.validation-build-plan.v1"))
+        .put("decision", Json.string("pass"))
+        .put("plan", Json.string("release-candidate-check"))
+        .put("count_scope", Json.string("conservative-dry-run-not-observed-execution"))
+        .put("cargo_invocation_count", Json.int(limits.cargo))
+        .put("cargo_invocation_maximum", Json.int(limits.cargo))
+        .put("terlc_test_invocation_count", Json.int(limits.tests))
+        .put("terlc_test_invocation_maximum", Json.int(limits.tests))
+        .put("terlc_build_invocation_count", Json.int(limits.builds))
+        .put("terlc_build_invocation_maximum", Json.int(limits.builds))
+        .put("typed_validator_request_count", Json.int(limits.requests))
+        .put("typed_validator_request_maximum", Json.int(limits.requests))
+        .put("typed_validator_parallelism", Json.int(limits.parallelism))
+        .put("typed_validator_parallelism_maximum", Json.int(limits.parallelism))
+        .put("terlc_toolchain_probe_invocation_count", Json.int(1))
+        .put("terlc_toolchain_probe_invocation_maximum", Json.int(1))
+        .put("rust_orchestrator_count", Json.int(1))
+        .put("duplicate_equivalent_build_count", Json.int(0))
+        .put("cargo_run_count", Json.int(0))
+        .put("lifecycle_partial_check_count", Json.int(2))
+        .put("incremental_terlc_build_invocation_count", Json.int(limits.builds)).
+
+build_plan_budget_fields_self_test(limits: BuildPlanLimits, fields: List[String]): Bool ->
+    case fields {
+        [] -> true;
+        [field | rest] ->
+            not build_plan_report_valid(build_plan_report_fixture(limits).put(field, Json.int(-1)), limits)
+                and not build_plan_report_valid(build_plan_report_fixture(limits).put(field, Json.string("8")), limits)
+                and not build_plan_report_valid(build_plan_report_fixture(limits).put(field, Json.int(999_999)), limits)
+                and build_plan_budget_fields_self_test(limits, rest)
+    }.
+
+build_plan_report_self_test(): Bool ->
+    let limits = reviewed_build_plan_limits();
+    let changed =
+        BuildPlanLimits(
+            cargo = limits.cargo + 1,
+            tests = limits.tests + 1,
+            builds = limits.builds + 1,
+            requests = limits.requests + 1,
+            parallelism = limits.parallelism + 1,
+        );
+    build_plan_report_valid(build_plan_report_fixture(limits), limits)
+        and build_plan_report_valid(build_plan_report_fixture(changed), changed)
+        and not build_plan_report_valid(build_plan_report_fixture(limits), changed)
+        and not build_plan_report_valid(build_plan_report_fixture(changed), limits)
+        and not build_plan_report_valid(Json.object(), limits)
+        and not build_plan_report_text_valid("not json")
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("decision", Json.string("fail")),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("schema", Json.string("unknown")),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("duplicate_equivalent_build_count", Json.int(1)),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("incremental_terlc_build_invocation_count", Json.int(0)),
+    limits,
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture(limits).put("typed_validator_parallelism", Json.int(0)),
+    limits,
+)
+        and build_plan_budget_fields_self_test(
+    limits,
+    [
+        "cargo_invocation_count",
+        "cargo_invocation_maximum",
+        "terlc_test_invocation_count",
+        "terlc_test_invocation_maximum",
+        "terlc_build_invocation_count",
+        "terlc_build_invocation_maximum",
+        "typed_validator_request_count",
+        "typed_validator_request_maximum",
+        "typed_validator_parallelism",
+        "typed_validator_parallelism_maximum",
+    ],
+).
+
+self_test(): Bool ->
+    bootstrap_plan_self_test()
+        and build_plan_report_self_test()
+        and budget_validator_plan_self_test()
+        and cargo_plan_self_test()
+        and rust_orchestrator_count("/checkout/target/validation-tools/terlan-test-orchestrator\n") == 1
+        and rust_orchestrator_count(
+    "target/debug/terlan-test-orchestrator --install-snapshot /checkout/target/validation-tools/terlan-test-orchestrator\n",
+) == 0
+        and rust_orchestrator_count("\ttarget/debug/terlan-test-orchestrator\n") == 1
+        and rust_orchestrator_count(
+    "TERLAN_RUST_SUITE_REPORT=/tmp/report /checkout/target/debug/terlan-test-orchestrator\n",
+) == 1
+        and rust_orchestrator_count(
+    "target/debug/terlan-test-orchestrator\ntarget/debug/terlan-test-orchestrator\n",
+) == 2
+        and rust_orchestrator_count(
+    "test -x target/debug/terlan-test-orchestrator\necho target/debug/terlan-test-orchestrator\ncargo build --bin terlan-test-orchestrator\n/checkout/target/debug/terlan-test-orchestrator --cargo-metadata \\\n /tmp/output -- cargo --locked\n",
+) == 0
+        and fenced_block("before\n```terlan\nvalue\n```\nafter\n", "terlan") == "value\n"
+        and stale_extension("sample.tl")
+        and not stale_extension("sample.terl")
+        and same_set(["a", "b"], ["b", "a"])
+        and jobs_have_timeouts("jobs:\n  check:\n    timeout-minutes: 10\n    runs-on: ubuntu\n")
+        and jobs_have_timeouts("jobs:\n  check:\n    uses: ./.github/workflows/source-preflight.yml\n")
+        and not jobs_have_timeouts("jobs:\n  check:\n    runs-on: ubuntu\n")
+        and not jobs_have_timeouts(
+    "jobs:\n  shared:\n    uses: ./.github/workflows/source-preflight.yml\n  check:\n    runs-on: ubuntu\n",
+)
+        and script_has_direct_cargo("#!/bin/sh\ncargo test -p terlan\n")
+        and script_has_direct_cargo("#!/bin/sh\ncargo --locked build -p terlan\n")
+        and not script_has_direct_cargo("#!/bin/sh\n# cargo test is owned elsewhere\necho ready\n")
+        and approved_direct_cargo_script("/checkout/scripts/run_exact_cargo_test.sh")
+        and approved_direct_cargo_script("scripts/git_hooks/check.sh")
+        and approved_direct_cargo_script("/checkout/scripts/git_hooks/rust_reports.sh")
+        and not approved_direct_cargo_script("/checkout/scripts/git_hooks/ordinary_check.sh")
+        and not approved_direct_cargo_script("/checkout/scripts/git_hooks/check.sh.backup")
+        and not approved_direct_cargo_script("/checkout/scripts/ordinary_check.sh").
+
+pub run(): Bool ->
+    let repository = root();
+    let command = Arguments.get(0);
+    let argument = Arguments.get(1);
+    let option = Arguments.get(2);
+    dispatch(repository, command, argument, option).
+
+dispatch(
+    repository: String,
+    command: Option[String],
+    argument: Option[String],
+    option: Option[String],
+): Bool ->
+    case command {
+        Some("workspace-version") -> workspace_version(repository);
+        Some("source-extensions") -> source_extensions(repository);
+        Some("release-boundary") -> release_boundary(repository);
+        Some("accelerator-hard-contract") -> accelerator_hard_contract(repository);
+        Some("readme-hello-world") -> readme_hello_world(repository);
+        Some("release-artifact-set") -> release_artifact_command(argument, option);
+        Some("release-artifact-self-test") -> release_artifact_self_test();
+        Some("build-release-contract") -> build_release_contract(repository);
+        Some("build-plan-report") -> check_build_plan_report(repository);
+        Some("self-test") -> self_test();
+        Some(value) -> failure("arguments", String.append("unknown command: ", value));
+        None -> failure("arguments", "expected a repository validation command")
+    }.
+
+release_artifact_command(argument: Option[String], option: Option[String]): Bool ->
+    case argument {
+        Some(path) -> release_artifact_set(path, local_payload_option(option));
+        None -> failure("arguments", "release-artifact-set requires a directory")
+    }.
+
+@pure
+local_payload_option(option: Option[String]): Bool ->
+    case option {
+        Some("--with-local-payload") -> true;
+        _ -> false
+    }.

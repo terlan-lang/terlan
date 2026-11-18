@@ -231,7 +231,7 @@ pub fn run_vm_http_stateful_actor_session(
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile"))
+    let text = crate::quality::support::read_make_graph(root)
         .map_err(|err| format!("Makefile: failed to read VM HTTP stateful session gate: {err}"))?;
     let mut diagnostics = Vec::new();
     if !text

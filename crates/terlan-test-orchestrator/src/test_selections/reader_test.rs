@@ -24,6 +24,8 @@ fn evidence(path: &Path) -> (Value, Value) {
         executor: PhaseExecutor::TerlanHarness,
         args: vec![],
         environment: vec![],
+        shard: None,
+        test_threads: None,
     };
     let mut inventory =
         TestSelections::create(path, "completed-suite", &[phase], &plan, &harness, control)
@@ -39,15 +41,28 @@ fn evidence(path: &Path) -> (Value, Value) {
                 outcome: "passed",
                 child_pid: Some(17),
                 test_execution: Some(completion.clone()),
+                reused: false,
             }],
             control,
         )
         .unwrap();
     let report = json!({"schema":"terlan.rust-test-suite.v4","decision":"pass","run_id":"completed-suite",
         "test_selection_binding":inventory.json(), "executable_binding":{"before":[harness.clone()],"after":[harness],"verified":true},
-        "phases":[{"name":"normal","outcome":"passed","executor":"direct-terlan-harness","child_pid":17,"test_execution":completion}]});
+        "phases":[{"name":"normal","outcome":"passed","executor":"direct-terlan-harness","child_pid":17,"reused":false,"test_execution":completion}]});
     let document = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
     (report, document)
+}
+
+#[test]
+fn historical_reader_accepts_explicit_exact_receipt_completion() {
+    let fixture = temporary_fixture("coverage-reader-receipt");
+    let (mut report, document) = evidence(&fixture.0.join("names.json"));
+    report["phases"][0]["child_pid"] = Value::Null;
+    report["phases"][0]["reused"] = json!(true);
+    assert!(restored(&report, &document).is_ok());
+
+    report["phases"][0]["child_pid"] = json!(17);
+    assert!(restored(&report, &document).is_err());
 }
 
 fn restored(report: &Value, document: &Value) -> Result<TestSelections, PhaseFailure> {
@@ -86,6 +101,67 @@ fn historical_reader_reconciles_production_evidence_and_preserves_missing_covera
         false
     );
     assert_eq!(inventory.json()["reusable"], false);
+}
+
+#[test]
+fn historical_reader_bounds_phases_by_compiled_tests_not_a_magic_number() {
+    let phase_count = 257_usize;
+    let names = (0..phase_count)
+        .map(|index| format!("module::owned_{index}"))
+        .collect::<BTreeSet<_>>();
+    let phases = names
+        .iter()
+        .enumerate()
+        .map(|(index, name)| {
+            let selected = ExpectedTests {
+                passed: BTreeSet::from([name.clone()]),
+                ignored: BTreeSet::new(),
+                filtered: phase_count - 1,
+            };
+            json!({"phase":format!("phase-{index}"), "passed":selected.passed,
+                "ignored":selected.ignored, "filtered":selected.filtered,
+                "selection_identity_sha256":selected.identity()})
+        })
+        .collect::<Vec<_>>();
+    let completions = phases
+        .iter()
+        .map(|phase| {
+            json!({"name":phase["phase"], "outcome":"passed",
+                "executor":"direct-terlan-harness", "child_pid":17, "reused":false,
+                "test_execution":{"scope":"admitted-libtest-records-v1",
+                    "selection_identity_sha256":phase["selection_identity_sha256"],
+                    "passed":1, "ignored":0, "filtered":phase_count - 1}})
+        })
+        .collect::<Vec<_>>();
+    let harness = json!({"role":"terlan-library-harness", "identity_sha256":"a".repeat(64)});
+    let coverage = json!({
+        "normal":{"scope":"completed-main-harness-name-coverage-v1", "selected":phase_count,
+            "passed":phase_count, "uncovered":0, "covered":true, "reusable":false},
+        "ignored":{"scope":"completed-main-harness-name-coverage-v1", "selected":0,
+            "passed":0, "uncovered":0, "covered":false, "reusable":false}
+    });
+    let digest = "b".repeat(64);
+    let document = json!({"schema":"terlan.rust-test-selections.v2",
+        "suite_run_id":"completed-suite", "scope":"admitted-main-harness-selections-v1",
+        "reusable":false, "package":"terlan", "target":"lib",
+        "features":crate::VALIDATION_FEATURES, "harness":harness,
+        "compiled":{"all":names, "ignored":[]}, "phases":phases});
+    let report = json!({"schema":"terlan.rust-test-suite.v4", "decision":"pass",
+        "run_id":"completed-suite", "executable_binding":{"before":[harness.clone()],
+            "after":[harness], "verified":true}, "phases":completions,
+        "test_selection_binding":{"suite_run_id":"completed-suite",
+            "scope":"admitted-main-harness-selections-v1", "sha256":digest,
+            "verified":true, "reusable":false, "phases":phase_count,
+            "tests":phase_count, "compiled_tests":phase_count,
+            "originally_ignored":0, "coverage":coverage}});
+
+    assert!(restore(
+        &report,
+        &document,
+        report["test_selection_binding"]["sha256"].as_str().unwrap(),
+        Path::new("large-suite.json.selections.json"),
+    )
+    .is_ok());
 }
 
 #[test]

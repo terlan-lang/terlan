@@ -2,6 +2,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use crate::compiler::native_ir::{
     emit_native_module_object_with_policy, native_application_abi_fingerprint, NativeCodegenPolicy,
@@ -157,6 +158,15 @@ fn prepare_native_object_unit(
         cache.touch(identity)?;
         return Ok(object_path);
     }
+    let started = Instant::now();
+    if crate::compiler_timings::native_enabled() {
+        eprintln!(
+            "terlc native-aot: module-unit.begin.{} functions={} continuations={}",
+            natives[module_index].name,
+            natives[module_index].functions.len(),
+            natives[module_index].continuations.len(),
+        );
+    }
     // The object-set root lease already excludes every cooperating publisher.
     // A second per-entry lock and repeated miss verification add no ownership.
     let activity = Activity::begin(Operation::ModuleObject, identity)?;
@@ -167,6 +177,14 @@ fn prepare_native_object_unit(
         object.as_ref().ok().map(|bytes| bytes.len() as u64),
     )?;
     let object = object?;
+    if crate::compiler_timings::native_enabled() {
+        eprintln!(
+            "terlc native-aot: module-unit.{}: {}ms bytes={}",
+            natives[module_index].name,
+            started.elapsed().as_millis(),
+            object.len(),
+        );
+    }
     let manifest = native_cache::cache_manifest_bytes(
         identity,
         target,

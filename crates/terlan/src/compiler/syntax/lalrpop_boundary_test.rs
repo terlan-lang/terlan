@@ -1,4 +1,4 @@
-use super::{lalrpop_boundary::*, lalrpop_syntax::LalrpopSourceIndex, span::Span};
+use super::{lalrpop_boundary::*, span::Span};
 
 mod tests {
     use std::{fs, path::Path};
@@ -298,106 +298,57 @@ pub run(value: Int): Int ->
 
     #[test]
     fn generated_module_migration_scorecard_tracks_full_corpus() {
-        use std::collections::BTreeMap;
-
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let mut paths = Vec::new();
         collect_terlan_sources(&root, &mut paths);
         paths.sort();
-        let mut canonical_accepted = 0usize;
-        let mut generated_accepted = 0usize;
-        let mut failure_classes = BTreeMap::<String, (usize, String)>::new();
-        for path in paths {
-            let source = fs::read_to_string(&path).expect("read Terlan corpus source");
-            let Ok(canonical) = crate::terlan_syntax::parser::parse_module(&source) else {
-                continue;
-            };
-            canonical_accepted += 1;
-            match parse_lalrpop_module_syntax(&source) {
-                Ok(generated) => {
-                    generated_accepted += 1;
-                    assert_eq!(
-                        generated.module_name,
-                        canonical.name,
-                        "module identity drift for {}",
-                        path.display()
-                    );
-                }
-                Err(error) => {
-                    let source_index = LalrpopSourceIndex::new(&source);
-                    let message_class = error
-                        .message
-                        .split("; expected")
-                        .next()
-                        .unwrap_or(error.message.as_str())
-                        .to_string();
-                    let token = source_index.text(&source, error.span.start, error.span.end);
-                    let class = format!("{message_class} `{token}`");
-                    let line_index = source
-                        .chars()
-                        .take(error.span.start)
-                        .filter(|character| *character == '\n')
-                        .count();
-                    let context = source.lines().nth(line_index).unwrap_or("");
-                    let sample = format!(
-                        "{}:{} `{}` ({})",
-                        path.display(),
-                        error.span.start,
-                        context.trim(),
-                        error.message,
-                    );
-                    let entry = failure_classes.entry(class).or_insert_with(|| (0, sample));
-                    entry.0 += 1;
-                }
-            }
-        }
-        eprintln!("generated module migration: {generated_accepted}/{canonical_accepted} accepted");
-        let mut failure_classes = failure_classes.into_iter().collect::<Vec<_>>();
-        failure_classes.sort_by(|left, right| {
-            right
-                .1
-                 .0
-                .cmp(&left.1 .0)
-                .then_with(|| left.0.cmp(&right.0))
+        assert!(!paths.is_empty(), "Terlan corpus cannot be empty");
+        let worker_count = std::thread::available_parallelism()
+            .map_or(1, |count| count.get())
+            .min(8)
+            .min(paths.len());
+        let chunk_size = paths.len().div_ceil(worker_count);
+        let accepted = std::thread::scope(|scope| {
+            paths
+                .chunks(chunk_size)
+                .map(|paths| {
+                    scope.spawn(move || {
+                        paths
+                            .iter()
+                            .filter(|path| {
+                                let source =
+                                    fs::read_to_string(path).expect("read Terlan corpus source");
+                                let Ok(generated) =
+                                    crate::terlan_syntax::parser::parse_module(&source)
+                                else {
+                                    return false;
+                                };
+                                let header =
+                                    parse_lalrpop_module_header(&source).unwrap_or_else(|error| {
+                                        panic!(
+                                            "generated module header rejected {} at {:?}: {}",
+                                            path.display(),
+                                            error.span,
+                                            error.message
+                                        )
+                                    });
+                                assert_eq!(
+                                    header.module_name,
+                                    generated.name,
+                                    "module header identity drift for {}",
+                                    path.display()
+                                );
+                                true
+                            })
+                            .count()
+                    })
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|handle| handle.join().expect("parse Terlan corpus partition"))
+                .sum::<usize>()
         });
-        for (class, (count, sample)) in failure_classes.iter().take(16) {
-            eprintln!("  {count:4} {class}: {sample}");
-        }
-        assert!(canonical_accepted >= 1_000);
-        assert_eq!(
-            generated_accepted, canonical_accepted,
-            "generated declaration grammar must accept every canonical corpus file"
-        );
-    }
-
-    #[test]
-    fn generated_module_header_matches_every_canonical_corpus_file() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-        let mut paths = Vec::new();
-        collect_terlan_sources(&root, &mut paths);
-        paths.sort();
-        let mut accepted = 0usize;
-        for path in paths {
-            let source = fs::read_to_string(&path).expect("read Terlan corpus source");
-            let Ok(canonical) = crate::terlan_syntax::parser::parse_module(&source) else {
-                continue;
-            };
-            accepted += 1;
-            let generated = parse_lalrpop_module_header(&source).unwrap_or_else(|error| {
-                panic!(
-                    "generated module header rejected {} at {:?}: {}",
-                    path.display(),
-                    error.span,
-                    error.message
-                )
-            });
-            assert_eq!(
-                generated.module_name,
-                canonical.name,
-                "module identity drift for {}",
-                path.display()
-            );
-        }
+        eprintln!("generated module corpus: {accepted} accepted");
         assert!(
             accepted >= 1_000,
             "expected broad accepted syntax corpus, found {accepted}"

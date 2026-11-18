@@ -176,6 +176,48 @@ fn materialization_keeps_internal_graph_but_marks_it_non_resumable() {
 }
 
 #[test]
+fn large_materialized_continuation_graphs_use_bounded_ordered_shards() {
+    let continuations = (1..=130)
+        .map(|id| continuation(id, NativeExpr::Int(id as i64)))
+        .collect::<Vec<_>>();
+    let mut modules = vec![NativeModule {
+        name: "app.ShardedContinuations".to_string(),
+        functions: vec![NativeFunction {
+            export_id: 1,
+            name: "main".to_string(),
+            public: true,
+            arity: 0,
+            source_module: "app.ShardedContinuations".to_string(),
+            source_function: "main".to_string(),
+            source_arity: 0,
+            callable_captures: Vec::new(),
+            params: Vec::new(),
+            return_type: NativeType::Int,
+            body: NativeExpr::Int(0),
+        }],
+        continuations,
+        managed_layouts: Vec::new(),
+        managed_collections: Vec::new(),
+        atoms: Vec::new(),
+    }];
+
+    materialize_shared_continuations(&mut modules).expect("materialize continuation shards");
+
+    assert_eq!(modules.len(), 4);
+    assert_eq!(modules[1].name, "$terlan.continuations.0");
+    assert_eq!(modules[2].name, "$terlan.continuations.1");
+    assert_eq!(modules[3].name, "$terlan.continuations.2");
+    assert_eq!(modules[1].functions.len(), 64);
+    assert_eq!(modules[2].functions.len(), 64);
+    assert_eq!(modules[3].functions.len(), 2);
+    assert!(modules[1..]
+        .iter()
+        .all(super::continuation_sharing::is_materialized_continuation_module));
+    assert_eq!(modules[1].functions[0].name, "$continuation_1");
+    assert_eq!(modules[3].functions[1].name, "$continuation_130");
+}
+
+#[test]
 fn materialization_classifies_only_vm_resumable_continuation_adapters() {
     let mut modules = vec![NativeModule {
         name: "app.Resume".to_string(),

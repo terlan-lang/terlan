@@ -468,7 +468,7 @@ pub fn run_vm_live_template_stream(root: &Path) -> QualityResult<VmLiveTemplateS
 }
 
 fn validate_makefile(root: &Path) -> QualityResult<Vec<String>> {
-    let text = fs::read_to_string(root.join("Makefile"))
+    let text = crate::quality::support::read_make_graph(root)
         .map_err(|err| format!("Makefile: failed to read VM live template stream gate: {err}"))?;
     Ok(REQUIRED_GATE_TERMS
         .iter()

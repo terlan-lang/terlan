@@ -10,6 +10,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+mod support;
+
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture(PathBuf);
@@ -45,8 +47,7 @@ fn fixture() -> Fixture {
         .join("../../mk/code-quality.mk")
         .canonicalize()
         .unwrap();
-    let root_make =
-        fs::read_to_string(recipe.parent().unwrap().parent().unwrap().join("Makefile")).unwrap();
+    let root_make = support::read_make_sources();
     let supply_chain = root_make
         .lines()
         .find(|line| line.starts_with("release-supply-chain-provenance-check:"))
@@ -106,7 +107,7 @@ fn main() -> std::process::ExitCode {
     assert_eq!(std::env::args().skip(1).collect::<Vec<_>>(), ["metadata", "--locked", "--all-features", "--format-version", "1"]);
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open("target/calls").unwrap();
     std::io::Write::write_all(&mut file, b"metadata\n").unwrap();
-    match std::env::var("METADATA_MODE").unwrap().as_str() {
+    match std::env::var("CARGO_TERLAN_METADATA_MODE").unwrap().as_str() {
         "success" => println!("{{\"version\":1,\"workspace_root\":{:?},\"packages\":[{{\"id\":\"member\"}}],\"workspace_members\":[\"member\"]}}", std::env::current_dir().unwrap().to_str().unwrap()),
         "failure" => { println!("{{partial"); return std::process::ExitCode::from(7); },
         "empty" => (),
@@ -129,7 +130,7 @@ fn main() -> std::process::ExitCode {
     let mut prior = Vec::new();
     for (index, mode) in ["success", "failure", "empty"].into_iter().enumerate() {
         let result = control().capture_stdout(
-            command(root, &cargo).env("METADATA_MODE", mode),
+            command(root, &cargo).env("CARGO_TERLAN_METADATA_MODE", mode),
             64 * 1024,
             |_| Ok(()),
         );

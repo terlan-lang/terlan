@@ -142,7 +142,10 @@ fn restore(
         return Err(failure("invalid complete compiled inventory"));
     }
     let rows = array(&document["phases"])?;
-    if rows.is_empty() || rows.len() > 256 {
+    // Every admitted phase owns at least one distinct compiled test.  Keep the
+    // reader's bound aligned with the producer instead of imposing an
+    // unrelated fixed ceiling that valid suite growth can cross.
+    if rows.is_empty() || rows.len() > compiled.len() {
         return Err(failure("empty or excessive phase inventory"));
     }
     let mut selections = BTreeMap::new();
@@ -205,6 +208,7 @@ fn restore(
             phase["child_pid"]
                 .as_u64()
                 .and_then(|pid| u32::try_from(pid).ok()),
+            phase["reused"] == true,
             &phase["test_execution"],
             selected,
         )?;

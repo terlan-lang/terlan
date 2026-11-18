@@ -8,6 +8,8 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+mod support;
+
 #[cfg(target_os = "linux")]
 #[path = "hosted_release_make/download_scratch.rs"]
 mod download_scratch;
@@ -51,9 +53,20 @@ impl Drop for Fixture {
 }
 
 fn rule(source: &str, name: &str) -> String {
-    let start = source.find(&format!("\n{name}:")).expect("production rule") + 1;
-    let end = source[start..].find("\n\n").expect("rule end") + start;
-    format!("{}\n\n", &source[start..end])
+    let prefix = format!("\n{name}:");
+    let mut fallback = None;
+    for (offset, _) in source.match_indices(&prefix) {
+        let start = offset + 1;
+        let end = source[start..]
+            .find("\n\n")
+            .map_or(source.len(), |length| start + length);
+        let rule = format!("{}\n\n", &source[start..end]);
+        fallback.get_or_insert_with(|| rule.clone());
+        if rule.lines().any(|line| line.starts_with('\t')) {
+            return rule;
+        }
+    }
+    fallback.unwrap_or_else(|| panic!("production rule `{name}`"))
 }
 
 fn fixture() -> Fixture {
@@ -118,8 +131,7 @@ mkdir "passed/$role"
     )
     .unwrap();
     fs::set_permissions(&worker, fs::Permissions::from_mode(0o700)).unwrap();
-    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let source = support::read_make_sources();
     let mut make = String::from(
         "TERLAN_TVM_CONTRACT_BOOTSTRAP := terlan-tvm-platform-matrix-bootstrap\n\
          TERLAN_TVM_CONTRACT_CHECK := ./worker\n\
@@ -215,8 +227,7 @@ fn every_hosted_release_leaf_failure_fails_the_aggregate() {
 
 #[test]
 fn managed_list_publication_uses_a_release_producer_and_propagates_failure() {
-    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let source = support::read_make_sources();
     let target = "tvm-managed-list-profile-benchmark-check";
     let default = source
         .lines()
@@ -280,8 +291,7 @@ printf '{}\n' > target/quality/tvm-managed-list-profile.json
 
 #[test]
 fn repository_report_consumer_runs_once_and_propagates_failures() {
-    let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let source = support::read_make_sources();
     for (failure, missing_report) in [("", false), ("build-release-contract", false), ("", true)] {
         let fixture = fixture();
         fs::create_dir_all(fixture.0.join("target/quality")).unwrap();

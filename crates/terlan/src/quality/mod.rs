@@ -77,6 +77,8 @@ mod std_package_full_coverage;
 mod std_source_naming;
 mod std_test_honesty;
 mod support;
+#[cfg(test)]
+mod support_test;
 mod terlan_lint_style_profile;
 mod terlan_vm_external_repo_boundary;
 mod terlan_vm_internal_crate;

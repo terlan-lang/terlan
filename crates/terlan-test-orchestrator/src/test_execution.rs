@@ -62,6 +62,23 @@ impl ExpectedTests {
         }
         crate::file_identity::hex(selection)
     }
+
+    /// Rejects receipts that do not preserve the exact admitted libtest result.
+    pub(super) fn validate_evidence(&self, evidence: &serde_json::Value) -> bool {
+        evidence["scope"] == "admitted-libtest-records-v1"
+            && evidence["selection_identity_sha256"] == self.identity()
+            && evidence["passed"] == self.passed.len()
+            && evidence["ignored"] == self.ignored.len()
+            && evidence["filtered"] == self.filtered
+            && evidence["result_log_bytes"]
+                .as_u64()
+                .is_some_and(|bytes| bytes > 0 && bytes <= 16 * 1024 * 1024)
+            && evidence["result_log_identity_sha256"]
+                .as_str()
+                .is_some_and(|identity| {
+                    identity.len() == 64 && identity.bytes().all(|byte| byte.is_ascii_hexdigit())
+                })
+    }
 }
 
 /// Verified main-harness records or explicitly weaker Cargo stdout observations.
@@ -97,7 +114,14 @@ pub(super) fn run(
     }
     let mut command = environment.test_command(executable);
     let doctests = phase.args.contains(&"--doc");
-    command.args(&phase.args).args([
+    if let (Some(_), Some(expected)) = (phase.shard, expected.as_ref()) {
+        command
+            .args(expected.passed.iter().chain(&expected.ignored))
+            .arg("--exact");
+    } else {
+        command.args(&phase.args);
+    }
+    command.args([
         "--test-threads",
         &threads.to_string(),
         "--format",

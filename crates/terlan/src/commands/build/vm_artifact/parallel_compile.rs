@@ -14,7 +14,7 @@ const MAX_FRONTEND_WORKERS: usize = 8;
 
 /// Failure produced by one bounded indexed task set.
 #[derive(Debug, Eq, PartialEq)]
-pub(super) enum ParallelTaskError<E> {
+pub(crate) enum ParallelTaskError<E> {
     /// One indexed task returned its typed failure.
     Task(E),
     /// One worker panicked before returning its indexed outcomes.
@@ -65,7 +65,7 @@ pub(super) fn compile_vm_modules(
 }
 
 /// Returns the shared host-bound worker ceiling for compiler-owned build work.
-pub(super) fn bounded_worker_limit() -> usize {
+pub(crate) fn bounded_worker_limit() -> usize {
     let available = thread::available_parallelism()
         .map(usize::from)
         .unwrap_or(1);
@@ -93,7 +93,7 @@ pub(super) fn bounded_worker_limit() -> usize {
 /// Transformation:
 /// - Distributes indexes round-robin across scoped workers, joins every worker,
 ///   restores indexed slots, and only then resolves typed task results.
-pub(super) fn run_indexed_bounded<I, O, E, F>(
+pub(crate) fn run_indexed_bounded<I, O, E, F>(
     inputs: &[I],
     worker_limit: usize,
     operation: F,

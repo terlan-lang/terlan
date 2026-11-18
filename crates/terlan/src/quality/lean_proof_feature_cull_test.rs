@@ -29,7 +29,13 @@ impl Fixture {
 
     fn complete() -> Self {
         let fixture = Self::new();
-        fixture.write("Makefile", &replacement_make_targets());
+        fixture.write(
+            "Makefile",
+            &format!(
+                "{}include crates/terlan/cli.mk\n",
+                replacement_make_targets()
+            ),
+        );
         fixture.write("crates/terlan/cli.mk", "");
         fixture.write(PROOF_PATH, &proof_source());
         fixture.write(ARTIFACT_PATH, &artifact_metadata());
@@ -66,6 +72,15 @@ const ARTIFACT_PATH: &str = "proofs/lean/artifacts/feature-cull-legacy-boundarie
 #[test]
 fn feature_cull_accepts_complete_formal_boundary() {
     let fixture = Fixture::complete();
+    let diagnostics = validate_feature_cull(&fixture.root, &fixture.map());
+    assert!(diagnostics.is_empty(), "diagnostics = {diagnostics:?}");
+}
+
+#[test]
+fn feature_cull_follows_reorganized_make_includes() {
+    let fixture = Fixture::complete();
+    fixture.write("Makefile", "include mk/replacement-checks.mk\n");
+    fixture.write("mk/replacement-checks.mk", &replacement_make_targets());
     let diagnostics = validate_feature_cull(&fixture.root, &fixture.map());
     assert!(diagnostics.is_empty(), "diagnostics = {diagnostics:?}");
 }

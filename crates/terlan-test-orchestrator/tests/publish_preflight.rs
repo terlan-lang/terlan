@@ -1,6 +1,8 @@
 //! Run the production publication preflight against disposable local Git remotes.
 #![cfg(unix)]
 
+mod support;
+
 use std::fs;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -96,9 +98,7 @@ fi
 exec "$PREFLIGHT_REAL_GIT" "$@"
 "#,
         );
-        let source =
-            fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile"))
-                .unwrap();
+        let source = crate::support::read_make_sources();
         let begin = source.find("\npublish-source-preflight:\n").unwrap() + 1;
         let end = source[begin..].find("\n# Preparation may build").unwrap() + begin;
         fs::write(fixture.root.join("Makefile"), &source[begin..end]).unwrap();
@@ -269,8 +269,7 @@ fi
 printf 'promotion\n' >> "$PUBLISH_RETRY_LOG"
 "#,
     );
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let begin = source.find("\npublish-upload:\n").unwrap() + 1;
     let end = source[begin..]
         .find("\npublish-release-from-dist:")
@@ -313,8 +312,7 @@ printf 'promotion\n' >> "$PUBLISH_RETRY_LOG"
 
 #[test]
 fn publication_asset_upload_has_outer_deadline() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let target = source
         .split_once("\npublish-release-from-dist:\n")
         .and_then(|(_, rest)| rest.split_once('\n'))
@@ -329,8 +327,7 @@ fn publication_asset_upload_has_outer_deadline() {
 
 #[test]
 fn publication_retry_path_contains_no_preparation_or_refresh_targets() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source
         .find("\npublish-upload:\n")
         .expect("publish target must exist")
@@ -367,8 +364,7 @@ fn publication_retry_path_contains_no_preparation_or_refresh_targets() {
 
 #[test]
 fn publication_verification_commands_have_outer_deadlines() {
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     assert!(source
         .contains("timeout 300s $(TERLAN_RELEASE_PROMOTION) preflight --version \"$(VERSION)\""));
     assert!(source.contains(

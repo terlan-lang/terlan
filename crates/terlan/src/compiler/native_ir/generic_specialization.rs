@@ -209,8 +209,10 @@ fn rewrite_expr(
                 .and_then(common_concrete_parameter_types);
             if let Some(parameter_types) = contextual_parameters {
                 for (argument, expected) in args.iter_mut().zip(parameter_types) {
-                    if let Some(actual) = infer_type(argument, variables, templates, module) {
-                        super::empty_list_values::coerce(argument, &actual, &expected);
+                    if matches!(expected, CoreType::List(_)) {
+                        if let Some(actual) = infer_type(argument, variables, templates, module) {
+                            super::empty_list_values::coerce(argument, &actual, &expected);
+                        }
                     }
                     apply_contextual_argument_type(argument, &expected);
                 }

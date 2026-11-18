@@ -635,6 +635,39 @@ fn public_nominal_export_is_not_misclassified_as_generic() {
         .any(|function| function.name == "identity"));
 }
 
+/// Concrete fluent receiver chains must not trigger recursive type inference
+/// for list-only contextual coercion.
+#[test]
+fn concrete_fluent_calls_specialize_in_linear_time() {
+    let mut chain = "Builder(value = 0)".to_string();
+    for value in 1..=20 {
+        chain.push_str(&format!(".put({value})"));
+    }
+    let source = format!(
+        "module fluent_specialization.\n\n\
+         pub struct Builder {{ value: Int }}.\n\n\
+         pub (builder: Builder) put(value: Int): Builder -> Builder(value = value).\n\n\
+         pub run(): Builder -> {chain}.\n"
+    );
+    let syntax = parse_module_as_syntax_output(&source).expect("parse fluent receiver chain");
+    let resolved = resolve_syntax_module_output(&syntax).module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let started = std::time::Instant::now();
+    super::generic_specialization::specialize_application_generics_with_budget(
+        std::slice::from_mut(&mut core),
+        &mut super::specialization_budget::SpecializationBudget::default(),
+    )
+    .expect("specialize concrete fluent chain");
+
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(1),
+        "concrete fluent specialization took {:?}",
+        started.elapsed()
+    );
+}
+
 /// Verifies a concrete named callback specializes a generic union before a
 /// nullary constructor argument is checked against that union.
 #[test]

@@ -14,10 +14,15 @@
 #   `running N tests` lines emitted by Rust's test harness.
 set -uo pipefail
 
+test_profile=${TERLAN_CARGO_TEST_PROFILE:-dev}
+case "$test_profile" in
+  ''|*[!A-Za-z0-9_-]*) echo "invalid Cargo test profile: $test_profile" >&2; exit 2 ;;
+esac
+
 output=$(mktemp)
 trap 'rm -f "$output"' EXIT HUP INT TERM
 set +e
-cargo test "$@" 2>&1 | tee "$output"
+cargo test --profile "$test_profile" "$@" 2>&1 | tee "$output"
 status=${PIPESTATUS[0]}
 set -e
 
@@ -26,6 +31,6 @@ if [ "$status" -ne 0 ]; then
 fi
 
 if ! awk '/^running [0-9]+ tests?$/ { if ($2 + 0 > 0) found = 1 } END { exit found ? 0 : 1 }' "$output"; then
-  echo "exact cargo test matched zero tests: cargo test $*" >&2
+  echo "exact cargo test matched zero tests: cargo test --profile $test_profile $*" >&2
   exit 1
 fi

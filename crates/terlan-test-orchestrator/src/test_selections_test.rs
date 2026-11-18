@@ -1,7 +1,17 @@
 use super::*;
 use crate::test_orchestrator_test::temporary_fixture;
 use crate::ValidationTier;
+use std::process::Command;
 use std::time::Duration;
+
+fn environment(value: &str) -> crate::make_environment::TestIdentity {
+    let mut command = Command::new("unused");
+    command
+        .env_clear()
+        .current_dir(std::env::current_dir().unwrap())
+        .env("FIXTURE_VALUE", value);
+    crate::make_environment::test_observation(&command).unwrap()
+}
 
 fn planned(
     mut selections: BTreeMap<&'static str, ExpectedTests>,
@@ -33,6 +43,8 @@ fn phase(name: &'static str) -> TestPhase {
         executor: PhaseExecutor::TerlanHarness,
         args: vec![],
         environment: vec![],
+        shard: None,
+        test_threads: None,
     }
 }
 
@@ -59,6 +71,7 @@ fn result(name: &'static str, expected: &ExpectedTests) -> PhaseResult {
         test_execution: Some(json!({"scope":"admitted-libtest-records-v1",
             "passed":expected.passed.len(), "ignored":expected.ignored.len(), "filtered":expected.filtered,
             "selection_identity_sha256":expected.identity()})),
+        reused: false,
     }
 }
 
@@ -87,6 +100,43 @@ fn exact_selections_are_run_bound_and_require_matching_terminal_evidence() {
     assert_eq!(inventory.json()["verified"], true);
     assert_eq!(inventory.json()["reusable"], false);
     assert!(inventory.verify(&[completion], control).is_err());
+}
+
+#[test]
+fn exact_receipt_completion_requires_no_new_child_process() {
+    let fixture = temporary_fixture("test-selection-receipt");
+    let control = ProcessControl::new(Duration::from_secs(5));
+    let phases = [phase("owned")];
+    let expected = planned(BTreeMap::from([("owned", selected("owned_test"))]));
+    let completion = || {
+        let mut completion = result("owned", &expected.selections["owned"]);
+        completion.reused = true;
+        completion.child_pid = None;
+        completion
+    };
+    let mut inventory = TestSelections::create(
+        &fixture.0.join("valid.json"),
+        "suite",
+        &phases,
+        &expected,
+        &harness(),
+        control,
+    )
+    .unwrap();
+    inventory.verify(&[completion()], control).unwrap();
+
+    let mut invalid = completion();
+    invalid.child_pid = Some(12);
+    let mut inventory = TestSelections::create(
+        &fixture.0.join("invalid.json"),
+        "suite",
+        &phases,
+        &expected,
+        &harness(),
+        control,
+    )
+    .unwrap();
+    assert!(inventory.verify(&[invalid], control).is_err());
 }
 
 #[test]
@@ -188,6 +238,48 @@ fn selection_admission_rejects_duplicate_ownership_missing_inputs_and_invalid_na
 }
 
 #[test]
+fn selection_phase_budget_is_derived_from_the_compiled_inventory() {
+    let fixture = temporary_fixture("test-selection-plan-budget");
+    let control = ProcessControl::new(Duration::from_secs(5));
+    let mut selections = BTreeMap::new();
+    let mut phases = Vec::new();
+    for index in 0..257 {
+        let phase_name: &'static str = Box::leak(format!("phase-{index}").into_boxed_str());
+        selections.insert(
+            phase_name,
+            ExpectedTests {
+                passed: BTreeSet::from([format!("test_{index}")]),
+                ignored: BTreeSet::new(),
+                filtered: 0,
+            },
+        );
+        phases.push(phase(phase_name));
+    }
+    let plan = planned(selections);
+    let inventory = TestSelections::create(
+        &fixture.0.join("expanded-plan.json"),
+        "suite",
+        &phases,
+        &plan,
+        &harness(),
+        control,
+    )
+    .unwrap();
+    assert_eq!(inventory.json()["phases"], 257);
+
+    phases.push(phase("unowned-phase"));
+    assert!(TestSelections::create(
+        &fixture.0.join("over-budget.json"),
+        "suite",
+        &phases,
+        &plan,
+        &harness(),
+        control,
+    )
+    .is_err());
+}
+
+#[test]
 fn broad_coverage_cannot_hide_externally_owned_or_unexecuted_ignored_tests() {
     let fixture = temporary_fixture("coverage-external-owners");
     let control = ProcessControl::new(Duration::from_secs(5));
@@ -258,26 +350,25 @@ fn broad_coverage_cannot_hide_externally_owned_or_unexecuted_ignored_tests() {
         inventory.inspect_coverage(&["absent"]).unwrap()["covered"],
         false
     );
+    let base = environment("base");
+    let worker = environment("worker-path");
+    let changed = environment("changed");
     let environments = BTreeMap::from([
-        ("owned-normal".to_owned(), "base".to_owned()),
-        ("owned-ignored".to_owned(), "worker-path".to_owned()),
+        ("owned-normal".to_owned(), base.clone()),
+        ("owned-ignored".to_owned(), worker.clone()),
     ]);
     assert!(inventory
-        .inspect_request(&["module::owned"], "base", &environments)
+        .inspect_request(&["module::owned"], &base, &environments)
         .is_ok());
     assert!(inventory
-        .inspect_request(
-            &["ignored::owned", "--ignored"],
-            "worker-path",
-            &environments
-        )
+        .inspect_request(&["ignored::owned", "--ignored"], &worker, &environments)
         .is_ok());
     for selectors in [&["module::owned"][..], &["ignored::owned", "--ignored"]] {
         assert!(inventory
-            .inspect_request(selectors, "changed", &environments)
+            .inspect_request(selectors, &changed, &environments)
             .is_err());
         assert!(inventory
-            .inspect_request(selectors, "base", &BTreeMap::new())
+            .inspect_request(selectors, &base, &BTreeMap::new())
             .is_err());
     }
     assert!(inventory.inspect_coverage(&["--unknown-option"]).is_err());

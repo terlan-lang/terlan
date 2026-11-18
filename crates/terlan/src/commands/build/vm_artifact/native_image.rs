@@ -287,6 +287,20 @@ pub(super) fn compile_native_application_image(
 fn compile_native_application_image_with_identity(
     request: NativeApplicationCompileRequest<'_>,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let trace_timings = crate::compiler_timings::native_enabled();
+    let timing_started = Instant::now();
+    let mut timing_previous = timing_started;
+    let mut mark = |phase: &str| {
+        if trace_timings {
+            let now = Instant::now();
+            eprintln!(
+                "terlc native-aot: image.{phase}: +{}ms total={}ms",
+                now.duration_since(timing_previous).as_millis(),
+                now.duration_since(timing_started).as_millis(),
+            );
+            timing_previous = now;
+        }
+    };
     let NativeApplicationCompileRequest {
         vm_dir,
         native_cache_root,
@@ -302,6 +316,7 @@ fn compile_native_application_image_with_identity(
         NativeApplicationCores::Owned(cores) => NativeModule::lower_owned_application(cores),
     }
     .map_err(BuildOneError::Message)?;
+    mark("native-ir");
     if natives.is_empty() {
         output_cleanup::remove_stale_tvm_images(vm_dir, None)?;
         return Ok(None);
@@ -326,6 +341,7 @@ fn compile_native_application_image_with_identity(
     } else {
         encode_native_debug(debug_inputs, &natives).map_err(BuildOneError::Message)?
     };
+    mark("debug-metadata");
 
     let package = natives[0]
         .name
@@ -365,6 +381,7 @@ fn compile_native_application_image_with_identity(
         .map(NativeModule::fingerprint_sha256)
         .collect::<Vec<_>>()
         .join("\0");
+    mark("fingerprint");
     let cache_input = format!(
         "{}\0{DIRECT_AOT_BACKEND}\0{DIRECT_AOT_CACHE_SCHEMA}\0{DIRECT_AOT_CODEGEN_REVISION}\0{DIRECT_AOT_BUILD_POLICY}\0tvm-image-format-1\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}\0{}",
         env!("CARGO_PKG_VERSION"),
@@ -396,6 +413,7 @@ fn compile_native_application_image_with_identity(
         image_name.as_str(),
     ];
     let expected_build_identity = format!("sha256:{input_sha256}");
+    mark("cache-identity");
     let load_cached_image = || {
         incremental
             .then(|| {
@@ -447,8 +465,10 @@ fn compile_native_application_image_with_identity(
             })?
         }
     };
+    mark("cache-or-build");
     let inspection = inspect_tvm_image(&image, &target.triple)
         .map_err(|error| BuildOneError::Message(error.into()))?;
+    mark("inspection");
     if inspection.descriptor.identity.build != expected_build_identity {
         return Err(BuildOneError::Message(format!(
             "error[tvm.cache.identity]: cached image build identity `{}` does not match `{expected_build_identity}`",
@@ -635,7 +655,7 @@ pub(crate) fn compile_repl_native_image(
 #[cfg(test)]
 mod serve_fixture;
 #[cfg(test)]
-pub(crate) use serve_fixture::compile_serve_native_image;
+pub(crate) use serve_fixture::{compile_serve_native_image, compile_serve_native_modules};
 
 /// Compiles a live-serve image from the complete application closure while
 /// retaining generic aggregate observations for package ingress admission.
@@ -750,6 +770,20 @@ fn validate_export_id_uniqueness(natives: &[NativeModule]) -> Result<(), BuildOn
 }
 
 fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>, BuildOneError> {
+    let trace_timings = crate::compiler_timings::native_enabled();
+    let timing_started = Instant::now();
+    let mut timing_previous = timing_started;
+    let mut mark = |phase: &str| {
+        if trace_timings {
+            let now = Instant::now();
+            eprintln!(
+                "terlc native-aot: publish.{phase}: +{}ms total={}ms",
+                now.duration_since(timing_previous).as_millis(),
+                now.duration_since(timing_started).as_millis(),
+            );
+            timing_previous = now;
+        }
+    };
     let module_units = (input.natives.len() > 1 && input.policy.uses_incremental_module_units())
         .then(|| {
             prepare_native_object_units(
@@ -761,6 +795,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
             )
         })
         .transpose()?;
+    mark("module-units");
     let activity = Activity::begin(Operation::ApplicationObject, input.input_sha256)?;
     let object = if module_units.is_some() {
         emit_native_application_dispatch_object_with_policy(
@@ -781,6 +816,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
         object.as_ref().ok().map(|bytes| bytes.len() as u64),
     )?;
     let object = object?;
+    mark("dispatch-object");
     native_cache::publish_file(input.object_path, &object)?;
     let descriptor = native_application_image_descriptor(
         input.application_identity,
@@ -791,6 +827,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
     let descriptor_object =
         descriptor_object_for_native_with_debug(&object, &descriptor, input.debug_metadata)
             .map_err(|error| BuildOneError::Message(error.into()))?;
+    mark("descriptor");
     native_cache::publish_file(input.descriptor_object_path, &descriptor_object)?;
     let linked_image = native_cache::TemporaryCacheFile::beside(input.cached_image_path)?;
     let unit_links = module_units
@@ -822,6 +859,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
         input.policy,
         input.input_sha256,
     )?;
+    mark("link");
     let mut image = fs::read(linked_image.path()).map_err(|error| {
         BuildOneError::Message(format!(
             "failed to read linked TVM image `{}`: {error}",
@@ -832,6 +870,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
         .map_err(|error| BuildOneError::Message(error.into()))?;
     inspect_tvm_image(&image, &sealed.target.triple)
         .map_err(|error| BuildOneError::Message(error.into()))?;
+    mark("seal-and-inspect");
     native_cache::publish_file(input.cached_image_path, &image)?;
     let manifest = native_cache::cache_manifest_bytes(
         input.input_sha256,
@@ -847,6 +886,7 @@ fn compile_and_publish_image(input: NativeImageBuildInput<'_>) -> Result<Vec<u8>
         &input.native_dir.join(native_cache::CACHE_MANIFEST_NAME),
         &manifest,
     )?;
+    mark("publish");
     Ok(image)
 }
 

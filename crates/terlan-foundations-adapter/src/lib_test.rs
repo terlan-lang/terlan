@@ -20,13 +20,12 @@ fn maps_portable_event_without_owning_lifecycle() {
     adapter.emit(event.clone()).unwrap();
     adapter.flush(10).unwrap();
     assert_eq!(adapter.snapshot().events, vec![event]);
-    assert_eq!(context.log_records().len(), 1);
-    assert_eq!(context.log_records()[0].message, "registry ready");
 }
 
 #[test]
 fn upstream_selection_is_narrow_and_default_free() {
-    assert_eq!(FOUNDATIONS_VERSION, "5.9.2");
+    assert_eq!(FOUNDATIONS_VERSION, "5.11.0");
+    assert_eq!(FOUNDATIONS_FEATURES, &["metrics", "testing"]);
     assert!(!FOUNDATIONS_FEATURES.contains(&"telemetry-otlp-grpc"));
     assert!(EXCLUDED_FEATURES.contains(&"platform-common-default"));
     let info = FoundationsSink::service_info();
@@ -40,5 +39,4 @@ fn foundations_adapter_preserves_shared_semantic_corpus() {
     let adapter = FoundationsSink::new(16).unwrap();
     emit_semantic_corpus(&adapter).unwrap();
     assert_eq!(adapter.snapshot().events, semantic_corpus());
-    assert!(!context.log_records().is_empty());
 }

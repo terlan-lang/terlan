@@ -1,6 +1,8 @@
 //! Exercise production proof dependencies with bounded, instrumented leaf producers.
 #![cfg(unix)]
 
+mod support;
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::os::unix::fs::DirBuilderExt;
@@ -15,6 +17,30 @@ impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
     }
+}
+
+fn instrument_recipe(source: &str, target: &str) -> String {
+    let prefix = format!("\n{target}:");
+    for (offset, _) in source.match_indices(&prefix) {
+        let start = offset + 1;
+        let end = source[start..]
+            .find("\n\n")
+            .map_or(source.len(), |length| start + length);
+        let block = &source[start..end];
+        if block.lines().any(|line| line.starts_with('\t')) {
+            let mut result = String::new();
+            for line in block.lines() {
+                if line.starts_with('\t') {
+                    result.push_str("\t@TERLAN_PROOF_GRAPH_GATE=$@ \"$(FIXTURE_CHILD)\" --exact proof_gate_child --nocapture\n");
+                    break;
+                }
+                result.push_str(line);
+                result.push('\n');
+            }
+            return result;
+        }
+    }
+    panic!("production recipe `{target}`")
 }
 
 fn dependencies(gate: &str) -> &'static [&'static str] {
@@ -84,8 +110,7 @@ fn fixture() -> Fixture {
     ));
     fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
     let fixture = Fixture(root);
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let begin = source.find(".PHONY: lean-proof-lanes-check").unwrap();
     let end = source[begin..].find("\nRELEASE_EVIDENCE_GATES :=").unwrap() + begin;
     let mut make = String::from(".DEFAULT_GOAL := lean-proof-track-check\nLEAN_PROOF_CLOSEOUT_DEPS := lean-proof-track-check\n");
@@ -96,6 +121,8 @@ fn fixture() -> Fixture {
                 make.push_str("\t@TERLAN_PROOF_GRAPH_GATE=$@ \"$(FIXTURE_CHILD)\" --exact proof_gate_child --nocapture\n");
                 in_recipe = true;
             }
+        } else if in_recipe && line.is_empty() {
+            make.push('\n');
         } else {
             in_recipe = false;
             make.push_str(line);
@@ -103,14 +130,23 @@ fn fixture() -> Fixture {
         }
     }
     for line in source.lines().filter(|line| {
-        line.contains(": | terlan-")
+        line.contains(": ")
             && (line.starts_with("lean-proof-")
-                || line.starts_with("lalrpop-grammar-contract-check"))
+                || line.starts_with("proof-repro-check:")
+                || line.starts_with("lalrpop-grammar-contract-check")
+                || line.starts_with("release-artifacts-closeout-check:"))
     }) {
         make.push_str(line);
         make.push('\n');
     }
-    make.push_str(".PHONY: terlan-self-validation-bootstrap terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-semantic-kernel-bootstrap tree-sitter-package-check tree-sitter-cli-check editor-check native-boundary-security-check rust-test-suite\nterlan-self-validation-bootstrap terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-semantic-kernel-bootstrap tree-sitter-package-check tree-sitter-cli-check editor-check native-boundary-security-check rust-test-suite:\n");
+    for target in [
+        "release-artifacts-closeout-check",
+        "lalrpop-grammar-contract-check",
+        "lalrpop-parser-parity-check",
+    ] {
+        make.push_str(&instrument_recipe(&source, target));
+    }
+    make.push_str(".PHONY: terlan-self-validation-bootstrap terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-semantic-kernel-bootstrap tree-sitter-package-check tree-sitter-cli-check editor-check native-boundary-security-check rust-test-suite publish-evidence-source-prerequisites publish-evidence-staged-inputs\nterlan-self-validation-bootstrap terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-semantic-kernel-bootstrap tree-sitter-package-check tree-sitter-cli-check editor-check native-boundary-security-check rust-test-suite publish-evidence-source-prerequisites publish-evidence-staged-inputs:\n");
     make.push_str(".PHONY: terlan-proof-release-bootstrap\nterlan-proof-release-bootstrap:\n");
     make.push_str(".PHONY: terlan-release-promotion-bootstrap publish-preparation-lock-directory\nterlan-release-promotion-bootstrap publish-preparation-lock-directory:\n");
     fs::write(fixture.0.join("Makefile"), make).unwrap();

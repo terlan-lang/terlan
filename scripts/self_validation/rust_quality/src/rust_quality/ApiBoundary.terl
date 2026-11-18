@@ -1102,26 +1102,50 @@ pub record(root: String): Bool ->
             if {
                 not report.valid -> let _printed = eprintln(report.message);
                 false;
-                true -> let rows = report.errors;
-                case File.write_text(
-                    SourceInventory.child(root, "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"),
-                    render_inventory(rows),
-                ) {
-                    Err(reason) ->
-                        let _printed = eprintln(reason.message);
-                        false;
-                    Ok(_written) ->
-                        let _printed =
-                            println(
-                                String.concat(
-                                    [
-                                        "Recorded ",
-                                        Int.to_string(List.length(rows)),
-                                        " internal string-error rows",
-                                    ],
-                                ),
-                            );
-                        true
+                true -> case load_check_inputs(root) {
+                    inputs ->
+                        if {
+                            not inputs.valid -> let _printed = eprintln(inputs.message);
+                            false;
+                            true -> let rows = report.errors;
+                            let fresh_inputs =
+                                CheckInputs(
+                                    valid = true,
+                                    message = "",
+                                    boundary_source = inputs.boundary_source,
+                                    inventory = InventoryParse(valid_header = true, rows = rows),
+                                    budgets = inputs.budgets,
+                                );
+                            let findings = check_findings(report, fresh_inputs, false);
+                            if {
+                                List.length(findings) > 0 -> let _heading = eprintln("Rust API boundary quality failed:");
+                                let _printed = print_findings(findings);
+                                false;
+                                true -> case File.write_text(
+                                    SourceInventory.child(
+                                        root,
+                                        "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv",
+                                    ),
+                                    render_inventory(rows),
+                                ) {
+                                    Err(reason) ->
+                                        let _printed = eprintln(reason.message);
+                                        false;
+                                    Ok(_written) ->
+                                        let _printed =
+                                            println(
+                                                String.concat(
+                                                    [
+                                                        "Recorded ",
+                                                        Int.to_string(List.length(rows)),
+                                                        " internal string-error rows",
+                                                    ],
+                                                ),
+                                            );
+                                        true
+                                }
+                            }
+                        }
                 }
             }
     }.

@@ -528,18 +528,16 @@ fn validate_gap_manifest_paths(root: &Path, rows: &[LeanProofGap]) -> Vec<String
 
 pub(super) fn collect_make_check_targets(root: &Path) -> QualityResult<BTreeSet<String>> {
     let mut targets = BTreeSet::new();
-    for relative in ["Makefile", "crates/terlan/cli.mk"] {
-        let text = read_text(root, relative)?;
-        for line in text.lines() {
-            let Some((target, rest)) = line.split_once(':') else {
-                continue;
-            };
-            if rest.starts_with('=') || target.starts_with('\t') || target.contains(' ') {
-                continue;
-            }
-            if target.ends_with("-check") {
-                targets.insert(target.to_string());
-            }
+    let text = crate::quality::support::read_make_graph(root)?;
+    for line in text.lines() {
+        let Some((target, rest)) = line.split_once(':') else {
+            continue;
+        };
+        if rest.starts_with('=') || target.starts_with('\t') || target.contains(' ') {
+            continue;
+        }
+        if target.ends_with("-check") {
+            targets.insert(target.to_string());
         }
     }
     Ok(targets)

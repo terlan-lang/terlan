@@ -7,6 +7,7 @@ use std::hash::{Hash, Hasher};
 use super::{NativeContinuation, NativeExpr, NativeFunction, NativeModule};
 
 pub(crate) const MATERIALIZED_CONTINUATION_MODULE: &str = "$terlan.continuations";
+const MATERIALIZED_CONTINUATION_SHARD_FUNCTIONS: usize = 64;
 
 /// Reports whether a module contains implementation-only continuation bodies.
 ///
@@ -15,6 +16,9 @@ pub(crate) const MATERIALIZED_CONTINUATION_MODULE: &str = "$terlan.continuations
 /// ordinary continuation table as small adapters.
 pub(crate) fn is_materialized_continuation_module(module: &NativeModule) -> bool {
     module.name == MATERIALIZED_CONTINUATION_MODULE
+        || module
+            .name
+            .starts_with(&format!("{MATERIALIZED_CONTINUATION_MODULE}."))
 }
 
 /// Protocol roles that must remain distinct even when continuation bodies and
@@ -137,14 +141,24 @@ pub(super) fn materialize_shared_continuations(
         .collect::<Vec<_>>();
     managed_collections.sort_by(|left, right| left.as_ref().cmp(right.as_ref()));
     managed_collections.dedup_by(|left, right| left.as_ref() == right.as_ref());
-    modules.push(NativeModule {
-        name: MATERIALIZED_CONTINUATION_MODULE.to_string(),
-        functions,
-        continuations: Vec::new(),
-        managed_layouts,
-        managed_collections,
-        atoms,
-    });
+    let sharded = functions.len() > MATERIALIZED_CONTINUATION_SHARD_FUNCTIONS;
+    for (index, chunk) in functions
+        .chunks(MATERIALIZED_CONTINUATION_SHARD_FUNCTIONS)
+        .enumerate()
+    {
+        modules.push(NativeModule {
+            name: if sharded {
+                format!("{MATERIALIZED_CONTINUATION_MODULE}.{index}")
+            } else {
+                MATERIALIZED_CONTINUATION_MODULE.to_string()
+            },
+            functions: chunk.to_vec(),
+            continuations: Vec::new(),
+            managed_layouts: managed_layouts.clone(),
+            managed_collections: managed_collections.clone(),
+            atoms: atoms.clone(),
+        });
+    }
     Ok(())
 }
 

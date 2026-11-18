@@ -759,7 +759,7 @@ typed-template-interpolation-js-check: template-contract-check
 	$(TERLC_EXACT_TEST) commands::emit_js::template_runtime::template_runtime_test::generated_js_template_runtime_renders_and_rejects_typed_slots -- --exact
 	$(TERLC_EXACT_TEST) commands::emit_js::template_runtime::template_runtime_test::generated_js_template_runtime_matches_vm_shared_fixture_corpus -- --exact
 	$(TERLC_EXACT_TEST) commands::fmt::fmt_test::fmt_command_formats_nested_template_interpolation -- --exact
-	$(RUST_TEST) -p terlan --features editor-lsp --lib template_completion_test::
+	$(RUST_TEST) -p terlan --features validation-union --lib template_completion_test::
 	node editors/vscode/test/textmate_bridge_test.js
 
 typed-template-interpolation-tooling-check: typed-template-interpolation-check
@@ -781,7 +781,7 @@ comprehension-guards-check: compiler-purity-metadata-check tree-sitter-cli-check
 		tests/language/ComprehensionGuardsTest.terl
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_core_guard_result_contract -- --exact
 	$(RUST_TEST) -p terlan --lib comprehension
-	$(RUST_TEST) -p terlan --lib --features editor-lsp comprehension
+	$(RUST_TEST) -p terlan --lib --features validation-union comprehension
 	# The comprehension Rust tier compiles the failure fixture and verifies the
 	# owning actor's terminal reason; a compiler rejection is not runtime evidence.
 

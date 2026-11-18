@@ -31,12 +31,48 @@ fn environment(root: &Path, mode: &str) -> ExecutionEnvironment {
     fs::create_dir_all(&cargo_home).unwrap();
     ExecutionEnvironment::from_entries(
         std::env::vars_os().chain([
-            (OsString::from("METADATA_OWNER_MODE"), OsString::from(mode)),
+            (
+                OsString::from("CARGO_TERLAN_METADATA_OWNER_MODE"),
+                OsString::from(mode),
+            ),
             (OsString::from("CARGO_HOME"), cargo_home.into_os_string()),
         ]),
         root,
     )
     .unwrap()
+}
+
+#[test]
+fn metadata_commands_isolate_terlan_routing_but_keep_cargo_configuration() {
+    let fixture_root = temporary_fixture("metadata-owner-environment");
+    let environment = ExecutionEnvironment::from_entries(
+        [
+            (
+                OsString::from("TERLAN_FUTURE_PACKAGE_DIR"),
+                OsString::from("../package"),
+            ),
+            (
+                OsString::from("CODEX_TOOL_CALL_ID"),
+                OsString::from("unrelated-invocation"),
+            ),
+            (
+                OsString::from("CARGO_REGISTRIES_EXAMPLE_INDEX"),
+                OsString::from("https://example.invalid/index"),
+            ),
+        ],
+        &fixture_root.0,
+    )
+    .unwrap();
+    let command = command(&environment, Path::new("cargo"));
+    assert!(
+        crate::execution_environment::command_value(&command, "TERLAN_FUTURE_PACKAGE_DIR")
+            .is_none()
+    );
+    assert!(crate::execution_environment::command_value(&command, "CODEX_TOOL_CALL_ID").is_none());
+    assert_eq!(
+        crate::execution_environment::command_value(&command, "CARGO_REGISTRIES_EXAMPLE_INDEX"),
+        Some(OsString::from("https://example.invalid/index"))
+    );
 }
 
 #[test]
@@ -148,7 +184,7 @@ fn main() {
     }
     assert_eq!(std::env::args().skip(1).collect::<Vec<_>>(), ["metadata","--locked","--all-features","--format-version","1"]);
     assert_eq!(std::env::var("CARGO_NET_OFFLINE").unwrap(), "true");
-    let mode = std::env::var("METADATA_OWNER_MODE").unwrap();
+    let mode = std::env::var("CARGO_TERLAN_METADATA_OWNER_MODE").unwrap();
     if mode == "empty" { return; }
     if mode == "mutate" { std::fs::write("lib.rs", "pub fn changed() {}\n").unwrap(); }
     if mode == "cache-mutate" {
@@ -260,7 +296,7 @@ fn rustup_proxy_binds_native_cargo_and_rejects_changes_outside_the_source_invent
     fs::write(&source, r#"
 fn main() {
     let arguments = std::env::args().skip(1).collect::<Vec<_>>();
-    let mode = std::env::var("METADATA_OWNER_MODE").unwrap();
+    let mode = std::env::var("CARGO_TERLAN_METADATA_OWNER_MODE").unwrap();
     if arguments == ["which", "cargo"] {
         assert_eq!(std::env::var("RUSTUP_AUTO_INSTALL").unwrap(), "0");
         if mode == "bad-resolution" { println!("relative"); }

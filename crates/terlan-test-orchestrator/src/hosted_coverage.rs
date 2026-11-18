@@ -118,7 +118,7 @@ fn validate<'a>(
     if make["schema"] != "terlan.rust-test-suite.v4"
         || make["decision"] != "gates-covered"
         || make["direct_cargo_launch_count"] != 0
-        || suite["direct_cargo_launch_count"] != 3
+        || suite["direct_cargo_launch_count"] != crate::MAX_CARGO_PHASES
         || suite_phases
             .iter()
             .filter(|phase| {
@@ -128,7 +128,7 @@ fn validate<'a>(
                 )
             })
             .count()
-            != 3
+            != crate::MAX_CARGO_PHASES
         || owners.len() != 1
         || phases.iter().any(|phase| {
             !matches!(

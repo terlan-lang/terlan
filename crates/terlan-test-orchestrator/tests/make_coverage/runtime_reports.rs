@@ -15,7 +15,7 @@ fn fresh_runtime_consumers_produce_reports_once_and_propagate_failure() {
     let fixture = fixture();
     let root = &fixture.0;
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let source = fs::read_to_string(repository.join("Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let mut makefile = String::from(
         "POLICY_CARGO_TEST = bash scripts/run_exact_cargo_test.sh\n\
          EXACT_CARGO_TEST = true\nRUST_TEST = true\n\

@@ -226,8 +226,7 @@ fn unknown_scratch_entries_are_preserved_without_contacting_github() {
 fn promotion_fixture() -> Fixture {
     let fixture = fixture();
     fixture.git(&["tag", "-d", "vfixture"]);
-    let source =
-        fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Makefile")).unwrap();
+    let source = crate::support::read_make_sources();
     let start = source.find("\npublish-upload:\n").unwrap() + 1;
     let end = start
         + source[start..]

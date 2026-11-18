@@ -3,7 +3,9 @@
 use crate::cargo_default_tools::CargoDefaultTools;
 use crate::cargo_tool_settings::CargoToolSettings;
 use crate::executable_binding::{resolve_program, ExecutableBinding};
-use crate::execution_environment::{command_value, identity, ExecutionEnvironment};
+use crate::execution_environment::{
+    cargo_validation_identity, command_value, ExecutionEnvironment,
+};
 use crate::PhaseFailure;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -125,7 +127,7 @@ impl ConfiguredCargoTools {
         let mut result = Self {
             programs,
             search,
-            environment_identity: identity(&command),
+            environment_identity: cargo_validation_identity(&command),
             rustup_proxy,
             defaults,
             default_roles,
@@ -181,7 +183,7 @@ impl ConfiguredCargoTools {
             toolchain.proxy(),
             &native,
         )?;
-        self.environment_identity = identity(&command);
+        self.environment_identity = cargo_validation_identity(&command);
         self.compiler_environment = Some(command);
         Ok(())
     }
