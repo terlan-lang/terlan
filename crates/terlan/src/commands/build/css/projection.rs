@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 use terlan_runtime_abi::{DescriptorValue, DescriptorView};
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn property_names() -> &'static BTreeMap<String, String> {
     static NAMES: OnceLock<BTreeMap<String, String>> = OnceLock::new();
     NAMES.get_or_init(|| {
@@ -34,7 +34,7 @@ fn render_stylesheet(value: &ReplValue) -> Result<String, String> {
     render_stylesheet_with_options(value, &BTreeSet::new())
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn render_stylesheet_with_options(
     value: &ReplValue,
     optional_fields: &BTreeSet<(String, String)>,
@@ -151,7 +151,7 @@ pub(super) fn render_stylesheet_with_options(
 mod tests;
 
 /// Optionality is a checked field-type property; the CSS keyword none is data.
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(super) fn optional_style_fields(
     interfaces: &[crate::terlan_hir::ModuleInterface],
 ) -> BTreeSet<(String, String)> {
@@ -174,7 +174,7 @@ pub(super) fn optional_style_fields(
     result
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn property_definition(property: &str) -> &'static serde_json::Value {
     static DEFINITIONS: OnceLock<serde_json::Value> = OnceLock::new();
     let data = DEFINITIONS.get_or_init(|| {
@@ -192,7 +192,7 @@ fn property_definition(property: &str) -> &'static serde_json::Value {
         .expect("known CSS property")
 }
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 fn declaration_css(property: &str, value: &ReplValue) -> Result<String, String> {
     let primitive_allowed = |kind: &str| {
         let entry = property_definition(property);

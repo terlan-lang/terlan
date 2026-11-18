@@ -4,10 +4,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 #[path = "css/projection.rs"]
 mod projection;
-#[cfg(any(test, not(feature = "serve-runtime-bin")))]
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 use projection::{optional_style_fields, render_stylesheet_with_options};
 
 use super::write_build_file;
@@ -79,7 +79,7 @@ pub(super) fn bundle_stylesheets(
 }
 
 fn evaluate_stylesheet(source: &Path, workspace: &Path) -> Result<String, String> {
-    #[cfg(any(test, not(feature = "serve-runtime-bin")))]
+    #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
     {
         super::vm_artifact::source_exports::with_typed_source_exports(
             source,
@@ -90,7 +90,11 @@ fn evaluate_stylesheet(source: &Path, workspace: &Path) -> Result<String, String
             },
         )
     }
-    #[cfg(all(not(test), feature = "serve-runtime-bin"))]
+    #[cfg(all(
+        not(test),
+        feature = "serve-runtime-bin",
+        not(feature = "native-codegen")
+    ))]
     {
         let _ = (source, workspace);
         Err("stylesheet source compilation requires the compiler executable".into())

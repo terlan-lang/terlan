@@ -816,12 +816,15 @@ if lane_has core-contracts; then
 fi
 
 typed_css_checked=false
-if rg -q '^(std/css/|tools/css/|tools/web-toolchain/css-bundle|scripts/check_typed_css\.sh)' "$changes"; then
+if lane_has typed-css; then
   echo 'pre-commit: typed CSS generation, types, native values, and browser build'
   npm ci --ignore-scripts --prefix tools/css
   npm ci --ignore-scripts --prefix tools/web-toolchain
   TERLC="$terlc" bash scripts/check_typed_css.sh
   typed_css_checked=true
+  remaining_plan="${plan%.plan}.without-typed-css.plan"
+  rg -vx 'typed-css' "$plan" > "$remaining_plan" || true
+  mv "$remaining_plan" "$plan"
 fi
 # Generated Rust reports and source-structure policy fail before any broad
 # Terlan compilation. Directly affected compiler and source ownership follows.

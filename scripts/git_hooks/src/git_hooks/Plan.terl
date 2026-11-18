@@ -433,6 +433,14 @@ pub phase(paths: List[String]): Bool ->
 pub editor(paths: List[String]): Bool ->
     syntax(paths) or affected(paths, "editors/", "").
 
+pub typed_css(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/commands/build/css.rs", "")
+        or affected(paths, "crates/terlan/src/commands/build/css/", "")
+        or affected(paths, "std/css/", "")
+        or affected(paths, "tools/css/", "")
+        or affected(paths, "tools/web-toolchain/css-bundle", "")
+        or affected(paths, "scripts/check_typed_css.sh", "").
+
 pub terlan(paths: List[String]): Bool ->
     case paths {
         [] -> false;
@@ -647,7 +655,12 @@ pub lanes(paths: List[String]): List[String] ->
             core_contracts(paths) -> ["core-contracts"];
             true -> List.new[String]()
         };
-    append(["shell" | native], append(vm, append(core, append(proved, contracted)))).
+    let css =
+        if {
+            typed_css(paths) -> ["typed-css"];
+            true -> List.new[String]()
+        };
+    append(["shell" | native], append(vm, append(core, append(css, append(proved, contracted))))).
 
 /**
  * Removes exact generated-summary and workflow-syntax duplicates from the

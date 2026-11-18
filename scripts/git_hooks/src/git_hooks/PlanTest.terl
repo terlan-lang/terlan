@@ -278,6 +278,14 @@ pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
         and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-docs"].
 
 @test
+pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
+    Plan.typed_css(["crates/terlan/src/commands/build/css.rs"])
+        and Plan.typed_css(["std/css/Values.terl"])
+        and Plan.typed_css(["tools/css/generate.mjs"])
+        and not Plan.typed_css(["crates/terlan/src/commands/build/html.rs"])
+        and Plan.execution_lanes(["crates/terlan/src/commands/build/css.rs"]) == ["shell", "commands", "typed-css", "clippy", "rust-reports"].
+
+@test
 pub rust_formatting_uses_changed_inputs_unless_configuration_changes(): Bool ->
     Plan.preflight_lanes(["tools/example.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-docs"]
         and Plan.preflight_lanes(["rustfmt.toml"]) == ["inventory", "rust-format"].
