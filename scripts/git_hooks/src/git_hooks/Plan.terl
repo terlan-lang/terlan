@@ -213,6 +213,7 @@ hosted_preflight_owns(value: String): Bool ->
         or value == "rust-format"
         or value == "editor-release"
         or value == "js-bindings"
+        or value == "hook-policy"
         or value == "terlan-format".
 
 prefix_preflight_lanes(values: List[String]): List[String] ->

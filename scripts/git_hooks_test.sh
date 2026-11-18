@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Exercise the Git boundary with tiny repositories and a staged fixture checker.
 set -euo pipefail
+trap 'status=$?; line=$LINENO; trap - ERR; echo "Git hook regression failed at line $line (status $status)" >&2; exit "$status"' ERR
 unset TERLAN_HOOK_SHARED_TARGET TERLAN_HOOK_TERLAN_CACHE_DIR
 unset TERLAN_HOOK_VALIDATION_RECEIPT_DIR TERLAN_TEST_FORCE_RERUN
 export TERLAN_HOOK_MODE=full
