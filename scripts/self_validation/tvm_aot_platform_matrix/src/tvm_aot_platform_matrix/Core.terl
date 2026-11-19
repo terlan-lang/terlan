@@ -725,6 +725,7 @@ source_preflight_order_valid(workflow: String): Bool ->
 pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
     let normalized_workflow = String.replace(workflow, "\r\n", "\n");
     occurrences(normalized_workflow, "name: Check every generated artifact for drift") == 1
+        and occurrences(normalized_workflow, "name: Check Rust lint allowance policy") == 1
         and not normalized_workflow.contains("cargo test")
         and not normalized_workflow.contains("cache-build: \"true\"")
         and normalized_workflow.contains("cache-registry: \"false\"")
@@ -733,6 +734,8 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
     normalized_workflow,
     [
         "timeout-minutes: 30",
+        "steps.script-runner.outputs.rust-quality-image",
+        "lint-allowance-check",
         "if: \${{ inputs.generated }}",
         "generated_summaries:",
         "generated_js_bindings:",

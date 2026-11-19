@@ -9,6 +9,7 @@ use std::process::Command;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+#[path = "support/copy.rs"]
 mod support;
 
 struct Fixture(PathBuf);

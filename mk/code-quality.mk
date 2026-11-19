@@ -16,6 +16,7 @@
 # somewhat larger bounded VM allowance than the narrower quality gates.
 TERLAN_RUST_DEPENDENCY_IMPACT_VIRTUAL_MEMORY_KIB := 196608
 TERLAN_RUST_BUILD_GRAPH_VIRTUAL_MEMORY_KIB := 196608
+TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED ?= 0
 TERLAN_CARGO_ARTIFACT_DEBUG_ROOT := $(if $(strip $(CARGO_TARGET_DIR)),$(abspath $(CARGO_TARGET_DIR)),$(CURDIR)/target)/debug
 .PHONY: rust-module-structure-check rust-build-graph-boundary-check rust-cargo-metadata-report
 .PHONY: rust-structure-timings-self-test rust-module-structure-self-test
@@ -35,7 +36,11 @@ rust-clippy-check:
 	$(CARGO) clippy --workspace --bins -- -D warnings
 	$(CARGO) clippy --workspace --bins --all-features -- -D warnings
 
-rust-lint-allowance-check: rust-cargo-metadata-report terlan-rust-quality-bootstrap
+ifeq ($(TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED),1)
+rust-lint-allowance-check:
+	@echo "[rust-lint-allowances] reused early source-preflight result"
+else
+rust-lint-allowance-check: terlan-rust-quality-bootstrap
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 		$(TERLAN_RUST_QUALITY) lint-allowance-self-test
 	@ulimit -v $(TERLAN_RUST_QUALITY_VIRTUAL_MEMORY_KIB); \
@@ -43,6 +48,7 @@ rust-lint-allowance-check: rust-cargo-metadata-report terlan-rust-quality-bootst
 			MALLOC_ARENA_MAX=$(TERLAN_RUST_QUALITY_MALLOC_ARENA_MAX) \
 			TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \
 			$(TERLAN_RUST_QUALITY) lint-allowance-check
+endif
 
 rust-workspace-policy-check: rust-lint-allowance-check
 	TERLAN_RUST_QUALITY_ROOT="$(CURDIR)" \

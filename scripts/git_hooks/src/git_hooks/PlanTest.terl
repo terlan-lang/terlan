@@ -119,7 +119,7 @@ pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     "native-ir",
     "phase",
 ]
-        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "compiler-build", "rust-format", "negative-api", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "negative-api", "rust-docs"]
         and Plan.lanes(
     [
         "crates/terlan/src/compiler/native_ir/collection_values.rs",
@@ -277,7 +277,7 @@ pub platform_validator_changes_validate_themselves_early(): Bool ->
 @test
 pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "clippy", "rust-reports", "commands-doctor"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"].
 
 @test
 pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
@@ -289,8 +289,15 @@ pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
 
 @test
 pub rust_formatting_uses_changed_inputs_unless_configuration_changes(): Bool ->
-    Plan.preflight_lanes(["tools/example.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-docs"]
+    Plan.preflight_lanes(["tools/example.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
         and Plan.preflight_lanes(["rustfmt.toml"]) == ["inventory", "rust-format"].
+
+@test
+pub every_rust_allowance_change_runs_policy_before_expensive_gates(): Bool ->
+    Plan.rust_lint_allowances(["crates/terlan/src/lib.rs"])
+        and Plan.rust_lint_allowances(["docs/quality/RUST_LINT_ALLOWANCES.tsv"])
+        and Plan.preflight_lanes(["crates/terlan/src/lib.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
+        and not Plan.rust_lint_allowances(["README.md"]).
 
 @test
 pub javascript_emitter_changes_do_not_run_native_command_suites(): Bool ->
@@ -353,7 +360,7 @@ pub broad_rust_lanes_remove_their_narrow_duplicates(): Bool ->
 
 @test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->
-    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
+    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "rust-lint-allowances", "hook-policy"]
         and Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell"]
         and not Plan.release_contract(["scripts/git_hooks.sh"])
         and not Plan.bootstrap(["scripts/git_hooks/check.sh"])

@@ -39,7 +39,7 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
         and String.contains(plan, "RustFormatting.required(paths, false)")
         and String.contains(runner, "terlan-script-runner-v5-")
         and String.contains(runner, "terlan-ci-classifier-v1-")
-        and String.contains(runner, "terlan-ci-programs-v2-")
+        and String.contains(runner, "terlan-ci-programs-v3-")
         and String.contains(runner, "!crates/**/*_test/**/*.rs")
         and String.contains(runner, "scripts_ClassifyChanges.tvm")
         and String.contains(runner, "allow-compatible-fallback:")

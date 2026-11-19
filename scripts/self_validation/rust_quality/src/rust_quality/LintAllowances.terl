@@ -532,7 +532,7 @@ print_diagnostics(values: List[String]): Bool ->
     }.
 
 pub check(root: String): Bool ->
-    let discovery = SourceInventory.discover(root);
+    let discovery = SourceInventory.discover_visible(root, ["*.rs"]);
     if {
         not discovery.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", discovery.message]));
         false;
@@ -595,7 +595,7 @@ write_registry(path: String, rendered: String, count: Int): Bool ->
     }.
 
 record_loaded(root: String): Bool ->
-    let discovery = SourceInventory.discover(root);
+    let discovery = SourceInventory.discover_visible(root, ["*.rs"]);
     if {
         not discovery.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", discovery.message]));
         false;

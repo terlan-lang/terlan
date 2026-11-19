@@ -447,6 +447,18 @@ if preflight_has terlan-format; then
   "$terlc" fmt --check "${terlan_paths[@]}"
 fi
 
+if preflight_has rust-lint-allowances; then
+  echo 'pre-commit: early Rust lint allowance policy'
+  rust_quality_dir="$CARGO_TARGET_DIR/terlan-validators/rust-quality"
+  rust_quality_image="$rust_quality_dir/vm/scripts_RustQuality.tvm"
+  "$terlc" build --incremental \
+    scripts/self_validation/rust_quality/scripts/RustQuality.terls \
+    --target terlan-vm --out-dir "$rust_quality_dir"
+  test -s "$rust_quality_image"
+  "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
+    --script-eval -- lint-allowance-check
+fi
+
 release_tools_ready=false
 quality_tools_ready=false
 orchestrator_ready=false

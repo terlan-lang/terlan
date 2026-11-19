@@ -460,6 +460,8 @@ jobs:
           # The serialized compiler library suite exceeds thirty minutes on
           # hosted runners; retain a bounded deadline without skipping tests.
           TERLAN_TEST_PHASE_TIMEOUT_SECONDS: "3600"
+          # The required source-preflight job already ran the exact policy.
+          TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED: "1"
 
       - name: Validate changed compiler scope
         if: ${{ github.event_name != 'workflow_dispatch' }}

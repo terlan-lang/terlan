@@ -8,6 +8,8 @@ use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
+#[path = "support/copy.rs"]
+mod copy_support;
 mod support;
 
 struct Fixture(PathBuf);
@@ -36,7 +38,7 @@ fn fixture() -> Fixture {
 fn cold_refresh_plan_needs_no_prebuilt_executables() {
     let fixture = fixture();
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    support::copy_make_sources(&fixture.0);
+    copy_support::copy_make_sources(&fixture.0);
     for path in [
         "Cargo.toml",
         "tree-sitter-terlan/package.json",

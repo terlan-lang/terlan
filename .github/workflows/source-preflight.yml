@@ -102,6 +102,11 @@ jobs:
       - name: Setup Terlan script runner
         id: script-runner
         uses: ./.github/actions/setup-terlan-script-runner
+      - name: Check Rust lint allowance policy
+        run: |
+          ${{ steps.script-runner.outputs.vm }} run \
+            ${{ steps.script-runner.outputs.rust-quality-image }} \
+            --script-eval -- lint-allowance-check
       - name: Install Node for generated and editor checks
         if: ${{ inputs.generated || inputs.editor }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

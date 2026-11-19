@@ -77,11 +77,13 @@ pub script_runner_cache_is_compact_and_versioned(): Bool ->
         and action.contains("Compile current change classifier")
         and action.contains("scripts_ClassifyChanges.tvm")
         and action.contains("classifier-image=")
-        and action.contains("terlan-ci-programs-v2-")
+        and action.contains("terlan-ci-programs-v3-")
         and action.contains("scripts_CheckRustFormatting.tvm")
         and action.contains("scripts_CheckTerlanStyle.tvm")
         and action.contains("rust-format-image=")
         and action.contains("terlan-style-image=")
+        and action.contains("rust-quality-image=")
+        and action.contains("scripts_RustQuality.tvm")
         and action.contains("strip --strip-unneeded target/script-runner/terlc target/script-runner/terlan-vm")
         and action.contains("target/script-runner/terlc)\" -le 157286400")
         and action.contains("target/script-runner/terlan-vm)\" -le 125829120").
@@ -106,6 +108,9 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
         Err(_reason) -> false
     };
     workflow.contains("terlc }} test scripts/self_validation/InventoryTest.terl")
+        and workflow.contains("name: Check Rust lint allowance policy")
+        and workflow.contains("steps.script-runner.outputs.rust-quality-image")
+        and workflow.contains("lint-allowance-check")
         and not workflow.contains("cargo test")
         and not workflow.contains("cache-build: \"true\"")
         and workflow.contains("cache-registry: \"false\"")
@@ -117,13 +122,19 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
 pub source_contracts_gate_compiler_validation(): Bool ->
     when {
         Ok(workflow) <- read_text(".github/workflows/ci.yml");
-        Ok(hook) <- read_text("scripts/git_hooks/check.sh")
+        Ok(hook) <- read_text("scripts/git_hooks/check.sh");
+        Ok(quality) <- read_text("mk/code-quality.mk")
     } else {
         Err(_reason) -> false
     };
     compiler_before_platform_text_valid(workflow)
         and workflow.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT: \"1\"")
         and workflow.contains("TERLAN_HOSTED_DEPENDENCY_AUDIT: \"1\"")
+        and workflow.contains("TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED: \"1\"")
+        and quality.contains("ifeq ($(TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED),1)")
+        and quality.contains("[rust-lint-allowances] reused early source-preflight result")
+        and not quality
+    .contains("rust-lint-allowance-check: rust-cargo-metadata-report terlan-rust-quality-bootstrap")
         and hook.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT:-0")
         and hook.contains("TERLAN_HOSTED_DEPENDENCY_AUDIT:-0")
         and hook.contains("planner_arguments+=(--hosted-source-preflight)")
