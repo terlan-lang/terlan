@@ -35,6 +35,7 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
             }
             selectors.push(argument);
         }
+        crate::test_program_snapshot::route_report(&path).map_err(failure)?;
         let environment = ExecutionEnvironment::capture()?;
         let timeout = crate::phase_timeout(&environment);
         let shutdown = crate::shutdown::Shutdown::install().map_err(failure)?;

@@ -295,9 +295,9 @@ tvm-aot-capability-worker-check: tvm-aot-stale-epoch-check | terlan-native-worke
 	$(RUST_TEST) -p terlan --lib capability_worker
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::package_native_helper::storage_transport::tests::installed_storage_worker_is_selected_only_from_the_vm_directory -- --exact
 	$(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::package_native_helper::storage_transport::tests::unconfigured_actor_execution_does_not_require_an_installed_storage_worker -- --exact
-	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_process_transport_runs_full_cycle -- --ignored --exact
-	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_sandbox_closes_inherited_descriptor -- --ignored --exact
-	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::storage_process_test::capability_storage_worker_survives_restart_with_durable_checkpoint -- --ignored --exact
+	TERLAN_TEST_CAPABILITY_WORKER=$(TERLAN_RUST_SUITE_NATIVE_WORKER) $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_process_transport_runs_full_cycle -- --ignored --exact
+	TERLAN_TEST_CAPABILITY_WORKER=$(TERLAN_RUST_SUITE_NATIVE_WORKER) $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::capability_worker_sandbox_closes_inherited_descriptor -- --ignored --exact
+	TERLAN_TEST_CAPABILITY_WORKER=$(TERLAN_RUST_SUITE_NATIVE_WORKER) $(EXACT_CARGO_TEST) --locked -p terlan --lib runtime::vm::capability_worker::capability_worker_test::storage_process_test::capability_storage_worker_survives_restart_with_durable_checkpoint -- --ignored --exact
 	@rg -q '#!\[deny\(unsafe_code\)\]' crates/terlan/src/native_worker/main.rs
 	@rg -q 'NativeBoundaryWorker::new' crates/terlan/src/native_worker/protocol/execution.rs
 	@rg -q 'call_for_process_with_policy_and_cancellation' crates/terlan/src/native_worker/protocol/execution.rs
@@ -1866,8 +1866,8 @@ vm-multicore-capability-event-pump-check: vm-multicore-capability-completion-che
 vm-multicore-capability-scheduler-check: vm-multicore-capability-event-pump-check | terlan-native-worker-bootstrap
 	$(EXACT_CARGO_TEST) -p terlan --lib runtime::vm::capability_worker::pool::pool_test::capability_event_pump_shutdown_returns_all_pending_payloads -- --exact
 	$(EXACT_CARGO_TEST) -p terlan --lib native_worker::protocol::protocol_test::worker_admits_declared_filesystem_operation -- --exact
-	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker TERLAN_TEST_AOT_CAPABILITY_PUMP=1 TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX=1 $(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_capability_event_pump_executes_real_worker_full_cycle -- --ignored --exact
-	TERLAN_NATIVE_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_capability_worker_wakes_and_resumes_exact_actor -- --ignored --exact
+	TERLAN_NATIVE_WORKER=$(TERLAN_RUST_SUITE_NATIVE_WORKER) TERLAN_TEST_AOT_CAPABILITY_PUMP=1 TERLAN_TEST_CAPABILITY_NETWORK_SANDBOX=1 $(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_test::generated_capability_event_pump_executes_real_worker_full_cycle -- --ignored --exact
+	TERLAN_NATIVE_WORKER=$(TERLAN_RUST_SUITE_NATIVE_WORKER) $(EXACT_CARGO_TEST) -p terlan --lib commands::serve::handler_cache::invocation::invocation_protocol_test::protocol_reactor_capability_worker_wakes_and_resumes_exact_actor -- --ignored --exact
 	@rg -q 'GeneratedCapabilityDispatcher' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
 	@rg -q 'CapabilityCompletionPublished' crates/terlan/src/commands/serve/handler_cache/shard_owner/capability_dispatch.rs
 

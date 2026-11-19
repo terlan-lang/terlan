@@ -16,10 +16,13 @@ pub(super) const CONTEXT: &str = "TERLAN_RUST_COVERAGE_CONTEXT";
 pub(super) const SCOPE: &str = "TERLAN_RUST_COVERAGE_SCOPE";
 
 /// Executable routing is byte-bound by the orchestrator and metadata handoff.
-const EXECUTABLE_ROUTES: [&str; 3] = [
+const EXECUTABLE_ROUTES: [&str; 6] = [
     "TERLC",
     "TERLAN_RUST_ORCHESTRATOR",
     "TERLAN_CARGO_METADATA_OWNER",
+    "TERLAN_RUST_SUITE_TERLC",
+    "TERLAN_RUST_SUITE_VM",
+    "TERLAN_RUST_SUITE_NATIVE_WORKER",
 ];
 
 /// Digest-only effective environment evidence retained by live coverage requests.

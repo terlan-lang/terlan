@@ -94,6 +94,8 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
             println!("[rust-coverage] dry-run plan only; no coverage verified");
             return Ok(());
         }
+        crate::test_program_snapshot::route_report(&path).map_err(failure)?;
+        let environment = ExecutionEnvironment::capture()?;
         let _suite_lease = crate::report_file::read_lease(&path)
             .map_err(failure)?
             .ok_or_else(|| failure("live Make coverage requires an owned suite publication"))?;
@@ -135,7 +137,7 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
                     |launched, partial| {
                         let bridge = Bridge::start(resolve)?;
                         let mut command = environment
-                            .test_command(&make_binding.verify_program("make", control)?);
+                            .test_program_command(&make_binding.verify_program("make", control)?);
                         command.args(&arguments).env(CONTEXT, bridge.endpoint());
                         let invocation = make_environment::invocation_identity(&command);
                         eprintln!(

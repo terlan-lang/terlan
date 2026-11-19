@@ -68,6 +68,8 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
             println!("[hosted-coverage] dry-run plan only; no source coverage admitted");
             return Ok(());
         }
+        crate::test_program_snapshot::route_current().map_err(failure)?;
+        let environment = ExecutionEnvironment::capture()?;
         let root = std::env::current_dir().map_err(failure)?;
         let mut ledger = LaunchLedger::new(
             &root.join("target/quality/hosted-source-coverage.json"),
@@ -132,8 +134,8 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
                 "hosted-source-covered-gates",
                 |launched, partial| {
                     let bridge = crate::coverage_bridge::Bridge::start(resolver)?;
-                    let mut command =
-                        environment.test_command(&make_binding.verify_program("make", control)?);
+                    let mut command = environment
+                        .test_program_command(&make_binding.verify_program("make", control)?);
                     command
                         .args(&args)
                         .env(make_environment::CONTEXT, bridge.endpoint())

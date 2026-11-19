@@ -28,6 +28,7 @@ pub(super) fn main(mut arguments: impl Iterator<Item = OsString>) -> ExitCode {
         if arguments.next().is_some() {
             return Err(failure("unexpected coverage batch arguments"));
         }
+        crate::test_program_snapshot::route_report(&report_path).map_err(failure)?;
         let environment = ExecutionEnvironment::capture()?;
         let shutdown = crate::shutdown::Shutdown::install().map_err(failure)?;
         let control = ProcessControl::new(crate::phase_timeout(&environment))

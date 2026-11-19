@@ -26,6 +26,12 @@ fn make_bookkeeping_changes_do_not_erase_runtime_or_compiler_inputs() {
         .env("TERLC", "/bound/terlc")
         .env("TERLAN_RUST_ORCHESTRATOR", "/bound/orchestrator")
         .env("TERLAN_CARGO_METADATA_OWNER", "/bound/metadata-owner")
+        .env("TERLAN_RUST_SUITE_TERLC", "/bound/test-programs/terlc")
+        .env("TERLAN_RUST_SUITE_VM", "/bound/test-programs/terlan-vm")
+        .env(
+            "TERLAN_RUST_SUITE_NATIVE_WORKER",
+            "/bound/test-programs/terlan-native-worker",
+        )
         .env("TERLAN_VALIDATION_BOOTSTRAPPED", "1")
         .env("TERLAN_PROOF_RUNTIME_RUN", ":")
         .env("TERLAN_PROOF_TRACK_RUN", ":");

@@ -24,6 +24,8 @@ fn invalid_commands_do_not_launch_the_suite() {
         ],
         vec!["--install-snapshot"],
         vec!["--install-snapshot", "unused", "unexpected"],
+        vec!["--snapshot-test-programs", "", "unexpected"],
+        vec!["--snapshot-test-programs", "unused", "unexpected"],
         vec!["--inspect-coverage"],
         vec!["--inspect-coverage", "missing.json"],
         vec!["--inspect-coverage", "missing.json", "--"],

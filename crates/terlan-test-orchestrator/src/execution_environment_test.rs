@@ -364,3 +364,33 @@ fn actual_children_receive_only_snapshot_and_declared_phase_overrides() {
     assert_eq!(launched, 2);
     assert_eq!(environment.value("FIXTURE_VALUE"), Some("base".into()));
 }
+
+#[test]
+fn owning_make_commands_restore_only_the_immutable_program_routes() {
+    let fixture = temporary_fixture("environment-test-program-routes");
+    let environment = snapshot(
+        &[
+            ("TERLAN_RUST_SUITE_TERLC", "/snapshot/terlc"),
+            ("TERLAN_RUST_SUITE_VM", "/snapshot/terlan-vm"),
+            (
+                "TERLAN_RUST_SUITE_NATIVE_WORKER",
+                "/snapshot/terlan-native-worker",
+            ),
+        ],
+        &fixture.0,
+    );
+    let ordinary = environment.test_command(Path::new("make"));
+    let owned = environment.test_program_command(Path::new("make"));
+    for (key, expected) in [
+        ("TERLAN_RUST_SUITE_TERLC", "/snapshot/terlc"),
+        ("TERLAN_RUST_SUITE_VM", "/snapshot/terlan-vm"),
+        (
+            "TERLAN_RUST_SUITE_NATIVE_WORKER",
+            "/snapshot/terlan-native-worker",
+        ),
+    ] {
+        assert_eq!(command_value(&ordinary, key), None);
+        assert_eq!(command_value(&owned, key), Some(expected.into()));
+    }
+    assert_eq!(command_value(&owned, "TERLAN_TEST_CAPABILITY_WORKER"), None);
+}

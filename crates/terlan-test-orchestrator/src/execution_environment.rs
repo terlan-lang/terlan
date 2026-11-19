@@ -169,6 +169,17 @@ impl ExecutionEnvironment {
         command
     }
 
+    /// Restores immutable test-program routes only for an owning Make graph.
+    pub(super) fn test_program_command(&self, program: &Path) -> Command {
+        let mut command = self.test_command(program);
+        for key in TEST_PROGRAM_ROUTING_ENV {
+            if let Some(value) = self.value(key) {
+                command.env(key, value);
+            }
+        }
+        command
+    }
+
     /// Uses exactly the PATH installed on Cargo commands for executable admission.
     pub(super) fn test_path(&self) -> &OsStr {
         &self.test_path

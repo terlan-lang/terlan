@@ -511,33 +511,13 @@ ensure_native_test_companions() {
   export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"
 }
 snapshot_test_programs() {
-  local name source digest material= set_digest directory destination temporary
-  for name in terlc terlan-vm terlan-native-worker; do
-    source="$CARGO_TARGET_DIR/debug/$name"
-    test -x "$source"
-    digest=$(sha256sum "$source" | awk '{print $1}')
-    material+="$name $digest"$'\n'
-  done
-  set_digest=$(printf '%s' "$material" | sha256sum | awk '{print $1}')
-  directory="$CARGO_TARGET_DIR/validation-tools/test-programs-$set_digest"
-  mkdir -p "$directory"
-  for name in terlc terlan-vm terlan-native-worker; do
-    source="$CARGO_TARGET_DIR/debug/$name"
-    digest=$(sha256sum "$source" | awk '{print $1}')
-    destination="$directory/$name"
-    if [[ ! -x "$destination" \
-      || $(sha256sum "$destination" | awk '{print $1}') != "$digest" ]]; then
-      temporary="$destination.tmp.$$"
-      install -m 755 "$source" "$temporary"
-      mv "$temporary" "$destination"
-    fi
-  done
-  printf '%s\n' "$directory"
+  "$orchestrator_path" --snapshot-test-programs "$CARGO_TARGET_DIR"
 }
 ensure_test_program_snapshots() {
   if [[ "$test_program_snapshots_ready" == false ]]; then
     local directory
     ensure_native_test_companions
+    ensure_orchestrator
     directory=$(snapshot_test_programs)
     export TERLAN_RUST_SUITE_TERLC
     export TERLAN_RUST_SUITE_VM
@@ -664,7 +644,6 @@ run_affected_rust_lane() {
       ;;
     workspace)
       ensure_test_program_snapshots
-      ensure_orchestrator
       run_workspace_suite
       ;;
     dependencies) cargo check --locked --workspace --all-targets ;;
@@ -703,7 +682,6 @@ run_workspace_suite() {
 run_proof_coverage() {
   ensure_quality_tools
   ensure_test_program_snapshots
-  ensure_orchestrator
   TERLC="$TERLAN_RUST_SUITE_TERLC" \
   TERLAN_RUST_ORCHESTRATOR="$orchestrator_path" \
     bash scripts/git_hooks/proofs.sh

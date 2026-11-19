@@ -58,6 +58,7 @@ mod source_inventory;
 mod suite_inputs;
 mod test_execution;
 mod test_inventory;
+mod test_program_snapshot;
 mod test_result_log;
 mod test_selections;
 mod tool_configuration;
@@ -240,6 +241,9 @@ pub fn run_cli() -> ExitCode {
         Some(value) if value == std::ffi::OsStr::new("--install-snapshot") => {
             return driver_snapshot::main(arguments);
         }
+        Some(value) if value == std::ffi::OsStr::new("--snapshot-test-programs") => {
+            return test_program_snapshot::main(arguments);
+        }
         Some(value) if value == std::ffi::OsStr::new("--cargo-native-runner") => {
             return workspace_native_runner::main(arguments);
         }
@@ -275,6 +279,10 @@ pub fn run_cli() -> ExitCode {
     }
     if let Err(error) = validate_tier_inventory() {
         eprintln!("[rust-test-suite] invalid tier inventory: {error}");
+        return ExitCode::from(1);
+    }
+    if let Err(error) = test_program_snapshot::route_current() {
+        eprintln!("[rust-test-suite] test-program snapshot: {error}");
         return ExitCode::from(1);
     }
     let environment = match execution_environment::ExecutionEnvironment::capture() {

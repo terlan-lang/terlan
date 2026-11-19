@@ -809,7 +809,10 @@ proof_coverage=$(sed -n '/^run_proof_coverage()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
 grep -Fq 'ensure_test_program_snapshots' <<< "$workspace_lane"
-grep -Fq 'ensure_orchestrator' <<< "$workspace_lane"
+if grep -Fq 'ensure_orchestrator' <<< "$workspace_lane"; then
+  echo 'Workspace lane redundantly provisions the snapshot owner' >&2
+  exit 1
+fi
 grep -Fq 'run_workspace_suite' <<< "$workspace_lane"
 grep -Fq 'TERLAN_VALIDATION_BOOTSTRAPPED=1' <<< "$workspace_suite"
 grep -Fq 'TERLAN_RUST_ORCHESTRATOR="$orchestrator_path"' \
@@ -877,9 +880,8 @@ snapshot_provisioning=$(sed -n '/^ensure_test_program_snapshots()/,/^}/p' \
 snapshot_copy=$(sed -n '/^snapshot_test_programs()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$snapshot_provisioning"
-grep -Fq 'install -m 755 "$source" "$temporary"' <<< "$snapshot_copy"
-grep -Fq 'test-programs-$set_digest' <<< "$snapshot_copy"
-grep -Fq 'destination="$directory/$name"' <<< "$snapshot_copy"
+grep -Fq 'ensure_orchestrator' <<< "$snapshot_provisioning"
+grep -Fq -- '--snapshot-test-programs "$CARGO_TARGET_DIR"' <<< "$snapshot_copy"
 grep -Fq 'TERLAN_RUST_SUITE_TERLC=' <<< "$snapshot_provisioning"
 grep -Fq 'TERLAN_RUST_SUITE_VM=' <<< "$snapshot_provisioning"
 grep -Fq 'TERLAN_RUST_SUITE_NATIVE_WORKER=' <<< "$snapshot_provisioning"

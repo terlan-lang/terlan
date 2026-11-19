@@ -186,6 +186,7 @@ fn fixture() -> Fixture {
         "Makefile",
         format!(
             r#"TERLAN_RUST_ORCHESTRATOR := $(TERLAN_FIXTURE_DRIVER)
+TERLAN_RUST_SUITE_NATIVE_WORKER ?= $(CURDIR)/target/debug/terlan-native-worker
 include {}
 include {}
 # Keep the production entry-point policy in this disposable Make graph: legacy
@@ -203,7 +204,7 @@ routed:
 native:
 	$(EXACT_CARGO_TEST) -p support --test integration
 ignored:
-	TERLAN_TEST_CAPABILITY_WORKER=$(CURDIR)/target/debug/terlan-native-worker $(RUST_TEST) -p terlan --lib capability_worker_process_transport_runs_full_cycle -- --ignored
+	TERLAN_TEST_CAPABILITY_WORKER=$(TERLAN_RUST_SUITE_NATIVE_WORKER) $(RUST_TEST) -p terlan --lib capability_worker_process_transport_runs_full_cycle -- --ignored
 nested:
 	$(RUST_TEST) -p terlan --lib quality::
 missing:
