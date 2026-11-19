@@ -1215,22 +1215,14 @@ endif
 
 .PHONY: release release-plan release-predict release-wait release-tag publish-tag release-status release-control-check terlan-release-control-fingerprint terlan-release-control-bootstrap
 # Release orchestration is a consumer of the latest working Terlan tools. It
-# must not rebuild the candidate compiler merely because candidate Rust inputs
-# changed; hosted compiler evidence validates those inputs independently.
-terlan-release-control-fingerprint:
+# receives prebuilt candidate tools during publication; hosted compiler
+# evidence validates those inputs independently.
+# The shared fingerprint is a real data dependency: the parallel validator
+# bootstrap must never test for it before its canonical producer completes.
+terlan-release-control-fingerprint: terlan-typed-validator-fingerprint
 	test -x $(TERLAN_BOOTSTRAP_COMPILER)
 	test -x $(TERLAN_BOOTSTRAP_VM)
-ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 	test -s $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
-else
-ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	@identity=$$($(TERLAN_BOOTSTRAP_COMPILER) build --print-toolchain-identity) || exit $$?; \
-	TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$$identity" \
-	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
-		$(TERLAN_BOOTSTRAP_COMPILER) std
-endif
-endif
 
 # Builds the release-control VM image, reusing it when already validated
 terlan-release-control-bootstrap: terlan-release-control-fingerprint

@@ -912,10 +912,11 @@ publish-local:
 	$(TERLAN_RELEASE_CONTROL) submit "$(VERSION)" "$(PUBLISH_REVISION)"
 
 
-# Requires full coverage on the release payload input contract test
+# Requires full coverage on release payload and build-graph input contracts
 publish-release-input-check: | terlan-compiler-bootstrap
 	$(TERLAN_BOOTSTRAP_COMPILER) test \
 		scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleasePayloadInputTest.terl \
+		scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseBuildGraphTest.terl \
 		--coverage --coverage-threshold 100
 
 

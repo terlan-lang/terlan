@@ -73,6 +73,62 @@ fn recipe(source: &str, target: &str) -> String {
 }
 
 #[test]
+fn release_control_waits_for_the_shared_fingerprint() {
+    let source = crate::support::read_make_sources();
+    let release_control = recipe(&source, "terlan-release-control-fingerprint");
+    assert!(release_control
+        .starts_with("terlan-release-control-fingerprint: terlan-typed-validator-fingerprint\n"));
+
+    let root = std::env::temp_dir().join(format!(
+        "terlan-release-control-fingerprint-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
+    let fixture = Fixture(root);
+    fs::write(fixture.0.join("terlc"), "#!/bin/sh\nexit 0\n").unwrap();
+    fs::write(fixture.0.join("terlan-vm"), "#!/bin/sh\nexit 0\n").unwrap();
+    for program in ["terlc", "terlan-vm"] {
+        let mut permissions = fs::metadata(fixture.0.join(program)).unwrap().permissions();
+        use std::os::unix::fs::PermissionsExt;
+        permissions.set_mode(0o700);
+        fs::set_permissions(fixture.0.join(program), permissions).unwrap();
+    }
+    fs::write(
+        fixture.0.join("Makefile"),
+        format!(
+            ".PHONY: terlan-typed-validator-fingerprint terlan-release-control-fingerprint\n\
+             TERLAN_BOOTSTRAP_COMPILER := terlc\n\
+             TERLAN_BOOTSTRAP_VM := terlan-vm\n\
+             TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT := common.sha256\n\
+             terlan-typed-validator-fingerprint:\n\
+             \t@sleep 0.2\n\
+             \t@printf 'ready\\n' > common.sha256\n\
+             {release_control}\n"
+        ),
+    )
+    .unwrap();
+
+    let status = Command::new("make")
+        .current_dir(&fixture.0)
+        .args([
+            "--no-print-directory",
+            "--jobs=8",
+            "TERLAN_BUILD_ARTIFACTS_PREBUILT=1",
+            "terlan-release-control-fingerprint",
+        ])
+        .env_remove("MAKEFLAGS")
+        .env_remove("MAKEOVERRIDES")
+        .env_remove("MFLAGS")
+        .status()
+        .unwrap();
+    assert!(status.success());
+}
+
+#[test]
 fn proof_bootstrap_is_focused_shared_and_fail_closed() {
     let source = crate::support::read_make_sources();
     let aggregate = source

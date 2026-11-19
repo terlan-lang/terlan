@@ -1,0 +1,39 @@
+module tvm_aot_platform_matrix.ReleaseBuildGraphTest.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.io.File.
+import tvm_aot_platform_matrix.MakeContract.
+
+import type std.collections.List.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+release_control_waits_for_fingerprint(makefile: String): Bool ->
+    case MakeContract.target_prerequisites(makefile, "terlan-release-control-fingerprint") {
+        Some(prerequisites) -> contains(prerequisites, "terlan-typed-validator-fingerprint");
+        None -> false
+    }.
+
+@test
+pub current_release_control_waits_for_fingerprint(): Bool ->
+    case File.read_text("Makefile") {
+        Ok(makefile) -> release_control_waits_for_fingerprint(makefile);
+        Err(_error) -> false
+    }.
+
+@test
+pub dependency_must_be_declared_on_the_target(): Bool ->
+    release_control_waits_for_fingerprint(
+    "terlan-release-control-fingerprint: terlan-typed-validator-fingerprint\n",
+)
+        and not release_control_waits_for_fingerprint(
+    "terlan-release-control-fingerprint:\n\t@echo terlan-typed-validator-fingerprint\n",
+)
+        and not release_control_waits_for_fingerprint("other: terlan-typed-validator-fingerprint\n").
