@@ -15,6 +15,7 @@ import std.system.{Environment, Platform, Process}.
 import std.vcs.Git.{source_tree_identity}.
 import tvm_aot_platform_matrix.AotThreadSanitizer.{target as sanitizer_target, validate_report as validate_sanitizer_report}.
 import tvm_aot_platform_matrix.Core.{child, host_target, json_bool, json_equals, json_string, load_json, report_valid, string_array, targets, write_json}.
+import tvm_aot_platform_matrix.RepositoryMake.{source as repository_make_source}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -578,9 +579,9 @@ inventory_rejects(markdown: String): Bool ->
  */
 pub self_test(): Bool ->
     let root = Environment.current_directory();
-    case read_text(child(root, "Makefile")) {
-        Err(_error) -> failure("cannot read Makefile");
-        Ok(makefile) ->
+    case repository_make_source(root) {
+        None -> failure("cannot read composed Make sources");
+        Some(makefile) ->
             let valid_inventory = valid_inventory_fixture();
             let temporary =
                 String.append(

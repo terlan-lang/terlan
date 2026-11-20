@@ -4,7 +4,7 @@ import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.io.File.{read_text}.
 import tvm_aot_platform_matrix.Core.{compiled_cache_text_valid, compiler_before_platform_text_valid, hosted_release_graph_valid, release_audit_before_platform_text_valid, source_preflight_text_valid}.
-import tvm_aot_platform_matrix.MulticoreRelease.{validate_workflow as multicore_release_workflow_valid}.
+import tvm_aot_platform_matrix.MulticoreRelease.{validate_makefile as multicore_release_makefile_valid, validate_repository as multicore_release_repository_valid, validate_workflow as multicore_release_workflow_valid}.
 
 @test
 pub current_release_workflow_is_accepted_by_every_validator(): Bool ->
@@ -16,6 +16,15 @@ pub current_release_workflow_is_accepted_by_every_validator(): Bool ->
     (let normalized = String.replace(source, "\r\n", "\n");
 release_audit_before_platform_text_valid(normalized)
     and multicore_release_workflow_valid(normalized)).
+
+@test
+pub current_multicore_contract_uses_the_composed_make_graph(): Bool ->
+    when {
+        Ok(root_makefile) <- read_text("Makefile")
+    } else {
+        Err(_reason) -> false
+    };
+    not multicore_release_makefile_valid(root_makefile) and multicore_release_repository_valid(".").
 
 @test
 pub release_platforms_cannot_bypass_dependency_auditing(): Bool ->

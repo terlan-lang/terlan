@@ -16,6 +16,7 @@ import std.system.Environment.
 import std.vcs.Git.{source_tree_identity}.
 import tvm_aot_platform_matrix.Core.{child, fragments_present, is_sha256, json_bool, json_equals, json_string, json_value, load_json, occurrences, release_audit_before_platform_text_valid, string_array, write_json}.
 import tvm_aot_platform_matrix.ReleaseCloseout.{list_equal, make_list_variable}.
+import tvm_aot_platform_matrix.RepositoryMake.{source as repository_make_source}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -229,7 +230,7 @@ pub validate_workflow(workflow: String): Bool ->
 
 pub validate_repository(root: String): Bool ->
     when {
-        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Some(makefile) <- repository_make_source(root);
         Ok(workflow) <- read_text(child(root, ".github/workflows/release.yml"))
     } else {
         _ -> false
@@ -519,7 +520,7 @@ mutation_rejected(report: Json, field: String, value: Json): Bool ->
 pub self_test(): Bool ->
     let root = Environment.current_directory();
     when {
-        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Some(makefile) <- repository_make_source(root);
         Ok(workflow) <- read_text(child(root, ".github/workflows/release.yml"));
         Ok(inventory_source) <- read_text(child(root, "docs/runtime/TVM_MULTICORE_INVARIANT_INVENTORY.json"));
         Ok(inventory) <- Json.parse(inventory_source);

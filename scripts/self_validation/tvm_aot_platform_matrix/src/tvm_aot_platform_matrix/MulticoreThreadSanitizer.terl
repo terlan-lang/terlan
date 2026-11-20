@@ -14,6 +14,7 @@ import std.io.File.{delete, read_text}.
 import std.system.{Environment, Platform, Process}.
 import std.vcs.Git.{source_tree_identity}.
 import tvm_aot_platform_matrix.Core.{child, current_provenance_input, is_sha256, json_bool, json_int, json_string, json_value, load_json, official_repository, provenance, write_json}.
+import tvm_aot_platform_matrix.RepositoryMake.{source as repository_make_source}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -259,7 +260,7 @@ setup_rust_contract_valid(action: String): Bool ->
 
 pub contract_files_valid(root: String): Bool ->
     when {
-        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Some(makefile) <- repository_make_source(root);
         Ok(manifest) <- read_text(child(root, "crates/terlan/Cargo.toml"));
         Ok(harness) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness.rs"));
         Ok(harness_tests) <- read_text(child(root, "crates/terlan/src/quality/multicore_tsan_harness_test.rs"));

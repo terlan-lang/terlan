@@ -16,6 +16,7 @@ import std.system.{Environment, Platform, Process}.
 import tvm_aot_platform_matrix.ReleaseInstallerSmoke.{smoke as smoke_release_installer}.
 import tvm_aot_platform_matrix.ReleasePackage.{package as package_release}.
 import tvm_aot_platform_matrix.ReleaseSmoke.{smoke as smoke_release}.
+import tvm_aot_platform_matrix.RepositoryMake.{source as repository_make_source}.
 
 import type std.core.Option.
 import type std.data.Json.
@@ -920,7 +921,7 @@ pub workflow_contract(): Bool ->
                     "scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl",
                 ),
             );
-        Ok(makefile) <- read_text(child(root, "Makefile"));
+        Some(makefile) <- repository_make_source(root);
         Ok(release_makefile) <- read_text(child(root, "mk/release-publish.mk"))
     } else {
         _ -> failure("workflow", "cannot read workflow contract inputs")

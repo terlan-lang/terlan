@@ -1,0 +1,48 @@
+/**
+ * Loads the repository's composed Make source graph for contract validation.
+ */
+module tvm_aot_platform_matrix.RepositoryMake.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Ok}.
+import std.core.String.
+import std.io.File.{read_text, read_text_tree_matching}.
+
+import type std.core.Option.
+import type std.io.File.TextFile.
+
+child(root: String, relative: String): String ->
+    if {
+        root == "." -> relative;
+        String.ends_with(root, "/") -> String.append(root, relative);
+        true -> String.concat([root, "/", relative])
+    }.
+
+append_sources(source: String, files: List[TextFile]): String ->
+    case files {
+        [] -> source;
+        [file | rest] ->
+            append_sources(String.append(source, String.append("\n", file.contents)), rest)
+    }.
+
+/**
+ * Returns the root Makefile followed by every repository-owned `mk/*.mk`
+ * fragment. Contract validators inspect this source graph rather than relying
+ * on the physical location of one target or variable.
+ */
+pub source(root: String): Option[String] ->
+    case {
+        read_text(child(root, "Makefile")),
+        read_text_tree_matching(
+            child(root, "mk"),
+            List.new[String](),
+            [".mk"],
+            List.new[String](),
+            0,
+            512,
+        ),
+    } {
+        {Ok(root_makefile), Ok(fragments)} -> Some(append_sources(root_makefile, fragments));
+        _ -> None
+    }.
