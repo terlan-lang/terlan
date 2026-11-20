@@ -247,6 +247,9 @@ flock --exclusive 9
 report_timeout=${TERLAN_RUST_REPORT_TIMEOUT_SECONDS:-120}
 case "$report_timeout" in ''|*[!0-9]*) echo 'invalid Rust report timeout' >&2; exit 2 ;; esac
 report_jobs=$(mktemp -d "$output_parent/.rust-report-jobs.XXXXXX")
+report_completions="$report_jobs/completions"
+mkfifo "$report_completions"
+exec 8<>"$report_completions"
 declare -a report_pids=() report_logs=() report_durations=()
 declare -A report_job_statuses=()
 report_max_jobs=${TERLAN_RUST_REPORT_MAX_JOBS:-2}
@@ -263,6 +266,7 @@ cleanup_report_jobs() {
   for pid in "${report_pids[@]}"; do
     wait "$pid" 2>/dev/null || true
   done
+  exec 8>&-
   [[ ! -d "$report_jobs" ]] || find "$report_jobs" -depth -delete
   exit "$status"
 }
@@ -270,8 +274,9 @@ trap cleanup_report_jobs EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM HUP
 collect_report_job() {
-  local completed_pid status=0
-  wait -n -p completed_pid || status=$?
+  local completed_pid status
+  IFS=' ' read -r completed_pid status <&8
+  wait "$completed_pid" 2>/dev/null || true
   report_job_statuses[$completed_pid]=$status
   report_active_jobs=$((report_active_jobs - 1))
 }
@@ -301,6 +306,7 @@ for index in "${!checks_to_run[@]}"; do
     child=
     trap - EXIT INT TERM HUP
     printf '%s\n' "$((SECONDS - started))" > "$duration"
+    printf '%s %s\n' "$BASHPID" "$status" >&8
     exit "$status"
   ) &
   report_pids+=("$!")
@@ -345,5 +351,6 @@ for index in "${!report_pids[@]}"; do
   cat "${report_logs[$index]}"
 done
 trap - EXIT INT TERM HUP
+exec 8>&-
 find "$report_jobs" -depth -delete
 exit "$report_status"
