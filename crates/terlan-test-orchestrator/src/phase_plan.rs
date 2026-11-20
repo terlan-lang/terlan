@@ -68,8 +68,11 @@ fn platform_evidence_phases() -> Vec<TestPhase> {
         capability_protocol_reactor_phase(),
         epmd_bootstrap_phase(),
     ];
-    #[cfg(target_os = "linux")]
-    {
+    // Keep the branch in every target's lint/type-check graph. These phase
+    // constructors are target-neutral; only their selection is Linux-only.
+    // Attribute-removing this branch makes `phases` appear immutable on
+    // macOS and lets host-specific warning drift reach the release matrix.
+    if cfg!(target_os = "linux") {
         phases.push(capability_storage_phase());
         phases.push(public_storage_phase());
     }
@@ -552,7 +555,6 @@ fn capability_event_pump_phase() -> TestPhase {
 }
 
 /// Runs durable storage through the real sandboxed worker, never a model executor.
-#[cfg(target_os = "linux")]
 fn capability_storage_phase() -> TestPhase {
     ignored_native_phase(
         "capability worker durable storage",
@@ -562,7 +564,6 @@ fn capability_storage_phase() -> TestPhase {
 }
 
 /// Proves the public source path across complete VM shutdown, using the shared build.
-#[cfg(target_os = "linux")]
 fn public_storage_phase() -> TestPhase {
     ignored_native_phase(
         "public durable storage AOT restart",
