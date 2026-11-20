@@ -67,9 +67,22 @@ fn specialize_application_generics(
     retain_generic_templates: bool,
 ) -> Result<(), String> {
     materialize_nominal_parameters(cores);
+    let templates = application_callable_templates(cores);
+    if templates.functions.is_empty() {
+        return Ok(());
+    }
+    for core in cores.iter_mut() {
+        specialize_core(core, &templates, budget, retain_generic_templates)?;
+    }
+    Ok(())
+}
+
+/// Builds the checked application-wide callable catalog used by contextual
+/// Core expression inference before and during generic specialization.
+pub(super) fn application_callable_templates(cores: &[CoreModule]) -> CallableTemplates {
     let mut templates = CallableTemplates::new(cores);
     constructor_signatures::collect(cores, &mut templates);
-    for core in cores.iter() {
+    for core in cores {
         let local = core
             .functions
             .iter()
@@ -81,18 +94,12 @@ fn specialize_application_generics(
             template.name = format!("{}.{}", core.module, function.name);
             templates
                 .functions
-                .entry((format!("{}.{}", core.module, function.name), function.arity))
+                .entry((template.name.clone(), function.arity))
                 .or_default()
                 .push(template);
         }
     }
-    if templates.functions.is_empty() {
-        return Ok(());
-    }
-    for core in cores.iter_mut() {
-        specialize_core(core, &templates, budget, retain_generic_templates)?;
-    }
-    Ok(())
+    templates
 }
 
 /// Persists receiver-owned nominal parameters before transparent aliases erase

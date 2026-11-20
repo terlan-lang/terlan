@@ -47,6 +47,21 @@ pub check(): Bool ->
 }
 
 #[test]
+fn range_generator_binding_types_reach_transformed_yields() {
+    super::source_constructor_test::check_sources(&[r#"
+module std.range.Range.
+pub struct Range {
+    start: Int,
+    stop: Int,
+}.
+pub inclusive(start: Int, stop: Int): Range ->
+    Range {start: start, stop: stop}.
+pub check(): Bool ->
+    [value * 2 | value <- 1 .. 3] == [2, 4, 6].
+"#]);
+}
+
+#[test]
 fn effect_guards_retain_execution_boundaries_and_preserve_pure_filters() {
     let pure_filter = CoreExpr::BinaryOp {
         operator: ">".to_string(),

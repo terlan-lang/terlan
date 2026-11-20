@@ -396,7 +396,7 @@ node-security-audit-check:
 .PHONY: core-type-contracts-check
 .PHONY: type-alias-shorthand-check
 .PHONY: compiler-purity-metadata-check
-.PHONY: comprehension-guards-check
+.PHONY: comprehension-guards-check comprehension-guards-source-check comprehension-guards-rust-check
 .PHONY: lalrpop-parser-parity-check lean-proof-parser-shape-check lean-proof-native-boundary-check lean-proof-track-check lean-proof-smoke-check lean-proof-feature-binding-check lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check lean-proof-counterexample-check lean-proof-track-gap-hygiene-check lean-proof-feature-cull-check proof-repro-check proof_repro_check lean-proof-track-pr-gate lean-proof-track-regression-check lean-proof-track-runtime-check lean-proof-track-release-closeout-check lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check release-artifacts-closeout-check proof-coverage-release-artifacts-smoke proof-readiness-release-mode-check release-evidence-compose release-evidence-refresh release-preflight release-check publish-evidence-refresh publish-evidence-check publish-evidence-plan-check publish-evidence-refresh-plan-check aot-developer-hot-reload-check
 .PHONY: function-head-pattern-parameters-check function-head-migration-diagnostic-policy-check function-head-migration-lint-check function-head-pattern-migration-assist-check function-head-pattern-migration-benchmark-check function-head-pattern-migration-docs-check function-head-pattern-0-0-7-handoff-check function-head-pattern-parameters-hardening-check
 .PHONY: syntax-contract-check syntax-contract-artifacts syntax-contract-artifacts-check shape-implications-check
@@ -1574,7 +1574,7 @@ installer-contract-check: | terlan-compiler-bootstrap
 
 
 # Validates 100% language feature test coverage.
-language-feature-coverage-100-check: comprehension-guards-check shape-implications-check
+language-feature-coverage-100-check: comprehension-guards-source-check shape-implications-check
 	$(RUST_TEST) -p terlan --lib --features validation-union language_feature_full_coverage_test
 	$(TERLAN_QUALITY) language-feature-coverage-100
 	$(TERLC) test tests/language/LanguageFeatureCoverageTest.terl

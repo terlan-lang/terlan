@@ -775,15 +775,19 @@ function-language-surface-check: typed-template-interpolation-tooling-check repe
 repeated-let-syntax-check: tree-sitter-cli-check
 	$(TERLC) test tests/language/RepeatedLetSyntaxTest.terl
 
-comprehension-guards-check: compiler-purity-metadata-check tree-sitter-cli-check
+comprehension-guards-source-check: compiler-purity-metadata-check tree-sitter-cli-check
 	$(TERLC) test \
 		std/core/GuardResultTest.terl \
 		tests/language/ComprehensionGuardsTest.terl
 	$(TERLC_EXACT_TEST) formal_pipeline::formal_pipeline_test::persistence_and_effect_interfaces::embedded_std_interfaces_include_core_guard_result_contract -- --exact
+
+comprehension-guards-rust-check:
 	$(RUST_TEST) -p terlan --lib comprehension
 	$(RUST_TEST) -p terlan --lib --features validation-union comprehension
 	# The comprehension Rust tier compiles the failure fixture and verifies the
 	# owning actor's terminal reason; a compiler rejection is not runtime evidence.
+
+comprehension-guards-check: comprehension-guards-source-check comprehension-guards-rust-check
 
 flexible-shape-guards-check: compiler-purity-metadata-check pattern-matching-support-check
 	$(TERLC_EXACT_TEST) compiler::syntax::parser::parser_expr_test::literals_and_comprehensions::formal_keyword_exprs_preserve_clause_guards -- --exact

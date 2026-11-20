@@ -226,8 +226,10 @@ impl NativeModule {
         timings.mark("early-alias-and-collection-specialization");
         let mut specialization_budget =
             super::specialization_budget::SpecializationBudget::default();
+        let comprehension_templates =
+            super::generic_specialization::application_callable_templates(&normalized_cores);
         for core in &mut normalized_cores {
-            super::list_comprehension::lower_list_comprehensions(core)?;
+            super::list_comprehension::lower_list_comprehensions(core, &comprehension_templates)?;
             super::template_values::lower_template_values(core)?;
         }
         timings.mark("list-and-template-lowering");

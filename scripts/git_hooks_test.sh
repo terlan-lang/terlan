@@ -282,6 +282,27 @@ printf 'std/core/Int.terl\nREADME.md\n' > "$temporary/early-bindings/changes.txt
     > "$temporary/early-readability.log" 2>&1 || status=$?
   test "$status" = 35
 )
+# A broad formatter lane may be selected for a non-Terlan hook change. The
+# driver must not invoke lint or fmt with an empty path list.
+cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
+#!/usr/bin/env bash
+set -eu
+if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
+  printf 'preflight:inventory\npreflight:terlan-format\nshell\n'
+  exit 0
+fi
+if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
+case "$1" in lint|fmt) exit 41 ;; esac
+exit 0
+TERLC
+chmod +x "$temporary/early-bindings/cache/debug/terlc"
+printf 'scripts/git_hooks/check.sh\n' > "$temporary/early-bindings/changes.txt"
+(
+  cd "$temporary/early-bindings"
+  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
+    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
+    > "$temporary/empty-terlan-format.log" 2>&1
+)
 printf '#!/usr/bin/env bash\nexit 0\n' > "$temporary/early-bindings/bin/make"
 cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash

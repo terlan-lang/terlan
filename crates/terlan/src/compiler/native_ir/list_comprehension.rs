@@ -8,6 +8,7 @@ use crate::terlan_typeck::{
     CorePrimitiveIntrinsic, CoreProofCoverage, CoreTupleTypeElem, CoreType,
 };
 
+use super::generic_specialization::{bind_pattern_types, infer_type, CallableTemplates};
 use super::NativeIrResult;
 
 mod completed;
@@ -22,11 +23,15 @@ const EFFECT_CONTAINER: &str = "std.core.Effect.Effect";
 const RANGE_CONTAINS: &str = "std.range.Range.contains";
 const RANGE_INCLUSIVE: &str = "std.range.Range.inclusive";
 const RANGE_ITERATOR: &str = "std.range.Range.iterator";
+const RANGE_TYPE: &str = "std.range.Range.Range";
 const MAX_COMPREHENSIONS_PER_MODULE: usize = 128;
 
 /// Rewrites every typed comprehension, including nested expressions, into the
 /// portable iterator collector before application admission.
-pub(super) fn lower_list_comprehensions(core: &mut CoreModule) -> NativeIrResult<()> {
+pub(super) fn lower_list_comprehensions(
+    core: &mut CoreModule,
+    templates: &CallableTemplates,
+) -> NativeIrResult<()> {
     let mut count = 0usize;
     let original_len = core.functions.len();
     let mut helpers = Vec::new();
@@ -34,7 +39,14 @@ pub(super) fn lower_list_comprehensions(core: &mut CoreModule) -> NativeIrResult
         let owner = core.functions[index].clone();
         for clause in &mut core.functions[index].clauses {
             if let Some(body) = clause.body.core_expr.as_mut() {
-                lower_expr(body, &core.module, &owner, &mut helpers, &mut count)?;
+                lower_expr(
+                    body,
+                    &core.module,
+                    &owner,
+                    templates,
+                    &mut helpers,
+                    &mut count,
+                )?;
                 fold_completed_effect_runs(body, &HashMap::new());
             }
         }
@@ -47,10 +59,11 @@ fn lower_expr(
     expr: &mut CoreExpr,
     module: &str,
     owner: &CoreFunction,
+    templates: &CallableTemplates,
     helpers: &mut Vec<CoreFunction>,
     count: &mut usize,
 ) -> NativeIrResult<()> {
-    visit_children(expr, module, owner, helpers, count)?;
+    visit_children(expr, module, owner, templates, helpers, count)?;
     let CoreExpr::ListComprehension {
         expr: yielded,
         generators,
@@ -83,7 +96,38 @@ fn lower_expr(
     for guard in guards.iter_mut() {
         lower_range_membership(guard);
     }
-    let output_element = cast_type(yielded).ok_or_else(|| {
+    let mut variables = owner
+        .params
+        .iter()
+        .filter_map(|parameter| {
+            parameter
+                .core_ty
+                .clone()
+                .map(|ty| (parameter.name.clone(), ty))
+        })
+        .collect::<HashMap<_, _>>();
+    let mut generator_types = Vec::with_capacity(generators.len());
+    for generator in generators.iter() {
+        let source_type = cast_type(&generator.source)
+            .or_else(|| infer_type(&generator.source, &variables, templates, module))
+            .or_else(|| {
+                range_bounds(&generator.source)
+                    .is_ok()
+                    .then(|| CoreType::Named(RANGE_TYPE.to_string()))
+            })
+            .ok_or_else(|| {
+                format!(
+                    "error[native_ir.comprehension_source]: generator source `{}` has no concrete AOT type",
+                    generator.source.contract_text()
+                )
+            })?;
+        let element = iterable_element(&source_type)?;
+        bind_pattern_types(&generator.pattern, &element, &mut variables);
+        generator_types.push((source_type, element));
+    }
+    let output_element = cast_type(yielded)
+        .or_else(|| infer_type(yielded, &variables, templates, module))
+        .ok_or_else(|| {
         format!(
             "error[native_ir.comprehension_result]: yielded expression `{}` has no concrete AOT type",
             yielded.contract_text()
@@ -130,13 +174,7 @@ fn lower_expr(
         None => accepted,
     };
     for (index, generator) in generators.iter().enumerate().rev() {
-        let source_type = cast_type(&generator.source).ok_or_else(|| {
-            format!(
-                "error[native_ir.comprehension_source]: generator source `{}` has no concrete AOT type",
-                generator.source.contract_text()
-            )
-        })?;
-        let element = iterable_element(&source_type)?;
+        let (source_type, element) = generator_types[index].clone();
         let item = format!("$comprehension_item_{comprehension_id}_{index}");
         let helper_name = format!(
             "$aot_comprehension_{}_{}_{}_{}",
@@ -228,10 +266,12 @@ fn visit_children(
     expr: &mut CoreExpr,
     module: &str,
     owner: &CoreFunction,
+    templates: &CallableTemplates,
     helpers: &mut Vec<CoreFunction>,
     count: &mut usize,
 ) -> NativeIrResult<()> {
-    let mut visit = |child: &mut CoreExpr| lower_expr(child, module, owner, helpers, count);
+    let mut visit =
+        |child: &mut CoreExpr| lower_expr(child, module, owner, templates, helpers, count);
     match expr {
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
             for item in items {

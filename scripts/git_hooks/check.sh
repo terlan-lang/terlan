@@ -441,10 +441,12 @@ if preflight_has terlan-format; then
         ;;
     esac
   done < "$changes"
-  echo 'pre-commit: early Terlan readability canonicalization'
-  "$terlc" lint --only TL0009 --only TL0010 "${terlan_paths[@]}"
-  echo 'pre-commit: early Terlan formatting'
-  "$terlc" fmt --check "${terlan_paths[@]}"
+  if (( ${#terlan_paths[@]} > 0 )); then
+    echo 'pre-commit: early Terlan readability canonicalization'
+    "$terlc" lint --only TL0009 --only TL0010 "${terlan_paths[@]}"
+    echo 'pre-commit: early Terlan formatting'
+    "$terlc" fmt --check "${terlan_paths[@]}"
+  fi
 fi
 
 if preflight_has rust-lint-allowances; then
@@ -610,6 +612,11 @@ run_core_contracts_lane() {
   echo 'pre-commit: early core source contracts'
   "$terlc" --cache-dir "$CARGO_TARGET_DIR/terlan-cache/core-contracts" \
     "${command[@]}" --coverage "${coverage[@]}" --coverage-threshold 100
+  # Keep this application separate from core declaration coverage: its
+  # effectful cases legitimately specialize helpers owned by the test module.
+  # Native lowering changes must still execute it before broad Cargo suites.
+  "$terlc" --cache-dir "$CARGO_TARGET_DIR/terlan-cache/core-contracts" \
+    test tests/language/ComprehensionGuardsTest.terl
   elapsed=$((SECONDS - started))
   echo "pre-commit: core source contracts finished in ${elapsed}s"
   if (( elapsed > 60 )); then
@@ -800,6 +807,7 @@ if lane_has core-contracts; then
     printf 'std/core/%s.terl\nstd/core/%sTest.terl\n' "$module" "$module" \
       >> "$prechecked_terlan"
   done
+  printf '%s\n' tests/language/ComprehensionGuardsTest.terl >> "$prechecked_terlan"
   remaining_plan="${plan%.plan}.without-core-contracts.plan"
   rg -vx 'core-contracts' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
