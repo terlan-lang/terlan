@@ -108,7 +108,7 @@ proof_evidence_input(paths: List[String]): Bool ->
         or affected(paths, "std/NATIVE_BOUNDARY_SECURITY.tsv", "")
         or affected(paths, "std/summaries/", ".native_boundary.json")
         or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
-        or affected(paths, "scripts/self_validation/LeanProof", "").
+        or affected(paths, "scripts/self_validation/proof_release_evidence/", "").
 
 selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
     if {

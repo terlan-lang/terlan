@@ -662,7 +662,6 @@ run_affected_rust_lane() {
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib "$filter"
       ;;
     workspace)
-      ensure_test_program_snapshots
       run_workspace_suite
       ;;
     dependencies) cargo check --locked --workspace --all-targets ;;
@@ -677,6 +676,7 @@ run_workspace_suite() {
   local report="$PWD/target/quality/rust-test-suite-report.json"
   local metadata="$PWD/target/quality/rust-cargo-metadata.json"
   local receipts="${TERLAN_RUST_PHASE_RECEIPT_DIR:-${CARGO_TARGET_DIR:-$PWD/target}/validation-results/rust-phases}"
+  ensure_test_program_snapshots
   TERLC="$TERLAN_RUST_SUITE_TERLC" \
   TERLAN_VALIDATION_BOOTSTRAPPED=1 \
   TERLAN_RUST_ORCHESTRATOR="$orchestrator_path" \

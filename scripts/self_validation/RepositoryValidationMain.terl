@@ -716,7 +716,7 @@ planned_cargo_count(plan: String): Int ->
 
 @pure
 compiler_build_declaration(): String ->
-    "build_command='cargo --locked build -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker'".
+    "build_command='cargo --locked build -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker --features terlan/validation-union'".
 
 @pure
 quality_build_declaration(): String ->
@@ -885,6 +885,7 @@ build_release_contract(repository: String): Bool ->
         true <- all_files_exist(repository, required);
         Some(toolchain) <- read(repository, "rust-toolchain.toml");
         Some(makefile) <- read(repository, "Makefile");
+        Some(cli_makefile) <- read(repository, "crates/terlan/cli.mk");
         Some(audit_policy) <- read(repository, ".cargo/audit.toml");
         Some(editor) <- read(repository, "editors/editor.mk");
         Some(release) <- read(repository, ".github/workflows/release.yml");
@@ -939,6 +940,7 @@ build_release_contract(repository: String): Bool ->
         "CARGO := cargo --locked",
         "$(CARGO) clippy --workspace --bins -- -D warnings",
         "$(CARGO) clippy --workspace --bins --all-features -- -D warnings",
+        "TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker --features terlan/validation-union",
         "release-candidate-check: editor-release-contract-check terlan-artifact-measurement-bootstrap",
         "$(MAKE) --no-print-directory build-artifact-budget-record",
         "$(MAKE) --no-print-directory terlan-quality-tools-bootstrap",
@@ -966,6 +968,19 @@ build_release_contract(repository: String): Bool ->
         "ReleaseBuildGraphTest.terl \\",
         "WorkflowContractTest.terl \\",
         "--coverage --coverage-threshold 100",
+        "lean-proof-track-check:",
+        "vm-runtime-semantics-check:",
+        "core-typing-spec-check:",
+        "lalrpop-parser-parity-check:",
+        "lean-proof-native-boundary-check:",
+        "std-package-coverage-100-check:",
+        "wasm-coreir-lowering-check:",
+    ];
+let cli_makefile_fragments =
+    [
+        "TERLC := $(TERLAN_PREBUILT_BINARY) terlc validation-union --",
+        "TERLAN_QUALITY := $(TERLAN_PREBUILT_BINARY) terlan-quality validation-union --",
+        "TERLAN_BENCHMARK := $(TERLAN_PREBUILT_BINARY) terlan-benchmark validation-union --",
     ];
 let release_fragments =
     [
@@ -992,12 +1007,17 @@ let release_fragments =
 let cleanup_fragments = ["-name 'terlan-file-*'", "-name 'terlan-directory-*'", "-name 'terlan-doc-format-*'"];
 let make_source = String.concat([makefile | text_file_contents(make_sources)]);
 let missing_make = first_missing(make_source, make_fragments);
+let missing_cli_makefile = first_missing(cli_makefile, cli_makefile_fragments);
 let missing_release = first_missing(release, release_fragments);
 let missing_cleanup = first_missing(cleanup, cleanup_fragments);
 let unowned_script_cargo = first_unowned_script_cargo(shell_scripts);
 if {
     not String.contains(toolchain, "channel = \"1.96.0\"") -> failure("build_release.toolchain", "Rust toolchain must remain pinned");
     missing_make != "" -> failure("build_release.make", String.append("missing invariant: ", missing_make));
+    missing_cli_makefile != "" -> failure(
+        "build_release.cli_makefile",
+        String.append("missing invariant: ", missing_cli_makefile),
+    );
     not contains_all(audit_policy, ["RUSTSEC-2026-0543"]) -> failure("build_release.audit_policy", "inactive advisory policy drifted");
     missing_cleanup != "" -> failure("build_release.cleanup", String.append("missing invariant: ", missing_cleanup));
     String.contains(makefile, "\n.NOTPARALLEL:") -> failure(

@@ -19,7 +19,10 @@ TERLAN_SERVE_RUNTIME_PROFILE := serve-runtime
 TERLAN_SERVE_RUNTIME_BIN := $(CURDIR)/target/$(TERLAN_SERVE_RUNTIME_PROFILE)/terlan-serve-runtime
 TERLAN_SERVE_RUNTIME_REL_BIN := $(patsubst $(CURDIR)/%,%,$(TERLAN_SERVE_RUNTIME_BIN))
 TERLAN_SERVE_RUNTIME_BUILD := $(CARGO) build --profile $(TERLAN_SERVE_RUNTIME_PROFILE) -p terlan --bin terlan-serve-runtime --no-default-features --features serve-runtime-bin
-TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
+# Validation always needs the quality-tool feature superset later in the same
+# graph. Build the compiler with that superset once so Cargo does not compile
+# the large `terlan` crate again under a second feature identity.
+TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker --features terlan/validation-union
 TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS ?= 3600
 TERLAN_CHECK_GRAPH_TIMEOUT_SECONDS ?= 3600
 TERLAN_BOOTSTRAP_LOCK_WAIT_SECONDS ?= 120
@@ -556,6 +559,10 @@ else
 	fi
 endif
 endif
+	@stamp=target/debug/.terlan-prebuilt-terlc.profile; \
+	temporary="$$stamp.tmp"; \
+	printf '%s\n' validation-union > "$$temporary"; \
+	mv "$$temporary" "$$stamp"
 
 # Seal the quality and structural-analysis CLIs in one Cargo invocation. The
 # release aggregate orders this after the canonical suite, while a focused
@@ -639,6 +646,10 @@ else
 	fi
 endif
 endif
+	@stamp=target/debug/.terlan-prebuilt-terlan-quality.profile; \
+	temporary="$$stamp.tmp"; \
+	printf '%s\n' validation-union > "$$temporary"; \
+	mv "$$temporary" "$$stamp"
 
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 ifneq ($(TERLAN_RELEASE_BINARIES_PREBUILT),1)

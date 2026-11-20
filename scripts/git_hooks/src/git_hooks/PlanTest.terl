@@ -54,12 +54,16 @@ pub proof_metadata_changes_replay_proofs(): Bool ->
 pub proof_evidence_changes_require_a_refreshed_baseline(): Bool ->
     Plan.proof_baseline_missing(["std/summaries/std.vm.ModelSync.native_boundary.json"])
         and Plan.proof_baseline_missing(["proofs/lean/artifacts/native-boundary.json"])
+        and Plan.proof_baseline_missing(
+    ["scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl"],
+)
         and not Plan.proof_baseline_missing(
     [
         "std/summaries/std.vm.ModelSync.native_boundary.json",
         "proofs/lean/release_evidence/baseline.json",
     ],
 )
+        and not Plan.proof_baseline_missing(["scripts/self_validation/LeanProofFeatureBindingTest.terl"])
         and not Plan.proof_baseline_missing(["std/core/Int.terl"]).
 
 @test

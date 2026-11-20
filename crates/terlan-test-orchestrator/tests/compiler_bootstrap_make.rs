@@ -68,7 +68,7 @@ case "$*" in
     printf 'support\n' >> events
     if test "$BOOTSTRAP_FIXTURE_MODE" = support-failure; then exit 7; fi
     ;;
-  'build -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker')
+  'build -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker --features terlan/validation-union')
     mkdir compiler-started
     printf 'compiler\n' >> events
     if read value; then exit 91; fi

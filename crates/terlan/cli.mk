@@ -4,8 +4,10 @@
 # repository root, but CLI-specific recipes live with the CLI crate.
 
 TERLAN_PREBUILT_BINARY := bash scripts/run_prebuilt_terlan_binary.sh
-TERLC := $(TERLAN_PREBUILT_BINARY) terlc none --
-TERLAN_QUALITY := $(TERLAN_PREBUILT_BINARY) terlan-quality quality-tools --
+# Repository validation uses one Cargo feature identity for every Terlan CLI.
+# Release artifacts have their own profile and are built separately.
+TERLC := $(TERLAN_PREBUILT_BINARY) terlc validation-union --
+TERLAN_QUALITY := $(TERLAN_PREBUILT_BINARY) terlan-quality validation-union --
 ifneq ($(strip $(TERLAN_RUST_COVERAGE_CONTEXT)),)
 TERLC := $(CURDIR)/target/debug/terlc
 endif
@@ -14,7 +16,7 @@ ifeq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 # its executable must not enter the standalone wrapper's separate build owner.
 TERLAN_QUALITY := $(CURDIR)/target/debug/terlan-quality
 endif
-TERLAN_BENCHMARK := $(TERLAN_PREBUILT_BINARY) terlan-benchmark benchmark-tools --
+TERLAN_BENCHMARK := $(TERLAN_PREBUILT_BINARY) terlan-benchmark validation-union --
 EXACT_CARGO_TEST ?= bash scripts/run_exact_cargo_test.sh
 TERLC_EXACT_TEST := $(EXACT_CARGO_TEST) -p terlan --lib
 TERLAN_TEST_WORKSPACE_ROOT ?= target/test-workspaces

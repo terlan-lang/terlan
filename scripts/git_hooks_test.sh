@@ -829,7 +829,11 @@ workspace_suite=$(sed -n '/^run_workspace_suite()/,/^}/p' \
 proof_coverage=$(sed -n '/^run_proof_coverage()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
-grep -Fq 'ensure_test_program_snapshots' <<< "$workspace_lane"
+if grep -Fq 'ensure_test_program_snapshots' <<< "$workspace_lane"; then
+  echo 'Workspace lane redundantly provisions snapshots outside its owner' >&2
+  exit 1
+fi
+grep -Fq 'ensure_test_program_snapshots' <<< "$workspace_suite"
 if grep -Fq 'ensure_orchestrator' <<< "$workspace_lane"; then
   echo 'Workspace lane redundantly provisions the snapshot owner' >&2
   exit 1

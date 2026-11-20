@@ -11,8 +11,10 @@ import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
 import std.io.Directory.{create_all}.
-import std.io.File.{exists, read_text_many, write_text}.
+import std.io.File.{exists, read_text, read_text_many, read_text_tree_matching, write_text}.
 import std.system.Environment.
+
+import type std.io.File.TextFile.
 
 struct Inputs {
     roadmap: String,
@@ -75,7 +77,6 @@ input_paths(root: String): List[String] ->
         child(root, "proofs/lean/feature_binding/lean-proof-coverage-baseline.tsv"),
         child(root, "target/quality/proof-artifacts/lean-proof-gate.json"),
         child(root, "target/quality/proof-artifacts/lean-proof-repro-report.json"),
-        child(root, "Makefile"),
     ].
 
 valid_json(source: String): Bool ->
@@ -316,6 +317,36 @@ make_targets_hold(source: String): Bool ->
         ],
     ).
 
+@pure
+append_make_sources(source: String, files: List[TextFile]): String ->
+    case files {
+        [] -> source;
+        [file | rest] ->
+            append_make_sources(String.append(source, String.append("\n", file.contents)), rest)
+    }.
+
+repository_make_source(root: String): Option[String] ->
+    case {
+        read_text(child(root, "Makefile")),
+        read_text_tree_matching(
+            child(root, "mk"),
+            List.new[String](),
+            [".mk"],
+            List.new[String](),
+            0,
+            512,
+        ),
+    } {
+        {Ok(root_makefile), Ok(fragments)} -> Some(append_make_sources(root_makefile, fragments));
+        _ -> None
+    }.
+
+repository_make_targets_hold(root: String): Bool ->
+    case repository_make_source(root) {
+        Some(source) -> make_targets_hold(source);
+        None -> false
+    }.
+
 inputs_hold(inputs: Inputs): Bool ->
     String.contains(inputs.roadmap, "archive/ROADMAP_0_0_7_ACTIVE_PRE_COMPACTION_2026_07_31.md")
         and String.contains(inputs.archive, "### Lean Proof Track Completion")
@@ -345,8 +376,8 @@ fail(message: String): Bool ->
 
 pub repository_feature_binding_holds(): Bool ->
     let root = environment_or("TERLAN_LEAN_FEATURE_BINDING_ROOT", Environment.current_directory());
-    case read_text_many(input_paths(root)) {
-        Ok([roadmap, archive, lanes, gaps, index, baseline, gate, replay, makefile]) ->
+    case {read_text_many(input_paths(root)), repository_make_source(root)} {
+        {Ok([roadmap, archive, lanes, gaps, index, baseline, gate, replay]), Some(makefile)} ->
             let inputs =
                 Inputs(
                     roadmap = roadmap.contents,
@@ -357,14 +388,14 @@ pub repository_feature_binding_holds(): Bool ->
                     baseline = baseline.contents,
                     gate = gate.contents,
                     replay = replay.contents,
-                    makefile = makefile.contents,
+                    makefile = makefile,
                 );
             if {
                 inputs_hold(inputs) -> write_matrix(root, inputs.gaps);
                 true -> fail("feature binding contracts drifted")
             };
-        Ok(_files) -> fail("feature binding input batch has an unexpected shape");
-        Err(_reason) -> fail("feature binding inputs could not be read")
+        {Ok(_files), _makefile} -> fail("feature binding input batch has an unexpected shape");
+        _ -> fail("feature binding inputs could not be read")
     }.
 
 matrix_output(root: String): String ->
@@ -416,6 +447,21 @@ pub regression_metrics_are_stable(): Bool ->
     let proof_current = 14;
     let blocked = 7;
     proof_current * 5 >= blocked * 2 and blocked <= 15.
+
+@test
+pub repository_build_graph_bindings_are_discovered(): Bool ->
+    let root = environment_or("TERLAN_LEAN_FEATURE_BINDING_ROOT", Environment.current_directory());
+    repository_make_targets_hold(root).
+
+@test
+pub build_graph_binding_rejects_a_missing_owner(): Bool ->
+    not make_targets_hold(
+    "lean-proof-track-check:\nvm-runtime-semantics-check:\ncore-typing-spec-check:\nlalrpop-parser-parity-check:\nlean-proof-native-boundary-check:\nstd-package-coverage-100-check:\n",
+).
+
+@test
+pub failure_reporting_returns_false(): Bool ->
+    not fail("expected test failure").
 
 @test
 pub repository_feature_binding_is_closed(): Bool ->
