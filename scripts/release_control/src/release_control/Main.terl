@@ -62,7 +62,7 @@ guard_main(revision: String): Result[Unit, String] ->
         Ok(branch) <- Support.run("git", ["branch", "--show-current"], 30_000);
         Ok(head) <- Support.run("git", ["rev-parse", "HEAD"], 30_000);
         Ok(changes) <- Support.run("git", ["status", "--porcelain", "--untracked-files=normal"], 30_000);
-        Ok(remote) <- Support.run("git", ["ls-remote", "origin", "refs/heads/main"], 60_000)
+        Ok(remote) <- Support.run_retryable("git", ["ls-remote", "origin", "refs/heads/main"], 60_000)
     } else {
         Err(reason) -> Err(reason)
     };

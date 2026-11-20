@@ -170,7 +170,10 @@ pub run(vm: String, image: String): Bool ->
             and scenario(root, "remote-changed", false, "", vm, image)
             and scenario(root, "wrong-revision", false, "", vm, image)
             and scenario(root, "expired", false, "", vm, image)
-            and scenario(root, "api-failed", false, "", vm, image)
+            and scenario(root, "network-transient", true, "sleep\npublish-prepare\npublish-upload\n", vm, image)
+            and scenario(root, "network-failed", false, "sleep\nsleep\n", vm, image)
+            and scenario(root, "api-transient", true, "sleep\npublish-prepare\npublish-upload\n", vm, image)
+            and scenario(root, "api-failed", false, "sleep\nsleep\n", vm, image)
             and scenario(
     root,
     "missing",

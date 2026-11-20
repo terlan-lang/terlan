@@ -45,7 +45,7 @@ annotate(revision: String, version: String): Result[String, String] ->
         Ok(commit) <- Support.run("git", ["rev-parse", String.append(reference, "^{commit}")], 30_000);
         Ok(object) <- Support.run("git", ["rev-parse", reference], 30_000);
         Ok(remote) <-
-            Support.run(
+            Support.run_retryable(
                 "git",
                 ["ls-remote", "origin", reference, String.append(reference, "^{}")],
                 60_000,
@@ -120,7 +120,7 @@ pub run(revision: String, version: String, seconds: Int): Result[Unit, String] -
     when {
         Ok(_local) <- local_guard(revision, version);
         Ok(_authenticated) <- Support.run("gh", ["auth", "status"], 30_000);
-        Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60_000);
+        Ok(_fetched) <- Support.run_retryable("git", ["fetch", "--quiet", "origin", "main"], 60_000);
         Ok(_ancestor) <- Support.run("git", ["merge-base", "--is-ancestor", "origin/main", revision], 30_000);
         Ok(tag_object) <- annotate(revision, version);
         Ok(_unchanged) <- local_guard(revision, version);

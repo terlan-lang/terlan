@@ -44,7 +44,7 @@ pub observe(revision: String, version: String): Result[Json, String] ->
             } else {
                 _ -> Ok(Json.null())
             };
-            case Support.run(
+            case Support.run_retryable(
                 "git",
                 ["ls-remote", "origin", String.concat(["refs/tags/", tag, "^{}"])],
                 60_000,

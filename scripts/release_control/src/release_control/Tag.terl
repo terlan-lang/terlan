@@ -47,12 +47,12 @@ pub guard(revision: String, version: String): Result[Unit, String] ->
     Ok(object) <- Support.run("git", ["rev-parse", reference], 30_000);
     Ok(commit) <- Support.run("git", ["rev-parse", String.append(reference, "^{commit}")], 30_000);
     Ok(remote) <-
-        Support.run(
+        Support.run_retryable(
             "git",
             ["ls-remote", "origin", reference, String.append(reference, "^{}")],
             60_000,
         );
-    Ok(_fetched) <- Support.run("git", ["fetch", "--quiet", "origin", "main"], 60_000);
+    Ok(_fetched) <- Support.run_retryable("git", ["fetch", "--quiet", "origin", "main"], 60_000);
     Ok(_ancestor) <- Support.run("git", ["merge-base", "--is-ancestor", revision, "origin/main"], 30_000)
 } else {
     Err(reason) -> Err(reason)

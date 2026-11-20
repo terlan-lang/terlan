@@ -32,11 +32,37 @@ pub run(program: String, arguments: List[String], timeout: Int): Result[String, 
             }
     }.
 
+retryable(
+    program: String,
+    arguments: List[String],
+    timeout: Int,
+    attempts: Int,
+): Result[String, String] ->
+    case run(program, arguments, timeout) {
+        Ok(output) -> Ok(output);
+        Err(reason) ->
+            if {
+                attempts <= 1 -> Err(reason);
+                true -> case run("sleep", ["5"], 10_000) {
+                    Err(_sleep_reason) -> Err(reason);
+                    Ok(_slept) -> retryable(program, arguments, timeout, attempts - 1)
+                }
+            }
+    }.
+
+/**
+ * Retries an idempotent external observation three times. Mutating operations
+ * such as workflow dispatch, tag creation, and pushes must continue using
+ * `run` so an uncertain result cannot be repeated.
+ */
+pub run_retryable(program: String, arguments: List[String], timeout: Int): Result[String, String] ->
+    retryable(program, arguments, timeout, 3).
+
 /**
  * Parses a successful GitHub CLI response as JSON.
  */
 pub github(arguments: List[String]): Result[Json, String] ->
-    case run("gh", arguments, 60_000) {
+    case run_retryable("gh", arguments, 60_000) {
         Err(reason) -> Err(reason);
         Ok(source) ->
             case Json.parse(source) {

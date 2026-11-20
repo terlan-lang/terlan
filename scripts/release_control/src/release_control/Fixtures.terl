@@ -124,6 +124,8 @@ git(): Bool ->
             );
         "ls-remote" ->
             if {
+                mode() == "network-failed" -> false;
+                mode() == "network-transient" and not File.exists("network-recovered") -> write("network-recovered", "1") and false;
                 mode() == "tag-missing" -> show("");
                 mode() == "tag-moved" -> show("changed tag");
                 mode() == "submit-moved" -> show("changed tag");
@@ -314,7 +316,12 @@ github(): Bool ->
             exact_compiler_evidence
                 and log(dispatch_operation(workflow))
                 and write(String.append("dispatched-", arg(4)), "1");
-        {"api", path} -> mode() != "api-failed" and api(path);
+        {"api", path} ->
+            if {
+                mode() == "api-failed" -> false;
+                mode() == "api-transient" and not File.exists("api-recovered") -> write("api-recovered", "1") and false;
+                true -> api(path)
+            };
         _ -> false
     }.
 
