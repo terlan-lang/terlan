@@ -239,6 +239,21 @@ fn compiler_execution_outlives_lock_acquisition_deadline() {
 }
 
 #[test]
+fn bootstrapped_validation_does_not_create_a_local_compiler_profile() {
+    let fixture = fixture();
+    fs::remove_dir_all(fixture.0.join("target")).unwrap();
+    executable(&fixture.0.join("prebuilt-terlc"), "#!/bin/sh\nexit 0\n");
+    let mut command = command(&fixture, "success");
+    command.args(["TERLAN_VALIDATION_BOOTSTRAPPED=1", "TERLC=./prebuilt-terlc"]);
+    let output = ProcessControl::new(Duration::from_secs(15))
+        .capture_stdout_result(&mut command, 64 * 1024, |_| Ok(()))
+        .unwrap();
+    assert!(output.outcome.is_ok(), "{output:?}");
+    assert!(!fixture.0.join("events").exists());
+    assert!(!fixture.0.join("target").exists());
+}
+
+#[test]
 fn occupied_bootstrap_lock_expires_without_launching_a_producer() {
     let fixture = fixture();
     fs::create_dir_all(fixture.0.join("target/quality")).unwrap();

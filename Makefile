@@ -558,11 +558,11 @@ else
 		$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$(firstword $(CARGO))" $(wordlist 2,99,$(CARGO)) build $(TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS); \
 	fi
 endif
-endif
 	@stamp=target/debug/.terlan-prebuilt-terlc.profile; \
 	temporary="$$stamp.tmp"; \
 	printf '%s\n' validation-union > "$$temporary"; \
 	mv "$$temporary" "$$stamp"
+endif
 
 # Seal the quality and structural-analysis CLIs in one Cargo invocation. The
 # release aggregate orders this after the canonical suite, while a focused
