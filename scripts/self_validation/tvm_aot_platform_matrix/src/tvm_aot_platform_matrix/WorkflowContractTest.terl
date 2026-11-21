@@ -164,6 +164,24 @@ pub source_contracts_gate_compiler_validation(): Bool ->
 ).
 
 @test
+pub compiler_order_contract_is_line_ending_independent(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/ci.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    (let windows = workflow.replace("\n", "\r\n");
+compiler_before_platform_text_valid(workflow)
+    and compiler_before_platform_text_valid(windows)
+    and not compiler_before_platform_text_valid(
+    windows
+        .replace(
+            "needs: [changes, source-preflight]\r\n    name: Compiler check and test",
+            "needs: changes\r\n    name: Compiler check and test",
+        ),
+)).
+
+@test
 pub script_runner_never_relabels_an_old_compiler_as_current(): Bool ->
     when {
         Ok(action) <- read_text(".github/actions/setup-terlan-script-runner/action.yml");

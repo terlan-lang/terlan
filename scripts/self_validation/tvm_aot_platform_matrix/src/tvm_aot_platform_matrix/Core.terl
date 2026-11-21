@@ -758,9 +758,10 @@ pub source_preflight_text_valid(workflow: String, makefile: String): Bool ->
         and makefile.contains("$(MAKE) --no-print-directory -j5 $(SELECTED_GENERATED_ARTIFACT_FRESHNESS_GATES)").
 
 pub compiler_before_platform_text_valid(workflow: String): Bool ->
-    occurrences(workflow, "needs: [changes, source-preflight, check]") == 3
-        and occurrences(workflow, "needs: [changes, source-preflight]\n    name: Compiler check and test") == 1
-        and not workflow.contains("needs: changes\n    name: Compiler check and test").
+    let normalized = workflow.replace("\r\n", "\n").replace("\r", "\n");
+    occurrences(normalized, "needs: [changes, source-preflight, check]") == 3
+        and occurrences(normalized, "needs: [changes, source-preflight]\n    name: Compiler check and test") == 1
+        and not normalized.contains("needs: changes\n    name: Compiler check and test").
 
 pub release_audit_before_platform_text_valid(workflow: String): Bool ->
     occurrences(workflow, "needs: [revision, dependency-audit]") == 3.
@@ -1141,17 +1142,17 @@ pub build_matrix(reports: List[Report]): Option[Json] ->
             [] -> json_failure("aggregate", "platform attestations are empty");
             [first | _rest] ->
                 let reference = first.value;
-                when {
-                    Some(target_rows) <- append_valid_targets(targets(), reports, reference, Json.array());
-                    Some(version) <- json_string(reference, "version");
-                    Some(revision) <- json_string(reference, "source_revision");
-                    Some(workflow_ref) <- json_string(reference, "workflow_ref");
-                    Some(run_id) <- json_int(reference, "run_id");
-                    Some(commit) <- json_string(reference, "commit_sha")
-                } else {
-                    _ -> None
-                };
-                (let identity =
+                (when {
+    Some(target_rows) <- append_valid_targets(targets(), reports, reference, Json.array());
+    Some(version) <- json_string(reference, "version");
+    Some(revision) <- json_string(reference, "source_revision");
+    Some(workflow_ref) <- json_string(reference, "workflow_ref");
+    Some(run_id) <- json_int(reference, "run_id");
+    Some(commit) <- json_string(reference, "commit_sha")
+} else {
+    _ -> None
+};
+(let identity =
     Json.object()
         .put("schema", Json.string(matrix_schema()))
         .put("decision", Json.string("pass"))
@@ -1170,7 +1171,7 @@ Some(
         .put("target_count", Json.int(6))
         .put("targets", target_rows)
         .put("static_or_skipped_rows", Json.int(0)),
-))
+)))
         }
     }.
 
