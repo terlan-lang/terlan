@@ -297,7 +297,7 @@ fn format_clause_body(expr: &Expr, indent: usize) -> String {
         body,
     } = expr
     {
-        return format_function_body_let(bindings, else_clauses, body.as_deref(), indent);
+        return format_let_expr(bindings, else_clauses, body.as_deref(), indent);
     }
 
     let requires_group = matches!(expr, Expr::Sequence(_));
@@ -600,7 +600,21 @@ pub(super) fn format_expr(expr: &Expr, indent: usize) -> String {
                         .collect::<Vec<_>>()
                         .join(", ");
                     let body_indent = indent + 1;
-                    let body = format_clause_body(&clause.body, body_indent);
+                    let body = if let Expr::Let {
+                        bindings,
+                        else_clauses,
+                        body,
+                    } = &clause.body
+                    {
+                        format_function_body_let(
+                            bindings,
+                            else_clauses,
+                            body.as_deref(),
+                            body_indent,
+                        )
+                    } else {
+                        format_clause_body(&clause.body, body_indent)
+                    };
                     if body.contains('\n') {
                         format!("({patterns}) ->\n{}{body}", "    ".repeat(body_indent))
                     } else {

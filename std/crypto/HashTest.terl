@@ -137,27 +137,27 @@ pub sha256_tree_matches_ordered_relative_path_framing(): Bool ->
         Ok(root) ->
             let first = String.append(root, "/a.txt");
             let second = String.append(root, "/b.txt");
-            when {
-                Ok(_) <- write_text(first, "a");
-                Ok(_) <- write_text(second, "b");
-                Ok(actual) <- sha256_tree(root)
-            } else {
-                _ ->
-                    case remove_all(root) {
-                        Ok(_) -> false;
-                        Err(_cleanup) -> false
-                    }
-            };
-            if {
-                actual == sha256_framed(["a.txt", sha256("a"), "b.txt", sha256("b")]) -> case remove_all(root) {
-                    Ok(_) -> true;
-                    Err(_reason) -> false
-                };
-                true -> case remove_all(root) {
-                    Ok(_) -> false;
-                    Err(_reason) -> false
-                }
-            };
+            (when {
+    Ok(_) <- write_text(first, "a");
+    Ok(_) <- write_text(second, "b");
+    Ok(actual) <- sha256_tree(root)
+} else {
+    _ ->
+        case remove_all(root) {
+            Ok(_) -> false;
+            Err(_cleanup) -> false
+        }
+};
+if {
+    actual == sha256_framed(["a.txt", sha256("a"), "b.txt", sha256("b")]) -> case remove_all(root) {
+        Ok(_) -> true;
+        Err(_reason) -> false
+    };
+    true -> case remove_all(root) {
+        Ok(_) -> false;
+        Err(_reason) -> false
+    }
+});
         Err(_reason) -> false
     }.
 
@@ -167,14 +167,14 @@ pub selected_file_hash_streams_path_nul_content_newline_frames(): Bool ->
         Ok(root) ->
             let first = String.append(root, "/a.txt");
             let second = String.append(root, "/b.txt");
-            when {
-                Ok(_first) <- write_text(first, "a");
-                Ok(_second) <- write_text(second, "b");
-                Ok(actual) <- sha256_selected_files(root, ["a.txt", "b.txt"])
-            } else {
-                _ -> false
-            };
-            (let _removed = remove_all(root); actual == "71d40351bccb0eba3ca4fdbb0dfdf03b024d221805e140c74c5c7395fdf7c33b");
+            (when {
+    Ok(_first) <- write_text(first, "a");
+    Ok(_second) <- write_text(second, "b");
+    Ok(actual) <- sha256_selected_files(root, ["a.txt", "b.txt"])
+} else {
+    _ -> false
+};
+(let _removed = remove_all(root); actual == "71d40351bccb0eba3ca4fdbb0dfdf03b024d221805e140c74c5c7395fdf7c33b"));
         Err(_reason) -> false
     }.
 

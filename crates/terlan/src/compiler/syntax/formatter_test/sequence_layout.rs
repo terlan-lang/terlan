@@ -53,3 +53,18 @@ pub apply(): Bool ->
     );
     assert!(!output.contains("(state.add(value);"));
 }
+
+/// Branch semicolons delimit clauses, so a let continuation needs its group.
+#[test]
+fn formatter_preserves_grouped_sequence_in_branch_let_continuations() {
+    for branch in [
+        "case input { true -> let valid = true; (noop(); noop(); valid); _ -> false }",
+        "if { input -> let valid = true; (noop(); noop(); valid); true -> false }",
+    ] {
+        let source = format!("module branch_sequence.\nnoop(): Unit -> Unit.\npub value(input: Bool): Bool -> {branch}.\n");
+        let formatted = format_source_module(&source).expect("format branch sequence");
+        let second = format_source_module(&formatted).expect("formatted branch must parse");
+        assert_eq!(formatted, second, "branch formatting must be stable");
+        assert!(formatted.contains("(noop(); noop(); valid)"), "{formatted}");
+    }
+}

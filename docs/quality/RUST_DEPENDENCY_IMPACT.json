@@ -4,7 +4,7 @@
     "milestone": "0.0.9",
     "target_dependents": 9
   },
-  "compilation_input_sha256": "a7ea45ab2924e69c80fd9f91ff529723cde5f6c43cce6afe38a0624f4d44167b",
+  "compilation_input_sha256": "0835e436ef9cabed0d01e15df3bae1f5da3dbd9f930d2aa25a97d84b39dda74d",
   "dependency_fanout_policy": {
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
@@ -900,7 +900,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 190221,
+      "physical_lines": 190250,
       "rust_files": 538
     },
     {
