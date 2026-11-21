@@ -190,8 +190,10 @@ candidate_run_json="$(gh api "repos/$repository/actions/runs/$candidate_run_id")
 candidate_revision="$(jq -r '.head_sha // ""' <<<"$candidate_run_json")"
 candidate_conclusion="$(jq -r '.conclusion // ""' <<<"$candidate_run_json")"
 candidate_path="$(jq -r '.path // ""' <<<"$candidate_run_json")"
+candidate_event="$(jq -r '.event // ""' <<<"$candidate_run_json")"
 if [[ "$candidate_revision" != "$revision" \
   || "$candidate_conclusion" != "success" \
+  || "$candidate_event" != "workflow_dispatch" \
   || "$candidate_path" != ".github/workflows/ci.yml" ]]; then
   echo "Compiler check does not identify a successful canonical workflow for $revision" >&2
   exit 1

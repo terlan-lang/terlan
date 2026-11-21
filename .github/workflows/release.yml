@@ -58,7 +58,7 @@ jobs:
               run.name !== "Compiler CI" ||
               run.head_sha !== context.sha ||
               run.head_branch !== "main" ||
-              !["workflow_dispatch", "push"].includes(run.event) ||
+              run.event !== "workflow_dispatch" ||
               run.status !== "completed" ||
               run.conclusion !== "success" ||
               run.run_attempt < 1

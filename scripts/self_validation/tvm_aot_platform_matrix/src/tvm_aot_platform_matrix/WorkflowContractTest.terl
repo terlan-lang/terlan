@@ -221,7 +221,7 @@ pub release_reuse_requires_exact_compiler_evidence(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    workflow.contains("![\"workflow_dispatch\", \"push\"].includes(run.event)")
+    workflow.contains("run.event !== \"workflow_dispatch\"")
         and workflow.contains("github.rest.actions.listJobsForWorkflowRun")
         and not workflow.contains("\"Locked dependency security audit\"")
         and workflow.contains("\"Compiler check and test\"")

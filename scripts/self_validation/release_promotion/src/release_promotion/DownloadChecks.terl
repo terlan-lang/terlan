@@ -37,7 +37,7 @@ gh_stub(): String ->
             "*commits/*/status*) echo status >> \"$root/calls\"; echo '{\"state\":\"success\",\"target_url\":\"https://github.com/fixture/repository/actions/runs/21\"}';;\n",
             "*check-runs*) echo '{\"details_url\":\"https://github.com/fixture/repository/actions/runs/22/job/1\"}';;\n",
             "*actions/runs/21*) attempt=1; if [ \"$DOWNLOAD_MODE\" = attempt-two ]; then attempt=2; fi; jq -n --argjson attempt \"$attempt\" '{id:21,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:\"success\",path:\".github/workflows/release.yml\"}';;\n",
-            "*actions/runs/22*) conclusion=success; attempt=1; if [ \"$DOWNLOAD_MODE\" = failed-ci ]; then conclusion=failure; fi; if [ \"$DOWNLOAD_MODE\" = signing-retry ]; then attempt=2; fi; jq -n --arg conclusion \"$conclusion\" --argjson attempt \"$attempt\" '{id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:$conclusion,path:\".github/workflows/ci.yml\"}';;\n",
+            "*actions/runs/22*) conclusion=success; attempt=1; event=workflow_dispatch; if [ \"$DOWNLOAD_MODE\" = failed-ci ]; then conclusion=failure; fi; if [ \"$DOWNLOAD_MODE\" = push-ci ]; then event=push; fi; if [ \"$DOWNLOAD_MODE\" = signing-retry ]; then attempt=2; fi; jq -n --arg conclusion \"$conclusion\" --arg event \"$event\" --argjson attempt \"$attempt\" '{id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:$conclusion,event:$event,path:\".github/workflows/ci.yml\"}';;\n",
             "*actions/jobs/1*) attempt=1; if [ \"$DOWNLOAD_MODE\" = bad-job ]; then attempt=0; fi; jq -n --argjson attempt \"$attempt\" '{id:1,run_id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",name:\"Compiler check and test\",status:\"completed\",conclusion:\"success\"}';;\n",
             "*) echo \"unexpected GitHub operation: $*\" >&2; exit 93;;\nesac\n",
         ],
@@ -265,6 +265,7 @@ exercise(root: String): Bool ->
         true <- run(root, "signing-retry", 0, "status\ninspect\n");
         true <- run(root, "locked", 1, "");
         true <- run(root, "failed-ci", 1, "status\n");
+        true <- run(root, "push-ci", 1, "status\n");
         true <- run(root, "attempt-two", 0, downloaded);
         Ok(verifier) <-
             File.read_text(
