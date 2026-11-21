@@ -382,7 +382,17 @@ pub(super) fn infer_syntax_expr(
             if name == "true" || name == "false" {
                 return Type::Bool;
             }
-            let inferred = infer_syntax_var(name, locals, ctx).unwrap_or(Type::Dynamic);
+            let inferred = infer_syntax_var(name, locals, ctx);
+            if inferred.is_none()
+                && is_constructor_name(name)
+                && !is_reserved_uppercase_bool_literal_spelling(name)
+                && !ctx.function_imports.contains_key(name)
+            {
+                errors.push(format!(
+                    "unknown value `{name}`; import or declare it before use"
+                ));
+            }
+            let inferred = inferred.unwrap_or(Type::Dynamic);
             if is_reserved_uppercase_bool_literal_spelling(name) && inferred == Type::Dynamic {
                 errors.push(format!(
                     "`{name}` is not a built-in boolean literal; use lowercase `{}` or declare `{name}` explicitly",

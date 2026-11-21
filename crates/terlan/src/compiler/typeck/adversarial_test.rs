@@ -29,6 +29,32 @@ pub main(): Unit ->\n\
     );
 }
 
+/// A bare constructor-style value must resolve during source checking rather
+/// than surviving as `Dynamic` until a native continuation tries to capture it.
+#[test]
+fn adversarial_typecheck_rejects_unresolved_constructor_value() {
+    let diagnostics = check_syntax_output_with_std_interfaces(
+        "\
+module adversarial_constructor_value.\n\
+\n\
+import type std.core.Option.{Option}.\n\
+\n\
+pub missing(value: Option[Int]): Bool ->\n\
+    value == None.\n\
+",
+        "std/core/Option.terl",
+    );
+
+    assert!(
+        diagnostics.iter().any(|diagnostic| {
+            diagnostic
+                .message
+                .contains("unknown value `None`; import or declare it before use")
+        }),
+        "diagnostics: {diagnostics:?}"
+    );
+}
+
 /// Verifies malformed generic arity is rejected before backend lowering.
 ///
 /// Inputs:

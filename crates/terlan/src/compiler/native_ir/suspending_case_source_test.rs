@@ -42,6 +42,38 @@ pub evaluate(): Option[Int] ->
         .expect("emit managed Option completion");
 }
 
+/// An imported nullary constructor remains a static value after suspension.
+/// It must not be mistaken for a lexical scalar that the continuation needs
+/// to capture from the entry frame.
+#[test]
+fn resumed_option_equality_keeps_imported_none_static() {
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module imported_none_resume_source.
+
+import std.core.Option.{None}.
+import std.vm.Process.
+import type std.core.Option.{Option}.
+
+pub evaluate(value: Option[Int]): Bool ->
+    Process.yield_now();
+    value == None.
+"#,
+    )
+    .expect("parse imported None resume fixture");
+    let interfaces = crate::terlan_hir::checked_in_std_interfaces_for_module(&syntax);
+    let resolved =
+        crate::terlan_hir::resolve_syntax_module_output_with_interfaces(&syntax, &interfaces)
+            .module;
+    let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules =
+        NativeModule::lower_application(&[&core]).expect("lower imported None after suspension");
+    emit_native_application_object("imported_none_resume", &modules)
+        .expect("emit imported None resume object");
+}
+
 /// Checks terminal positions only; scalar atoms remain valid in predicates.
 fn assert_managed_terminal(value: &super::NativeExpr) {
     match value {
