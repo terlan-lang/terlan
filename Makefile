@@ -132,7 +132,6 @@ EDITOR_RELEASE_PARITY_IMAGE := $(DOCS_STATIC_RELEASE_PARITY_IMAGE)
 TERLAN_COMPILER_CONSUMER_GATES := \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
-	terlan-format-check \
 	editor-release-parity-check \
 	docs-static-release-parity-check \
 	terlan-make-recipe-thinness-check \
@@ -461,7 +460,6 @@ CHECK_GATES := \
 	release-control-check \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
-	terlan-format-check \
 	terlan-make-recipe-thinness-check \
 	terlan-benchmark-framework-check \
 	rust-structure-census-check \

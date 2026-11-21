@@ -12,7 +12,9 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
         Ok(formatter) <- File.read_text("scripts/ci/scripts/CheckRustFormatting.terls");
         Ok(runner) <- File.read_text(".github/actions/setup-terlan-script-runner/action.yml");
         Ok(hook) <- File.read_text("scripts/git_hooks/check.sh");
-        Ok(plan) <- File.read_text("scripts/git_hooks/src/git_hooks/Plan.terl")
+        Ok(plan) <- File.read_text("scripts/git_hooks/src/git_hooks/Plan.terl");
+        Ok(makefile) <- File.read_text("Makefile");
+        Ok(cli) <- File.read_text("crates/terlan/cli.mk")
     } else {
         _ -> false
     };
@@ -46,4 +48,6 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
         and String.contains(runner, "steps.restored.outputs.usable != 'true'")
         and not String.contains(preflight, "cargo fmt --all")
         and not String.contains(preflight, "terlan-readability-canonicalization-check")
-        and not String.contains(hook, "cargo fmt --all").
+        and not String.contains(hook, "cargo fmt --all")
+        and not String.contains(makefile, "\tterlan-format-check \\\n")
+        and String.contains(cli, "terlan-format-check: | terlan-compiler-bootstrap").

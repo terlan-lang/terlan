@@ -199,7 +199,7 @@ cli-test-release: cli-test-full
 
 TERLAN_FORMAT_COMPILER ?= target/debug/terlc
 
-terlan-format-check:
+terlan-format-check: | terlan-compiler-bootstrap
 	$(TERLAN_FORMAT_COMPILER) fmt --check \
 		std \
 		scripts/self_validation \
