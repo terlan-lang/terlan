@@ -714,6 +714,51 @@ fn batch_byte_writes_preserve_octets_and_rollback_created_tree() {
 }
 
 #[test]
+fn batch_writes_create_relative_ancestors_and_roll_back_only_created_paths() {
+    let scratch = crate::support::test_fs::temp_dir("native_boundary_dispatch", "relative_batch");
+    let root = std::path::PathBuf::from(format!(
+        ".terlan-relative-batch-{}-{}",
+        std::process::id(),
+        scratch.file_name().unwrap().to_string_lossy()
+    ));
+    assert!(!root.exists());
+    let first = root.join("nested/report.txt");
+    dispatch(
+        "std.io.file.write_text_many",
+        &[NativeBoundaryValue::List(vec![text_write_plan(
+            &first, "report",
+        )])],
+    )
+    .expect("create relative ancestors for text");
+    let second = root.join("bytes/data.bin");
+    dispatch(
+        "std.io.file.write_bytes_many",
+        &[NativeBoundaryValue::List(vec![bytes_write_plan(
+            &second,
+            &[0, 255],
+        )])],
+    )
+    .expect("create relative ancestors for bytes");
+    assert_eq!(std::fs::read_to_string(&first).unwrap(), "report");
+    assert_eq!(std::fs::read(&second).unwrap(), [0, 255]);
+    std::fs::remove_dir_all(&root).unwrap();
+
+    let blocked = scratch.join("blocked");
+    std::fs::write(&blocked, b"not a directory").unwrap();
+    dispatch(
+        "std.io.file.write_bytes_many",
+        &[NativeBoundaryValue::List(vec![
+            bytes_write_plan(&first, &[1]),
+            bytes_write_plan(&blocked.join("report.bin"), &[2]),
+        ])],
+    )
+    .expect_err("later failure must roll back relative ancestors");
+    assert!(!root.exists());
+    assert_eq!(std::fs::read(&blocked).unwrap(), b"not a directory");
+    assert!(std::env::current_dir().unwrap().is_dir());
+}
+
+#[test]
 fn batch_byte_writes_reject_duplicate_destinations_before_writing() {
     let root =
         crate::support::test_fs::temp_dir("native_boundary_dispatch", "batch_byte_duplicate");

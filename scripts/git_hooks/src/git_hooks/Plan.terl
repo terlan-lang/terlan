@@ -104,11 +104,8 @@ proof_evidence_input(paths: List[String]): Bool ->
     affected(paths, "proofs/lean/artifacts/", "")
         or affected(paths, "proofs/lean/ci/lean-proof-artifacts.tsv", "")
         or affected(paths, "proofs/lean/gaps/", "")
-        or affected(paths, "docs/compiler/proof_track/", "")
         or affected(paths, "std/NATIVE_BOUNDARY_SECURITY.tsv", "")
-        or affected(paths, "std/summaries/", ".native_boundary.json")
-        or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
-        or affected(paths, "scripts/self_validation/proof_release_evidence/", "").
+        or affected(paths, "std/summaries/", ".native_boundary.json").
 
 selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
     if {
@@ -549,6 +546,7 @@ pub proofs(paths: List[String]): Bool ->
         or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
         or affected(paths, "crates/terlan/src/backends/wasm/README.md", "")
         or affected(paths, "scripts/self_validation/LeanProof", "")
+        or affected(paths, "scripts/self_validation/proof_release_evidence/", "")
         or affected(paths, "scripts/self_validation/LalrpopGrammarContractTest.terl", "")
         or affected(paths, "scripts/git_hooks/proofs.sh", "").
 

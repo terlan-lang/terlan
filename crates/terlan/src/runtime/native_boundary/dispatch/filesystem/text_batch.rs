@@ -178,6 +178,11 @@ fn create_missing_parents(
     let mut missing = Vec::new();
     let mut current = parent;
     loop {
+        // A relative path's empty ancestor denotes the existing working
+        // directory; it is not a directory to create or roll back.
+        if current.as_os_str().is_empty() {
+            break;
+        }
         match std::fs::symlink_metadata(current) {
             Ok(metadata) => {
                 if !metadata.is_dir() {

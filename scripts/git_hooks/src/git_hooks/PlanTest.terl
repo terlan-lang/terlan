@@ -54,9 +54,6 @@ pub proof_metadata_changes_replay_proofs(): Bool ->
 pub proof_evidence_changes_require_a_refreshed_baseline(): Bool ->
     Plan.proof_baseline_missing(["std/summaries/std.vm.ModelSync.native_boundary.json"])
         and Plan.proof_baseline_missing(["proofs/lean/artifacts/native-boundary.json"])
-        and Plan.proof_baseline_missing(
-    ["scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl"],
-)
         and not Plan.proof_baseline_missing(
     [
         "std/summaries/std.vm.ModelSync.native_boundary.json",
@@ -64,6 +61,11 @@ pub proof_evidence_changes_require_a_refreshed_baseline(): Bool ->
     ],
 )
         and not Plan.proof_baseline_missing(["scripts/self_validation/LeanProofFeatureBindingTest.terl"])
+        and not Plan.proof_baseline_missing(
+    ["scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl"],
+)
+        and not Plan.proof_baseline_missing(["crates/terlan/src/runtime/native_boundary/dispatch/value.rs"])
+        and not Plan.proof_baseline_missing(["docs/compiler/proof_track/README.md"])
         and not Plan.proof_baseline_missing(["std/core/Int.terl"]).
 
 @test
@@ -80,6 +82,9 @@ pub proof_manifest_changes_are_checked_without_grammar_edits(): Bool ->
         and Plan.proofs(["docs/compiler/TERLAN_CORE_TYPING_SPEC.md"])
         and Plan.proofs(["docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md"])
         and Plan.proofs(["crates/terlan/src/runtime/native_boundary/dispatch/value.rs"])
+        and Plan.proofs(
+    ["scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl"],
+)
         and Plan.proofs(["crates/terlan/src/backends/wasm/README.md"]).
 
 @test
