@@ -150,6 +150,18 @@ pub run(): Bool ->
     _ -> false
 }
         and case Status.workflow(row_event("candidate", "push", "completed", "success"), "candidate", "ci.yml") {
+    Ok(value) -> Support.text(value, "state") == "success";
+    _ -> false
+}
+        and case Status.workflow(row_event("candidate", "push", "completed", "success"), "candidate", "release.yml") {
+    Err(_reason) -> true;
+    _ -> false
+}
+        and case Status.workflow(
+    row_event("candidate", "pull_request", "completed", "success"),
+    "candidate",
+    "ci.yml",
+) {
     Err(_reason) -> true;
     _ -> false
 }.

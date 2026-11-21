@@ -196,16 +196,16 @@ pub cancelled_main_validation_is_accumulated_by_the_next_run(): Bool ->
         and occurrences(workflow, "needs.changes.outputs.validation-base") == 2.
 
 @test
-pub release_reuse_requires_full_dispatched_compiler_evidence(): Bool ->
+pub release_reuse_requires_exact_compiler_evidence(): Bool ->
     when {
         Ok(workflow) <- read_text(".github/workflows/release.yml");
         Ok(compiler) <- read_text(".github/workflows/ci.yml")
     } else {
         Err(_reason) -> false
     };
-    workflow.contains("run.event !== \"workflow_dispatch\"")
+    workflow.contains("![\"workflow_dispatch\", \"push\"].includes(run.event)")
         and workflow.contains("github.rest.actions.listJobsForWorkflowRun")
-        and workflow.contains("\"Locked dependency security audit\"")
+        and not workflow.contains("\"Locked dependency security audit\"")
         and workflow.contains("\"Compiler check and test\"")
         and workflow.contains("compiler_run_id lacks successful required job")
         and compiler

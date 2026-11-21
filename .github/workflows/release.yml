@@ -58,7 +58,7 @@ jobs:
               run.name !== "Compiler CI" ||
               run.head_sha !== context.sha ||
               run.head_branch !== "main" ||
-              run.event !== "workflow_dispatch" ||
+              !["workflow_dispatch", "push"].includes(run.event) ||
               run.status !== "completed" ||
               run.conclusion !== "success" ||
               run.run_attempt < 1
@@ -74,10 +74,9 @@ jobs:
                 per_page: 100,
               },
             );
-            for (const requiredName of [
-              "Locked dependency security audit",
-              "Compiler check and test",
-            ]) {
+            // This workflow owns the release dependency audit below. Reusing
+            // the compiler run must not require that same audit to run twice.
+            for (const requiredName of ["Compiler check and test"]) {
               const matches = jobs.filter((job) => job.name === requiredName);
               if (
                 matches.length !== 1 ||
