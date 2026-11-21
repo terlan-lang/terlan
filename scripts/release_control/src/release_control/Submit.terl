@@ -85,7 +85,9 @@ wait(revision: String, version: String, deadline: Int): Result[Unit, String] ->
                         "--limit",
                         "1",
                         "--json",
-                        "databaseId,headSha,status,conclusion,url",
+                        "databaseId,headSha,event,status,conclusion,url",
+                        "--event",
+                        "push",
                     ],
                 );
             Ok(workflow) <- Status.workflow(runs, revision, "publish.yml")

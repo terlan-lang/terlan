@@ -29,7 +29,11 @@ pub workflow(runs: Json, revision: String, name: String): Result[Json, String] -
                     let status = Support.text(row, "status");
                     let conclusion = Support.text(row, "conclusion");
                     let event = Support.text(row, "event");
-                    let admitted_event = event == "workflow_dispatch";
+                    let admitted_event =
+                        if {
+                            name == "publish.yml" -> event == "push";
+                            true -> event == "workflow_dispatch"
+                        };
                     if {
                         Support.text(row, "headSha") != revision -> Err("workflow belongs to a different source revision");
                         not admitted_event -> Err("workflow event is not admitted release evidence");
@@ -95,6 +99,8 @@ load(revision: String, name: String): Result[Json, String] ->
             "1",
             "--json",
             "databaseId,headSha,event,status,conclusion,url,workflowName",
+            "--event",
+            "workflow_dispatch",
         ],
     ) {
         Err(reason) -> Err(reason);

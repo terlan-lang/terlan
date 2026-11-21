@@ -149,6 +149,11 @@ git(): Bool ->
 
 workflow(): Bool ->
     if {
+        arg(14) != "--event" -> false;
+        arg(15) != if {
+    arg(9) == "publish.yml" -> "push";
+    true -> "workflow_dispatch"
+} -> false;
         mode() == "failed-missing" and arg(9) == "release.yml" -> json(Json.array());
         mode() == "missing" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
         mode() == "missing-delayed" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
@@ -205,7 +210,15 @@ workflow_row(): Bool ->
                         "url",
                         Json.string("https://github.com/terlan-lang/terlan/actions/runs/17"),
                     )
-                    .put("event", Json.string("workflow_dispatch"))
+                    .put(
+                        "event",
+                        Json.string(
+                            if {
+                                arg(9) == "publish.yml" -> "push";
+                                true -> "workflow_dispatch"
+                            },
+                        ),
+                    )
                     .put(
                         "status",
                         Json.string(
