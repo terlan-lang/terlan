@@ -6,6 +6,10 @@ module installer_contract.InstallerContractTest.
 import installer_contract.Main.
 
 @test
+pub failure_path_returns_false(): Bool ->
+    Main.failure_path_returns_false().
+
+@test
 pub release_artifact_mapping_covers_every_public_platform(): Bool ->
     Main.release_artifact_mapping_covers_every_public_platform().
 

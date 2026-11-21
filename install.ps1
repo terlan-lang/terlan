@@ -158,11 +158,39 @@ try {
                 throw "release artifact contains a special filesystem entry: $($entry.FullName)"
             }
         }
+        foreach ($entry in $archiveHandle.Entries) {
+            $destination = [System.IO.Path]::GetFullPath((Join-Path $tmpDir $entry.FullName))
+            if ([string]::IsNullOrEmpty($entry.Name)) {
+                [System.IO.Directory]::CreateDirectory($destination) | Out-Null
+                continue
+            }
+            $parent = [System.IO.Path]::GetDirectoryName($destination)
+            if (-not [string]::IsNullOrEmpty($parent)) {
+                [System.IO.Directory]::CreateDirectory($parent) | Out-Null
+            }
+            $entryStream = $entry.Open()
+            try {
+                $destinationStream = [System.IO.File]::Open(
+                    $destination,
+                    [System.IO.FileMode]::CreateNew,
+                    [System.IO.FileAccess]::Write,
+                    [System.IO.FileShare]::None
+                )
+                try {
+                    $entryStream.CopyTo($destinationStream)
+                }
+                finally {
+                    $destinationStream.Dispose()
+                }
+            }
+            finally {
+                $entryStream.Dispose()
+            }
+        }
     }
     finally {
         $archiveHandle.Dispose()
     }
-    Expand-Archive -Path $archive -DestinationPath $tmpDir -Force
 
     $source = Join-Path $tmpDir "terlc.exe"
     if (-not (Test-Path $source)) {
