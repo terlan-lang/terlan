@@ -145,7 +145,6 @@ jobs:
               repo: context.repo.repo,
               workflow_id: "ci.yml",
               branch: "main",
-              event: "push",
               status: "success",
               per_page: 100,
             });
@@ -433,14 +432,14 @@ jobs:
 
     steps:
       - name: Checkout
-        if: ${{ needs.changes.outputs.compiler == 'true' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Install native build dependencies
-        if: ${{ needs.changes.outputs.compiler == 'true' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: ./.github/actions/setup-native-dependencies
         with:
           target: linux-x86_64
@@ -448,24 +447,16 @@ jobs:
 
       - name: Install Rust toolchain
         id: rust
-        if: ${{ needs.changes.outputs.compiler == 'true' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: ./.github/actions/setup-rust
         with:
           cache-build: "true"
           cache-scope: ubuntu-24.04
           cache-profile: compiler-validation
 
-      - name: Reuse unchanged compiler validation
-        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler != 'true' }}
-        env:
-          VALIDATION_BASE: ${{ needs.changes.outputs.validation-base }}
-        run: |
-          [[ "$VALIDATION_BASE" =~ ^[0-9a-f]{40}$ ]]
-          test "$VALIDATION_BASE" != "$GITHUB_SHA"
-
       - name: Validate release candidate
         id: release-candidate
-        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: make release-candidate-check
         env:
           # The serialized compiler library suite exceeds thirty minutes on
@@ -499,7 +490,7 @@ jobs:
           git diff --exit-code
 
       - name: Preserve compiled Rust cache
-        if: ${{ always() && needs.changes.outputs.compiler == 'true' && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
+        if: ${{ always() && (needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch') && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -549,12 +540,12 @@ jobs:
           key: ${{ steps.rust.outputs.compiled-cache-key }}
 
       - name: Test local commit policy
-        if: ${{ needs.changes.outputs.compiler == 'true' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
         run: target/debug/terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl
 
       - name: Upload completed compiler coverage
         id: coverage
-        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: compiler-test-coverage-${{ github.run_id }}-${{ github.run_attempt }}
@@ -566,7 +557,7 @@ jobs:
           retention-days: 90
 
       - name: Upload failure evidence
-        if: ${{ failure() && needs.changes.outputs.compiler == 'true' }}
+        if: ${{ failure() && (needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: compiler-ci-failure-${{ github.run_id }}
@@ -576,7 +567,7 @@ jobs:
   attest-compiler-coverage:
     name: Attest compiler test coverage
     needs: [changes, check]
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
