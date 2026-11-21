@@ -135,7 +135,7 @@ jobs:
           allow-compatible-fallback: "true"
       - name: Resolve last compiler-validated main revision
         id: validated-main
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           retries: 3
@@ -178,7 +178,7 @@ jobs:
           EVENT_BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
         run: |
           base="$EVENT_BASE_REVISION"
-          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]]; then
+          if [[ ( "$GITHUB_EVENT_NAME" == push || "$GITHUB_EVENT_NAME" == workflow_dispatch ) && "$GITHUB_REF" == refs/heads/main ]]; then
             base="$MAIN_VALIDATED_REVISION"
           fi
           if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] || ! git merge-base --is-ancestor "$base" "$GITHUB_SHA"; then
@@ -424,7 +424,7 @@ jobs:
     needs: [changes, source-preflight]
     name: Compiler check and test
     runs-on: ubuntu-24.04
-    if: ${{ needs.changes.outputs.compiler == 'true' && (github.event_name != 'push' || !startsWith(github.ref_name, 'release-validation/')) }}
+    if: ${{ (needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch') && (github.event_name != 'push' || !startsWith(github.ref_name, 'release-validation/')) }}
     # Cold hosted runs need about 114 minutes before the remaining stdlib,
     # proof, runtime, and package gates; allow the complete validation to finish.
     timeout-minutes: 180
@@ -433,12 +433,14 @@ jobs:
 
     steps:
       - name: Checkout
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Install native build dependencies
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: ./.github/actions/setup-native-dependencies
         with:
           target: linux-x86_64
@@ -446,15 +448,24 @@ jobs:
 
       - name: Install Rust toolchain
         id: rust
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: ./.github/actions/setup-rust
         with:
           cache-build: "true"
           cache-scope: ubuntu-24.04
           cache-profile: compiler-validation
 
+      - name: Reuse unchanged compiler validation
+        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler != 'true' }}
+        env:
+          VALIDATION_BASE: ${{ needs.changes.outputs.validation-base }}
+        run: |
+          [[ "$VALIDATION_BASE" =~ ^[0-9a-f]{40}$ ]]
+          test "$VALIDATION_BASE" != "$GITHUB_SHA"
+
       - name: Validate release candidate
         id: release-candidate
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
         run: make release-candidate-check
         env:
           # The serialized compiler library suite exceeds thirty minutes on
@@ -488,7 +499,7 @@ jobs:
           git diff --exit-code
 
       - name: Preserve compiled Rust cache
-        if: ${{ always() && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
+        if: ${{ always() && needs.changes.outputs.compiler == 'true' && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -538,11 +549,12 @@ jobs:
           key: ${{ steps.rust.outputs.compiled-cache-key }}
 
       - name: Test local commit policy
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         run: target/debug/terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl
 
       - name: Upload completed compiler coverage
         id: coverage
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: compiler-test-coverage-${{ github.run_id }}-${{ github.run_attempt }}
@@ -554,7 +566,7 @@ jobs:
           retention-days: 90
 
       - name: Upload failure evidence
-        if: failure()
+        if: ${{ failure() && needs.changes.outputs.compiler == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: compiler-ci-failure-${{ github.run_id }}
@@ -563,8 +575,8 @@ jobs:
 
   attest-compiler-coverage:
     name: Attest compiler test coverage
-    needs: check
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+    needs: [changes, check]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

@@ -811,7 +811,8 @@ pub compiled_cache_preservation_text_valid(workflow: String): Bool ->
         [
             "id: rust",
             "name: Preserve compiled Rust cache",
-            "always() && steps.rust.outputs.compiled-cache-key != ''",
+            "always() && needs.changes.outputs.compiler == 'true'",
+            "steps.rust.outputs.compiled-cache-key != ''",
             "steps.rust.outputs.compiled-cache-hit != 'true'",
             "uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
             "target/debug/.fingerprint",

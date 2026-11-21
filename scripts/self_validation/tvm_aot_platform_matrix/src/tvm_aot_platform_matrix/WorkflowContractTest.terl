@@ -211,7 +211,7 @@ pub cancelled_main_validation_is_accumulated_by_the_next_run(): Bool ->
         and workflow.contains("compiler?.conclusion === \"success\"")
         and workflow.contains("git merge-base --is-ancestor \"$base\" \"$GITHUB_SHA\"")
         and workflow.contains("validation-base: \${{ steps.validation-base.outputs.revision }}")
-        and occurrences(workflow, "needs.changes.outputs.validation-base") == 2.
+        and occurrences(workflow, "needs.changes.outputs.validation-base") == 3.
 
 @test
 pub release_reuse_requires_exact_compiler_evidence(): Bool ->
@@ -226,16 +226,28 @@ pub release_reuse_requires_exact_compiler_evidence(): Bool ->
         and not workflow.contains("\"Locked dependency security audit\"")
         and workflow.contains("\"Compiler check and test\"")
         and workflow.contains("compiler_run_id lacks successful required job")
+        and compiler.contains("Reuse unchanged compiler validation")
         and compiler
     .contains(
-        "if: \${{ github.event_name == 'workflow_dispatch' }}\n        run: make release-candidate-check",
+        "github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler != 'true'",
+    )
+        and compiler.contains("VALIDATION_BASE: \${{ needs.changes.outputs.validation-base }}")
+        and compiler.contains("test \"$VALIDATION_BASE\" != \"$GITHUB_SHA\"")
+        and compiler
+    .contains(
+        "if: \${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}\n        run: make release-candidate-check",
     )
         and compiler
     .contains(
         "if: \${{ github.event_name != 'workflow_dispatch' }}\n        env:\n          BASE_REVISION:",
     )
         and compiler.contains("TERLAN_HOOK_MODE=full")
+        and compiler.contains("github.event_name == 'push' || github.event_name == 'workflow_dispatch'")
         and compiler
     .contains(
-        "if: \${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}",
+        "needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch'",
+    )
+        and compiler
+    .contains(
+        "if: \${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}",
     ).
