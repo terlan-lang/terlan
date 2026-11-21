@@ -48,6 +48,42 @@ fn checked_empty_list_witnesses_are_identity_casts_only_for_list_targets() {
 }
 
 #[test]
+fn tagged_tuple_widens_to_matching_union_without_a_js_conversion() {
+    let some_bool = CoreType::Tuple(vec![
+        CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".into())),
+        CoreTupleTypeElem::Field {
+            name: "value".into(),
+            ty: CoreType::Bool,
+        },
+    ]);
+    let option_bool = CoreType::Union(vec![
+        CoreType::AtomLiteral("none".into()),
+        some_bool.clone(),
+    ]);
+    let present = CoreExpr::Tuple(vec![
+        CoreExpr::Atom("some".into()),
+        CoreExpr::Var("true".into()),
+    ]);
+
+    assert!(cast_can_lower_as_js_identity(&present, &option_bool));
+    assert!(core_type_is_js_identity_assignable(
+        &CoreType::Union(vec![CoreType::AtomLiteral("none".into()), some_bool]),
+        &option_bool,
+    ));
+    assert!(!cast_can_lower_as_js_identity(
+        &CoreExpr::Tuple(vec![CoreExpr::Atom("some".into()), CoreExpr::Int(1)]),
+        &option_bool,
+    ));
+    assert!(!cast_can_lower_as_js_identity(
+        &CoreExpr::Tuple(vec![
+            CoreExpr::Atom("some".into()),
+            CoreExpr::Var("unknown".into())
+        ]),
+        &option_bool,
+    ));
+}
+
+#[test]
 fn linked_list_casts_recover_let_and_list_pattern_binding_types() {
     let coordinate = CoreType::Named("fixture.Coordinate".into());
     let coordinates = CoreType::List(Box::new(coordinate.clone()));
@@ -263,4 +299,35 @@ pub check(pending: List[Int]): List[Int] ->
     let js = super::super::direct_ast::emit_core_module_with_direct_oxc_ast(&linked)
         .expect("emit scoped JavaScript cast fixture");
     assert!(js.contains("function check"), "{js}");
+}
+
+#[test]
+fn formal_linking_emits_some_bool_call_arguments() {
+    let source = r#"
+module js_option_argument.
+
+import std.core.Option.{Option, Some}.
+
+accept(value: Option[Bool]): Bool -> value.is_some().
+
+pub create(): Bool -> accept(Some(true)).
+"#;
+    let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+        "js_option_argument.terl",
+        source,
+        crate::DiagnosticFormat::default(),
+        None,
+        crate::validation::native_policy::NativePolicy::default(),
+        crate::validation::target_profile::TargetProfile::JsShared,
+    )
+    .expect("compile Option[Bool] JavaScript argument fixture");
+    let linked = super::super::source_linking::link_libraries(
+        &compiled.core,
+        std::path::Path::new("js_option_argument.terl"),
+    )
+    .expect("link Option[Bool] JavaScript argument fixture");
+    let js = super::super::direct_ast::emit_core_module_with_direct_oxc_ast(&linked)
+        .expect("emit Option[Bool] JavaScript argument fixture");
+
+    assert!(js.contains("accept([\"some\", true])"), "{js}");
 }

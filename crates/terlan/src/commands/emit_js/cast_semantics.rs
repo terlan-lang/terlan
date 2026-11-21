@@ -52,8 +52,15 @@ fn inferred_core_expr_type(expr: &CoreExpr) -> Option<CoreType> {
         CoreExpr::Int(_) => Some(CoreType::Int),
         CoreExpr::Float(_) => Some(CoreType::Float),
         CoreExpr::Binary(_) => Some(CoreType::String),
+        CoreExpr::Var(value) if value == "true" || value == "false" => Some(CoreType::Bool),
         CoreExpr::Atom(value) if value == "true" || value == "false" => Some(CoreType::Bool),
         CoreExpr::Atom(value) => Some(CoreType::AtomLiteral(value.clone())),
+        CoreExpr::Tuple(items) => items
+            .iter()
+            .map(inferred_core_expr_type)
+            .map(|item| item.map(CoreTupleTypeElem::Type))
+            .collect::<Option<Vec<_>>>()
+            .map(CoreType::Tuple),
         CoreExpr::List(items) => inferred_homogeneous_list_type(items),
         CoreExpr::Array(items) => inferred_homogeneous_list_type(items),
         CoreExpr::Cast { target_type, .. } => Some(target_type.clone()),
@@ -120,13 +127,37 @@ fn inferred_homogeneous_list_type(items: &[CoreExpr]) -> Option<CoreType> {
 /// - Implements only the JS backend's identity-erasure relation, not the full
 ///   Terlan typechecker subtype relation.
 fn core_type_is_js_identity_assignable(source_type: &CoreType, target_type: &CoreType) -> bool {
-    source_type == target_type
-        || matches!(
-            (source_type, target_type),
-            (CoreType::Int | CoreType::Float, CoreType::Number)
-                | (CoreType::AtomLiteral(_), CoreType::Atom)
-                | (_, CoreType::Term)
-        )
+    if source_type == target_type {
+        return true;
+    }
+    match (source_type, target_type) {
+        (_, CoreType::Term) => true,
+        (CoreType::Union(sources), target) => sources
+            .iter()
+            .all(|source| core_type_is_js_identity_assignable(source, target)),
+        (source, CoreType::Union(targets)) => targets
+            .iter()
+            .any(|target| core_type_is_js_identity_assignable(source, target)),
+        (CoreType::Tuple(sources), CoreType::Tuple(targets)) => {
+            sources.len() == targets.len()
+                && sources.iter().zip(targets).all(|(source, target)| {
+                    core_type_is_js_identity_assignable(
+                        tuple_element_type(source),
+                        tuple_element_type(target),
+                    )
+                })
+        }
+        (CoreType::Int | CoreType::Float, CoreType::Number)
+        | (CoreType::AtomLiteral(_), CoreType::Atom) => true,
+        _ => false,
+    }
+}
+
+/// Returns the semantic type of a positional or named tuple element.
+fn tuple_element_type(element: &CoreTupleTypeElem) -> &CoreType {
+    match element {
+        CoreTupleTypeElem::Type(ty) | CoreTupleTypeElem::Field { ty, .. } => ty,
+    }
 }
 
 #[cfg(test)]
