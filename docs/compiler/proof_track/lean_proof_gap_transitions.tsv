@@ -1,35 +1,35 @@
-feature	previous_status	next_status	changed_at	evidence_hash	rationale
-EBNF syntax preservation	none	open	2026-07-16	sha256:df2da39fc660249f45cadeacd0c2357b57cf33f5b1654d3b38c79bff73d33a9b	Registered the syntax-preservation proof obligation.
-EBNF syntax preservation	open	triaged	2026-07-16	sha256:df2da39fc660249f45cadeacd0c2357b57cf33f5b1654d3b38c79bff73d33a9b	Assigned compiler ownership and an executable follow-up gate.
-EBNF syntax preservation	triaged	blocked	2026-07-16	sha256:df2da39fc660249f45cadeacd0c2357b57cf33f5b1654d3b38c79bff73d33a9b	Recorded the current Lean model synchronization blocker.
-typed CoreIR preservation	none	open	2026-07-16	sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad	Registered the complete CoreIR preservation obligation.
-typed CoreIR preservation	open	triaged	2026-07-16	sha256:af9f45420d49994557139745e6713e1a6889303d44b07ecc0c4b4f24f8029dad	Assigned compiler ownership and the core typing gate.
-typed CoreIR preservation	triaged	blocked	2026-07-16	sha256:7edf7dd9b78dd015f93b30a71b0d972e1a800e19c025fb8877a4b986d9b92866	Recorded the unproved non-arithmetic CoreIR surface.
-target-profile inference	none	open	2026-07-16	sha256:0dad85e0772ed5fd51a2876b627485a629c5ef6379b14cdad305fe27593ede83	Registered the target-inference proof obligation.
-target-profile inference	open	triaged	2026-07-16	sha256:0dad85e0772ed5fd51a2876b627485a629c5ef6379b14cdad305fe27593ede83	Assigned compiler ownership and the target inference gate.
-target-profile inference	triaged	blocked	2026-07-16	sha256:fa6ec58b1087164ac5a593eef10f74894aa4a8c055ce84e476e06b9111613ba5	Recorded the missing Lean theorem coverage.
-VM execution subset	none	open	2026-07-16	sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c	Registered the VM execution semantics proof obligation.
-VM execution subset	open	triaged	2026-07-16	sha256:8917ce1bed441d5bc25165b893123a26cfd0b51ef1bb06fc16429bfc3f70af9c	Assigned VM ownership and the runtime semantics gate.
-VM execution subset	triaged	blocked	2026-07-16	sha256:1e3fff408b73ba8eabc55dedb0030ecf5e926b966de6bed1b2ee23933c34691e	Recorded the expanding VM semantics blocker.
-pattern and operator coverage	none	open	2026-07-16	sha256:1c617a60247e2c22c467f788bccdc4897005699f6f1a76a640a2a9cbf5514fbe	Registered the pattern and operator proof obligation.
-pattern and operator coverage	open	triaged	2026-07-16	sha256:1c617a60247e2c22c467f788bccdc4897005699f6f1a76a640a2a9cbf5514fbe	Assigned compiler ownership and executable coverage gates.
-pattern and operator coverage	triaged	blocked	2026-07-16	sha256:bed380256d1407b8eb14fe40ec680fe813e982c478551f9a0d9da6e9de36a4e0	Recorded the missing Lean coverage beyond shape implications.
-native-boundary contracts	none	open	2026-07-16	sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19	Registered the native-boundary refinement obligation.
-native-boundary contracts	open	triaged	2026-07-16	sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19	Assigned runtime ownership and the native security gate.
-native-boundary contracts	triaged	blocked	2026-07-16	sha256:2ae438bc493644aab24567e38b0eb788a19572a2cbb53c5e06778b383c273f19	Recorded the missing Aeneas refinement to the Rust implementation.
-Wasm CoreIR lowering	none	open	2026-07-16	sha256:23ade72fb112c88fa06225a712fc4dac3f6cf5fff322d7ea65ff41339c03d335	Registered the Wasm lowering proof obligation.
-Wasm CoreIR lowering	open	triaged	2026-07-16	sha256:23ade72fb112c88fa06225a712fc4dac3f6cf5fff322d7ea65ff41339c03d335	Assigned compiler ownership and the Wasm lowering gate.
-Wasm CoreIR lowering	triaged	blocked	2026-07-16	sha256:1160175bccd5eecee82ffc8327174a7dba9607e774e11fd6b9ee57dcfcb8d8fe	Recorded that no Lean-backed lowering artifact exists yet.
-Aeneas Rust verification bridge	none	open	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Registered the Rust-to-Terlan proof bridge obligation.
-Aeneas Rust verification bridge	open	triaged	2026-07-16	sha256:330f4a20d8f32af9ba8117b095a7fc31c010c10964fab7aeebe77180385f147c	Assigned formal verification ownership and the proof-track gate.
-Aeneas Rust verification bridge	triaged	blocked	2026-07-16	sha256:cd14744dabc05aa34c65b911e457cc23b43d2fe3d86bf124c1564cee8dfba2f1	Recorded the missing explicit bridge artifact.
-EBNF syntax preservation	blocked	remediated	2026-07-31	sha256:809baa8bc19f5a7f9cd9894522fc426eb19e9e86e96d65fa0e75ceb431b2c4b9	Added executable parser-shape theorems and canonical grammar fingerprint binding.
-EBNF syntax preservation	remediated	closed	2026-07-31	sha256:809baa8bc19f5a7f9cd9894522fc426eb19e9e86e96d65fa0e75ceb431b2c4b9	Replayed the parser-shape proof and connected it to the release closeout gate.
-native-boundary contracts	blocked	remediated	2026-07-31	sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2	Added executable NativeBoundary theorems, typed manifest-row bindings, and fail-closed VM runtime oracles.
-native-boundary contracts	remediated	closed	2026-07-31	sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2	Replayed the native-boundary proof and connected it to smoke and release closeout gates.
-typed CoreIR preservation	blocked	blocked	2026-09-25	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0	Review: Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
-target-profile inference	blocked	blocked	2026-09-25	sha256:ff341260201899b99ed9f8190df1e1ab50ffac2e6ad51b972b948e1a3c4aecba	Review: CheckedLowering proves admission or rejection of a spawn seed, not the full VM/JS/Wasm inference algorithm; broader contracts rely on executable Rust tests. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
-VM execution subset	blocked	blocked	2026-09-25	sha256:7937b585761e193f053eaffab67a2c2b66d8caf13d6f7abc616b6894a3af5948	Review: SemanticChain and Concurrency prove small expression and list-mailbox models, not the AOT scheduler, heaps, continuations, or complete VM execution; Rust and Terlan tests are not a refinement proof. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
-pattern and operator coverage	blocked	blocked	2026-09-25	sha256:618817eb9120651dcda320b8ec6a4351f9a2829628db5bc5072903a0e4adb46d	Review: ShapeImplication proves closed-shape evidence properties; general pattern and operator coverage remains executable Terlan/Rust testing without corresponding Lean preservation theorems. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
-Wasm CoreIR lowering	blocked	blocked	2026-09-25	sha256:ddcc62f985fde3aff34810737c34bf198efd99f5a4c6d5e5ab81d79e940ba082	Review: WasmBridge proves a signature and resource-owner model, not a refinement from full CoreIR to emitted Wasm; complete lowering preservation remains unproved. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
-Aeneas Rust verification bridge	blocked	blocked	2026-09-25	sha256:3b8231547a942b94144d9263679234943857e0824436f6092ace9c274247c827	Review: NativeBoundary and the semantic kernels prove Lean models with runtime oracles; no inventoried Aeneas artifact connects the production Rust implementation to those models. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
+feature	previous_status	next_status	changed_at	rationale
+EBNF syntax preservation	none	open	2026-07-16	Registered the syntax-preservation proof obligation.
+EBNF syntax preservation	open	triaged	2026-07-16	Assigned compiler ownership and an executable follow-up gate.
+EBNF syntax preservation	triaged	blocked	2026-07-16	Recorded the current Lean model synchronization blocker.
+typed CoreIR preservation	none	open	2026-07-16	Registered the complete CoreIR preservation obligation.
+typed CoreIR preservation	open	triaged	2026-07-16	Assigned compiler ownership and the core typing gate.
+typed CoreIR preservation	triaged	blocked	2026-07-16	Recorded the unproved non-arithmetic CoreIR surface.
+target-profile inference	none	open	2026-07-16	Registered the target-inference proof obligation.
+target-profile inference	open	triaged	2026-07-16	Assigned compiler ownership and the target inference gate.
+target-profile inference	triaged	blocked	2026-07-16	Recorded the missing Lean theorem coverage.
+VM execution subset	none	open	2026-07-16	Registered the VM execution semantics proof obligation.
+VM execution subset	open	triaged	2026-07-16	Assigned VM ownership and the runtime semantics gate.
+VM execution subset	triaged	blocked	2026-07-16	Recorded the expanding VM semantics blocker.
+pattern and operator coverage	none	open	2026-07-16	Registered the pattern and operator proof obligation.
+pattern and operator coverage	open	triaged	2026-07-16	Assigned compiler ownership and executable coverage gates.
+pattern and operator coverage	triaged	blocked	2026-07-16	Recorded the missing Lean coverage beyond shape implications.
+native-boundary contracts	none	open	2026-07-16	Registered the native-boundary refinement obligation.
+native-boundary contracts	open	triaged	2026-07-16	Assigned runtime ownership and the native security gate.
+native-boundary contracts	triaged	blocked	2026-07-16	Recorded the missing Aeneas refinement to the Rust implementation.
+Wasm CoreIR lowering	none	open	2026-07-16	Registered the Wasm lowering proof obligation.
+Wasm CoreIR lowering	open	triaged	2026-07-16	Assigned compiler ownership and the Wasm lowering gate.
+Wasm CoreIR lowering	triaged	blocked	2026-07-16	Recorded that no Lean-backed lowering artifact exists yet.
+Aeneas Rust verification bridge	none	open	2026-07-16	Registered the Rust-to-Terlan proof bridge obligation.
+Aeneas Rust verification bridge	open	triaged	2026-07-16	Assigned formal verification ownership and the proof-track gate.
+Aeneas Rust verification bridge	triaged	blocked	2026-07-16	Recorded the missing explicit bridge artifact.
+EBNF syntax preservation	blocked	remediated	2026-07-31	Added executable parser-shape theorems and canonical grammar fingerprint binding.
+EBNF syntax preservation	remediated	closed	2026-07-31	Replayed the parser-shape proof and connected it to the release closeout gate.
+native-boundary contracts	blocked	remediated	2026-07-31	Added executable NativeBoundary theorems, typed manifest-row bindings, and fail-closed VM runtime oracles.
+native-boundary contracts	remediated	closed	2026-07-31	Replayed the native-boundary proof and connected it to smoke and release closeout gates.
+typed CoreIR preservation	blocked	blocked	2026-09-25	Review: Arithmetic and CheckedLowering model integers, addition, and a spawn seed; general constructors, patterns, calls, effects, collections, and full CoreIR preservation remain unproved. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
+target-profile inference	blocked	blocked	2026-09-25	Review: CheckedLowering proves admission or rejection of a spawn seed, not the full VM/JS/Wasm inference algorithm; broader contracts rely on executable Rust tests. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
+VM execution subset	blocked	blocked	2026-09-25	Review: SemanticChain and Concurrency prove small expression and list-mailbox models, not the AOT scheduler, heaps, continuations, or complete VM execution; Rust and Terlan tests are not a refinement proof. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
+pattern and operator coverage	blocked	blocked	2026-09-25	Review: ShapeImplication proves closed-shape evidence properties; general pattern and operator coverage remains executable Terlan/Rust testing without corresponding Lean preservation theorems. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
+Wasm CoreIR lowering	blocked	blocked	2026-09-25	Review: WasmBridge proves a signature and resource-owner model, not a refinement from full CoreIR to emitted Wasm; complete lowering preservation remains unproved. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.
+Aeneas Rust verification bridge	blocked	blocked	2026-09-25	Review: NativeBoundary and the semantic kernels prove Lean models with runtime oracles; no inventoried Aeneas artifact connects the production Rust implementation to those models. See lean_proof_gap_review_2026_09_25.md; existing exception expiry is unchanged.

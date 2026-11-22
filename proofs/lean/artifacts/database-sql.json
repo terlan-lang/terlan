@@ -4,7 +4,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -12,17 +12,12 @@
     "database_sql/DatabaseSql.lean"
   ],
   "family": "database-sql",
-  "manifest_fingerprints": {
-    "std/summaries/std.db.Postgres.native_boundary.json": "sha256:ad29089893aedfa3a23043565e1e1e400d45d51deb0b267a4c5ea81377e7d925"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:0f746de88857fdacc2fc85f6a1f255b3150e0dca758bdac8fcd3aa753a4fdfdf",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.DatabaseSql.matchingPreparedStatementAccepted",
     "Terlan.DatabaseSql.wrongParameterArityRejected",
@@ -39,5 +34,8 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "std/summaries/std.db.Postgres.native_boundary.json"
+  ]
 }

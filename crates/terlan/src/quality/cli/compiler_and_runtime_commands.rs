@@ -163,24 +163,6 @@ pub(super) fn run_compiler_and_runtime_command(
                 Err(message) => failure(message),
             }
         }
-        Some("lean-proof-tool-admission") => {
-            let arguments = args.collect::<Vec<_>>();
-            let [output] = arguments.as_slice() else {
-                return Some(failure(
-                    "expected one private proof admission output path".into(),
-                ));
-            };
-            match crate::terlan_quality::lean_proof_track::write_tool_admission(
-                Path::new("."),
-                Path::new(output),
-            ) {
-                Ok(digest) => {
-                    println!("{digest}");
-                    ExitCode::SUCCESS
-                }
-                Err(message) => failure(message),
-            }
-        }
         Some("lean-proof-track") => match run_lean_proof_track(Path::new(".")) {
             Ok(summary) => {
                 println!(

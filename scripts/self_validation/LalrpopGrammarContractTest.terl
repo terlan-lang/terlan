@@ -1,5 +1,5 @@
 /**
- * Binds the generated parser and Lean shape proof to the canonical EBNF.
+ * Binds the generated parser to the canonical EBNF.
  */
 module scripts.self_validation.LalrpopGrammarContract.
 
@@ -12,24 +12,19 @@ import std.io.File.{read_text}.
 pub repository_contract_holds(root: String): Bool ->
     let ebnf = read_text(String.append(root, "/docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"));
     let grammar = read_text(String.append(root, "/crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop"));
-    let proof = read_text(String.append(root, "/proofs/lean/parser_shape/ParserShape.lean"));
-    case {ebnf, grammar, proof} {
-        {Ok(ebnf_text), Ok(grammar_text), Ok(proof_text)} ->
-            contract_holds(ebnf_text, grammar_text, proof_text);
+    case {ebnf, grammar} {
+        {Ok(ebnf_text), Ok(grammar_text)} -> contract_holds(ebnf_text, grammar_text);
         _ -> false
     }.
 
-pub contract_holds(ebnf: String, grammar: String, proof: String): Bool ->
-    fingerprints_match(sha256(ebnf), grammar, proof)
+pub contract_holds(ebnf: String, grammar: String): Bool ->
+    marker_matches(sha256(ebnf), grammar)
         and required_ebnf_rules_present(String.split(ebnf, "\n"))
         and required_productions_present(String.split(grammar, "\n"))
         and not String.contains(grammar, "parse_tree::")
         and not String.contains(grammar, "CoreIR")
         and not String.contains(grammar, "lower_lalrpop_")
         and not String.contains(grammar, "validate_lalrpop_").
-
-pub fingerprints_match(digest: String, grammar: String, proof: String): Bool ->
-    marker_matches(digest, grammar) and marker_matches(digest, proof).
 
 marker_matches(digest: String, text: String): Bool ->
     String.contains(
@@ -104,16 +99,16 @@ pub repository_lalrpop_contract_holds(): Bool ->
     repository_contract_holds(".").
 
 @test
-pub policy_accepts_matching_fingerprints(): Bool ->
-    fingerprints_match("abc", "// canonical-ebnf-sha256: abc", "-- canonical-ebnf-sha256:\tabc").
+pub policy_accepts_matching_fingerprint(): Bool ->
+    marker_matches("abc", "// canonical-ebnf-sha256: abc").
 
 @test
 pub policy_rejects_stale_fingerprint(): Bool ->
-    not fingerprints_match("abc", "// canonical-ebnf-sha256: stale", "-- canonical-ebnf-sha256: abc").
+    not marker_matches("abc", "// canonical-ebnf-sha256: stale").
 
 @test
 pub policy_rejects_syntaxoutput_boundary_crossing(): Bool ->
-    not contract_holds("SyntaxSpec ::= \"x\" .", "CoreIR", "").
+    not contract_holds("SyntaxSpec ::= \"x\" .", "CoreIR").
 
 @test
 pub rule_and_production_matching_require_line_prefixes(): Bool ->

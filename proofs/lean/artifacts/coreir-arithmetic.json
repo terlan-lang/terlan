@@ -4,7 +4,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -12,18 +12,12 @@
     "Terlan/Core/Arithmetic.lean"
   ],
   "family": "coreir-arithmetic",
-  "manifest_fingerprints": {
-    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md": "sha256:1e9e52dcd1b10f2a63583853df5701009cc084233363e840c493abc45eab02a0",
-    "docs/compiler/type_spec/terlan_core_typing_spec.toml": "sha256:ad3030afeacca68027a719071a87526c0e8902067d639475cdd350539a6fefd3"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:bd3f2ea4e54f8943028b2f26bc06b10b5af8287678a3ec87b345118824c37815",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.Core.addEvaluationPreservesInteger",
     "Terlan.Core.typedIntegerExpressionEvaluates"
@@ -36,5 +30,9 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "docs/compiler/CORE_IR_LEAN_CONFORMANCE.md",
+    "docs/compiler/type_spec/terlan_core_typing_spec.toml"
+  ]
 }

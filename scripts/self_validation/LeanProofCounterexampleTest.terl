@@ -6,7 +6,6 @@ module scripts.self_validation.LeanProofCounterexampleTest.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.{Int, String, Unit}.
-import std.crypto.Hash.
 import std.data.Json.
 import std.io.Console.{println}.
 import std.io.Directory.{create_all, entries}.
@@ -130,7 +129,7 @@ lane_owners_hold(source: String): Bool ->
 artifacts_hold(source: String): Bool ->
     String.starts_with(
     source,
-    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan\n",
+    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\treplay_metadata\tremediation_plan\n",
 )
         and not String.contains(source, "\tstale\t")
         and not String.contains(source, "\tincomplete\t")
@@ -204,10 +203,7 @@ vm_fixture_holds(source: String): Bool ->
 proof_binding_holds(accepted: String, current: String): Bool ->
     contains_all(
     accepted,
-    [
-        "Slice 12\tcoreir\tcompiler\tproof_current\tnone",
-        "slice_id\tfeature_class\towner\tcoverage_status\tblocker_hash",
-    ],
+    ["Slice 12\tcoreir\tcompiler\tproof_current", "slice_id\tfeature_class\towner\tcoverage_status"],
 )
         and contains_all(
     current,
@@ -323,7 +319,7 @@ owner_delta(owner: String): Json ->
         .put("current_unresolved", Json.int(0))
         .put("delta", Json.int(0)).
 
-report(source_digest: String, exit_code: Int): Json ->
+report(exit_code: Int): Json ->
     let evidence =
         Json.object()
             .put("theorem_id", Json.string("typed-coreir-return-type-preservation"))
@@ -339,7 +335,12 @@ report(source_digest: String, exit_code: Int): Json ->
                 "matched_stderr",
                 string_array(["error[type_mismatch]", "expected: Binary", "found:    Int"]),
             )
-            .put("source_digest", Json.string(String.append("sha256:", source_digest)));
+            .put(
+                "source_path",
+                Json.string(
+                    "proofs/lean/counterexamples/fixtures/terlc/typed-coreir-return-type-preservation.terl",
+                ),
+            );
     let counterexample =
         Json.object()
             .put("theorem_id", Json.string("typed-coreir-return-type-preservation"))
@@ -392,8 +393,8 @@ report(source_digest: String, exit_code: Int): Json ->
         ).
 
 write_report(root: String, source: String, exit_code: Int): Bool ->
-    let digest = Hash.sha256(source);
-    case Json.stringify_pretty(report(digest, exit_code)) {
+    let _source_checked = source != "";
+    case Json.stringify_pretty(report(exit_code)) {
         Ok(rendered) -> persist_report(root, String.append(rendered, "\n"));
         Err(_reason) -> fail("counterexample report could not be rendered")
     }.

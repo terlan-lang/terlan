@@ -646,7 +646,7 @@ compiler_build_declaration(): String ->
 
 @pure
 quality_build_declaration(): String ->
-    "build_command='cargo --locked build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality".
+    "build_command='cargo --locked build -p terlan -p terlan-rust-boundary-audit ".
 
 @pure
 bootstrap_declarations_hold(plan: String): Bool ->

@@ -28,7 +28,7 @@ pub(crate) struct LeanProofGapHygieneSummary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ClosureNote {
     feature: String,
-    artifact_hash: String,
+    artifact_path: String,
     rationale: String,
 }
 
@@ -123,14 +123,14 @@ fn parse_closure_notes(doc: &str) -> QualityResult<Vec<ClosureNote>> {
                 index + 1
             ));
         };
-        let Some((artifact_hash, rationale)) = rest.split_once("`: ") else {
+        let Some((artifact_path, rationale)) = rest.split_once("`: ") else {
             return Err(format!(
                 "{TRACK_DOC}:{}: malformed proof-gap closure artifact or rationale",
                 index + 1
             ));
         };
         if feature.trim().is_empty()
-            || artifact_hash.trim().is_empty()
+            || artifact_path.trim().is_empty()
             || rationale.trim().is_empty()
         {
             return Err(format!(
@@ -140,7 +140,7 @@ fn parse_closure_notes(doc: &str) -> QualityResult<Vec<ClosureNote>> {
         }
         notes.push(ClosureNote {
             feature: feature.to_string(),
-            artifact_hash: artifact_hash.to_string(),
+            artifact_path: artifact_path.to_string(),
             rationale: rationale.to_string(),
         });
     }
@@ -179,14 +179,14 @@ fn validate_gap_closures(
         }
         let matching_artifact = current_artifacts
             .iter()
-            .find(|artifact| artifact.proof_digest == note.artifact_hash);
+            .find(|artifact| artifact.path == note.artifact_path);
         if matching_artifact.is_none() {
             diagnostics.push(format!(
                 concat!(
                     "proof_gap[invalid-closure-artifact]: feature `{}` references `{}`, ",
-                    "which is not a current proof artifact digest"
+                    "which is not a current proof path"
                 ),
-                note.feature, note.artifact_hash
+                note.feature, note.artifact_path
             ));
         } else if let Some(gap) = gaps.iter().find(|gap| gap.feature == note.feature) {
             let covers_gap = matching_artifact.is_some_and(|artifact| {
@@ -199,7 +199,7 @@ fn validate_gap_closures(
             if !covers_gap {
                 diagnostics.push(format!(
                     "proof_gap[unrelated-closure-artifact]: feature `{}` artifact `{}` covers none of the gap manifests",
-                    note.feature, note.artifact_hash
+                    note.feature, note.artifact_path
                 ));
             }
         }

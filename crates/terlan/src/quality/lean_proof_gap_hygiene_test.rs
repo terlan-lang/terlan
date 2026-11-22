@@ -1,7 +1,5 @@
 use super::*;
-use crate::terlan_quality::lean_proof_track::lean_proof_gap::{
-    blocker_hash, GapPolicy, GAP_HEADER,
-};
+use crate::terlan_quality::lean_proof_track::lean_proof_gap::{GapPolicy, GAP_HEADER};
 use time::{Date, Month};
 
 fn policy() -> GapPolicy {
@@ -13,11 +11,10 @@ fn gap_with_status(status: &str, updated_at: &str, planned_gate: &str) -> LeanPr
     let feature = "typed CoreIR preservation";
     let category = "model_gap";
     let reason = "Constructors remain unproved.";
-    let hash = blocker_hash(feature, category, reason, updated_at);
     let text = format!(
         concat!(
             "{GAP_HEADER}\n{feature}\t{status}\t{category}\t{reason}\tcompiler\t",
-            "{planned_gate}\tdeadline:0.0.7-closeout\t{updated_at}\t{hash}\t",
+            "{planned_gate}\tdeadline:0.0.7-closeout\t{updated_at}\t",
             "docs/compiler/type_spec/terlan_core_typing_spec.toml\n"
         ),
         GAP_HEADER = GAP_HEADER,
@@ -26,8 +23,7 @@ fn gap_with_status(status: &str, updated_at: &str, planned_gate: &str) -> LeanPr
         category = category,
         reason = reason,
         planned_gate = planned_gate,
-        updated_at = updated_at,
-        hash = hash
+        updated_at = updated_at
     );
     parse_gap_manifest(&text)
         .expect("valid gap manifest")
@@ -38,7 +34,7 @@ fn gap(updated_at: &str, planned_gate: &str) -> LeanProofGap {
     gap_with_status("blocked", updated_at, planned_gate)
 }
 
-fn artifact(status: &str, proof_digest: &str) -> ArtifactRow {
+fn artifact(status: &str) -> ArtifactRow {
     ArtifactRow {
         path: "proofs/lean/Core.lean".to_string(),
         status: status.to_string(),
@@ -46,16 +42,15 @@ fn artifact(status: &str, proof_digest: &str) -> ArtifactRow {
         targeted_manifests: vec!["docs/compiler/type_spec/terlan_core_typing_spec.toml".to_string()],
         expected_exit: 0,
         stderr_class: "none".to_string(),
-        proof_digest: proof_digest.to_string(),
         replay_metadata: "proofs/lean/artifacts/core.json".to_string(),
         remediation_plan: "none".to_string(),
     }
 }
 
-fn closure(feature: &str, artifact_hash: &str) -> ClosureNote {
+fn closure(feature: &str, artifact_path: &str) -> ClosureNote {
     ClosureNote {
         feature: feature.to_string(),
-        artifact_hash: artifact_hash.to_string(),
+        artifact_path: artifact_path.to_string(),
         rationale: "The executable proof now covers the complete feature.".to_string(),
     }
 }
@@ -161,7 +156,7 @@ fn lean_proof_gap_hygiene_rejects_closed_gap_without_changelog_note() {
             "2026-07-16",
             "core-typing-spec-check",
         )],
-        &[artifact("current", "sha256:restored")],
+        &[artifact("current")],
         &[],
     );
 
@@ -174,8 +169,11 @@ fn lean_proof_gap_hygiene_rejects_closed_gap_without_changelog_note() {
 fn lean_proof_gap_hygiene_rejects_orphaned_and_fabricated_closure_note() {
     let diagnostics = validate_gap_closures(
         &[gap("2026-07-16", "core-typing-spec-check")],
-        &[artifact("current", "sha256:restored")],
-        &[closure("typed CoreIR preservation", "sha256:fabricated")],
+        &[artifact("current")],
+        &[closure(
+            "typed CoreIR preservation",
+            "proofs/lean/Missing.lean",
+        )],
     );
 
     assert!(diagnostics
@@ -188,14 +186,14 @@ fn lean_proof_gap_hygiene_rejects_orphaned_and_fabricated_closure_note() {
 
 #[test]
 fn lean_proof_gap_hygiene_rejects_duplicate_closure_notes() {
-    let note = closure("typed CoreIR preservation", "sha256:restored");
+    let note = closure("typed CoreIR preservation", "proofs/lean/Core.lean");
     let diagnostics = validate_gap_closures(
         &[gap_with_status(
             "closed",
             "2026-07-16",
             "core-typing-spec-check",
         )],
-        &[artifact("current", "sha256:restored")],
+        &[artifact("current")],
         &[note.clone(), note],
     );
 
@@ -208,7 +206,7 @@ fn lean_proof_gap_hygiene_rejects_duplicate_closure_notes() {
 fn lean_proof_gap_hygiene_accepts_closed_gap_with_current_artifact_note() {
     let notes = parse_closure_notes(concat!(
         "## Proof-gap closure changelog\n",
-        "- Proof-gap closure: `typed CoreIR preservation` restored by `sha256:restored`: ",
+        "- Proof-gap closure: `typed CoreIR preservation` restored by `proofs/lean/Core.lean`: ",
         "The complete proof is executable.\n"
     ))
     .expect("canonical closure note");
@@ -218,7 +216,7 @@ fn lean_proof_gap_hygiene_accepts_closed_gap_with_current_artifact_note() {
             "2026-07-16",
             "core-typing-spec-check",
         )],
-        &[artifact("current", "sha256:restored")],
+        &[artifact("current")],
         &notes,
     );
 
@@ -227,7 +225,7 @@ fn lean_proof_gap_hygiene_accepts_closed_gap_with_current_artifact_note() {
 
 #[test]
 fn lean_proof_gap_hygiene_rejects_unrelated_current_closure_artifact() {
-    let mut unrelated = artifact("current", "sha256:restored");
+    let mut unrelated = artifact("current");
     unrelated.targeted_manifests = vec!["docs/compiler/unrelated.toml".to_string()];
     let diagnostics = validate_gap_closures(
         &[gap_with_status(
@@ -236,7 +234,10 @@ fn lean_proof_gap_hygiene_rejects_unrelated_current_closure_artifact() {
             "core-typing-spec-check",
         )],
         &[unrelated],
-        &[closure("typed CoreIR preservation", "sha256:restored")],
+        &[closure(
+            "typed CoreIR preservation",
+            "proofs/lean/Core.lean",
+        )],
     );
 
     assert!(diagnostics
@@ -259,7 +260,7 @@ fn lean_proof_gap_hygiene_rejects_malformed_closure_note_syntax() {
 fn lean_proof_gap_hygiene_rejects_empty_closure_rationale() {
     let error = parse_closure_notes(concat!(
         "## Proof-gap closure changelog\n",
-        "- Proof-gap closure: `typed CoreIR preservation` restored by `sha256:restored`: \n"
+        "- Proof-gap closure: `typed CoreIR preservation` restored by `proofs/lean/Core.lean`: \n"
     ))
     .expect_err("empty closure rationale should fail");
 

@@ -1,22 +1,22 @@
-slice_id	feature_class	owner	coverage_status	blocker_hash
-Slice 4	coreir	compiler	proof_current	none
-Slice 5	coreir	compiler	proof_current	none
-Slice 9	vm_runtime	vm	proof_current	none
-Slice 10	coreir	compiler	proof_current	none
-Slice 11	coreir	compiler	proof_current	none
-Slice 12	coreir	compiler	proof_current	none
-Slice 13	parser	compiler	proof_current	none
-Slice 14	native_boundary	runtime	proof_current	none
-Slice 15	coreir	compiler	proof_current	none
-Slice 16	vm_runtime	vm	proof_current	none
-Slice 17	std_packages	compiler	proof_current	none
-Slice 18	wasm	compiler	proof_current	none
-Slice 19	std_packages	compiler	proof_current	none
-Slice 20	std_packages	compiler	proof_current	none
-Slice 22	coreir	compiler	slice_blocked	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0
-Slice 23	coreir	compiler	slice_blocked	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0
-Slice 24	vm_runtime	vm	slice_blocked	sha256:7937b585761e193f053eaffab67a2c2b66d8caf13d6f7abc616b6894a3af5948
-Slice 25	coreir	compiler	slice_blocked	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0
-Slice 26	coreir	compiler	slice_blocked	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0
-Slice 27	coreir	compiler	slice_blocked	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0
-Slice 28	coreir	compiler	slice_blocked	sha256:22430c6e3325d3ef94fad0f28f9acc03397e03c272c41c3434054e39aff667a0
+slice_id	feature_class	owner	coverage_status
+Slice 4	coreir	compiler	proof_current
+Slice 5	coreir	compiler	proof_current
+Slice 9	vm_runtime	vm	proof_current
+Slice 10	coreir	compiler	proof_current
+Slice 11	coreir	compiler	proof_current
+Slice 12	coreir	compiler	proof_current
+Slice 13	parser	compiler	proof_current
+Slice 14	native_boundary	runtime	proof_current
+Slice 15	coreir	compiler	proof_current
+Slice 16	vm_runtime	vm	proof_current
+Slice 17	std_packages	compiler	proof_current
+Slice 18	wasm	compiler	proof_current
+Slice 19	std_packages	compiler	proof_current
+Slice 20	std_packages	compiler	proof_current
+Slice 22	coreir	compiler	slice_blocked
+Slice 23	coreir	compiler	slice_blocked
+Slice 24	vm_runtime	vm	slice_blocked
+Slice 25	coreir	compiler	slice_blocked
+Slice 26	coreir	compiler	slice_blocked
+Slice 27	coreir	compiler	slice_blocked
+Slice 28	coreir	compiler	slice_blocked

@@ -189,12 +189,6 @@ rg -v '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
 preflight_has() { rg -qx "$1" "$preflight_plan"; }
 lane_has() { rg -qx "$1" "$plan"; }
 
-if preflight_has proof-baseline-missing; then
-  echo 'pre-commit: proof evidence changed without refreshed release baseline' >&2
-  echo 'run make proof-release-baseline and stage proofs/lean/release_evidence/baseline.json' >&2
-  exit 1
-fi
-
 if [[ "$hook_mode" == fast ]]; then
   admission_started=$SECONDS
   admission_status=0
@@ -707,12 +701,9 @@ run_workspace_suite() {
   fi
 }
 
-run_proof_coverage() {
+run_proof_checks() {
   ensure_quality_tools
-  ensure_test_program_snapshots
-  TERLC="$TERLAN_RUST_SUITE_TERLC" \
-  TERLAN_RUST_ORCHESTRATOR="$orchestrator_path" \
-    bash scripts/git_hooks/proofs.sh
+  TERLC="$TERLAN_RUST_SUITE_TERLC" bash scripts/git_hooks/proofs.sh
 }
 
 run_release_contract_lane() {
@@ -856,7 +847,7 @@ fi
 if lane_has proofs; then
   echo 'pre-commit: early proof source and policy contracts'
   ensure_quality_tools
-  TERLC="$terlc" bash scripts/git_hooks/proof_baseline.sh
+  TERLC="$terlc" bash scripts/git_hooks/proof_evidence.sh
 fi
 
 # Static shell and Clippy diagnostics are candidate contracts. Run them before
@@ -917,8 +908,8 @@ if [[ "$workspace_lane_selected" == true ]] && lane_has native-bindings; then
   mv "$remaining_plan" "$plan"
 fi
 if [[ "$workspace_lane_selected" == true ]] && lane_has proofs; then
-  echo 'pre-commit: proof runtime coverage immediately follows canonical Rust suite'
-  run_proof_coverage
+  echo 'pre-commit: proof checks immediately follow canonical Rust suite'
+  run_proof_checks
   remaining_plan="${plan%.plan}.without-proofs.plan"
   rg -vx 'proofs' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
@@ -1060,7 +1051,7 @@ while IFS= read -r lane; do
           exit "$lane_status"
         fi
       fi
-      run_proof_coverage
+      run_proof_checks
       ;;
     bootstrap)
       if [[ $(uname -s) == Linux ]]; then

@@ -215,32 +215,30 @@ structure ManifestRow where
   operation : String
   arity : Nat
   argumentTypes : List String
-  rowDigest : String
+  sourcePath : String
 
 def manifestRowWellFormed (row : ManifestRow) : Prop :=
   row.moduleName ≠ "" ∧
     row.functionName ≠ "" ∧
     row.operation ≠ "" ∧
     row.arity = row.argumentTypes.length ∧
-    row.rowDigest ≠ ""
+    row.sourcePath ≠ ""
 
-def theoremManifestBinding
-    (proofDigest : String)
-    (row : ManifestRow) : Prop :=
-  proofDigest ≠ "" ∧ manifestRowWellFormed row
+def theoremManifestBinding (proofPath : String) (row : ManifestRow) : Prop :=
+  proofPath ≠ "" ∧ manifestRowWellFormed row
 
 theorem boundManifestRowHasTypedArity
-    {proofDigest : String}
+    {proofPath : String}
     {row : ManifestRow}
-    (bound : theoremManifestBinding proofDigest row) :
+    (bound : theoremManifestBinding proofPath row) :
     row.arity = row.argumentTypes.length := by
   exact bound.2.2.2.2.1
 
-theorem boundManifestRowHasContentAddresses
-    {proofDigest : String}
+theorem boundManifestRowHasSourcePaths
+    {proofPath : String}
     {row : ManifestRow}
-    (bound : theoremManifestBinding proofDigest row) :
-    proofDigest ≠ "" ∧ row.rowDigest ≠ "" := by
+    (bound : theoremManifestBinding proofPath row) :
+    proofPath ≠ "" ∧ row.sourcePath ≠ "" := by
   exact ⟨bound.1, bound.2.2.2.2.2⟩
 
 theorem typedVmDispatchAdmitted

@@ -1,5 +1,5 @@
 use super::*;
-use crate::terlan_quality::lean_proof_track::lean_proof_gap::{blocker_hash, GAP_HEADER};
+use crate::terlan_quality::lean_proof_track::lean_proof_gap::GAP_HEADER;
 use std::collections::BTreeSet;
 use std::fs;
 
@@ -28,13 +28,8 @@ fn gap_rows(rows: &str) -> String {
             let category = "model_gap";
             let updated_at = "2026-07-16";
             format!(
-                "{}\tblocked\t{category}\t{}\t{}\t{}\tdeadline:0.0.7-closeout\t{updated_at}\t{}\t{}",
-                columns[0],
-                columns[1],
-                columns[2],
-                columns[3],
-                blocker_hash(columns[0], category, columns[1], updated_at),
-                columns[4]
+                "{}\tblocked\t{category}\t{}\t{}\t{}\tdeadline:0.0.7-closeout\t{updated_at}\t{}",
+                columns[0], columns[1], columns[2], columns[3], columns[4]
             )
         })
         .collect::<Vec<_>>()
@@ -233,8 +228,8 @@ fn lean_proof_track_rejects_stale_runtime_terms() {
 #[test]
 fn lean_proof_artifacts_parse_execution_contract() {
     let rows = parse_artifacts(
-        "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan\n\
-         proofs/lean/Terlan/Core.lean\tcurrent\tCoreIR\tdocs/core.toml;docs/core.md\t0\tnone\tsha256:abc\tproofs/lean/artifacts/core.json\tnone\n",
+        "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\treplay_metadata\tremediation_plan\n\
+         proofs/lean/Terlan/Core.lean\tcurrent\tCoreIR\tdocs/core.toml;docs/core.md\t0\tnone\tproofs/lean/artifacts/core.json\tnone\n",
     )
     .expect("parse artifacts");
 
@@ -247,8 +242,8 @@ fn lean_proof_artifacts_parse_execution_contract() {
 #[test]
 fn lean_proof_artifacts_accept_native_boundary_scope() {
     let rows = parse_artifacts(
-        "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan\n\
-         proofs/lean/Terlan/Runtime/NativeBoundary.lean\tcurrent\tNativeBoundary\tdocs/runtime/native.md\t0\tnone\tsha256:abc\tproofs/lean/artifacts/native.json\tnone\n",
+        "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\treplay_metadata\tremediation_plan\n\
+         proofs/lean/Terlan/Runtime/NativeBoundary.lean\tcurrent\tNativeBoundary\tdocs/runtime/native.md\t0\tnone\tproofs/lean/artifacts/native.json\tnone\n",
     )
     .expect("parse NativeBoundary artifact");
 
@@ -271,19 +266,13 @@ fn lean_proof_artifacts_require_preservation_lowering_and_rejection_scopes() {
 }
 
 #[test]
-fn lean_proof_artifacts_reject_stale_digest() {
+fn lean_proof_artifacts_reject_missing_proof() {
     let root =
-        std::env::temp_dir().join(format!("terlan_lean_stale_digest_{}", std::process::id()));
+        std::env::temp_dir().join(format!("terlan_lean_missing_proof_{}", std::process::id()));
     if root.exists() {
         fs::remove_dir_all(&root).expect("remove old temp root");
     }
-    fs::create_dir_all(root.join("proofs/lean/Terlan")).expect("proof directory");
     fs::create_dir_all(root.join("docs")).expect("docs directory");
-    fs::write(
-        root.join("proofs/lean/Terlan/Core.lean"),
-        "theorem seed : True := by trivial\n",
-    )
-    .expect("proof");
     fs::write(root.join("docs/core.toml"), "version = 1\n").expect("manifest");
     let artifacts = vec![ArtifactRow {
         path: "proofs/lean/Terlan/Core.lean".to_string(),
@@ -292,7 +281,6 @@ fn lean_proof_artifacts_reject_stale_digest() {
         targeted_manifests: vec!["docs/core.toml".to_string()],
         expected_exit: 0,
         stderr_class: "none".to_string(),
-        proof_digest: "sha256:stale".to_string(),
         replay_metadata: "proofs/lean/artifacts/core.json".to_string(),
         remediation_plan: "none".to_string(),
     }];
@@ -311,8 +299,8 @@ fn lean_proof_artifacts_reject_stale_digest() {
     assert!(
         diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.contains("digest is stale")),
-        "expected stale digest diagnostic, got {diagnostics:?}"
+            .any(|diagnostic| diagnostic.contains("missing proof")),
+        "expected missing proof diagnostic, got {diagnostics:?}"
     );
 }
 
@@ -325,7 +313,6 @@ fn lean_proof_artifacts_require_nondeterministic_remediation_plan() {
         targeted_manifests: vec!["docs/core.toml".to_string()],
         expected_exit: 0,
         stderr_class: "none".to_string(),
-        proof_digest: "sha256:unused".to_string(),
         replay_metadata: "proofs/lean/artifacts/core.json".to_string(),
         remediation_plan: "none".to_string(),
     }];

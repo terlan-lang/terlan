@@ -137,7 +137,7 @@ pub(super) fn test_observation(command: &Command) -> Result<TestIdentity, PhaseF
             }
             Some(CONTEXT) => continue,
             Some(key) if EXECUTABLE_ROUTES.contains(&key) => continue,
-            Some("TERLAN_SEMANTIC_KERNEL_ROOT" | "TERLAN_LEAN_PROOF_ROOT") => {
+            Some("TERLAN_LEAN_PROOF_ROOT") => {
                 if Path::new(value) != directory {
                     return Err(failure(
                         "proof-script routing root differs from the coverage checkout",

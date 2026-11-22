@@ -8,8 +8,8 @@ use super::{
     cargo_program, failed_closeout_control, phase_timeout_from, prebuilt_binary_from,
     prebuilt_binary_override_name, run_closed_command, run_closed_command_captured, test_phases,
     validate_tier_inventory, write_report, PhaseExecutor, PhaseResult, ValidationTier,
-    DEFAULT_PHASE_TIMEOUT_SECONDS, EXTERNAL_TIER_OWNERS, INTEGRATION_FILTERS, MAX_CARGO_PHASES,
-    TIER_INVENTORY,
+    DEFAULT_PHASE_TIMEOUT_SECONDS, EXTERNAL_TIER_OWNERS, FAST_UNIT_MAX_TIMEOUT_SECONDS,
+    INTEGRATION_FILTERS, MAX_CARGO_PHASES, TIER_INVENTORY,
 };
 use terlan_process_owner::ProcessControl;
 
@@ -349,10 +349,10 @@ fn orchestrator_phase_timeout_is_positive_and_bounded_by_default() {
 }
 
 #[test]
-fn fast_unit_phases_have_a_hard_one_minute_execution_ceiling() {
+fn fast_unit_phases_allow_load_variance_but_remain_bounded() {
     assert_eq!(
         ValidationTier::FastUnit.maximum_timeout(),
-        Some(Duration::from_secs(60))
+        Some(Duration::from_secs(FAST_UNIT_MAX_TIMEOUT_SECONDS))
     );
     assert_eq!(ValidationTier::Integration.maximum_timeout(), None);
 }

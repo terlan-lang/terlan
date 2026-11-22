@@ -28,7 +28,6 @@ mod inline_tests;
 mod internal_docs;
 mod js_type_emission_contract;
 mod language_feature_full_coverage;
-mod lean_proof_closeout;
 mod lean_proof_feature_cull;
 mod lean_proof_pr;
 mod lean_proof_regression;
@@ -142,27 +141,6 @@ pub fn run_native_target_feasibility_from_workspace() -> std::process::ExitCode 
                 summary.rejected_feature_count,
                 summary.adversarial_case_count,
                 summary.report_path.display()
-            );
-            std::process::ExitCode::SUCCESS
-        }
-        Err(message) => {
-            eprintln!("{message}");
-            std::process::ExitCode::from(1)
-        }
-    }
-}
-
-/// Runs the Lean proof closeout command from the workspace root.
-pub fn run_lean_proof_closeout_from_workspace() -> std::process::ExitCode {
-    match lean_proof_closeout::run_lean_proof_closeout(std::path::Path::new(".")) {
-        Ok(summary) => {
-            println!(
-                "[lean-proof-closeout] {} families, {} hard lanes, and {} baseline classes verified; baseline {}; gate report {}.",
-                summary.family_count,
-                summary.lane_count,
-                summary.baseline_count,
-                summary.baseline_hash,
-                summary.gate_report.display()
             );
             std::process::ExitCode::SUCCESS
         }

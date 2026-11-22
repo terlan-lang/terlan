@@ -6,8 +6,7 @@ use crate::terlan_quality::lean_proof_track::lean_proof_gap::{parse_date, LeanPr
 use crate::terlan_quality::QualityResult;
 
 pub(crate) const TRANSITION_PATH: &str = "docs/compiler/proof_track/lean_proof_gap_transitions.tsv";
-const TRANSITION_HEADER: &str =
-    "feature\tprevious_status\tnext_status\tchanged_at\tevidence_hash\trationale";
+const TRANSITION_HEADER: &str = "feature\tprevious_status\tnext_status\tchanged_at\trationale";
 const LIFECYCLE: &[&str] = &["none", "open", "triaged", "blocked", "remediated", "closed"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,7 +15,6 @@ pub(crate) struct GapTransition {
     previous_status: String,
     next_status: String,
     changed_at: String,
-    evidence_hash: String,
     rationale: String,
 }
 
@@ -38,9 +36,9 @@ pub(crate) fn parse_gap_transitions(text: &str) -> QualityResult<Vec<GapTransiti
             continue;
         }
         let columns = line.split('\t').collect::<Vec<_>>();
-        if columns.len() != 6 {
+        if columns.len() != 5 {
             return Err(format!(
-                "`{TRANSITION_PATH}` row {} has {} columns, expected 6",
+                "`{TRANSITION_PATH}` row {} has {} columns, expected 5",
                 index + 2,
                 columns.len()
             ));
@@ -50,8 +48,7 @@ pub(crate) fn parse_gap_transitions(text: &str) -> QualityResult<Vec<GapTransiti
             previous_status: columns[1].to_string(),
             next_status: columns[2].to_string(),
             changed_at: columns[3].to_string(),
-            evidence_hash: columns[4].to_string(),
-            rationale: columns[5].to_string(),
+            rationale: columns[4].to_string(),
         });
     }
     Ok(transitions)
@@ -82,12 +79,6 @@ pub(crate) fn validate_gap_transitions(
                 transition.feature
             ));
         }
-        if !is_sha256(&transition.evidence_hash) {
-            diagnostics.push(format!(
-                "proof_gap[invalid-transition-evidence]: `{}` transition evidence `{}` is not SHA-256",
-                transition.feature, transition.evidence_hash
-            ));
-        }
         by_feature
             .entry(transition.feature.as_str())
             .or_default()
@@ -109,7 +100,6 @@ pub(crate) fn validate_gap_transitions(
 
         let mut expected_previous = "none";
         let mut previous_date = None;
-        let mut previous_evidence = None;
         for transition in history {
             if transition.previous_status != expected_previous {
                 diagnostics.push(format!(
@@ -126,12 +116,11 @@ pub(crate) fn validate_gap_transitions(
                 ));
             }
             if review
-                && (previous_evidence == Some(transition.evidence_hash.as_str())
-                    || !transition.rationale.starts_with("Review: ")
+                && (!transition.rationale.starts_with("Review: ")
                     || transition.rationale.trim() == "Review:")
             {
                 diagnostics.push(format!(
-                    "proof_gap[invalid-blocker-review]: `{}` requires new evidence and a Review: rationale",
+                    "proof_gap[invalid-blocker-review]: `{}` requires a substantive Review: rationale",
                     gap.feature
                 ));
             }
@@ -163,7 +152,6 @@ pub(crate) fn validate_gap_transitions(
                 )),
             }
             expected_previous = transition.next_status.as_str();
-            previous_evidence = Some(transition.evidence_hash.as_str());
         }
 
         if history.last().is_some_and(|transition| {
@@ -183,16 +171,6 @@ pub(crate) fn validate_gap_transitions(
                 gap.feature, gap.lifecycle_status
             ));
         }
-        if gap.lifecycle_status != "closed"
-            && history.last().is_some_and(|transition| {
-                transition.evidence_hash.as_str() != gap.blocker_hash.as_str()
-            })
-        {
-            diagnostics.push(format!(
-                "proof_gap[transition-evidence-drift]: `{}` latest transition must use blocker hash `{}`",
-                gap.feature, gap.blocker_hash
-            ));
-        }
     }
     diagnostics
 }
@@ -201,12 +179,6 @@ fn is_successor(previous: &str, next: &str) -> bool {
     LIFECYCLE
         .windows(2)
         .any(|pair| pair[0] == previous && pair[1] == next)
-}
-
-fn is_sha256(value: &str) -> bool {
-    value.strip_prefix("sha256:").is_some_and(|digest| {
-        digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
-    })
 }
 
 #[cfg(test)]

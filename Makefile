@@ -36,10 +36,6 @@ TERLAN_SELF_VALIDATION_DIR := target/self-validation/build-artifact-budget
 TERLAN_SELF_VALIDATION_IMAGE := $(TERLAN_SELF_VALIDATION_DIR)/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
 TERLAN_MAKE_RECIPE_DIR := target/self-validation/make-recipe-thinness
 TERLAN_MAKE_RECIPE_IMAGE := $(TERLAN_MAKE_RECIPE_DIR)/vm/scripts_self_validation_MakeRecipeThinness.tvm
-TERLAN_PROOF_RELEASE_DIR := target/self-validation/proof-release-evidence
-TERLAN_PROOF_RELEASE_IMAGE := $(TERLAN_PROOF_RELEASE_DIR)/vm/scripts_ProofReleaseEvidence.tvm
-TERLAN_SEMANTIC_KERNEL_DIR := target/self-validation/semantic-kernels
-TERLAN_SEMANTIC_KERNEL_IMAGE := $(TERLAN_SEMANTIC_KERNEL_DIR)/vm/scripts_SemanticKernels.tvm
 TERLAN_EBNF_VALIDATOR_DIR := target/self-validation/ebnf-validator
 TERLAN_EBNF_VALIDATOR_IMAGE := $(TERLAN_EBNF_VALIDATOR_DIR)/vm/scripts_self_validation_EbnfValidator.tvm
 TERLAN_SHARED_HELPER_DIR := target/self-validation/shared-helper-check
@@ -504,7 +500,7 @@ CHECK_GATES := \
 # and aggregate targets whose parent owns this prerequisite set
 # `TERLAN_VALIDATION_BOOTSTRAPPED=1`; nested Make processes therefore trust the
 # already-verified boundary instead of repeating fingerprints and file probes.
-.PHONY: terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-quality-bootstrap terlan-benchmark-release-bootstrap terlan-native-worker-bootstrap terlan-typed-validator-fingerprint terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-self-validation-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap
+.PHONY: terlan-compiler-bootstrap terlan-quality-tools-bootstrap terlan-quality-bootstrap terlan-benchmark-release-bootstrap terlan-native-worker-bootstrap terlan-typed-validator-fingerprint terlan-artifact-measurement-bootstrap terlan-make-recipe-bootstrap terlan-self-validation-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap
 # Build the small process owner before the compiler. Linux admits disk/cache
 # resources through that same support build; no second Cargo bootstrap is added.
 # Prebuilt consumers and read-only publication never request this prerequisite.
@@ -576,7 +572,6 @@ ifeq ($(TERLAN_BUILD_ARTIFACTS_PREBUILT),1)
 	@for binary in \
 		terlan-quality \
 		terlan-native-target-feasibility \
-		terlan-lean-proof-closeout \
 		terlan-accelerator-value-contract \
 		terlan-accelerator-target-admission \
 		terlan-accelerator-ir \
@@ -595,7 +590,7 @@ else
 		set -eu; \
 		if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi; \
 		mkdir -p target/quality; \
-		build_command='$(CARGO) build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/validation-union'; \
+		build_command='$(CARGO) build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/validation-union'; \
 		cargo_program='$(firstword $(CARGO))'; \
 		cargo_args='$(wordlist 2,99,$(CARGO))'; \
 		if git diff --quiet \
@@ -612,7 +607,6 @@ else
 				--timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" \
 				--output target/debug/terlan-quality \
 				--output target/debug/terlan-native-target-feasibility \
-				--output target/debug/terlan-lean-proof-closeout \
 				--output target/debug/terlan-accelerator-value-contract \
 				--output target/debug/terlan-accelerator-target-admission \
 				--output target/debug/terlan-accelerator-ir \
@@ -624,7 +618,7 @@ else
 				-- /bin/sh -c "$$build_command"; \
 		else \
 			$(TERLAN_BOOTSTRAP_LOCK) \
-			$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-lean-proof-closeout --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/validation-union; \
+				$(TERLAN_RUST_ORCHESTRATOR) --run-owned --timeout-seconds "$(TERLAN_COMPILER_BUILD_TIMEOUT_SECONDS)" -- "$$cargo_program" $$cargo_args build -p terlan -p terlan-rust-boundary-audit --bin terlan-quality --bin terlan-native-target-feasibility --bin terlan-accelerator-value-contract --bin terlan-accelerator-target-admission --bin terlan-accelerator-ir --bin terlan-accelerator-aot-backend --bin terlan-accelerator-placement --bin terlan-accelerator-vm-integration --bin terlan-accelerator-specialized-artifact --bin terlan-rust-boundary-audit --features terlan/validation-union; \
 		fi; \
 	else \
 		$(CARGO) build \
@@ -632,7 +626,6 @@ else
 			-p terlan-rust-boundary-audit \
 			--bin terlan-quality \
 			--bin terlan-native-target-feasibility \
-			--bin terlan-lean-proof-closeout \
 			--bin terlan-accelerator-value-contract \
 			--bin terlan-accelerator-target-admission \
 			--bin terlan-accelerator-ir \
@@ -718,7 +711,7 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 endif
 
 # Shares the toolchain fingerprint prerequisite across all typed-validator bootstrap targets.
-terlan-make-recipe-bootstrap terlan-semantic-kernel-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-release-closeout-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap: terlan-typed-validator-fingerprint
+terlan-make-recipe-bootstrap terlan-ebnf-validator-bootstrap terlan-shared-helper-bootstrap terlan-external-package-matrix-bootstrap terlan-tvm-package-consumer-bootstrap terlan-tvm-platform-matrix-bootstrap terlan-rust-quality-bootstrap terlan-docs-static-release-parity-bootstrap terlan-release-promotion-bootstrap terlan-release-closeout-bootstrap terlan-web-manifest-preflight-bootstrap terlan-self-validation-checkout-bootstrap terlan-stdlib-validation-bootstrap terlan-repository-validation-bootstrap: terlan-typed-validator-fingerprint
 
 # Builds the typed BuildArtifactBudgetTest validator image used for artifact-size checks.
 terlan-artifact-measurement-bootstrap: terlan-compiler-bootstrap
@@ -742,17 +735,6 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 		scripts/self_validation/MakeRecipeThinness.terls \
 		--target terlan-vm --out-dir $(TERLAN_MAKE_RECIPE_DIR)
 	test -s $(TERLAN_MAKE_RECIPE_IMAGE)
-endif
-
-# Builds the typed SemanticKernels validator image for the terlan-vm target.
-terlan-semantic-kernel-bootstrap: terlan-compiler-bootstrap
-ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_SEMANTIC_KERNEL_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
-		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
-		scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls \
-		--target terlan-vm --out-dir $(TERLAN_SEMANTIC_KERNEL_DIR)
-	test -s $(TERLAN_SEMANTIC_KERNEL_IMAGE)
 endif
 
 # Builds the typed EbnfValidator validator image for the terlan-vm target.
@@ -925,22 +907,8 @@ ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 		--target terlan-vm --out-dir $(TERLAN_REPOSITORY_VALIDATION_DIR)
 	test -s $(TERLAN_REPOSITORY_VALIDATION_IMAGE)
 endif
-.PHONY: terlan-proof-release-bootstrap
-# Builds the typed ProofReleaseEvidence validator image for the terlan-vm target.
-terlan-proof-release-bootstrap: terlan-compiler-bootstrap terlan-typed-validator-fingerprint
-ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
-	$(TERLAN_TYPED_VALIDATOR_BUILD) $(TERLAN_PROOF_RELEASE_IMAGE) \
-		$(TERLAN_TYPED_VALIDATOR_COMMON_INPUTS) scripts/self_validation/proof_release_evidence -- \
-		$(TERLAN_BOOTSTRAP_COMPILER_BUILD) \
-		scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls \
-		--target terlan-vm --out-dir $(TERLAN_PROOF_RELEASE_DIR)
-	test -s $(TERLAN_PROOF_RELEASE_IMAGE)
-endif
-
 # Adds the compiler-bootstrap prerequisite to the whole compiler-consumer gate list.
 $(TERLAN_COMPILER_CONSUMER_GATES): | terlan-compiler-bootstrap
-# Adds the semantic-kernel bootstrap prerequisite to these lean-proof lanes.
-lean-proof-templates-routes-check lean-proof-concurrency-check lean-proof-collections-check lean-proof-wasm-bridge-check lean-proof-db-sql-check lean-proof-std-package-check lean-proof-semantic-kernels-check: | terlan-semantic-kernel-bootstrap
 # Adds the quality-tools bootstrap prerequisite to these lean-proof and proof-repro checks.
 lean-proof-parser-shape-check lean-proof-feature-cull-check lean-proof-native-boundary-check lean-proof-smoke-check proof-repro-check lean-proof-track-runtime-check lean-proof-track-pr-gate lean-proof-track-regression-check: | terlan-quality-tools-bootstrap
 # Adds the compiler-bootstrap prerequisite to the lalrpop/lean-proof-lanes contract checks.
@@ -1149,48 +1117,24 @@ tvm-managed-list-profile-benchmark-check: | terlan-release-promotion-bootstrap p
 # The runtime prerequisite owns all three source-only policy reports under one
 # shared preflight. PR/regression recipes retain their exact Rust coverage
 # requests, but their report producers have already succeeded in that graph.
-lean-proof-track-runtime-check: TERLAN_PROOF_RUNTIME_RUN = $(TERLAN_OWNED_PROOF_POLICIES)
-lean-proof-smoke-check: TERLAN_PROOF_SMOKE_RUN = $(TERLAN_OWNED_PROOF_SMOKE)
-lean-proof-native-boundary-check: TERLAN_PROOF_NATIVE_BOUNDARY_RUN = $(TERLAN_OWNED_PROOF_NATIVE_BOUNDARY)
 # The native consumer may only verify completed replicas, and must not race
 # the proof owner for the preparation lease under parallel Make.
-lean-proof-native-boundary-check: proof-repro-check
 # Requires the promotion bootstrap and preparation lock before this check runs
-lean-proof-native-boundary-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
-lean-proof-lanes-check: TERLAN_PROOF_LANES_RUN = $(TERLAN_OWNED_PROOF_LANES)
-lean-proof-feature-binding-contract-check: TERLAN_PROOF_BINDING_RUN = $(TERLAN_OWNED_PROOF_BINDING)
 # Requires the promotion bootstrap and preparation lock before this check runs
-lean-proof-feature-binding-contract-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
 # The binding owner executes and seals the entire ordered snapshot chain once.
-lean-proof-feature-binding-check: TERLAN_PROOF_SNAPSHOT_RUN =
-lean-proof-change-impact-report lean-proof-feature-binding-review lean-proof-snapshot-consistency-check: TERLAN_PROOF_SNAPSHOT_SELECTED_RUN =
 # Requires the promotion bootstrap and preparation lock before the lanes run
-lean-proof-lanes-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
 # Depends on source prerequisites before the proof-track runtime check runs
-lean-proof-track-runtime-check: publish-evidence-source-prerequisites
 # Requires the promotion bootstrap and preparation lock before the smoke check
-lean-proof-smoke-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
-lean-proof-track-pr-gate: TERLAN_PROOF_PR_RUN =
 # Depends on the proof repro check completing before the PR gate runs
-lean-proof-track-pr-gate: proof-repro-check
-lean-proof-track-regression-check: TERLAN_PROOF_REGRESSION_RUN =
 # Depends on the PR gate completing before the regression check runs
-lean-proof-track-regression-check: lean-proof-track-pr-gate
 # Requires the promotion bootstrap and preparation lock for all three track checks
-lean-proof-track-runtime-check lean-proof-track-pr-gate lean-proof-track-regression-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory
-proof-repro-check: TERLAN_PROOF_TRACK_RUN = $(TERLAN_OWNED_PROOF_TRACK)
 # Depends on source prerequisites before the proof repro check runs
-proof-repro-check: publish-evidence-source-prerequisites
 # Requires the promotion bootstrap, semantic-kernel bootstrap, and preparation lock
-proof-repro-check: | terlan-release-promotion-bootstrap terlan-semantic-kernel-bootstrap publish-preparation-lock-directory
 # This graph's semantic owner consumes the completed track with the same fresh
 # tool admission; it cannot execute a missing proof or publish a partial report.
-lean-proof-semantic-kernels-check: TERLAN_SEMANTIC_KERNEL_RUN =
 # Depends on the proof repro check before verifying semantic kernels
-lean-proof-semantic-kernels-check: proof-repro-check
 release-staged-distribution-verification-check: TERLAN_STAGED_DISTRIBUTION_RUN = $(TERLAN_OWNED_STAGED_DISTRIBUTION)
 release-readiness-attestation-check: TERLAN_READINESS_RUN = $(TERLAN_OWNED_READINESS)
-release-artifacts-closeout-check: TERLAN_PROOF_RELEASE_RUN = $(TERLAN_OWNED_PROOF_RELEASE)
 # Depends on staged evidence inputs and the promotion bootstrap before closeout
 release-artifacts-closeout-check: publish-evidence-staged-inputs | terlan-release-promotion-bootstrap
 # Depends on the artifacts closeout check before attesting readiness
@@ -1626,9 +1570,9 @@ lalrpop-grammar-contract-check:
 lalrpop-parser-parity-check: tree-sitter-package-check tree-sitter-cli-check editor-check lalrpop-grammar-contract-check
 	$(POLICY_CARGO_TEST) --locked -p terlan --lib compiler::syntax:: -- --test-threads=1
 
-.PHONY: generated-contract-artifacts proof-release-baseline release-proof-baseline-check
-# Umbrella target gathering generated syntax-contract and proof-release artifacts
-generated-contract-artifacts: syntax-contract-artifacts proof-release-baseline
+.PHONY: generated-contract-artifacts release-proof-evidence-check
+# Umbrella target gathering generated syntax-contract artifacts
+generated-contract-artifacts: syntax-contract-artifacts
 
 
 # Checks the syntax conformance corpus against the EBNF grammar contract

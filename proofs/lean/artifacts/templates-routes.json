@@ -4,7 +4,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -12,17 +12,12 @@
     "templates_routes/TemplateRoutes.lean"
   ],
   "family": "templates-routes",
-  "manifest_fingerprints": {
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:5750a5a775eb4eb78c7e0f274cf01a52e7d94776c8d0cdc64b286ad0e5532b2e"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:e90cd3d15c814c74b2b4529ef350dcc34cf1ddc6f3379e15c50f14570326f8cf",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.TemplateRoutes.loweringPreservesRouteArity",
     "Terlan.TemplateRoutes.loweringPreservesRouteShape",
@@ -39,5 +34,8 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
+  ]
 }

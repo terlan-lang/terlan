@@ -9,7 +9,7 @@ inductive FieldType where
   | int
   | bool
   | string
-  | nestedShape (structuralFingerprint : String)
+  | nestedShape (typeName : String)
   deriving DecidableEq
 
 abbrev Field := String × FieldType × Visibility

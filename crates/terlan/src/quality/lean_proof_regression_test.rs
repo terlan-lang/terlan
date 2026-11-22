@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::*;
-use crate::terlan_quality::lean_proof_track::lean_proof_gap::{blocker_hash, GAP_HEADER};
+use crate::terlan_quality::lean_proof_track::lean_proof_gap::GAP_HEADER;
 
 /// Verifies unchanged Lean proof metrics pass and archive a report.
 ///
@@ -158,13 +158,8 @@ fn write_gaps(root: &Path, rows: &str) {
             assert_eq!(columns.len(), 5, "legacy test gap row: {line}");
             let updated_at = "2026-07-16";
             format!(
-                "{}\tblocked\tmodel_gap\t{}\t{}\t{}\tdeadline:0.0.7-closeout\t{updated_at}\t{}\t{}",
-                columns[0],
-                columns[1],
-                columns[2],
-                columns[3],
-                blocker_hash(columns[0], "model_gap", columns[1], updated_at),
-                columns[4]
+                "{}\tblocked\tmodel_gap\t{}\t{}\t{}\tdeadline:0.0.7-closeout\t{updated_at}\t{}",
+                columns[0], columns[1], columns[2], columns[3], columns[4]
             )
         })
         .collect::<Vec<_>>()

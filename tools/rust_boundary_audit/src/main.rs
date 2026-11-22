@@ -24,7 +24,7 @@ mod shared_helper_input;
 mod source_inventory_test;
 use shared_helper_input::write_shared_helper_input;
 
-const THIN_BINARIES: [(&str, &str); 8] = [
+const THIN_BINARIES: [(&str, &str); 7] = [
     ("crates/terlan/src/main.rs", "terlan::run_cli_from_env"),
     ("crates/terlan/src/vm/main.rs", "terlan::vm::run_from_env"),
     (
@@ -42,10 +42,6 @@ const THIN_BINARIES: [(&str, &str); 8] = [
     (
         "crates/terlan/src/quality/native_no_std_target_feasibility_main.rs",
         "terlan::quality::run_native_target_feasibility_from_workspace",
-    ),
-    (
-        "crates/terlan/src/quality/lean_proof_closeout_main.rs",
-        "terlan::quality::run_lean_proof_closeout_from_workspace",
     ),
     (
         "crates/terlan/src/benchmark/main.rs",

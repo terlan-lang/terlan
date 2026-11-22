@@ -91,7 +91,6 @@ required_targets(): List[FeatureTarget] ->
         FeatureTarget(name = "terlan-lsp", feature = "editor-lsp"),
         FeatureTarget(name = "terlan-quality", feature = "quality-tools"),
         FeatureTarget(name = "terlan-native-target-feasibility", feature = "quality-tools"),
-        FeatureTarget(name = "terlan-lean-proof-closeout", feature = "quality-tools"),
         FeatureTarget(name = "terlan-benchmark", feature = "benchmark-tools"),
         FeatureTarget(name = "terlan-http-paired-benchmark", feature = "benchmark-tools"),
     ].

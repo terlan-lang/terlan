@@ -7,7 +7,7 @@ proof boundaries, not their completion status.
 
 The reviewed sources remain those inventoried in `lean_proof_inventory.tsv`
 and `proofs/lean/ci/lean-proof-artifacts.tsv` at that candidate. No theorem,
-proof-source digest, exception approver, deadline, or coverage requirement changes.
+proof source, exception approver, deadline, or coverage requirement changes.
 The six existing exceptions still expire on **2026-09-30**. All six obligations
 remain **blocked**; passing this metadata review does not prove them.
 
@@ -22,9 +22,8 @@ remain **blocked**; passing this metadata review does not prove them.
 
 Lean paths above are relative to `proofs/lean`; compiler documents are relative
 to `docs/compiler`. The review appends new evidence to the transition ledger,
-preserving all earlier records. The paired TOML and TSV records continue to
-bind each reason and review date by SHA-256. The TTL, exception expiry, skipped
-lifecycle-state rejection, and closure-artifact requirements remain enforced.
+preserving all earlier records. Skipped lifecycle-state rejection and
+closure-artifact requirements remain enforced.
 
 This is a source-scope audit. Separate reproducibility and runtime gates must
 still execute; neither a successful review nor a successful runtime test is a

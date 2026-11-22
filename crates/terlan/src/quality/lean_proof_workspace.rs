@@ -15,16 +15,12 @@ static NEXT_WORKSPACE: AtomicU64 = AtomicU64::new(0);
 /// Owns only an exclusively created replay directory, never a shared Lake cache.
 pub(super) struct ProofWorkspace {
     path: Option<PathBuf>,
-    #[cfg(target_os = "linux")]
-    inputs: String,
 }
 
 impl ProofWorkspace {
     /// Snapshots the local Lean project and explicitly declared extra inputs.
     pub(super) fn create(root: &Path, extra: &[String]) -> QualityResult<Self> {
         let inputs = collect_inputs(root, extra)?;
-        #[cfg(target_os = "linux")]
-        let identity = input_identity(&inputs);
         let parent = workspace_parent(root)?;
         let mut workspace = None;
         for _ in 0..64 {
@@ -32,11 +28,7 @@ impl ProofWorkspace {
             let path = parent.join(format!("replay-{}-{id}", std::process::id()));
             match fs::create_dir(&path) {
                 Ok(()) => {
-                    workspace = Some(Self {
-                        path: Some(path),
-                        #[cfg(target_os = "linux")]
-                        inputs: identity.clone(),
-                    });
+                    workspace = Some(Self { path: Some(path) });
                     break;
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
@@ -59,12 +51,6 @@ impl ProofWorkspace {
         self.path.as_deref().expect("live proof workspace")
     }
 
-    /// Fingerprints the exact copied sources and declared dependencies.
-    #[cfg(target_os = "linux")]
-    pub(super) fn input_identity(&self) -> &str {
-        &self.inputs
-    }
-
     /// Cleans the private workspace after the process owner has reaped its child.
     pub(super) fn close(mut self) -> QualityResult<()> {
         fs::remove_dir_all(self.root())
@@ -72,20 +58,6 @@ impl ProofWorkspace {
         self.path = None;
         Ok(())
     }
-}
-
-#[cfg(target_os = "linux")]
-fn input_identity(inputs: &BTreeMap<PathBuf, Vec<u8>>) -> String {
-    use sha2::{Digest, Sha256};
-    let mut digest = Sha256::new();
-    for (path, bytes) in inputs {
-        let path = path.as_os_str().as_encoded_bytes();
-        digest.update((path.len() as u64).to_le_bytes());
-        digest.update(path);
-        digest.update((bytes.len() as u64).to_le_bytes());
-        digest.update(bytes);
-    }
-    super::format_digest(&digest.finalize())
 }
 
 impl Drop for ProofWorkspace {

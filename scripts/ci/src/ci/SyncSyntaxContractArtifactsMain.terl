@@ -73,102 +73,6 @@ phase_plans(
             }
     }.
 
-proof_artifacts_accepted(repository: String, files: List[String], update_artifacts: Bool): Bool ->
-    case files {
-        [] -> true;
-        [path | rest] ->
-            when {
-                Ok(source) <- read_text(path);
-                Some(manifests) <- SyntaxContractArtifacts.proof_manifest_paths(source);
-                Some(normalized) <- refresh_manifests(repository, source, manifests)
-            } else {
-                _ -> false
-            };
-            (let accepted =
-    if {
-        update_artifacts -> if {
-            source == normalized -> true;
-            true -> write_text(path, normalized) == Ok(Unit)
-        };
-        true -> source == normalized
-    };
-accepted and proof_artifacts_accepted(repository, rest, update_artifacts))
-    }.
-
-refresh_manifests(repository: String, source: String, paths: List[String]): Option[String] ->
-    case paths {
-        [] -> Some(source);
-        [path | rest] ->
-            if {
-                path == "" or path.starts_with("/") or path.contains("../") -> None;
-                true -> when {
-                    Ok(digest) <- Hash.sha256_file(child(repository, path));
-                    Some(updated) <- SyntaxContractArtifacts.normalize_proof_manifest(source, path, digest)
-                } else {
-                    _ -> None
-                };
-                refresh_manifests(repository, updated, rest)
-            }
-    }.
-
-proof_inventory_header(): String ->
-    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan".
-
-reverse_rows(rows: List[String], result: List[String]): List[String] ->
-    case rows {
-        [] -> result;
-        [row | rest] -> reverse_rows(rest, [row | result])
-    }.
-
-normalize_proof_rows(
-    repository: String,
-    rows: List[String],
-    normalized: List[String],
-    update_artifacts: Bool,
-): Option[List[String]] ->
-    case rows {
-        [] -> Some(reverse_rows(normalized, []));
-        ["" | rest] -> normalize_proof_rows(repository, rest, normalized, update_artifacts);
-        [row | rest] ->
-            when {
-                [proof, _status, _scope, _manifests, _exit, _stderr, _digest, metadata, _remediation] <- row.split("\t");
-                Ok(digest) <- Hash.sha256_file(child(repository, proof));
-                Some(updated_row) <- SyntaxContractArtifacts.normalize_proof_inventory_row(row, digest);
-                Ok(metadata_source) <- read_text(child(repository, metadata));
-                Some(updated_metadata) <- SyntaxContractArtifacts.normalize_proof_source_digest(metadata_source, digest)
-            } else {
-                _ -> None
-            };
-            (let metadata_matches = metadata_source == updated_metadata;
-let metadata_accepted =
-    if {
-        metadata_matches -> true;
-        update_artifacts -> write_text(child(repository, metadata), updated_metadata) == Ok(Unit);
-        true -> false
-    };
-if {
-    not metadata_accepted -> None;
-    true -> normalize_proof_rows(repository, rest, [updated_row | normalized], update_artifacts)
-})
-    }.
-
-proof_inventory_accepted(repository: String, update_artifacts: Bool): Bool ->
-    let path = child(repository, "proofs/lean/ci/lean-proof-artifacts.tsv");
-    when {
-        Ok(source) <- read_text(path);
-        [header | rows] <- source.split("\n");
-        Some(normalized_rows) <- normalize_proof_rows(repository, rows, [], update_artifacts)
-    } else {
-        _ -> false
-    };
-    (let normalized = proof_inventory_header().append("\n").append(String.join(normalized_rows, "\n")).append("\n");
-if {
-    header != proof_inventory_header() -> false;
-    source == normalized -> true;
-    update_artifacts -> write_text(path, normalized) == Ok(Unit);
-    true -> false
-}).
-
 primary_plans(repository: String, generated: GeneratedArtifacts): Option[List[TextWritePlan]] ->
     when {
         Ok(phase_files) <- files_recursive(child(repository, "tests/fixtures/phase_contract"));
@@ -178,13 +82,6 @@ primary_plans(repository: String, generated: GeneratedArtifacts): Option[List[Te
             SyntaxContractArtifacts.normalize_digest_marker(
                 grammar_source,
                 "// canonical-ebnf-sha256: ",
-                ebnf_digest,
-            );
-        Ok(proof_source) <- read_text(child(repository, "proofs/lean/parser_shape/ParserShape.lean"));
-        Some(proof) <-
-            SyntaxContractArtifacts.normalize_digest_marker(
-                proof_source,
-                "-- canonical-ebnf-sha256: ",
                 ebnf_digest,
             );
         Some(base_plans) <-
@@ -198,10 +95,6 @@ primary_plans(repository: String, generated: GeneratedArtifacts): Option[List[Te
                             "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
                         ),
                         grammar,
-                    ),
-                    TextWritePlan(
-                        child(repository, "proofs/lean/parser_shape/ParserShape.lean"),
-                        proof,
                     ),
                     TextWritePlan(
                         child(
@@ -223,12 +116,6 @@ primary_plans(repository: String, generated: GeneratedArtifacts): Option[List[Te
         _ -> None
     };
     Some(base_plans).
-
-proof_artifacts_match(repository: String, update_artifacts: Bool): Bool ->
-    case files_recursive(child(repository, "proofs/lean/artifacts")) {
-        Ok(proof_files) -> proof_artifacts_accepted(repository, proof_files, update_artifacts);
-        Err(_reason) -> false
-    }.
 
 all_match(plans: List[TextWritePlan]): Bool ->
     case plans {
@@ -282,11 +169,7 @@ Some(outputs));
                                 update_artifacts -> write_all(outputs);
                                 true -> all_match(outputs)
                             };
-                        if {
-                            not primary_accepted -> false;
-                            not proof_inventory_accepted(repository, update_artifacts) -> false;
-                            true -> proof_artifacts_match(repository, update_artifacts)
-                        };
+                        primary_accepted;
                     None -> false
                 };
             let _removed = remove_all(temporary);

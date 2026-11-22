@@ -4,13 +4,12 @@ use super::*;
 
 /// Verifies exact current proof paths without publishing a partial track report.
 ///
-/// Repeated callers reuse the same input/tool-bound replicas on Linux. Other
-/// platforms retain isolated execution rather than trusting unchecked receipts.
+/// Every request executes the selected current proof in an isolated workspace.
 pub(crate) fn run(root: &Path, paths: &[String]) -> QualityResult<usize> {
     Ok(lean_proof_repro::run_replicas(root, &admitted(root, paths)?)?.len())
 }
 
-/// A preparation consumer must not silently become a producer on a cache miss.
+/// Preparation repeats semantic execution instead of trusting cached evidence.
 pub(crate) fn require_completed(root: &Path, paths: &[String]) -> QualityResult<usize> {
     Ok(lean_proof_repro::require_replicas(root, &admitted(root, paths)?)?.len())
 }
@@ -28,9 +27,6 @@ fn admitted(root: &Path, paths: &[String]) -> QualityResult<Vec<ArtifactRow>> {
                 "proof is not current in inventory: {}",
                 artifact.path
             ));
-        }
-        if sha256_file(&root.join(&artifact.path))? != artifact.proof_digest {
-            return Err(format!("proof_gap[artifact-drift]: {}", artifact.path));
         }
     }
     Ok(selected)

@@ -275,38 +275,16 @@ release-code-hygiene-check: \
 	$(TERLAN_QUALITY) release-code-hygiene
 
 
-# Runs the Lean proof release closeout.
-release-artifacts-closeout-check: lean-proof-lanes-check | terlan-proof-release-bootstrap
-	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_PROOF_RELEASE_RUN)
+# Direct proof execution is the release closeout; no second evidence composer
+# may re-hash or reseal already validated theorem outcomes.
+release-artifacts-closeout-check: lean-proof-lanes-check
 
 .PHONY: release-preparation-proof-check release-preparation-proof-input-check release-preparation-proof-track-check release-preparation-proof-policy-check release-preparation-proof-kernels-check
-# Runs the release-preparation proof-kernels self-test.
-release-preparation-proof-kernels-check: | terlan-release-promotion-bootstrap
-	TERLAN_RUST_COVERAGE_CONTEXT=fixture:must-not-reuse \
-		TERLAN_RUST_COVERAGE_SCOPE=hosted-source \
-		timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-kernels-self-test
-
-
-# Runs the release-preparation proof-policy self-test.
-release-preparation-proof-policy-check: | terlan-release-promotion-bootstrap
-	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-policy-self-test
-
-
-# Validates preparation-proof input self-test via the release promotion tool
-release-preparation-proof-input-check: | terlan-release-promotion-bootstrap
-	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-input-self-test
-
-
-# Validates preparation-proof track self-test via the release promotion tool
-release-preparation-proof-track-check: | terlan-release-promotion-bootstrap
-	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-track-self-test
-
-
-# Aggregates preparation-proof sub-checks and runs the combined self-test
-release-preparation-proof-check: release-preparation-proof-input-check release-preparation-proof-track-check release-preparation-proof-policy-check release-preparation-proof-kernels-check | terlan-release-promotion-bootstrap terlan-proof-release-bootstrap
-	timeout 900s $(TERLAN_RELEASE_PROMOTION) preparation-proof-self-test \
-		"$(TERLAN_BOOTSTRAP_VM)" "$(TERLAN_PROOF_RELEASE_IMAGE)"
+release-preparation-proof-input-check \
+release-preparation-proof-track-check \
+release-preparation-proof-policy-check \
+release-preparation-proof-kernels-check \
+release-preparation-proof-check: proof-repro-check
 
 .PHONY: release-preparation-proof-smoke-check
 
@@ -378,18 +356,19 @@ release-candidate-check: editor-release-contract-check terlan-artifact-measureme
 	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
 		$(MAKE) --no-print-directory build-artifact-budget-record
 	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
-	TERLAN_BUILD_ARTIFACTS_PREBUILT=1 TERLAN_VALIDATION_VM_PREBUILT=1 \
-		$(MAKE) --no-print-directory check
+	$(MAKE) --no-print-directory \
+		TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		TERLAN_VALIDATION_VM_PREBUILT=1 \
+		release-proof-evidence-check
+	$(MAKE) --no-print-directory \
+		TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		TERLAN_VALIDATION_VM_PREBUILT=1 \
+		check
 	bash scripts/clean_build_outputs.sh --check-partials
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-		$(MAKE) --no-print-directory release-proof-baseline-check
 
 
-# Checks lane freshness and verifies the recorded proof-release baseline
-release-proof-baseline-check: | terlan-proof-release-bootstrap
-	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/self_validation/proof_release_evidence/src/proof_release_evidence/LaneFreshnessTest.terl
-	TERLAN_PROOF_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_PROOF_RELEASE_IMAGE) --script-eval -- check
+# Checks proof lane freshness and semantic evidence before expensive builds
+release-proof-evidence-check: proof-repro-check lean-proof-track-gap-hygiene-check
 
 
 # Aggregates adversarial and coverage checks for release hardening

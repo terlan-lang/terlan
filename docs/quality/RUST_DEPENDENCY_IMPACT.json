@@ -934,13 +934,13 @@
     },
     {
       "name": "quality",
-      "physical_lines": 51249,
-      "rust_files": 153
+      "physical_lines": 49189,
+      "rust_files": 146
     },
     {
       "name": "root:",
-      "physical_lines": 103068,
-      "rust_files": 542
+      "physical_lines": 101750,
+      "rust_files": 536
     },
     {
       "name": "root:accelerator_contract",
@@ -1029,7 +1029,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 145030,
+      "physical_lines": 145013,
       "rust_files": 489
     },
     {
@@ -1392,8 +1392,8 @@
     },
     {
       "name": "quality",
-      "physical_lines": 29477,
-      "rust_files": 130
+      "physical_lines": 27963,
+      "rust_files": 125
     },
     {
       "name": "root:compiler_timings_test",
@@ -1442,7 +1442,7 @@
     },
     {
       "name": "runtime",
-      "physical_lines": 84548,
+      "physical_lines": 84538,
       "rust_files": 376
     },
     {

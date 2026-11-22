@@ -24,63 +24,52 @@ non-ignored test: a successful process with zero matching tests is not evidence.
   proof gap for the 0.0.7 language, CoreIR, VM, Wasm, and native-boundary
   contract surface.
 - `docs/compiler/proof_track/lean_proof_gap_transitions.tsv` records the
-  ordered, content-addressed lifecycle history of every accepted gap.
+  ordered lifecycle history of every accepted gap.
 - `proofs/lean/ci/lean-proof-artifacts.tsv` classifies every executable proof
-  by theorem scope, targeted manifests, expected process result, and digest.
+  by theorem scope, targeted manifests, and expected process result.
 - `proofs/lean/artifacts/*.json` records replay commands, pinned toolchains,
-  dependency-set hashes, manifest fingerprints, timestamp policy, and expected
-  output classes for each current proof family.
+  dependency files, timestamp policy, and expected output classes for each
+  current proof family.
 - `proofs/lean/smoke/smoke-manifest.tsv` binds the concrete parser-to-CoreIR,
   VM, NativeBoundary, and unsupported-target smoke properties to proof
   families, roadmap ownership, and runtime counterparts.
-- `proofs/lean/smoke/0.0.7-signatures.json` is the content-addressed
-  compatibility baseline shared by local and CI execution.
 
 ## Rules
 
 - A Lean proof row must name the source contract it proves, the Terlan version
   it targets, its status, and the gate that owns it.
 - Non-absent Lean proof rows must correspond to real files under `proofs/lean`.
-- Every `current` row must have executable artifact metadata, a matching source
-  digest, and a successful Lean invocation under the clean proof environment.
+- Every `current` row must have executable artifact metadata and a successful
+  Lean invocation under the clean proof environment.
 - `make proof_repro_check` deletes local proof build output, executes each
   current family twice through pinned `lake env lean` flags, normalizes paths
-  and line endings, and requires identical output signatures.
-- Artifact, manifest, dependency, and output drift becomes an explicit
+  and line endings, and requires identical semantic outcomes.
+- Artifact, manifest, dependency, and output failures become an explicit
   `proof_gap`; a `nondeterministic` family must carry a remediation plan and
   cannot remain current.
-- `make lean-proof-smoke-check` discharges every semantic smoke theorem, runs
-  the matching VM/native runtime behavior and unsupported-target rejection,
-  compares normalized signatures with the 0.0.7 baseline, and emits
-  `lean-proof-smoke.json`. A divergence emits a synchronized blocker row and
-  fails; an exception must be strict, owner-reviewed, expiring, and carry both
-  a hard blocker and an executable remediation gate.
+- `make lean-proof-smoke-check` shares the direct replay node. Runtime behavior
+  and unsupported-target rejection remain independently executable checks.
 - Every ordered proof lane carries a smoke-health score of 100. Core lanes earn
   it from executable smoke coverage; an accepted-gap lane earns it only from
   its separately validated classified-gap evidence. Missing or lower scores
   fail both lane sealing and release closeout.
-- `make lean-proof-track-release-closeout-check` validates normalized family
-  records and the ordered eight-class `lean-proof-baseline.tsv`, then rejects
-  missing proofs, toolchain/lockfile drift, non-current status, blockers, or a
-  reproducibility verdict other than `pass` with stable
-  `error[lean_proof_closeout_*]` identifiers.
-- A current baseline class records every current family digest as a sorted,
-  unique semicolon-separated SHA-256 set.
+- `make lean-proof-track-release-closeout-check` rejects missing proofs,
+  toolchain failures, non-current status, unresolved policy violations, or a
+  reproducibility verdict other than `pass`.
 - `release-preflight` and `publish-preflight` require Lean proof closeout.
 - A proof gap row must name the missing feature, lifecycle status, category,
   reason, remediation owner, planned gate, deadline or exception, blocker
-  update date, blocker hash, and the concrete manifest or spec files covered
-  by that accepted gap.
+  update date, and the concrete manifest or spec files covered by that accepted
+  gap.
 - Lifecycle status is one of `open`, `triaged`, `blocked`, `remediated`, or
   `closed`; committed `open` rows fail until triaged. Categories are
   `not_started`, `resource`, `model_gap`, `performance`, or `toolchain`.
 - Lifecycle history starts at `none -> open`, advances exactly one state at a
-  time, uses nondecreasing ISO dates and SHA-256 evidence, and must end at the
-  status in the live gap manifest. Non-closed histories must end with the
-  current blocker hash.
+  time, uses nondecreasing ISO dates, and must end at the status in the live gap
+  manifest.
 - A blocked obligation may append a `blocked -> blocked` review without
-  rewriting its earlier history. It must have a later date, changed evidence,
-  and a non-empty `Review:` rationale; the latest review date must match the
+  rewriting its earlier history. It must have a later date and a non-empty
+  `Review:` rationale; the latest review date must match the
   blocker update date. Review is not remediation or closure and does not approve
   an exception for another release.
 - A released exception uses `exception:<lane>@release-<version>`, must name a fixed
@@ -90,10 +79,7 @@ non-ignored test: a successful process with zero matching tests is not evidence.
   Approvals do not expire with calendar time, and blocker age is informational.
   `lean_proof_gap_policy.toml` requires release-scoped approval. Closed rows may
   retain their historical dated exceptions. The blocker update date is ISO
-  `YYYY-MM-DD`. The blocker hash is SHA-256
-  over the UTF-8 feature, category, reason, and update date fields, each
-  terminated by a zero byte. Editing the blocker or refreshing its timestamp
-  without renewing the hash therefore fails the gate.
+  `YYYY-MM-DD`.
 - `lean-proof-gate.json` records maximum unresolved `gap_staleness_days`, aggregate
   `gap_classification_confidence`, unresolved-open count, and per-gap metrics.
 - `lean-proof-runtime-policy.json` separately records validated runner
@@ -104,7 +90,7 @@ non-ignored test: a successful process with zero matching tests is not evidence.
 - `make lean-proof-track-gap-hygiene-check` rejects exact feature overlap
   between active gap rows and current proof inventory rows, non-executable
   planned gates, approvals for a different release, and closure notes that do
-  not resolve to a current executable proof digest.
+  not resolve to a current executable proof path.
 - Every current language/CoreIR/protocol proof-status manifest must be linked
   from an accepted proof gap until the matching Lean artifact is restored.
 - Stale proof terminology for removed runtime and backend product contracts is
@@ -129,10 +115,10 @@ release-visible until their own executable proof families exist.
 ## Proof-gap closure changelog
 
 Every accepted closure is appended here in the canonical form
-`- Proof-gap closure: \`feature\` restored by \`sha256:...\`: rationale`. The
-hygiene gate requires exactly one entry for every `closed` gap, verifies the
-digest against the current proof artifact inventory, and rejects entries for
-gaps that are not closed.
+`- Proof-gap closure: \`feature\` restored by \`proof/path.lean\`: rationale`.
+The hygiene gate requires exactly one entry for every `closed` gap, verifies
+the path against the current proof inventory, and rejects entries for gaps that
+are not closed.
 
-- Proof-gap closure: `EBNF syntax preservation` restored by `sha256:549baa87191a18aef2262c305f30097ad24b66a4edb9ab69f273edba2f4f321f`: the generated grammar is fingerprint-bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary. The grammar precision audit replayed the updated artifact and synchronized this closure reference with the proof inventory.
-- Proof-gap closure: `native-boundary contracts` restored by `sha256:3671cd9f8b63956f45f40d20e76106b933cad57f5079d3c0285aaa734368ddc2`: executable theorems cover typed callsites, handle ownership and linearity, async policy, side-effect denial, and fail-closed usage, with row-level generated-manifest binding and VM runtime oracles.
+- Proof-gap closure: `EBNF syntax preservation` restored by `proofs/lean/parser_shape/ParserShape.lean`: the generated grammar is bound to canonical EBNF and executable theorems cover the stable SyntaxOutput-to-checked-CoreIR boundary.
+- Proof-gap closure: `native-boundary contracts` restored by `proofs/lean/native_boundary/NativeBoundary.lean`: executable theorems cover typed callsites, handle ownership and linearity, async policy, side-effect denial, and fail-closed usage, with generated-manifest binding and VM runtime oracles.

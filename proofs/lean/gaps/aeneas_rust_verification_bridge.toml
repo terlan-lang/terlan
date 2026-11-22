@@ -8,5 +8,4 @@ planned_gate = "lean-proof-track-check"
 deadline_or_exception = "exception:native_boundary@release-0.0.10"
 exception_approved_by = "formal"
 blocker_updated_at = "2026-09-25"
-blocker_hash = "sha256:3b8231547a942b94144d9263679234943857e0824436f6092ace9c274247c827"
 covered_manifests = ["docs/compiler/LEAN_PROOF_TRACK.md"]

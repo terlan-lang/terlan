@@ -83,13 +83,13 @@ stops early.
 The syntax lane retains the full Rust summary comparison.
 
 Proof baselines must consume a current lane seal. A retained local gate and lane
-report still named an earlier parser-proof digest after the replay reports had
+report still named an earlier parser-proof result after the replay reports had
 been refreshed. The local baseline check trusted that seal, while CI rebuilt it
-and rejected the aggregate fingerprint. Proof evidence construction now checks
+and rejected the aggregate record. Proof validation now checks
 the track, replay, gate, and lane reports agree and that replay digests match
 the proof files. Stale seals fail before a baseline can be checked or recorded.
 The baseline gate, also used by precommit, runs regressions for stale families,
-replay digests, lane checksums, missing lanes, and changed proof bytes. Review age
+replay outcomes, missing lanes, and changed proof behavior. Review age
 remains informational and does not change seal identity.
 
 Commit messages must contain one nonempty line of at most 50 characters. Put
@@ -152,10 +152,9 @@ the compiler job does not replay them after its expensive test lanes. Local
 full hooks never enable this delegation and continue to run both audits.
 
 Proof-owned changes generate fresh proof-lane and semantic-kernel reports and
-check the proof release baseline with the staged compiler before their focused
-proof tests. The baseline binds
-dependency inputs such as `Cargo.lock` as well as proof slices.
-Changes require a reviewed baseline update; the hook never refreshes it.
+validate their candidate-bound semantics with the staged compiler before their
+focused proof tests. Dependency inputs such as `Cargo.lock` and all proof
+slices are validated directly; no manually refreshed evidence digest is used.
 
 A Make bootstrap regression runs when its Make or bootstrap inputs change and
 checks that the artifact-budget validator survives cleanup of disposable
@@ -236,7 +235,7 @@ summary generation batches the independent CSS property modules separately.
 
 | Staged changes | Local checks |
 | --- | --- |
-| Grammar/parser inputs, Lean proofs and metadata, compiler/runtime specifications, standard-library inputs, native-boundary sources, or proof validators | Check EBNF/LALRPOP/Lean fingerprints and replay the complete Lean proof track against the staged snapshot; requires the pinned Lean toolchain and, on Linux, Bubblewrap |
+| Grammar/parser inputs, Lean proofs and metadata, compiler/runtime specifications, standard-library inputs, native-boundary sources, or proof validators | Check grammar parity and replay the complete Lean proof track against the staged snapshot; requires the pinned Lean toolchain and, on Linux, Bubblewrap |
 | Rust source or compiler/grammar inputs | CI's `rust-clippy-check`: workspace binaries with default and all features, warnings denied |
 | Rust source | Check formatting only for changed handwritten `.rs` files; formatter or toolchain configuration changes check every tracked handwritten Rust source. Generated NativeBoundary Rust is checked by its freshness gate. |
 | The above inputs, checked Rust quality reports, or their validators | Enforce Rust size and test-layout rules; regenerate AST and Cargo metadata evidence; check API-boundary inventory and dependency-impact report without updating tracked files |

@@ -14,19 +14,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use terlan_process_owner::ProcessControl;
 
-#[path = "make_coverage/publication_graph.rs"]
-mod publication_graph;
-
 #[path = "make_coverage/runtime_reports.rs"]
 mod runtime_reports;
 
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 #[path = "make_coverage/hosted_source.rs"]
 mod hosted_source;
-
-#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-#[path = "make_coverage/aot.rs"]
-mod aot;
 
 const RECORD: &str = r#"
 pub fn record(name: &str) {
@@ -211,10 +204,6 @@ missing:
 	$(RUST_TEST) -p terlan --lib missing_test
 changed:
 	TERLAN_TEST_SUSPICIOUS_OPTION=changed $(RUST_TEST) -p terlan --lib normal
-semantic:
-	TERLAN_SEMANTIC_KERNEL_ROOT=$(CURDIR) $(RUST_TEST) -p terlan --lib normal -- --exact
-semantic-wrong-root:
-	TERLAN_SEMANTIC_KERNEL_ROOT=/another-checkout $(RUST_TEST) -p terlan --lib normal -- --exact
 proof:
 	TERLAN_LEAN_PROOF_ROOT=$(CURDIR) $(RUST_TEST) -p terlan --lib normal -- --exact
 proof-wrong-root:
@@ -471,7 +460,6 @@ fn release_refresh_keeps_shared_gate_nodes_inside_one_live_make_graph() {
         ".PHONY: publish-evidence-source-prerequisites",
         "\n.PHONY: release release-plan",
     );
-    let publication = publication_graph::prepare(root, publication);
     let multicore = make_block(
         &source,
         ".PHONY: vm-multicore-publish-prerequisites",
@@ -518,6 +506,8 @@ terlan-self-validation-bootstrap:
 	@echo validators >> target/bootstraps
 terlan-release-closeout-image-bootstrap:
 	@echo release >> target/bootstraps
+terlan-release-closeout-bootstrap:
+release-generated-artifacts-check:
 check-gates: gates
 release-only: terlan-release-closeout-bootstrap
 	@if test "$(TERLAN_RUST_COVERAGE_SCOPE)" = hosted-source; then $(TERLAN_FIXTURE_STAGE) consume; fi
@@ -543,7 +533,6 @@ hosted-change-source: normal
         include_bytes!("../../../scripts/download_validated_release_artifacts.sh"),
     );
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    aot::prepare(root);
     bootstrap(root);
     assert!(run(command(root, "git").args(["add", "."])));
     assert!(run(command(root, "git").args([

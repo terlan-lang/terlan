@@ -881,35 +881,12 @@ fn aot_release_default_feature_check_records_an_owned_cargo_launch() {
 }
 
 #[test]
-fn hosted_proof_scripts_use_private_owner_outputs() {
+fn proof_release_uses_direct_execution_without_evidence_composers() {
     let source = crate::support::read_make_sources();
-    for (stage, variable, script) in [
-        ("smoke", "SMOKE", "LeanProofSmokeTest"),
-        ("lanes", "LANES", "LeanProofLanesTest"),
-        (
-            "native-boundary",
-            "NATIVE_BOUNDARY",
-            "LeanProofNativeBoundaryTest",
-        ),
-    ] {
-        assert!(source.contains(&format!(
-            "TERLAN_OWNED_PROOF_{variable} = $(TERLAN_PREPARATION_OWNER)"
-        )));
-        assert!(source.contains(&format!("prepare-proof-{stage} \"target/debug/terlc\"")));
-        assert!(source.contains(&format!(
-            "lean-proof-{stage}-check: TERLAN_PROOF_{variable}_RUN = $(TERLAN_OWNED_PROOF_{variable})"
-        )));
-        assert!(source.contains(&format!(
-            "lean-proof-{stage}-check: | terlan-release-promotion-bootstrap publish-preparation-lock-directory"
-        )));
-        assert!(source.contains(&format!(
-            "TERLAN_PROOF_{variable}_RUN = target/debug/terlc test --incremental scripts/self_validation/{script}.terl"
-        )));
-    }
-    assert!(source.contains("lean-proof-native-boundary-check: proof-repro-check"));
-    assert!(source.contains(
-        "publish-evidence-staged-inputs: publish-evidence-source-prerequisites lean-proof-lanes-check"
-    ));
+    assert!(source.contains("release-proof-evidence-check: proof-repro-check"));
+    assert!(source.contains("lean-proof-lanes-check: proof-repro-check"));
+    assert!(!source.contains("TERLAN_OWNED_PROOF_"));
+    assert!(!source.contains("terlan-proof-release-bootstrap"));
 }
 
 #[test]
@@ -918,7 +895,6 @@ fn every_typed_aot_release_producer_declares_the_compiler_owner() {
     let producers = [
         "terlan-artifact-measurement-bootstrap",
         "terlan-make-recipe-bootstrap",
-        "terlan-semantic-kernel-bootstrap",
         "terlan-ebnf-validator-bootstrap",
         "terlan-shared-helper-bootstrap",
         "terlan-external-package-matrix-bootstrap",
@@ -932,7 +908,6 @@ fn every_typed_aot_release_producer_declares_the_compiler_owner() {
         "terlan-stdlib-validation-bootstrap",
         "terlan-docs-static-release-parity-bootstrap",
         "terlan-repository-validation-bootstrap",
-        "terlan-proof-release-bootstrap",
     ];
     for producer in producers {
         let declaration = format!("{producer}: terlan-compiler-bootstrap");
@@ -945,17 +920,14 @@ fn every_typed_aot_release_producer_declares_the_compiler_owner() {
 
 /// Execute the production dependency edges with fixture-owned leaf commands.
 #[test]
-fn hosted_native_proof_failure_blocks_parallel_distribution() {
+fn hosted_proof_failure_blocks_parallel_distribution() {
     let source = crate::support::read_make_sources();
     let stages = [
         "publish-evidence-source-prerequisites",
         "lean-proof-track-runtime-check",
         "proof-repro-check",
-        "lean-proof-native-boundary-check",
-        "lean-proof-smoke-check",
         "lean-proof-track-pr-gate",
         "lean-proof-track-regression-check",
-        "lean-proof-semantic-kernels-check",
         "lean-proof-lanes-check",
         "publish-evidence-staged-inputs",
     ];
@@ -976,9 +948,9 @@ fn hosted_native_proof_failure_blocks_parallel_distribution() {
     }
     for stage in stages {
         let prerequisite = match stage {
-            "lean-proof-native-boundary-check" => Some("proof-repro-check"),
-            "lean-proof-smoke-check" => Some("lean-proof-native-boundary-check"),
-            "lean-proof-lanes-check" => Some("lean-proof-smoke-check"),
+            "proof-repro-check" => Some("lean-proof-track-runtime-check"),
+            "lean-proof-track-regression-check" => Some("lean-proof-track-pr-gate"),
+            "lean-proof-lanes-check" => Some("proof-repro-check"),
             "publish-evidence-staged-inputs" => Some("lean-proof-lanes-check"),
             _ => None,
         };
@@ -990,7 +962,7 @@ fn hosted_native_proof_failure_blocks_parallel_distribution() {
             "\ttest \"$(FAULT)\" != \"{stage}\"\n\tprintf 'pass\\n' > passed-{stage}\n"
         ));
     }
-    for fault in ["", "lean-proof-native-boundary-check"] {
+    for fault in ["", "proof-repro-check"] {
         let fixture = fixture();
         fs::write(fixture.0.join("Proof.mk"), &graph).unwrap();
         let mut command = Command::new("make");
@@ -1077,7 +1049,6 @@ fn quality_tools_bootstrap_uses_shared_receipt_owner_for_clean_candidates() {
     for binary in [
         "terlan-quality",
         "terlan-native-target-feasibility",
-        "terlan-lean-proof-closeout",
         "terlan-rust-boundary-audit",
     ] {
         assert!(

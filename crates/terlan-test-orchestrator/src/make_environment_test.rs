@@ -43,7 +43,7 @@ fn make_bookkeeping_changes_do_not_erase_runtime_or_compiler_inputs() {
     make.env(SCOPE, "unchecked");
     assert!(observed_identity(&make).is_err());
     make.env_remove(SCOPE);
-    for key in ["TERLAN_SEMANTIC_KERNEL_ROOT", "TERLAN_LEAN_PROOF_ROOT"] {
+    for key in ["TERLAN_LEAN_PROOF_ROOT"] {
         make.env(key, std::env::current_dir().unwrap());
         assert_eq!(observed_identity(&make).unwrap(), baseline);
         make.env(key, "/another-checkout");

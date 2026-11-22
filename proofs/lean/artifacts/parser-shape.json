@@ -4,7 +4,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -12,19 +12,12 @@
     "parser_shape/ParserShape.lean"
   ],
   "family": "parser-shape",
-  "manifest_fingerprints": {
-    "crates/terlan/src/compiler/syntax/syntax_output.rs": "sha256:256782fa72a36de351ea376a9af8e1d10f3d62df19538c8a9d2f50519983fb15",
-    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop": "sha256:19f796ee69fd982f981ebec4ae7fb2d6d5afd25b036ac4c040d994281c4dd421",
-    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf": "sha256:5750a5a775eb4eb78c7e0f274cf01a52e7d94776c8d0cdc64b286ad0e5532b2e"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:549baa87191a18aef2262c305f30097ad24b66a4edb9ab69f273edba2f4f321f",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.ParserShape.canonicalGrammarIdentityIsStable",
     "Terlan.ParserShape.canonicalModuleClassificationAccepted",
@@ -53,5 +46,10 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "crates/terlan/src/compiler/syntax/syntax_output.rs",
+    "crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop",
+    "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
+  ]
 }

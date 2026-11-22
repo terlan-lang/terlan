@@ -20,7 +20,7 @@ awk '/^release-candidate-check:/ { copying=1 }
   copying && /^$/ { exit }
   copying { print }' "${make_sources[@]}" >> "$temporary/Makefile"
 cat >> "$temporary/Makefile" <<'MAKE'
-.PHONY: terlan-compiler-bootstrap terlan-validation-vm-bootstrap verify editor-release-contract-check terlan-quality-tools-bootstrap build-artifact-budget-record check release-proof-baseline-check
+.PHONY: terlan-compiler-bootstrap terlan-validation-vm-bootstrap verify editor-release-contract-check terlan-quality-tools-bootstrap build-artifact-budget-record check release-proof-evidence-check
 terlan-compiler-bootstrap:
 terlan-validation-vm-bootstrap editor-release-contract-check terlan-quality-tools-bootstrap:
 verify: terlan-artifact-measurement-bootstrap
@@ -28,7 +28,7 @@ verify: terlan-artifact-measurement-bootstrap
 build-artifact-budget-record: terlan-artifact-measurement-bootstrap
 	cargo clean --manifest-path Cargo.toml --target-dir target
 	test ! -e $(TERLAN_SELF_VALIDATION_IMAGE)
-check release-proof-baseline-check: verify
+check release-proof-evidence-check: verify
 TERLAN_TYPED_VALIDATOR_BUILD := bash producer.sh
 MAKE
 mkdir -p "$temporary/scripts"

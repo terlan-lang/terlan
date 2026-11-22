@@ -419,9 +419,11 @@ fn validate_release_makefile(makefile: &str) -> Vec<String> {
     match make_target(makefile, closeout_name) {
         None => diagnostics.push(format!("{MAKEFILE}: missing target `{closeout_name}`")),
         Some(closeout) => {
-            if !closeout.prerequisites.contains(&"rust-test-suite") {
+            if !closeout.prerequisites.contains(&"proof-repro-check")
+                && !closeout.prerequisites.contains(&"lean-proof-lanes-check")
+            {
                 diagnostics.push(format!(
-                    "{MAKEFILE}: `{closeout_name}` must consume the canonical `rust-test-suite` owner"
+                    "{MAKEFILE}: `{closeout_name}` must consume direct proof replay"
                 ));
             }
             if closeout.recipe.iter().any(|line| {

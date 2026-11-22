@@ -4,7 +4,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -12,17 +12,12 @@
     "collections/Collections.lean"
   ],
   "family": "collections",
-  "manifest_fingerprints": {
-    "docs/compiler/type_spec/language_feature_coverage_matrix.json": "sha256:afaa82a1c963c36bc559f9639b7f41979c666457cb9222f7f74b2692c5308863"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:cd429b6b7d63643333cad8beb99049905e7e994848b42c2ec85a1180f4595065",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.Collections.listUpdatePreservesLength",
     "Terlan.Collections.mapPutReturnsInsertedValue",
@@ -39,5 +34,8 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "docs/compiler/type_spec/language_feature_coverage_matrix.json"
+  ]
 }

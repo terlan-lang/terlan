@@ -1,7 +1,6 @@
-//! Content-addressed NativeBoundary proof correlation.
+//! NativeBoundary proof-path correlation.
 
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 
 const PROOF_PATH: &str = "proofs/lean/native_boundary/NativeBoundary.lean";
 const PROOF_SOURCE: &str =
@@ -13,13 +12,11 @@ const REPLAY_METADATA: &str =
 struct ReplayMetadata {
     schema: String,
     family: String,
-    source_digest: String,
 }
 
 /// Verified proof identity embedded in NativeBoundary runtime reports.
 pub(super) struct NativeBoundaryProofCorrelation {
     pub(super) family: String,
-    pub(super) proof_digest: String,
     pub(super) proof_path: &'static str,
 }
 
@@ -35,7 +32,7 @@ fn correlate_native_boundary_proof(
 ) -> Result<NativeBoundaryProofCorrelation, String> {
     let metadata = serde_json::from_str::<ReplayMetadata>(replay_metadata)
         .map_err(|error| format!("invalid NativeBoundary proof replay metadata: {error}"))?;
-    if metadata.schema != "terlan.lean-proof-replay.v1" {
+    if metadata.schema != "terlan.lean-proof-replay.v2" {
         return Err(format!(
             "unsupported NativeBoundary proof replay schema `{}`",
             metadata.schema
@@ -47,26 +44,13 @@ fn correlate_native_boundary_proof(
             metadata.family
         ));
     }
-    let digest = sha256_text(proof_source);
-    if metadata.source_digest != digest {
-        return Err(format!(
-            "NativeBoundary proof source digest drift: metadata has `{}`, source has `{digest}`",
-            metadata.source_digest
-        ));
+    if proof_source.trim().is_empty() {
+        return Err("NativeBoundary proof source is empty".to_string());
     }
     Ok(NativeBoundaryProofCorrelation {
         family: metadata.family,
-        proof_digest: digest,
         proof_path: PROOF_PATH,
     })
-}
-
-fn sha256_text(text: &str) -> String {
-    let hexadecimal = Sha256::digest(text.as_bytes())
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    format!("sha256:{hexadecimal}")
 }
 
 #[cfg(test)]

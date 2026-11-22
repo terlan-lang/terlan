@@ -376,6 +376,7 @@ Important design documents:
 - `docs/compiler/TERLAN_TARGET_INFERENCE.md`
 - [LLM native compiler executable roadmap](docs/roadmap/ROADMAP_LLM_NATIVE_COMPILER.md)
 - [Protocol toolkit executable roadmap](docs/roadmap/ROADMAP_PROTOCOL_TOOLKIT.md)
+- [Type-directed fuzzing executable roadmap](docs/roadmap/ROADMAP_TYPE_FUZZING.md)
 - `docs/runtime/TVM_EXECUTABLE_IMAGE_SPEC.md`
 - `docs/runtime/TVM_NATIVE_DATA_ABI_SPEC.md`
 - `docs/runtime/TERLAN_VM_OWNERSHIP.md`

@@ -4,7 +4,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -12,17 +12,12 @@
     "std_packages/StdPackages.lean"
   ],
   "family": "std-packages",
-  "manifest_fingerprints": {
-    "std/data/Json.terl": "sha256:577c9444329cf70426e8e0babfdc62f237b48e6780c5f3b6bcb4f6bc01fbdbb1"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:fda888e72153be898fc9fe2e1d8ee9adfe9cf659317d7846ed77a576c4f08b59",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:1c2ea16fd3a3ce051d1e1bb355564b0df399e739ce051c0b656c824ddf8322d2",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.StdPackages.jsonRoundTrip",
     "Terlan.StdPackages.invalidJsonIsTypedFailure",
@@ -39,5 +34,8 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "std/data/Json.terl"
+  ]
 }

@@ -3,13 +3,12 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use time::{Date, Month, OffsetDateTime};
 
 use crate::terlan_quality::QualityResult;
 
 pub(crate) const GAP_PATH: &str = "docs/compiler/proof_track/lean_proof_gaps.tsv";
-pub(crate) const GAP_HEADER: &str = "feature\tlifecycle_status\tproof_gap_category\tgap_reason\tremediation_owner\tplanned_gate\tdeadline_or_exception\tblocker_updated_at\tblocker_hash\tcovered_manifests";
+pub(crate) const GAP_HEADER: &str = "feature\tlifecycle_status\tproof_gap_category\tgap_reason\tremediation_owner\tplanned_gate\tdeadline_or_exception\tblocker_updated_at\tcovered_manifests";
 pub(crate) const GAP_TOML_DIR: &str = "proofs/lean/gaps";
 const GAP_POLICY_PATH: &str = "docs/compiler/proof_track/lean_proof_gap_policy.toml";
 
@@ -42,7 +41,6 @@ pub(crate) struct LeanProofGap {
     pub planned_gate: String,
     pub deadline_or_exception: String,
     pub blocker_updated_at: String,
-    pub blocker_hash: String,
     pub covered_manifests: Vec<String>,
 }
 
@@ -59,7 +57,6 @@ struct LeanProofGapFile {
     deadline_or_exception: String,
     exception_approved_by: String,
     blocker_updated_at: String,
-    blocker_hash: String,
     covered_manifests: Vec<String>,
 }
 
@@ -115,8 +112,7 @@ pub(crate) fn parse_gap_manifest(text: &str) -> QualityResult<Vec<LeanProofGap>>
             planned_gate: columns[5].to_string(),
             deadline_or_exception: columns[6].to_string(),
             blocker_updated_at: columns[7].to_string(),
-            blocker_hash: columns[8].to_string(),
-            covered_manifests: split_list(columns[9]),
+            covered_manifests: split_list(columns[8]),
         });
     }
     Ok(gaps)
@@ -208,7 +204,6 @@ pub(crate) fn validate_gap_toml_mirror(
             planned_gate: record.planned_gate,
             deadline_or_exception: record.deadline_or_exception,
             blocker_updated_at: record.blocker_updated_at,
-            blocker_hash: record.blocker_hash,
             covered_manifests: record.covered_manifests,
         };
         match indexed.get(gap.feature.as_str()) {
@@ -315,39 +310,8 @@ pub(crate) fn validate_gap_lifecycle(
                 ));
             }
         }
-        let expected = blocker_hash(
-            &gap.feature,
-            &gap.category,
-            &gap.reason,
-            &gap.blocker_updated_at,
-        );
-        if gap.blocker_hash != expected {
-            diagnostics.push(format!(
-                "`{GAP_PATH}` row `{}` has stale blocker hash: expected `{expected}`, found `{}`",
-                gap.feature, gap.blocker_hash
-            ));
-        }
     }
     diagnostics
-}
-
-pub(crate) fn blocker_hash(
-    feature: &str,
-    category: &str,
-    reason: &str,
-    blocker_updated_at: &str,
-) -> String {
-    let mut hasher = Sha256::new();
-    for field in [feature, category, reason, blocker_updated_at] {
-        hasher.update(field.as_bytes());
-        hasher.update([0]);
-    }
-    let hexadecimal = hasher
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    format!("sha256:{hexadecimal}")
 }
 
 pub(crate) fn gap_metrics(

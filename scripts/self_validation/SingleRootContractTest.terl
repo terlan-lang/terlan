@@ -78,6 +78,10 @@ makefile_holds(makefile: String): Bool ->
         and make_variable_contains(makefile, "CHECK_GATES", "runtime-aot-only-check")
         and make_variable_contains(makefile, "CHECK_GATES", "vm-multicore-release-contract-check")
         and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check")
+        and String.contains(
+    makefile,
+    "release-candidate-check: release-proof-evidence-check editor-release-contract-check terlan-artifact-measurement-bootstrap",
+)
         and release_candidate_budget_before_tests(makefile).
 
 @pure

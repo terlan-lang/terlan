@@ -6,27 +6,24 @@ classification. They verify the contract consumed by lowering; they do not
 claim that the generated Rust parser implementation is formally verified.
 -/
 
--- canonical-ebnf-sha256: 5750a5a775eb4eb78c7e0f274cf01a52e7d94776c8d0cdc64b286ad0e5532b2e
-
 namespace Terlan.ParserShape
 
-def canonicalEbnfSha256 : String :=
-  "254d8af78f58e0a0b6b71fe6441398dcbbce2beaf56d862d69f07716ffc2b52f"
+def canonicalEbnfPath : String := "docs/grammar/TERLAN_SYNTAX_SPEC.ebnf"
 
 def syntaxOutputSchema : String := "terlan.lalrpop-module-output.v1"
 
 structure GrammarIdentity where
   schema : String
-  ebnfSha256 : String
+  ebnfPath : String
   deriving DecidableEq
 
 def canonicalGrammarIdentity : GrammarIdentity where
   schema := syntaxOutputSchema
-  ebnfSha256 := canonicalEbnfSha256
+  ebnfPath := canonicalEbnfPath
 
 theorem canonicalGrammarIdentityIsStable :
     canonicalGrammarIdentity =
-      { schema := syntaxOutputSchema, ebnfSha256 := canonicalEbnfSha256 } := by
+      { schema := syntaxOutputSchema, ebnfPath := canonicalEbnfPath } := by
   rfl
 
 inductive SyntaxClassification where

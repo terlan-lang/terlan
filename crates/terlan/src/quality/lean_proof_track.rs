@@ -2,8 +2,6 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use sha2::{Digest, Sha256};
-
 use crate::terlan_quality::lean_proof_track::lean_proof_gap::{
     current_utc_date, gap_metrics, parse_gap_manifest, read_gap_policy, validate_gap_lifecycle,
     validate_gap_toml_mirror, LeanProofGap, GAP_PATH,
@@ -35,7 +33,7 @@ pub(super) const ARTIFACT_PATH: &str = "proofs/lean/ci/lean-proof-artifacts.tsv"
 
 const INVENTORY_HEADER: &str = "path\tstatus\tsource_contract\tterlan_version\tgate\tnotes";
 const ARTIFACT_HEADER: &str =
-    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\tproof_digest\treplay_metadata\tremediation_plan";
+    "path\tstatus\ttheorem_scope\ttargeted_manifests\texpected_exit\tstderr_class\treplay_metadata\tremediation_plan";
 const VALID_THEOREM_SCOPES: &[&str] = &[
     "CoreIR",
     "NativeBoundary",
@@ -154,7 +152,6 @@ pub(super) struct ArtifactRow {
     targeted_manifests: Vec<String>,
     expected_exit: i32,
     stderr_class: String,
-    proof_digest: String,
     replay_metadata: String,
     remediation_plan: String,
 }
@@ -217,20 +214,6 @@ pub fn run_lean_proof_track(root: &Path) -> QualityResult<LeanProofTrackSummary>
     })
 }
 
-/// Captures pinned executable tool identity for a private preparation handoff.
-pub(crate) fn write_tool_admission(root: &Path, output: &Path) -> QualityResult<String> {
-    #[cfg(target_os = "linux")]
-    {
-        let artifacts = parse_artifacts(&read_text(root, ARTIFACT_PATH)?)?;
-        lean_proof_repro::admission::capture(root, output, &artifacts)
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = (root, output);
-        Err("proof tool admission is only supported on Linux".into())
-    }
-}
-
 fn validate_track_doc(doc: &str) -> Vec<String> {
     let mut diagnostics = Vec::new();
     for term in [
@@ -283,9 +266,8 @@ pub(super) fn parse_artifacts(text: &str) -> QualityResult<Vec<ArtifactRow>> {
                 targeted_manifests: split_manifest_list(&columns[3]),
                 expected_exit,
                 stderr_class: columns[5].clone(),
-                proof_digest: columns[6].clone(),
-                replay_metadata: columns[7].clone(),
-                remediation_plan: columns[8].clone(),
+                replay_metadata: columns[6].clone(),
+                remediation_plan: columns[7].clone(),
             })
         })
         .collect()
@@ -445,7 +427,6 @@ pub(super) fn validate_gaps(
             ("remediation_owner", row.remediation_owner.as_str()),
             ("planned_gate", row.planned_gate.as_str()),
             ("deadline_or_exception", row.deadline_or_exception.as_str()),
-            ("blocker_hash", row.blocker_hash.as_str()),
         ] {
             if value.trim().is_empty() {
                 diagnostics.push(format!(
@@ -612,21 +593,11 @@ fn validate_artifacts(
                 artifact.path, artifact.stderr_class
             ));
         }
-        let proof_path = root.join(&artifact.path);
-        if !proof_path.is_file() {
+        if !root.join(&artifact.path).is_file() {
             diagnostics.push(format!(
                 "`{ARTIFACT_PATH}` artifact `{}` references a missing proof",
                 artifact.path
             ));
-        } else {
-            match sha256_file(&proof_path) {
-                Ok(digest) if artifact.proof_digest != digest => diagnostics.push(format!(
-                    "proof_gap[artifact-drift]: `{ARTIFACT_PATH}` artifact `{}` digest is stale: expected `{}`, found `{digest}`; update replay metadata after reproducibility passes or classify a blocker",
-                    artifact.path, artifact.proof_digest
-                )),
-                Err(err) => diagnostics.push(err),
-                _ => {}
-            }
         }
         if !root.join(&artifact.replay_metadata).is_file() {
             diagnostics.push(format!(
@@ -661,21 +632,6 @@ fn validate_artifacts(
         }
     }
     diagnostics
-}
-
-fn sha256_file(path: &Path) -> QualityResult<String> {
-    let bytes = fs::read(path).map_err(|err| {
-        format!(
-            "failed to read proof `{}` for digest: {err}",
-            path.display()
-        )
-    })?;
-    let digest = Sha256::digest(bytes);
-    let hexadecimal = digest
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    Ok(format!("sha256:{hexadecimal}"))
 }
 
 fn validate_lean_files(root: &Path, lean_files: &[PathBuf]) -> Vec<String> {

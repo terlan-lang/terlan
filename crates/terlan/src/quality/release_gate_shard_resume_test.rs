@@ -30,8 +30,8 @@ fn complete_makefile() -> String {
         "release-preflight:\n",
         "\ttest -s release-evidence.json\n",
         "\tterlan-vm run release-preflight.tvm\n\n",
-        "lean-proof-track-release-closeout-check: rust-test-suite\n",
-        "\tcargo run --bin terlan-lean-proof-closeout\n\n",
+        "lean-proof-track-release-closeout-check: proof-repro-check\n",
+        "\ttarget/debug/terlan-quality lean-proof-track\n\n",
     ));
     for &(target, prerequisite) in RELEASE_GATE_CHAIN {
         text.push_str(&format!(
@@ -189,8 +189,8 @@ fn release_gate_shard_resume_rejects_release_chain_in_check() {
 #[test]
 fn release_gate_shard_resume_rejects_duplicate_closeout_suite() {
     let makefile = complete_makefile().replace(
-        "\tcargo run --bin terlan-lean-proof-closeout\n",
-        "\t$(RUST_TEST) --locked -p terlan --lib --features quality-tools\n\tcargo run --bin terlan-lean-proof-closeout\n",
+        "\ttarget/debug/terlan-quality lean-proof-track\n",
+        "\t$(RUST_TEST) --locked -p terlan --lib --features quality-tools\n\ttarget/debug/terlan-quality lean-proof-track\n",
     );
 
     let diagnostics = validate_release_makefile(&makefile);

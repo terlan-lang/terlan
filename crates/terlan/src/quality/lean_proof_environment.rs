@@ -15,22 +15,6 @@ pub(super) struct ProofEnvironment {
 }
 
 impl ProofEnvironment {
-    /// Identifies the declared environment; private paths use stable placeholders.
-    #[cfg(target_os = "linux")]
-    pub(super) fn identity(&self) -> QualityResult<String> {
-        serde_json::to_string(&serde_json::json!({
-            "policy": "terlan.proof-environment.v1",
-            "path": self.path,
-            "elan_home": self.elan_home,
-            "system_root": self.system_root,
-            "home": "<workspace>/home",
-            "temporary": "<workspace>/tmp",
-            "locale": "C",
-            "timezone": "UTC",
-        }))
-        .map_err(|error| error.to_string())
-    }
-
     /// Resolves only PATH, the installed Elan home, and Windows' system root.
     pub(super) fn capture() -> QualityResult<Self> {
         Self::from_lookup(|key| std::env::var_os(key))

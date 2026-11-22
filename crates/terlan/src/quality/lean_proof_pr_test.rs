@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::*;
-use crate::terlan_quality::lean_proof_track::lean_proof_gap::{blocker_hash, GAP_HEADER};
+use crate::terlan_quality::lean_proof_track::lean_proof_gap::GAP_HEADER;
 
 /// Verifies proof PR ownership accepts a complete owner map.
 ///
@@ -183,8 +183,7 @@ fn write_fixture(root: &Path, owners: String) {
     fs::write(
         root.join(GAP_PATH),
         format!(
-            "{GAP_HEADER}\nCore preservation\tblocked\tmodel_gap\tmissing proof\tcli\tlean-proof-track-check\tdeadline:0.0.7-closeout\t2026-07-16\t{}\tdocs/compiler/LEAN_PROOF_TRACK.md\n",
-            blocker_hash("Core preservation", "model_gap", "missing proof", "2026-07-16")
+            "{GAP_HEADER}\nCore preservation\tblocked\tmodel_gap\tmissing proof\tcli\tlean-proof-track-check\tdeadline:0.0.7-closeout\t2026-07-16\tdocs/compiler/LEAN_PROOF_TRACK.md\n"
         ),
     )
     .expect("write gaps");

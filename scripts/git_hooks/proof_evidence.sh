@@ -19,15 +19,11 @@ for tool in terlc terlan-vm terlan-quality; do
   test "$(realpath "$target_tool")" = "$(realpath "$source_tool")"
 done
 test "$(realpath target/debug/terlc)" = "$(realpath "$CARGO_TARGET_DIR/debug/terlc")"
-"$terlc" build scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls \
-  --target terlan-vm --out-dir target/self-validation/semantic-kernels
 "$quality" lean-proof-feature-cull
 "$quality" lean-proof-pr
-TERLAN_LEAN_PROOF_LANES_ROOT="$PWD" \
-  "$terlc" test --incremental scripts/self_validation/LeanProofLanesTest.terl \
-    --name repository_lean_proof_feature_map_is_current
 TERLAN_LEAN_PROOF_ROOT="$PWD" \
   TERLAN_LEAN_PROOF_PATH=Terlan/FeatureCull/LegacyBoundaries.lean \
   "$terlc" test scripts/self_validation/LeanProofExecutionTest.terl
 "$quality" lean-proof-runtime
 "$quality" lean-proof-track
+"$quality" lean-proof-gap-hygiene

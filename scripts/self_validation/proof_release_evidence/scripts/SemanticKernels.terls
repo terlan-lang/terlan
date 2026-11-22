@@ -1,7 +1,0 @@
-#!/usr/bin/env -S terlc run
-/**
- * Dispatches semantic-kernel validation through reusable modules.
- */
-import proof_release_evidence.SemanticKernelsMain.
-
-assert(SemanticKernelsMain.entry()).

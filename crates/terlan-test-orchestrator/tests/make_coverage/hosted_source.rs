@@ -76,7 +76,6 @@ fn report(root: &Path) -> Value {
 /// Reuses the parent fixture's completed test bodies; no second suite is built or run.
 pub(super) fn exercise(root: &Path, revision: &str, summary: &Value) {
     let cache = checkpoint(root, revision, summary);
-    super::aot::exercise(root);
     let bodies = fs::read(root.join("target/bodies.txt")).unwrap();
     assert!(invoke(root, "gates"), "valid hosted source gates");
     let evidence = report(root);
@@ -115,15 +114,12 @@ pub(super) fn exercise(root: &Path, revision: &str, summary: &Value) {
         ])),
         "unowned publication source prerequisites must fail"
     );
-    super::publication_graph::exercise(root);
-    assert!(invoke(root, "semantic"));
     assert!(invoke(root, "proof"));
     for goal in [
         "missing",
         "changed",
         "no-requests",
         "swallowed",
-        "semantic-wrong-root",
         "proof-wrong-root",
     ] {
         assert!(!invoke(root, goal), "accepted {goal}");

@@ -1,7 +1,0 @@
-#!/usr/bin/env -S terlc run
-/**
- * Dispatches proof-release validation through reusable modules.
- */
-import proof_release_evidence.ProofReleaseEvidenceMain.
-
-assert(ProofReleaseEvidenceMain.entry()).

@@ -204,32 +204,6 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
   grep -q 'candidate validation deferred' "$temporary/fast-admission.log"
 )
 
-# Proof evidence changes without their generated baseline fail before any
-# inventory, build, or proof workload starts.
-cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
-#!/usr/bin/env bash
-set -eu
-case "$*" in
-  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\npreflight:proof-baseline-missing\nshell\n'
-    ;;
-  *) exit 96 ;;
-esac
-TERLC
-chmod +x "$temporary/early-bindings/cache/debug/terlc"
-(
-  cd "$temporary/early-bindings"
-  status=0
-  TERLAN_HOOK_MODE=fast \
-    TERLAN_HOOK_LATEST_TERLC="$PWD/cache/debug/terlc" \
-    CARGO_TARGET_DIR="$PWD/cache" \
-    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
-    > "$temporary/proof-baseline-pairing.log" 2>&1 || status=$?
-  test "$status" = 1
-  grep -q 'proof evidence changed without refreshed release baseline' \
-    "$temporary/proof-baseline-pairing.log"
-)
-
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 case "$*" in
@@ -720,29 +694,25 @@ test "$early_terlan_line" -lt "$inventory_line"
 # Proof semantics depend on the exact staged compiler inputs, not Cargo's
 # optimization profile. Reuse the already validated candidate compiler so the
 # earliest proof gate cannot trigger a redundant release-profile rebuild.
-proof_baseline_block=$(sed -n '/^if lane_has proofs;/,/^fi$/p' \
+proof_evidence_block=$(sed -n '/^if lane_has proofs;/,/^fi$/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq 'TERLC="$terlc" bash scripts/git_hooks/proof_baseline.sh' \
-  <<< "$proof_baseline_block"
-proof_baseline_driver="$(dirname "$driver")/git_hooks/proof_baseline.sh"
-grep -Fq '"$quality" lean-proof-pr' "$proof_baseline_driver"
-proof_pr_line=$(grep -n -F '"$quality" lean-proof-pr' "$proof_baseline_driver" | cut -d: -f1)
-grep -Fq -- '--name repository_lean_proof_feature_map_is_current' "$proof_baseline_driver"
-proof_feature_map_line=$(grep -n -F -- '--name repository_lean_proof_feature_map_is_current' \
-  "$proof_baseline_driver" | cut -d: -f1)
-proof_runtime_line=$(grep -n -F '"$quality" lean-proof-runtime' "$proof_baseline_driver" | cut -d: -f1)
+grep -Fq 'TERLC="$terlc" bash scripts/git_hooks/proof_evidence.sh' \
+  <<< "$proof_evidence_block"
+proof_evidence_driver="$(dirname "$driver")/git_hooks/proof_evidence.sh"
+grep -Fq '"$quality" lean-proof-pr' "$proof_evidence_driver"
+test ! -e "$(dirname "$driver")/../proofs/lean/release_evidence/baseline.json"
+proof_pr_line=$(grep -n -F '"$quality" lean-proof-pr' "$proof_evidence_driver" | cut -d: -f1)
+proof_runtime_line=$(grep -n -F '"$quality" lean-proof-runtime' "$proof_evidence_driver" | cut -d: -f1)
 test "$proof_pr_line" -lt "$proof_runtime_line"
-test "$proof_pr_line" -lt "$proof_feature_map_line"
-test "$proof_feature_map_line" -lt "$proof_runtime_line"
 check_driver="$(dirname "$driver")/git_hooks/check.sh"
 early_clippy_line=$(grep -n -F "echo 'pre-commit: early clippy'" "$check_driver" | cut -d: -f1)
 affected_rust_line=$(grep -n -F 'while IFS= read -r lane; do' "$check_driver" | head -1 | cut -d: -f1)
 test -n "$early_clippy_line"
 test "$early_clippy_line" -lt "$affected_rust_line"
 test "$(grep -Fc 'TERLC="$TERLAN_RUST_SUITE_TERLC" \' \
-  "$(dirname "$driver")/git_hooks/check.sh")" -eq 3
-if grep -Fq 'ensure_release_tools' <<< "$proof_baseline_block"; then
-  echo 'Proof baseline rebuilt release-profile compiler unnecessarily' >&2
+  "$(dirname "$driver")/git_hooks/check.sh")" -eq 2
+if grep -Fq 'ensure_release_tools' <<< "$proof_evidence_block"; then
+  echo 'Proof evidence rebuilt release-profile compiler unnecessarily' >&2
   exit 1
 fi
 if rg -q '\$\(RUST_TEST\).* -p terlan --lib.*lean_proof_' \
@@ -830,7 +800,7 @@ workspace_lane=$(sed -n '/^    workspace)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 workspace_suite=$(sed -n '/^run_workspace_suite()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-proof_coverage=$(sed -n '/^run_proof_coverage()/,/^}/p' \
+proof_checks=$(sed -n '/^run_proof_checks()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'ensure_native_test_companions' <<< "$commands_lane"
 if grep -Fq 'ensure_test_program_snapshots' <<< "$workspace_lane"; then
@@ -857,38 +827,45 @@ if grep -Fq 'make --no-print-directory rust-test-suite' <<< "$workspace_suite"; 
   exit 1
 fi
 grep -Fq 'canonical Rust suite failed with status' <<< "$workspace_suite"
-grep -Fq 'bash scripts/git_hooks/proofs.sh' <<< "$proof_coverage"
+grep -Fq 'bash scripts/git_hooks/proofs.sh' <<< "$proof_checks"
+grep -Fq 'TERLC="$TERLAN_RUST_SUITE_TERLC" bash scripts/git_hooks/proofs.sh' \
+  <<< "$proof_checks"
 grep -Fq 'workspace_lane_selected=true' \
   "$(dirname "$driver")/git_hooks/check.sh"
-proof_baseline_line=$(grep -n "early proof source and policy contracts" \
+proof_evidence_line=$(grep -n "early proof source and policy contracts" \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 workspace_loop_line=$(grep -n 'run_cached_affected_rust_lane "$lane"' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-test -n "$proof_baseline_line"
+test -n "$proof_evidence_line"
 test -n "$workspace_loop_line"
-test "$proof_baseline_line" -lt "$workspace_loop_line"
-test "$(grep -c 'bash scripts/git_hooks/proof_baseline.sh' \
+test "$proof_evidence_line" -lt "$workspace_loop_line"
+test "$(grep -c 'bash scripts/git_hooks/proof_evidence.sh' \
   "$(dirname "$driver")/git_hooks/check.sh")" = 1
-early_proof_coverage_block=$(sed -n \
+early_proof_checks_block=$(sed -n \
   '/^if \[\[ "$workspace_lane_selected" == true \]\] && lane_has proofs;/,/^fi$/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq 'proof runtime coverage immediately follows canonical Rust suite' \
-  <<< "$early_proof_coverage_block"
-grep -Fq 'run_proof_coverage' <<< "$early_proof_coverage_block"
-grep -Fq "rg -vx 'proofs'" <<< "$early_proof_coverage_block"
-early_proof_coverage_line=$(grep -n \
-  'proof runtime coverage immediately follows canonical Rust suite' \
+grep -Fq 'proof checks immediately follow canonical Rust suite' \
+  <<< "$early_proof_checks_block"
+grep -Fq 'run_proof_checks' <<< "$early_proof_checks_block"
+grep -Fq "rg -vx 'proofs'" <<< "$early_proof_checks_block"
+early_proof_checks_line=$(grep -n \
+  'proof checks immediately follow canonical Rust suite' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-test "$workspace_loop_line" -lt "$early_proof_coverage_line"
-test "$early_proof_coverage_line" -lt "$inventory_line"
+test "$workspace_loop_line" -lt "$early_proof_checks_line"
+test "$early_proof_checks_line" -lt "$inventory_line"
 proof_lane=$(sed -n '/^    proofs)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'if [[ "$workspace_lane_selected" == false ]]' <<< "$proof_lane"
 grep -Fq 'run_workspace_suite' <<< "$proof_lane"
 grep -Fq 'stopping after canonical Rust suite failure' <<< "$proof_lane"
-grep -Fq 'run_proof_coverage' <<< "$proof_lane"
-grep -Fq -- '--with-cargo-coverage "$report"' \
+grep -Fq 'run_proof_checks' <<< "$proof_lane"
+grep -Fq 'make --no-print-directory' \
   "$(dirname "$driver")/git_hooks/proofs.sh"
+if grep -Fq -- '--with-cargo-coverage' \
+  "$(dirname "$driver")/git_hooks/proofs.sh"; then
+  echo 'Direct proof checks still require unrelated Rust coverage requests' >&2
+  exit 1
+fi
 if grep -Fq 'PATH=' "$(dirname "$driver")/git_hooks/proofs.sh"; then
   echo 'Proof coverage changed the owner-provided canonical test PATH' >&2
   exit 1

@@ -18,7 +18,7 @@ artifact_rows_are_checked(rows: List[String]): Bool ->
         [row | rest] ->
             case String.split(row, "\t") {
                 ["path" | _] -> artifact_rows_are_checked(rest);
-                [_path, _status, _scope, manifests, _exit, _stderr, _digest, _metadata, _remediation] ->
+                [_path, _status, _scope, manifests, _exit, _stderr, _metadata, _remediation] ->
                     manifest_paths_are_checked(String.split(manifests, ";"))
                         and artifact_rows_are_checked(rest);
                 _ -> false
@@ -51,24 +51,6 @@ pub proof_metadata_changes_replay_proofs(): Bool ->
     Plan.lanes(["proofs/lean/artifacts/shape-implication.json"]) == ["shell", "proofs"].
 
 @test
-pub proof_evidence_changes_require_a_refreshed_baseline(): Bool ->
-    Plan.proof_baseline_missing(["std/summaries/std.vm.ModelSync.native_boundary.json"])
-        and Plan.proof_baseline_missing(["proofs/lean/artifacts/native-boundary.json"])
-        and not Plan.proof_baseline_missing(
-    [
-        "std/summaries/std.vm.ModelSync.native_boundary.json",
-        "proofs/lean/release_evidence/baseline.json",
-    ],
-)
-        and not Plan.proof_baseline_missing(["scripts/self_validation/LeanProofFeatureBindingTest.terl"])
-        and not Plan.proof_baseline_missing(
-    ["scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl"],
-)
-        and not Plan.proof_baseline_missing(["crates/terlan/src/runtime/native_boundary/dispatch/value.rs"])
-        and not Plan.proof_baseline_missing(["docs/compiler/proof_track/README.md"])
-        and not Plan.proof_baseline_missing(["std/core/Int.terl"]).
-
-@test
 pub proof_sources_and_dependency_files_replay_proofs(): Bool ->
     Plan.proofs(["proofs/lean/parser_shape/ParserShape.lean"])
         and Plan.proofs(["proofs/lean/lake-manifest.json"])
@@ -82,9 +64,7 @@ pub proof_manifest_changes_are_checked_without_grammar_edits(): Bool ->
         and Plan.proofs(["docs/compiler/TERLAN_CORE_TYPING_SPEC.md"])
         and Plan.proofs(["docs/runtime/TERLAN_VM_RUNTIME_CONCEPTS.md"])
         and Plan.proofs(["crates/terlan/src/runtime/native_boundary/dispatch/value.rs"])
-        and Plan.proofs(
-    ["scripts/self_validation/proof_release_evidence/src/proof_release_evidence/Validator.terl"],
-)
+        and Plan.proofs(["crates/terlan/src/quality/lean_proof_repro.rs"])
         and Plan.proofs(["crates/terlan/src/backends/wasm/README.md"]).
 
 @test

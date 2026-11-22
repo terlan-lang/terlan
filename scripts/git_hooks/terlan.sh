@@ -176,12 +176,21 @@ coverage_sources=()
 queued_checks=()
 queued_check_roots=()
 queue_check() {
-  local previous root
+  local candidate=$1 previous root
   for previous in "${queued_checks[@]}"; do
-    if [[ "$previous" == "$1" ]]; then return 0; fi
+    if [[ "$previous" == "$candidate" ]]; then return 0; fi
   done
-  root=$(project_root "$1")
-  queued_checks+=("$1")
+  root=$(project_root "$candidate")
+  if [[ ! -e "$candidate" ]]; then
+    # A deleted source still invalidates its surviving package, but a package
+    # removed in full has no source graph left to check.
+    [[ -f "$root/terlan.toml" ]] || return 0
+    candidate=$root
+    for previous in "${queued_checks[@]}"; do
+      if [[ "$previous" == "$candidate" ]]; then return 0; fi
+    done
+  fi
+  queued_checks+=("$candidate")
   queued_check_roots+=("$root")
 }
 run_queued_checks() {

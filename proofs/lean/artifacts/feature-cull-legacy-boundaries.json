@@ -5,7 +5,7 @@
     "proofs/lean/lakefile.lean",
     "proofs/lean/lean-toolchain"
   ],
-  "deterministic_timestamp_strategy": "none-content-addressed",
+  "deterministic_timestamp_strategy": "none",
   "execution_command": [
     "lake",
     "env",
@@ -13,19 +13,12 @@
     "Terlan/FeatureCull/LegacyBoundaries.lean"
   ],
   "family": "feature-cull-legacy-boundaries",
-  "manifest_fingerprints": {
-    "docs/compiler/TERLAN_TARGET_INFERENCE.md": "sha256:121e8f01df61d9a60694ef71d89244b8186fc6620290db3a4c5f82466ccf077f",
-    "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md": "sha256:2120db55fdd0e7d10cd27de580b3717621f69a0f8acb2f9b9e20a6372acca26e",
-    "proofs/lean/feature_cull/removed_features.json": "sha256:d2a8ddee95e937bf114736483252be22e6efd4ec8932d639ff947d750853a4b4"
-  },
   "output_signature": {
     "exit_class": "success",
     "stderr_class": "empty",
     "stdout_class": "empty"
   },
-  "proof_dependency_set_hash": "sha256:bfc30a13ae27060d64d16862ee79ff4da6beccf5aed93cbe5aa1715fb3c55620",
-  "schema": "terlan.lean-proof-replay.v1",
-  "source_digest": "sha256:2bd4f904792ad70cbca438b0b9463fe94fc2d1ec7ede553c43563e53a70306cd",
+  "schema": "terlan.lean-proof-replay.v2",
   "theorem_names": [
     "Terlan.FeatureCull.bytecodeIntermediaryRejectedBeforeVm",
     "Terlan.FeatureCull.explicitCoreTargetRejectedBeforeVm",
@@ -45,5 +38,10 @@
     ],
     "lean_version": "4.31.0"
   },
-  "working_directory": "proofs/lean"
+  "working_directory": "proofs/lean",
+  "manifests": [
+    "docs/compiler/TERLAN_TARGET_INFERENCE.md",
+    "docs/runtime/NATIVE_BOUNDARY_GLOSSARY.md",
+    "proofs/lean/feature_cull/removed_features.json"
+  ]
 }

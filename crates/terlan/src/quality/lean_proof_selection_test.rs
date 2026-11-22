@@ -8,7 +8,6 @@ fn artifact(name: &str) -> ArtifactRow {
         targeted_manifests: vec!["manifest".into()],
         expected_exit: 0,
         stderr_class: "none".into(),
-        proof_digest: "digest".into(),
         replay_metadata: "metadata".into(),
         remediation_plan: "none".into(),
     }

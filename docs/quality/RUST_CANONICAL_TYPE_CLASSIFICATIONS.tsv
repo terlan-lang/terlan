@@ -1,6 +1,5 @@
 # candidate_id	category	classification	owner	invariant_rationale
 f093267295d01dd9	equal-shape	canonical-alias	http-callbacks	SSE and WebSocket test aliases both resolve to the shared channel callback state and introduce no independent state representation.
-21a95ec6142c7bb0	same-name	distinct-invariant	http-admission	Proof tool admission retains verified executable identity while HTTP channel admission selects an opened endpoint or a middleware short circuit.
 dfc3502ad08ad284	same-name	boundary-conversion	http-response	Admitted responses retain text or byte allocations before transport projection while Hyper response bodies implement asynchronous frame polling and backpressure.
 6981c1077a636a59	same-name	phase-boundary	http-callbacks	SSE route plans retain immutable callback identities while live callback sessions own mutable stream state and a host invocation adapter.
 b25f32b3dd1f91bf	same-name	phase-boundary	http-callbacks	WebSocket route plans retain immutable callback identities while live callback sessions own connection state and the host invocation adapter.
@@ -37,7 +36,7 @@ eafc8944131d001a	same-name	distinct-invariant	runtime-protocols	Package-owned HT
 7381b1f123f3ca6e	same-name	phase-boundary	compiler	HIR trait method signatures preserve declarations while type-check signatures own resolved generic and conformance state.
 dab291978032205f	same-name	platform-alternative	postgres-runtime	The in-process and capability-required workers are mutually exclusive cfg-selected implementations of one VM-owned interface.
 53617e174e511efd	same-name	distinct-invariant	cache-and-storage-owners	Artifact budgets reserve staging bytes and leased generations, interface budgets bound parsed source keys and idle time, and storage budgets charge actor-owned resources and retained bytes.
-5606199d7387a1c3	same-name	distinct-invariant	cache-and-evidence-owners	Disk retention entries track persistent byte usage, parse entries own shared syntax results, proof admission entries bind tool contracts to executable identities, and multicore inventory entries describe invariant evidence rather than cached values.
+846b837bb8cda20a	same-name	distinct-invariant	cache-and-evidence-owners	Disk retention entries track persistent byte usage, parse entries own shared syntax results, and multicore inventory entries describe invariant evidence rather than cached values.
 d3c05ff033282c3c	same-name	distinct-invariant	native-build-and-runtime	Build operations classify emission accounting, binary and string pattern operations decode different versioned instruction formats, and storage operations retain lifecycle completion projections; these types are not interchangeable representations.
 40ca60c6edef99da	same-name	distinct-invariant	editor-and-storage	The LSP backend owns editor client state while the storage backend owns a capability-worker event pump and deadlines, with independent lifetimes and authority.
 eb1461d825e1a60c	same-name	distinct-invariant	proof-and-storage	Proof regression policy sets measurement thresholds, storage policy selects durability modes, and resource worker policy binds host capabilities and transport failure contracts.
@@ -71,5 +70,4 @@ b4d636c84f50096d	same-name	phase-boundary	compiler-observations	Native aggregate
 8d9aa47281d5773c	same-name	distinct-invariant	compiler-observations	Binding indexes map syntax patterns to lexical identities while call indexes map expressions and declarations to resolution evidence.
 95020e331cc5f9e3	same-name	distinct-invariant	compiler-observations	Binding, call, coverage, and requirement observations serialize separate evidence schemas consumed by distinct compiler validation phases.
 3b548647c8a360f5	same-name	phase-boundary	pattern-lowering	Self-host pattern bindings retain structural index paths while native pattern bindings retain lowered expressions and physical and semantic types.
-dc88cdefc3e5ff98	same-name	distinct-invariant	cache-and-proof	Native reuse stamps authenticate serialized compilation payloads while proof tool stamps retain filesystem identities to reject executable mutation.
 bfbabd68ff95131e	same-name	distinct-invariant	http-transports	SSE and WebSocket wire records validate channel policies while TLS test wire state retains simulated byte queues and transport pressure.

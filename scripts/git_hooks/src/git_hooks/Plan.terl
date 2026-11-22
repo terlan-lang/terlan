@@ -96,10 +96,6 @@ pub terlan_format(paths: List[String]): Bool ->
 pub version_metadata(paths: List[String]): Bool ->
     affected(paths, ".terlan-hook/version-metadata", "").
 
-pub proof_baseline_missing(paths: List[String]): Bool ->
-    proof_evidence_input(paths)
-        and not affected(paths, "proofs/lean/release_evidence/baseline.json", "").
-
 proof_evidence_input(paths: List[String]): Bool ->
     affected(paths, "proofs/lean/artifacts/", "")
         or affected(paths, "proofs/lean/ci/lean-proof-artifacts.tsv", "")
@@ -115,64 +111,60 @@ selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
 
 pub preflight_lanes(paths: List[String]): List[String] ->
     ["inventory" | selected(
-    proof_baseline_missing(paths),
-    "proof-baseline-missing",
+    compiler_bootstrap(paths),
+    "compiler-build",
     selected(
-        compiler_bootstrap(paths),
-        "compiler-build",
+        RustFormatting.required(paths, false),
+        "rust-format",
         selected(
-            RustFormatting.required(paths, false),
-            "rust-format",
+            rust_lint_allowances(paths),
+            "rust-lint-allowances",
             selected(
-                rust_lint_allowances(paths),
-                "rust-lint-allowances",
+                version_metadata(paths),
+                "version-metadata",
                 selected(
-                    version_metadata(paths),
-                    "version-metadata",
+                    platform_workflow_contract(paths),
+                    "workflow-contract",
                     selected(
-                        platform_workflow_contract(paths),
-                        "workflow-contract",
+                        rust_security(paths),
+                        "rust-security",
                         selected(
-                            rust_security(paths),
-                            "rust-security",
+                            node_security(paths),
+                            "node-security",
                             selected(
-                                node_security(paths),
-                                "node-security",
+                                editor_release(paths),
+                                "editor-release",
                                 selected(
-                                    editor_release(paths),
-                                    "editor-release",
+                                    artifact_bootstrap(paths),
+                                    "artifact-bootstrap",
                                     selected(
-                                        artifact_bootstrap(paths),
-                                        "artifact-bootstrap",
+                                        grammar(paths),
+                                        "grammar",
                                         selected(
-                                            grammar(paths),
-                                            "grammar",
+                                            js_bindings(paths),
+                                            "js-bindings",
                                             selected(
-                                                js_bindings(paths),
-                                                "js-bindings",
+                                                negative_api(paths),
+                                                "negative-api",
                                                 selected(
-                                                    negative_api(paths),
-                                                    "negative-api",
+                                                    artifact_budget(paths),
+                                                    "artifact-budget",
                                                     selected(
-                                                        artifact_budget(paths),
-                                                        "artifact-budget",
+                                                        release_manifest(paths),
+                                                        "release-manifest",
                                                         selected(
-                                                            release_manifest(paths),
-                                                            "release-manifest",
+                                                            rust_docs(paths),
+                                                            "rust-docs",
                                                             selected(
-                                                                rust_docs(paths),
-                                                                "rust-docs",
+                                                                preparation(paths),
+                                                                "preparation",
                                                                 selected(
-                                                                    preparation(paths),
-                                                                    "preparation",
+                                                                    hook_policy(paths),
+                                                                    "hook-policy",
                                                                     selected(
-                                                                        hook_policy(paths),
-                                                                        "hook-policy",
-                                                                        selected(
-                                                                            terlan_format(paths),
-                                                                            "terlan-format",
-                                                                            List.new[String](),
-                                                                        ),
+                                                                        terlan_format(paths),
+                                                                        "terlan-format",
+                                                                        List.new[String](),
                                                                     ),
                                                                 ),
                                                             ),
@@ -545,9 +537,9 @@ pub proofs(paths: List[String]): Bool ->
         or affected(paths, "docs/runtime/", "")
         or stdlib_proof_input(paths)
         or affected(paths, "crates/terlan/src/runtime/native_boundary/", "")
+        or affected(paths, "crates/terlan/src/quality/lean_proof", "")
         or affected(paths, "crates/terlan/src/backends/wasm/README.md", "")
         or affected(paths, "scripts/self_validation/LeanProof", "")
-        or affected(paths, "scripts/self_validation/proof_release_evidence/", "")
         or affected(paths, "scripts/self_validation/LalrpopGrammarContractTest.terl", "")
         or affected(paths, "scripts/git_hooks/proofs.sh", "").
 

@@ -48,11 +48,6 @@ path = "src/quality/native_no_std_target_feasibility_main.rs"
 required-features = ["quality-tools"]
 
 [[bin]]
-name = "terlan-lean-proof-closeout"
-path = "src/quality/lean_proof_closeout_main.rs"
-required-features = ["quality-tools"]
-
-[[bin]]
 name = "terlan-accelerator-value-contract"
 path = "src/quality/accelerator_value_contract_main.rs"
 

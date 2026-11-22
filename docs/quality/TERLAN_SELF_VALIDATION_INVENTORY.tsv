@@ -62,14 +62,7 @@ scripts/self_validation/docs_static_release_parity/src/docs_static_release_parit
 scripts/self_validation/release_manifest/tests/release_manifest/ValidationTest.terl	bootstrap-generator	migrated	environment,filesystem,batch-text-read,bounded-recursive-text-read,regex,string-normalization,tsv
 scripts/self_validation/installer_contract/src/installer_contract/Main.terl	checker	migrated	arguments,environment,filesystem,hash,archive-create,file-permissions,process,temp-workspace,release-artifact-mapping
 scripts/self_validation/LeanProofCounterexampleTest.terl	checker	migrated	arguments,environment,filesystem,hash,json,process,deterministic-reporting
-scripts/self_validation/LeanProofFeatureBindingTest.terl	checker	migrated	environment,filesystem,hash,json,batch-text-read,string-normalization,tsv,markdown,deterministic-reporting
-scripts/self_validation/LeanProofLanesTest.terl	checker	migrated	arguments,environment,filesystem,process,bounded-parallelism
-scripts/self_validation/LeanProofNativeBoundaryTest.terl	checker	migrated	environment,filesystem,hash,json,process,bounded-parallelism,deterministic-reporting
-scripts/self_validation/LeanProofSmokeTest.terl	checker	migrated	environment,filesystem,hash,json,process,regex,tsv,bounded-parallelism,deterministic-reporting
-scripts/self_validation/LeanProofSnapshotTest.terl	checker	migrated	environment,filesystem,json,hash,date,tsv,deterministic-reporting
-scripts/self_validation/proof_release_evidence/scripts/SemanticKernels.terls	checker	migrated	arguments,environment,filesystem,hash,json,process,deterministic-reporting,inline-assertions
 scripts/self_validation/OpenCvCppPackageCheck.terls	checker	migrated	arguments,environment,filesystem,hash,json,path,process,deterministic-reporting,inline-assertions
-scripts/self_validation/proof_release_evidence/scripts/ProofReleaseEvidence.terls	checker	migrated	arguments,environment,filesystem,hash,process,json,platform,deterministic-reporting,inline-assertions
 scripts/self_validation/TvmPackageInstallConsumer.terls	checker	migrated	arguments,environment,filesystem,json,process,temp-workspace,platform,deterministic-reporting,inline-assertions
 scripts/self_validation/tvm_aot_platform_matrix/scripts/TvmAotPlatformMatrix.terls	checker	migrated	arguments,environment,filesystem,json,hash,process,platform,markdown,deterministic-reporting,inline-assertions
 scripts/self_validation/rust_quality/src/rust_quality/DocsLight.terl	quality-tool	migrated	arguments,environment,filesystem,batch-text-read,string-normalization,deterministic-reporting,inline-assertions

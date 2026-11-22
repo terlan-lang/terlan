@@ -481,12 +481,9 @@ fn worker_lifecycle_events_write_native_boundary_report() {
         proof["proofPath"],
         "proofs/lean/native_boundary/NativeBoundary.lean"
     );
-    assert!(proof["proofDigest"]
-        .as_str()
-        .is_some_and(|digest| digest.starts_with("sha256:") && digest.len() == 71));
     assert_eq!(
         proof["bridgeStatus"],
-        "runtime-sources-fingerprinted; full Aeneas/Rust refinement pending"
+        "runtime sources checked; full Aeneas/Rust refinement pending"
     );
     assert_eq!(proof["runtimeManifest"], "std.db.Postgres");
     assert_eq!(proof["runtimeManifestExports"], 9);
@@ -501,9 +498,6 @@ fn worker_lifecycle_events_write_native_boundary_report() {
     assert_eq!(proof["gapCategory"], gap[0]);
     assert_eq!(proof["owner"], gap[4]);
     assert_eq!(proof["plannedGate"], gap[5]);
-    let replay = include_str!("../../../../../proofs/lean/artifacts/native-boundary.json");
-    let replay: serde_json::Value = serde_json::from_str(replay).expect("proof replay metadata");
-    assert_eq!(proof["proofDigest"], replay["source_digest"]);
     assert_eq!(report["reservedCredits"], 0);
 }
 

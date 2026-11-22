@@ -6,24 +6,20 @@ fn native_boundary_proof_correlation_accepts_current_replay_metadata() {
 
     assert_eq!(proof.family, "native-boundary");
     assert_eq!(proof.proof_path, PROOF_PATH);
-    assert!(proof.proof_digest.starts_with("sha256:"));
-    assert_eq!(proof.proof_digest.len(), 71);
 }
 
 #[test]
-fn native_boundary_proof_correlation_rejects_source_digest_drift() {
-    let different = format!("{}\n-- drift", PROOF_SOURCE);
-
-    let error = correlate_native_boundary_proof(REPLAY_METADATA, &different)
+fn native_boundary_proof_correlation_rejects_empty_source() {
+    let error = correlate_native_boundary_proof(REPLAY_METADATA, "")
         .err()
-        .expect("source drift must fail");
-    assert!(error.contains("proof source digest drift"));
+        .expect("empty source must fail");
+    assert!(error.contains("proof source is empty"));
 }
 
 #[test]
 fn native_boundary_proof_correlation_rejects_unknown_schema() {
     let metadata = REPLAY_METADATA.replace(
-        "terlan.lean-proof-replay.v1",
+        "terlan.lean-proof-replay.v2",
         "terlan.lean-proof-replay.future",
     );
 

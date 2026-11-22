@@ -3475,15 +3475,12 @@ contracts, Rust quality/docs and formatting pass in
 `target/v9-proof-compose-quality.log`. The rebuilt proof image is 11,277,200
 bytes. Temporary probe wrappers were removed; their launch logs remain.
 
-`terlan-proof-release-bootstrap` now owns the proof-evidence image, depending
-only on the compiler and shared typed-validator input fingerprint. The full
-`terlan-self-validation-bootstrap` aggregate includes that owner; proof artifact
-closeout and focused baseline checking use it directly. A focused baseline check
-no longer prepares the unrelated package, editor, release-promotion and other
-validator images. No proof requirement or full-bootstrap member was removed.
+This historical proof-evidence image was removed before 0.0.10. Current proof
+admission executes theorem sources directly and shares one Make node; it does
+not build a second evidence composer or compare stored identities.
 
-The real parallel Make fixture in `tests/proof_bootstrap_make.rs` retains the
-production dependencies and instruments image/leaf producers. Focused and full
+The former parallel Make fixture retained the
+production dependencies and instrumented image/leaf producers. Focused and full
 entry points share a single proof producer in either goal order. All unrelated
 bootstrap producers are absent from focused execution. Failed fingerprints or
 image construction prevent baseline validation even with `-k`. The existing
@@ -3491,11 +3488,13 @@ proof aggregate/failure-order fixture also passes. Final focused fixture and
 strict all-target Clippy logs are `target/v9-proof-bootstrap-graph-final.log`
 and `target/v9-proof-bootstrap-clippy-final.log`.
 
-The actual `make TERLAN_BUILD_ARTIFACTS_PREBUILT=1 release-proof-baseline-check`
+The former `make TERLAN_BUILD_ARTIFACTS_PREBUILT=1 release-proof-baseline-check`
 rebuilt and sealed only the proof validator, then passed all 14 proof-evidence
 records (`target/v9-proof-bootstrap-actual.log`, 86.806 seconds). The existing
 compiler was reused; this is not a cold compiler build or a full proof replay.
-No accepted proof baseline was changed. This narrows bootstrap ownership, not
+This historical run predated candidate-bound semantic validation. Current
+releases use `release-proof-evidence-check` and do not maintain a proof-evidence
+digest. This narrows bootstrap ownership, not
 completion of preparation-wide receipts or the remaining V9-1 acceptance paths.
 An unchanged bootstrap then verified and reused that image in 0.369 seconds
 (`target/v9-proof-bootstrap-warm.log`) without entering the compiler. The

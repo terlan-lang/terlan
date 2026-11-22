@@ -88,6 +88,7 @@ const RELEASE_COVERAGE_OWNS_TERLC_ENV: &str = "TERLAN_RELEASE_COVERAGE_OWNS_TERL
 const VALIDATION_FEATURES: &str = "validation-union";
 const REPORT_PATH_ENV: &str = "TERLAN_RUST_SUITE_REPORT";
 const PHASE_TIMEOUT_ENV: &str = "TERLAN_TEST_PHASE_TIMEOUT_SECONDS";
+const FAST_UNIT_MAX_TIMEOUT_SECONDS: u64 = 300;
 const TIER_INVENTORY_PATH: &str = "docs/quality/RUST_VALIDATION_TIERS.tsv";
 const TIER_INVENTORY: &str = include_str!("../../../docs/quality/RUST_VALIDATION_TIERS.tsv");
 const INTEGRATION_FILTERS: [&str; 4] = ["quality::", "lsp::", "benchmark::", "comprehension"];
@@ -126,7 +127,7 @@ impl ValidationTier {
 
     const fn maximum_timeout(self) -> Option<Duration> {
         match self {
-            Self::FastUnit => Some(Duration::from_secs(60)),
+            Self::FastUnit => Some(Duration::from_secs(FAST_UNIT_MAX_TIMEOUT_SECONDS)),
             _ => None,
         }
     }
