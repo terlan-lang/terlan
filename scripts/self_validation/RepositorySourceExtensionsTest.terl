@@ -1,0 +1,190 @@
+/**
+ * Bounded repository scan for retired Terlan source extensions.
+ */
+module scripts.self_validation.RepositorySourceExtensionsTest.
+
+import std.collections.List.
+import std.core.Result.{Err, Ok}.
+import std.core.{Int, String, Unit}.
+import std.io.Console.{eprintln}.
+import std.io.{Directory, File}.
+import std.regex.Regex.
+
+import type std.collections.List.
+import type std.core.Result.
+import type std.io.File.{FileError, TextFile}.
+import type std.regex.Regex.
+
+@pure
+excluded_directories(): List[String] ->
+    [".git", ".terlan", "_build", "build", "target", "terlan", "otp", "node_modules"].
+
+@pure
+pub stale_extension(path: String): Bool ->
+    String.ends_with(path, ".tl")
+        or String.ends_with(path, ".tli")
+        or String.ends_with(path, ".tn")
+        or String.ends_with(path, ".tni")
+        or String.ends_with(path, ".ter").
+
+first_stale_extension(paths: List[String]): String ->
+    case paths {
+        [] -> "";
+        [path | rest] ->
+            if {
+                stale_extension(path) -> path;
+                true -> first_stale_extension(rest)
+            }
+    }.
+
+stale_reference(files: List[TextFile], pattern: Regex): String ->
+    case files {
+        [] -> "";
+        [file | rest] ->
+            if {
+                String.ends_with(file.path, "RepositoryValidation.terls")
+                    or String.ends_with(file.path, "RepositoryValidationMain.terl")
+                    or String.ends_with(file.path, "RepositorySourceExtensions.terls")
+                    or String.ends_with(file.path, "RepositorySourceExtensionsTest.terl") -> stale_reference(rest, pattern);
+                Regex.is_match(pattern, file.contents) -> file.path;
+                true -> stale_reference(rest, pattern)
+            }
+    }.
+
+stale_reference_pages(
+    repository: String,
+    pattern: Regex,
+    offset: Int,
+): Result[String, FileError] ->
+    case File.read_text_tree_matching(
+        repository,
+        excluded_directories(),
+        [
+            "Makefile",
+            ".mk",
+            ".rs",
+            ".terl",
+            ".terli",
+            ".terls",
+            ".md",
+            ".toml",
+            ".yml",
+            ".yaml",
+            ".json",
+            ".ts",
+            ".js",
+        ],
+        List.new[String](),
+        offset,
+        64,
+    ) {
+        Err(reason) -> Err(reason);
+        Ok([]) -> Ok("");
+        Ok(files) ->
+            let reference = stale_reference(files, pattern);
+            if {
+                reference != "" -> Ok(reference);
+                true -> stale_reference_pages(repository, pattern, offset + files.length())
+            }
+    }.
+
+failure(code: String, message: String): Bool ->
+    let _printed = eprintln(String.concat(["error[repository_validation.", code, "]: ", message]));
+    false.
+
+/**
+ * Returns whether the repository contains only canonical Terlan extensions.
+ */
+pub check(repository: String): Bool ->
+    when {
+        Ok(paths) <- Directory.files_recursive_excluding(repository, excluded_directories());
+        Ok(pattern) <-
+            Regex.compile(
+                "\\.tl\\b|\\.tli\\b|\\.tn\\b|\\.tni\\b|\\.ter\\b|Some\\(\"(?:tl|tn|tli|tni|ter)\"\\)|== \"(?:tl|tn|tli|tni|ter)\"",
+            )
+    } else {
+        _ -> failure("extensions.scan", "cannot inventory Terlan source extensions")
+    };
+    (let stale = first_stale_extension(paths);
+if {
+    stale != "" -> failure("extensions.file", String.append("stale source extension: ", stale));
+    true -> case stale_reference_pages(repository, pattern, 0) {
+        Err(reason) -> failure("extensions.scan", reason.message);
+        Ok(reference) ->
+            if {
+                reference != "" -> failure(
+                    "extensions.reference",
+                    String.append("stale extension reference: ", reference),
+                );
+                true -> true
+            }
+    }
+}).
+
+write_clean_files(directory: String, remaining: Int): Bool ->
+    if {
+        remaining == 0 -> true;
+        true -> let path = String.concat([directory, "/a", Int.to_string(remaining), ".rs"]);
+        case File.write_text(path, "fn valid() {}") {
+            Ok(Unit) -> write_clean_files(directory, remaining - 1);
+            _ -> false
+        }
+    }.
+
+cleanup(root: String, result: Bool): Bool ->
+    case Directory.remove_all(root) {
+        Ok(Unit) -> result;
+        _ -> false
+    }.
+
+@test
+pub clean_tree_passes(): Bool ->
+    case Directory.create_temporary("terlan-source-extensions-clean.") {
+        Ok(root) ->
+            let written = File.write_text(String.append(root, "/valid.terl"), "module valid.");
+            cleanup(root, written == Ok(Unit) and check(root));
+        _ -> false
+    }.
+
+@test
+pub retired_file_extension_fails(): Bool ->
+    case Directory.create_temporary("terlan-source-extensions-file.") {
+        Ok(root) ->
+            let written = File.write_text(String.append(root, "/legacy.tl"), "legacy");
+            cleanup(root, written == Ok(Unit) and not check(root));
+        _ -> false
+    }.
+
+@test
+pub stale_reference_after_first_page_fails(): Bool ->
+    case Directory.create_temporary("terlan-source-extensions-page.") {
+        Ok(root) ->
+            let clean = write_clean_files(root, 64);
+            let stale = File.write_text(String.append(root, "/z-stale.rs"), "value == \"tl\"");
+            cleanup(root, clean and stale == Ok(Unit) and not check(root));
+        _ -> false
+    }.
+
+@test
+pub validator_contract_references_are_ignored(): Bool ->
+    case Directory.create_temporary("terlan-source-extensions-entry.") {
+        Ok(root) ->
+            let written =
+                File.write_text(
+                    String.append(root, "/RepositoryValidation.terls"),
+                    "value == \"tl\"",
+                );
+            let main_written = File.write_text(String.append(root, "/RepositoryValidationMain.terl"), "sample.tl");
+            cleanup(root, written == Ok(Unit) and main_written == Ok(Unit) and check(root));
+        _ -> false
+    }.
+
+@test
+pub missing_tree_fails(): Bool ->
+    when {
+        Ok(root) <- Directory.create_temporary("terlan-source-extensions-missing.");
+        Ok(Unit) <- Directory.remove_all(root)
+    } else {
+        _ -> false
+    };
+    not check(root).

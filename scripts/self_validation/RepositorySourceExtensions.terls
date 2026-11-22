@@ -1,0 +1,14 @@
+#!/usr/bin/env -S terlc run
+/**
+ * Runs the bounded retired-source-extension repository contract.
+ */
+import scripts.self_validation.RepositorySourceExtensionsTest.
+import std.core.Option.{None, Some}.
+import std.system.Environment.
+
+repository =
+    case Environment.get("TERLAN_REPOSITORY_ROOT") {
+        Some(value) -> value;
+        None -> Environment.current_directory()
+    };
+assert(RepositorySourceExtensionsTest.check(repository)).

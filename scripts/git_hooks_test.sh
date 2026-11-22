@@ -617,6 +617,10 @@ grep -Fq 'prechecked_terlan' <<< "$release_contract_body"
 grep -Fq 'build_typed_validator.sh' <<< "$release_contract_body"
 grep -Fq 'scripts/self_validation/RepositoryValidationMain.terl' \
   <<< "$release_contract_body"
+grep -Fq 'scripts/self_validation/RepositorySourceExtensions.terls' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'make --no-print-directory source-extension-check' \
+  <<< "$release_contract_body"
 grep -Fq 'repository_validator_image' <<< "$release_contract_body"
 grep -Fq 'TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run' \
   <<< "$release_contract_body"

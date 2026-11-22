@@ -243,80 +243,6 @@ workspace_members(repository: String, entries: List[String]): Bool ->
     }.
 
 @pure
-stale_extension(path: String): Bool ->
-    String.ends_with(path, ".tl")
-        or String.ends_with(path, ".tli")
-        or String.ends_with(path, ".tn")
-        or String.ends_with(path, ".tni")
-        or String.ends_with(path, ".ter").
-
-first_stale_extension(paths: List[String]): String ->
-    case paths {
-        [] -> "";
-        [path | rest] ->
-            if {
-                stale_extension(path) -> path;
-                true -> first_stale_extension(rest)
-            }
-    }.
-
-stale_reference(files: List[TextFile], pattern: Regex): String ->
-    case files {
-        [] -> "";
-        [file | rest] ->
-            if {
-                String.ends_with(file.path, "RepositoryValidation.terls") -> stale_reference(rest, pattern);
-                Regex.is_match(pattern, file.contents) -> file.path;
-                true -> stale_reference(rest, pattern)
-            }
-    }.
-
-source_extensions(repository: String): Bool ->
-    when {
-        Ok(paths) <-
-            Directory.files_recursive_excluding(
-                repository,
-                [".git", "target", "terlan", "otp", "node_modules"],
-            );
-        Ok(files) <-
-            File.read_text_tree_matching(
-                repository,
-                [".git", "target", "terlan", "otp", "node_modules"],
-                [
-                    "Makefile",
-                    ".mk",
-                    ".rs",
-                    ".terl",
-                    ".terli",
-                    ".terls",
-                    ".md",
-                    ".toml",
-                    ".yml",
-                    ".yaml",
-                    ".json",
-                    ".ts",
-                    ".js",
-                ],
-                List.new[String](),
-                0,
-                20_000,
-            );
-        Ok(pattern) <-
-            Regex.compile(
-                "\\.tl\\b|\\.tli\\b|\\.tn\\b|\\.tni\\b|\\.ter\\b|Some\\(\"(?:tl|tn|tli|tni|ter)\"\\)|== \"(?:tl|tn|tli|tni|ter)\"",
-            )
-    } else {
-        _ -> failure("extensions.scan", "cannot inventory Terlan source extensions")
-    };
-    (let stale = first_stale_extension(paths);
-let reference = stale_reference(files, pattern);
-if {
-    stale != "" -> failure("extensions.file", String.append("stale source extension: ", stale));
-    reference != "" -> failure("extensions.reference", String.append("stale extension reference: ", reference));
-    true -> true
-}).
-
-@pure
 scratch_path(path: String): Bool ->
     String.contains(path, "/.terlan/")
         or String.starts_with(path, ".terlan/")
@@ -627,18 +553,18 @@ checksums_hold(root_path: String, archives: List[String]): Bool ->
         [] -> true;
         [archive | rest] ->
             let sidecar = child(root_path, String.append(archive, ".sha256"));
-            when {
-                Ok(row) <- File.read_text(sidecar);
-                [expected, name] <- String.split(String.trim(row), "  ");
-                true <- name == archive;
-                Ok(pattern) <- Regex.compile("^[0-9a-f]{64}$");
-                true <- Regex.is_match(pattern, expected);
-                Ok(actual) <- Hash.sha256_file(child(root_path, archive));
-                true <- actual == expected
-            } else {
-                _ -> failure("artifacts.checksum", String.append("invalid checksum: ", archive))
-            };
-            checksums_hold(root_path, rest)
+            (when {
+    Ok(row) <- File.read_text(sidecar);
+    [expected, name] <- String.split(String.trim(row), "  ");
+    true <- name == archive;
+    Ok(pattern) <- Regex.compile("^[0-9a-f]{64}$");
+    true <- Regex.is_match(pattern, expected);
+    Ok(actual) <- Hash.sha256_file(child(root_path, archive));
+    true <- actual == expected
+} else {
+    _ -> failure("artifacts.checksum", String.append("invalid checksum: ", archive))
+};
+checksums_hold(root_path, rest))
     }.
 
 release_artifact_set(root_path: String, local_payload: Bool): Bool ->
@@ -662,18 +588,18 @@ write_release_fixture(path: String, archives: List[String]): Bool ->
         [] -> true;
         [archive | rest] ->
             let artifact = child(path, archive);
-            when {
-                Ok(Unit) <- File.write_text(artifact, String.append("fixture:", archive));
-                Ok(digest) <- Hash.sha256_file(artifact);
-                Ok(Unit) <-
-                    File.write_text(
-                        String.append(artifact, ".sha256"),
-                        String.concat([digest, "  ", archive, "\n"]),
-                    )
-            } else {
-                _ -> false
-            };
-            write_release_fixture(path, rest)
+            (when {
+    Ok(Unit) <- File.write_text(artifact, String.append("fixture:", archive));
+    Ok(digest) <- Hash.sha256_file(artifact);
+    Ok(Unit) <-
+        File.write_text(
+            String.append(artifact, ".sha256"),
+            String.concat([digest, "  ", archive, "\n"]),
+        )
+} else {
+    _ -> false
+};
+write_release_fixture(path, rest))
     }.
 
 release_artifact_self_test(): Bool ->
@@ -684,17 +610,17 @@ release_artifact_self_test(): Bool ->
             if {
                 not base -> cleanup_temporary(temporary, false);
                 true -> let accepted = release_artifact_set(temporary, false);
-                when {
-                    Ok(Unit) <- File.write_text(child(temporary, "unexpected.txt"), "unexpected\n");
-                    Ok(paths) <- Directory.entries(temporary)
-                } else {
-                    _ -> cleanup_temporary(temporary, false)
-                };
-                (let rejected = not same_set(entry_names(paths, List.new[String]()), release_expected(false));
+                (when {
+    Ok(Unit) <- File.write_text(child(temporary, "unexpected.txt"), "unexpected\n");
+    Ok(paths) <- Directory.entries(temporary)
+} else {
+    _ -> cleanup_temporary(temporary, false)
+};
+(let rejected = not same_set(entry_names(paths, List.new[String]()), release_expected(false));
 case File.delete(child(temporary, "unexpected.txt")) {
     Err(_reason) -> cleanup_temporary(temporary, false);
     Ok(Unit) -> cleanup_temporary(temporary, accepted and rejected)
-})
+}))
             }
     }.
 
@@ -874,6 +800,8 @@ build_release_contract(repository: String): Bool ->
             "scripts/ci/scripts/ClassifyChanges.terls",
             "scripts/ci/src/ci/ChangeClassifier.terl",
             "scripts/self_validation/RepositoryValidation.terls",
+            "scripts/self_validation/RepositorySourceExtensionsTest.terl",
+            "scripts/self_validation/RepositorySourceExtensions.terls",
             "scripts/build_typed_validator.sh",
             "scripts/run_prebuilt_terlan_binary.sh",
             "scripts/clean_build_outputs.sh",
@@ -1754,8 +1682,6 @@ self_test(): Bool ->
     "test -x target/debug/terlan-test-orchestrator\necho target/debug/terlan-test-orchestrator\ncargo build --bin terlan-test-orchestrator\n/checkout/target/debug/terlan-test-orchestrator --cargo-metadata \\\n /tmp/output -- cargo --locked\n",
 ) == 0
         and fenced_block("before\n```terlan\nvalue\n```\nafter\n", "terlan") == "value\n"
-        and stale_extension("sample.tl")
-        and not stale_extension("sample.terl")
         and same_set(["a", "b"], ["b", "a"])
         and jobs_have_timeouts("jobs:\n  check:\n    timeout-minutes: 10\n    runs-on: ubuntu\n")
         and jobs_have_timeouts("jobs:\n  check:\n    uses: ./.github/workflows/source-preflight.yml\n")
@@ -1788,7 +1714,6 @@ dispatch(
 ): Bool ->
     case command {
         Some("workspace-version") -> workspace_version(repository);
-        Some("source-extensions") -> source_extensions(repository);
         Some("release-boundary") -> release_boundary(repository);
         Some("accelerator-hard-contract") -> accelerator_hard_contract(repository);
         Some("readme-hello-world") -> readme_hello_world(repository);

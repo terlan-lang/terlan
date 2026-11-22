@@ -457,6 +457,7 @@ endif
 
 CHECK_GATES := \
 	repository-build-release-contract-check \
+	source-extension-check \
 	release-control-check \
 	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
@@ -1460,10 +1461,12 @@ workspace-version-check: | terlan-repository-validation-bootstrap
 		$(TERLAN_REPOSITORY_VALIDATION) workspace-version
 
 
-# Validates source file extensions across the repository.
-source-extension-check: | terlan-repository-validation-bootstrap
+# Validates source file extensions with the bounded standalone Terlan contract.
+source-extension-check: | terlan-compiler-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
-		$(TERLAN_REPOSITORY_VALIDATION) source-extensions
+		$(TERLAN_BOOTSTRAP_COMPILER) run scripts/self_validation/RepositorySourceExtensions.terls \
+			--out-dir target/source-extension-check/build \
+			--cache-dir target/source-extension-check/cache
 
 .PHONY: repository-validation-self-test repository-build-release-contract-check release-artifact-set-check
 # Runs the repository validation tool's own self-test.

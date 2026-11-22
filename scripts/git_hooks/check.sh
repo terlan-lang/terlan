@@ -256,6 +256,12 @@ if [[ "$hook_mode" == fast ]]; then
     "$terlc" test scripts/self_validation/InventoryTest.terl \
       --out-dir "$fast_output_dir/inventory-build" \
       --cache-dir "$fast_output_dir/inventory-cache"
+    if [[ -f scripts/self_validation/RepositorySourceExtensions.terls ]]; then
+      TERLAN_REPOSITORY_ROOT="$PWD" \
+        "$terlc" run scripts/self_validation/RepositorySourceExtensions.terls \
+          --out-dir "$fast_output_dir/source-extensions-build" \
+          --cache-dir "$fast_output_dir/source-extensions-cache"
+    fi
   }
   fast_shell() {
     local status=0 path
@@ -304,8 +310,11 @@ if [[ "$hook_mode" == fast ]]; then
           done < "$changes"
           ;;
         inventory)
-          git ls-files -z | git hash-object --stdin
-          git ls-files -s -- scripts/self_validation/InventoryTest.terl
+          git ls-files -s -z | git hash-object --stdin
+          git ls-files -s -- \
+            scripts/self_validation/InventoryTest.terl \
+            scripts/self_validation/RepositorySourceExtensionsTest.terl \
+            scripts/self_validation/RepositorySourceExtensions.terls
           ;;
         shell)
           while IFS= read -r path; do
@@ -731,6 +740,8 @@ run_release_contract_lane() {
   make --no-print-directory repository-build-release-contract-check \
     TERLAN_VALIDATION_BOOTSTRAPPED=1 \
     "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run $repository_validator_image --script-eval --"
+  make --no-print-directory source-extension-check \
+    TERLAN_VALIDATION_BOOTSTRAPPED=1
   printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
   "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
 }
@@ -916,6 +927,10 @@ fi
 if preflight_has inventory; then
   echo 'pre-commit: retained source inventory'
   "$terlc" test scripts/self_validation/InventoryTest.terl
+  if [[ -f scripts/self_validation/RepositorySourceExtensions.terls ]]; then
+    TERLAN_REPOSITORY_ROOT="$PWD" \
+      "$terlc" run scripts/self_validation/RepositorySourceExtensions.terls
+  fi
 fi
 if preflight_has version-metadata; then
   echo 'pre-commit: release version metadata'
