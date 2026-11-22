@@ -11,6 +11,10 @@ use std::process::{Command, ExitCode};
 use std::time::Duration;
 use terlan_process_owner::ProcessControl;
 
+#[cfg(test)]
+#[path = "hosted_coverage_test.rs"]
+mod tests;
+
 const REPORT: &str = "rust-test-suite-report.json";
 const SELECTIONS: &str = "rust-test-suite-report.json.selections.json";
 const MAKE: &str = "rust-test-suite-report.json.make-coverage.json";
@@ -168,8 +172,8 @@ fn validate<'a>(
 fn passed_phases(report: &Value) -> Result<&Vec<Value>, PhaseFailure> {
     let phases = report["phases"]
         .as_array()
-        .filter(|rows| !rows.is_empty() && rows.len() <= 256)
-        .ok_or_else(|| failure("missing or excessive completed phases"))?;
+        .filter(|rows| !rows.is_empty())
+        .ok_or_else(|| failure("missing completed phases"))?;
     if phases
         .iter()
         .any(|phase| phase["outcome"] != "passed" || !positive_pid(&phase["child_pid"]))

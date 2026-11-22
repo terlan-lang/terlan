@@ -687,6 +687,13 @@ pub(super) fn native_transparent_record_layouts(
                 crate::terlan_typeck::CoreVisibility::Opaque
             )
         })
+        // Generic declarations do not have a physical layout until their
+        // parameters are specialized. Concrete applications are admitted by
+        // the managed-layout inventory assembled from checked uses below this
+        // compatibility layer; encoding the open declaration here either
+        // invents a layout for a type variable or rejects nested applications
+        // such as `Outer[T] { inner: Inner[T] }` before specialization.
+        .filter(|declaration| declaration.params.is_empty())
         .filter_map(|declaration| {
             let CoreType::Struct { fields, .. } = declaration.core_body.as_ref()? else {
                 return None;

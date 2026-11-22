@@ -184,6 +184,21 @@ pub check(): Bool ->
 }
 
 #[test]
+fn nested_generic_record_fields_wait_for_concrete_layouts() {
+    check_generic_execution(
+        r#"
+module nested_generic_record_fields.
+pub struct Inner[T] { value: T }.
+pub struct Outer[T] { inner: Inner[T] }.
+wrap(value: Int): Outer[Int] -> Outer { inner: Inner { value: value } }.
+pub check(): Bool -> wrap(42).inner.value == 42.
+"#,
+        &["check"],
+        false,
+    );
+}
+
+#[test]
 fn inferred_list_of_call_results_retains_its_collection_schema() {
     check_generic_execution(
         r#"

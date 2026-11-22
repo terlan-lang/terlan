@@ -57,5 +57,26 @@ pub(super) fn atom_plan(
             });
         }
     }
+    if let NativeType::ManagedRef(semantic) = value_type {
+        let discriminant = constructors.values().find_map(|layout| {
+            if layout.result != value_type || !layout.parameters.is_empty() {
+                return None;
+            }
+            let variant = layout.descriptor.variant_name()?;
+            if crate::terlan_syntax::type_name_to_atom_payload(variant) != atom {
+                return None;
+            }
+            layout.descriptor.discriminant()
+        });
+        if let Some(discriminant) = discriminant {
+            return Ok(PatternPlan {
+                predicate: NativeExpr::ManagedOperation {
+                    encoded: Arc::from(encode_managed_variant_is_operation(semantic, discriminant)),
+                    args: vec![value],
+                },
+                bindings: vec![],
+            });
+        }
+    }
     Ok(immediate)
 }

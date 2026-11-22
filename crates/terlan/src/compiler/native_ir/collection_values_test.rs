@@ -303,12 +303,36 @@ fn recursive_tagged_union_fields_reify_cast_nullary_variants() {
              | Atom[\"integer\"]\n\
              | {Atom[\"seq\"], size: Int, element: Value}\n\
              | {Atom[\"tuple\"], fields: List[Value]}.\n\n\
-         pub sample(): Value -> {Atom[\"seq\"], 8, Atom[\"bit\"]}.\n",
+         pub sample(): Value -> {Atom[\"seq\"], 8, Atom[\"bit\"]}.\n\
+         pub check(): Bool ->\n\
+             case sample() {\n\
+                 {Atom[\"seq\"], size, Atom[\"bit\"]} -> size == 8;\n\
+                 _ -> false\n\
+             }.\n",
     );
     assert!(modules[0]
         .functions
         .iter()
         .any(|function| function.name == "sample"));
+    let object = super::emit_native_application_object("native-recursive-tagged-union", &modules)
+        .expect("emit recursive tagged union");
+    let export_id = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "check")
+        .expect("recursive tagged union check")
+        .export_id;
+    super::native_object_test_support::assert_managed_native_object_invocations(
+        "native-recursive-tagged-union",
+        &modules,
+        &object,
+        &[super::native_object_test_support::NativeObjectInvocation {
+            export_id,
+            arguments: Vec::new(),
+            expected_status: super::status::OK,
+            expected_result: Some(1),
+        }],
+    );
 }
 
 fn contains_collection_tag(expr: &NativeExpr, tag: u8) -> bool {
