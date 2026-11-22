@@ -140,6 +140,35 @@ fn linked_variable_casts_retain_non_identity_conversions() {
 }
 
 #[test]
+fn linked_tagged_tuple_casts_recover_lexical_payload_types() {
+    let handle = CoreType::Named("std.js.Number.JsNumber".into());
+    let option = CoreType::Union(vec![
+        CoreType::AtomLiteral("none".into()),
+        CoreType::Tuple(vec![
+            CoreTupleTypeElem::Type(CoreType::AtomLiteral("some".into())),
+            CoreTupleTypeElem::Field {
+                name: "value".into(),
+                ty: handle.clone(),
+            },
+        ]),
+    ]);
+    let environment = HashMap::from([("handle".into(), handle)]);
+    let mut expression = CoreExpr::Cast {
+        expr: Box::new(CoreExpr::Tuple(vec![
+            CoreExpr::Atom("some".into()),
+            CoreExpr::Var("handle".into()),
+        ])),
+        target_type: option.clone(),
+    };
+
+    assert!(matches!(
+        erase_expr_identity_casts(&mut expression, &HashMap::new(), &environment),
+        Some(CoreType::Tuple(_))
+    ));
+    assert!(matches!(expression, CoreExpr::Tuple(_)));
+}
+
+#[test]
 fn linked_case_lambda_and_comprehension_scopes_erase_only_identity_casts() {
     let coordinate = CoreType::Named("fixture.Coordinate".into());
     let coordinates = CoreType::List(Box::new(coordinate.clone()));
@@ -302,7 +331,7 @@ pub check(pending: List[Int]): List[Int] ->
 }
 
 #[test]
-fn formal_linking_emits_some_bool_call_arguments() {
+fn formal_linking_emits_some_lexical_call_arguments() {
     let source = r#"
 module js_option_argument.
 
@@ -310,7 +339,7 @@ import std.core.Option.{Option, Some}.
 
 accept(value: Option[Bool]): Bool -> value.is_some().
 
-pub create(): Bool -> accept(Some(true)).
+pub create(value: Bool): Bool -> accept(Some(value)).
 "#;
     let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
         "js_option_argument.terl",
@@ -329,5 +358,5 @@ pub create(): Bool -> accept(Some(true)).
     let js = super::super::direct_ast::emit_core_module_with_direct_oxc_ast(&linked)
         .expect("emit Option[Bool] JavaScript argument fixture");
 
-    assert!(js.contains("accept([\"some\", true])"), "{js}");
+    assert!(js.contains("accept([\"some\", value])"), "{js}");
 }

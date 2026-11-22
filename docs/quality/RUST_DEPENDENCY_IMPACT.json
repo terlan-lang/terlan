@@ -894,7 +894,7 @@
     },
     {
       "name": "commands",
-      "physical_lines": 141116,
+      "physical_lines": 141121,
       "rust_files": 425
     },
     {
@@ -1357,7 +1357,7 @@
     },
     {
       "name": "commands",
-      "physical_lines": 54997,
+      "physical_lines": 55026,
       "rust_files": 243
     },
     {

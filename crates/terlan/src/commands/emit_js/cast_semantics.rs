@@ -314,6 +314,11 @@ fn linked_expr_type(
         CoreExpr::Call { function, args, .. } => {
             returns.get(&(function.clone(), args.len())).cloned()
         }
+        CoreExpr::Tuple(items) => items
+            .iter()
+            .map(|item| linked_expr_type(item, returns, environment).map(CoreTupleTypeElem::Type))
+            .collect::<Option<Vec<_>>>()
+            .map(CoreType::Tuple),
         CoreExpr::List(items) | CoreExpr::Array(items) if !items.is_empty() => {
             let first = linked_expr_type(&items[0], returns, environment)?;
             items[1..]
