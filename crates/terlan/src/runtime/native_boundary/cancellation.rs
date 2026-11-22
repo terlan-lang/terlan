@@ -9,6 +9,7 @@ use std::sync::{
 #[derive(Clone, Debug, Default)]
 pub struct NativeBoundaryCancellationToken {
     cancelled: Arc<AtomicBool>,
+    ancestors: Vec<Arc<AtomicBool>>,
 }
 
 impl NativeBoundaryCancellationToken {
@@ -22,9 +23,23 @@ impl NativeBoundaryCancellationToken {
         self.cancelled.store(true, Ordering::Release);
     }
 
+    /// Creates an independently cancellable child that also observes this token.
+    pub fn child(&self) -> Self {
+        let mut ancestors = self.ancestors.clone();
+        ancestors.push(Arc::clone(&self.cancelled));
+        Self {
+            cancelled: Arc::new(AtomicBool::new(false)),
+            ancestors,
+        }
+    }
+
     /// Returns whether cancellation has been requested.
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Acquire)
+            || self
+                .ancestors
+                .iter()
+                .any(|ancestor| ancestor.load(Ordering::Acquire))
     }
 }
 

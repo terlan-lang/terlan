@@ -35,6 +35,9 @@ mod owned_child_test;
 #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 mod pipe_scope_test;
 
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+mod batch_test;
+
 // Trusted build and publication tools may enclose multi-hour validation stages.
 const MAX_TIMEOUT_MS: u64 = 6 * 60 * 60 * 1000;
 const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
@@ -143,6 +146,17 @@ pub(super) fn run_process_many(
             "",
         ));
     };
+    let fail_fast = match fields.iter().find(|(name, _)| name == "fail_fast") {
+        None => false,
+        Some((_, NativeBoundaryValue::Bool(value))) => *value,
+        Some(_) => {
+            return Ok(process_error(
+                "invalid_request",
+                "process batch fail_fast must be Bool",
+                "",
+            ))
+        }
+    };
 
     enum BatchItem {
         Request(ProcessRequest),
@@ -165,20 +179,31 @@ pub(super) fn run_process_many(
 
     let result_count = pending.len();
     let pending = Mutex::new(pending);
+    let batch_cancellation = cancellation
+        .map(NativeBoundaryCancellationToken::child)
+        .unwrap_or_default();
     let (sender, receiver) = mpsc::channel();
     std::thread::scope(|scope| {
         for _ in 0..max_concurrency.min(result_count) {
             let sender = sender.clone();
             let pending = &pending;
+            let batch_cancellation = &batch_cancellation;
             scope.spawn(move || loop {
                 let next = pending.lock().ok().and_then(|mut queue| queue.pop_front());
                 let Some((index, item)) = next else {
                     return;
                 };
                 let result = match item {
-                    BatchItem::Request(request) => execute(request, cancellation),
+                    BatchItem::Request(request) => execute(request, Some(batch_cancellation)),
                     BatchItem::Ready(value) => Ok(value),
                 };
+                if fail_fast
+                    && result
+                        .as_ref()
+                        .map_or(true, |value| !process_result_succeeded(value))
+                {
+                    batch_cancellation.cancel();
+                }
                 if sender.send((index, result)).is_err() {
                     return;
                 }
@@ -204,6 +229,25 @@ pub(super) fn run_process_many(
         values.push(result?);
     }
     Ok(process_batch_output(values))
+}
+
+fn process_result_succeeded(value: &NativeBoundaryValue) -> bool {
+    let NativeBoundaryValue::Record { name, fields } = value else {
+        return false;
+    };
+    if name != "Ok" {
+        return false;
+    }
+    let Some((_, NativeBoundaryValue::Record { name, fields })) =
+        fields.iter().find(|(name, _)| name == "value")
+    else {
+        return false;
+    };
+    name == "Output"
+        && matches!(
+            fields.iter().find(|(name, _)| name == "status"),
+            Some((_, NativeBoundaryValue::Int(0)))
+        )
 }
 
 pub(super) use framed::run_process_length_framed;

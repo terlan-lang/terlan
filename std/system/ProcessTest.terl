@@ -8,7 +8,7 @@ import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
 import std.core.String.
 import std.system.Process.
-import std.system.Process.{InvalidFrame, InvalidRequest, OutputLimitExceeded, SpawnFailed, TimedOut}.
+import std.system.Process.{Cancelled, InvalidFrame, InvalidRequest, OutputLimitExceeded, SpawnFailed, TimedOut}.
 
 import type std.system.Process.Command.
 
@@ -172,6 +172,19 @@ pub bounded_batch_preserves_typed_command_failures(): Bool ->
     reason.code == SpawnFailed
         and String.contains(reason.message, "cannot spawn child")
         and reason.program == "/terlan-process-test/nonexistent-program".
+
+@test
+pub fail_fast_batch_cancels_siblings_after_nonzero_status(): Bool ->
+    let failing = Process.with_arguments(Process.command("/bin/sh"), ["-c", "exit 7"]);
+    let slow = Process.with_arguments(Process.command("/bin/sh"), ["-c", "sleep 4"]);
+    when {
+        Ok(batch) <- Process.run_many(Process.batch_fail_fast(List(failing, slow), 2));
+        [failure, sibling] <- batch.completions;
+        {Some(failure_output), None, None, Some(sibling_error)} <- {failure.output, failure.error, sibling.output, sibling.error}
+    } else {
+        _ -> false
+    };
+    failure_output.status == 7 and sibling_error.code == Cancelled.
 
 @test
 pub length_framed_session_sequences_handshake_phases(): Bool ->

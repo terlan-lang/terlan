@@ -131,10 +131,10 @@ pub(super) fn prepare_test_project_context(
 
     for root in &context.compilation_source_roots {
         if exhaustive_project {
-            let status = crate::commands::check::run_check_dir(
-                &root.to_string_lossy(),
+            let status = crate::commands::check::run_check_resolved_root(
+                root,
+                &context.compilation_source_roots,
                 project_state.clone(),
-                None,
             );
             if status != ExitCode::SUCCESS {
                 return Err(format!(

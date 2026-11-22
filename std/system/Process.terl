@@ -85,6 +85,7 @@ pub struct BatchOutput {
 pub struct BatchRequest {
     commands: List[Command],
     max_concurrency: Int,
+    fail_fast: Bool,
 }.
 
 /**
@@ -366,7 +367,13 @@ pub (command: Command) run(): Result[Output, ProcessError] ->
  * batch bound produces the outer `Err` before any child is started.
  */
 pub batch(commands: List[Command], max_concurrency: Int): BatchRequest ->
-    BatchRequest(commands = commands, max_concurrency = max_concurrency).
+    BatchRequest(commands = commands, max_concurrency = max_concurrency, fail_fast = false).
+
+/**
+ * Constructs a bounded batch that cancels active and pending siblings after the first failure.
+ */
+pub batch_fail_fast(commands: List[Command], max_concurrency: Int): BatchRequest ->
+    BatchRequest(commands = commands, max_concurrency = max_concurrency, fail_fast = true).
 
 /**
  * Executes one nominal bounded batch request through the VM capability.

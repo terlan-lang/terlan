@@ -3,7 +3,7 @@
  */
 module rust_quality.DependencyImpact.
 
-import rust_quality.{CargoMetadata, CompilationInputs, DependencyClassifications, DependencyImpactCargo, DependencyImpactGraph, DependencyImpactSource, SourceInventory}.
+import rust_quality.{CargoMetadata, DependencyClassifications, DependencyImpactCargo, DependencyImpactGraph, DependencyImpactSource, SourceInventory}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -559,7 +559,6 @@ budget_diagnostics(
 
 @pure
 build_report(
-    compilation_digest: String,
     cargo: CargoAnalysis,
     classifications: ClassificationResult,
     source: SourceAnalysis,
@@ -592,8 +591,6 @@ build_report(
         [
             "{\"blast_radius_policy\":",
             blast_policy,
-            ",\"compilation_input_sha256\":",
-            Json.quote_string(compilation_digest),
             ",\"dependency_fanout_policy\":",
             fanout_policy,
             ",\"domain_api_fan_in\":",
@@ -645,55 +642,50 @@ build(root: String, enforce_milestone: Bool): Model ->
                     true -> let classifications = DependencyClassifications.check(root, cargo.duplicates);
                     if {
                         not classifications.valid -> model_failure(classifications.message);
-                        true -> let compilation = CompilationInputs.digest(root);
+                        true -> let timings = load_timings(root);
                         if {
-                            not compilation.valid -> model_failure(compilation.message);
-                            true -> let timings = load_timings(root);
-                            if {
-                                not timings.valid -> model_failure(timings.message);
-                                true -> let workspace_cycles = DependencyImpactGraph.cycles(cargo.nodes);
-                                let domain_graph =
-                                    DependencyImpactGraph.domain_graph(
-                                        source.production_domains,
-                                        source.production_edges,
-                                    );
-                                let domain_cycles = DependencyImpactGraph.cycles(domain_graph);
-                                let blast = DependencyImpactGraph.blast_radius(domain_graph);
-                                let policy =
-                                    budget_diagnostics(
-                                        cargo.direct_dependency_count,
-                                        List.length(cargo.duplicates),
-                                        cargo.integration_targets,
-                                        List.length(workspace_cycles),
-                                        List.length(domain_cycles),
-                                        DependencyImpactGraph.maximum_blast(blast, 0),
-                                        List.length(timings.rows),
-                                        source,
-                                        enforce_milestone,
-                                    );
-                                let parsed = ast_parse_diagnostics(ast.document);
-                                let reviewed = List.concat(classifications.diagnostics, parsed);
-                                let diagnostics = List.concat(policy, reviewed);
-                                Model(
-                                    valid = true,
-                                    document = build_report(
-                                        compilation.digest,
-                                        cargo,
-                                        classifications,
-                                        source,
-                                        timings,
-                                        workspace_cycles,
-                                        domain_cycles,
-                                        blast,
-                                    ),
-                                    diagnostics = diagnostics,
-                                    production_domains = List.length(source.production_domains),
-                                    production_edges = List.length(source.production_edges),
-                                    test_edges = List.length(source.test_edges),
-                                    integration_targets = List.length(cargo.integration_targets),
-                                    message = "",
-                                )
-                            }
+                            not timings.valid -> model_failure(timings.message);
+                            true -> let workspace_cycles = DependencyImpactGraph.cycles(cargo.nodes);
+                            let domain_graph =
+                                DependencyImpactGraph.domain_graph(
+                                    source.production_domains,
+                                    source.production_edges,
+                                );
+                            let domain_cycles = DependencyImpactGraph.cycles(domain_graph);
+                            let blast = DependencyImpactGraph.blast_radius(domain_graph);
+                            let policy =
+                                budget_diagnostics(
+                                    cargo.direct_dependency_count,
+                                    List.length(cargo.duplicates),
+                                    cargo.integration_targets,
+                                    List.length(workspace_cycles),
+                                    List.length(domain_cycles),
+                                    DependencyImpactGraph.maximum_blast(blast, 0),
+                                    List.length(timings.rows),
+                                    source,
+                                    enforce_milestone,
+                                );
+                            let parsed = ast_parse_diagnostics(ast.document);
+                            let reviewed = List.concat(classifications.diagnostics, parsed);
+                            let diagnostics = List.concat(policy, reviewed);
+                            Model(
+                                valid = true,
+                                document = build_report(
+                                    cargo,
+                                    classifications,
+                                    source,
+                                    timings,
+                                    workspace_cycles,
+                                    domain_cycles,
+                                    blast,
+                                ),
+                                diagnostics = diagnostics,
+                                production_domains = List.length(source.production_domains),
+                                production_edges = List.length(source.production_edges),
+                                test_edges = List.length(source.test_edges),
+                                integration_targets = List.length(cargo.integration_targets),
+                                message = "",
+                            )
                         }
                     }
                 }
@@ -727,11 +719,21 @@ same_json(left: String, right: String): Bool ->
     };
     left_text == right_text.
 
+contains_ephemeral_compilation_hash(source: String): Bool ->
+    when {
+        Ok(document) <- Json.parse(source);
+        Ok(_value) <- document.get("compilation_input_sha256")
+    } else {
+        _ -> false
+    };
+    true.
+
 checked_diagnostics(root: String, current: String): List[String] ->
     case File.read_text(SourceInventory.child(root, "docs/quality/RUST_DEPENDENCY_IMPACT.json")) {
         Err(_reason) -> ["missing docs/quality/RUST_DEPENDENCY_IMPACT.json"];
         Ok(source) ->
             if {
+                contains_ephemeral_compilation_hash(source) -> ["checked dependency-impact report contains an ephemeral compilation hash"];
                 same_json(current, source) -> List.new[String]();
                 true -> ["checked dependency-impact report is stale"]
             }
@@ -809,9 +811,10 @@ pub self_test(): Bool ->
     dependency_budget_diagnostics(56, []) == []
         and dependency_budget_diagnostics(58, ["existing diagnostic"]) == ["existing diagnostic"]
         and dependency_budget_diagnostics(59, ["existing diagnostic"]) == ["main-package non-optional normal dependency count 59 exceeds 58", "existing diagnostic"]
-        and CompilationInputs.self_test()
         and DependencyClassifications.self_test()
         and DependencyImpactCargo.self_test()
         and DependencyImpactGraph.self_test()
         and DependencyImpactSource.self_test()
+        and contains_ephemeral_compilation_hash("{\"compilation_input_sha256\":\"obsolete\"}")
+        and not contains_ephemeral_compilation_hash("{\"schema_version\":4}")
         and Json.quote_string("a\n\"b") == "\"a\\u000a\\\"b\"".

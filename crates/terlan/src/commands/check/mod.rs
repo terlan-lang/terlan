@@ -24,3 +24,23 @@ pub(crate) fn run_check_dir(
 ) -> std::process::ExitCode {
     project::run(path, state, manifest, false)
 }
+
+/// Checks a source root in a graph resolved against the consumer's lockfile.
+pub(crate) fn run_check_resolved_root(
+    root: &std::path::Path,
+    roots: &[std::path::PathBuf],
+    state: crate::CliState,
+) -> std::process::ExitCode {
+    let dependencies = roots
+        .iter()
+        .filter(|candidate| candidate.as_path() != root)
+        .cloned()
+        .collect::<Vec<_>>();
+    project::run_with_roots(
+        &root.to_string_lossy(),
+        state,
+        None,
+        false,
+        Some(&dependencies),
+    )
+}

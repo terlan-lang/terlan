@@ -26,6 +26,16 @@ pub(super) fn run(
     manifests: Option<&Path>,
     interfaces_only: bool,
 ) -> ExitCode {
+    run_with_roots(path, state, manifests, interfaces_only, None)
+}
+
+pub(super) fn run_with_roots(
+    path: &str,
+    state: CliState,
+    manifests: Option<&Path>,
+    interfaces_only: bool,
+    resolved_roots: Option<&[std::path::PathBuf]>,
+) -> ExitCode {
     let root = Path::new(path);
     let cache_dir = state
         .cache_dir
@@ -52,7 +62,7 @@ pub(super) fn run(
             })
         })
     {
-        return super::directory::run_check_dir(path, state, manifests);
+        return super::directory::run_check_dir(path, state, manifests, resolved_roots);
     }
     let mut inputs = Vec::new();
     for file in files {
@@ -114,7 +124,10 @@ pub(super) fn run(
         }
         inputs.push((file, source, syntax));
     }
-    let dependencies = match super::dependencies::source_interfaces(root) {
+    let dependencies = match resolved_roots.map_or_else(
+        || super::dependencies::source_interfaces(root),
+        super::dependencies::interfaces_from_roots,
+    ) {
         Ok(dependencies) => dependencies,
         Err(message) => {
             eprintln!("{message}");

@@ -19,6 +19,7 @@ pub(crate) fn run_check_dir(
     path: &str,
     mut state: CliState,
     phase_manifest_path: Option<&Path>,
+    resolved_roots: Option<&[std::path::PathBuf]>,
 ) -> ExitCode {
     let dir = Path::new(path);
     let cache_dir = state
@@ -380,7 +381,10 @@ pub(crate) fn run_check_dir(
 
     let mut interfaces: HashMap<String, ModuleInterface> = HashMap::new();
     load_interfaces_from_dir(&cache_dir, &mut interfaces);
-    let dependencies = match super::dependencies::source_interfaces(dir) {
+    let dependencies = match resolved_roots.map_or_else(
+        || super::dependencies::source_interfaces(dir),
+        super::dependencies::interfaces_from_roots,
+    ) {
         Ok(dependencies) => dependencies,
         Err(message) => {
             eprintln!("{message}");

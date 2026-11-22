@@ -687,10 +687,16 @@ pub hosted_lanes(paths: List[String]): List[String] ->
  * Ownership remains expressed by lanes/1; execution never repeats a subset.
  */
 pub execution_lanes(paths: List[String]): List[String] ->
-    prioritize_test_lanes(minimal_test_lanes(lanes(paths))).
+    prioritize_test_lanes(minimal_test_lanes(include_proof_workspace(lanes(paths)))).
 
 pub hosted_execution_lanes(paths: List[String]): List[String] ->
-    prioritize_test_lanes(minimal_test_lanes(hosted_lanes(paths))).
+    prioritize_test_lanes(minimal_test_lanes(include_proof_workspace(hosted_lanes(paths)))).
+
+include_proof_workspace(values: List[String]): List[String] ->
+    if {
+        contains_lane(values, "proofs") and not contains_lane(values, "workspace") -> ["workspace" | values];
+        true -> values
+    }.
 
 minimal_test_lanes(values: List[String]): List[String] ->
     retain_minimal_test_lanes(values, values).

@@ -22,7 +22,8 @@ pub struct BatchOutput {
 
 pub struct BatchRequest {
     commands: List[Command],
-    max_concurrency: Int
+    max_concurrency: Int,
+    fail_fast: Bool
 }.
 
 pub type Cancelled =
@@ -132,6 +133,10 @@ pub type TimedOut =
 /// batch bound produces the outer `Err` before any child is started.
 
 pub batch(commands: List[Command], max_concurrency: Int): BatchRequest.
+
+/// Constructs a bounded batch that cancels active and pending siblings after the first failure.
+
+pub batch_fail_fast(commands: List[Command], max_concurrency: Int): BatchRequest.
 
 /// Constructs a command with conservative validator defaults.
 

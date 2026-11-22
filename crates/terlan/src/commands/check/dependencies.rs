@@ -35,12 +35,22 @@ pub(super) fn source_interfaces(
         .map(|root| project_dir.join(root).canonicalize())
         .collect::<Result<HashSet<_>, _>>()
         .map_err(|error| format!("cannot resolve package source roots: {error}"))?;
+    let roots = project_check_source_roots(project_dir, &manifest)?;
+    interfaces_from_roots(
+        &roots
+            .into_iter()
+            .filter(|root| !own_roots.contains(root))
+            .collect::<Vec<_>>(),
+    )
+}
+
+/// Reads APIs from a dependency graph already resolved by the owning consumer.
+pub(super) fn interfaces_from_roots(
+    roots: &[PathBuf],
+) -> Result<Vec<(PathBuf, SyntaxModuleOutput)>, String> {
     let mut sources = Vec::new();
-    for root in project_check_source_roots(project_dir, &manifest)? {
-        if own_roots.contains(&root) {
-            continue;
-        }
-        for path in terlan_check_sources_in_dir(&root).map_err(|error| error.to_string())? {
+    for root in roots {
+        for path in terlan_check_sources_in_dir(root).map_err(|error| error.to_string())? {
             if path
                 .extension()
                 .is_some_and(|extension| extension == "terl")
@@ -53,7 +63,7 @@ pub(super) fn source_interfaces(
                 parse_source_as_syntax_output(&path.to_string_lossy(), &text).map_err(|error| {
                     format!("cannot parse dependency {}: {error:?}", path.display())
                 })?;
-            validate_module_layout(&root, &path, &syntax.module_name)?;
+            validate_module_layout(root, &path, &syntax.module_name)?;
             sources.push((path, syntax));
         }
     }

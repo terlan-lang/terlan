@@ -269,6 +269,49 @@ fn package_fetch_and_build_follow_path_to_transitive_git_dependency() {
         .any(|root| root.package_path == ["remote_utils"]));
 }
 
+#[test]
+fn directory_tests_use_consumer_lock_for_cached_transitive_git_dependencies() {
+    let root = test_fs::temp_dir("package_git", "test_transitive_git");
+    let leaf = root.join("leaf");
+    write_git_package(&leaf, "leaf", "pub one(): Int -> 1.\n");
+    let leaf_revision = commit_repository(&leaf);
+    let bridge = root.join("bridge");
+    write_git_package(
+        &bridge,
+        "remote_utils",
+        "import leaf.Util as Leaf.\n\npub one(): Int -> Leaf.one().\n",
+    );
+    let manifest_path = bridge.join(TERLAN_PROJECT_MANIFEST_FILE);
+    let manifest = fs::read_to_string(&manifest_path).unwrap();
+    fs::write(
+        &manifest_path,
+        format!(
+            "{manifest}\n[dependencies]\nleaf = {{ git = \"{}\", rev = \"{leaf_revision}\" }}\n",
+            leaf.display()
+        ),
+    )
+    .unwrap();
+    let revision = commit_repository(&bridge);
+    let app = root.join("app");
+    write_consumer(&app, &bridge, &revision);
+    fs::create_dir_all(app.join("tests/app")).unwrap();
+    fs::write(app.join("tests/app/DependencyTest.terl"), "module app.DependencyTest.\nimport remote_utils.Util.\n@test\npub transitive_value(): Bool -> Util.one() == 1.\n").unwrap();
+    assert_eq!(fetch_project_git_dependencies(&app), Ok(2));
+    fs::remove_dir_all(&leaf).unwrap();
+    fs::remove_dir_all(&bridge).unwrap();
+    let status = crate::commands::test::run(
+        crate::CliCommand {
+            verb: Some("test".to_owned()),
+            args: vec![app.join("tests").to_string_lossy().into_owned()],
+        },
+        crate::CliState {
+            out_dir: root.join("out"),
+            ..crate::CliState::default()
+        },
+    );
+    assert_eq!(status, std::process::ExitCode::SUCCESS);
+}
+
 fn write_git_package(repository: &Path, package: &str, body: &str) {
     let source = repository.join("src").join(package);
     fs::create_dir_all(&source).expect("create package source");
