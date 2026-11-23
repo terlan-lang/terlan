@@ -615,8 +615,8 @@
       "milestone": "0.0.9",
       "name": "object",
       "owner": "dependency-health",
-      "rationale": "psm build tooling retains object 0.37 and Cranelift retains object 0.39 while native image handling uses object 0.40",
-      "versions": "0.37.3,0.39.1,0.40.0"
+      "rationale": "psm build tooling retains object 0.37 and Cranelift retains object 0.39 while native image handling uses object 0.41",
+      "versions": "0.37.3,0.39.1,0.41.0"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -680,7 +680,7 @@
       "name": "thiserror",
       "owner": "dependency-health",
       "rationale": "instant-acme retains thiserror 1 while newer protocol dependencies use 2",
-      "versions": "1.0.69,2.0.18"
+      "versions": "1.0.69,2.0.21"
     },
     {
       "classification": "transitive-upgrade-blocked",
@@ -688,7 +688,7 @@
       "name": "thiserror-impl",
       "owner": "dependency-health",
       "rationale": "thiserror generations require their matching derive implementation",
-      "versions": "1.0.69,2.0.18"
+      "versions": "1.0.69,2.0.21"
     },
     {
       "classification": "platform-compatibility",
@@ -899,8 +899,8 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 190278,
-      "rust_files": 538
+      "physical_lines": 190335,
+      "rust_files": 539
     },
     {
       "name": "formal_pipeline",
@@ -1181,7 +1181,7 @@
       "versions": [
         "0.37.3",
         "0.39.1",
-        "0.40.0"
+        "0.41.0"
       ]
     },
     {
@@ -1238,14 +1238,14 @@
       "name": "thiserror",
       "versions": [
         "1.0.69",
-        "2.0.18"
+        "2.0.21"
       ]
     },
     {
       "name": "thiserror-impl",
       "versions": [
         "1.0.69",
-        "2.0.18"
+        "2.0.21"
       ]
     },
     {
@@ -1362,7 +1362,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 57645,
+      "physical_lines": 57735,
       "rust_files": 261
     },
     {

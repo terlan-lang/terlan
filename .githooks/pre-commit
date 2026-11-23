@@ -4,6 +4,6 @@ set -euo pipefail
 driver=$(mktemp "$(git rev-parse --git-path pre-commit).XXXXXX")
 trap 'rm -f "$driver"' EXIT
 git show :scripts/git_hooks.sh > "$driver"
-# Until the cumulative compiler baseline is green, local commits must execute
-# the complete affected validation plan instead of deferring it to hosted CI.
-TERLAN_HOOK_MODE=full bash "$driver" check
+# Fast admission is the local default after a complete green compiler baseline.
+# Release and hosted validation select full mode explicitly.
+TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-fast}" bash "$driver" check

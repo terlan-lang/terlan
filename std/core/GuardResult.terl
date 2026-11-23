@@ -57,6 +57,7 @@ pub impl GuardResult[Effect[Bool], std.core.Effect] for Effect[Bool] {
  * Output: completed guard-result descriptor.
  * Transformation: wraps the decision without changing its truth value.
  */
+@pure
 pub from_bool(value: Bool): Completed ->
     Pure(value).
 
@@ -68,6 +69,7 @@ pub from_bool(value: Bool): Completed ->
  * Transformation: records that the current comprehension candidate should be
  * kept.
  */
+@pure
 pub accept(): Completed ->
     Pure(true).
 
@@ -79,6 +81,7 @@ pub accept(): Completed ->
  * Transformation: records that the current comprehension candidate should be
  * filtered out.
  */
+@pure
 pub reject(): Completed ->
     Pure(false).
 
@@ -90,6 +93,7 @@ pub reject(): Completed ->
  * Transformation: unwraps the descriptor without crossing a runtime execution
  * boundary.
  */
+@pure
 pub (result: Completed) value(): Bool ->
     case result {
         Pure(decision) -> decision
@@ -103,6 +107,7 @@ pub (result: Completed) value(): Bool ->
  * Transformation: preserves ordinary comprehension filter ordering for pure
  * guard decisions.
  */
+@pure
 pub (left: Completed) both(right: Completed): Completed ->
     Pure(value(left) and value(right)).
 
@@ -114,5 +119,6 @@ pub (left: Completed) both(right: Completed): Completed ->
  * Transformation: preserves ordinary boolean guard composition inside the
  * guard-result contract.
  */
+@pure
 pub (left: Completed) either(right: Completed): Completed ->
     Pure(value(left) or value(right)).

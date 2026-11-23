@@ -35,6 +35,7 @@ pub type Pure =
 /// Transformation: records that the current comprehension candidate should be
 /// kept.
 
+@pure
 pub accept(): Completed.
 
 /// Combines two completed guard results with boolean conjunction.
@@ -44,6 +45,7 @@ pub accept(): Completed.
 /// Transformation: preserves ordinary comprehension filter ordering for pure
 /// guard decisions.
 
+@pure
 pub (left: Completed) both(right: Completed): Completed.
 
 /// Combines two completed guard results with boolean disjunction.
@@ -53,6 +55,7 @@ pub (left: Completed) both(right: Completed): Completed.
 /// Transformation: preserves ordinary boolean guard composition inside the
 /// guard-result contract.
 
+@pure
 pub (left: Completed) either(right: Completed): Completed.
 
 /// Converts a boolean into a guard-result value.
@@ -61,6 +64,7 @@ pub (left: Completed) either(right: Completed): Completed.
 /// Output: completed guard-result descriptor.
 /// Transformation: wraps the decision without changing its truth value.
 
+@pure
 pub from_bool(value: Bool): Completed.
 
 /// Creates a rejecting guard result.
@@ -70,6 +74,7 @@ pub from_bool(value: Bool): Completed.
 /// Transformation: records that the current comprehension candidate should be
 /// filtered out.
 
+@pure
 pub reject(): Completed.
 
 /// Reads the boolean decision from a completed guard result.

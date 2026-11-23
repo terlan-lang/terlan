@@ -638,7 +638,7 @@ grep -Fq 'repository_root=$(git remote get-url origin)' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'TERLAN_HOOK_MODE=full bash "$driver" check' \
+grep -Fq 'TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-fast}" bash "$driver" check' \
   "$(dirname "$driver")/../.githooks/pre-commit"
 grep -Fq "rg -qx 'preflight:inventory'" \
   "$(dirname "$driver")/git_hooks/check.sh"
