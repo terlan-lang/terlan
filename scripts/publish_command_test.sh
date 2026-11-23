@@ -95,6 +95,9 @@ echo 'Publication command regressions passed (11 scenarios).'
 # recursive publish-local graph must not replay the Make preflight.
 grep -Fxq 'publish: release-plan publish-source-preflight' "${make_sources[@]}"
 grep -Fxq 'publish-local:' "${make_sources[@]}"
+workspace_version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' "$root/Cargo.toml")
+release_plan_dry_run=$(make --no-print-directory -n release-plan)
+grep -Fq "status \"$workspace_version\"" <<<"$release_plan_dry_run"
 publish_local=$(make_rule publish-local)
 if printf '%s\n' "$publish_local" | rg -q 'publish-source-preflight'; then
   echo 'publish-local redundantly replays publish-source-preflight.' >&2

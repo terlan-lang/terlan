@@ -444,7 +444,7 @@ HTTP_SOAK_PROFILE ?= short
 HTTP_SOAK_REPORT = target/quality/vm-http-soak-$(if $(filter release,$(HTTP_SOAK_PROFILE)),release-,)stability-report.json
 TERLAN_PUBLICATION_INPUT_TIMEOUT_SECONDS ?= 3600
 
-ifneq ($(filter release release-wait release-tag release-status publish publish-local publish-upload publish-tag publish-preflight publish-prepare,$(MAKECMDGOALS)),)
+ifneq ($(filter release release-plan release-predict release-wait release-tag release-status publish publish-local publish-upload publish-tag publish-preflight publish-prepare,$(MAKECMDGOALS)),)
 VERSION ?= $(RELEASE_VERSION)
 ifneq ($(filter v%,$(VERSION)),)
 $(error VERSION must not include the leading v. Use: make $(firstword $(MAKECMDGOALS)) VERSION=$(patsubst v%,%,$(VERSION)))
