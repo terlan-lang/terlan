@@ -207,17 +207,18 @@ pub ordinary_docs_avoid_artifact_workloads(): Bool ->
         and not Plan.rust_docs(["README.md"]).
 
 @test
-pub workflow_changes_validate_platform_contracts_early(): Bool ->
+pub workflow_changes_validate_release_contracts_early(): Bool ->
     Plan.preflight_lanes([".github/actions/setup-rust/action.yml"]) == ["inventory", "workflow-contract"]
-        and not Plan.release_contract([".github/workflows/ci.yml"])
-        and not Plan.release_contract([".github/workflows/source-preflight.yml"])
+        and Plan.release_contract([".github/workflows/ci.yml"])
+        and Plan.release_contract([".github/workflows/source-preflight.yml"])
         and Plan.release_contract([".github/workflows/release.yml"])
-        and Plan.release_contract([".github/workflows/publish.yml"]).
+        and Plan.release_contract([".github/workflows/publish.yml"])
+        and Plan.release_contract([".github/actions/setup-rust/action.yml"]).
 
 @test
 pub hosted_compiler_validation_omits_parallel_source_duplicates(): Bool ->
     Plan.hosted_preflight_lanes([".github/workflows/ci.yml"]) == ["workflow-contract"]
-        and Plan.hosted_lanes([".github/workflows/ci.yml"]) == ["shell"]
+        and Plan.hosted_lanes([".github/workflows/ci.yml"]) == ["shell", "release-contract"]
         and Plan.hosted_preflight_lanes(["scripts/git_hooks_test.sh"]) == []
         and Plan.hosted_lanes(["scripts/git_hooks_test.sh"]) == ["shell"]
         and Plan.hosted_preflight_lanes(["std/core/Int.terl"]) == ["negative-api", "release-manifest"]

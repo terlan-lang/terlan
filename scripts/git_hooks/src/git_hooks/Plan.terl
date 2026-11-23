@@ -460,10 +460,7 @@ pub workflow(paths: List[String]): Bool ->
     affected(paths, ".github/workflows/", "") or affected(paths, ".github/actions/", "").
 
 pub release_contract(paths: List[String]): Bool ->
-    affected(paths, ".github/workflows/release.yml", "")
-        or affected(paths, ".github/workflows/publish.yml", "")
-        or affected(paths, ".github/actions/setup-native-dependencies/", "")
-        or affected(paths, ".github/actions/security-audit/", "")
+    workflow(paths)
         or affected(paths, "Makefile", "")
         or affected(paths, "mk/", "")
         or release_script(paths)

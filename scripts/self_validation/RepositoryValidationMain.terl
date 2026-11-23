@@ -111,6 +111,21 @@ contains_all(source: String, fragments: List[String]): Bool ->
     }.
 
 @pure
+source_preflight_release_contract(source_preflight: String): Bool ->
+    contains_all(
+        source_preflight,
+        [
+            "Validate release inputs and build graph",
+            "ReleasePayloadInputTest.terl \\",
+            "ReleaseBuildGraphTest.terl \\",
+            "--coverage --coverage-threshold 100",
+            "uses: actions/setup-go@",
+            "go-version: \"1.25.0\"",
+            "actionlint-go1.25.0-v1.7.12",
+        ],
+    ).
+
+@pure
 first_missing(source: String, fragments: List[String]): String ->
     case fragments {
         [] -> "";
@@ -1030,18 +1045,7 @@ if {
         "build_release.dependency_audit",
         "locked Rust and Node dependency audit ownership drifted",
     );
-    not contains_all(
-    source_preflight,
-    [
-        "Validate release inputs and build graph",
-        "ReleasePayloadInputTest.terl \\",
-        "ReleaseBuildGraphTest.terl \\",
-        "--coverage --coverage-threshold 100",
-        "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
-        "go-version: \"1.25.0\"",
-        "actionlint-go1.25.0-v1.7.12",
-    ],
-) -> failure("build_release.actionlint", "actionlint toolchain/cache ownership drifted");
+    not source_preflight_release_contract(source_preflight) -> failure("build_release.source_preflight", "source preflight release-contract ownership drifted");
     not contains_all(
     String.concat([codeql_actions, codeql_language, codeql_rust]),
     [
@@ -1667,6 +1671,32 @@ self_test(): Bool ->
         and build_plan_report_self_test()
         and budget_validator_plan_self_test()
         and cargo_plan_self_test()
+        and source_preflight_release_contract(
+    String.concat(
+        [
+            "Validate release inputs and build graph\n",
+            "ReleasePayloadInputTest.terl \\\n",
+            "ReleaseBuildGraphTest.terl \\\n",
+            "--coverage --coverage-threshold 100\n",
+            "uses: actions/setup-go@candidate-pin\n",
+            "go-version: \"1.25.0\"\n",
+            "actionlint-go1.25.0-v1.7.12\n",
+        ],
+    ),
+)
+        and not source_preflight_release_contract(
+    String.concat(
+        [
+            "Validate release inputs and build graph\n",
+            "ReleasePayloadInputTest.terl \\\n",
+            "ReleaseBuildGraphTest.terl \\\n",
+            "--coverage --coverage-threshold 100\n",
+            "uses: actions/setup-go@candidate-pin\n",
+            "go-version: \"1.24.0\"\n",
+            "actionlint-go1.25.0-v1.7.12\n",
+        ],
+    ),
+)
         and rust_orchestrator_count("/checkout/target/validation-tools/terlan-test-orchestrator\n") == 1
         and rust_orchestrator_count(
     "target/debug/terlan-test-orchestrator --install-snapshot /checkout/target/validation-tools/terlan-test-orchestrator\n",
