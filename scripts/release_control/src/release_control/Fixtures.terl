@@ -149,12 +149,10 @@ git(): Bool ->
 
 workflow(): Bool ->
     if {
-        arg(14) != "--event" -> false;
-        arg(15) != if {
-    arg(9) == "publish.yml" -> "push";
-    true -> "workflow_dispatch"
-} -> false;
         mode() == "failed-missing" and arg(9) == "release.yml" -> json(Json.array());
+        mode() == "push-compiler"
+            and arg(9) == "release.yml"
+            and File.exists("dispatched-release.yml") == false -> json(Json.array());
         mode() == "missing" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
         mode() == "missing-delayed" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
         mode() == "missing-delayed" and File.exists(String.append("observed-", arg(9))) == false -> let _written = write(String.append("observed-", arg(9)), "1");
@@ -215,6 +213,7 @@ workflow_row(): Bool ->
                         Json.string(
                             if {
                                 arg(9) == "publish.yml" -> "push";
+                                mode() == "push-compiler" and compiler -> "push";
                                 true -> "workflow_dispatch"
                             },
                         ),

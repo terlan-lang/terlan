@@ -192,6 +192,14 @@ pub run(vm: String, image: String): Bool ->
 )
             and scenario(
     root,
+    "push-compiler",
+    true,
+    "dispatch release.yml compiler_run_id=17\nsleep\npublish-prepare\npublish-upload\n",
+    vm,
+    image,
+)
+            and scenario(
+    root,
     "skipped-compiler",
     true,
     "dispatch ci.yml\nsleep\npublish-prepare\npublish-upload\n",
