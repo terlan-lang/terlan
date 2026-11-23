@@ -1,6 +1,44 @@
 use super::*;
 use crate::terlan_typeck::{CoreIntrinsicId, CorePrimitiveIntrinsic, CoreType};
 
+/// Recovers the checked result of a primitive CoreIR binary expression.
+///
+/// CoreIR does not retain a result type on binary nodes. Late receiver
+/// resolution still needs the promoted type when a method is invoked directly
+/// on arithmetic, for example `(count * 1.0).exp()`. Keep that promotion in one
+/// place so generic specialization and application receiver resolution cannot
+/// disagree merely because the Float operand is on the right.
+pub(in crate::compiler::native_ir) fn infer_core_binary_type(
+    operator: &str,
+    left: Option<CoreType>,
+    right: Option<CoreType>,
+) -> Option<CoreType> {
+    let left = left?;
+    let right = right?;
+    match operator {
+        "+" | "-" | "*" | "/"
+            if matches!(&left, CoreType::Int | CoreType::Float | CoreType::Number)
+                && matches!(&right, CoreType::Int | CoreType::Float | CoreType::Number) =>
+        {
+            Some(if left == CoreType::Float || right == CoreType::Float {
+                CoreType::Float
+            } else if left == CoreType::Number || right == CoreType::Number {
+                CoreType::Number
+            } else {
+                CoreType::Int
+            })
+        }
+        "+" if left == CoreType::String && right == CoreType::String => Some(CoreType::String),
+        "div" | "rem" | "&" | "^" | "|" | "<<" | ">>"
+            if left == CoreType::Int && right == CoreType::Int =>
+        {
+            Some(CoreType::Int)
+        }
+        "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or" => Some(CoreType::Bool),
+        _ => None,
+    }
+}
+
 pub(in crate::compiler::native_ir) fn infer_native_type(
     expr: &CoreExpr,
     variables: &HashMap<String, NativeType>,

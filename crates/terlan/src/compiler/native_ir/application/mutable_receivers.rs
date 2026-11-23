@@ -808,6 +808,15 @@ fn infer_core_type(
                 })
                 .collect::<Option<Vec<_>>>()?,
         )),
+        CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
+        } => super::super::expression::infer_core_binary_type(
+            operator,
+            infer_core_type(left, variables, functions, targets, types, module),
+            infer_core_type(right, variables, functions, targets, types, module),
+        ),
         CoreExpr::Let { bindings, body } => {
             let mut locals = variables.clone();
             for binding in bindings {

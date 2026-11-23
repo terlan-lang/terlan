@@ -220,15 +220,15 @@ pub(in crate::compiler::native_ir) fn infer_type(
             (infer_type(operand, variables, templates, module) == Some(CoreType::Int))
                 .then_some(CoreType::Int)
         }
-        CoreExpr::BinaryOp { operator, .. }
-            if matches!(
-                operator.as_str(),
-                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or"
-            ) =>
-        {
-            Some(CoreType::Bool)
-        }
-        CoreExpr::BinaryOp { left, .. } => infer_type(left, variables, templates, module),
+        CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
+        } => super::super::expression::infer_core_binary_type(
+            operator,
+            infer_type(left, variables, templates, module),
+            infer_type(right, variables, templates, module),
+        ),
         CoreExpr::If { clauses } => {
             let inferred = clauses
                 .iter()

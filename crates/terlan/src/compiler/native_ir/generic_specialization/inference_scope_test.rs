@@ -87,3 +87,47 @@ fn let_inference_uses_local_patterns_and_does_not_leak_shadowed_types() {
         Some(CoreType::Bool)
     );
 }
+
+#[test]
+fn numeric_binary_inference_promotes_float_in_either_operand() {
+    let variables = HashMap::from([
+        ("integer".to_string(), CoreType::Int),
+        ("floating".to_string(), CoreType::Float),
+        ("number".to_string(), CoreType::Number),
+        ("text".to_string(), CoreType::String),
+        ("boolean".to_string(), CoreType::Bool),
+    ]);
+    for (operator, left, right, expected) in [
+        ("*", "integer", "floating", CoreType::Float),
+        ("*", "floating", "integer", CoreType::Float),
+        ("+", "integer", "integer", CoreType::Int),
+        ("+", "number", "integer", CoreType::Number),
+        ("+", "text", "text", CoreType::String),
+        ("div", "integer", "integer", CoreType::Int),
+        ("&", "integer", "integer", CoreType::Int),
+        ("<", "integer", "floating", CoreType::Bool),
+        ("and", "boolean", "boolean", CoreType::Bool),
+    ] {
+        let expression = CoreExpr::BinaryOp {
+            operator: operator.to_string(),
+            left: Box::new(CoreExpr::Var(left.to_string())),
+            right: Box::new(CoreExpr::Var(right.to_string())),
+        };
+        assert_eq!(
+            infer_type(&expression, &variables, &Default::default(), "scope"),
+            Some(expected),
+        );
+    }
+    assert_eq!(
+        super::super::super::expression::infer_core_binary_type(
+            "unsupported",
+            Some(CoreType::Int),
+            Some(CoreType::Int),
+        ),
+        None,
+    );
+    assert_eq!(
+        super::super::super::expression::infer_core_binary_type("+", None, Some(CoreType::Int),),
+        None,
+    );
+}

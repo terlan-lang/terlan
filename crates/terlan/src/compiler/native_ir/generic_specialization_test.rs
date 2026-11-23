@@ -53,6 +53,52 @@ pub greater_equal_test(): Bool -> greater_equal("🙂", "é") and greater_equal(
     assert_managed_native_object_invocations("string-ordering", &modules, &object, &invocations);
 }
 
+/// Mixed arithmetic must retain its promoted Float type while resolving a
+/// primitive receiver on the expression itself.
+#[test]
+fn mixed_numeric_expression_receiver_executes_as_float_intrinsic() {
+    use crate::terlan_hir::{
+        checked_in_std_interfaces_for_module, resolve_syntax_module_output_with_interfaces,
+    };
+    let syntax = parse_module_as_syntax_output(
+        r#"
+module mixed_numeric_expression_receiver.
+import std.core.Float.{exp}.
+pub calculate(rate: Int, years: Float): Bool ->
+    let result = (rate * 1.0 / (1_000_000 * 1.0) * years).exp();
+    result > 2.7 and result < 2.8.
+"#,
+    )
+    .expect("parse mixed numeric receiver source");
+    let interfaces = checked_in_std_interfaces_for_module(&syntax);
+    let resolved = resolve_syntax_module_output_with_interfaces(&syntax, &interfaces).module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = NativeModule::lower_application(&[&core]).expect("lower promoted Float receiver");
+    let object = super::emit_native_application_object("mixed-numeric-receiver", &modules)
+        .expect("emit promoted Float receiver");
+    let export = modules
+        .iter()
+        .flat_map(|module| &module.functions)
+        .find(|function| function.name == "calculate")
+        .expect("calculate export");
+    use super::native_object_test_support::{
+        assert_managed_native_object_invocations, NativeObjectInvocation,
+    };
+    assert_managed_native_object_invocations(
+        "mixed-numeric-receiver",
+        &modules,
+        &object,
+        &[NativeObjectInvocation {
+            export_id: export.export_id,
+            arguments: vec![1_000_000, 1.0_f64.to_bits() as i64],
+            expected_status: super::status::OK,
+            expected_result: Some(1),
+        }],
+    );
+}
+
 /// Callback receivers retain contextual primitive types and cannot bind to an
 /// unrelated local function or a shadowed outer variable with the same name.
 #[test]

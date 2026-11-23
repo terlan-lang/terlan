@@ -767,15 +767,15 @@ fn infer(
             .collect::<Option<Vec<_>>>()
             .map(CoreType::Tuple),
         CoreExpr::UnaryOp { operand, .. } => infer(operand, variables, signatures, module),
-        CoreExpr::BinaryOp { operator, left, .. }
-            if matches!(
-                operator.as_str(),
-                "==" | "!=" | "<" | "<=" | ">" | ">=" | "and" | "or"
-            ) =>
-        {
-            Some(CoreType::Bool)
-        }
-        CoreExpr::BinaryOp { left, .. } => infer(left, variables, signatures, module),
+        CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
+        } => super::expression::infer_core_binary_type(
+            operator,
+            infer(left, variables, signatures, module),
+            infer(right, variables, signatures, module),
+        ),
         _ => None,
     }
 }
