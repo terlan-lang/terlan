@@ -176,7 +176,7 @@ crates/terlan/src/commands/serve/request_dispatch.rs	3	internal-helper	command-e
 crates/terlan/src/commands/serve/request_dispatch/request_values.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/response.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/response_rendering.rs	4	internal-helper	command-errors	0.0.9
-crates/terlan/src/commands/serve/server_lifecycle.rs	14	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/serve/server_lifecycle.rs	15	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/server_lifecycle/vm_stream.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/serve/tls/acme_runtime.rs	5	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/source_layout.rs	2	internal-helper	command-errors	0.0.9

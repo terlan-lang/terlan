@@ -143,7 +143,10 @@ pub(super) fn write_vm_service_package(
     copy_vm_service_template_dependencies(project_dir, &staging_root, source_roots)?;
     let routes = discover_web_route_manifest_from_sources(route_sources)?;
     manifest::write_vm_service_manifest(&staging_root, assets, routes, None, incremental)?;
-    crate::commands::serve::prewarm_dynamic_handler_sources(&staging_root)?;
+    crate::commands::serve::prewarm_dynamic_handler_sources_from_project(
+        &staging_root,
+        project_dir,
+    )?;
     remove_transient_vm_service_build_state(&staging_root)?;
     remove_generated_web_root(&web_root)?;
     fs::rename(&staging_root, &web_root).map_err(|error| {

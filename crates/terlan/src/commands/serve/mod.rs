@@ -176,8 +176,10 @@ use request_dispatch::handle_vm_stream_request;
 #[cfg(test)]
 use request_dispatch::{handle_vm_stream_http1_exchange, VmStreamHttp1Exchange};
 use response_rendering::package_relative_path;
-#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+#[cfg(test)]
 pub(crate) use server_lifecycle::prewarm_dynamic_handler_sources;
+#[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
+pub(crate) use server_lifecycle::prewarm_dynamic_handler_sources_from_project;
 #[cfg(any(test, not(feature = "serve-runtime-bin"), feature = "native-codegen"))]
 pub(crate) use server_lifecycle::run;
 pub(crate) use server_lifecycle::run_serve_runtime;

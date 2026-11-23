@@ -437,30 +437,43 @@ pub(super) fn validate_dynamic_handler_source_path(
 ///   `terlc serve --check` or server startup, while retaining source metadata
 ///   invalidation for later edits.
 pub(crate) fn prewarm_dynamic_handler_sources(web_root: &Path) -> Result<(), String> {
+    let project_root = manifest::adjacent_project_root(web_root).ok_or_else(|| {
+        "error[serve_runtime]: dynamic handlers require an adjacent project root".to_string()
+    })?;
+    prewarm_dynamic_handler_sources_from_project(web_root, &project_root)
+}
+
+/// Preloads source-backed handlers while resolving project metadata from an
+/// explicit source project.
+///
+/// Browser packaging uses this boundary before publishing its staging root.
+/// Relative dependencies therefore remain anchored to the source manifest,
+/// even though the generated package already contains its copied manifest.
+pub(crate) fn prewarm_dynamic_handler_sources_from_project(
+    web_root: &Path,
+    project_root: &Path,
+) -> Result<(), String> {
     let manifest = manifest::read_web_manifest(web_root).map_err(|message| {
         format!(
             "error[serve_package]: cannot read browser package manifest `{}`: {message}",
             web_root.join("manifest.json").display()
         )
     })?;
-    let project_root = manifest::adjacent_project_root(web_root).ok_or_else(|| {
-        "error[serve_runtime]: dynamic handlers require an adjacent project root".to_string()
-    })?;
     for handler in &manifest.handlers {
-        cached_vm_handler_for_manifest(web_root, &project_root, handler)?;
+        cached_vm_handler_for_manifest(web_root, project_root, handler)?;
     }
     for response in &manifest.static_responses {
         if let Some(handler) = static_response_router_handler(response) {
-            cached_vm_handler_for_manifest(web_root, &project_root, &handler)?;
+            cached_vm_handler_for_manifest(web_root, project_root, &handler)?;
         }
     }
     for websocket in &manifest.websockets {
         if let Some(handler) = websocket_router_handler(websocket) {
-            cached_vm_handler_for_manifest(web_root, &project_root, &handler)?;
+            cached_vm_handler_for_manifest(web_root, project_root, &handler)?;
         }
     }
     for endpoint in &manifest.sse {
-        cached_vm_handler_for_manifest(web_root, &project_root, &sse_router_handler(endpoint))?;
+        cached_vm_handler_for_manifest(web_root, project_root, &sse_router_handler(endpoint))?;
     }
     Ok(())
 }

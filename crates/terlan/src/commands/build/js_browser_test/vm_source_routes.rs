@@ -106,6 +106,68 @@ pub router(): Router ->
 }
 
 #[test]
+fn vm_service_packaging_resolves_relative_dependencies_from_source_project() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("app");
+    let dependency = root.path().join("shared");
+    let app = project.join("src/app");
+    let shared = dependency.join("src/shared");
+    fs::create_dir_all(&app).unwrap();
+    fs::create_dir_all(&shared).unwrap();
+    fs::write(
+        project.join("terlan.toml"),
+        "[package]\nname = \"app\"\nversion = \"1.0.0\"\nnamespace = \"app\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"terlan-vm\"\n[dependencies]\nshared = { path = \"../shared\" }\n",
+    )
+    .unwrap();
+    fs::write(
+        dependency.join("terlan.toml"),
+        "[package]\nname = \"shared\"\nversion = \"1.0.0\"\nnamespace = \"shared\"\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n",
+    )
+    .unwrap();
+    fs::write(
+        shared.join("Pages.terl"),
+        r#"module shared.Pages.
+import std.http.Response.
+import type std.http.Request.{Request as Incoming}.
+import type std.http.Response.{Response as Outgoing}.
+pub home(_request: Incoming): Outgoing -> Response.text("dependency").
+"#,
+    )
+    .unwrap();
+    let route_source = app.join("Http.terl");
+    fs::write(
+        &route_source,
+        r#"module app.Http.
+import shared.Pages.{home}.
+import std.http.Router.
+pub router(): std.http.Router.Router -> Router.new().get("/dependency", home).
+"#,
+    )
+    .unwrap();
+    let mut artifact =
+        crate::commands::build::js_source_classification::web_route_source_artifact_from_file(
+            &route_source,
+        )
+        .unwrap()
+        .unwrap();
+    artifact.manifest_path = Some("src/app/Http.terl".into());
+
+    let web = write_vm_service_package(
+        &project,
+        &project.join("_build"),
+        &["src".into()],
+        &[artifact],
+        None,
+        false,
+    )
+    .unwrap();
+    let wire = b"GET /dependency HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n";
+    let response = String::from_utf8(handle_vm_stream_http1_request(&web, wire).unwrap()).unwrap();
+    assert!(response.starts_with("HTTP/1.1 200 "), "{response}");
+    assert_eq!(response.split_once("\r\n\r\n").unwrap().1, "dependency");
+}
+
+#[test]
 fn vm_service_route_discovery_rejects_identity_mismatch_and_nonrouter_values() {
     let root = tempfile::tempdir().unwrap();
     let app = root.path().join("app");
