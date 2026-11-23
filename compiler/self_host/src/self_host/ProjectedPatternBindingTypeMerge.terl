@@ -290,7 +290,6 @@ scan_node(
         append(
             if {
                 value.kind == "case" -> case_seeds(value, node_id, facts, catalog);
-                value.kind == "constructor-pattern" -> pattern_seeds(value, node_id, "", catalog);
                 true -> []
             },
             nested.seeds,
@@ -358,11 +357,26 @@ merge_diagnostics(
             }
     }.
 
-seed_facts(values: List[PatternTypeSeed]): List[InferredTypeFact] ->
+fact_exists(node_id: Int, byte_offset: Int, values: List[InferredTypeFact]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            value.node_id == node_id
+                or value.byte_offset == byte_offset
+                or fact_exists(node_id, byte_offset, rest)
+    }.
+
+missing_seed_facts(
+    values: List[PatternTypeSeed],
+    facts: List[InferredTypeFact],
+): List[InferredTypeFact] ->
     case values {
         [] -> List.new[InferredTypeFact]();
         [value | rest] ->
-            [InferredTypeFact(value.node_id, Some(value.type_name), value.byte_offset) | seed_facts(rest)]
+            if {
+                fact_exists(value.node_id, value.byte_offset, facts) -> missing_seed_facts(rest, facts);
+                true -> [InferredTypeFact(value.node_id, Some(value.type_name), value.byte_offset) | missing_seed_facts(rest, facts)]
+            }
     }.
 
 /**
@@ -381,6 +395,6 @@ pub merge_with_catalog(
 ): TypeConstraintResolution ->
     let seeds = scan_bodies(bodies.values, 0, value.facts, catalog).seeds;
     TypeConstraintResolution(
-        append(seed_facts(seeds), merge_facts(value.facts, seeds)),
+        append(missing_seed_facts(seeds, value.facts), merge_facts(value.facts, seeds)),
         merge_diagnostics(value.diagnostics, seeds),
     ).

@@ -8,7 +8,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::QualifiedFunctionIdentity as FunctionKey;
-use crate::terlan_typeck::{CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule};
+use crate::terlan_typeck::{CoreExport, CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule};
 
 /// Incremental whole-application call graph for bounded-memory native linking.
 ///
@@ -142,7 +142,41 @@ pub(crate) fn prune_application_to_function_roots(
     let reachable = application_reachable_function_roots(&core_refs, roots)?;
     drop(core_refs);
     retain_application_function_roots(cores, &reachable);
+    expose_executable_roots(cores, roots);
     Ok(())
+}
+
+/// Publishes explicit image entrypoints without changing source visibility.
+///
+/// Test functions may be private to their module. Rooted native compilation
+/// still needs an ABI export to invoke each selected test from the runner.
+fn expose_executable_roots(cores: &mut [CoreModule], roots: &[(String, String, usize)]) {
+    for (module, name, arity) in roots {
+        let Some(core) = cores
+            .iter_mut()
+            .find(|core| core.module.as_str() == module.as_str())
+        else {
+            continue;
+        };
+        let Some(function) = core
+            .functions
+            .iter_mut()
+            .find(|function| function.name.as_str() == name.as_str() && function.arity == *arity)
+        else {
+            continue;
+        };
+        function.public = true;
+        if core.exports.iter().any(|export| {
+            export.name.as_str() == name.as_str()
+                && matches!(export.kind, CoreExportKind::Function { arity: value } if value == *arity)
+        }) {
+            continue;
+        }
+        core.exports.push(CoreExport {
+            name: name.clone(),
+            kind: CoreExportKind::Function { arity: *arity },
+        });
+    }
 }
 
 /// Builds a rooted CoreIR closure without cloning dead function bodies.

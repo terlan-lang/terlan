@@ -2,7 +2,9 @@ use std::collections::HashSet;
 
 use crate::terlan_hir::resolve_syntax_module_output;
 use crate::terlan_syntax::parse_module_as_syntax_output;
-use crate::terlan_typeck::{lower_syntax_module_output_to_core, type_check_syntax_module_output};
+use crate::terlan_typeck::{
+    lower_syntax_module_output_to_core, type_check_syntax_module_output, CoreExportKind,
+};
 
 use super::{
     prune_application_to_function_roots, prune_module_to_function_roots,
@@ -198,7 +200,7 @@ fn selected_test_roots_retain_only_their_local_function_closure() {
 module app.SampleTest.
 
 pub helper(): Bool -> true.
-pub selected(): Bool -> helper().
+selected(): Bool -> helper().
 pub unrelated(): Bool -> false.
 "#,
     )
@@ -216,6 +218,13 @@ pub unrelated(): Bool -> false.
         .map(|function| function.name.as_str())
         .collect::<HashSet<_>>();
     assert_eq!(retained, HashSet::from(["helper", "selected"]));
+    assert!(core
+        .functions
+        .iter()
+        .any(|function| function.name == "selected" && function.public));
+    assert!(core.exports.iter().any(|export| {
+        export.name == "selected" && matches!(export.kind, CoreExportKind::Function { arity: 0 })
+    }));
     assert!(core.exports.iter().all(|export| export.name != "unrelated"));
 }
 
