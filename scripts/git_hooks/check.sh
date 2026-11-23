@@ -1087,7 +1087,7 @@ while IFS= read -r lane; do
       # Executed before expensive proof and workspace gates.
       ;;
     workflow)
-      go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
+      scripts/actionlint.sh -color=false .github/workflows/*.yml
       ;;
     release-contract)
       echo 'pre-commit: release contract escaped early candidate validation' >&2

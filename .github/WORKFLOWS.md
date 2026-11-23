@@ -459,8 +459,8 @@ can reduce the width on constrained hosts.
 Target-local serial sequences use explicit one-job recursive Make calls. The
 GNU Make 4.3 global-serialization special target is forbidden because it also
 silently serializes otherwise-independent validator builds.
-Workflow syntax validation pins Go 1.25.0 for actionlint 1.7.12 and caches only
-the actionlint module/build inputs, avoiding both runner-image toolchain drift
+Workflow syntax validation downloads actionlint 1.7.12, verifies its pinned
+release checksum, and caches only the release archive, avoiding toolchain drift
 and repeated compilation without caching repository build outputs.
 The accelerator CPU boundary scan is part of the canonical reusable gate graph.
 Its Rust semantics execute in the union-feature suite, so CI no longer starts a

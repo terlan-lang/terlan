@@ -253,7 +253,7 @@ summary generation batches the independent CSS property modules separately.
 | Typed CSS library, generator, bundler, or validation script | Complete typed CSS generation, type, native-value, rejection, and browser-build checks |
 | Terlan source and manifests | Lint and format only changed Terlan files; build affected packages with their configured source roots; check standalone files; run changed or adjacent `*Test.terl` files |
 | Editor source | Tree-sitter package, generation, and corpus checks; requires Node/npm |
-| GitHub workflows/actions | Pinned actionlint, as in CI; requires Go |
+| GitHub workflows/actions | Pinned, checksum-verified actionlint release |
 | Shell scripts/hooks | Bash syntax checks |
 
 Successful Rust report checks are reused only for an exact staged Git tree,

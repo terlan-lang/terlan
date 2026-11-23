@@ -910,7 +910,7 @@ publish-workflow-input-check: | terlan-compiler-bootstrap
 publish-local-check: publish-release-input-check publish-workflow-input-check rust-security-audit-check node-security-audit-check
 	$(TERLAN_BOOTSTRAP_COMPILER) test scripts/ci --coverage --coverage-threshold 100
 	bash scripts/publication_process_preflight_test.sh
-	go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false .github/workflows/*.yml
+	scripts/actionlint.sh -color=false .github/workflows/*.yml
 
 
 # Uploads and promotes the prepared release from dist

@@ -113,17 +113,17 @@ contains_all(source: String, fragments: List[String]): Bool ->
 @pure
 source_preflight_release_contract(source_preflight: String): Bool ->
     contains_all(
-        source_preflight,
-        [
-            "Validate release inputs and build graph",
-            "ReleasePayloadInputTest.terl \\",
-            "ReleaseBuildGraphTest.terl \\",
-            "--coverage --coverage-threshold 100",
-            "uses: actions/setup-go@",
-            "go-version: \"1.25.0\"",
-            "actionlint-go1.25.0-v1.7.12",
-        ],
-    ).
+    source_preflight,
+    [
+        "Validate release inputs and build graph",
+        "ReleasePayloadInputTest.terl \\",
+        "ReleaseBuildGraphTest.terl \\",
+        "--coverage --coverage-threshold 100",
+        "run: scripts/actionlint.sh -color=false .github/workflows/*.yml",
+    ],
+)
+        and not String.contains(source_preflight, "actions/setup-go@")
+        and not String.contains(source_preflight, "go run github.com/rhysd/actionlint").
 
 @pure
 first_missing(source: String, fragments: List[String]): String ->
@@ -1678,9 +1678,7 @@ self_test(): Bool ->
             "ReleasePayloadInputTest.terl \\\n",
             "ReleaseBuildGraphTest.terl \\\n",
             "--coverage --coverage-threshold 100\n",
-            "uses: actions/setup-go@candidate-pin\n",
-            "go-version: \"1.25.0\"\n",
-            "actionlint-go1.25.0-v1.7.12\n",
+            "run: scripts/actionlint.sh -color=false .github/workflows/*.yml\n",
         ],
     ),
 )
@@ -1691,9 +1689,7 @@ self_test(): Bool ->
             "ReleasePayloadInputTest.terl \\\n",
             "ReleaseBuildGraphTest.terl \\\n",
             "--coverage --coverage-threshold 100\n",
-            "uses: actions/setup-go@candidate-pin\n",
-            "go-version: \"1.24.0\"\n",
-            "actionlint-go1.25.0-v1.7.12\n",
+            "run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12\n",
         ],
     ),
 )
