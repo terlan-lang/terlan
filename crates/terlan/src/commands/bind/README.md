@@ -39,6 +39,24 @@ unsupported records; literal types keep read access without a widened write API.
 Colliding helper names receive a stable numeric suffix. The generated manifest
 records every operation and drives JavaScript emission without application glue.
 
+The declaration target follows relative `.d.ts` imports, declaration equivalents
+of `.ts`/`.js` specifiers, and directory indexes inside the input root. Named,
+default and namespace imports and named/star re-exports retain the defining
+type's identity. Referenced files are hashed into the generated input manifest;
+reusing that manifest validates the transitive inputs as well as entry files.
+Class instance members and inherited interface/class members are exposed through
+public aliases. Unconstrained generic methods and callbacks retain their type
+parameters, with renaming to prevent inherited method parameters from capturing
+receiver arguments. Private/protected class members are excluded.
+
+Unresolved imports and aliases never become `Dynamic`. Generated manifests carry
+`coverage.complete` and `coverage.skipped_declarations`, and the declaration CLI
+warns when generation is partial. Unsupported type operators, callable/index
+signatures, generic constraints/default argument resolution, constructor-side
+class APIs, and non-relative package resolution remain explicit gaps in the
+skipped manifest. A generated module count is not evidence of complete package
+coverage.
+
 The manifest-backed C++ generator is the first general C++ package path.
 It reads normalized symbol metadata from maintained C++ tooling using schema
 `terlan.cpp.binding.v1` and package mapping policy schema

@@ -25,6 +25,7 @@ pub(super) fn render_binding_manifest(
                     "undefined_only": property.undefined_only,
                 }),
                 DomMemberPlan::Method(method) => json!({
+                    "type_parameters": method.type_params,
                     "name": method.terlan_name, "js_name": method.js_name, "kind": "method",
                     "return_type": method.return_type, "arity": method.params.len() + 1,
                     "undefined_only": method.undefined_only,
@@ -93,6 +94,7 @@ pub(super) fn render_binding_manifest(
         "generator_profile": manifest.generator.profile,
         "input_manifest": manifest_path.display().to_string(),
         "target_profile": manifest.target_profile,
+        "coverage": {"complete": mapping.skipped.is_empty(), "skipped_declarations": mapping.skipped.len()},
         "inputs": inputs,
         "outputs": outputs,
         "generated_files": generated_files,

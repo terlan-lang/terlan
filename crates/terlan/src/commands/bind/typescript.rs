@@ -26,6 +26,22 @@ pub(super) fn run(args: &[String]) -> ExitCode {
         .and_then(|root| generate(&root, &options));
     match result {
         Ok(()) => {
+            let coverage = std::fs::read_to_string(
+                options.output.join("std/js/manifests/std_js_bindings.json"),
+            )
+            .map_err(|error| error.to_string())
+            .and_then(|source| {
+                serde_json::from_str::<serde_json::Value>(&source)
+                    .map_err(|error| error.to_string())
+            });
+            match coverage {
+                Ok(manifest) if manifest["coverage"]["complete"] == false => eprintln!(
+                    "TypeScript bindings are incomplete: {} skipped declarations; inspect std/js/manifests/std_js_skipped.json",
+                    manifest["coverage"]["skipped_declarations"]
+                ),
+                Err(error) => { eprintln!("cannot verify generated TypeScript coverage: {error}"); return ExitCode::from(1); }
+                _ => {}
+            }
             println!(
                 "generated TypeScript bindings from {} at {}",
                 options.input.display(),
@@ -87,13 +103,13 @@ fn generate(root: &Path, options: &Options) -> Result<(), String> {
         Some(namespace) => declaration_manifest(&root, &options.input, namespace)?,
         None => load_ts_input_manifest(&root, &options.input)?,
     };
-    let pinned = serde_json::to_string_pretty(&manifest).map_err(|error| error.to_string())?;
-    super::generate_js_dom_bindings_from_manifest(
+    let manifest = super::generate_js_dom_bindings_from_manifest(
         &root,
         Path::new("typescript-inputs.json"),
         &options.output,
         manifest,
     )?;
+    let pinned = serde_json::to_string_pretty(&manifest).map_err(|error| error.to_string())?;
     std::fs::write(
         options.output.join("typescript-inputs.json"),
         format!("{pinned}\n"),
@@ -144,6 +160,9 @@ fn declaration_manifest(
     })
 }
 
+#[cfg(test)]
+#[path = "typescript_graph_test.rs"]
+mod graph_tests;
 #[cfg(test)]
 #[path = "typescript_test.rs"]
 mod tests;

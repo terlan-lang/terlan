@@ -1,6 +1,6 @@
 use super::declarations::{
-    leading_jsdoc, TsInterfaceMember, TsMethodDeclaration, TsParameterDeclaration,
-    TsPropertyDeclaration, TsUnsupportedMember,
+    leading_jsdoc, parse_type_parameter_names, TsInterfaceMember, TsMethodDeclaration,
+    TsParameterDeclaration, TsPropertyDeclaration, TsUnsupportedMember,
 };
 use super::types::{
     interface_member_source, parse_optional_type_annotation, parse_parameter, property_key_name,
@@ -55,6 +55,17 @@ pub(super) fn parse_interface_member(
             ))
         }
         TSSignature::TSMethodSignature(method) => {
+            if method.type_parameters.as_ref().is_some_and(|parameters| {
+                parameters
+                    .params
+                    .iter()
+                    .any(|parameter| parameter.constraint.is_some())
+            }) {
+                return Err(unsupported(
+                    "ts_bindgen.unsupported_generic_constraint",
+                    "generic method constraints must not be erased",
+                ));
+            }
             let mut params = method
                 .params
                 .items
@@ -76,6 +87,7 @@ pub(super) fn parse_interface_member(
                 });
             }
             Ok(TsInterfaceMember::Method(TsMethodDeclaration {
+                type_params: parse_type_parameter_names(method.type_parameters.as_deref()),
                 name: property_key_name(&method.key)?,
                 doc: leading_jsdoc(source, comments, method.span),
                 optional: method.optional,

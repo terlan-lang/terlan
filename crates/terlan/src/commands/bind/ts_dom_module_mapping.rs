@@ -64,6 +64,7 @@ impl DomModulePlan {
             .map(|member| match member {
                 DomMemberPlan::Method(method)
                     if !method.optional
+                        && method.type_params.is_empty()
                         && method.terlan_name != "with_members"
                         && names.insert(method.js_name.as_str())
                         && method
@@ -132,6 +133,7 @@ pub(super) struct DomPropertyPlan {
 /// - Converts all TypeScript types through the T0.3 mapper before generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct DomMethodPlan {
+    pub(super) type_params: Vec<String>,
     pub(super) js_name: String,
     pub(super) terlan_name: String,
     pub(super) doc: Option<String>,
@@ -445,14 +447,15 @@ fn map_type_alias_to_module(
     alias: &TsTypeAliasDeclaration,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomModulePlan> {
-    let mapped = if alias.imported {
-        TsTypeMapping {
-            terlan_type: Some("Dynamic".into()),
-            skipped: Vec::new(),
-        }
-    } else {
-        map_ts_type_to_terlan(&alias.ty)
-    };
+    if alias.imported {
+        skipped.push(DomSkippedDeclaration {
+            source: qualified_alias_source(alias),
+            reason: "ts_bindgen.unresolved_type_reference",
+            detail: "imported alias must be resolved through the declaration graph".into(),
+        });
+        return None;
+    }
+    let mapped = map_ts_type_to_terlan(&alias.ty);
     if let Some(skip) = mapped.skipped.first() {
         skipped.push(DomSkippedDeclaration {
             source: qualified_alias_source(alias),
@@ -672,6 +675,7 @@ fn map_method(
     )?;
 
     Some(DomMethodPlan {
+        type_params: method.type_params.clone(),
         js_name: method.name.clone(),
         terlan_name: source_name_to_terlan_identifier(&method.name),
         doc: method.doc.clone(),

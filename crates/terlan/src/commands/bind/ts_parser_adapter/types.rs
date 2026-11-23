@@ -154,6 +154,7 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         TSType::TSAnyKeyword(_) => Ok(TsTypeRef::Any),
         TSType::TSUnknownKeyword(_) => Ok(TsTypeRef::Unknown),
         TSType::TSObjectKeyword(_) => Ok(TsTypeRef::Object),
+        TSType::TSThisType(_) => Ok(TsTypeRef::Named("$this".into())),
         TSType::TSFunctionType(function) => {
             if function.type_parameters.is_some() || function.params.rest.is_some() {
                 return Err(unsupported(
@@ -210,7 +211,6 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         | TSType::TSMappedType(_)
         | TSType::TSNamedTupleMember(_)
         | TSType::TSTemplateLiteralType(_)
-        | TSType::TSThisType(_)
         | TSType::TSTupleType(_)
         | TSType::TSTypeOperatorType(_)
         | TSType::TSTypePredicate(_)

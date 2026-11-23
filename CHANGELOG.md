@@ -7,6 +7,11 @@ documentation; unchanged capabilities do not need a release recap.
 
 ## Unreleased
 
+- Resolve local TypeScript declaration imports, re-exports, class members and
+  inheritance when generating bindings. Public aliases retain typed members
+  instead of becoming `Dynamic`. Generated manifests pin transitive inputs and
+  explicitly report incomplete coverage for unsupported declarations.
+
 ## 0.0.10
 
 ### Language contracts

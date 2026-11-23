@@ -7,6 +7,89 @@ use super::*;
 
 /// Qualifies foreign types and refuses members that refer to unavailable types.
 pub(super) fn qualify(mapping: &mut DomModuleMapping) {
+    // Removing an unresolved alias can invalidate aliases that refer to it.
+    loop {
+        let types = inventory(mapping);
+        let before = mapping.modules.len();
+        mapping.modules.retain_mut(|module| {
+            let Some(alias) = &module.alias_target else {
+                return true;
+            };
+            let mut unknown = Vec::new();
+            let qualified = qualify_type(alias, module, &[], &types, &mut unknown);
+            if unknown.is_empty() {
+                module.alias_target = Some(qualified);
+                return true;
+            }
+            mapping.skipped.push(DomSkippedDeclaration {
+                source: module.module_path.clone(),
+                reason: "ts_bindgen.unresolved_type_reference",
+                detail: format!("alias references unavailable types {}", unknown.join(", ")),
+            });
+            false
+        });
+        if mapping.modules.len() == before {
+            break;
+        }
+    }
+    let types = inventory(mapping);
+    for module in &mut mapping.modules {
+        let mut members = std::mem::take(&mut module.members);
+        let original_count = members.len();
+        members.retain_mut(|member| {
+            let mut unknown = Vec::new();
+            let (name, annotations, bound) = match member {
+                DomMemberPlan::Property(property) => (
+                    property.js_name.clone(),
+                    vec![&mut property.terlan_type],
+                    Vec::new(),
+                ),
+                DomMemberPlan::Method(method) => {
+                    let mut annotations = method
+                        .params
+                        .iter_mut()
+                        .map(|parameter| &mut parameter.terlan_type)
+                        .collect::<Vec<_>>();
+                    annotations.push(&mut method.return_type);
+                    (
+                        method.js_name.clone(),
+                        annotations,
+                        method.type_params.clone(),
+                    )
+                }
+            };
+            for annotation in annotations {
+                *annotation = qualify_type(annotation, module, &bound, &types, &mut unknown);
+            }
+            unknown.sort();
+            unknown.dedup();
+            for missing in &unknown {
+                mapping.skipped.push(DomSkippedDeclaration {
+                    source: format!("{}.{}", module.source_interface, name),
+                    reason: "ts_bindgen.unresolved_type_reference",
+                    detail: format!("member {name} references unavailable type {missing}"),
+                });
+            }
+            unknown.is_empty()
+        });
+        module.constructible &= members.len() == original_count;
+        module.members = members;
+        let mut names = BTreeMap::<String, usize>::new();
+        for member in &mut module.members {
+            let name = match member {
+                DomMemberPlan::Property(property) => &mut property.terlan_name,
+                DomMemberPlan::Method(method) => &mut method.terlan_name,
+            };
+            let count = names.entry(name.clone()).or_default();
+            *count += 1;
+            if *count > 1 {
+                *name = format!("{name}_overload_{count}");
+            }
+        }
+    }
+}
+
+fn inventory(mapping: &DomModuleMapping) -> BTreeMap<String, Vec<String>> {
     let mut types = BTreeMap::<String, Vec<String>>::new();
     for module in &mapping.modules {
         types.entry(module.type_name.clone()).or_default().push(
@@ -23,64 +106,13 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
     ] {
         types.insert(name.into(), vec![provider.into()]);
     }
-    for module in &mut mapping.modules {
-        let mut members = std::mem::take(&mut module.members);
-        let original_count = members.len();
-        members.retain_mut(|member| {
-            let mut unknown = Vec::new();
-            let (name, annotations) = match member {
-                DomMemberPlan::Property(property) => {
-                    (property.js_name.clone(), vec![&mut property.terlan_type])
-                }
-                DomMemberPlan::Method(method) => {
-                    let mut annotations = method
-                        .params
-                        .iter_mut()
-                        .map(|parameter| &mut parameter.terlan_type)
-                        .collect::<Vec<_>>();
-                    annotations.push(&mut method.return_type);
-                    (method.js_name.clone(), annotations)
-                }
-            };
-            for annotation in annotations {
-                *annotation = qualify_type(annotation, module, &types, &mut unknown);
-            }
-            unknown.sort();
-            unknown.dedup();
-            for missing in &unknown {
-                mapping.skipped.push(DomSkippedDeclaration {
-                    source: format!("{}.{}", module.source_interface, name),
-                    reason: "ts_bindgen.unresolved_type_reference",
-                    detail: format!("member {name} references unavailable type {missing}"),
-                });
-            }
-            unknown.is_empty()
-        });
-        module.constructible &= members.len() == original_count;
-        module.members = members;
-        // JavaScript has one callable per property, while Terlan exports need
-        // distinct names. Preserve every supported overload under a stable name.
-        let mut names = BTreeMap::<String, usize>::new();
-        for member in &mut module.members {
-            let name = match member {
-                DomMemberPlan::Property(property) => &mut property.terlan_name,
-                DomMemberPlan::Method(method) => &mut method.terlan_name,
-            };
-            let count = names.entry(name.clone()).or_default();
-            *count += 1;
-            if *count > 1 {
-                *name = format!("{name}_overload_{count}");
-            }
-        }
-        if let Some(alias) = &module.alias_target {
-            module.alias_target = Some(qualify_type(alias, module, &types, &mut Vec::new()));
-        }
-    }
+    types
 }
 
 fn qualify_type(
     source: &str,
     module: &DomModulePlan,
+    bound: &[String],
     types: &BTreeMap<String, Vec<String>>,
     unknown: &mut Vec<String>,
 ) -> String {
@@ -97,15 +129,21 @@ fn qualify_type(
                 cursor += 1;
             }
             let name = &source[start..cursor];
-            if name.contains('.')
-                || name == module.type_name
+            if name == module.type_name
                 || module.type_params.iter().any(|parameter| parameter == name)
+                || bound.iter().any(|parameter| parameter == name)
                 || matches!(
                     name,
                     "Bool" | "Int" | "Float" | "String" | "Atom" | "Dynamic" | "Never"
                 )
-                || !name.as_bytes()[0].is_ascii_uppercase()
+                || (!name.contains('.') && !name.as_bytes()[0].is_ascii_uppercase())
             {
+                result.push_str(name);
+            } else if name.contains('.') {
+                if !name.starts_with("std.") && !types.values().flatten().any(|value| value == name)
+                {
+                    unknown.push(name.into());
+                }
                 result.push_str(name);
             } else if let Some(candidates) = types.get(name) {
                 let namespace = module.module_path.rsplit_once('.').unwrap().0;

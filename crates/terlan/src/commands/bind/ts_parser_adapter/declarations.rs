@@ -77,6 +77,7 @@ pub(in crate::commands::bind) struct TsUnsupportedDeclaration {
 ///   scope metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::commands::bind) struct TsInterfaceDeclaration {
+    pub(in crate::commands::bind) parents: Vec<TsTypeRef>,
     pub(in crate::commands::bind) plain_record: bool,
     pub(in crate::commands::bind) namespace: String,
     pub(in crate::commands::bind) name: String,
@@ -176,6 +177,7 @@ pub(in crate::commands::bind) struct TsPropertyDeclaration {
 ///   generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::commands::bind) struct TsMethodDeclaration {
+    pub(in crate::commands::bind) type_params: Vec<String>,
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) doc: Option<String>,
     pub(in crate::commands::bind) optional: bool,
@@ -272,8 +274,8 @@ pub(in crate::commands::bind) fn parse_ts_declaration_file(
         )?);
     }
 
-    // Imported implementations are outside the input closure. Preserve their
-    // public aliases as opaque JS values without guessing from naming conventions.
+    // Mark imported aliases so the declaration graph must resolve them before
+    // mapping. A standalone parse cannot invent their public type contracts.
     for declaration in &mut declarations {
         if let TsDeclaration::TypeAlias(alias) = declaration {
             let imported = match &alias.ty {
@@ -349,8 +351,21 @@ fn parse_top_level_statement(
                 export.declaration.as_ref().expect("checked declaration"),
             )
         }
+        Statement::ExportDefaultDeclaration(export) => match &export.declaration {
+            oxc_ast::ast::ExportDefaultDeclarationKind::ClassDeclaration(class) => {
+                super::classes::parse_class(source, comments, "", class)
+            }
+            oxc_ast::ast::ExportDefaultDeclarationKind::TSInterfaceDeclaration(interface) => {
+                parse_interface(source, comments, "", interface)
+                    .map(|value| vec![TsDeclaration::Interface(value)])
+            }
+            _ => Ok(vec![unsupported_declaration(
+                "export_default",
+                "ts_bindgen.unsupported_top_level_export",
+                "only named class/interface default exports are supported",
+            )]),
+        },
         Statement::ExportAllDeclaration(_)
-        | Statement::ExportDefaultDeclaration(_)
         | Statement::ExportNamedDeclaration(_)
         | Statement::TSExportAssignment(_)
         | Statement::TSNamespaceExportDeclaration(_) => Ok(unsupported_declaration(
@@ -368,15 +383,9 @@ fn parse_top_level_statement(
             "ts_bindgen.unsupported_top_level_function",
             "top-level functions are not emitted yet",
         )]),
-        Statement::ClassDeclaration(class) => Ok(vec![unsupported_declaration(
-            class
-                .id
-                .as_ref()
-                .map(|id| id.name.as_str())
-                .unwrap_or("class"),
-            "ts_bindgen.unsupported_top_level_class",
-            "classes are not emitted yet",
-        )]),
+        Statement::ClassDeclaration(class) => {
+            super::classes::parse_class(source, comments, "", class)
+        }
         other => Ok(vec![unsupported_declaration(
             top_level_statement_label(other),
             "ts_bindgen.unsupported_top_level_statement",
@@ -431,18 +440,9 @@ fn parse_nested_declaration(
             "ts_bindgen.unsupported_top_level_function",
             "top-level functions are not emitted yet",
         )]),
-        Declaration::ClassDeclaration(class) => Ok(vec![unsupported_declaration(
-            &qualified_source(
-                namespace,
-                class
-                    .id
-                    .as_ref()
-                    .map(|id| id.name.as_str())
-                    .unwrap_or("class"),
-            ),
-            "ts_bindgen.unsupported_top_level_class",
-            "classes are not emitted yet",
-        )]),
+        Declaration::ClassDeclaration(class) => {
+            super::classes::parse_class(source, comments, namespace, class)
+        }
         Declaration::TSEnumDeclaration(enumeration) => Ok(vec![unsupported_declaration(
             &qualified_source(namespace, enumeration.id.name.as_str()),
             "ts_bindgen.unsupported_top_level_enum",
@@ -703,14 +703,24 @@ fn parse_interface(
     namespace: &str,
     interface: &oxc_ast::ast::TSInterfaceDeclaration<'_>,
 ) -> Result<TsInterfaceDeclaration, TsParseError> {
-    let members = interface
+    let mut members = interface
         .body
         .body
         .iter()
         .map(|member| parse_interface_member(source, comments, member))
         .collect::<Vec<_>>();
+    let mut parents = Vec::new();
+    for parent in &interface.extends {
+        super::classes::add_parent(
+            &parent.expression,
+            parent.type_arguments.as_deref(),
+            &mut parents,
+            &mut members,
+        );
+    }
 
     Ok(TsInterfaceDeclaration {
+        parents,
         plain_record: interface.extends.is_empty()
             && interface.type_parameters.as_ref().is_none_or(|parameters| {
                 parameters
@@ -796,7 +806,7 @@ fn parse_type_alias_declaration(
 /// - Preserves only names for Terlan generic declarations. Constraints and
 ///   defaults are intentionally ignored until Terlan has a matching type-level
 ///   constraint model.
-fn parse_type_parameter_names(
+pub(super) fn parse_type_parameter_names(
     type_parameters: Option<&TSTypeParameterDeclaration<'_>>,
 ) -> Vec<String> {
     type_parameters

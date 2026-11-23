@@ -46,7 +46,7 @@ pub(super) struct TsSourcePackage {
 }
 
 /// One pinned TypeScript declaration input.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(super) struct TsInputFile {
     pub(super) path: String,
     pub(super) sha256: String,

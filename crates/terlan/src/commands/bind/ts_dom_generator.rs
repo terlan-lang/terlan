@@ -1,3 +1,4 @@
+mod alias_members;
 mod contract_helpers;
 mod type_resolution;
 use contract_helpers::render_module_test;
@@ -64,6 +65,7 @@ pub(super) fn generate_js_dom_bindings(
     let manifest = load_ts_input_manifest(repo_root, manifest_path)?;
     let declarations = parse_manifest_inputs(repo_root, &manifest)?;
     let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
+    alias_members::expand(&mut mapping);
     type_resolution::qualify(&mut mapping);
     let files = generated_files(&manifest, manifest_path, &mapping)?;
     write_generated_files(out_dir, &files)
@@ -76,15 +78,21 @@ pub(super) fn generate_js_dom_bindings_from_manifest(
     repo_root: &Path,
     manifest_path: &Path,
     out_dir: &Path,
-    manifest: TsInputManifest,
-) -> Result<(), String> {
+    mut manifest: TsInputManifest,
+) -> Result<TsInputManifest, String> {
     ensure_empty_output_dir(out_dir)?;
     super::ts_input_manifest::validate_ts_input_manifest(repo_root, &manifest)?;
-    let declarations = parse_manifest_inputs(repo_root, &manifest)?;
+    let declarations = if manifest.generator.profile == "typescript-declarations" {
+        super::ts_parser_adapter::load_declaration_graph(repo_root, &mut manifest)?
+    } else {
+        parse_manifest_inputs(repo_root, &manifest)?
+    };
     let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
+    alias_members::expand(&mut mapping);
     type_resolution::qualify(&mut mapping);
     let files = generated_files(&manifest, manifest_path, &mapping)?;
-    write_generated_files(out_dir, &files)
+    write_generated_files(out_dir, &files)?;
+    Ok(manifest)
 }
 
 /// Parses all TypeScript declaration inputs from a validated manifest.
@@ -628,7 +636,11 @@ fn render_method(module: &DomModulePlan, method: &DomMethodPlan, include_body: b
     let signature = format!(
         "pub ({receiver}: {}) {}({}): {}",
         render_type_reference_name(module),
-        method.terlan_name,
+        if method.type_params.is_empty() {
+            method.terlan_name.clone()
+        } else {
+            format!("{}[{}]", method.terlan_name, method.type_params.join(", "))
+        },
         render_params(&method.params),
         return_annotation(&method.return_type)
     );

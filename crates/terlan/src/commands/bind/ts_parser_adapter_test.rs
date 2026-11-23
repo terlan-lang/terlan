@@ -245,14 +245,9 @@ fn labels_named_unsupported_top_level_declarations() {
 
     assert_eq!(
         skipped,
-        vec![
-            "MapConstructor",
-            "parseInt",
-            "URLSearchParams",
-            "ReadyState",
-            "Intl"
-        ]
+        vec!["MapConstructor", "parseInt", "ReadyState", "Intl"]
     );
+    assert!(interface_names(&declarations).contains(&"URLSearchParams".into()));
 }
 
 /// Verifies unsupported imports keep unique source labels.

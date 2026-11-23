@@ -217,14 +217,15 @@ fn maps_namespace_type_aliases_to_modules() {
 
     let mapping = map_ts_declarations_to_dom_modules(&declarations);
 
-    assert_eq!(mapping.modules.len(), 2);
-    assert_eq!(mapping.modules[0].module_path, "sdk.Widget");
-    assert_eq!(mapping.modules[0].source_path, "sdk/Widget.terl");
-    assert_eq!(mapping.modules[0].alias_target.as_deref(), Some("Dynamic"));
-    assert_eq!(mapping.modules[1].module_path, "sdk.Response");
-    assert_eq!(mapping.modules[1].type_params, vec!["T"]);
+    assert_eq!(mapping.modules.len(), 1);
+    assert!(mapping
+        .skipped
+        .iter()
+        .any(|entry| entry.reason == "ts_bindgen.unresolved_type_reference"));
+    assert_eq!(mapping.modules[0].module_path, "sdk.Response");
+    assert_eq!(mapping.modules[0].type_params, vec!["T"]);
     assert_eq!(
-        mapping.modules[1].alias_target.as_deref(),
+        mapping.modules[0].alias_target.as_deref(),
         Some("std.js.Promise[T]")
     );
 }
@@ -251,7 +252,10 @@ fn imported_alias_detection_uses_declarations_instead_of_a_name_prefix() {
             .as_deref()
     };
     assert_eq!(alias("Local"), Some("TLocal"));
-    assert_eq!(alias("Foreign"), Some("Dynamic"));
+    assert!(mapping
+        .modules
+        .iter()
+        .all(|module| module.type_name != "Foreign"));
 }
 
 /// Verifies acronym boundaries normalize predictably.
