@@ -835,6 +835,7 @@ if lane_has terlan; then
   # checkout behaves exactly like a developer checkout with cached binaries.
   ensure_native_test_companions
   TERLAN_HOOK_TERLAN_CACHE_DIR="$CARGO_TARGET_DIR/terlan-cache" \
+    TERLAN_HOOK_VALIDATION_RECEIPT_DIR="${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-$CARGO_TARGET_DIR/validation-results/terlan}" \
     TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity" \
     bash scripts/git_hooks/terlan.sh \
     "$changes" "$base" "$terlc" "$typed_css_checked" "$prechecked_terlan" \

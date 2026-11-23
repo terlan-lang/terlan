@@ -891,6 +891,8 @@ grep -Fq -- '--snapshot-test-programs "$CARGO_TARGET_DIR"' <<< "$snapshot_copy"
 grep -Fq 'TERLAN_RUST_SUITE_TERLC=' <<< "$snapshot_provisioning"
 grep -Fq 'TERLAN_RUST_SUITE_VM=' <<< "$snapshot_provisioning"
 grep -Fq 'TERLAN_RUST_SUITE_NATIVE_WORKER=' <<< "$snapshot_provisioning"
+grep -Fq 'TERLAN_HOOK_VALIDATION_RECEIPT_DIR="${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-$CARGO_TARGET_DIR/validation-results/terlan}"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'run_exact_cargo_test.sh' <<< "$workspace_lane"; then
   echo 'Workspace admission must use the canonical single-harness orchestrator' >&2
   exit 1
