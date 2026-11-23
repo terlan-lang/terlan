@@ -1,0 +1,222 @@
+/**
+ * Applies call-site expected function types to unannotated lambda parameters.
+ */
+module self_host.ProjectedContextualLambdaTypeMerge.
+
+import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
+import self_host.ProjectedCallableSyntax.{CallableResolution, ResolvedCallableUse}.
+import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
+import self_host.{Delimited, ProjectedCallableTypeMerge}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+struct ExpectedNodeType {
+    node_id: Int,
+    type_name: String,
+}.
+
+constructor ExpectedNodeType {
+    (node_id: Int, type_name: String): ExpectedNodeType ->
+        ExpectedNodeType {node_id: node_id, type_name: type_name}
+}.
+
+struct LambdaScan {
+    next_id: Int,
+    facts: List[InferredTypeFact],
+}.
+
+constructor LambdaScan {
+    (next_id: Int, facts: List[InferredTypeFact]): LambdaScan ->
+        LambdaScan {next_id: next_id, facts: facts}
+}.
+
+@pure
+append[T](left: List[T], right: List[T]): List[T] ->
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
+
+@pure
+node_size(value: ProjectedExpressionNode): Int ->
+    1 + nodes_size(value.children).
+
+@pure
+nodes_size(values: List[ProjectedExpressionNode]): Int ->
+    case values {
+        [] -> 0;
+        [value | rest] -> node_size(value) + nodes_size(rest)
+    }.
+
+@pure
+expected_arguments(node_ids: List[Int], types: List[Option[String]]): List[ExpectedNodeType] ->
+    case {node_ids, types} {
+        {[node_id | node_rest], [type_name | type_rest]} ->
+            append(
+                case type_name {
+                    Some(name) where node_id >= 0 -> [ExpectedNodeType(node_id, name)];
+                    _ -> List.new[ExpectedNodeType]()
+                },
+                expected_arguments(node_rest, type_rest),
+            );
+        _ -> List.new[ExpectedNodeType]()
+    }.
+
+@pure
+use_expectations(
+    value: ResolvedCallableUse,
+    facts: List[InferredTypeFact],
+): List[ExpectedNodeType] ->
+    expected_arguments(
+        value.source.argument_node_ids,
+        ProjectedCallableTypeMerge.instantiated_parameter_types(value, facts),
+    ).
+
+@pure
+expectations(
+    values: List[ResolvedCallableUse],
+    facts: List[InferredTypeFact],
+): List[ExpectedNodeType] ->
+    case values {
+        [] -> List.new[ExpectedNodeType]();
+        [value | rest] -> append(use_expectations(value, facts), expectations(rest, facts))
+    }.
+
+@pure
+expected_type(node_id: Int, values: List[ExpectedNodeType]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.node_id == node_id -> Some(value.type_name);
+                true -> expected_type(node_id, rest)
+            }
+    }.
+
+@pure
+next_depth(value: String, index: Int, depth: Int): Int ->
+    let byte = value.utf8_byte_at(index);
+    if {
+        byte == 40 or byte == 91 or byte == 123 -> depth + 1;
+        byte == 41 or byte == 93 or byte == 125 -> depth - 1;
+        true -> depth
+    }.
+
+@pure
+arrow_at(value: String, index: Int, depth: Int): Int ->
+    if {
+        index + 1 >= value.byte_size() -> -1;
+        depth == 0 and value.utf8_byte_at(index) == 45 and value.utf8_byte_at(index + 1) == 62 -> index;
+        true -> arrow_at(value, index + 1, next_depth(value, index, depth))
+    }.
+
+@pure
+parameter_source(value: String, arrow: Int): String ->
+    let text = String.trim(value.utf8_slice(0, arrow));
+    if {
+        String.starts_with(text, "(") and String.ends_with(text, ")") -> text.utf8_slice(1, text.byte_size() - 2);
+        true -> text
+    }.
+
+@pure
+function_parameter_types(value: String): List[String] ->
+    let arrow = arrow_at(value, 0, 0);
+    if {
+        arrow < 0 -> List.new[String]();
+        true -> Delimited.split_top_level(parameter_source(value, arrow), 44)
+    }.
+
+@pure
+parameter_facts(
+    patterns: List[ProjectedExpressionNode],
+    node_id: Int,
+    types: List[String],
+): List[InferredTypeFact] ->
+    case {patterns, types} {
+        {[pattern | pattern_rest], [type_name | type_rest]} ->
+            [InferredTypeFact(
+    node_id = node_id,
+    type_name = Some(String.trim(type_name)),
+    byte_offset = pattern.start_byte,
+) | parameter_facts(pattern_rest, node_id + node_size(pattern), type_rest)];
+        _ -> List.new[InferredTypeFact]()
+    }.
+
+@pure
+lambda_facts(
+    value: ProjectedExpressionNode,
+    node_id: Int,
+    type_name: String,
+): List[InferredTypeFact] ->
+    case value.children {
+        [patterns | _rest] ->
+            [InferredTypeFact(node_id = node_id, type_name = Some(type_name), byte_offset = value.start_byte) | parameter_facts(patterns.children, node_id + 2, function_parameter_types(type_name))];
+        _ -> List.new[InferredTypeFact]()
+    }.
+
+@pure
+scan_children(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    expected: List[ExpectedNodeType],
+): LambdaScan ->
+    case values {
+        [] -> LambdaScan(node_id, List.new[InferredTypeFact]());
+        [value | rest] ->
+            let current = scan_node(value, node_id, expected);
+            let remaining = scan_children(rest, current.next_id, expected);
+            LambdaScan(remaining.next_id, append(current.facts, remaining.facts))
+    }.
+
+@pure
+scan_node(
+    value: ProjectedExpressionNode,
+    node_id: Int,
+    expected: List[ExpectedNodeType],
+): LambdaScan ->
+    let children = scan_children(value.children, node_id + 1, expected);
+    let facts =
+        if {
+            value.kind != "lambda" -> List.new[InferredTypeFact]();
+            true -> case expected_type(node_id, expected) {
+                None -> List.new[InferredTypeFact]();
+                Some(type_name) -> lambda_facts(value, node_id, type_name)
+            }
+        };
+    LambdaScan(children.next_id, append(facts, children.facts)).
+
+@pure
+scan_bodies(
+    values: List[ProjectedBody],
+    node_id: Int,
+    expected: List[ExpectedNodeType],
+): LambdaScan ->
+    case values {
+        [] -> LambdaScan(node_id, List.new[InferredTypeFact]());
+        [value | rest] ->
+            case value.expression.node {
+                None -> scan_bodies(rest, node_id, expected);
+                Some(node) ->
+                    let current = scan_node(node, node_id, expected);
+                    let remaining = scan_bodies(rest, current.next_id, expected);
+                    LambdaScan(remaining.next_id, append(current.facts, remaining.facts))
+            }
+    }.
+
+/**
+ * Adds contextual lambda and parameter facts before ordinary binding propagation.
+ */
+@pure
+pub merge(
+    bodies: ProjectedBodies,
+    callables: CallableResolution,
+    types: TypeConstraintResolution,
+): TypeConstraintResolution ->
+    let expected = expectations(callables.uses, types.facts);
+    let contextual = scan_bodies(bodies.values, 0, expected);
+    TypeConstraintResolution(
+        facts = append(types.facts, contextual.facts),
+        diagnostics = types.diagnostics,
+    ).

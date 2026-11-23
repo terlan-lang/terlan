@@ -1,40 +1,21 @@
-/** Dispatches every surface declaration into the unified typed AST. */
+/**
+ * Dispatches every surface declaration into the unified typed AST.
+ */
 module self_host.TypedModuleLowering.
 
 import self_host.DeclarationSyntax.{DeclarationSyntax, ModuleSyntax}.
-import self_host.FunctionSyntax.{FunctionSyntax}.
-import self_host.MethodSyntax.{MethodSyntax}.
-import self_host.ParameterSyntax.{ParameterSyntax}.
 import self_host.Syntax.{AnnotationSchemaDeclaration, ConfigDeclaration, ConstFunctionDeclaration, ConstantDeclaration, ConstructorDeclaration, ExportDeclaration, FunctionDeclaration, ImportDeclaration, MethodDeclaration, NativeDeclaration, OpaqueTypeDeclaration, ShapeDeclaration, StructDeclaration, TemplateDeclaration, TraitDeclaration, TraitImplDeclaration, TypeDeclaration}.
 import self_host.TypedModuleSyntax.{AnnotationSchemaPayload, ConfigPayload, ConstantPayload, ConstructorPayload, ExportPayload, FunctionPayload, ImportPayload, MethodPayload, NativePayload, ShapePayload, StructPayload, TemplatePayload, TraitImplPayload, TraitPayload, TypePayload, TypedDeclaration, TypedDeclarationPayload, TypedModule, UnsupportedPayload, ValuedUnionPayload}.
-
+import self_host.{AnnotationSchemaLowering, ConfigLowering, ConstantLowering, ConstructorLowering, DeclarationLowering, DeclarationMetadataLowering, Delimited, ExportLowering, FunctionLowering, FunctionSyntax, ImportLowering, MethodLowering, MethodSyntax, NativeLowering, ParameterSyntax, Parser, ShapeLowering, StructLowering, TemplateLowering, TraitImplLowering, TraitLowering, TypeDeclarationLowering, ValuedUnionLowering}.
 import std.collections.List.
 import std.core.String.
-import self_host.AnnotationSchemaLowering.
-import self_host.ConstantLowering.
-import self_host.ConfigLowering.
-import self_host.ConstructorLowering.
-import self_host.DeclarationLowering.
-import self_host.DeclarationMetadataLowering.
-import self_host.Delimited.
-import self_host.FunctionLowering.
-import self_host.ExportLowering.
-import self_host.ImportLowering.
-import self_host.MethodLowering.
-import self_host.NativeLowering.
-import self_host.Parser.
-import self_host.ShapeLowering.
-import self_host.StructLowering.
-import self_host.TemplateLowering.
-import self_host.TraitImplLowering.
-import self_host.TraitLowering.
-import self_host.TypeDeclarationLowering.
-import self_host.ValuedUnionLowering.
-
 
 @pure
 before(value: String, separator: String): String ->
-    case String.split(value, separator) { [] -> String.trim(value); [head | _] -> String.trim(head) }.
+    case String.split(value, separator) {
+        [] -> String.trim(value);
+        [head | _] -> String.trim(head)
+    }.
 
 @pure
 without_prefix(value: String, prefix: String): String ->
@@ -61,7 +42,9 @@ method_name_tail(parts: List[String]): String ->
         [callable | _rest] -> before(callable, "(")
     }.
 
-/** Returns the source-level symbol introduced by a declaration, if any. */
+/**
+ * Returns the source-level symbol introduced by a declaration, if any.
+ */
 @pure
 pub symbol_name(source: DeclarationSyntax): String ->
     let public_head = Parser.declaration_head(source.body);
@@ -99,7 +82,7 @@ symbol_type(source: DeclarationSyntax, head: String): String ->
 @pure
 symbol_opaque_type(source: DeclarationSyntax, head: String): String ->
     if {
-        source.class == OpaqueTypeDeclaration -> before(before(without_prefix(head, "opaque type "), "["), "=");
+        source.class == OpaqueTypeDeclaration -> before(before(before(without_prefix(head, "opaque type "), "["), "="), ".");
         true -> symbol_struct(source, head)
     }.
 
@@ -161,10 +144,15 @@ parameter_annotation(value: ParameterSyntax): String ->
 
 @pure
 parameter_shape(value: ParameterSyntax): String ->
-    String.concat([
-        if { value.is_mutable -> "mut:"; true -> "value:" },
-        parameter_annotation(value),
-    ]).
+    String.concat(
+        [
+            if {
+                value.is_mutable -> "mut:";
+                true -> "value:"
+            },
+            parameter_annotation(value),
+        ],
+    ).
 
 @pure
 parameter_shapes(values: List[ParameterSyntax]): List[String] ->
@@ -175,14 +163,16 @@ parameter_shapes(values: List[ParameterSyntax]): List[String] ->
 
 @pure
 function_identity(value: FunctionSyntax): String ->
-    String.concat([
-        "function:",
-        value.name,
-        "(",
-        String.join(parameter_shapes(value.typed_parameters), ","),
-        ")->",
-        value.return_type.syntax.text,
-    ]).
+    String.concat(
+        [
+            "function:",
+            value.name,
+            "(",
+            String.join(parameter_shapes(value.typed_parameters), ","),
+            ")->",
+            value.return_type.syntax.text,
+        ],
+    ).
 
 @pure
 method_parameters(value: MethodSyntax): List[ParameterSyntax] ->
@@ -190,14 +180,16 @@ method_parameters(value: MethodSyntax): List[ParameterSyntax] ->
 
 @pure
 method_identity(value: MethodSyntax): String ->
-    String.concat([
-        "method:",
-        value.name,
-        "(",
-        String.join(parameter_shapes(method_parameters(value)), ","),
-        ")->",
-        value.return_type.syntax.text,
-    ]).
+    String.concat(
+        [
+            "method:",
+            value.name,
+            "(",
+            String.join(parameter_shapes(method_parameters(value)), ","),
+            ")->",
+            value.return_type.syntax.text,
+        ],
+    ).
 
 @pure
 semantic_identity(source: DeclarationSyntax, payload: TypedDeclarationPayload): String ->
@@ -478,7 +470,8 @@ payload_status_shape(value: TypedDeclarationPayload): PayloadStatus ->
 @pure
 payload_status_unsupported(value: TypedDeclarationPayload): PayloadStatus ->
     case value {
-        UnsupportedPayload(_item) -> PayloadStatus(valid = false, message = "declaration class is not yet lowered");
+        UnsupportedPayload(_item) ->
+            PayloadStatus(valid = false, message = "declaration class is not yet lowered");
         _ -> PayloadStatus(valid = false, message = "declaration class is not yet lowered")
     }.
 
@@ -489,14 +482,31 @@ declarations_at(values: List[DeclarationSyntax]): List[TypedDeclaration] ->
         [value | rest] ->
             let prepared = DeclarationMetadataLowering.prepare(value);
             let lowered = payload(prepared.declaration);
-            [TypedDeclaration(payload_valid(lowered), lowered, value.class, symbol_name(value), semantic_identity(value, lowered), value.is_public, value.body, prepared.metadata.annotations, prepared.metadata.docs, value.span, payload_message(lowered)) | declarations_at(rest)]
+            [TypedDeclaration(
+    payload_valid(lowered),
+    lowered,
+    value.class,
+    symbol_name(value),
+    semantic_identity(value, lowered),
+    value.is_public,
+    value.body,
+    prepared.metadata.annotations,
+    prepared.metadata.docs,
+    value.span,
+    payload_message(lowered),
+) | declarations_at(rest)]
     }.
 
 @pure
 all_valid(values: List[TypedDeclaration]): Bool ->
-    case values { [] -> true; [value | rest] -> value.valid and all_valid(rest) }.
+    case values {
+        [] -> true;
+        [value | rest] -> value.valid and all_valid(rest)
+    }.
 
-/** Produces the unified typed module from a declaration-level surface module. */
+/**
+ * Produces the unified typed module from a declaration-level surface module.
+ */
 @pure
 pub lower(source: ModuleSyntax): TypedModule ->
     let declarations = declarations_at(source.declarations);

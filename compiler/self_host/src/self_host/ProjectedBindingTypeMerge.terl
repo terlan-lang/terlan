@@ -110,6 +110,71 @@ resolve_reference(
             }
     }.
 
+outer_fact_type_at(
+    values: List[InferredTypeFact],
+    byte_offset: Int,
+    best_node_id: Int,
+    current: Option[String],
+): Option[String] ->
+    case values {
+        [] -> current;
+        [value | rest] ->
+            if {
+                value.byte_offset == byte_offset
+                    and value.node_id >= 0
+                    and value.type_name != None
+                    and (best_node_id < 0 or value.node_id < best_node_id) -> outer_fact_type_at(rest, byte_offset, value.node_id, value.type_name);
+                true -> outer_fact_type_at(rest, byte_offset, best_node_id, current)
+            }
+    }.
+
+linked_source_offset(
+    byte_offset: Int,
+    references: Map[Int, Option[Int]],
+    links: Map[Int, Int],
+): Option[Int] ->
+    case link_offset(byte_offset, links) {
+        Some(source_offset) where source_offset != byte_offset -> Some(source_offset);
+        _ ->
+            when {
+                Some(declaration_offset) <- reference_offset(byte_offset, references);
+                Some(source_offset) <- link_offset(declaration_offset, links);
+                true <- source_offset != declaration_offset
+            } else {
+                _ -> None
+            };
+            Some(source_offset)
+    }.
+
+source_link_fact(
+    value: InferredTypeFact,
+    all: List[InferredTypeFact],
+    references: Map[Int, Option[Int]],
+    links: Map[Int, Int],
+): InferredTypeFact ->
+    if {
+        has_more_specific_fact(value, all) -> value;
+        true -> when {
+            Some(source_offset) <- linked_source_offset(value.byte_offset, references, links);
+            Some(type_name) <- outer_fact_type_at(all, source_offset, -1, None)
+        } else {
+            _ -> value
+        };
+        InferredTypeFact(value.node_id, Some(type_name), value.byte_offset)
+    }.
+
+source_link_facts(
+    values: List[InferredTypeFact],
+    all: List[InferredTypeFact],
+    references: Map[Int, Option[Int]],
+    links: Map[Int, Int],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> List.new[InferredTypeFact]();
+        [value | rest] ->
+            [source_link_fact(value, all, references, links) | source_link_facts(rest, all, references, links)]
+    }.
+
 resolve_fact(
     value: Option[String],
     byte_offset: Int,
@@ -237,4 +302,19 @@ pub merge(
             List.new[InferredTypeFact](),
         ),
         diagnostics = types.diagnostics,
+    ).
+
+/**
+ * Propagates authoritative initializer types through non-self lexical links.
+ */
+pub merge_source_links(
+    types: TypeConstraintResolution,
+    bindings: BindingResolution,
+    links: List[BindingTypeLink],
+): TypeConstraintResolution ->
+    let references = index_references(bindings.references);
+    let links_by_declaration = index_links(links);
+    TypeConstraintResolution(
+        source_link_facts(types.facts, types.facts, references, links_by_declaration),
+        types.diagnostics,
     ).

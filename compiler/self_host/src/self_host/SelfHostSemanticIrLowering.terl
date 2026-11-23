@@ -3,43 +3,67 @@
  */
 module self_host.SelfHostSemanticIrLowering.
 
-
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
-import std.core.String.
-import self_host.SelfHostIrSyntax.
 import self_host.SelfHostIrSyntax.{IrBlock, IrFunction, IrInstruction, IrModule, IrRegion, IrTerminator, IrTryRegion}.
-import self_host.SelfHostSemanticIrSyntax.
-
 import self_host.SelfHostSemanticIrSyntax.{IrLoweringDiagnostic, IrLoweringResult, SemanticBlockPlan, SemanticFunctionPlan, SemanticInstructionPlan, SemanticModulePlan, SemanticRegionPlan, SemanticTerminatorPlan, SemanticTryRegionPlan}.
+import self_host.{SelfHostIrSyntax, SelfHostSemanticIrSyntax}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
 @pure
-reverse_diagnostics_at(values: List[IrLoweringDiagnostic], output: List[IrLoweringDiagnostic]): List[IrLoweringDiagnostic] ->
-    case values { [] -> output; [value | rest] -> reverse_diagnostics_at(rest, [value | output]) }.
+reverse_diagnostics_at(
+    values: List[IrLoweringDiagnostic],
+    output: List[IrLoweringDiagnostic],
+): List[IrLoweringDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_diagnostics_at(rest, [value | output])
+    }.
 
 @pure
 reverse_diagnostics(values: List[IrLoweringDiagnostic]): List[IrLoweringDiagnostic] ->
     reverse_diagnostics_at(values, List.new[IrLoweringDiagnostic]()).
 
 @pure
-prepend_reversed_diagnostics(values: List[IrLoweringDiagnostic], output: List[IrLoweringDiagnostic]): List[IrLoweringDiagnostic] ->
-    case values { [] -> output; [value | rest] -> prepend_reversed_diagnostics(rest, [value | output]) }.
+prepend_reversed_diagnostics(
+    values: List[IrLoweringDiagnostic],
+    output: List[IrLoweringDiagnostic],
+): List[IrLoweringDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> prepend_reversed_diagnostics(rest, [value | output])
+    }.
 
 @pure
-concat_diagnostics(left: List[IrLoweringDiagnostic], right: List[IrLoweringDiagnostic]): List[IrLoweringDiagnostic] ->
+concat_diagnostics(
+    left: List[IrLoweringDiagnostic],
+    right: List[IrLoweringDiagnostic],
+): List[IrLoweringDiagnostic] ->
     prepend_reversed_diagnostics(reverse_diagnostics(left), right).
 
 @pure
-reverse_instructions_at(values: List[IrInstruction], output: List[IrInstruction]): List[IrInstruction] ->
-    case values { [] -> output; [value | rest] -> reverse_instructions_at(rest, [value | output]) }.
+reverse_instructions_at(
+    values: List[IrInstruction],
+    output: List[IrInstruction],
+): List[IrInstruction] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_instructions_at(rest, [value | output])
+    }.
 
 @pure
 reverse_blocks_at(values: List[IrBlock], output: List[IrBlock]): List[IrBlock] ->
-    case values { [] -> output; [value | rest] -> reverse_blocks_at(rest, [value | output]) }.
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_blocks_at(rest, [value | output])
+    }.
 
 @pure
 reverse_functions_at(values: List[IrFunction], output: List[IrFunction]): List[IrFunction] ->
-    case values { [] -> output; [value | rest] -> reverse_functions_at(rest, [value | output]) }.
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_functions_at(rest, [value | output])
+    }.
 
 @pure
 instruction_diagnostics_next(
@@ -49,23 +73,22 @@ instruction_diagnostics_next(
     block_label: String,
     output: List[IrLoweringDiagnostic],
 ): List[IrLoweringDiagnostic] ->
-    let nested = optional_try_region_diagnostics(
-        value.try_region,
-        function_name,
-        block_label,
-    );
+    let nested = optional_try_region_diagnostics(value.try_region, function_name, block_label);
     let next_output = prepend_reversed_diagnostics(nested, output);
     case value.resolved_type {
         Some(_) -> instruction_diagnostics_at(rest, function_name, block_label, next_output);
-        None -> instruction_diagnostics_at(rest, function_name, block_label, [IrLoweringDiagnostic(
-            code = "unresolved-instruction-type",
-            message = String.concat([
-                "semantic instruction has no resolved result type: opcode=",
-                value.opcode,
-            ]),
-            function_name = function_name,
-            block_label = block_label,
-        ) | next_output])
+        None ->
+            instruction_diagnostics_at(
+                rest,
+                function_name,
+                block_label,
+                [IrLoweringDiagnostic(
+    code = "unresolved-instruction-type",
+    message = String.concat(["semantic instruction has no resolved result type: opcode=", value.opcode]),
+    function_name = function_name,
+    block_label = block_label,
+) | next_output],
+            )
     }.
 
 @pure
@@ -77,12 +100,13 @@ region_diagnostics(
     let nested = block_diagnostics(value.blocks, function_name);
     case value.resolved_type {
         Some(_) -> nested;
-        None -> [IrLoweringDiagnostic(
-            code = "unresolved-region-type",
-            message = String.concat(["semantic region has no resolved result type: ", value.label]),
-            function_name = function_name,
-            block_label = block_label,
-        ) | nested]
+        None ->
+            [IrLoweringDiagnostic(
+    code = "unresolved-region-type",
+    message = String.concat(["semantic region has no resolved result type: ", value.label]),
+    function_name = function_name,
+    block_label = block_label,
+) | nested]
     }.
 
 @pure
@@ -93,10 +117,11 @@ cleanup_region_diagnostics(
 ): List[IrLoweringDiagnostic] ->
     case values {
         [] -> List.new[IrLoweringDiagnostic]();
-        [value | rest] -> concat_diagnostics(
-            region_diagnostics(value, function_name, block_label),
-            cleanup_region_diagnostics(rest, function_name, block_label),
-        )
+        [value | rest] ->
+            concat_diagnostics(
+                region_diagnostics(value, function_name, block_label),
+                cleanup_region_diagnostics(rest, function_name, block_label),
+            )
     }.
 
 @pure
@@ -136,7 +161,8 @@ instruction_diagnostics_at(
 ): List[IrLoweringDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [value | rest] -> instruction_diagnostics_next(value, rest, function_name, block_label, output)
+        [value | rest] ->
+            instruction_diagnostics_next(value, rest, function_name, block_label, output)
     }.
 
 @pure
@@ -155,12 +181,9 @@ block_diagnostics_at(
 ): List[IrLoweringDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [value | rest] -> let current = instruction_diagnostics(
-            value.instructions,
-            function_name,
-            value.label,
-        );
-        block_diagnostics_at(rest, function_name, prepend_reversed_diagnostics(current, output))
+        [value | rest] ->
+            let current = instruction_diagnostics(value.instructions, function_name, value.label);
+            block_diagnostics_at(rest, function_name, prepend_reversed_diagnostics(current, output))
     }.
 
 @pure
@@ -172,14 +195,20 @@ block_diagnostics(
 
 @pure
 function_diagnostics(value: SemanticFunctionPlan): List[IrLoweringDiagnostic] ->
+    let body_diagnostics =
+        case value.native_symbol {
+            Some(_) -> List.new[IrLoweringDiagnostic]();
+            None -> block_diagnostics(value.blocks, value.name)
+        };
     case value.resolved_return_type {
-        None -> [IrLoweringDiagnostic(
-            code = "unresolved-return-type",
-            message = "function return type must resolve before backend lowering",
-            function_name = value.name,
-            block_label = "",
-        ) | block_diagnostics(value.blocks, value.name)];
-        Some(_) -> block_diagnostics(value.blocks, value.name)
+        None ->
+            [IrLoweringDiagnostic(
+    code = "unresolved-return-type",
+    message = "function return type must resolve before backend lowering",
+    function_name = value.name,
+    block_label = "",
+) | body_diagnostics];
+        Some(_) -> body_diagnostics
     }.
 
 @pure
@@ -193,13 +222,17 @@ module_diagnostics_at(
 ): List[IrLoweringDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [value | rest] -> let current = function_diagnostics(value);
+        [value | rest] ->
+            let current = function_diagnostics(value);
             module_diagnostics_at(rest, prepend_reversed_diagnostics(current, output))
     }.
 
 @pure
 resolved_type_name(value: Option[String]): String ->
-    case value { Some(name) -> name; None -> "" }.
+    case value {
+        Some(name) -> name;
+        None -> ""
+    }.
 
 @pure
 lower_region(value: SemanticRegionPlan): IrRegion ->
@@ -251,7 +284,10 @@ lower_instructions(values: List[SemanticInstructionPlan]): List[IrInstruction] -
     lower_instructions_at(values, List.new[IrInstruction]()).
 
 @pure
-lower_instructions_at(values: List[SemanticInstructionPlan], output: List[IrInstruction]): List[IrInstruction] ->
+lower_instructions_at(
+    values: List[SemanticInstructionPlan],
+    output: List[IrInstruction],
+): List[IrInstruction] ->
     case values {
         [] -> reverse_instructions_at(output, List.new[IrInstruction]());
         [value | rest] -> lower_instructions_at(rest, [lower_instruction(value) | output])
@@ -300,7 +336,10 @@ lower_functions(values: List[SemanticFunctionPlan]): List[IrFunction] ->
     lower_functions_at(values, List.new[IrFunction]()).
 
 @pure
-lower_functions_at(values: List[SemanticFunctionPlan], output: List[IrFunction]): List[IrFunction] ->
+lower_functions_at(
+    values: List[SemanticFunctionPlan],
+    output: List[IrFunction],
+): List[IrFunction] ->
     case values {
         [] -> reverse_functions_at(output, List.new[IrFunction]());
         [value | rest] -> lower_functions_at(rest, [lower_function(value) | output])
@@ -311,11 +350,13 @@ pub lower(plan: SemanticModulePlan): IrLoweringResult ->
     let diagnostics = module_diagnostics(plan.functions);
     if {
         diagnostics == List.new[IrLoweringDiagnostic]() -> IrLoweringResult(
-            ir_module = Some(IrModule(
-                name = plan.name,
-                structs = plan.structs,
-                functions = lower_functions(plan.functions),
-            )),
+            ir_module = Some(
+                IrModule(
+                    name = plan.name,
+                    structs = plan.structs,
+                    functions = lower_functions(plan.functions),
+                ),
+            ),
             diagnostics = diagnostics,
         );
         true -> IrLoweringResult(ir_module = None, diagnostics = diagnostics)

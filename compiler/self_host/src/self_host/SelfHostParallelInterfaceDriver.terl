@@ -1,0 +1,237 @@
+/**
+ * Bounded OS-process execution for self-hosted interface publication.
+ */
+module self_host.SelfHostParallelInterfaceDriver.
+
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok, Result}.
+import std.core.{Bool, Int, String}.
+import std.io.Console.{eprintln}.
+import std.io.File.
+import std.system.Process.
+import std.system.Process.{BatchCompletion, Command, Output, ProcessError}.
+
+pub struct InterfaceWorkerJob {
+    identity: String,
+    input: String,
+    output: String,
+}.
+
+pub constructor InterfaceWorkerJob {
+    (identity: String, input: String, output: String): InterfaceWorkerJob ->
+        InterfaceWorkerJob(identity = identity, input = input, output = output)
+}.
+
+@pure
+contains(value: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [current | rest] -> current == value or contains(value, rest)
+    }.
+
+@pure
+has_duplicate(values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> contains(value, rest) or has_duplicate(rest)
+    }.
+
+@pure
+identities(values: List[InterfaceWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.identity | identities(rest)]
+    }.
+
+@pure
+outputs(values: List[InterfaceWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.output | outputs(rest)]
+    }.
+
+@pure
+valid_jobs(values: List[InterfaceWorkerJob]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            value.identity != "" and value.input != "" and value.output != "" and valid_jobs(rest)
+    }.
+
+/**
+ * Validates identities and output ownership before any child is started.
+ */
+@pure
+pub plan(
+    values: List[InterfaceWorkerJob],
+    worker_limit: Int,
+): Result[List[InterfaceWorkerJob], String] ->
+    if {
+        worker_limit <= 0 -> Err("interface worker limit must be positive");
+        not valid_jobs(values) -> Err("interface worker job contains an empty identity or path");
+        has_duplicate(identities(values)) -> Err("interface worker jobs contain duplicate identities");
+        has_duplicate(outputs(values)) -> Err("interface worker jobs contain aliased outputs");
+        true -> Ok(values)
+    }.
+
+@pure
+job_count(values: List[InterfaceWorkerJob]): Int ->
+    case values {
+        [] -> 0;
+        [_ | rest] -> 1 + job_count(rest)
+    }.
+
+@pure
+take_jobs(values: List[InterfaceWorkerJob], count: Int): List[InterfaceWorkerJob] ->
+    if {
+        count <= 0 -> List.new[InterfaceWorkerJob]();
+        true -> case values {
+            [] -> List.new[InterfaceWorkerJob]();
+            [value | rest] -> [value | take_jobs(rest, count - 1)]
+        }
+    }.
+
+@pure
+drop_jobs(values: List[InterfaceWorkerJob], count: Int): List[InterfaceWorkerJob] ->
+    if {
+        count <= 0 -> values;
+        true -> case values {
+            [] -> List.new[InterfaceWorkerJob]();
+            [_ | rest] -> drop_jobs(rest, count - 1)
+        }
+    }.
+
+@pure
+batch_width(values: List[InterfaceWorkerJob], worker_limit: Int): Int ->
+    let count = job_count(values);
+    if {
+        count <= worker_limit -> 1;
+        true -> (count + worker_limit - 1) div worker_limit
+    }.
+
+@pure
+job_batches(values: List[InterfaceWorkerJob], width: Int): List[List[InterfaceWorkerJob]] ->
+    case values {
+        [] -> List.new[List[InterfaceWorkerJob]]();
+        _ -> [take_jobs(values, width) | job_batches(drop_jobs(values, width), width)]
+    }.
+
+@pure
+job_arguments(values: List[InterfaceWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.input | [value.output | job_arguments(rest)]]
+    }.
+
+commands(
+    worker_program: String,
+    values: List[List[InterfaceWorkerJob]],
+    timeout_ms: Int,
+): List[Command] ->
+    case values {
+        [] -> List.new[Command]();
+        [value | rest] ->
+            [Process.command(worker_program)
+    .with_arguments(["interface-units" | job_arguments(value)])
+    .with_timeout_ms(timeout_ms) | commands(worker_program, rest, timeout_ms)]
+    }.
+
+report(message: String): Bool ->
+    let _reported = eprintln(message);
+    false.
+
+print_nonempty(message: String): Bool ->
+    if {
+        message == "" -> true;
+        true -> let _reported = eprintln(message);
+        true
+    }.
+
+report_process_error(reason: ProcessError): Bool ->
+    report(String.concat([reason.program, ": ", reason.message])).
+
+interface_present(path: String): Bool ->
+    case File.read_text(path) {
+        Err(_) -> false;
+        Ok(value) -> value.byte_size() > 0
+    }.
+
+output_succeeded(job: InterfaceWorkerJob, value: Output): Bool ->
+    let stdout_reported = print_nonempty(value.stdout);
+    let stderr_reported = print_nonempty(value.stderr);
+    let present = interface_present(job.output);
+    if {
+        value.status != 0 -> report(String.concat([job.identity, ": interface worker exited unsuccessfully"]));
+        not present -> report(String.concat([job.identity, ": interface worker did not publish its output"]));
+        true -> stdout_reported and stderr_reported
+    }.
+
+completion_succeeded(job: InterfaceWorkerJob, value: BatchCompletion): Bool ->
+    case {value.output, value.error} {
+        {Some(output), None} -> output_succeeded(job, output);
+        {None, Some(reason)} -> report_process_error(reason);
+        _ -> report(String.concat([job.identity, ": invalid process completion envelope"]))
+    }.
+
+jobs_succeeded(values: List[InterfaceWorkerJob]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let current =
+                if {
+                    interface_present(value.output) -> true;
+                    true -> report(
+                        String.concat(
+                            [value.identity, ": interface worker did not publish its output"],
+                        ),
+                    )
+                };
+            let remaining = jobs_succeeded(rest);
+            current and remaining
+    }.
+
+batch_output_succeeded(jobs: List[InterfaceWorkerJob], value: Output): Bool ->
+    let stdout_reported = print_nonempty(value.stdout);
+    let stderr_reported = print_nonempty(value.stderr);
+    let outputs_present = jobs_succeeded(jobs);
+    if {
+        value.status != 0 -> report("interface worker shard exited unsuccessfully");
+        true -> stdout_reported and stderr_reported and outputs_present
+    }.
+
+batch_completion_succeeded(jobs: List[InterfaceWorkerJob], value: BatchCompletion): Bool ->
+    case {value.output, value.error} {
+        {Some(output), None} -> batch_output_succeeded(jobs, output);
+        {None, Some(reason)} -> report_process_error(reason);
+        _ -> report("invalid interface process shard completion envelope")
+    }.
+
+completions_succeeded(
+    jobs: List[List[InterfaceWorkerJob]],
+    completions: List[BatchCompletion],
+): Bool ->
+    case {jobs, completions} {
+        {[], []} -> true;
+        {[job | job_rest], [completion | completion_rest]} ->
+            let current = batch_completion_succeeded(job, completion);
+            let remaining = completions_succeeded(job_rest, completion_rest);
+            current and remaining;
+        _ -> report("interface process batch returned an invalid completion count")
+    }.
+
+/**
+ * Runs interface jobs with a VM-enforced OS-process concurrency bound.
+ */
+pub run(worker_program: String, values: List[InterfaceWorkerJob], worker_limit: Int): Bool ->
+    case plan(values, worker_limit) {
+        Err(reason) -> report(reason);
+        Ok(planned) ->
+            let batches = job_batches(planned, batch_width(planned, worker_limit));
+            case Process.run_many(
+                Process.batch(commands(worker_program, batches, 1_800_000), worker_limit),
+            ) {
+                Err(reason) -> report_process_error(reason);
+                Ok(output) -> completions_succeeded(batches, output.completions)
+            }
+    }.

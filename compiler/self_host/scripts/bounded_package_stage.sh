@@ -65,19 +65,31 @@ INTERFACES_CHANGED=0
 while IFS=$'\t' read -r unit source; do
     interface="$OUTPUT/interfaces/$unit.interface"
     if [[ -s "$interface" ]] \
-        && grep -q $'^interface\tterlan.self-host.interface-catalog/v4\t' "$interface" \
+        && grep -q $'^interface\tterlan.self-host.interface-catalog/v5\t' "$interface" \
         && [[ "$interface" -nt "$source" ]] \
         && [[ "$interface" -nt "$IMAGE" ]]; then
         continue
     fi
     INTERFACES_CHANGED=1
     rm -f "$interface"
-    printf '%s\n%s\n' "$source" "$interface" >> "$INTERFACE_ARGUMENTS"
+    printf '%s\n%s\n%s\n' "$unit" "$source" "$interface" >> "$INTERFACE_ARGUMENTS"
 done < "$OUTPUT/units.tsv"
 
 if [[ -s "$INTERFACE_ARGUMENTS" ]]; then
-    xargs -d '\n' -P "$JOBS" -n "$((BATCH_UNITS * 2))" \
-        "$IMAGE" interface-units < "$INTERFACE_ARGUMENTS"
+    if ! xargs -d '\n' -n "$((BATCH_UNITS * 3))" \
+        bash -c '
+            image=$1
+            jobs=$2
+            shift 2
+            arguments=("$@")
+            "$image" parallel-interface-units "$image" "$jobs" "${arguments[@]}" || exit 255
+            for ((index = 0; index < ${#arguments[@]}; index += 3)); do
+                [[ -s ${arguments[index + 2]} ]] || exit 255
+            done
+        ' _ "$IMAGE" "$JOBS" < "$INTERFACE_ARGUMENTS"; then
+        echo "parallel interface compilation failed" >&2
+        exit 1
+    fi
 fi
 
 while IFS=$'\t' read -r unit _source; do
@@ -98,12 +110,25 @@ while IFS=$'\t' read -r unit source; do
     fi
     rm -f "$artifact"
     : > "$diagnostics"
-    printf '%s\n%s\n%s\n' "$source" "$artifact" "$diagnostics" >> "$BACKEND_ARGUMENTS"
+    printf '%s\n%s\n%s\n%s\n' "$unit" "$source" "$artifact" "$diagnostics" >> "$BACKEND_ARGUMENTS"
 done < "$OUTPUT/units.tsv"
 
 if [[ -s "$BACKEND_ARGUMENTS" ]]; then
-    xargs -d '\n' -P "$JOBS" -n "$((BATCH_UNITS * 3))" \
-        "$IMAGE" backend-units "$OUTPUT/interfaces.manifest" < "$BACKEND_ARGUMENTS"
+    if ! xargs -d '\n' -n "$((BATCH_UNITS * 4))" \
+        bash -c '
+            image=$1
+            interfaces=$2
+            jobs=$3
+            shift 3
+            arguments=("$@")
+            "$image" parallel-backend-units "$image" "$interfaces" "$jobs" "${arguments[@]}" || exit 255
+            for ((index = 0; index < ${#arguments[@]}; index += 4)); do
+                [[ -s ${arguments[index + 2]} && ! -s ${arguments[index + 3]} ]] || exit 255
+            done
+        ' _ "$IMAGE" "$OUTPUT/interfaces.manifest" "$JOBS" < "$BACKEND_ARGUMENTS"; then
+        echo "parallel backend compilation failed" >&2
+        exit 1
+    fi
 fi
 
 while IFS=$'\t' read -r unit _source; do

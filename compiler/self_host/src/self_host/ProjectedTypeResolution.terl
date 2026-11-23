@@ -1,11 +1,11 @@
-/** Resolves projected signature types with lexical generic scopes. */
+/**
+ * Resolves projected signature types with lexical generic scopes.
+ */
 module self_host.ProjectedTypeResolution.
 
-import std.core.String.
-
 import self_host.BackendSyntax.{BackendDeclaration}.
-import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.ProjectedFrontendSyntax.{ProjectedFrontendModule}.
 import self_host.ProjectedImportedTypeCatalog.
 import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree, ProjectedTypeConstructorArity, ProjectedTypeDeclarationTree}.
 import self_host.ProjectedTypeResolutionSyntax.{ProjectedTypeDiagnostic, ProjectedTypeResolution, TypeIdentityBinding}.
@@ -17,25 +17,38 @@ import std.core.{Int, String}.
 
 @pure
 reverse_at[T](values: List[T], output: List[T]): List[T] ->
-    case values { [] -> output; [value | rest] -> reverse_at(rest, [value | output]) }.
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_at(rest, [value | output])
+    }.
 
 @pure
-reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+reverse[T](values: List[T]): List[T] ->
+    reverse_at(values, List.new[T]()).
 
 @pure
 append_bindings(
     left: List[TypeIdentityBinding],
     right: List[TypeIdentityBinding],
 ): List[TypeIdentityBinding] ->
-    case left { [] -> right; [value | rest] -> [value | append_bindings(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_bindings(rest, right)]
+    }.
 
 @pure
 append_names(left: List[String], right: List[String]): List[String] ->
-    case left { [] -> right; [value | rest] -> [value | append_names(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_names(rest, right)]
+    }.
 
 @pure
 contains(values: List[String], name: String): Bool ->
-    case values { [] -> false; [value | rest] -> value == name or contains(rest, name) }.
+    case values {
+        [] -> false;
+        [value | rest] -> value == name or contains(rest, name)
+    }.
 
 @pure
 is_builtin(name: String): Bool ->
@@ -66,7 +79,10 @@ known(name: String, local: List[String], external: List[String], parameters: Lis
         or contains(external, name).
 
 @pure
-local_constructor_arity(name: String, declarations: List[ProjectedTypeConstructorArity]): Option[Int] ->
+local_constructor_arity(
+    name: String,
+    declarations: List[ProjectedTypeConstructorArity],
+): Option[Int] ->
     case declarations {
         [] -> None;
         [value | _rest] where value.name == name -> Some(value.arity);
@@ -96,14 +112,16 @@ constructor_arity(
 
 @pure
 arity_message(name: String, expected: Int, found: Int): String ->
-    String.concat([
-        "type constructor `",
-        name,
-        "` expects ",
-        Int.to_string(expected),
-        " type argument(s), found ",
-        Int.to_string(found),
-    ]).
+    String.concat(
+        [
+            "type constructor `",
+            name,
+            "` expects ",
+            Int.to_string(expected),
+            " type argument(s), found ",
+            Int.to_string(found),
+        ],
+    ).
 
 @pure
 resolve_constructor_arity(
@@ -115,7 +133,8 @@ resolve_constructor_arity(
     if {
         value.kind != "generic-type" -> output;
         true -> case constructor_arity(value.text, parameters, declarations) {
-            Some(expected) -> let found = value.children.length();
+            Some(expected) ->
+                let found = value.children.length();
                 if {
                     expected == found -> output;
                     true -> [ProjectedTypeDiagnostic(value.text, arity_message(value.text, expected, found)) | output]
@@ -128,12 +147,11 @@ resolve_constructor_arity(
 local_types(values: List[BackendDeclaration]): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest]
-            where value.class == TypeDeclaration
-                or value.class == OpaqueTypeDeclaration
-                or value.class == StructDeclaration
-                or value.class == ShapeDeclaration
-                or value.class == TraitDeclaration ->
+        [value | rest] where value.class == TypeDeclaration
+    or value.class == OpaqueTypeDeclaration
+    or value.class == StructDeclaration
+    or value.class == ShapeDeclaration
+    or value.class == TraitDeclaration ->
             [value.symbol_name | local_types(rest)];
         [_value | rest] -> local_types(rest)
     }.
@@ -145,29 +163,22 @@ missing_signature_types(
 ): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> if {
-            contains(known, value.name) -> missing_signature_types(rest, known);
-            true -> [
-                value.name
-                | missing_signature_types(rest, [value.name | known])
-            ]
-        }
+        [value | rest] ->
+            if {
+                contains(known, value.name) -> missing_signature_types(rest, known);
+                true -> [value.name | missing_signature_types(rest, [value.name | known])]
+            }
     }.
 
 @pure
-local_type_bindings(
-    module_name: String,
-    values: List[String],
-): List[TypeIdentityBinding] ->
+local_type_bindings(module_name: String, values: List[String]): List[TypeIdentityBinding] ->
     case values {
         [] -> List.new[TypeIdentityBinding]();
-        [value | rest] -> [
-            TypeIdentityBinding(value, String.concat([module_name, ".", value]))
-            | [TypeIdentityBinding(
-                String.concat([module_name, ".", value]),
-                String.concat([module_name, ".", value]),
-            ) | local_type_bindings(module_name, rest)]
-        ]
+        [value | rest] ->
+            [TypeIdentityBinding(value, String.concat([module_name, ".", value])) | [TypeIdentityBinding(
+    String.concat([module_name, ".", value]),
+    String.concat([module_name, ".", value]),
+) | local_type_bindings(module_name, rest)]]
     }.
 
 @pure
@@ -178,17 +189,15 @@ identity_bindings(values: List[String]): List[TypeIdentityBinding] ->
     }.
 
 @pure
-binding_conflict(
-    value: TypeIdentityBinding,
-    values: List[TypeIdentityBinding],
-): Bool ->
+binding_conflict(value: TypeIdentityBinding, values: List[TypeIdentityBinding]): Bool ->
     case values {
         [] -> false;
-        [candidate | rest] -> if {
-            candidate.visible_name == value.visible_name
-                and candidate.canonical_name != value.canonical_name -> true;
-            true -> binding_conflict(value, rest)
-        }
+        [candidate | rest] ->
+            if {
+                candidate.visible_name == value.visible_name
+                    and candidate.canonical_name != value.canonical_name -> true;
+                true -> binding_conflict(value, rest)
+            }
     }.
 
 @pure
@@ -198,16 +207,17 @@ binding_diagnostics_at(
 ): List[ProjectedTypeDiagnostic] ->
     case values {
         [] -> output;
-        [value | rest] -> if {
-            binding_conflict(value, rest) -> binding_diagnostics_at(
-                rest,
-                [ProjectedTypeDiagnostic(
-                    value.visible_name,
-                    String.append("ambiguous imported type: ", value.visible_name),
-                ) | output],
-            );
-            true -> binding_diagnostics_at(rest, output)
-        }
+        [value | rest] ->
+            if {
+                binding_conflict(value, rest) -> binding_diagnostics_at(
+                    rest,
+                    [ProjectedTypeDiagnostic(
+    value.visible_name,
+    String.append("ambiguous imported type: ", value.visible_name),
+) | output],
+                );
+                true -> binding_diagnostics_at(rest, output)
+            }
     }.
 
 @pure
@@ -218,7 +228,9 @@ canonical_name_at(values: List[TypeIdentityBinding], name: String): Option[Strin
         [_value | rest] -> canonical_name_at(rest, name)
     }.
 
-/** Resolves one admitted source spelling to its package-qualified identity. */
+/**
+ * Resolves one admitted source spelling to its package-qualified identity.
+ */
 @pure
 pub canonical_name(value: ProjectedTypeResolution, name: String): Option[String] ->
     canonical_name_at(value.bindings, name).
@@ -240,21 +252,15 @@ external_symbol_arities(
 ): List[ProjectedTypeConstructorArity] ->
     case values {
         [] -> List.new[ProjectedTypeConstructorArity]();
-        [value | rest] -> if {
-            is_type_constructor_class(value.class)
-                and (contains(visible, value.name)
-                    or contains(visible, String.concat([module_name, ".", value.name]))) -> [
-                ProjectedTypeConstructorArity(value.name, value.type_parameters.length())
-                | [
-                    ProjectedTypeConstructorArity(
-                        String.concat([module_name, ".", value.name]),
-                        value.type_parameters.length(),
-                    )
-                    | external_symbol_arities(module_name, rest, visible)
-                ]
-            ];
-            true -> external_symbol_arities(module_name, rest, visible)
-        }
+        [value | rest] ->
+            if {
+                is_type_constructor_class(value.class)
+                    and (contains(visible, value.name) or contains(visible, String.concat([module_name, ".", value.name]))) -> [ProjectedTypeConstructorArity(value.name, value.type_parameters.length()) | [ProjectedTypeConstructorArity(
+    String.concat([module_name, ".", value.name]),
+    value.type_parameters.length(),
+) | external_symbol_arities(module_name, rest, visible)]];
+                true -> external_symbol_arities(module_name, rest, visible)
+            }
     }.
 
 @pure
@@ -262,16 +268,23 @@ append_arities(
     left: List[ProjectedTypeConstructorArity],
     right: List[ProjectedTypeConstructorArity],
 ): List[ProjectedTypeConstructorArity] ->
-    case left { [] -> right; [value | rest] -> [value | append_arities(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_arities(rest, right)]
+    }.
 
 @pure
-external_constructor_arities(values: List[ModuleInterface], visible: List[String]): List[ProjectedTypeConstructorArity] ->
+external_constructor_arities(
+    values: List[ModuleInterface],
+    visible: List[String],
+): List[ProjectedTypeConstructorArity] ->
     case values {
         [] -> List.new[ProjectedTypeConstructorArity]();
-        [value | rest] -> append_arities(
-            external_symbol_arities(value.module_name, value.symbols, visible),
-            external_constructor_arities(rest, visible),
-        )
+        [value | rest] ->
+            append_arities(
+                external_symbol_arities(value.module_name, value.symbols, visible),
+                external_constructor_arities(rest, visible),
+            )
     }.
 
 @pure
@@ -282,19 +295,20 @@ duplicate_parameter_diagnostics(
 ): List[ProjectedTypeDiagnostic] ->
     case values {
         [] -> output;
-        [value | rest] -> if {
-            value == "" -> duplicate_parameter_diagnostics(
-                rest,
-                seen,
-                [ProjectedTypeDiagnostic(value, "generic parameter name is empty") | output],
-            );
-            contains(seen, value) -> duplicate_parameter_diagnostics(
-                rest,
-                seen,
-                [ProjectedTypeDiagnostic(value, String.append("duplicate generic parameter: ", value)) | output],
-            );
-            true -> duplicate_parameter_diagnostics(rest, [value | seen], output)
-        }
+        [value | rest] ->
+            if {
+                value == "" -> duplicate_parameter_diagnostics(
+                    rest,
+                    seen,
+                    [ProjectedTypeDiagnostic(value, "generic parameter name is empty") | output],
+                );
+                contains(seen, value) -> duplicate_parameter_diagnostics(
+                    rest,
+                    seen,
+                    [ProjectedTypeDiagnostic(value, String.append("duplicate generic parameter: ", value)) | output],
+                );
+                true -> duplicate_parameter_diagnostics(rest, [value | seen], output)
+            }
     }.
 
 @pure
@@ -307,11 +321,11 @@ resolve_node(
     output: List[ProjectedTypeDiagnostic],
 ): List[ProjectedTypeDiagnostic] ->
     let requires_name = value.kind == "named-type" or value.kind == "generic-type";
-    let named = if {
-        requires_name and not known(value.text, local, external, parameters) ->
-            [ProjectedTypeDiagnostic(value.text, String.append("unknown type: ", value.text)) | output];
-        true -> output
-    };
+    let named =
+        if {
+            requires_name and not known(value.text, local, external, parameters) -> [ProjectedTypeDiagnostic(value.text, String.append("unknown type: ", value.text)) | output];
+            true -> output
+        };
     resolve_nodes(
         value.children,
         local,
@@ -332,14 +346,15 @@ resolve_nodes(
 ): List[ProjectedTypeDiagnostic] ->
     case values {
         [] -> output;
-        [value | rest] -> resolve_nodes(
-            rest,
-            local,
-            external,
-            parameters,
-            declarations,
-            resolve_node(value, local, external, parameters, declarations, output),
-        )
+        [value | rest] ->
+            resolve_nodes(
+                rest,
+                local,
+                external,
+                parameters,
+                declarations,
+                resolve_node(value, local, external, parameters, declarations, output),
+            )
     }.
 
 @pure
@@ -367,15 +382,75 @@ resolve_parameters(
 ): List[ProjectedTypeDiagnostic] ->
     case values {
         [] -> output;
-        [value | rest] -> resolve_parameters(
-            rest,
-            local,
-            external,
-            parameters,
-            declarations,
-            resolve_optional(value.annotation, local, external, parameters, declarations, output),
-        )
+        [value | rest] ->
+            resolve_parameters(
+                rest,
+                local,
+                external,
+                parameters,
+                declarations,
+                resolve_optional(
+                    value.annotation,
+                    local,
+                    external,
+                    parameters,
+                    declarations,
+                    output,
+                ),
+            )
     }.
+
+@pure
+implicit_type_parameters_at(value: ProjectedTypeNode, output: List[String]): List[String] ->
+    let nested = implicit_type_parameters(value.children, output);
+    if {
+        value.kind == "named-type"
+            and value.text.byte_size() == 1
+            and not contains(nested, value.text) -> [value.text | nested];
+        true -> nested
+    }.
+
+@pure
+implicit_type_parameters(values: List[ProjectedTypeNode], output: List[String]): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            implicit_type_parameters(rest, implicit_type_parameters_at(value, output))
+    }.
+
+@pure
+implicit_optional_type_parameters(
+    value: Option[ProjectedTypeNode],
+    output: List[String],
+): List[String] ->
+    case value {
+        Some(node) -> implicit_type_parameters_at(node, output);
+        None -> output
+    }.
+
+@pure
+implicit_parameter_type_parameters(
+    values: List[ProjectedParameterTree],
+    output: List[String],
+): List[String] ->
+    case values {
+        [] -> output;
+        [value | rest] ->
+            implicit_parameter_type_parameters(
+                rest,
+                implicit_optional_type_parameters(value.annotation, output),
+            )
+    }.
+
+@pure
+callable_type_parameters(value: ProjectedCallableSignature): List[String] ->
+    append_names(
+        value.type_parameters,
+        implicit_optional_type_parameters(
+            value.return_type,
+            implicit_parameter_type_parameters(value.parameters, List.new[String]()),
+        ),
+    ).
 
 @pure
 resolve_callables(
@@ -388,19 +463,17 @@ resolve_callables(
     case values {
         [] -> output;
         [value | rest] ->
-            let scoped = duplicate_parameter_diagnostics(
-                value.type_parameters,
-                List.new[String](),
-                output,
-            );
-            let resolved_parameters = resolve_parameters(
-                value.parameters,
-                local,
-                external,
-                value.type_parameters,
-                declarations,
-                scoped,
-            );
+            let parameters = callable_type_parameters(value);
+            let scoped = duplicate_parameter_diagnostics(value.type_parameters, List.new[String](), output);
+            let resolved_parameters =
+                resolve_parameters(
+                    value.parameters,
+                    local,
+                    external,
+                    parameters,
+                    declarations,
+                    scoped,
+                );
             resolve_callables(
                 rest,
                 local,
@@ -410,7 +483,7 @@ resolve_callables(
                     value.return_type,
                     local,
                     external,
-                    value.type_parameters,
+                    parameters,
                     declarations,
                     resolved_parameters,
                 ),
@@ -428,11 +501,7 @@ resolve_declarations(
     case values {
         [] -> output;
         [value | rest] ->
-            let scoped = duplicate_parameter_diagnostics(
-                value.type_parameters,
-                List.new[String](),
-                output,
-            );
+            let scoped = duplicate_parameter_diagnostics(value.type_parameters, List.new[String](), output);
             resolve_declarations(
                 rest,
                 local,
@@ -449,37 +518,49 @@ resolve_declarations(
             )
     }.
 
-/** Resolves one type tree under an explicit generic scope. */
+/**
+ * Resolves one type tree under an explicit generic scope.
+ */
 @pure
 pub resolve_scoped_type(
     value: ProjectedTypeNode,
     parameters: List[String],
     declarations: List[ProjectedTypeConstructorArity],
 ): List[ProjectedTypeDiagnostic] ->
-    reverse(resolve_node(
-        value,
-        List.new[String](),
-        List.new[String](),
-        parameters,
-        declarations,
-        List.new[ProjectedTypeDiagnostic](),
-    )).
+    reverse(
+        resolve_node(
+            value,
+            List.new[String](),
+            List.new[String](),
+            parameters,
+            declarations,
+            List.new[ProjectedTypeDiagnostic](),
+        ),
+    ).
 
-/** Validates lexical generic binder uniqueness independently of a declaration. */
+/**
+ * Validates lexical generic binder uniqueness independently of a declaration.
+ */
 @pure
 pub validate_generic_parameters(parameters: List[String]): List[ProjectedTypeDiagnostic] ->
-    reverse(duplicate_parameter_diagnostics(
-        parameters,
-        List.new[String](),
-        List.new[ProjectedTypeDiagnostic](),
-    )).
+    reverse(
+        duplicate_parameter_diagnostics(
+            parameters,
+            List.new[String](),
+            List.new[ProjectedTypeDiagnostic](),
+        ),
+    ).
 
-/** Resolves all projected signature type names for one frontend module. */
+/**
+ * Resolves all projected signature type names for one frontend module.
+ */
 @pure
 pub resolve(source: ProjectedFrontendModule, external_types: List[String]): ProjectedTypeResolution ->
     resolve_with_interfaces(source, external_types, List.new[ModuleInterface]()).
 
-/** Resolves signatures with imported constructor arity contracts. */
+/**
+ * Resolves signatures with imported constructor arity contracts.
+ */
 @pure
 pub resolve_with_interfaces(
     source: ProjectedFrontendModule,
@@ -487,38 +568,42 @@ pub resolve_with_interfaces(
     imported_interfaces: List[ModuleInterface],
 ): ProjectedTypeResolution ->
     let backend_local = local_types(source.backend.declarations);
-    let local = append_names(
-        backend_local,
-        missing_signature_types(source.signatures.types, backend_local),
-    );
+    let local = append_names(backend_local, missing_signature_types(source.signatures.types, backend_local));
     let visible_external = ProjectedImportedTypeCatalog.build(source.backend, imported_interfaces);
-    let imported_bindings = if {
-        imported_interfaces == [] -> identity_bindings(external_types);
-        true -> ProjectedImportedTypeCatalog.build_bindings(source.backend, imported_interfaces)
-    };
-    let bindings = append_bindings(
-        local_type_bindings(source.backend.module_name, local),
-        imported_bindings,
-    );
-    let resolved_external = if { imported_interfaces == [] -> external_types; true -> visible_external };
-    let constructor_arities = append_arities(
-        source.signatures.type_constructors,
-        external_constructor_arities(imported_interfaces, resolved_external),
-    );
-    let callable_diagnostics = resolve_callables(
-        source.signatures.callables,
-        local,
-        resolved_external,
-        constructor_arities,
-        binding_diagnostics_at(imported_bindings, List.new[ProjectedTypeDiagnostic]()),
-    );
-    let diagnostics = reverse(resolve_declarations(
-        source.signatures.types,
-        local,
-        resolved_external,
-        constructor_arities,
-        callable_diagnostics,
-    ));
+    let imported_bindings =
+        if {
+            imported_interfaces == [] -> identity_bindings(external_types);
+            true -> ProjectedImportedTypeCatalog.build_bindings(source.backend, imported_interfaces)
+        };
+    let bindings = append_bindings(local_type_bindings(source.backend.module_name, local), imported_bindings);
+    let resolved_external =
+        if {
+            imported_interfaces == [] -> external_types;
+            true -> visible_external
+        };
+    let constructor_arities =
+        append_arities(
+            source.signatures.type_constructors,
+            external_constructor_arities(imported_interfaces, resolved_external),
+        );
+    let callable_diagnostics =
+        resolve_callables(
+            source.signatures.callables,
+            local,
+            resolved_external,
+            constructor_arities,
+            binding_diagnostics_at(imported_bindings, List.new[ProjectedTypeDiagnostic]()),
+        );
+    let diagnostics =
+        reverse(
+            resolve_declarations(
+                source.signatures.types,
+                local,
+                resolved_external,
+                constructor_arities,
+                callable_diagnostics,
+            ),
+        );
     ProjectedTypeResolution(
         source.valid and diagnostics == [],
         local,

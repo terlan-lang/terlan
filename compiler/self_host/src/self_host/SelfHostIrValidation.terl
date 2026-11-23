@@ -3,25 +3,35 @@
  */
 module self_host.SelfHostIrValidation.
 
+import self_host.SelfHostIrSyntax.
+import self_host.SelfHostIrSyntax.{IrBlock, IrDiagnostic, IrFunction, IrInstruction, IrModule, IrParameter, IrRegion, IrStructField, IrStructLayout, IrTryRegion, IrValidation}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
 import std.core.String.
 
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
-import self_host.SelfHostIrSyntax.
-
-import self_host.SelfHostIrSyntax.{IrBlock, IrDiagnostic, IrFunction, IrInstruction, IrModule, IrParameter, IrRegion, IrStructField, IrStructLayout, IrTryRegion, IrValidation}.
 @pure
-reverse_diagnostics_at(values: List[IrDiagnostic], output: List[IrDiagnostic]): List[IrDiagnostic] ->
-    case values { [] -> output; [value | rest] -> reverse_diagnostics_at(rest, [value | output]) }.
+reverse_diagnostics_at(
+    values: List[IrDiagnostic],
+    output: List[IrDiagnostic],
+): List[IrDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> reverse_diagnostics_at(rest, [value | output])
+    }.
 
 @pure
 reverse_diagnostics(values: List[IrDiagnostic]): List[IrDiagnostic] ->
     reverse_diagnostics_at(values, List.new[IrDiagnostic]()).
 
 @pure
-prepend_reversed_diagnostics(values: List[IrDiagnostic], output: List[IrDiagnostic]): List[IrDiagnostic] ->
-    case values { [] -> output; [value | rest] -> prepend_reversed_diagnostics(rest, [value | output]) }.
+prepend_reversed_diagnostics(
+    values: List[IrDiagnostic],
+    output: List[IrDiagnostic],
+): List[IrDiagnostic] ->
+    case values {
+        [] -> output;
+        [value | rest] -> prepend_reversed_diagnostics(rest, [value | output])
+    }.
 
 @pure
 concat_diagnostics(left: List[IrDiagnostic], right: List[IrDiagnostic]): List[IrDiagnostic] ->
@@ -29,19 +39,24 @@ concat_diagnostics(left: List[IrDiagnostic], right: List[IrDiagnostic]): List[Ir
 
 @pure
 count_parameters_at(values: List[IrParameter], count: Int): Int ->
-    case values { [] -> count; [_ | rest] -> count_parameters_at(rest, count + 1) }.
+    case values {
+        [] -> count;
+        [_ | rest] -> count_parameters_at(rest, count + 1)
+    }.
 
 @pure
-count_parameters(values: List[IrParameter]): Int -> count_parameters_at(values, 0).
+count_parameters(values: List[IrParameter]): Int ->
+    count_parameters_at(values, 0).
 
 @pure
 contains_label(label: String, values: List[IrBlock]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            value.label == label -> true;
-            true -> contains_label(label, rest)
-        }
+        [value | rest] ->
+            if {
+                value.label == label -> true;
+                true -> contains_label(label, rest)
+            }
     }.
 
 @pure
@@ -52,15 +67,20 @@ duplicate_labels_at(
 ): List[IrDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [value | rest] -> if {
-            contains_label(value.label, rest) -> duplicate_labels_at(rest, function_name, [IrDiagnostic(
-                code = "duplicate-block-label",
-                message = "block labels must be unique inside a function",
-                function_name = function_name,
-                block_label = value.label,
-            ) | output]);
-            true -> duplicate_labels_at(rest, function_name, output)
-        }
+        [value | rest] ->
+            if {
+                contains_label(value.label, rest) -> duplicate_labels_at(
+                    rest,
+                    function_name,
+                    [IrDiagnostic(
+    code = "duplicate-block-label",
+    message = "block labels must be unique inside a function",
+    function_name = function_name,
+    block_label = value.label,
+) | output],
+                );
+                true -> duplicate_labels_at(rest, function_name, output)
+            }
     }.
 
 @pure
@@ -90,15 +110,22 @@ missing_targets_at(
 ): List[IrDiagnostic] ->
     case targets {
         [] -> reverse_diagnostics(output);
-        [target | rest] -> if {
-            target_exists(target, blocks) -> missing_targets_at(rest, blocks, function_name, block_label, output);
-            true -> missing_targets_at(rest, blocks, function_name, block_label, [IrDiagnostic(
-                code = "missing-block-target",
-                message = "terminator target does not name a block in this function",
-                function_name = function_name,
-                block_label = block_label,
-            ) | output])
-        }
+        [target | rest] ->
+            if {
+                target_exists(target, blocks) -> missing_targets_at(rest, blocks, function_name, block_label, output);
+                true -> missing_targets_at(
+                    rest,
+                    blocks,
+                    function_name,
+                    block_label,
+                    [IrDiagnostic(
+    code = "missing-block-target",
+    message = "terminator target does not name a block in this function",
+    function_name = function_name,
+    block_label = block_label,
+) | output],
+                )
+            }
     }.
 
 @pure
@@ -132,18 +159,22 @@ terminator_operand_count_valid(block: IrBlock): Bool ->
 terminator_shape_diagnostics(block: IrBlock, function_name: String): List[IrDiagnostic] ->
     if {
         not terminator_supported(block.terminator.opcode) -> List.new[IrDiagnostic]();
-        not terminator_target_count_valid(block) -> [IrDiagnostic(
-            code = "invalid-terminator-target-count",
-            message = "terminator target count does not match its opcode",
-            function_name = function_name,
-            block_label = block.label,
-        )];
-        not terminator_operand_count_valid(block) -> [IrDiagnostic(
-            code = "invalid-terminator-operand-count",
-            message = "terminator operand count does not match its opcode",
-            function_name = function_name,
-            block_label = block.label,
-        )];
+        not terminator_target_count_valid(block) -> [
+            IrDiagnostic(
+                code = "invalid-terminator-target-count",
+                message = "terminator target count does not match its opcode",
+                function_name = function_name,
+                block_label = block.label,
+            ),
+        ];
+        not terminator_operand_count_valid(block) -> [
+            IrDiagnostic(
+                code = "invalid-terminator-operand-count",
+                message = "terminator operand count does not match its opcode",
+                function_name = function_name,
+                block_label = block.label,
+            ),
+        ];
         true -> List.new[IrDiagnostic]()
     }.
 
@@ -156,23 +187,29 @@ instruction_diagnostics(
     case values {
         [] -> List.new[IrDiagnostic]();
         [value | rest] ->
-            let shape = if {
-                value.type_name == "" -> [IrDiagnostic(
-                    code = "unresolved-instruction-type",
-                    message = "instruction has no resolved type identity",
-                    function_name = function_name,
-                    block_label = block_label,
-                )];
-                true -> case value.result {
-                    Some(name) where name == "" -> [IrDiagnostic(
-                        code = "empty-instruction-result",
-                        message = "instruction result identity must not be empty",
-                        function_name = function_name,
-                        block_label = block_label,
-                    )];
-                    _ -> List.new[IrDiagnostic]()
-                }
-            };
+            let shape =
+                if {
+                    value.type_name == "" -> [
+                        IrDiagnostic(
+                            code = "unresolved-instruction-type",
+                            message = "instruction has no resolved type identity",
+                            function_name = function_name,
+                            block_label = block_label,
+                        ),
+                    ];
+                    true -> case value.result {
+                        Some(name) where name == "" ->
+                            [
+                                IrDiagnostic(
+                                    code = "empty-instruction-result",
+                                    message = "instruction result identity must not be empty",
+                                    function_name = function_name,
+                                    block_label = block_label,
+                                ),
+                            ];
+                        _ -> List.new[IrDiagnostic]()
+                    }
+                };
             let structured = instruction_try_region_diagnostics(value, function_name, block_label);
             concat_diagnostics(
                 shape,
@@ -194,20 +231,66 @@ region_base_diagnostics(
     function_name: String,
     block_label: String,
 ): List[IrDiagnostic] ->
-    let identity = if {
-        value.label == "" -> [IrDiagnostic("invalid-try-region-label", "try region label must not be empty", function_name, block_label)];
-        value.type_name == "" -> [IrDiagnostic("missing-region-type", "try region result type must not be empty", function_name, block_label)];
-        value.result == "" -> [IrDiagnostic("missing-region-result", "try region result identity must not be empty", function_name, block_label)];
-        not region_result_bound(value) -> [IrDiagnostic("unbound-region-result", "try region result must name a parameter or instruction result", function_name, block_label)];
-        true -> List.new[IrDiagnostic]()
-    };
-    let entry = case value.blocks {
-        [] -> [IrDiagnostic("missing-region-block", "try region must contain an entry block", function_name, block_label)];
-        [first | _] -> if {
-            first.label == "entry" -> List.new[IrDiagnostic]();
-            true -> [IrDiagnostic("invalid-region-entry", "first try region block must be named entry", function_name, block_label)]
-        }
-    };
+    let identity =
+        if {
+            value.label == "" -> [
+                IrDiagnostic(
+                    "invalid-try-region-label",
+                    "try region label must not be empty",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            value.type_name == "" -> [
+                IrDiagnostic(
+                    "missing-region-type",
+                    "try region result type must not be empty",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            value.result == "" -> [
+                IrDiagnostic(
+                    "missing-region-result",
+                    "try region result identity must not be empty",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            not region_result_bound(value) -> [
+                IrDiagnostic(
+                    "unbound-region-result",
+                    "try region result must name a parameter or instruction result",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            true -> List.new[IrDiagnostic]()
+        };
+    let entry =
+        case value.blocks {
+            [] ->
+                [
+                    IrDiagnostic(
+                        "missing-region-block",
+                        "try region must contain an entry block",
+                        function_name,
+                        block_label,
+                    ),
+                ];
+            [first | _] ->
+                if {
+                    first.label == "entry" -> List.new[IrDiagnostic]();
+                    true -> [
+                        IrDiagnostic(
+                            "invalid-region-entry",
+                            "first try region block must be named entry",
+                            function_name,
+                            block_label,
+                        ),
+                    ]
+                }
+        };
     concat_diagnostics(
         identity,
         concat_diagnostics(
@@ -240,15 +323,16 @@ duplicate_region_label_diagnostics(
 ): List[IrDiagnostic] ->
     case values {
         [] -> List.new[IrDiagnostic]();
-        [value | rest] -> if {
-            contains_string(value, rest) -> [IrDiagnostic(
-                "duplicate-try-region-label",
-                "try region labels must be unique inside one try instruction",
-                function_name,
-                block_label,
-            ) | duplicate_region_label_diagnostics(rest, function_name, block_label)];
-            true -> duplicate_region_label_diagnostics(rest, function_name, block_label)
-        }
+        [value | rest] ->
+            if {
+                contains_string(value, rest) -> [IrDiagnostic(
+    "duplicate-try-region-label",
+    "try region labels must be unique inside one try instruction",
+    function_name,
+    block_label,
+) | duplicate_region_label_diagnostics(rest, function_name, block_label)];
+                true -> duplicate_region_label_diagnostics(rest, function_name, block_label)
+            }
     }.
 
 @pure
@@ -263,19 +347,19 @@ regions_diagnostics(
 ): List[IrDiagnostic] ->
     case values {
         [] -> List.new[IrDiagnostic]();
-        [value | rest] -> concat_diagnostics(
-            region_base_diagnostics(value, function_name, block_label),
-            regions_diagnostics(rest, function_name, block_label),
-        )
+        [value | rest] ->
+            concat_diagnostics(
+                region_base_diagnostics(value, function_name, block_label),
+                regions_diagnostics(rest, function_name, block_label),
+            )
     }.
 
 @pure
 cleanup_contract_valid(values: List[IrRegion]): Bool ->
     case values {
         [] -> true;
-        [value | rest] -> value.parameters == []
-            and value.type_name == "Unit"
-            and cleanup_contract_valid(rest)
+        [value | rest] ->
+            value.parameters == [] and value.type_name == "Unit" and cleanup_contract_valid(rest)
     }.
 
 @pure
@@ -286,22 +370,61 @@ try_contract_diagnostics(
     block_label: String,
 ): List[IrDiagnostic] ->
     let regions = all_try_regions(value);
-    let success_parameters_valid = case value.success.parameters {
-        [parameter] -> parameter.type_name == value.protected.type_name;
-        _ -> false
-    };
-    let failure_parameters_valid = case value.failure.parameters {
-        [parameter] -> parameter.type_name == "Int";
-        _ -> false
-    };
-    let roles = if {
-        value.protected.parameters != [] -> [IrDiagnostic("invalid-try-protected-parameters", "protected try region must not declare parameters", function_name, block_label)];
-        !success_parameters_valid -> [IrDiagnostic("invalid-try-success-parameters", "success region must accept exactly the protected result type", function_name, block_label)];
-        !failure_parameters_valid -> [IrDiagnostic("invalid-try-failure-parameters", "failure region must accept exactly one Int status parameter", function_name, block_label)];
-        not cleanup_contract_valid(value.cleanup) -> [IrDiagnostic("invalid-try-cleanup-contract", "cleanup regions must have no parameters and Unit result type", function_name, block_label)];
-        value.success.type_name != instruction.type_name or value.failure.type_name != instruction.type_name -> [IrDiagnostic("try-region-result-type-mismatch", "success and failure region types must equal the try instruction type", function_name, block_label)];
-        true -> List.new[IrDiagnostic]()
-    };
+    let success_parameters_valid =
+        case value.success.parameters {
+            [parameter] -> parameter.type_name == value.protected.type_name;
+            _ -> false
+        };
+    let failure_parameters_valid =
+        case value.failure.parameters {
+            [parameter] -> parameter.type_name == "Int";
+            _ -> false
+        };
+    let roles =
+        if {
+            value.protected.parameters != [] -> [
+                IrDiagnostic(
+                    "invalid-try-protected-parameters",
+                    "protected try region must not declare parameters",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            !success_parameters_valid -> [
+                IrDiagnostic(
+                    "invalid-try-success-parameters",
+                    "success region must accept exactly the protected result type",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            !failure_parameters_valid -> [
+                IrDiagnostic(
+                    "invalid-try-failure-parameters",
+                    "failure region must accept exactly one Int status parameter",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            not cleanup_contract_valid(value.cleanup) -> [
+                IrDiagnostic(
+                    "invalid-try-cleanup-contract",
+                    "cleanup regions must have no parameters and Unit result type",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            value.success.type_name != instruction.type_name
+                or value.failure.type_name != instruction.type_name -> [
+                IrDiagnostic(
+                    "try-region-result-type-mismatch",
+                    "success and failure region types must equal the try instruction type",
+                    function_name,
+                    block_label,
+                ),
+            ];
+            true -> List.new[IrDiagnostic]()
+        };
     concat_diagnostics(
         roles,
         concat_diagnostics(
@@ -317,27 +440,52 @@ instruction_try_region_diagnostics(
     block_label: String,
 ): List[IrDiagnostic] ->
     case value.try_region {
-        None -> if {
-            value.opcode == "try-region" -> [IrDiagnostic("missing-try-region", "try-region instruction must carry a structured region payload", function_name, block_label)];
-            true -> List.new[IrDiagnostic]()
-        };
-        Some(region_value) -> if {
-            value.opcode != "try-region" -> [IrDiagnostic("unexpected-try-region", "only try-region instructions may carry a structured region payload", function_name, block_label)];
-            value.operands != [] or value.operand_types != [] -> [IrDiagnostic("invalid-instruction-operands", "try-region instruction must not carry flat operands", function_name, block_label)];
-            true -> try_contract_diagnostics(value, region_value, function_name, block_label)
-        }
+        None ->
+            if {
+                value.opcode == "try-region" -> [
+                    IrDiagnostic(
+                        "missing-try-region",
+                        "try-region instruction must carry a structured region payload",
+                        function_name,
+                        block_label,
+                    ),
+                ];
+                true -> List.new[IrDiagnostic]()
+            };
+        Some(region_value) ->
+            if {
+                value.opcode != "try-region" -> [
+                    IrDiagnostic(
+                        "unexpected-try-region",
+                        "only try-region instructions may carry a structured region payload",
+                        function_name,
+                        block_label,
+                    ),
+                ];
+                value.operands != [] or value.operand_types != [] -> [
+                    IrDiagnostic(
+                        "invalid-instruction-operands",
+                        "try-region instruction must not carry flat operands",
+                        function_name,
+                        block_label,
+                    ),
+                ];
+                true -> try_contract_diagnostics(value, region_value, function_name, block_label)
+            }
     }.
 
 @pure
 unsupported_terminator(block: IrBlock, function_name: String): List[IrDiagnostic] ->
     if {
         terminator_supported(block.terminator.opcode) -> List.new[IrDiagnostic]();
-        true -> [IrDiagnostic(
-            code = "unsupported-terminator",
-            message = "block terminator is not part of self-host IR ABI 1",
-            function_name = function_name,
-            block_label = block.label,
-        )]
+        true -> [
+            IrDiagnostic(
+                code = "unsupported-terminator",
+                message = "block terminator is not part of self-host IR ABI 1",
+                function_name = function_name,
+                block_label = block.label,
+            ),
+        ]
     }.
 
 @pure
@@ -357,74 +505,80 @@ validate_blocks_at(
 ): List[IrDiagnostic] ->
     case pending {
         [] -> reverse_diagnostics(output);
-        [block | rest] -> let unsupported = unsupported_terminator(block, function_name);
-        let shape = terminator_shape_diagnostics(block, function_name);
-        let instructions = instruction_diagnostics(block.instructions, function_name, block.label);
-        let targets = missing_targets(
-            block.terminator.targets,
-            all,
-            function_name,
-            block.label,
-        );
-        let current = concat_diagnostics(
-            unsupported,
-            concat_diagnostics(shape, concat_diagnostics(instructions, targets)),
-        );
-        validate_blocks_at(rest, all, function_name, prepend_reversed_diagnostics(current, output))
+        [block | rest] ->
+            let unsupported = unsupported_terminator(block, function_name);
+            let shape = terminator_shape_diagnostics(block, function_name);
+            let instructions = instruction_diagnostics(block.instructions, function_name, block.label);
+            let targets = missing_targets(block.terminator.targets, all, function_name, block.label);
+            let current =
+                concat_diagnostics(
+                    unsupported,
+                    concat_diagnostics(shape, concat_diagnostics(instructions, targets)),
+                );
+            validate_blocks_at(
+                rest,
+                all,
+                function_name,
+                prepend_reversed_diagnostics(current, output),
+            )
     }.
 
 @pure
 arity_diagnostics(function: IrFunction): List[IrDiagnostic] ->
     if {
         count_parameters(function.parameters) == function.arity -> List.new[IrDiagnostic]();
-        true -> [IrDiagnostic(
-            code = "arity-parameter-mismatch",
-            message = "function arity must equal its parameter count",
-            function_name = function.name,
-            block_label = "",
-        )]
+        true -> [
+            IrDiagnostic(
+                code = "arity-parameter-mismatch",
+                message = "function arity must equal its parameter count",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ]
     }.
 
 @pure
 capture_contract_diagnostics(function: IrFunction): List[IrDiagnostic] ->
     if {
-        function.capture_count < 0 -> [IrDiagnostic(
-            code = "negative-capture-count",
-            message = "function capture count must not be negative",
-            function_name = function.name,
-            block_label = "",
-        )];
-        function.capture_count > function.arity -> [IrDiagnostic(
-            code = "capture-count-exceeds-arity",
-            message = "function capture count must not exceed its arity",
-            function_name = function.name,
-            block_label = "",
-        )];
+        function.capture_count < 0 -> [
+            IrDiagnostic(
+                code = "negative-capture-count",
+                message = "function capture count must not be negative",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ];
+        function.capture_count > function.arity -> [
+            IrDiagnostic(
+                code = "capture-count-exceeds-arity",
+                message = "function capture count must not exceed its arity",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ];
         true -> List.new[IrDiagnostic]()
     }.
 
 @pure
-parameter_type_diagnostics(
-    values: List[IrParameter],
-    function_name: String,
-): List[IrDiagnostic] ->
+parameter_type_diagnostics(values: List[IrParameter], function_name: String): List[IrDiagnostic] ->
     case values {
         [] -> List.new[IrDiagnostic]();
-        [value | rest] -> if {
-            value.name == "" -> [IrDiagnostic(
-                code = "empty-parameter-name",
-                message = "parameter identity must not be empty",
-                function_name = function_name,
-                block_label = "",
-            ) | parameter_type_diagnostics(rest, function_name)];
-            value.type_name == "" -> [IrDiagnostic(
-                code = "unresolved-parameter-type",
-                message = String.concat(["parameter `", value.name, "` has no resolved type"]),
-                function_name = function_name,
-                block_label = "",
-            ) | parameter_type_diagnostics(rest, function_name)];
-            true -> parameter_type_diagnostics(rest, function_name)
-        }
+        [value | rest] ->
+            if {
+                value.name == "" -> [IrDiagnostic(
+    code = "empty-parameter-name",
+    message = "parameter identity must not be empty",
+    function_name = function_name,
+    block_label = "",
+) | parameter_type_diagnostics(rest, function_name)];
+                value.type_name == "" -> [IrDiagnostic(
+    code = "unresolved-parameter-type",
+    message = String.concat(["parameter `", value.name, "` has no resolved type"]),
+    function_name = function_name,
+    block_label = "",
+) | parameter_type_diagnostics(rest, function_name)];
+                true -> parameter_type_diagnostics(rest, function_name)
+            }
     }.
 
 @pure
@@ -435,44 +589,56 @@ contains_parameter_name(name: String, values: List[IrParameter]): Bool ->
     }.
 
 @pure
-duplicate_parameter_diagnostics(values: List[IrParameter], function_name: String): List[IrDiagnostic] ->
+duplicate_parameter_diagnostics(
+    values: List[IrParameter],
+    function_name: String,
+): List[IrDiagnostic] ->
     case values {
         [] -> List.new[IrDiagnostic]();
-        [value | rest] -> if {
-            contains_parameter_name(value.name, rest) -> [IrDiagnostic(
-                code = "duplicate-parameter-name",
-                message = String.concat(["parameter `", value.name, "` is declared more than once"]),
-                function_name = function_name,
-                block_label = "",
-            ) | duplicate_parameter_diagnostics(rest, function_name)];
-            true -> duplicate_parameter_diagnostics(rest, function_name)
-        }
+        [value | rest] ->
+            if {
+                contains_parameter_name(value.name, rest) -> [IrDiagnostic(
+    code = "duplicate-parameter-name",
+    message = String.concat(["parameter `", value.name, "` is declared more than once"]),
+    function_name = function_name,
+    block_label = "",
+) | duplicate_parameter_diagnostics(rest, function_name)];
+                true -> duplicate_parameter_diagnostics(rest, function_name)
+            }
     }.
 
 @pure
 instruction_results(values: List[IrInstruction]): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> case value.result {
-            None -> instruction_results(rest);
-            Some(name) -> [name | instruction_results(rest)]
-        }
+        [value | rest] ->
+            case value.result {
+                None -> instruction_results(rest);
+                Some(name) -> [name | instruction_results(rest)]
+            }
     }.
 
 @pure
 block_results(values: List[IrBlock]): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> append_strings(instruction_results(value.instructions), block_results(rest))
+        [value | rest] ->
+            append_strings(instruction_results(value.instructions), block_results(rest))
     }.
 
 @pure
 append_strings(left: List[String], right: List[String]): List[String] ->
-    case left { [] -> right; [value | rest] -> [value | append_strings(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append_strings(rest, right)]
+    }.
 
 @pure
 parameter_named(name: String, values: List[IrParameter]): Bool ->
-    case values { [] -> false; [value | rest] -> value.name == name or parameter_named(name, rest) }.
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or parameter_named(name, rest)
+    }.
 
 @pure
 result_identity_diagnostics(
@@ -482,60 +648,88 @@ result_identity_diagnostics(
 ): List[IrDiagnostic] ->
     case values {
         [] -> List.new[IrDiagnostic]();
-        [value | rest] -> if {
-            contains_string(value, rest) -> [IrDiagnostic(
-                code = "duplicate-instruction-result",
-                message = String.concat(["instruction result `", value, "` has more than one producer"]),
-                function_name = function_name,
-                block_label = "",
-            ) | result_identity_diagnostics(rest, parameters, function_name)];
-            parameter_named(value, parameters) -> [IrDiagnostic(
-                code = "instruction-result-shadows-parameter",
-                message = String.concat(["instruction result `", value, "` shadows a parameter"]),
-                function_name = function_name,
-                block_label = "",
-            ) | result_identity_diagnostics(rest, parameters, function_name)];
-            true -> result_identity_diagnostics(rest, parameters, function_name)
-        }
+        [value | rest] ->
+            if {
+                contains_string(value, rest) -> [IrDiagnostic(
+    code = "duplicate-instruction-result",
+    message = String.concat(["instruction result `", value, "` has more than one producer"]),
+    function_name = function_name,
+    block_label = "",
+) | result_identity_diagnostics(rest, parameters, function_name)];
+                parameter_named(value, parameters) -> [IrDiagnostic(
+    code = "instruction-result-shadows-parameter",
+    message = String.concat(["instruction result `", value, "` shadows a parameter"]),
+    function_name = function_name,
+    block_label = "",
+) | result_identity_diagnostics(rest, parameters, function_name)];
+                true -> result_identity_diagnostics(rest, parameters, function_name)
+            }
+    }.
+
+block_result_identity_diagnostics(
+    values: List[IrBlock],
+    parameters: List[IrParameter],
+    function_name: String,
+): List[IrDiagnostic] ->
+    case values {
+        [] -> List.new[IrDiagnostic]();
+        [value | rest] ->
+            concat_diagnostics(
+                result_identity_diagnostics(
+                    instruction_results(value.instructions),
+                    parameters,
+                    function_name,
+                ),
+                block_result_identity_diagnostics(rest, parameters, function_name),
+            )
     }.
 
 @pure
 return_type_diagnostics(function: IrFunction): List[IrDiagnostic] ->
     if {
         function.return_type != "" -> List.new[IrDiagnostic]();
-        true -> [IrDiagnostic(
-            code = "unresolved-return-type",
-            message = "function has no resolved return type",
-            function_name = function.name,
-            block_label = "",
-        )]
+        true -> [
+            IrDiagnostic(
+                code = "unresolved-return-type",
+                message = "function has no resolved return type",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ]
     }.
 
 @pure
 receiver_contract_diagnostics(function: IrFunction): List[IrDiagnostic] ->
     if {
-        function.receiver_command and not function.receiver_mutable -> [IrDiagnostic(
-            code = "receiver-command-without-mutable-receiver",
-            message = "receiver command must declare a mutable receiver",
-            function_name = function.name,
-            block_label = "",
-        )];
-        function.receiver_mutable and function.parameters == [] -> [IrDiagnostic(
-            code = "mutable-receiver-missing-parameter",
-            message = "mutable receiver function must have a receiver parameter",
-            function_name = function.name,
-            block_label = "",
-        )];
+        function.receiver_command and not function.receiver_mutable -> [
+            IrDiagnostic(
+                code = "receiver-command-without-mutable-receiver",
+                message = "receiver command must declare a mutable receiver",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ];
+        function.receiver_mutable and function.parameters == [] -> [
+            IrDiagnostic(
+                code = "mutable-receiver-missing-parameter",
+                message = "mutable receiver function must have a receiver parameter",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ];
         function.receiver_command -> case function.parameters {
-            [receiver | _] -> if {
-                receiver.type_name == function.return_type -> List.new[IrDiagnostic]();
-                true -> [IrDiagnostic(
-                    code = "receiver-command-return-mismatch",
-                    message = "receiver command internal return type must equal its receiver type",
-                    function_name = function.name,
-                    block_label = "",
-                )]
-            };
+            [receiver | _] ->
+                if {
+                    receiver.type_name == function.return_type -> List.new[IrDiagnostic]();
+                    true -> [
+                        IrDiagnostic(
+                            code = "receiver-command-return-mismatch",
+                            message = "receiver command internal return type must equal its receiver type",
+                            function_name = function.name,
+                            block_label = "",
+                        ),
+                    ]
+                };
             [] -> List.new[IrDiagnostic]()
         };
         true -> List.new[IrDiagnostic]()
@@ -545,33 +739,48 @@ receiver_contract_diagnostics(function: IrFunction): List[IrDiagnostic] ->
 entry_label_diagnostics(first: IrBlock, function_name: String): List[IrDiagnostic] ->
     if {
         first.label == "entry" -> List.new[IrDiagnostic]();
-        true -> [IrDiagnostic(
-            code = "invalid-entry-block",
-            message = "the first function block must be named entry",
-            function_name = function_name,
-            block_label = first.label,
-        )]
+        true -> [
+            IrDiagnostic(
+                code = "invalid-entry-block",
+                message = "the first function block must be named entry",
+                function_name = function_name,
+                block_label = first.label,
+            ),
+        ]
     }.
 
 @pure
 entry_diagnostics(function: IrFunction): List[IrDiagnostic] ->
     case function.blocks {
-        [] -> [IrDiagnostic(
-            code = "missing-entry-block",
-            message = "function must contain an entry block",
-            function_name = function.name,
-            block_label = "",
-        )];
+        [] ->
+            [
+                IrDiagnostic(
+                    code = "missing-entry-block",
+                    message = "function must contain an entry block",
+                    function_name = function.name,
+                    block_label = "",
+                ),
+            ];
         [first | _] -> entry_label_diagnostics(first, function.name)
     }.
 
 @pure
 validate_function(function: IrFunction): List[IrDiagnostic] ->
-    let arity = concat_diagnostics(
-        arity_diagnostics(function),
-        capture_contract_diagnostics(function),
-    );
-    let entry = entry_diagnostics(function);
+    let arity = concat_diagnostics(arity_diagnostics(function), capture_contract_diagnostics(function));
+    let native = function.native_symbol != None;
+    let entry =
+        if {
+            native -> List.new[IrDiagnostic]();
+            true -> entry_diagnostics(function)
+        };
+    let body =
+        if {
+            native -> List.new[IrDiagnostic]();
+            true -> concat_diagnostics(
+                duplicate_labels(function.blocks, function.name),
+                validate_blocks(function.blocks, function.blocks, function.name),
+            )
+        };
     concat_diagnostics(
         arity,
         concat_diagnostics(
@@ -579,22 +788,16 @@ validate_function(function: IrFunction): List[IrDiagnostic] ->
             concat_diagnostics(
                 duplicate_parameter_diagnostics(function.parameters, function.name),
                 concat_diagnostics(
-                    result_identity_diagnostics(
-                        block_results(function.blocks),
+                    block_result_identity_diagnostics(
+                        function.blocks,
                         function.parameters,
                         function.name,
                     ),
                     concat_diagnostics(
                         return_type_diagnostics(function),
                         concat_diagnostics(
-                        receiver_contract_diagnostics(function),
-                            concat_diagnostics(
-                            entry,
-                            concat_diagnostics(
-                                duplicate_labels(function.blocks, function.name),
-                                validate_blocks(function.blocks, function.blocks, function.name),
-                            ),
-                            ),
+                            receiver_contract_diagnostics(function),
+                            concat_diagnostics(entry, body),
                         ),
                     ),
                 ),
@@ -604,29 +807,30 @@ validate_function(function: IrFunction): List[IrDiagnostic] ->
 
 @pure
 same_function(left: IrFunction, right: IrFunction): Bool ->
-    left.module_name == right.module_name
-        and left.name == right.name
-        and left.arity == right.arity.
+    left.module_name == right.module_name and left.name == right.name and left.arity == right.arity.
 
 @pure
 contains_function(value: IrFunction, values: List[IrFunction]): Bool ->
     case values {
         [] -> false;
-        [candidate | rest] -> if {
-            same_function(value, candidate) -> true;
-            true -> contains_function(value, rest)
-        }
+        [candidate | rest] ->
+            if {
+                same_function(value, candidate) -> true;
+                true -> contains_function(value, rest)
+            }
     }.
 
 @pure
 duplicate_function_diagnostics(function: IrFunction, rest: List[IrFunction]): List[IrDiagnostic] ->
     if {
-        contains_function(function, rest) -> [IrDiagnostic(
-            code = "duplicate-function",
-            message = "module contains more than one function with this name and arity",
-            function_name = function.name,
-            block_label = "",
-        )];
+        contains_function(function, rest) -> [
+            IrDiagnostic(
+                code = "duplicate-function",
+                message = "module contains more than one function with this name and arity",
+                function_name = function.name,
+                block_label = "",
+            ),
+        ];
         true -> List.new[IrDiagnostic]()
     }.
 
@@ -638,43 +842,45 @@ validate_functions(values: List[IrFunction]): List[IrDiagnostic] ->
 validate_functions_at(values: List[IrFunction], output: List[IrDiagnostic]): List[IrDiagnostic] ->
     case values {
         [] -> reverse_diagnostics(output);
-        [function | rest] -> let duplicate = duplicate_function_diagnostics(function, rest);
-        let current = concat_diagnostics(duplicate, validate_function(function));
-        validate_functions_at(rest, prepend_reversed_diagnostics(current, output))
+        [function | rest] ->
+            let duplicate = duplicate_function_diagnostics(function, rest);
+            let current = concat_diagnostics(duplicate, validate_function(function));
+            validate_functions_at(rest, prepend_reversed_diagnostics(current, output))
     }.
 
 @pure
 contains_string(value: String, values: List[String]): Bool ->
-    case values { [] -> false; [candidate | rest] -> candidate == value or contains_string(value, rest) }.
+    case values {
+        [] -> false;
+        [candidate | rest] -> candidate == value or contains_string(value, rest)
+    }.
 
 @pure
-layout_field_diagnostics(
-    fields: List[IrStructField],
-    struct_name: String,
-): List[IrDiagnostic] ->
+layout_field_diagnostics(fields: List[IrStructField], struct_name: String): List[IrDiagnostic] ->
     case fields {
         [] -> List.new[IrDiagnostic]();
-        [field | rest] -> if {
-            field.name == "" -> [IrDiagnostic(
-                code = "empty-struct-field",
-                message = String.concat(["struct `", struct_name, "` has an empty field identity"]),
-                function_name = "",
-                block_label = "",
-            ) | layout_field_diagnostics(rest, struct_name)];
-            field.type_name == "" -> [IrDiagnostic(
-                code = "unresolved-struct-field-type",
-                message = String.concat(["struct `", struct_name, "` field `", field.name, "` has no resolved type"]),
-                function_name = "",
-                block_label = "",
-            ) | layout_field_diagnostics(rest, struct_name)];
-            contains_layout_field(field.name, rest) -> [IrDiagnostic(
-                code = "duplicate-struct-field",
-                message = String.concat(["struct `", struct_name, "` repeats field `", field.name, "`"]),
-                function_name = "",
-                block_label = "",
-            ) | layout_field_diagnostics(rest, struct_name)];
-            true -> layout_field_diagnostics(rest, struct_name)
-        }
+        [field | rest] ->
+            if {
+                field.name == "" -> [IrDiagnostic(
+    code = "empty-struct-field",
+    message = String.concat(["struct `", struct_name, "` has an empty field identity"]),
+    function_name = "",
+    block_label = "",
+) | layout_field_diagnostics(rest, struct_name)];
+                field.type_name == "" -> [IrDiagnostic(
+    code = "unresolved-struct-field-type",
+    message = String.concat(["struct `", struct_name, "` field `", field.name, "` has no resolved type"]),
+    function_name = "",
+    block_label = "",
+) | layout_field_diagnostics(rest, struct_name)];
+                contains_layout_field(field.name, rest) -> [IrDiagnostic(
+    code = "duplicate-struct-field",
+    message = String.concat(["struct `", struct_name, "` repeats field `", field.name, "`"]),
+    function_name = "",
+    block_label = "",
+) | layout_field_diagnostics(rest, struct_name)];
+                true -> layout_field_diagnostics(rest, struct_name)
+            }
     }.
 
 @pure
@@ -686,38 +892,52 @@ contains_layout_field(name: String, values: List[IrStructField]): Bool ->
 
 @pure
 contains_layout_name(name: String, values: List[IrStructLayout]): Bool ->
-    case values { [] -> false; [value | rest] -> value.name == name or contains_layout_name(name, rest) }.
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or contains_layout_name(name, rest)
+    }.
 
 @pure
 layout_diagnostics(values: List[IrStructLayout]): List[IrDiagnostic] ->
     case values {
         [] -> List.new[IrDiagnostic]();
         [value | rest] ->
-            let identity = if {
-                value.name == "" -> [IrDiagnostic(
-                    code = "empty-struct-name",
-                    message = "struct layout identity must not be empty",
-                    function_name = "",
-                    block_label = "",
-                )];
-                contains_layout_name(value.name, rest) -> [IrDiagnostic(
-                    code = "duplicate-struct-layout",
-                    message = String.concat(["struct layout `", value.name, "` is declared more than once"]),
-                    function_name = "",
-                    block_label = "",
-                )];
-                true -> List.new[IrDiagnostic]()
-            };
+            let identity =
+                if {
+                    value.name == "" -> [
+                        IrDiagnostic(
+                            code = "empty-struct-name",
+                            message = "struct layout identity must not be empty",
+                            function_name = "",
+                            block_label = "",
+                        ),
+                    ];
+                    contains_layout_name(value.name, rest) -> [
+                        IrDiagnostic(
+                            code = "duplicate-struct-layout",
+                            message = String.concat(
+                                ["struct layout `", value.name, "` is declared more than once"],
+                            ),
+                            function_name = "",
+                            block_label = "",
+                        ),
+                    ];
+                    true -> List.new[IrDiagnostic]()
+                };
             concat_diagnostics(
                 identity,
-                concat_diagnostics(layout_field_diagnostics(value.fields, value.name), layout_diagnostics(rest)),
+                concat_diagnostics(
+                    layout_field_diagnostics(value.fields, value.name),
+                    layout_diagnostics(rest),
+                ),
             )
     }.
 
 @pure
 pub validate(ir_module: IrModule): IrValidation ->
-    let diagnostics = concat_diagnostics(
-        layout_diagnostics(ir_module.structs),
-        validate_functions(ir_module.functions),
-    );
+    let diagnostics =
+        concat_diagnostics(
+            layout_diagnostics(ir_module.structs),
+            validate_functions(ir_module.functions),
+        );
     IrValidation(valid = diagnostics == List.new[IrDiagnostic](), diagnostics = diagnostics).

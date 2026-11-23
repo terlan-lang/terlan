@@ -3,12 +3,11 @@
  */
 module self_host.SelfHostSemanticIrSyntax.
 
-
-import std.core.Option.{Option}.
-import std.collections.List.
 import self_host.SelfHostIrSyntax.
-
 import self_host.SelfHostIrSyntax.{BackendEnvelope, IrModule, IrParameter, IrStructLayout}.
+import std.collections.List.
+import std.core.Option.{None, Option}.
+
 pub struct SemanticInstructionPlan {
     opcode: String,
     result: Option[String],
@@ -30,6 +29,7 @@ pub constructor SemanticInstructionPlan {
             continuation_ordinal: None,
             try_region: None,
         };
+
     (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], resolved_type: Option[String]): SemanticInstructionPlan ->
         SemanticInstructionPlan {
             opcode: opcode,
@@ -40,6 +40,7 @@ pub constructor SemanticInstructionPlan {
             continuation_ordinal: None,
             try_region: None,
         };
+
     (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], resolved_type: Option[String], continuation_ordinal: Option[Int]): SemanticInstructionPlan ->
         SemanticInstructionPlan {
             opcode: opcode,
@@ -50,6 +51,7 @@ pub constructor SemanticInstructionPlan {
             continuation_ordinal: continuation_ordinal,
             try_region: None,
         };
+
     (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], resolved_type: Option[String], continuation_ordinal: Option[Int], try_region: Option[self_host.SelfHostSemanticIrSyntax.SemanticTryRegionPlan]): SemanticInstructionPlan ->
         SemanticInstructionPlan {
             opcode: opcode,
@@ -62,7 +64,6 @@ pub constructor SemanticInstructionPlan {
         }
 }.
 
-
 pub struct SemanticTerminatorPlan {
     opcode: String,
     operands: List[String],
@@ -71,13 +72,8 @@ pub struct SemanticTerminatorPlan {
 
 pub constructor SemanticTerminatorPlan {
     (opcode: String, operands: List[String], targets: List[String]): SemanticTerminatorPlan ->
-        SemanticTerminatorPlan {
-            opcode: opcode,
-            operands: operands,
-            targets: targets,
-        }
+        SemanticTerminatorPlan {opcode: opcode, operands: operands, targets: targets}
 }.
-
 
 pub struct SemanticBlockPlan {
     label: String,
@@ -87,13 +83,8 @@ pub struct SemanticBlockPlan {
 
 pub constructor SemanticBlockPlan {
     (label: String, instructions: List[self_host.SelfHostSemanticIrSyntax.SemanticInstructionPlan], terminator: self_host.SelfHostSemanticIrSyntax.SemanticTerminatorPlan): SemanticBlockPlan ->
-        SemanticBlockPlan {
-            label: label,
-            instructions: instructions,
-            terminator: terminator,
-        }
+        SemanticBlockPlan {label: label, instructions: instructions, terminator: terminator}
 }.
-
 
 pub struct SemanticRegionPlan {
     label: String,
@@ -114,7 +105,6 @@ pub constructor SemanticRegionPlan {
         }
 }.
 
-
 pub struct SemanticTryRegionPlan {
     protected: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan,
     success: self_host.SelfHostSemanticIrSyntax.SemanticRegionPlan,
@@ -131,7 +121,6 @@ pub constructor SemanticTryRegionPlan {
             cleanup: cleanup,
         }
 }.
-
 
 pub struct SemanticFunctionPlan {
     module_name: String,
@@ -160,6 +149,7 @@ pub constructor SemanticFunctionPlan {
             blocks: blocks,
             native_symbol: native_symbol,
         };
+
     (module_name: String, name: String, arity: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[IrParameter], resolved_return_type: Option[String], blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan], native_symbol: Option[String]): SemanticFunctionPlan ->
         SemanticFunctionPlan {
             module_name: module_name,
@@ -173,6 +163,7 @@ pub constructor SemanticFunctionPlan {
             blocks: blocks,
             native_symbol: native_symbol,
         };
+
     (module_name: String, name: String, arity: Int, capture_count: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[IrParameter], resolved_return_type: Option[String], blocks: List[self_host.SelfHostSemanticIrSyntax.SemanticBlockPlan], native_symbol: Option[String]): SemanticFunctionPlan ->
         SemanticFunctionPlan {
             module_name: module_name,
@@ -188,7 +179,6 @@ pub constructor SemanticFunctionPlan {
         }
 }.
 
-
 pub struct SemanticModulePlan {
     name: String,
     structs: List[IrStructLayout],
@@ -197,13 +187,8 @@ pub struct SemanticModulePlan {
 
 pub constructor SemanticModulePlan {
     (name: String, structs: List[IrStructLayout], functions: List[self_host.SelfHostSemanticIrSyntax.SemanticFunctionPlan]): SemanticModulePlan ->
-        SemanticModulePlan {
-            name: name,
-            structs: structs,
-            functions: functions,
-        }
+        SemanticModulePlan {name: name, structs: structs, functions: functions}
 }.
-
 
 pub struct IrLoweringDiagnostic {
     code: String,
@@ -222,7 +207,6 @@ pub constructor IrLoweringDiagnostic {
         }
 }.
 
-
 pub struct IrLoweringResult {
     ir_module: Option[IrModule],
     diagnostics: List[self_host.SelfHostSemanticIrSyntax.IrLoweringDiagnostic],
@@ -230,12 +214,8 @@ pub struct IrLoweringResult {
 
 pub constructor IrLoweringResult {
     (ir_module: Option[IrModule], diagnostics: List[self_host.SelfHostSemanticIrSyntax.IrLoweringDiagnostic]): IrLoweringResult ->
-        IrLoweringResult {
-            ir_module: ir_module,
-            diagnostics: diagnostics,
-        }
+        IrLoweringResult {ir_module: ir_module, diagnostics: diagnostics}
 }.
-
 
 pub struct BackendCompilation {
     envelope: Option[BackendEnvelope],
@@ -245,10 +225,5 @@ pub struct BackendCompilation {
 
 pub constructor BackendCompilation {
     (envelope: Option[BackendEnvelope], json: Option[String], diagnostics: List[String]): BackendCompilation ->
-        BackendCompilation {
-            envelope: envelope,
-            json: json,
-            diagnostics: diagnostics,
-        }
+        BackendCompilation {envelope: envelope, json: json, diagnostics: diagnostics}
 }.
-

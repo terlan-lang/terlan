@@ -3,13 +3,12 @@
  */
 module self_host.ProjectedBindingResolution.
 
-
-
-import std.core.Option.{None, Option, Some}.
-import std.collections.List.
 import self_host.ProjectedBindingSyntax.
-
 import self_host.ProjectedBindingSyntax.{BindingDeclaration, BindingDiagnostic, BindingEvent, BindingReference, BindingResolution}.
+import std.collections.List.
+import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
 struct BindingState {
     active: List[BindingDeclaration],
     declarations: List[BindingDeclaration],
@@ -30,21 +29,30 @@ constructor BindingState {
 }.
 
 @pure
-reverse_declarations(values: List[BindingDeclaration], result: List[BindingDeclaration]): List[BindingDeclaration] ->
+reverse_declarations(
+    values: List[BindingDeclaration],
+    result: List[BindingDeclaration],
+): List[BindingDeclaration] ->
     case values {
         [] -> result;
         [value | rest] -> reverse_declarations(rest, [value | result])
     }.
 
 @pure
-reverse_references(values: List[BindingReference], result: List[BindingReference]): List[BindingReference] ->
+reverse_references(
+    values: List[BindingReference],
+    result: List[BindingReference],
+): List[BindingReference] ->
     case values {
         [] -> result;
         [value | rest] -> reverse_references(rest, [value | result])
     }.
 
 @pure
-reverse_diagnostics(values: List[BindingDiagnostic], result: List[BindingDiagnostic]): List[BindingDiagnostic] ->
+reverse_diagnostics(
+    values: List[BindingDiagnostic],
+    result: List[BindingDiagnostic],
+): List[BindingDiagnostic] ->
     case values {
         [] -> result;
         [value | rest] -> reverse_diagnostics(rest, [value | result])
@@ -54,78 +62,110 @@ reverse_diagnostics(values: List[BindingDiagnostic], result: List[BindingDiagnos
 find_active(name: String, values: List[BindingDeclaration]): Option[BindingDeclaration] ->
     case values {
         [] -> None;
-        [value | rest] -> if {
-            value.name == name -> Some(value);
-            true -> find_active(name, rest)
-        }
+        [value | rest] ->
+            if {
+                value.name == name -> Some(value);
+                true -> find_active(name, rest)
+            }
     }.
 
 @pure
 declared_in_scope(name: String, depth: Int, values: List[BindingDeclaration]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            value.scope_depth < depth -> false;
-            value.scope_depth == depth and value.name == name -> true;
-            true -> declared_in_scope(name, depth, rest)
-        }
+        [value | rest] ->
+            if {
+                value.scope_depth < depth -> false;
+                value.scope_depth == depth and value.name == name -> true;
+                true -> declared_in_scope(name, depth, rest)
+            }
     }.
 
 @pure
 drop_scope(depth: Int, values: List[BindingDeclaration]): List[BindingDeclaration] ->
     case values {
         [] -> List.new[BindingDeclaration]();
-        [value | rest] -> if {
-            value.scope_depth == depth -> drop_scope(depth, rest);
-            true -> [value | drop_scope(depth, rest)]
-        }
+        [value | rest] ->
+            if {
+                value.scope_depth == depth -> drop_scope(depth, rest);
+                true -> [value | drop_scope(depth, rest)]
+            }
     }.
 
 @pure
 declare(event: BindingEvent, state: BindingState): BindingState ->
     if {
-        declared_in_scope(event.name, state.depth, state.active) -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = [BindingDiagnostic(
-                code = "duplicate-binding",
-                message = "binding is already declared in this lexical scope",
-                byte_offset = event.byte_offset,
-            ) | state.diagnostics], depth = state.depth);
-        true -> let declaration = BindingDeclaration(
-            name = event.name,
-            binding_kind = event.binding_kind,
-            scope_depth = state.depth,
-            byte_offset = event.byte_offset,
+        declared_in_scope(event.name, state.depth, state.active) -> BindingState(
+            active = state.active,
+            declarations = state.declarations,
+            references = state.references,
+            diagnostics = [BindingDiagnostic(
+    code = "duplicate-binding",
+    message = "binding is already declared in this lexical scope",
+    byte_offset = event.byte_offset,
+) | state.diagnostics],
+            depth = state.depth,
         );
-        BindingState(active = [declaration | state.active], declarations = [declaration | state.declarations], references = state.references, diagnostics = state.diagnostics, depth = state.depth)
+        true -> let declaration =
+            BindingDeclaration(
+                name = event.name,
+                binding_kind = event.binding_kind,
+                scope_depth = state.depth,
+                byte_offset = event.byte_offset,
+            );
+        BindingState(
+            active = [declaration | state.active],
+            declarations = [declaration | state.declarations],
+            references = state.references,
+            diagnostics = state.diagnostics,
+            depth = state.depth,
+        )
     }.
 
 @pure
 reference(event: BindingEvent, state: BindingState): BindingState ->
     case find_active(event.name, state.active) {
-        Some(declaration) -> BindingState(active = state.active, declarations = state.declarations, references = [BindingReference(
-                name = event.name,
-                byte_offset = event.byte_offset,
-                declaration_offset = Some(declaration.byte_offset),
-            ) | state.references], diagnostics = state.diagnostics, depth = state.depth);
-        None -> BindingState(active = state.active, declarations = state.declarations, references = [BindingReference(
-                name = event.name,
-                byte_offset = event.byte_offset,
-                declaration_offset = None,
-            ) | state.references], diagnostics = [BindingDiagnostic(
-                code = "unresolved-binding",
-                message = "name is not visible in this lexical scope",
-                byte_offset = event.byte_offset,
-            ) | state.diagnostics], depth = state.depth)
+        Some(declaration) ->
+            BindingState(
+                active = state.active,
+                declarations = state.declarations,
+                references = [BindingReference(
+    name = event.name,
+    byte_offset = event.byte_offset,
+    declaration_offset = Some(declaration.byte_offset),
+) | state.references],
+                diagnostics = state.diagnostics,
+                depth = state.depth,
+            );
+        None ->
+            BindingState(
+                active = state.active,
+                declarations = state.declarations,
+                references = [BindingReference(name = event.name, byte_offset = event.byte_offset, declaration_offset = None) | state.references],
+                diagnostics = [BindingDiagnostic(
+    code = "unresolved-binding",
+    message = String.concat(["name is not visible in this lexical scope: ", event.name]),
+    byte_offset = event.byte_offset,
+) | state.diagnostics],
+                depth = state.depth,
+            )
     }.
 
 @pure
 step_after_use(event: BindingEvent, state: BindingState): BindingState ->
     if {
         event.kind == "use" -> reference(event, state);
-        true -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = [BindingDiagnostic(
-                code = "unknown-binding-event",
-                message = "binding adapter emitted an unsupported event",
-                byte_offset = event.byte_offset,
-            ) | state.diagnostics], depth = state.depth)
+        true -> BindingState(
+            active = state.active,
+            declarations = state.declarations,
+            references = state.references,
+            diagnostics = [BindingDiagnostic(
+    code = "unknown-binding-event",
+    message = "binding adapter emitted an unsupported event",
+    byte_offset = event.byte_offset,
+) | state.diagnostics],
+            depth = state.depth,
+        )
     }.
 
 @pure
@@ -138,25 +178,43 @@ step_after_declare(event: BindingEvent, state: BindingState): BindingState ->
 @pure
 step_after_leave(event: BindingEvent, state: BindingState): BindingState ->
     if {
-        event.kind == "leave-scope" -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = [BindingDiagnostic(
-                code = "unbalanced-scope",
-                message = "scope exit has no matching scope entry",
-                byte_offset = event.byte_offset,
-            ) | state.diagnostics], depth = state.depth);
+        event.kind == "leave-scope" -> BindingState(
+            active = state.active,
+            declarations = state.declarations,
+            references = state.references,
+            diagnostics = [BindingDiagnostic(
+    code = "unbalanced-scope",
+    message = "scope exit has no matching scope entry",
+    byte_offset = event.byte_offset,
+) | state.diagnostics],
+            depth = state.depth,
+        );
         true -> step_after_declare(event, state)
     }.
 
 @pure
 step_after_scoped_leave(event: BindingEvent, state: BindingState): BindingState ->
     if {
-        event.kind == "leave-scope" and state.depth > 0 -> BindingState(active = drop_scope(state.depth, state.active), declarations = state.declarations, references = state.references, diagnostics = state.diagnostics, depth = state.depth - 1);
+        event.kind == "leave-scope" and state.depth > 0 -> BindingState(
+            active = drop_scope(state.depth, state.active),
+            declarations = state.declarations,
+            references = state.references,
+            diagnostics = state.diagnostics,
+            depth = state.depth - 1,
+        );
         true -> step_after_leave(event, state)
     }.
 
 @pure
 step(event: BindingEvent, state: BindingState): BindingState ->
     if {
-        event.kind == "enter-scope" -> BindingState(active = state.active, declarations = state.declarations, references = state.references, diagnostics = state.diagnostics, depth = state.depth + 1);
+        event.kind == "enter-scope" -> BindingState(
+            active = state.active,
+            declarations = state.declarations,
+            references = state.references,
+            diagnostics = state.diagnostics,
+            depth = state.depth + 1,
+        );
         true -> step_after_scoped_leave(event, state)
     }.
 
@@ -169,15 +227,26 @@ walk(events: List[BindingEvent], state: BindingState): BindingState ->
 
 @pure
 pub resolve(events: List[BindingEvent]): BindingResolution ->
-    let state = walk(events, BindingState(active = List.new[BindingDeclaration](), declarations = List.new[BindingDeclaration](), references = List.new[BindingReference](), diagnostics = List.new[BindingDiagnostic](), depth = 0));
-    let diagnostics = if {
-        state.depth == 0 -> state.diagnostics;
-        true -> [BindingDiagnostic(
-            code = "unclosed-scope",
-            message = "binding event stream ended inside a lexical scope",
-            byte_offset = 0,
-        ) | state.diagnostics]
-    };
+    let state =
+        walk(
+            events,
+            BindingState(
+                active = List.new[BindingDeclaration](),
+                declarations = List.new[BindingDeclaration](),
+                references = List.new[BindingReference](),
+                diagnostics = List.new[BindingDiagnostic](),
+                depth = 0,
+            ),
+        );
+    let diagnostics =
+        if {
+            state.depth == 0 -> state.diagnostics;
+            true -> [BindingDiagnostic(
+    code = "unclosed-scope",
+    message = "binding event stream ended inside a lexical scope",
+    byte_offset = 0,
+) | state.diagnostics]
+        };
     BindingResolution(
         declarations = reverse_declarations(state.declarations, List.new[BindingDeclaration]()),
         references = reverse_references(state.references, List.new[BindingReference]()),

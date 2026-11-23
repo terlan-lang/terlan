@@ -235,20 +235,37 @@ has_tagged_body_arrow(values: List[ProjectedCanonicalToken]): Bool ->
     }.
 
 @pure
+body_arrow(value: ProjectedCanonicalToken, tagged: Bool): Bool ->
+    if {
+        tagged -> value.terminal == "function-body-arrow";
+        true -> value.text == "->"
+    }.
+
+@pure
 before_body_arrow_at(
     values: List[ProjectedCanonicalToken],
     tagged: Bool,
+    parens: Int,
+    brackets: Int,
+    braces: Int,
 ): List[ProjectedCanonicalToken] ->
     case values {
         [] -> List.new[ProjectedCanonicalToken]();
-        [value | _] where tagged and value.terminal == "function-body-arrow" or not tagged and value.text == "->" ->
+        [value | _] where parens == 0 and brackets == 0 and braces == 0 and body_arrow(value, tagged) ->
             List.new[ProjectedCanonicalToken]();
-        [value | rest] -> [value | before_body_arrow_at(rest, tagged)]
+        [value | rest] ->
+            [value | before_body_arrow_at(
+    rest,
+    tagged,
+    next_parens(value.text, parens),
+    next_brackets(value.text, brackets),
+    next_braces(value.text, braces),
+)]
     }.
 
 @pure
 before_body_arrow(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
-    before_body_arrow_at(values, has_tagged_body_arrow(values)).
+    before_body_arrow_at(values, has_tagged_body_arrow(values), 0, 0, 0).
 
 @pure
 without_terminal_dot(values: List[ProjectedCanonicalToken]): List[ProjectedCanonicalToken] ->
@@ -405,6 +422,19 @@ callable_after_params(
     ).
 
 @pure
+callable_name_keyword(text: String): Bool ->
+    text == "and"
+        or text == "annotation"
+        or text == "config"
+        or text == "end"
+        or text == "file"
+        or text == "function"
+        or text == "machine"
+        or text == "method"
+        or text == "shape"
+        or text == "target".
+
+@pure
 last_callable_name(
     values: List[ProjectedCanonicalToken],
     current: Option[ProjectedCanonicalToken],
@@ -413,7 +443,9 @@ last_callable_name(
         [] -> current;
         [value | rest] ->
             if {
-                value.terminal == "atom" or value.terminal == "var" -> last_callable_name(rest, Some(value));
+                value.terminal == "atom"
+                    or value.terminal == "var"
+                    or callable_name_keyword(value.text) -> last_callable_name(rest, Some(value));
                 true -> last_callable_name(rest, current)
             }
     }.

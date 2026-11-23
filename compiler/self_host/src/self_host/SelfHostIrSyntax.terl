@@ -3,9 +3,9 @@
  */
 module self_host.SelfHostIrSyntax.
 
-
-import std.core.Option.{Option}.
 import std.collections.List.
+import std.core.Option.{None, Option}.
+
 pub struct IrParameter {
     name: String,
     type_name: String,
@@ -13,12 +13,8 @@ pub struct IrParameter {
 
 pub constructor IrParameter {
     (name: String, type_name: String): IrParameter ->
-        IrParameter {
-            name: name,
-            type_name: type_name,
-        }
+        IrParameter {name: name, type_name: type_name}
 }.
-
 
 pub struct IrInstruction {
     opcode: String,
@@ -41,6 +37,7 @@ pub constructor IrInstruction {
             continuation_ordinal: None,
             try_region: None,
         };
+
     (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], type_name: String): IrInstruction ->
         IrInstruction {
             opcode: opcode,
@@ -51,6 +48,7 @@ pub constructor IrInstruction {
             continuation_ordinal: None,
             try_region: None,
         };
+
     (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], type_name: String, continuation_ordinal: Option[Int]): IrInstruction ->
         IrInstruction {
             opcode: opcode,
@@ -61,6 +59,7 @@ pub constructor IrInstruction {
             continuation_ordinal: continuation_ordinal,
             try_region: None,
         };
+
     (opcode: String, result: Option[String], operands: List[String], operand_types: List[Option[String]], type_name: String, continuation_ordinal: Option[Int], try_region: Option[self_host.SelfHostIrSyntax.IrTryRegion]): IrInstruction ->
         IrInstruction {
             opcode: opcode,
@@ -73,7 +72,6 @@ pub constructor IrInstruction {
         }
 }.
 
-
 pub struct IrTerminator {
     opcode: String,
     operands: List[String],
@@ -82,13 +80,8 @@ pub struct IrTerminator {
 
 pub constructor IrTerminator {
     (opcode: String, operands: List[String], targets: List[String]): IrTerminator ->
-        IrTerminator {
-            opcode: opcode,
-            operands: operands,
-            targets: targets,
-        }
+        IrTerminator {opcode: opcode, operands: operands, targets: targets}
 }.
-
 
 pub struct IrBlock {
     label: String,
@@ -98,13 +91,8 @@ pub struct IrBlock {
 
 pub constructor IrBlock {
     (label: String, instructions: List[self_host.SelfHostIrSyntax.IrInstruction], terminator: self_host.SelfHostIrSyntax.IrTerminator): IrBlock ->
-        IrBlock {
-            label: label,
-            instructions: instructions,
-            terminator: terminator,
-        }
+        IrBlock {label: label, instructions: instructions, terminator: terminator}
 }.
-
 
 pub struct IrRegion {
     label: String,
@@ -125,25 +113,20 @@ pub constructor IrRegion {
         }
 }.
 
-
 pub struct IrTryRegion {
     protected: self_host.SelfHostIrSyntax.IrRegion,
     success: self_host.SelfHostIrSyntax.IrRegion,
     failure: self_host.SelfHostIrSyntax.IrRegion,
-    /** Cleanup regions associated with leaving the protected region. */
+    /**
+     * Cleanup regions associated with leaving the protected region.
+     */
     cleanup: List[self_host.SelfHostIrSyntax.IrRegion],
 }.
 
 pub constructor IrTryRegion {
     (protected: self_host.SelfHostIrSyntax.IrRegion, success: self_host.SelfHostIrSyntax.IrRegion, failure: self_host.SelfHostIrSyntax.IrRegion, cleanup: List[self_host.SelfHostIrSyntax.IrRegion]): IrTryRegion ->
-        IrTryRegion {
-            protected: protected,
-            success: success,
-            failure: failure,
-            cleanup: cleanup,
-        }
+        IrTryRegion {protected: protected, success: success, failure: failure, cleanup: cleanup}
 }.
-
 
 pub struct IrFunction {
     module_name: String,
@@ -172,6 +155,7 @@ pub constructor IrFunction {
             blocks: blocks,
             native_symbol: native_symbol,
         };
+
     (module_name: String, name: String, arity: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[self_host.SelfHostIrSyntax.IrParameter], return_type: String, blocks: List[self_host.SelfHostIrSyntax.IrBlock], native_symbol: Option[String]): IrFunction ->
         IrFunction {
             module_name: module_name,
@@ -185,6 +169,7 @@ pub constructor IrFunction {
             blocks: blocks,
             native_symbol: native_symbol,
         };
+
     (module_name: String, name: String, arity: Int, capture_count: Int, receiver_mutable: Bool, receiver_command: Bool, parameters: List[self_host.SelfHostIrSyntax.IrParameter], return_type: String, blocks: List[self_host.SelfHostIrSyntax.IrBlock], native_symbol: Option[String]): IrFunction ->
         IrFunction {
             module_name: module_name,
@@ -199,7 +184,6 @@ pub constructor IrFunction {
             native_symbol: native_symbol,
         }
 }.
-
 
 pub struct IrVariantLayout {
     owner: String,
@@ -220,7 +204,6 @@ pub constructor IrVariantLayout {
         }
 }.
 
-
 pub struct IrStructField {
     name: String,
     type_name: String,
@@ -228,9 +211,8 @@ pub struct IrStructField {
 
 pub constructor IrStructField {
     (name: String, type_name: String): IrStructField ->
-        IrStructField { name: name, type_name: type_name }
+        IrStructField {name: name, type_name: type_name}
 }.
-
 
 pub struct IrStructLayout {
     name: String,
@@ -239,12 +221,8 @@ pub struct IrStructLayout {
 
 pub constructor IrStructLayout {
     (name: String, fields: List[self_host.SelfHostIrSyntax.IrStructField]): IrStructLayout ->
-        IrStructLayout {
-            name: name,
-            fields: fields,
-        }
+        IrStructLayout {name: name, fields: fields}
 }.
-
 
 pub struct IrModule {
     name: String,
@@ -254,13 +232,8 @@ pub struct IrModule {
 
 pub constructor IrModule {
     (name: String, structs: List[self_host.SelfHostIrSyntax.IrStructLayout], functions: List[self_host.SelfHostIrSyntax.IrFunction]): IrModule ->
-        IrModule {
-            name: name,
-            structs: structs,
-            functions: functions,
-        }
+        IrModule {name: name, structs: structs, functions: functions}
 }.
-
 
 pub struct BackendEnvelope {
     abi_major: Int,
@@ -279,7 +252,6 @@ pub constructor BackendEnvelope {
         }
 }.
 
-
 pub struct IrDiagnostic {
     code: String,
     message: String,
@@ -297,7 +269,6 @@ pub constructor IrDiagnostic {
         }
 }.
 
-
 pub struct IrValidation {
     valid: Bool,
     diagnostics: List[self_host.SelfHostIrSyntax.IrDiagnostic],
@@ -305,9 +276,5 @@ pub struct IrValidation {
 
 pub constructor IrValidation {
     (valid: Bool, diagnostics: List[self_host.SelfHostIrSyntax.IrDiagnostic]): IrValidation ->
-        IrValidation {
-            valid: valid,
-            diagnostics: diagnostics,
-        }
+        IrValidation {valid: valid, diagnostics: diagnostics}
 }.
-

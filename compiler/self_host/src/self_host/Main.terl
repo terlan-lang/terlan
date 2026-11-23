@@ -4,7 +4,8 @@
 module self_host.Main.
 
 import self_host.SelfHostParallelBackendDriver.{BackendWorkerJob}.
-import self_host.{CanonicalLexer, ConcreteSyntaxEvidence, Evidence, ParserErrorEvidence, ProductionEvidencePipeline, ProjectedActorInterfaceCatalog, ProjectedBackendEvidence, ProjectedBodyEvidence, ProjectedFragmentEvidence, ProjectedFrontend, ProjectedInterfaceCatalog, ProjectedParityEvidence, ProjectedParserEvidence, ProjectedSemanticEvidence, ProjectedStageEvidence, ProjectedTokenEvidence, SelfHostActorProfileCatalog, SelfHostBootstrapTool, SelfHostCompilerTraceTool, SelfHostConvergenceMaterialize, SelfHostCoreOptimizeEvidenceTool, SelfHostDocumentationTool, SelfHostFormatterTool, SelfHostLintAuthorityPipeline, SelfHostLintAuthorityTool, SelfHostLintParityTool, SelfHostLintTool, SelfHostParallelBackendDriver, SelfHostPath, SelfHostSeedStage, SelfHostSourceClosure, TokenEvidence}.
+import self_host.SelfHostParallelInterfaceDriver.{InterfaceWorkerJob}.
+import self_host.{CanonicalLexer, ConcreteSyntaxEvidence, Evidence, ParserErrorEvidence, ProductionEvidencePipeline, ProjectedActorInterfaceCatalog, ProjectedBackendEvidence, ProjectedBodyEvidence, ProjectedFragmentEvidence, ProjectedFrontend, ProjectedInterfaceCatalog, ProjectedParityEvidence, ProjectedParserEvidence, ProjectedSemanticEvidence, ProjectedSignatureEvidence, ProjectedStageEvidence, ProjectedTokenEvidence, SelfHostActorProfileCatalog, SelfHostBootstrapTool, SelfHostCompilerTraceTool, SelfHostConvergenceMaterialize, SelfHostCoreOptimizeEvidenceTool, SelfHostDocumentationTool, SelfHostFormatterTool, SelfHostLintAuthorityPipeline, SelfHostLintAuthorityTool, SelfHostLintParityTool, SelfHostLintTool, SelfHostParallelBackendDriver, SelfHostParallelBackendProcessDriver, SelfHostParallelInterfaceDriver, SelfHostPath, SelfHostSeedStage, SelfHostSourceClosure, TokenEvidence}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.Result.{Err, Ok, Result}.
@@ -110,6 +111,12 @@ frontend_semantic_mode(mode: String, output: Option[String], source: String): Bo
 frontend_semantic_full_mode(mode: String, output: Option[String], source: String): Bool ->
     if {
         mode == "semantic-full" -> write_semantic_full(output, source);
+        true -> frontend_signatures_mode(mode, output, source)
+    }.
+
+frontend_signatures_mode(mode: String, output: Option[String], source: String): Bool ->
+    if {
+        mode == "signatures" -> write_signatures(output, source);
         true -> frontend_bodies_mode(mode, output, source)
     }.
 
@@ -182,6 +189,11 @@ write_semantic_full(output: Option[String], source: String): Bool ->
     let lexed = CanonicalLexer.lex(source);
     let frontend = ProjectedFrontend.compile(source, lexed.tokens);
     write_exact_or_print(output, ProjectedSemanticEvidence.supplemental(frontend)).
+
+write_signatures(output: Option[String], source: String): Bool ->
+    let lexed = CanonicalLexer.lex(source);
+    let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+    write_exact_or_print(output, ProjectedSignatureEvidence.details(frontend.signatures)).
 
 write_bodies(output: Option[String], source: String): Bool ->
     let lexed = CanonicalLexer.lex(source);
@@ -324,7 +336,9 @@ main_backend_unit_mode(mode: String): Unit ->
         mode == "actor-backend-unit" -> main_actor_backend_unit();
         mode == "interface-units" -> main_interface_units();
         mode == "backend-units" -> main_backend_units();
-        mode == "parallel-backend-units" -> main_parallel_backend_units();
+        mode == "parallel-interface-units" -> main_parallel_interface_units();
+        mode == "parallel-backend-units" -> main_parallel_backend_process_units();
+        mode == "actor-parallel-backend-units" -> main_parallel_backend_units();
         mode == "lint-unit" -> main_lint_unit();
         mode == "lint-fix-unit" -> main_lint_fix_unit();
         mode == "lint-parity-unit" -> main_lint_parity_unit();
@@ -514,6 +528,7 @@ frontend_mode(mode: String): Bool ->
         or mode == "backend-diagnostics"
         or mode == "semantic"
         or mode == "semantic-full"
+        or mode == "signatures"
         or mode == "bodies"
         or mode == "frontend-diagnostics".
 
@@ -521,7 +536,7 @@ main_frontend(mode: String): Unit ->
     case Arguments.get(1) {
         None ->
             report_unit(
-                "usage: terlan-self-host tokens|parser|parity|concrete|errors|expression|pattern|type|bodies|frontend-diagnostics|semantic|semantic-full|backend|backend-diagnostics <source.terl> [output]",
+                "usage: terlan-self-host tokens|parser|parity|concrete|errors|expression|pattern|type|bodies|frontend-diagnostics|semantic|semantic-full|signatures|backend|backend-diagnostics <source.terl> [output]",
             );
         Some(input) -> run_frontend(mode, input)
     }.
@@ -736,10 +751,22 @@ main_interface_unit_output(input: String): Unit ->
     }.
 
 run_interface_unit(input: String, output: String): Unit ->
-    let _completed =
+    let completed =
         ensure_directory(SelfHostPath.parent(output))
             and ProjectedInterfaceCatalog.write_interface(input, output);
-    Unit.
+    if {
+        completed -> Unit;
+        true -> report_projected_interface_failure(input)
+    }.
+
+report_projected_interface_failure(input: String): Unit ->
+    case File.read_text(input) {
+        Err(reason) -> report_unit(reason.message);
+        Ok(source) ->
+            let lexed = CanonicalLexer.lex(source);
+            let frontend = ProjectedFrontend.compile(source, lexed.tokens);
+            report_unit(frontend.message)
+    }.
 
 main_interface_diagnostics(): Unit ->
     case Arguments.get(1) {
@@ -809,7 +836,8 @@ run_backend_units(
                 ensure_directory(SelfHostPath.parent(output))
                     and ensure_directory(SelfHostPath.parent(diagnostics))
                     and ProjectedInterfaceCatalog.write_backend_catalog(input, catalog, output, diagnostics);
-            completed and run_backend_units(index + 3, catalog);
+            let remaining = run_backend_units(index + 3, catalog);
+            completed and remaining;
         {None, None, None} -> true;
         _ -> false
     }.
@@ -838,6 +866,41 @@ parallel_worker_limit(value: String): Option[Int] ->
         true -> None
     }.
 
+parallel_interface_jobs(index: Int): Result[List[InterfaceWorkerJob], String] ->
+    case {Arguments.get(index), Arguments.get(index + 1), Arguments.get(index + 2)} {
+        {Some(identity), Some(input), Some(output)} ->
+            if {
+                not ensure_directory(SelfHostPath.parent(output)) -> Err("cannot create parallel interface output directory");
+                true -> case parallel_interface_jobs(index + 3) {
+                    Err(reason) -> Err(reason);
+                    Ok(rest) -> Ok([InterfaceWorkerJob(identity, input, output) | rest])
+                }
+            };
+        {None, None, None} -> Ok(List.new[InterfaceWorkerJob]());
+        _ -> Err("parallel interface jobs must contain identity/source/output groups")
+    }.
+
+parallel_interface_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host parallel-interface-units <worker-program> <worker-limit> [<identity> <source.terl> <output>]...",
+    ).
+
+main_parallel_interface_units(): Unit ->
+    when {
+        {Some(worker_program), Some(limit_text)} <- {Arguments.get(1), Arguments.get(2)};
+        Some(worker_limit) <- parallel_worker_limit(limit_text)
+    } else {
+        _ -> parallel_interface_usage()
+    };
+    case parallel_interface_jobs(3) {
+        Err(reason) -> report_unit(reason);
+        Ok(jobs) ->
+            if {
+                SelfHostParallelInterfaceDriver.run(worker_program, jobs, worker_limit) -> Unit;
+                true -> report_unit("parallel interface compilation failed")
+            }
+    }.
+
 parallel_backend_jobs(index: Int): Result[List[BackendWorkerJob], String] ->
     case {
         Arguments.get(index),
@@ -860,7 +923,7 @@ parallel_backend_jobs(index: Int): Result[List[BackendWorkerJob], String] ->
 
 parallel_backend_usage(): Unit ->
     report_unit(
-        "usage: terlan-self-host parallel-backend-units <interfaces.manifest> <worker-limit> [<identity> <source.terl> <output> <diagnostics>]...",
+        "usage: terlan-self-host actor-parallel-backend-units <interfaces.manifest> <worker-limit> [<identity> <source.terl> <output> <diagnostics>]...",
     ).
 
 main_parallel_backend_units(): Unit ->
@@ -876,6 +939,34 @@ main_parallel_backend_units(): Unit ->
             let catalog = ProjectedInterfaceCatalog.load(interface_manifest);
             if {
                 SelfHostParallelBackendDriver.run(jobs, catalog, worker_limit) -> Unit;
+                true -> report_unit("parallel backend compilation failed")
+            }
+    }.
+
+parallel_backend_process_usage(): Unit ->
+    report_unit(
+        "usage: terlan-self-host parallel-backend-units <worker-program> <interfaces.manifest> <worker-limit> [<identity> <source.terl> <output> <diagnostics>]...",
+    ).
+
+main_parallel_backend_process_units(): Unit ->
+    when {
+        {Some(worker_program), Some(interface_manifest), Some(limit_text)} <- {Arguments.get(1), Arguments.get(2), Arguments.get(3)};
+        Some(worker_limit) <- parallel_worker_limit(limit_text)
+    } else {
+        _ -> parallel_backend_process_usage()
+    };
+    case parallel_backend_jobs(4) {
+        Err(reason) -> report_unit(reason);
+        Ok(jobs) ->
+            let catalog = ProjectedInterfaceCatalog.load(interface_manifest);
+            if {
+                SelfHostParallelBackendProcessDriver.run(
+                    worker_program,
+                    interface_manifest,
+                    jobs,
+                    catalog,
+                    worker_limit,
+                ) -> Unit;
                 true -> report_unit("parallel backend compilation failed")
             }
     }.
@@ -1022,7 +1113,8 @@ run_interface_units(index: Int): Bool ->
             let completed =
                 ensure_directory(SelfHostPath.parent(output))
                     and ProjectedInterfaceCatalog.write_interface(input, output);
-            completed and run_interface_units(index + 2);
+            let remaining = run_interface_units(index + 2);
+            completed and remaining;
         {None, None} -> true;
         _ -> false
     }.

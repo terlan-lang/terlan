@@ -939,9 +939,26 @@ parse_argument_item(values: List[ProjectedCanonicalToken]): ProjectedExpressionR
     }.
 
 @pure
+named_argument_keyword(text: String): Bool ->
+    text == "Bool"
+        or text == "Int"
+        or text == "Name"
+        or text == "String"
+        or text == "annotation"
+        or text == "config"
+        or text == "end"
+        or text == "file"
+        or text == "function"
+        or text == "machine"
+        or text == "method"
+        or text == "shape"
+        or text == "target".
+
+@pure
 named_argument_prefix(values: List[ProjectedCanonicalToken]): Bool ->
     case values {
-        [name] -> name.terminal == "atom" or name.terminal == "var";
+        [name] ->
+            name.terminal == "atom" or name.terminal == "var" or named_argument_keyword(name.text);
         _ -> false
     }.
 

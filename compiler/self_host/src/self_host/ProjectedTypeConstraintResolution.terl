@@ -69,6 +69,13 @@ types_compatible(left: Option[String], right: Option[String]): Bool ->
     }.
 
 @pure
+diagnostic_type(value: Option[String]): String ->
+    case value {
+        Some(name) -> name;
+        None -> "_"
+    }.
+
+@pure
 more_specific(left: String, right: String): String ->
     if {
         left.byte_size() >= right.byte_size() -> left;
@@ -265,7 +272,9 @@ expect_type(
                 type_matches(name, expected) -> diagnostics;
                 true -> [TypeConstraintDiagnostic(
     code = "type-mismatch",
-    message = "expression type does not satisfy its constraint",
+    message = String.concat(
+        ["expression type does not satisfy its constraint: expected ", expected, ", found ", name],
+    ),
     byte_offset = event.byte_offset,
 ) | diagnostics]
             }
@@ -282,7 +291,14 @@ merge_diagnostics(
         types_compatible(left, right) -> diagnostics;
         true -> [TypeConstraintDiagnostic(
     code = "incompatible-branches",
-    message = "expression branches infer different types",
+    message = String.concat(
+        [
+            "expression branches infer different types: ",
+            diagnostic_type(left),
+            " versus ",
+            diagnostic_type(right),
+        ],
+    ),
     byte_offset = event.byte_offset,
 ) | diagnostics]
     }.
@@ -468,7 +484,7 @@ step_after_propagate(event: TypeConstraintEvent, state: ConstraintState): Constr
 
 step_after_unknown(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {
-        event.kind == "propagate" -> prepend_type_fact(
+        event.kind == "propagate" or event.kind == "propagate-authority" -> prepend_type_fact(
             event.node_id,
             find_type(event.left_node, state.index),
             event.byte_offset,
@@ -492,7 +508,7 @@ step_unseeded(event: TypeConstraintEvent, state: ConstraintState): ConstraintSta
     }.
 
 preserves_seed(kind: String): Bool ->
-    kind == "unknown" or kind == "propagate" or kind == "call-result".
+    kind == "unknown" or kind == "propagate-authority" or kind == "call-result".
 
 step(event: TypeConstraintEvent, state: ConstraintState): ConstraintState ->
     if {

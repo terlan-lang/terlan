@@ -1,0 +1,204 @@
+/**
+ * Bounded OS-process adapter for self-hosted backend compilation.
+ */
+module self_host.SelfHostParallelBackendProcessDriver.
+
+import self_host.ProjectedInterfaceCatalog.{InterfaceCatalog}.
+import self_host.SelfHostParallelBackendDriver.
+import self_host.SelfHostParallelBackendDriver.{BackendWorkerJob}.
+import std.collections.List.
+import std.core.Option.{None, Some}.
+import std.core.Result.{Err, Ok}.
+import std.core.{Bool, Int, String}.
+import std.io.Console.{eprintln}.
+import std.io.File.
+import std.system.Process.
+import std.system.Process.{BatchCompletion, Command, Output, ProcessError}.
+
+@pure
+job_count(values: List[BackendWorkerJob]): Int ->
+    case values {
+        [] -> 0;
+        [_ | rest] -> 1 + job_count(rest)
+    }.
+
+@pure
+take_jobs(values: List[BackendWorkerJob], count: Int): List[BackendWorkerJob] ->
+    if {
+        count <= 0 -> List.new[BackendWorkerJob]();
+        true -> case values {
+            [] -> List.new[BackendWorkerJob]();
+            [value | rest] -> [value | take_jobs(rest, count - 1)]
+        }
+    }.
+
+@pure
+drop_jobs(values: List[BackendWorkerJob], count: Int): List[BackendWorkerJob] ->
+    if {
+        count <= 0 -> values;
+        true -> case values {
+            [] -> List.new[BackendWorkerJob]();
+            [_ | rest] -> drop_jobs(rest, count - 1)
+        }
+    }.
+
+@pure
+batch_width(values: List[BackendWorkerJob], worker_limit: Int): Int ->
+    let count = job_count(values);
+    if {
+        count <= worker_limit -> 1;
+        true -> (count + worker_limit - 1) div worker_limit
+    }.
+
+@pure
+job_batches(values: List[BackendWorkerJob], width: Int): List[List[BackendWorkerJob]] ->
+    case values {
+        [] -> List.new[List[BackendWorkerJob]]();
+        _ -> [take_jobs(values, width) | job_batches(drop_jobs(values, width), width)]
+    }.
+
+@pure
+job_arguments(values: List[BackendWorkerJob]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] ->
+            [value.input | [value.output | [value.diagnostics | job_arguments(rest)]]]
+    }.
+
+commands(
+    worker_program: String,
+    interface_manifest: String,
+    values: List[List[BackendWorkerJob]],
+    timeout_ms: Int,
+): List[Command] ->
+    case values {
+        [] -> List.new[Command]();
+        [value | rest] ->
+            [Process.command(worker_program)
+    .with_arguments(["backend-units" | [interface_manifest | job_arguments(value)]])
+    .with_timeout_ms(timeout_ms) | commands(worker_program, interface_manifest, rest, timeout_ms)]
+    }.
+
+report(message: String): Bool ->
+    let _reported = eprintln(message);
+    false.
+
+print_nonempty(message: String): Bool ->
+    if {
+        message == "" -> true;
+        true -> let _reported = eprintln(message);
+        true
+    }.
+
+report_process_error(reason: ProcessError): Bool ->
+    report(String.concat([reason.program, ": ", reason.message])).
+
+artifact_present(path: String): Bool ->
+    case File.read_text(path) {
+        Err(_) -> false;
+        Ok(value) -> value.byte_size() > 0
+    }.
+
+diagnostics_empty(path: String): Bool ->
+    case File.read_text(path) {
+        Err(_) -> false;
+        Ok(value) ->
+            if {
+                value == "" -> true;
+                true -> report(value)
+            }
+    }.
+
+output_succeeded(job: BackendWorkerJob, value: Output): Bool ->
+    let stdout_reported = print_nonempty(value.stdout);
+    let stderr_reported = print_nonempty(value.stderr);
+    let artifact = artifact_present(job.output);
+    let diagnostics = diagnostics_empty(job.diagnostics);
+    if {
+        value.status != 0 -> report(String.concat([job.identity, ": backend worker exited unsuccessfully"]));
+        not artifact -> report(String.concat([job.identity, ": backend worker did not publish its artifact"]));
+        not diagnostics -> false;
+        true -> stdout_reported and stderr_reported
+    }.
+
+completion_succeeded(job: BackendWorkerJob, value: BatchCompletion): Bool ->
+    case {value.output, value.error} {
+        {Some(output), None} -> output_succeeded(job, output);
+        {None, Some(reason)} -> report_process_error(reason);
+        _ -> report(String.concat([job.identity, ": invalid process completion envelope"]))
+    }.
+
+jobs_succeeded(values: List[BackendWorkerJob]): Bool ->
+    case values {
+        [] -> true;
+        [value | rest] ->
+            let artifact =
+                if {
+                    artifact_present(value.output) -> true;
+                    true -> report(
+                        String.concat(
+                            [value.identity, ": backend worker did not publish its artifact"],
+                        ),
+                    )
+                };
+            let diagnostics = diagnostics_empty(value.diagnostics);
+            let remaining = jobs_succeeded(rest);
+            artifact and diagnostics and remaining
+    }.
+
+batch_output_succeeded(jobs: List[BackendWorkerJob], value: Output): Bool ->
+    let stdout_reported = print_nonempty(value.stdout);
+    let stderr_reported = print_nonempty(value.stderr);
+    let outputs_present = jobs_succeeded(jobs);
+    if {
+        value.status != 0 -> report("backend worker shard exited unsuccessfully");
+        true -> stdout_reported and stderr_reported and outputs_present
+    }.
+
+batch_completion_succeeded(jobs: List[BackendWorkerJob], value: BatchCompletion): Bool ->
+    case {value.output, value.error} {
+        {Some(output), None} -> batch_output_succeeded(jobs, output);
+        {None, Some(reason)} -> report_process_error(reason);
+        _ -> report("invalid backend process shard completion envelope")
+    }.
+
+completions_succeeded(
+    jobs: List[List[BackendWorkerJob]],
+    completions: List[BatchCompletion],
+): Bool ->
+    case {jobs, completions} {
+        {[], []} -> true;
+        {[job | job_rest], [completion | completion_rest]} ->
+            let current = batch_completion_succeeded(job, completion);
+            let remaining = completions_succeeded(job_rest, completion_rest);
+            current and remaining;
+        _ -> report("backend process batch returned an invalid completion count")
+    }.
+
+/**
+ * Runs backend jobs with a VM-enforced OS-process concurrency bound.
+ */
+pub run(
+    worker_program: String,
+    interface_manifest: String,
+    values: List[BackendWorkerJob],
+    catalog: InterfaceCatalog,
+    worker_limit: Int,
+): Bool ->
+    if {
+        not catalog.valid -> report(catalog.message);
+        true -> case SelfHostParallelBackendDriver.plan(values, worker_limit) {
+            Err(reason) -> report(reason);
+            Ok(_) ->
+                let batches = job_batches(values, batch_width(values, worker_limit));
+                case Process.run_many(
+                    Process.batch(
+                        commands(worker_program, interface_manifest, batches, 3_600_000),
+                        worker_limit,
+                    ),
+                ) {
+                    Err(reason) -> report_process_error(reason);
+                    Ok(output) -> completions_succeeded(batches, output.completions)
+                }
+        }
+    }.

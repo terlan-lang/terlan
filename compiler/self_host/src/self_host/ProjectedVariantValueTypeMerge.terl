@@ -152,6 +152,40 @@ facts_at_offset(
             }
     }.
 
+variant_type_at(node_id: Int, byte_offset: Int, values: List[InferredTypeFact]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.node_id == node_id and value.byte_offset == byte_offset -> value.type_name;
+                true -> variant_type_at(node_id, byte_offset, rest)
+            }
+    }.
+
+authoritative_fact(
+    value: InferredTypeFact,
+    variants: List[InferredTypeFact],
+    references: List[BindingReference],
+): InferredTypeFact ->
+    if {
+        has_lexical_declaration(value.byte_offset, references) -> value;
+        true -> case variant_type_at(value.node_id, value.byte_offset, variants) {
+            None -> value;
+            Some(type_name) -> InferredTypeFact(value.node_id, Some(type_name), value.byte_offset)
+        }
+    }.
+
+authoritative_facts(
+    values: List[InferredTypeFact],
+    variants: List[InferredTypeFact],
+    references: List[BindingReference],
+): List[InferredTypeFact] ->
+    case values {
+        [] -> [];
+        [value | rest] ->
+            [authoritative_fact(value, variants, references) | authoritative_facts(rest, variants, references)]
+    }.
+
 missing_facts(
     values: List[InferredTypeFact],
     existing: List[InferredTypeFact],
@@ -178,13 +212,14 @@ pub merge(
     let typed = TypedModuleLowering.lower(ProjectedDeclarationLowering.lower(frontend.surface));
     let catalog = ProjectedPatternAuthority.catalog_with_interfaces(typed, interfaces);
     let facts = scan_bodies(frontend.bodies.values, 0, catalog).facts;
+    let authoritative = authoritative_facts(semantics.types.facts, facts, semantics.bindings.references);
     LocalSemanticResult(
         semantics.bindings,
         semantics.callables,
         TypeConstraintResolution(
             append(
-                semantics.types.facts,
-                missing_facts(facts, semantics.types.facts, semantics.bindings.references),
+                authoritative,
+                missing_facts(facts, authoritative, semantics.bindings.references),
             ),
             semantics.types.diagnostics,
         ),

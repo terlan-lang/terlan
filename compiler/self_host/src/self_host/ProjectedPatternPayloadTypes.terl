@@ -136,3 +136,10 @@ pub instantiate(contract: PatternConstructorContract, subject_type: String): Lis
         contract.parameter_types,
         bindings(contract.type_parameters, subject_arguments(subject_type)),
     ).
+
+/**
+ * Instantiates one record field type from a concrete record application.
+ */
+@pure
+pub instantiate_type(type_parameters: List[String], type_name: String, subject_type: String): String ->
+    substitute(type_name, bindings(type_parameters, subject_arguments(subject_type))).

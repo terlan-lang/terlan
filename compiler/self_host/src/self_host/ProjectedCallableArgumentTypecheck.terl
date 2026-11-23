@@ -5,7 +5,7 @@ module self_host.ProjectedCallableArgumentTypecheck.
 
 import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableResolution, ResolvedCallableUse}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
-import self_host.ProjectedTypeEquivalence.
+import self_host.{ProjectedCallableTypeMerge, ProjectedTypeEquivalence}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.String.
@@ -39,7 +39,7 @@ contains(values: List[String], target: String): Bool ->
 
 @pure
 type_matches(expected: String, actual: String): Bool ->
-    ProjectedTypeEquivalence.matches(expected, actual).
+    expected == "Dynamic" or ProjectedTypeEquivalence.matches(expected, actual).
 
 @pure
 base_type(value: String): String ->
@@ -100,10 +100,13 @@ argument_type(
     node_ids: List[Int],
     byte_offset: Int,
 ): Option[String] ->
-    case node_ids {
-        [node_id | _rest] -> fact_type_at_node(facts, node_id);
-        [] -> fact_type_at(facts, byte_offset, None)
-    }.
+    when {
+        [node_id | _rest] <- node_ids;
+        Some(type_name) <- fact_type_at_node(facts, node_id)
+    } else {
+        _ -> fact_type_at(facts, byte_offset, None)
+    };
+    Some(type_name).
 
 @pure
 remaining_node_ids(values: List[Int]): List[Int] ->
@@ -260,7 +263,7 @@ check_use(
         None -> output;
         Some(declaration) ->
             check_arguments(
-    declaration.parameter_types,
+    ProjectedCallableTypeMerge.instantiated_parameter_types(value, facts),
     value.source.argument_offsets,
     value.source.argument_node_ids,
     declaration,

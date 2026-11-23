@@ -1,24 +1,21 @@
-/** Finite-sum and constructor-pattern authority for projected case expressions. */
+/**
+ * Finite-sum and constructor-pattern authority for projected case expressions.
+ */
 module self_host.ProjectedPatternAuthority.
 
-import std.core.String.
-
-import self_host.DeclarationPayloadSyntax.{TypeDeclarationSyntax}.
-import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax, TypeDeclarationSyntax}.
 import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
+import self_host.ModuleInterfaceSyntax.{ExportedStructField, ExportedSymbol, ModuleInterface}.
 import self_host.ProjectedBodySyntax.{ProjectedBody}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
 import self_host.ProjectedPatternSemanticSyntax.{ProjectedPatternSemanticDiagnostic}.
-import self_host.TypedModuleSyntax.{ImportPayload, TypePayload, TypedDeclaration, TypedModule, ValuedUnionPayload}.
+import self_host.Syntax.{TypeDeclaration}.
+import self_host.TypedModuleSyntax.{ImportPayload, StructPayload, TypePayload, TypedDeclaration, TypedModule, ValuedUnionPayload}.
 import self_host.ValuedUnionSyntax.{ValuedUnionArmSyntax}.
-
+import self_host.{Delimited, ProjectedPatternSemantics}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.{Bool, Int, String}.
-import self_host.Delimited.
-import self_host.ProjectedPatternSemantics.
-import self_host.Syntax.{TypeDeclaration}.
-
 
 pub struct PatternConstructorContract {
     name: String,
@@ -37,6 +34,7 @@ pub constructor PatternConstructorContract {
             parameter_types: List.new[Option[String]](),
             owner: None,
         };
+
     (name: String, arity: Int, type_parameters: List[String], parameter_types: List[Option[String]]): PatternConstructorContract ->
         PatternConstructorContract {
             name: name,
@@ -45,6 +43,7 @@ pub constructor PatternConstructorContract {
             parameter_types: parameter_types,
             owner: None,
         };
+
     (name: String, arity: Int, type_parameters: List[String], parameter_types: List[Option[String]], owner: Option[String]): PatternConstructorContract ->
         PatternConstructorContract {
             name: name,
@@ -55,7 +54,6 @@ pub constructor PatternConstructorContract {
         }
 }.
 
-
 pub struct FiniteSumContract {
     name: String,
     members: List[String],
@@ -63,32 +61,58 @@ pub struct FiniteSumContract {
 
 pub constructor FiniteSumContract {
     (name: String, members: List[String]): FiniteSumContract ->
-        FiniteSumContract { name: name, members: members }
+        FiniteSumContract {name: name, members: members}
 }.
 
+pub struct PatternRecordContract {
+    name: String,
+    type_parameters: List[String],
+    fields: List[ExportedStructField],
+}.
+
+pub constructor PatternRecordContract {
+    (name: String, type_parameters: List[String], fields: List[ExportedStructField]): PatternRecordContract ->
+        PatternRecordContract {name: name, type_parameters: type_parameters, fields: fields}
+}.
 
 pub struct PatternAuthorityCatalog {
     constructors: List[PatternConstructorContract],
     sums: List[FiniteSumContract],
+    records: List[PatternRecordContract],
 }.
 
 pub constructor PatternAuthorityCatalog {
     (constructors: List[PatternConstructorContract], sums: List[FiniteSumContract]): PatternAuthorityCatalog ->
-        PatternAuthorityCatalog { constructors: constructors, sums: sums }
-}.
+        PatternAuthorityCatalog {
+            constructors: constructors,
+            sums: sums,
+            records: List.new[PatternRecordContract](),
+        };
 
+    (constructors: List[PatternConstructorContract], sums: List[FiniteSumContract], records: List[PatternRecordContract]): PatternAuthorityCatalog ->
+        PatternAuthorityCatalog {constructors: constructors, sums: sums, records: records}
+}.
 
 @pure
 append[T](left: List[T], right: List[T]): List[T] ->
-    case left { [] -> right; [value | rest] -> [value | append(rest, right)] }.
+    case left {
+        [] -> right;
+        [value | rest] -> [value | append(rest, right)]
+    }.
 
 @pure
 contains(values: List[String], expected: String): Bool ->
-    case values { [] -> false; [value | rest] -> value == expected or contains(rest, expected) }.
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
 
 @pure
 last_part(values: List[String], output: String): String ->
-    case values { [] -> output; [value | rest] -> last_part(rest, value) }.
+    case values {
+        [] -> output;
+        [value | rest] -> last_part(rest, value)
+    }.
 
 @pure
 unqualified(value: String): String ->
@@ -103,7 +127,8 @@ type_base_at(value: String, index: Int): String ->
     }.
 
 @pure
-type_base(value: String): String -> type_base_at(String.trim(value), 0).
+type_base(value: String): String ->
+    type_base_at(String.trim(value), 0).
 
 @pure
 payload_part(value: String): Int ->
@@ -125,10 +150,7 @@ payload_arity_text(value: String): Int ->
     let text = String.trim(value);
     if {
         not String.starts_with(text, "{") or not String.ends_with(text, "}") -> 0;
-        true -> payload_arity_parts(Delimited.split_top_level(
-            text.utf8_slice(1, text.byte_size() - 2),
-            44,
-        ))
+        true -> payload_arity_parts(Delimited.split_top_level(text.utf8_slice(1, text.byte_size() - 2), 44))
     }.
 
 @pure
@@ -136,37 +158,33 @@ payload_type(value: String): Option[String] ->
     let text = String.trim(value);
     if {
         text == "" or String.starts_with(text, "Atom[") -> None;
-        true ->
-            let colon = Delimited.top_level_byte(text, 58);
-            if {
-                colon < 0 -> Some(text);
-                true -> Some(String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)))
-            }
+        true -> let colon = Delimited.top_level_byte(text, 58);
+        if {
+            colon < 0 -> Some(text);
+            true -> Some(String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)))
+        }
     }.
 
 @pure
 payload_types(values: List[String]): List[Option[String]] ->
     case values {
         [] -> List.new[Option[String]]();
-        [value | rest] -> case payload_type(value) {
-            None -> payload_types(rest);
-            Some(name) -> [Some(name) | payload_types(rest)]
-        }
+        [value | rest] ->
+            case payload_type(value) {
+                None -> payload_types(rest);
+                Some(name) -> [Some(name) | payload_types(rest)]
+            }
     }.
 
 @pure
 constructor_payload_types(value: TypeDeclarationSyntax): List[Option[String]] ->
     if {
         not value.has_representation or not value.representation.valid -> List.new[Option[String]]();
-        true ->
-            let text = String.trim(value.representation.syntax.text);
-            if {
-                not String.starts_with(text, "{") or not String.ends_with(text, "}") -> List.new[Option[String]]();
-                true -> payload_types(Delimited.split_top_level(
-                    text.utf8_slice(1, text.byte_size() - 2),
-                    44,
-                ))
-            }
+        true -> let text = String.trim(value.representation.syntax.text);
+        if {
+            not String.starts_with(text, "{") or not String.ends_with(text, "}") -> List.new[Option[String]]();
+            true -> payload_types(Delimited.split_top_level(text.utf8_slice(1, text.byte_size() - 2), 44))
+        }
     }.
 
 @pure
@@ -178,12 +196,13 @@ type_constructor(value: TypeDeclarationSyntax): PatternConstructorContract ->
 type_members(value: TypeDeclarationSyntax): List[String] ->
     if {
         not value.has_representation or not value.representation.valid -> List.new[String]();
-        true ->
-            let parts = Delimited.split_top_level(value.representation.syntax.text, 124);
-            if {
-                List.length(parts) < 2 -> List.new[String]();
-                true -> member_names(parts)
-            }
+        true -> let text = String.trim(value.representation.syntax.text);
+        let parts = Delimited.split_top_level(text, 124);
+        if {
+            String.starts_with(text, "{") -> List.new[String]();
+            List.length(parts) < 2 -> [type_base(text)];
+            true -> member_names(parts)
+        }
     }.
 
 @pure
@@ -195,7 +214,10 @@ member_names(values: List[String]): List[String] ->
 
 @pure
 arm_names(values: List[ValuedUnionArmSyntax]): List[String] ->
-    case values { [] -> List.new[String](); [value | rest] -> [value.name | arm_names(rest)] }.
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [value.name | arm_names(rest)]
+    }.
 
 @pure
 arm_constructors(values: List[ValuedUnionArmSyntax]): List[PatternConstructorContract] ->
@@ -217,8 +239,12 @@ declaration_sums(value: TypedDeclaration): List[FiniteSumContract] ->
     case value.payload {
         TypePayload(declaration) where declaration.valid ->
             let members = type_members(declaration);
-            if { members == [] -> List.new[FiniteSumContract](); true -> [FiniteSumContract(declaration.name, members)] };
-        ValuedUnionPayload(union) where union.valid -> [FiniteSumContract(union.name, arm_names(union.arms))];
+            if {
+                members == [] -> List.new[FiniteSumContract]();
+                true -> [FiniteSumContract(declaration.name, members)]
+            };
+        ValuedUnionPayload(union) where union.valid ->
+            [FiniteSumContract(union.name, arm_names(union.arms))];
         _ -> List.new[FiniteSumContract]()
     }.
 
@@ -230,37 +256,207 @@ constructors(values: List[TypedDeclaration]): List[PatternConstructorContract] -
     }.
 
 @pure
+constructor_owner(name: String, values: List[FiniteSumContract]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                contains(value.members, name) -> Some(value.name);
+                true -> constructor_owner(name, rest)
+            }
+    }.
+
+@pure
+constructor_type_parameters(
+    name: String,
+    values: List[PatternConstructorContract],
+    fallback: List[String],
+): List[String] ->
+    case values {
+        [] -> fallback;
+        [value | rest] ->
+            if {
+                value.name == name -> value.type_parameters;
+                true -> constructor_type_parameters(name, rest, fallback)
+            }
+    }.
+
+@pure
+owned_constructor(
+    value: PatternConstructorContract,
+    sums: List[FiniteSumContract],
+    constructors: List[PatternConstructorContract],
+): PatternConstructorContract ->
+    when {
+        None <- value.owner;
+        Some(owner) <- constructor_owner(value.name, sums)
+    } else {
+        _ -> value
+    };
+    PatternConstructorContract(
+        value.name,
+        value.arity,
+        constructor_type_parameters(owner, constructors, value.type_parameters),
+        value.parameter_types,
+        Some(owner),
+    ).
+
+@pure
+owned_constructors(
+    values: List[PatternConstructorContract],
+    sums: List[FiniteSumContract],
+    constructors: List[PatternConstructorContract],
+): List[PatternConstructorContract] ->
+    case values {
+        [] -> List.new[PatternConstructorContract]();
+        [value | rest] ->
+            [owned_constructor(value, sums, constructors) | owned_constructors(rest, sums, constructors)]
+    }.
+
+@pure
 sums(values: List[TypedDeclaration]): List[FiniteSumContract] ->
     case values {
         [] -> List.new[FiniteSumContract]();
         [value | rest] -> append(declaration_sums(value), sums(rest))
     }.
 
-/** Derives finite-sum and constructor contracts from typed declarations. */
+@pure
+record_field(value: String): List[ExportedStructField] ->
+    let text = String.trim(value);
+    let colon = Delimited.top_level_byte(text, 58);
+    if {
+        colon < 0 -> List.new[ExportedStructField]();
+        true -> [
+            ExportedStructField(
+                String.trim(text.utf8_slice(0, colon)),
+                Some(String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1))),
+            ),
+        ]
+    }.
+
+@pure
+record_fields_at(values: List[String]): List[ExportedStructField] ->
+    case values {
+        [] -> List.new[ExportedStructField]();
+        [value | rest] -> append(record_field(value), record_fields_at(rest))
+    }.
+
+@pure
+type_record(value: TypeDeclarationSyntax): List[PatternRecordContract] ->
+    if {
+        not value.has_representation or not value.representation.valid -> List.new[PatternRecordContract]();
+        true -> let text = String.trim(value.representation.syntax.text);
+        if {
+            not String.starts_with(text, "{") or not String.ends_with(text, "}") -> List.new[PatternRecordContract]();
+            true -> let fields =
+                record_fields_at(
+                    Delimited.split_top_level(text.utf8_slice(1, text.byte_size() - 2), 44),
+                );
+            if {
+                fields == [] -> List.new[PatternRecordContract]();
+                true -> [PatternRecordContract(value.name, value.type_parameters, fields)]
+            }
+        }
+    }.
+
+@pure
+struct_record_fields(values: List[StructFieldSyntax]): List[ExportedStructField] ->
+    case values {
+        [] -> List.new[ExportedStructField]();
+        [value | rest] ->
+            if {
+                value.is_private -> struct_record_fields(rest);
+                true -> [ExportedStructField(
+    value.name,
+    if {
+        value.annotation.valid -> Some(value.annotation.syntax.text);
+        true -> None
+    },
+) | struct_record_fields(rest)]
+            }
+    }.
+
+@pure
+declaration_records(value: TypedDeclaration): List[PatternRecordContract] ->
+    case value.payload {
+        TypePayload(declaration) where declaration.valid -> type_record(declaration);
+        StructPayload(layout) where layout.valid ->
+            [
+                PatternRecordContract(
+                    layout.name,
+                    List.new[String](),
+                    struct_record_fields(layout.fields),
+                ),
+            ];
+        _ -> List.new[PatternRecordContract]()
+    }.
+
+@pure
+records(values: List[TypedDeclaration]): List[PatternRecordContract] ->
+    case values {
+        [] -> List.new[PatternRecordContract]();
+        [value | rest] -> append(declaration_records(value), records(rest))
+    }.
+
+/**
+ * Derives finite-sum and constructor contracts from typed declarations.
+ */
 @pure
 pub catalog(typed_module: TypedModule): PatternAuthorityCatalog ->
-    PatternAuthorityCatalog(constructors(typed_module.declarations), sums(typed_module.declarations)).
+    let local_sums = sums(typed_module.declarations);
+    let local_constructors = constructors(typed_module.declarations);
+    PatternAuthorityCatalog(
+        owned_constructors(local_constructors, local_sums, local_constructors),
+        local_sums,
+        records(typed_module.declarations),
+    ).
 
 @pure
 owned_type_symbol(value: ExportedSymbol): Bool ->
     value.class == TypeDeclaration and value.owner != None.
 
 @pure
-interface_constructors(values: List[ExportedSymbol]): List[PatternConstructorContract] ->
+interface_type_parameters(
+    name: String,
+    values: List[ExportedSymbol],
+    fallback: List[String],
+): List[String] ->
+    case values {
+        [] -> fallback;
+        [value | rest] ->
+            if {
+                value.name == name and value.class == TypeDeclaration and value.owner == None -> value.type_parameters;
+                true -> interface_type_parameters(name, rest, fallback)
+            }
+    }.
+
+@pure
+interface_constructors_at(
+    values: List[ExportedSymbol],
+    symbols: List[ExportedSymbol],
+): List[PatternConstructorContract] ->
     case values {
         [] -> List.new[PatternConstructorContract]();
-        [value | rest] -> if {
-            owned_type_symbol(value) -> [PatternConstructorContract(
-                value.name,
-                value.arity,
-                value.type_parameters,
-                value.parameter_types,
-                value.owner,
-            )
-                | interface_constructors(rest)];
-            true -> interface_constructors(rest)
-        }
+        [value | rest] ->
+            if {
+                not owned_type_symbol(value) -> interface_constructors_at(rest, symbols);
+                true -> case value.owner {
+                    None -> interface_constructors_at(rest, symbols);
+                    Some(owner) ->
+                        [PatternConstructorContract(
+    value.name,
+    value.arity,
+    interface_type_parameters(owner, symbols, value.type_parameters),
+    value.parameter_types,
+    value.owner,
+) | interface_constructors_at(rest, symbols)]
+                }
+            }
     }.
+
+@pure
+interface_constructors(values: List[ExportedSymbol]): List[PatternConstructorContract] ->
+    interface_constructors_at(values, values).
 
 @pure
 add_sum_member(
@@ -270,13 +466,17 @@ add_sum_member(
 ): List[FiniteSumContract] ->
     case values {
         [] -> [FiniteSumContract(owner, [member])];
-        [value | rest] -> if {
-            value.name == owner -> [FiniteSumContract(
-                owner,
-                if { contains(value.members, member) -> value.members; true -> append(value.members, [member]) },
-            ) | rest];
-            true -> [value | add_sum_member(owner, member, rest)]
-        }
+        [value | rest] ->
+            if {
+                value.name == owner -> [FiniteSumContract(
+    owner,
+    if {
+        contains(value.members, member) -> value.members;
+        true -> append(value.members, [member])
+    },
+) | rest];
+                true -> [value | add_sum_member(owner, member, rest)]
+            }
     }.
 
 @pure
@@ -286,35 +486,60 @@ interface_sums_at(
 ): List[FiniteSumContract] ->
     case values {
         [] -> output;
-        [value | rest] -> if {
-            not owned_type_symbol(value) -> interface_sums_at(rest, output);
-            true -> case value.owner {
-                Some(owner) -> interface_sums_at(rest, add_sum_member(owner, value.name, output));
-                None -> interface_sums_at(rest, output)
+        [value | rest] ->
+            if {
+                not owned_type_symbol(value) -> interface_sums_at(rest, output);
+                true -> case value.owner {
+                    Some(owner) ->
+                        interface_sums_at(rest, add_sum_member(owner, value.name, output));
+                    None -> interface_sums_at(rest, output)
+                }
             }
-        }
     }.
 
 @pure
 interfaces_constructors(values: List[ModuleInterface]): List[PatternConstructorContract] ->
     case values {
         [] -> List.new[PatternConstructorContract]();
-        [value | rest] -> append(interface_constructors(value.symbols), interfaces_constructors(rest))
+        [value | rest] ->
+            append(interface_constructors(value.symbols), interfaces_constructors(rest))
     }.
 
 @pure
 interfaces_sums(values: List[ModuleInterface]): List[FiniteSumContract] ->
     case values {
         [] -> List.new[FiniteSumContract]();
-        [value | rest] -> append(
-            interface_sums_at(value.symbols, List.new[FiniteSumContract]()),
-            interfaces_sums(rest),
-        )
+        [value | rest] ->
+            append(
+                interface_sums_at(value.symbols, List.new[FiniteSumContract]()),
+                interfaces_sums(rest),
+            )
+    }.
+
+@pure
+interface_records(values: List[ExportedSymbol]): List[PatternRecordContract] ->
+    case values {
+        [] -> List.new[PatternRecordContract]();
+        [value | rest] ->
+            if {
+                value.owner == None and value.record_fields != [] -> [PatternRecordContract(value.name, value.type_parameters, value.record_fields) | interface_records(rest)];
+                true -> interface_records(rest)
+            }
+    }.
+
+@pure
+interfaces_records(values: List[ModuleInterface]): List[PatternRecordContract] ->
+    case values {
+        [] -> List.new[PatternRecordContract]();
+        [value | rest] -> append(interface_records(value.symbols), interfaces_records(rest))
     }.
 
 @pure
 selected_item(name: String, values: List[ImportItemSyntax]): Bool ->
-    case values { [] -> false; [value | rest] -> value.name == name or selected_item(name, rest) }.
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or selected_item(name, rest)
+    }.
 
 @pure
 selected_symbol(value: ImportSyntax, symbol: ExportedSymbol): Bool ->
@@ -345,16 +570,11 @@ direct_symbol(value: ImportSyntax, module_name: String, symbol_name: String): Bo
     value.module_name == String.concat([module_name, ".", symbol_name]).
 
 @pure
-import_exposes(
-    value: ImportSyntax,
-    module_name: String,
-    symbol: ExportedSymbol,
-): Bool ->
-    value.valid and (
-        (value.module_name == module_name and selected_symbol(value, symbol))
-            or selected_submodule(module_name, value)
-            or direct_symbol(value, module_name, symbol.name)
-    ).
+import_exposes(value: ImportSyntax, module_name: String, symbol: ExportedSymbol): Bool ->
+    value.valid
+        and (value.module_name == module_name and selected_symbol(value, symbol)
+    or selected_submodule(module_name, value)
+    or direct_symbol(value, module_name, symbol.name)).
 
 @pure
 declarations_expose(
@@ -364,11 +584,13 @@ declarations_expose(
 ): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> case value.payload {
-            ImportPayload(imported) -> import_exposes(imported, module_name, symbol)
-                or declarations_expose(rest, module_name, symbol);
-            _ -> declarations_expose(rest, module_name, symbol)
-        }
+        [value | rest] ->
+            case value.payload {
+                ImportPayload(imported) ->
+                    import_exposes(imported, module_name, symbol)
+                        or declarations_expose(rest, module_name, symbol);
+                _ -> declarations_expose(rest, module_name, symbol)
+            }
     }.
 
 @pure
@@ -379,11 +601,11 @@ visible_symbols(
 ): List[ExportedSymbol] ->
     case values {
         [] -> List.new[ExportedSymbol]();
-        [value | rest] -> if {
-            declarations_expose(declarations, module_name, value) -> [value
-                | visible_symbols(rest, module_name, declarations)];
-            true -> visible_symbols(rest, module_name, declarations)
-        }
+        [value | rest] ->
+            if {
+                declarations_expose(declarations, module_name, value) -> [value | visible_symbols(rest, module_name, declarations)];
+                true -> visible_symbols(rest, module_name, declarations)
+            }
     }.
 
 @pure
@@ -397,24 +619,102 @@ visible_interfaces(
             let symbols = visible_symbols(value.symbols, value.module_name, declarations);
             if {
                 symbols == [] -> visible_interfaces(rest, declarations);
-                true -> [ModuleInterface(value.schema, value.module_name, symbols)
-                    | visible_interfaces(rest, declarations)]
+                true -> [ModuleInterface(value.schema, value.module_name, symbols) | visible_interfaces(rest, declarations)]
             }
     }.
 
-/** Extends local pattern contracts with already-filtered visible interfaces. */
+@pure
+has_constructor(name: String, values: List[PatternConstructorContract]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or has_constructor(name, rest)
+    }.
+
+@pure
+unshadowed_constructors(
+    values: List[PatternConstructorContract],
+    local: List[PatternConstructorContract],
+): List[PatternConstructorContract] ->
+    case values {
+        [] -> List.new[PatternConstructorContract]();
+        [value | rest] ->
+            if {
+                has_constructor(value.name, local) -> unshadowed_constructors(rest, local);
+                true -> [value | unshadowed_constructors(rest, local)]
+            }
+    }.
+
+@pure
+unshadowed_members(values: List[String], local: List[PatternConstructorContract]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] ->
+            if {
+                has_constructor(value, local) -> unshadowed_members(rest, local);
+                true -> [value | unshadowed_members(rest, local)]
+            }
+    }.
+
+@pure
+unshadowed_sums(
+    values: List[FiniteSumContract],
+    local: List[PatternConstructorContract],
+): List[FiniteSumContract] ->
+    case values {
+        [] -> List.new[FiniteSumContract]();
+        [value | rest] ->
+            let members = unshadowed_members(value.members, local);
+            if {
+                members == [] -> unshadowed_sums(rest, local);
+                true -> [FiniteSumContract(value.name, members) | unshadowed_sums(rest, local)]
+            }
+    }.
+
+@pure
+has_record(name: String, values: List[PatternRecordContract]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value.name == name or has_record(name, rest)
+    }.
+
+@pure
+unshadowed_records(
+    values: List[PatternRecordContract],
+    local: List[PatternRecordContract],
+): List[PatternRecordContract] ->
+    case values {
+        [] -> List.new[PatternRecordContract]();
+        [value | rest] ->
+            if {
+                has_record(value.name, local) -> unshadowed_records(rest, local);
+                true -> [value | unshadowed_records(rest, local)]
+            }
+    }.
+
+/**
+ * Extends local pattern contracts with already-filtered visible interfaces.
+ */
 @pure
 pub catalog_from_visible_interfaces(
     typed_module: TypedModule,
     interfaces: List[ModuleInterface],
 ): PatternAuthorityCatalog ->
     let local = catalog(typed_module);
+    let imported_constructors = interfaces_constructors(interfaces);
+    let imported_sums = interfaces_sums(interfaces);
+    let imported_records = interfaces_records(interfaces);
     PatternAuthorityCatalog(
-        append(local.constructors, interfaces_constructors(interfaces)),
-        append(local.sums, interfaces_sums(interfaces)),
+        append(
+            local.constructors,
+            unshadowed_constructors(imported_constructors, local.constructors),
+        ),
+        append(local.sums, unshadowed_sums(imported_sums, local.constructors)),
+        append(local.records, unshadowed_records(imported_records, local.records)),
     ).
 
-/** Applies source import visibility before extending local pattern contracts. */
+/**
+ * Applies source import visibility before extending local pattern contracts.
+ */
 @pure
 pub catalog_with_interfaces(
     typed_module: TypedModule,
@@ -426,33 +726,49 @@ pub catalog_with_interfaces(
     ).
 
 @pure
-find_constructor(name: String, values: List[PatternConstructorContract]): Option[PatternConstructorContract] ->
+find_constructor(
+    name: String,
+    values: List[PatternConstructorContract],
+): Option[PatternConstructorContract] ->
     case values {
         [] -> None;
-        [value | rest] -> if { value.name == name -> Some(value); true -> find_constructor(name, rest) }
+        [value | rest] ->
+            if {
+                value.name == name -> Some(value);
+                true -> find_constructor(name, rest)
+            }
     }.
 
 @pure
 sum_owner(name: String, values: List[FiniteSumContract], found: String): String ->
     case values {
         [] -> found;
-        [value | rest] -> if {
-            not contains(value.members, name) -> sum_owner(name, rest, found);
-            found == "" -> sum_owner(name, rest, value.name);
-            found == value.name -> sum_owner(name, rest, found);
-            true -> "<ambiguous>"
-        }
+        [value | rest] ->
+            if {
+                not contains(value.members, name) -> sum_owner(name, rest, found);
+                found == "" -> sum_owner(name, rest, value.name);
+                found == value.name -> sum_owner(name, rest, found);
+                true -> "<ambiguous>"
+            }
     }.
 
 @pure
 find_sum(name: String, values: List[FiniteSumContract]): Option[FiniteSumContract] ->
     case values {
         [] -> None;
-        [value | rest] -> if { value.name == name -> Some(value); true -> find_sum(name, rest) }
+        [value | rest] ->
+            if {
+                value.name == name -> Some(value);
+                true -> find_sum(name, rest)
+            }
     }.
 
 @pure
-diagnostic(head: String, value: ProjectedExpressionNode, message: String): ProjectedPatternSemanticDiagnostic ->
+diagnostic(
+    head: String,
+    value: ProjectedExpressionNode,
+    message: String,
+): ProjectedPatternSemanticDiagnostic ->
     ProjectedPatternSemanticDiagnostic(head, value.start_byte, value.end_byte, message).
 
 @pure
@@ -461,23 +777,33 @@ constructor_diagnostics(
     catalog: PatternAuthorityCatalog,
     head: String,
 ): List[ProjectedPatternSemanticDiagnostic] ->
-    let own = if {
-        value.kind != "constructor-pattern" -> List.new[ProjectedPatternSemanticDiagnostic]();
-        true -> case find_constructor(value.text, catalog.constructors) {
-            None -> List.new[ProjectedPatternSemanticDiagnostic]();
-            Some(contract) -> if {
-                List.length(value.children) == contract.arity -> List.new[ProjectedPatternSemanticDiagnostic]();
-                true -> [diagnostic(head, value, String.concat([
-                    "constructor pattern `",
-                    value.text,
-                    "` expects ",
-                    Int.to_string(contract.arity),
-                    " fields, found ",
-                    Int.to_string(List.length(value.children)),
-                ]))]
+    let own =
+        if {
+            value.kind != "constructor-pattern" -> List.new[ProjectedPatternSemanticDiagnostic]();
+            true -> case find_constructor(value.text, catalog.constructors) {
+                None -> List.new[ProjectedPatternSemanticDiagnostic]();
+                Some(contract) ->
+                    if {
+                        List.length(value.children) == contract.arity -> List.new[ProjectedPatternSemanticDiagnostic]();
+                        true -> [
+                            diagnostic(
+                                head,
+                                value,
+                                String.concat(
+                                    [
+                                        "constructor pattern `",
+                                        value.text,
+                                        "` expects ",
+                                        Int.to_string(contract.arity),
+                                        " fields, found ",
+                                        Int.to_string(List.length(value.children)),
+                                    ],
+                                ),
+                            ),
+                        ]
+                    }
             }
-        }
-    };
+        };
     append(own, constructor_children_diagnostics(value.children, catalog, head)).
 
 @pure
@@ -488,15 +814,19 @@ constructor_children_diagnostics(
 ): List[ProjectedPatternSemanticDiagnostic] ->
     case values {
         [] -> List.new[ProjectedPatternSemanticDiagnostic]();
-        [value | rest] -> append(
-            constructor_diagnostics(value, catalog, head),
-            constructor_children_diagnostics(rest, catalog, head),
-        )
+        [value | rest] ->
+            append(
+                constructor_diagnostics(value, catalog, head),
+                constructor_children_diagnostics(rest, catalog, head),
+            )
     }.
 
 @pure
 clause_pattern(value: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
-    case value.children { [pattern | _] -> Some(unwrapped_pattern(pattern)); [] -> None }.
+    case value.children {
+        [pattern | _] -> Some(unwrapped_pattern(pattern));
+        [] -> None
+    }.
 
 @pure
 unwrapped_pattern(value: ProjectedExpressionNode): ProjectedExpressionNode ->
@@ -512,49 +842,61 @@ unwrapped_pattern(value: ProjectedExpressionNode): ProjectedExpressionNode ->
 first_known_owner(clauses: List[ProjectedExpressionNode], sums: List[FiniteSumContract]): String ->
     case clauses {
         [] -> "";
-        [value | rest] -> case clause_pattern(value) {
-            Some(pattern) where pattern.kind == "constructor-pattern" ->
-                let owner = sum_owner(pattern.text, sums, "");
-                if { owner == "" -> first_known_owner(rest, sums); true -> owner };
-            _ -> first_known_owner(rest, sums)
-        }
+        [value | rest] ->
+            case clause_pattern(value) {
+                Some(pattern) where pattern.kind == "constructor-pattern" ->
+                    let owner = sum_owner(pattern.text, sums, "");
+                    if {
+                        owner == "" -> first_known_owner(rest, sums);
+                        true -> owner
+                    };
+                _ -> first_known_owner(rest, sums)
+            }
     }.
 
 @pure
-covered_members(clauses: List[ProjectedExpressionNode], owner: String, catalog: PatternAuthorityCatalog): List[String] ->
+covered_members(
+    clauses: List[ProjectedExpressionNode],
+    owner: String,
+    catalog: PatternAuthorityCatalog,
+): List[String] ->
     case clauses {
         [] -> List.new[String]();
-        [value | rest] -> case clause_pattern(value) {
-            Some(pattern)
-                where pattern.kind == "constructor-pattern"
-                    and value.text != "where"
-                    and sum_owner(pattern.text, catalog.sums, "") == owner ->
-                if {
-                    contains(covered_members(rest, owner, catalog), pattern.text) -> covered_members(rest, owner, catalog);
-                    true -> [pattern.text | covered_members(rest, owner, catalog)]
-                };
-            _ -> covered_members(rest, owner, catalog)
-        }
+        [value | rest] ->
+            case clause_pattern(value) {
+                Some(pattern) where pattern.kind == "constructor-pattern"
+    and value.text != "where"
+    and sum_owner(pattern.text, catalog.sums, "") == owner ->
+                    if {
+                        contains(covered_members(rest, owner, catalog), pattern.text) -> covered_members(rest, owner, catalog);
+                        true -> [pattern.text | covered_members(rest, owner, catalog)]
+                    };
+                _ -> covered_members(rest, owner, catalog)
+            }
     }.
 
 @pure
 has_catch_all(clauses: List[ProjectedExpressionNode]): Bool ->
     case clauses {
         [] -> false;
-        [value | rest] -> case clause_pattern(value) {
-            Some(pattern) -> (value.text != "where" and ProjectedPatternSemantics.irrefutable(pattern)) or has_catch_all(rest);
-            None -> has_catch_all(rest)
-        }
+        [value | rest] ->
+            case clause_pattern(value) {
+                Some(pattern) ->
+                    value.text != "where" and ProjectedPatternSemantics.irrefutable(pattern)
+                        or has_catch_all(rest);
+                None -> has_catch_all(rest)
+            }
     }.
 
 @pure
 missing_members(values: List[String], covered: List[String]): List[String] ->
     case values {
         [] -> List.new[String]();
-        [value | rest] -> if {
-            contains(covered, value) -> missing_members(rest, covered);
-            true -> [value | missing_members(rest, covered)]
-        }
+        [value | rest] ->
+            if {
+                contains(covered, value) -> missing_members(rest, covered);
+                true -> [value | missing_members(rest, covered)]
+            }
     }.
 
 @pure
@@ -566,21 +908,30 @@ mixed_owner_diagnostic(
 ): List[ProjectedPatternSemanticDiagnostic] ->
     case clauses {
         [] -> List.new[ProjectedPatternSemanticDiagnostic]();
-        [value | rest] -> case clause_pattern(value) {
-            Some(pattern) where pattern.kind == "constructor-pattern" ->
-                let candidate = sum_owner(pattern.text, catalog.sums, "");
-                if {
-                    candidate == "" or candidate == owner -> mixed_owner_diagnostic(rest, owner, catalog, head);
-                    true -> [diagnostic(head, pattern, String.concat([
-                        "constructor pattern `",
-                        pattern.text,
-                        "` does not belong to finite sum `",
-                        owner,
-                        "`",
-                    ]))]
-                };
-            _ -> mixed_owner_diagnostic(rest, owner, catalog, head)
-        }
+        [value | rest] ->
+            case clause_pattern(value) {
+                Some(pattern) where pattern.kind == "constructor-pattern" ->
+                    let candidate = sum_owner(pattern.text, catalog.sums, "");
+                    if {
+                        candidate == "" or candidate == owner -> mixed_owner_diagnostic(rest, owner, catalog, head);
+                        true -> [
+                            diagnostic(
+                                head,
+                                pattern,
+                                String.concat(
+                                    [
+                                        "constructor pattern `",
+                                        pattern.text,
+                                        "` does not belong to finite sum `",
+                                        owner,
+                                        "`",
+                                    ],
+                                ),
+                            ),
+                        ]
+                    };
+                _ -> mixed_owner_diagnostic(rest, owner, catalog, head)
+            }
     }.
 
 @pure
@@ -617,9 +968,11 @@ pattern_expected_type(
         value.kind == "string-capture-pattern" -> Some("String");
         value.kind == "list-pattern" or value.kind == "list-cons-pattern" -> Some("List");
         value.kind == "tuple-pattern" -> Some("Tuple");
-        value.kind == "constructor-pattern" ->
-            let owner = sum_owner(value.text, catalog.sums, "");
-            if { owner == "" or owner == "<ambiguous>" -> None; true -> Some(owner) };
+        value.kind == "constructor-pattern" -> let owner = sum_owner(value.text, catalog.sums, "");
+        if {
+            owner == "" or owner == "<ambiguous>" -> None;
+            true -> Some(owner)
+        };
         true -> None
     }.
 
@@ -640,23 +993,23 @@ clause_type_diagnostics(
 ): List[ProjectedPatternSemanticDiagnostic] ->
     case clauses {
         [] -> List.new[ProjectedPatternSemanticDiagnostic]();
-        [value | rest] -> case clause_pattern(value) {
-            None -> clause_type_diagnostics(rest, subject_type, catalog, head);
-            Some(pattern) -> case pattern_expected_type(pattern, catalog) {
-                None -> clause_type_diagnostics(rest, subject_type, catalog, head);
-                Some(expected) -> if {
-                    compatible_pattern_type(subject_type, expected) ->
-                        clause_type_diagnostics(rest, subject_type, catalog, head);
-                    true -> [diagnostic(head, pattern, String.concat([
-                        "pattern expects `",
-                        expected,
-                        "` but case subject has type `",
-                        subject_type,
-                        "`",
-                    ])) | clause_type_diagnostics(rest, subject_type, catalog, head)]
-                }
+        [value | rest] ->
+            when {
+                Some(pattern) <- clause_pattern(value);
+                Some(expected) <- pattern_expected_type(pattern, catalog)
+            } else {
+                _ -> clause_type_diagnostics(rest, subject_type, catalog, head)
+            };
+            if {
+                compatible_pattern_type(subject_type, expected) -> clause_type_diagnostics(rest, subject_type, catalog, head);
+                true -> [diagnostic(
+    head,
+    pattern,
+    String.concat(
+        ["pattern expects `", expected, "` but case subject has type `", subject_type, "`"],
+    ),
+) | clause_type_diagnostics(rest, subject_type, catalog, head)]
             }
-        }
     }.
 
 @pure
@@ -682,31 +1035,40 @@ coverage_diagnostics(
     if {
         owner == "" -> List.new[ProjectedPatternSemanticDiagnostic]();
         owner == "<ambiguous>" -> [diagnostic(head, value, "constructor pattern has ambiguous finite-sum ownership")];
-        true ->
-            let mixed = mixed_owner_diagnostic(clauses, owner, catalog, head);
-            if {
-                mixed != [] or has_catch_all(clauses) -> mixed;
-                true -> case find_sum(owner, catalog.sums) {
-                    None -> mixed;
-                    Some(sum) ->
-                        let missing = missing_members(
-                            sum.members,
-                            covered_members(clauses, owner, catalog),
-                        );
-                        if {
-                            missing == [] -> mixed;
-                            true -> append(mixed, [diagnostic(head, value, String.concat([
-                                "non-exhaustive case for `",
-                                owner,
-                                "`; missing ",
-                                String.join(missing, ", "),
-                            ]))])
-                        }
-                }
+        true -> let mixed = mixed_owner_diagnostic(clauses, owner, catalog, head);
+        if {
+            mixed != [] or has_catch_all(clauses) -> mixed;
+            true -> case find_sum(owner, catalog.sums) {
+                None -> mixed;
+                Some(sum) ->
+                    let missing = missing_members(sum.members, covered_members(clauses, owner, catalog));
+                    if {
+                        missing == [] -> mixed;
+                        true -> append(
+                            mixed,
+                            [
+                                diagnostic(
+                                    head,
+                                    value,
+                                    String.concat(
+                                        [
+                                            "non-exhaustive case for `",
+                                            owner,
+                                            "`; missing ",
+                                            String.join(missing, ", "),
+                                        ],
+                                    ),
+                                ),
+                            ],
+                        )
+                    }
             }
+        }
     }.
 
-/** Checks one projected case against an explicit constructor catalog. */
+/**
+ * Checks one projected case against an explicit constructor catalog.
+ */
 @pure
 pub case_diagnostics(
     value: ProjectedExpressionNode,
@@ -733,7 +1095,10 @@ node_diagnostics(
     head: String,
 ): List[ProjectedPatternSemanticDiagnostic] ->
     append(
-        if { value.kind == "case" -> case_diagnostics(value, catalog, head); true -> List.new[ProjectedPatternSemanticDiagnostic]() },
+        if {
+            value.kind == "case" -> case_diagnostics(value, catalog, head);
+            true -> List.new[ProjectedPatternSemanticDiagnostic]()
+        },
         nodes_diagnostics(value.children, catalog, head),
     ).
 
@@ -745,32 +1110,44 @@ nodes_diagnostics(
 ): List[ProjectedPatternSemanticDiagnostic] ->
     case values {
         [] -> List.new[ProjectedPatternSemanticDiagnostic]();
-        [value | rest] -> append(
-            node_diagnostics(value, catalog, head),
-            nodes_diagnostics(rest, catalog, head),
-        )
+        [value | rest] ->
+            append(node_diagnostics(value, catalog, head), nodes_diagnostics(rest, catalog, head))
     }.
 
 @pure
-body_diagnostics(value: ProjectedBody, catalog: PatternAuthorityCatalog): List[ProjectedPatternSemanticDiagnostic] ->
+body_diagnostics(
+    value: ProjectedBody,
+    catalog: PatternAuthorityCatalog,
+): List[ProjectedPatternSemanticDiagnostic] ->
     case value.expression.node {
         None -> List.new[ProjectedPatternSemanticDiagnostic]();
         Some(node) -> node_diagnostics(node, catalog, value.declaration_head)
     }.
 
 @pure
-bodies_diagnostics(values: List[ProjectedBody], catalog: PatternAuthorityCatalog): List[ProjectedPatternSemanticDiagnostic] ->
+bodies_diagnostics(
+    values: List[ProjectedBody],
+    catalog: PatternAuthorityCatalog,
+): List[ProjectedPatternSemanticDiagnostic] ->
     case values {
         [] -> List.new[ProjectedPatternSemanticDiagnostic]();
-        [value | rest] -> append(body_diagnostics(value, catalog), bodies_diagnostics(rest, catalog))
+        [value | rest] ->
+            append(body_diagnostics(value, catalog), bodies_diagnostics(rest, catalog))
     }.
 
-/** Checks constructor arity, finite-sum consistency, and exhaustiveness. */
+/**
+ * Checks constructor arity, finite-sum consistency, and exhaustiveness.
+ */
 @pure
-pub check(typed_module: TypedModule, bodies: List[ProjectedBody]): List[ProjectedPatternSemanticDiagnostic] ->
+pub check(
+    typed_module: TypedModule,
+    bodies: List[ProjectedBody],
+): List[ProjectedPatternSemanticDiagnostic] ->
     bodies_diagnostics(bodies, catalog(typed_module)).
 
-/** Checks patterns against local declarations plus visible imported contracts. */
+/**
+ * Checks patterns against local declarations plus visible imported contracts.
+ */
 @pure
 pub check_with_interfaces(
     typed_module: TypedModule,

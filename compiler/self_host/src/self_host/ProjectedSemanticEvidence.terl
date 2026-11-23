@@ -1,10 +1,8 @@
-/** Stable semantic evidence shared by the Rust and self-hosted frontends. */
+/**
+ * Stable semantic evidence shared by the Rust and self-hosted frontends.
+ */
 module self_host.ProjectedSemanticEvidence.
 
-import std.core.String.
-
-
-import std.core.Option.{None, Option, Some}.
 import self_host.ModuleInterfaceSyntax.{ModuleInterface}.
 import self_host.ProjectedBindingSyntax.{BindingDeclaration, BindingDiagnostic, BindingReference}.
 import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
@@ -13,18 +11,24 @@ import self_host.ProjectedLocalSemanticSyntax.{LocalSemanticResult}.
 import self_host.ProjectedSignatureSyntax.{ProjectedCallableSignature, ProjectedParameterTree}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic}.
 import self_host.ProjectedTypeSyntax.{ProjectedTypeNode}.
-
-import self_host.ProjectedCallableCatalog.
-import self_host.ProjectedLocalSemantic.
+import self_host.{ProjectedCallableCatalog, ProjectedLocalSemantic}.
 import std.collections.List.
+import std.core.Option.{None, Option, Some}.
 import std.core.{Int, String}.
+
 @pure
 option_int(value: Option[Int]): String ->
-    case value { Some(offset) -> Int.to_string(offset); None -> "-1" }.
+    case value {
+        Some(offset) -> Int.to_string(offset);
+        None -> "-1"
+    }.
 
 @pure
 option_string(value: Option[String]): String ->
-    case value { Some(text) -> text; None -> "_" }.
+    case value {
+        Some(text) -> text;
+        None -> "_"
+    }.
 
 @pure
 reverse_at[T](values: List[T], output: List[T]): List[T] ->
@@ -34,16 +38,30 @@ reverse_at[T](values: List[T], output: List[T]): List[T] ->
     }.
 
 @pure
-reverse[T](values: List[T]): List[T] -> reverse_at(values, List.new[T]()).
+reverse[T](values: List[T]): List[T] ->
+    reverse_at(values, List.new[T]()).
 
 @pure
 callable_rows_at(values: List[CallableDeclaration], output: List[String]): List[String] ->
     case values {
         [] -> reverse(output);
-        [value | rest] -> callable_rows_at(rest, [String.concat([
-            "callable\t", value.name, "\t", Int.to_string(value.arity), "\t",
-            option_string(value.return_type), "\t", Int.to_string(value.byte_offset), "\n",
-        ]) | output])
+        [value | rest] ->
+            callable_rows_at(
+                rest,
+                [String.concat(
+    [
+        "callable\t",
+        value.name,
+        "\t",
+        Int.to_string(value.arity),
+        "\t",
+        option_string(value.return_type),
+        "\t",
+        Int.to_string(value.byte_offset),
+        "\n",
+    ],
+) | output],
+            )
     }.
 
 @pure
@@ -54,9 +72,11 @@ callable_rows(values: List[CallableDeclaration]): List[String] ->
 declaration_rows_at(values: List[BindingDeclaration], output: List[String]): List[String] ->
     case values {
         [] -> reverse(output);
-        [value | rest] -> declaration_rows_at(rest, [String.concat([
-            "declaration\t", value.name, "\t", Int.to_string(value.byte_offset), "\n",
-        ]) | output])
+        [value | rest] ->
+            declaration_rows_at(
+                rest,
+                [String.concat(["declaration\t", value.name, "\t", Int.to_string(value.byte_offset), "\n"]) | output],
+            )
     }.
 
 @pure
@@ -67,10 +87,21 @@ declaration_rows(values: List[BindingDeclaration]): List[String] ->
 reference_rows_at(values: List[BindingReference], output: List[String]): List[String] ->
     case values {
         [] -> reverse(output);
-        [value | rest] -> reference_rows_at(rest, [String.concat([
-            "reference\t", value.name, "\t", Int.to_string(value.byte_offset), "\t",
-            option_int(value.declaration_offset), "\n",
-        ]) | output])
+        [value | rest] ->
+            reference_rows_at(
+                rest,
+                [String.concat(
+    [
+        "reference\t",
+        value.name,
+        "\t",
+        Int.to_string(value.byte_offset),
+        "\t",
+        option_int(value.declaration_offset),
+        "\n",
+    ],
+) | output],
+            )
     }.
 
 @pure
@@ -81,9 +112,11 @@ reference_rows(values: List[BindingReference]): List[String] ->
 binding_diagnostic_rows_at(values: List[BindingDiagnostic], output: List[String]): List[String] ->
     case values {
         [] -> reverse(output);
-        [value | rest] -> binding_diagnostic_rows_at(rest, [String.concat([
-            "diagnostic\t", Int.to_string(value.byte_offset), "\n",
-        ]) | output])
+        [value | rest] ->
+            binding_diagnostic_rows_at(
+                rest,
+                [String.concat(["diagnostic\t", Int.to_string(value.byte_offset), "\n"]) | output],
+            )
     }.
 
 @pure
@@ -94,10 +127,21 @@ binding_diagnostic_rows(values: List[BindingDiagnostic]): List[String] ->
 fact_rows_at(values: List[InferredTypeFact], output: List[String]): List[String] ->
     case values {
         [] -> reverse(output);
-        [value | rest] -> fact_rows_at(rest, [String.concat([
-            "type\t", Int.to_string(value.node_id), "\t", Int.to_string(value.byte_offset), "\t",
-            option_string(value.type_name), "\n",
-        ]) | output])
+        [value | rest] ->
+            fact_rows_at(
+                rest,
+                [String.concat(
+    [
+        "type\t",
+        Int.to_string(value.node_id),
+        "\t",
+        Int.to_string(value.byte_offset),
+        "\t",
+        option_string(value.type_name),
+        "\n",
+    ],
+) | output],
+            )
     }.
 
 @pure
@@ -105,12 +149,17 @@ fact_rows(values: List[InferredTypeFact]): List[String] ->
     fact_rows_at(values, List.new[String]()).
 
 @pure
-type_diagnostic_rows_at(values: List[TypeConstraintDiagnostic], output: List[String]): List[String] ->
+type_diagnostic_rows_at(
+    values: List[TypeConstraintDiagnostic],
+    output: List[String],
+): List[String] ->
     case values {
         [] -> reverse(output);
-        [value | rest] -> type_diagnostic_rows_at(rest, [String.concat([
-            "type-diagnostic\t", value.code, "\t", Int.to_string(value.byte_offset), "\n",
-        ]) | output])
+        [value | rest] ->
+            type_diagnostic_rows_at(
+                rest,
+                [String.concat(["type-diagnostic\t", value.code, "\t", Int.to_string(value.byte_offset), "\n"]) | output],
+            )
     }.
 
 @pure
@@ -123,7 +172,10 @@ append_strings(left: List[String], right: List[String]): List[String] ->
 
 @pure
 signature_return_type(value: Option[ProjectedTypeNode]): Option[String] ->
-    case value { None -> Some("Dynamic"); Some(node) -> Some(node.text) }.
+    case value {
+        None -> Some("Dynamic");
+        Some(node) -> Some(node.text)
+    }.
 
 @pure
 signature_byte_offset(value: CallableDeclaration, signature: ProjectedCallableSignature): Int ->
@@ -141,7 +193,10 @@ parameter_count(values: List[ProjectedParameterTree]): Int ->
 
 @pure
 signature_parameter_type(value: ProjectedParameterTree): Option[String] ->
-    case value.annotation { Some(node) -> Some(node.text); None -> None }.
+    case value.annotation {
+        Some(node) -> Some(node.text);
+        None -> None
+    }.
 
 @pure
 signature_parameter_types(values: List[ProjectedParameterTree]): List[Option[String]] ->
@@ -157,9 +212,33 @@ signature_callables(
 ): List[CallableDeclaration] ->
     case values {
         [] -> List.new[CallableDeclaration]();
-        [value | rest] -> case signatures {
-            [] -> [value | rest];
-            [signature | signature_rest] -> [CallableDeclaration(
+        [value | rest] ->
+            [signature_callable(value, signatures) | signature_callables(rest, signatures)]
+    }.
+
+matching_signature(
+    value: CallableDeclaration,
+    signatures: List[ProjectedCallableSignature],
+): Option[ProjectedCallableSignature] ->
+    case signatures {
+        [] -> None;
+        [signature | rest] ->
+            if {
+                signature.name == value.name
+                    and parameter_count(signature.parameters) == value.arity
+                    and signature.name_start_byte == value.byte_offset -> Some(signature);
+                true -> matching_signature(value, rest)
+            }
+    }.
+
+signature_callable(
+    value: CallableDeclaration,
+    signatures: List[ProjectedCallableSignature],
+): CallableDeclaration ->
+    case matching_signature(value, signatures) {
+        None -> value;
+        Some(signature) ->
+            CallableDeclaration(
                 module_name = value.module_name,
                 name = value.name,
                 arity = parameter_count(signature.parameters),
@@ -168,63 +247,71 @@ signature_callables(
                 parameter_types = signature_parameter_types(signature.parameters),
                 return_type = signature_return_type(signature.return_type),
                 byte_offset = signature_byte_offset(value, signature),
-            ) | signature_callables(rest, signature_rest)]
-        }
+            )
     }.
 
-frontend_callables(frontend: ProjectedFrontendModule, interfaces: List[ModuleInterface]): List[CallableDeclaration] ->
+frontend_callables(
+    frontend: ProjectedFrontendModule,
+    interfaces: List[ModuleInterface],
+): List[CallableDeclaration] ->
     signature_callables(
         ProjectedCallableCatalog.build(frontend.backend, interfaces),
         frontend.signatures.callables,
     ).
 
 common_rows(semantics: LocalSemanticResult, callables: List[CallableDeclaration]): String ->
-    String.concat(["schema terlan.self-host.semantic-common/v1\n" | append_strings(
-        callable_rows(callables),
+    String.concat(
+        ["schema terlan.self-host.semantic-common/v1\n" | append_strings(
+    callable_rows(callables),
+    append_strings(
+        declaration_rows(semantics.bindings.declarations),
         append_strings(
-            declaration_rows(semantics.bindings.declarations),
-            append_strings(
-                reference_rows(semantics.bindings.references),
-                binding_diagnostic_rows(semantics.bindings.diagnostics),
-            ),
+            reference_rows(semantics.bindings.references),
+            binding_diagnostic_rows(semantics.bindings.diagnostics),
         ),
-    )]).
+    ),
+)],
+    ).
 
 supplemental_rows(semantics: LocalSemanticResult): String ->
-    String.concat(["schema terlan.self-host.semantic-supplemental/v1\n" | append_strings(
-        fact_rows(semantics.types.facts),
-        type_diagnostic_rows(semantics.types.diagnostics),
-    )]).
+    String.concat(
+        ["schema terlan.self-host.semantic-supplemental/v1\n" | append_strings(fact_rows(semantics.types.facts), type_diagnostic_rows(semantics.types.diagnostics))],
+    ).
 
-/** Emits byte-comparable callable and immutable-binding semantic evidence. */
+/**
+ * Emits byte-comparable callable and immutable-binding semantic evidence.
+ */
 pub common(frontend: ProjectedFrontendModule): String ->
     let interfaces = List.new[ModuleInterface]();
     let callables = frontend_callables(frontend, interfaces);
     let semantics = ProjectedLocalSemantic.analyze_bodies(frontend.bodies, frontend.signatures, callables);
     common_rows(semantics, callables).
 
-/** Emits projected inferred-type facts that must remain present through bootstrap. */
+/**
+ * Emits projected inferred-type facts that must remain present through bootstrap.
+ */
 pub supplemental(frontend: ProjectedFrontendModule): String ->
     let interfaces = List.new[ModuleInterface]();
-    let semantics = ProjectedLocalSemantic.analyze_bodies(
-        frontend.bodies,
-        frontend.signatures,
-        frontend_callables(frontend, interfaces),
-    );
+    let semantics =
+        ProjectedLocalSemantic.analyze_bodies(
+            frontend.bodies,
+            frontend.signatures,
+            frontend_callables(frontend, interfaces),
+        );
     supplemental_rows(semantics).
 
-/** Emits separate common and supplemental documents from one semantic analysis. */
+/**
+ * Emits separate common and supplemental documents from one semantic analysis.
+ */
 pub common_and_supplemental(frontend: ProjectedFrontendModule): List[String] ->
     let interfaces = List.new[ModuleInterface]();
     let callables = frontend_callables(frontend, interfaces);
-    let semantics = ProjectedLocalSemantic.analyze_bodies(
-        frontend.bodies,
-        frontend.signatures,
-        callables,
-    );
+    let semantics = ProjectedLocalSemantic.analyze_bodies(frontend.bodies, frontend.signatures, callables);
     [common_rows(semantics, callables), supplemental_rows(semantics)].
 
-/** Emits both semantic evidence sections from one catalog and analysis pass. */
+/**
+ * Emits both semantic evidence sections from one catalog and analysis pass.
+ */
 pub document(frontend: ProjectedFrontendModule): String ->
     let interfaces = List.new[ModuleInterface]();
     let callables = frontend_callables(frontend, interfaces);

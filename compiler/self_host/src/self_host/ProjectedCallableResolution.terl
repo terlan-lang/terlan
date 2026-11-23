@@ -3,11 +3,12 @@
  */
 module self_host.ProjectedCallableResolution.
 
-import self_host.ProjectedCallableSyntax.
 import self_host.ProjectedCallableSyntax.{CallableDeclaration, CallableDiagnostic, CallableResolution, CallableUse, ResolvedCallableUse}.
+import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact}.
+import self_host.{ProjectedCallableSyntax, ProjectedTypeEquivalence}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
-import std.core.String.
+import std.core.{Int, String}.
 
 @pure
 module_matches(expected: Option[String], actual: String): Bool ->
@@ -25,7 +26,75 @@ kind_matches(expected: Option[String], callable_kind: String): Bool ->
     }.
 
 @pure
-matching(
+fact_type_at_node(values: List[InferredTypeFact], node_id: Int): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.node_id == node_id and value.type_name != None -> value.type_name;
+                true -> fact_type_at_node(rest, node_id)
+            }
+    }.
+
+@pure
+fact_type_at_offset(values: List[InferredTypeFact], byte_offset: Int): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
+                true -> fact_type_at_offset(rest, byte_offset)
+            }
+    }.
+
+@pure
+receiver_type(use_site: CallableUse, facts: List[InferredTypeFact]): Option[String] ->
+    when {
+        [node_id | _] <- use_site.argument_node_ids;
+        Some(name) <- fact_type_at_node(facts, node_id)
+    } else {
+        _ ->
+            case use_site.argument_offsets {
+                [byte_offset | _] -> fact_type_at_offset(facts, byte_offset);
+                [] -> None
+            }
+    };
+    Some(name).
+
+@pure
+base_type(value: String): String ->
+    case String.split(value, "[") {
+        [name | _] -> String.trim(name);
+        [] -> value
+    }.
+
+@pure
+receiver_parameter_matches(declaration: CallableDeclaration, actual: String): Bool ->
+    case declaration.parameter_types {
+        [Some(expected) | _] ->
+            if {
+                declaration.type_parameters == [] -> ProjectedTypeEquivalence.matches(expected, actual);
+                true -> ProjectedTypeEquivalence.matches(base_type(expected), base_type(actual))
+            };
+        _ -> true
+    }.
+
+@pure
+typed_receiver_matches(
+    use_site: CallableUse,
+    declaration: CallableDeclaration,
+    facts: List[InferredTypeFact],
+): Bool ->
+    when {
+        Some("$receiver") <- use_site.module_name;
+        Some(actual) <- receiver_type(use_site, facts)
+    } else {
+        _ -> true
+    };
+    receiver_parameter_matches(declaration, actual).
+
+@pure
+untyped_matching(
     use_site: CallableUse,
     declarations: List[CallableDeclaration],
 ): List[CallableDeclaration] ->
@@ -36,9 +105,69 @@ matching(
                 declaration.name == use_site.name
                     and declaration.arity == use_site.arity
                     and kind_matches(use_site.module_name, declaration.callable_kind)
-                    and module_matches(use_site.module_name, declaration.module_name) -> [declaration | matching(use_site, rest)];
-                true -> matching(use_site, rest)
+                    and module_matches(use_site.module_name, declaration.module_name) -> [declaration | untyped_matching(use_site, rest)];
+                true -> untyped_matching(use_site, rest)
             }
+    }.
+
+@pure
+receiver_filtered(
+    use_site: CallableUse,
+    values: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
+): List[CallableDeclaration] ->
+    case values {
+        [] -> List.new[CallableDeclaration]();
+        [value | rest] ->
+            if {
+                typed_receiver_matches(use_site, value, facts) -> [value | receiver_filtered(use_site, rest, facts)];
+                true -> receiver_filtered(use_site, rest, facts)
+            }
+    }.
+
+@pure
+matching(
+    use_site: CallableUse,
+    declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
+): List[CallableDeclaration] ->
+    let candidates = untyped_matching(use_site, declarations);
+    let narrowed = receiver_filtered(use_site, candidates, facts);
+    if {
+        narrowed == [] -> candidates;
+        true -> narrowed
+    }.
+
+@pure
+nearest_binding(
+    values: List[CallableDeclaration],
+    byte_offset: Int,
+    current: Option[CallableDeclaration],
+): Option[CallableDeclaration] ->
+    case values {
+        [] -> current;
+        [value | rest] ->
+            if {
+                value.callable_kind != "local-callable-binding" or value.byte_offset > byte_offset -> nearest_binding(rest, byte_offset, current);
+                true -> case current {
+                    None -> nearest_binding(rest, byte_offset, Some(value));
+                    Some(candidate) ->
+                        if {
+                            value.byte_offset > candidate.byte_offset -> nearest_binding(rest, byte_offset, Some(value));
+                            true -> nearest_binding(rest, byte_offset, current)
+                        }
+                }
+            }
+    }.
+
+@pure
+preferred_matches(
+    values: List[CallableDeclaration],
+    use_site: CallableUse,
+): List[CallableDeclaration] ->
+    case nearest_binding(values, use_site.byte_offset, None) {
+        Some(value) -> [value];
+        None -> values
     }.
 
 @pure
@@ -68,6 +197,7 @@ walk_after_match_head(
     use_site: CallableUse,
     rest: List[CallableUse],
     declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
     resolved: List[ResolvedCallableUse],
     diagnostics: List[CallableDiagnostic],
 ): CallableResolution ->
@@ -76,6 +206,7 @@ walk_after_match_head(
             walk(
                 rest,
                 declarations,
+                facts,
                 [ResolvedCallableUse(source = use_site, declaration = Some(declaration)) | resolved],
                 diagnostics,
             );
@@ -83,10 +214,13 @@ walk_after_match_head(
             walk(
                 rest,
                 declarations,
+                facts,
                 [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
                 [CallableDiagnostic(
     code = "ambiguous-callable",
-    message = "more than one callable matches this name and arity",
+    message = String.concat(
+        ["more than one callable matches ", use_site.name, "/", Int.to_string(use_site.arity)],
+    ),
     byte_offset = use_site.byte_offset,
 ) | diagnostics],
             )
@@ -98,6 +232,7 @@ walk_matches(
     use_site: CallableUse,
     rest: List[CallableUse],
     declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
     resolved: List[ResolvedCallableUse],
     diagnostics: List[CallableDiagnostic],
 ): CallableResolution ->
@@ -106,10 +241,11 @@ walk_matches(
             walk(
                 rest,
                 declarations,
+                facts,
                 [ResolvedCallableUse(source = use_site, declaration = None) | resolved],
                 [CallableDiagnostic(
     code = "unresolved-callable",
-    message = "no callable matches this name and arity",
+    message = String.concat(["no callable matches ", use_site.name, "/", Int.to_string(use_site.arity)]),
     byte_offset = use_site.byte_offset,
 ) | diagnostics],
             );
@@ -120,6 +256,7 @@ walk_matches(
                 use_site,
                 rest,
                 declarations,
+                facts,
                 resolved,
                 diagnostics,
             )
@@ -129,6 +266,7 @@ walk_matches(
 walk(
     uses: List[CallableUse],
     declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
     resolved: List[ResolvedCallableUse],
     diagnostics: List[CallableDiagnostic],
 ): CallableResolution ->
@@ -140,10 +278,11 @@ walk(
             );
         [use_site | rest] ->
             walk_matches(
-                matching(use_site, declarations),
+                preferred_matches(matching(use_site, declarations, facts), use_site),
                 use_site,
                 rest,
                 declarations,
+                facts,
                 resolved,
                 diagnostics,
             )
@@ -151,4 +290,112 @@ walk(
 
 @pure
 pub resolve(uses: List[CallableUse], declarations: List[CallableDeclaration]): CallableResolution ->
-    walk(uses, declarations, List.new[ResolvedCallableUse](), List.new[CallableDiagnostic]()).
+    walk(
+        uses,
+        declarations,
+        List.new[InferredTypeFact](),
+        List.new[ResolvedCallableUse](),
+        List.new[CallableDiagnostic](),
+    ).
+
+@pure
+typed_receiver_candidate(
+    use_site: CallableUse,
+    declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
+): Option[CallableDeclaration] ->
+    when {
+        Some("$receiver") <- use_site.module_name;
+        [value] <- preferred_matches(matching(use_site, declarations, facts), use_site)
+    } else {
+        _ -> None
+    };
+    Some(value).
+
+@pure
+refined_use(
+    value: ResolvedCallableUse,
+    declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
+): ResolvedCallableUse ->
+    when {
+        None <- value.declaration;
+        Some(declaration) <- typed_receiver_candidate(value.source, declarations, facts)
+    } else {
+        _ -> value
+    };
+    ResolvedCallableUse(value.source, Some(declaration)).
+
+@pure
+unresolved_diagnostic(
+    use_site: CallableUse,
+    declarations: List[CallableDeclaration],
+): CallableDiagnostic ->
+    let candidates = preferred_matches(matching(use_site, declarations, List.new[InferredTypeFact]()), use_site);
+    if {
+        candidates == [] -> CallableDiagnostic(
+            "unresolved-callable",
+            String.concat(
+                ["no callable matches ", use_site.name, "/", Int.to_string(use_site.arity)],
+            ),
+            use_site.byte_offset,
+        );
+        true -> CallableDiagnostic(
+            "ambiguous-callable",
+            String.concat(
+                [
+                    "more than one callable matches ",
+                    use_site.name,
+                    "/",
+                    Int.to_string(use_site.arity),
+                ],
+            ),
+            use_site.byte_offset,
+        )
+    }.
+
+@pure
+refine_walk(
+    values: List[ResolvedCallableUse],
+    declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
+    uses: List[ResolvedCallableUse],
+    diagnostics: List[CallableDiagnostic],
+): CallableResolution ->
+    case values {
+        [] ->
+            CallableResolution(
+                reverse_uses(uses, List.new[ResolvedCallableUse]()),
+                reverse_diagnostics(diagnostics, List.new[CallableDiagnostic]()),
+            );
+        [value | rest] ->
+            let refined = refined_use(value, declarations, facts);
+            case refined.declaration {
+                Some(_) -> refine_walk(rest, declarations, facts, [refined | uses], diagnostics);
+                None ->
+                    refine_walk(
+                        rest,
+                        declarations,
+                        facts,
+                        [refined | uses],
+                        [unresolved_diagnostic(refined.source, declarations) | diagnostics],
+                    )
+            }
+    }.
+
+/**
+ * Resolves only receiver ambiguities that initial type facts prove uniquely.
+ */
+@pure
+pub refine_with_types(
+    initial: CallableResolution,
+    declarations: List[CallableDeclaration],
+    facts: List[InferredTypeFact],
+): CallableResolution ->
+    refine_walk(
+        initial.uses,
+        declarations,
+        facts,
+        List.new[ResolvedCallableUse](),
+        List.new[CallableDiagnostic](),
+    ).

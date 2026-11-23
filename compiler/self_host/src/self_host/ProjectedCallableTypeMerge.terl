@@ -5,9 +5,329 @@ module self_host.ProjectedCallableTypeMerge.
 
 import self_host.ProjectedCallableSyntax.{CallableResolution, ResolvedCallableUse}.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintResolution}.
-import self_host.{ProjectedCallableSyntax, ProjectedTypeConstraintSyntax}.
+import self_host.{Delimited, ProjectedCallableSyntax, ProjectedTypeConstraintSyntax}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
+import std.core.String.
+
+struct GenericBinding {
+    name: String,
+    actual: String,
+}.
+
+constructor GenericBinding {
+    (name: String, actual: String): GenericBinding ->
+        GenericBinding {name: name, actual: actual}
+}.
+
+@pure
+contains(values: List[String], expected: String): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> value == expected or contains(rest, expected)
+    }.
+
+@pure
+binding(name: String, values: List[GenericBinding]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.name == name -> Some(value.actual);
+                true -> binding(name, rest)
+            }
+    }.
+
+@pure
+add_binding(name: String, actual: String, values: List[GenericBinding]): List[GenericBinding] ->
+    case binding(name, values) {
+        Some(_) -> values;
+        None -> [GenericBinding(name, actual) | values]
+    }.
+
+@pure
+generic_open_at(value: String, index: Int): Int ->
+    if {
+        index == value.byte_size() -> -1;
+        value.utf8_byte_at(index) == 91 -> index;
+        true -> generic_open_at(value, index + 1)
+    }.
+
+@pure
+generic_base(value: String): String ->
+    let text = String.trim(value);
+    let opening = generic_open_at(text, 0);
+    if {
+        opening < 0 -> text;
+        true -> String.trim(text.utf8_slice(0, opening))
+    }.
+
+@pure
+last_string(values: List[String], fallback: String): String ->
+    case values {
+        [] -> fallback;
+        [value | rest] -> last_string(rest, value)
+    }.
+
+@pure
+unqualified_base(value: String): String ->
+    last_string(String.split(generic_base(value), "."), "").
+
+@pure
+generic_bases_match(left: String, right: String): Bool ->
+    unqualified_base(left) == unqualified_base(right).
+
+@pure
+generic_arguments(value: String): List[String] ->
+    let text = String.trim(value);
+    let opening = generic_open_at(text, 0);
+    if {
+        opening < 0 or not String.ends_with(text, "]") -> List.new[String]();
+        true -> Delimited.split_top_level(text.utf8_slice(opening + 1, text.byte_size() - opening - 2), 44)
+    }.
+
+@pure
+bind_types(
+    expected: List[String],
+    actual: List[String],
+    parameters: List[String],
+    values: List[GenericBinding],
+): List[GenericBinding] ->
+    case {expected, actual} {
+        {[expected_type | expected_rest], [actual_type | actual_rest]} ->
+            bind_types(
+                expected_rest,
+                actual_rest,
+                parameters,
+                bind_type(expected_type, actual_type, parameters, values),
+            );
+        _ -> values
+    }.
+
+@pure
+bind_type(
+    expected: String,
+    actual: String,
+    parameters: List[String],
+    values: List[GenericBinding],
+): List[GenericBinding] ->
+    let expected_name = String.trim(expected);
+    let actual_name = String.trim(actual);
+    if {
+        contains(parameters, expected_name) -> add_binding(expected_name, actual_name, values);
+        not generic_bases_match(expected_name, actual_name) -> values;
+        true -> bind_types(
+            generic_arguments(expected_name),
+            generic_arguments(actual_name),
+            parameters,
+            values,
+        )
+    }.
+
+@pure
+fact_type(facts: List[InferredTypeFact], node_id: Int, byte_offset: Int): Option[String] ->
+    case facts {
+        [] -> None;
+        [value | rest] ->
+            if {
+                node_id >= 0
+                    and (value.node_id == node_id or value.byte_offset == byte_offset)
+                    and value.type_name != None -> value.type_name;
+                node_id < 0 and value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
+                true -> fact_type(rest, node_id, byte_offset)
+            }
+    }.
+
+@pure
+next_node_id(values: List[Int]): Int ->
+    case values {
+        [value | _rest] -> value;
+        [] -> -1
+    }.
+
+@pure
+remaining_node_ids(values: List[Int]): List[Int] ->
+    case values {
+        [_value | rest] -> rest;
+        [] -> List.new[Int]()
+    }.
+
+@pure
+argument_bindings(
+    expected: List[Option[String]],
+    offsets: List[Int],
+    node_ids: List[Int],
+    parameters: List[String],
+    facts: List[InferredTypeFact],
+    values: List[GenericBinding],
+): List[GenericBinding] ->
+    case {expected, offsets} {
+        {[expected_type | expected_rest], [offset | offset_rest]} ->
+            let node_id = next_node_id(node_ids);
+            let inferred =
+                case {expected_type, fact_type(facts, node_id, offset)} {
+                    {Some(expected_name), Some(actual_name)} ->
+                        bind_type(expected_name, actual_name, parameters, values);
+                    _ -> values
+                };
+            argument_bindings(
+                expected_rest,
+                offset_rest,
+                remaining_node_ids(node_ids),
+                parameters,
+                facts,
+                inferred,
+            );
+        _ -> values
+    }.
+
+@pure
+join(values: List[String]): String ->
+    case values {
+        [] -> "";
+        [value] -> value;
+        [value | rest] -> String.concat([value, ", ", join(rest)])
+    }.
+
+@pure
+substitute_arguments(values: List[String], bindings: List[GenericBinding]): List[String] ->
+    case values {
+        [] -> List.new[String]();
+        [value | rest] -> [substitute(value, bindings) | substitute_arguments(rest, bindings)]
+    }.
+
+@pure
+next_type_depth(value: String, index: Int, depth: Int): Int ->
+    let byte = value.utf8_byte_at(index);
+    if {
+        byte == 40 or byte == 91 or byte == 123 -> depth + 1;
+        byte == 41 or byte == 93 or byte == 125 -> depth - 1;
+        true -> depth
+    }.
+
+@pure
+top_level_arrow_at(value: String, index: Int, depth: Int): Int ->
+    if {
+        index + 1 >= value.byte_size() -> -1;
+        depth == 0 and value.utf8_byte_at(index) == 45 and value.utf8_byte_at(index + 1) == 62 -> index;
+        true -> top_level_arrow_at(value, index + 1, next_type_depth(value, index, depth))
+    }.
+
+@pure
+function_parameter_text(value: String): String ->
+    let text = String.trim(value);
+    if {
+        String.starts_with(text, "(") and String.ends_with(text, ")") -> text.utf8_slice(1, text.byte_size() - 2);
+        true -> text
+    }.
+
+@pure
+substitute_function(text: String, arrow: Int, bindings: List[GenericBinding]): String ->
+    let parameters = Delimited.split_top_level(function_parameter_text(text.utf8_slice(0, arrow)), 44);
+    String.concat(
+        [
+            "(",
+            join(substitute_arguments(parameters, bindings)),
+            ") -> ",
+            substitute(text.utf8_slice(arrow + 2, text.byte_size() - arrow - 2), bindings),
+        ],
+    ).
+
+@pure
+substitute(value: String, bindings: List[GenericBinding]): String ->
+    let text = String.trim(value);
+    case binding(text, bindings) {
+        Some(actual) -> actual;
+        None ->
+            let arrow = top_level_arrow_at(text, 0, 0);
+            let opening = generic_open_at(text, 0);
+            if {
+                arrow >= 0 -> substitute_function(text, arrow, bindings);
+                opening < 0 or not String.ends_with(text, "]") -> text;
+                true -> String.concat(
+                    [
+                        text.utf8_slice(0, opening),
+                        "[",
+                        join(substitute_arguments(generic_arguments(text), bindings)),
+                        "]",
+                    ],
+                )
+            }
+    }.
+
+@pure
+instantiate_optional_parameter(
+    value: Option[String],
+    bindings: List[GenericBinding],
+): Option[String] ->
+    case value {
+        None -> None;
+        Some(type_name) -> Some(substitute(type_name, bindings))
+    }.
+
+@pure
+instantiate_parameters(
+    values: List[Option[String]],
+    bindings: List[GenericBinding],
+): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] ->
+            [instantiate_optional_parameter(value, bindings) | instantiate_parameters(rest, bindings)]
+    }.
+
+/**
+ * Returns call-parameter contracts instantiated from currently known arguments.
+ */
+@pure
+pub instantiated_parameter_types(
+    value: ResolvedCallableUse,
+    facts: List[InferredTypeFact],
+): List[Option[String]] ->
+    case value.declaration {
+        None -> List.new[Option[String]]();
+        Some(declaration) ->
+            instantiate_parameters(
+                declaration.parameter_types,
+                argument_bindings(
+                    declaration.parameter_types,
+                    value.source.argument_offsets,
+                    value.source.argument_node_ids,
+                    declaration.type_parameters,
+                    facts,
+                    List.new[GenericBinding](),
+                ),
+            )
+    }.
+
+@pure
+instantiated_return_type(
+    value: ResolvedCallableUse,
+    facts: List[InferredTypeFact],
+): Option[String] ->
+    case value.declaration {
+        None -> None;
+        Some(declaration) ->
+            if {
+                declaration.type_parameters == [] -> declaration.return_type;
+                true -> let bindings =
+                    argument_bindings(
+                        declaration.parameter_types,
+                        value.source.argument_offsets,
+                        value.source.argument_node_ids,
+                        declaration.type_parameters,
+                        facts,
+                        List.new[GenericBinding](),
+                    );
+                if {
+                    bindings == [] -> None;
+                    true -> case declaration.return_type {
+                        None -> None;
+                        Some(type_name) -> Some(substitute(type_name, bindings))
+                    }
+                }
+            }
+    }.
 
 @pure
 declaration_return_type(value: ResolvedCallableUse): Option[String] ->
@@ -44,24 +364,29 @@ return_type_at(
     }.
 
 @pure
-concrete_return_type_at(
+instantiated_return_type_at(
     node_id: Int,
     byte_offset: Int,
     values: List[ResolvedCallableUse],
+    facts: List[InferredTypeFact],
 ): Option[String] ->
     case values {
         [] -> None;
         [value | rest] ->
             if {
-                node_id >= 0 and value.source.node_id == node_id -> declaration_concrete_return_type(value);
-                node_id < 0 and value.source.node_id < 0 and value.source.byte_offset == byte_offset -> declaration_concrete_return_type(value);
-                true -> concrete_return_type_at(node_id, byte_offset, rest)
+                node_id >= 0 and value.source.node_id == node_id -> instantiated_return_type(value, facts);
+                node_id < 0 and value.source.node_id < 0 and value.source.byte_offset == byte_offset -> instantiated_return_type(value, facts);
+                true -> instantiated_return_type_at(node_id, byte_offset, rest, facts)
             }
     }.
 
 @pure
-merged_type(value: InferredTypeFact, uses: List[ResolvedCallableUse]): Option[String] ->
-    case concrete_return_type_at(value.node_id, value.byte_offset, uses) {
+merged_type(
+    value: InferredTypeFact,
+    uses: List[ResolvedCallableUse],
+    facts: List[InferredTypeFact],
+): Option[String] ->
+    case instantiated_return_type_at(value.node_id, value.byte_offset, uses, facts) {
         Some(name) -> Some(name);
         None ->
             case value.type_name {
@@ -74,15 +399,16 @@ merged_type(value: InferredTypeFact, uses: List[ResolvedCallableUse]): Option[St
 merge_facts(
     values: List[InferredTypeFact],
     uses: List[ResolvedCallableUse],
+    facts: List[InferredTypeFact],
 ): List[InferredTypeFact] ->
     case values {
         [] -> List.new[InferredTypeFact]();
         [value | rest] ->
             [InferredTypeFact(
     node_id = value.node_id,
-    type_name = merged_type(value, uses),
+    type_name = merged_type(value, uses, facts),
     byte_offset = value.byte_offset,
-) | merge_facts(rest, uses)]
+) | merge_facts(rest, uses, facts)]
     }.
 
 @pure
@@ -105,8 +431,20 @@ missing_facts(
     case values {
         [] -> List.new[InferredTypeFact]();
         [value | rest] ->
-            case declaration_return_type(value) {
-                None -> missing_facts(rest, facts);
+            case instantiated_return_type(value, facts) {
+                None ->
+                    case declaration_return_type(value) {
+                        None -> missing_facts(rest, facts);
+                        Some(type_name) ->
+                            if {
+                                has_fact(value.source.node_id, value.source.byte_offset, facts) -> missing_facts(rest, facts);
+                                true -> [InferredTypeFact(
+    node_id = value.source.node_id,
+    type_name = Some(type_name),
+    byte_offset = value.source.byte_offset,
+) | missing_facts(rest, facts)]
+                            }
+                    };
                 Some(type_name) ->
                     if {
                         has_fact(value.source.node_id, value.source.byte_offset, facts) -> missing_facts(rest, facts);
@@ -129,6 +467,9 @@ append[T](left: List[T], right: List[T]): List[T] ->
 @pure
 pub merge(types: TypeConstraintResolution, callables: CallableResolution): TypeConstraintResolution ->
     TypeConstraintResolution(
-        facts = append(merge_facts(types.facts, callables.uses), missing_facts(callables.uses, types.facts)),
+        facts = append(
+            merge_facts(types.facts, callables.uses, types.facts),
+            missing_facts(callables.uses, types.facts),
+        ),
         diagnostics = types.diagnostics,
     ).

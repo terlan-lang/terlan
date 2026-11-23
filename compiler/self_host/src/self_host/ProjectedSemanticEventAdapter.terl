@@ -145,12 +145,29 @@ pattern_events_at(
     }.
 
 @pure
+bindable_primary(text: String): Bool ->
+    text == "and"
+        or text == "annotation"
+        or text == "config"
+        or text == "end"
+        or text == "file"
+        or text == "function"
+        or text == "machine"
+        or text == "method"
+        or text == "shape"
+        or text == "target".
+
+@pure
 ordinary_binding_output(
     node: ProjectedExpressionNode,
     output: List[BindingEvent],
 ): List[BindingEvent] ->
     if {
-        node.kind == "identifier" or node.kind == "binding" or node.kind == "atom" -> [BindingEvent(kind = "use", name = node.text, binding_kind = "value", byte_offset = node.start_byte) | output];
+        (node.kind == "identifier"
+    or node.kind == "binding"
+    or node.kind == "atom"
+    or node.kind == "primary" and bindable_primary(node.text))
+            and node.text != "native" -> [BindingEvent(kind = "use", name = node.text, binding_kind = "value", byte_offset = node.start_byte) | output];
         true -> output
     }.
 
@@ -312,6 +329,7 @@ callee_single(
     byte_offset = callee.start_byte,
 ) | output],
         );
+        callee.kind == "primary" and bindable_primary(callee.text) -> binding_events_at(rest, output);
         callee.kind == "identifier"
             or callee.kind == "binding"
             or callee.kind == "atom"
@@ -1252,10 +1270,9 @@ binary_constraint_kind(node: ProjectedExpressionNode): String ->
 @pure
 propagation_constraint_kind(node: ProjectedExpressionNode): String ->
     if {
+        node.kind == "field" or node.kind == "index" -> "propagate-authority";
         node.kind == "tuple-or-group" and node.children.length() == 1
             or node.kind == "unary"
-            or node.kind == "field"
-            or node.kind == "index"
             or node.kind == "sequence"
             or node.kind == "let"
             or node.kind == "let-refutable"
@@ -1376,6 +1393,12 @@ node_constraint(
     child_ids: List[Int],
 ): TypeConstraintEvent ->
     if {
+        node.kind == "unary" and node.text == "not" -> known_constraint(node, node_id, "Bool");
+        (node.kind == "primary"
+    or node.kind == "identifier"
+    or node.kind == "atom"
+    or node.kind == "constructor")
+            and node.text == "Unit" -> known_constraint(node, node_id, "Unit");
         node.kind == "dynamic-call" -> TypeConstraintEvent(
             kind = "call-result",
             node_id = node_id,

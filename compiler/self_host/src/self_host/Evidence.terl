@@ -1,16 +1,13 @@
-/** Canonical differential evidence emitted by the self-hosted source slice. */
+/**
+ * Canonical differential evidence emitted by the self-hosted source slice.
+ */
 module self_host.Evidence.
 
-
-import std.core.Result.{Result}.
 import self_host.Interface.{InterfaceError}.
 import self_host.Token.{LexicalError}.
-
-import self_host.Canonical.
-import self_host.Interface.
-import self_host.Interface.{InterfaceError}.
-import self_host.Lexer.
+import self_host.{Canonical, Interface, Lexer}.
 import std.collections.List.
+import std.core.Result.
 import std.crypto.Hash.
 import std.data.Json.
 
@@ -22,13 +19,14 @@ lexical_errors(values: List[LexicalError], output: Json): Json ->
         [value | rest] ->
             lexical_errors(
                 rest,
-                output.push(
-                    Json.object()
-                        .put("code", Json.string(value.code))
-                        .put("message", Json.string(value.message))
-                        .put("start_byte", Json.int(value.span.start_byte))
-                        .put("end_byte", Json.int(value.span.end_byte)),
-                ),
+                output
+                    .push(
+                        Json.object()
+                            .put("code", Json.string(value.code))
+                            .put("message", Json.string(value.message))
+                            .put("start_byte", Json.int(value.span.start_byte))
+                            .put("end_byte", Json.int(value.span.end_byte)),
+                    ),
             )
     }.
 
@@ -38,11 +36,12 @@ interface_errors(values: List[InterfaceError], output: Json): Json ->
         [value | rest] ->
             interface_errors(
                 rest,
-                output.push(
-                    Json.object()
-                        .put("code", Json.string(value.code))
-                        .put("message", Json.string(value.message)),
-                ),
+                output
+                    .push(
+                        Json.object()
+                            .put("code", Json.string(value.code))
+                            .put("message", Json.string(value.message)),
+                    ),
             )
     }.
 

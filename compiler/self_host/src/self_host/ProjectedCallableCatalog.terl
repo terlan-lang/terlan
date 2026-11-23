@@ -5,12 +5,14 @@ module self_host.ProjectedCallableCatalog.
 
 import self_host.BackendSyntax.{BackendDeclaration, BackendModule}.
 import self_host.ConstructorSyntax.{ConstructorClauseSyntax, ConstructorSyntax}.
+import self_host.DeclarationPayloadSyntax.{StructFieldSyntax, StructSyntax, TypeDeclarationSyntax}.
 import self_host.ImportSyntax.{ImportItemSyntax, ImportSyntax}.
 import self_host.ModuleInterfaceSyntax.{ExportedSymbol, ModuleInterface}.
 import self_host.ProjectedCallableSyntax.{CallableDeclaration}.
 import self_host.Syntax.{ConstFunctionDeclaration, ConstructorDeclaration, FunctionDeclaration, MethodDeclaration, TypeDeclaration}.
-import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, ImportPayload, MethodPayload, TypedDeclarationPayload}.
-import self_host.{BackendSyntax, ConstructorSyntax, DeclarationClass, ModuleInterfaceSyntax, ParameterSyntax, ProjectedCallableSyntax, TypedModuleSyntax}.
+import self_host.TraitSyntax.{TraitMethodSyntax, TraitSyntax}.
+import self_host.TypedModuleSyntax.{ConstructorPayload, FunctionPayload, ImportPayload, MethodPayload, StructPayload, TraitPayload, TypePayload, TypedDeclarationPayload}.
+import self_host.{BackendSyntax, ConstructorSyntax, DeclarationClass, Delimited, ModuleInterfaceSyntax, ParameterSyntax, ProjectedCallableSyntax, TypedModuleSyntax}.
 import std.collections.List.
 import std.core.Option.{None, Option, Some}.
 import std.core.String.
@@ -136,13 +138,18 @@ function_kind(is_const: Bool): String ->
         true -> "function"
     }.
 
-local_declaration(module_name: String, value: BackendDeclaration): List[CallableDeclaration] ->
-    local_function_payload(module_name, value, value.payload).
+local_declaration(
+    module_name: String,
+    value: BackendDeclaration,
+    declarations: List[BackendDeclaration],
+): List[CallableDeclaration] ->
+    local_function_payload(module_name, value, value.payload, declarations).
 
 local_function_payload(
     module_name: String,
     value: BackendDeclaration,
     payload: TypedDeclarationPayload,
+    declarations: List[BackendDeclaration],
 ): List[CallableDeclaration] ->
     case payload {
         FunctionPayload(function) ->
@@ -162,13 +169,14 @@ local_function_payload(
                     declaration_offset(value),
                 ),
             ];
-        _ -> local_method_payload(module_name, value, payload)
+        _ -> local_method_payload(module_name, value, payload, declarations)
     }.
 
 local_method_payload(
     module_name: String,
     value: BackendDeclaration,
     payload: TypedDeclarationPayload,
+    declarations: List[BackendDeclaration],
 ): List[CallableDeclaration] ->
     case payload {
         MethodPayload(method) ->
@@ -185,13 +193,14 @@ local_method_payload(
                     declaration_offset(value),
                 ),
             ];
-        _ -> local_constructor_payload(module_name, value, payload)
+        _ -> local_constructor_payload(module_name, value, payload, declarations)
     }.
 
 local_constructor_payload(
     module_name: String,
     value: BackendDeclaration,
     payload: TypedDeclarationPayload,
+    declarations: List[BackendDeclaration],
 ): List[CallableDeclaration] ->
     case payload {
         ConstructorPayload(constructor_payload) ->
@@ -200,6 +209,222 @@ local_constructor_payload(
                 callable_name(value.symbol_name),
                 constructor_payload.clauses,
                 declaration_offset(value),
+            );
+        _ -> local_type_payload(module_name, value, payload, declarations)
+    }.
+
+payload_type(value: String): Option[String] ->
+    let text = String.trim(value);
+    if {
+        String.starts_with(text, "Atom[") -> None;
+        true -> let colon = Delimited.top_level_byte(text, 58);
+        if {
+            colon < 0 -> Some(text);
+            true -> Some(String.trim(text.utf8_slice(colon + 1, text.byte_size() - colon - 1)))
+        }
+    }.
+
+type_payload_parameter_types(values: List[String]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] ->
+            case payload_type(value) {
+                None -> type_payload_parameter_types(rest);
+                Some(name) -> [Some(name) | type_payload_parameter_types(rest)]
+            }
+    }.
+
+type_constructor_parameter_types(value: TypeDeclarationSyntax): List[Option[String]] ->
+    if {
+        not value.has_representation or not value.representation.valid -> List.new[Option[String]]();
+        true -> let text = String.trim(value.representation.syntax.text);
+        if {
+            not String.starts_with(text, "{") or not String.ends_with(text, "}") -> List.new[Option[String]]();
+            true -> type_payload_parameter_types(
+                Delimited.split_top_level(text.utf8_slice(1, text.byte_size() - 2), 44),
+            )
+        }
+    }.
+
+type_constructor_name(value: TypeDeclarationSyntax): String ->
+    if {
+        value.type_parameters == [] -> value.name;
+        true -> String.concat([value.name, "[", String.join(value.type_parameters, ", "), "]"])
+    }.
+
+record_type_alias(value: TypeDeclarationSyntax): Bool ->
+    if {
+        not value.has_representation or not value.representation.valid -> false;
+        true -> let text = String.trim(value.representation.syntax.text);
+        String.starts_with(text, "{") and String.ends_with(text, "}")
+    }.
+
+type_base(value: String): String ->
+    case String.split(String.trim(value), "[") {
+        [name | _rest] -> String.trim(name);
+        [] -> String.trim(value)
+    }.
+
+union_member(member_name: String, values: List[String]): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] -> type_base(value) == member_name or union_member(member_name, rest)
+    }.
+
+union_contains(value: TypeDeclarationSyntax, member_name: String): Bool ->
+    if {
+        not value.has_representation or not value.representation.valid -> false;
+        true -> let members = Delimited.split_top_level(value.representation.syntax.text, 124);
+        members.length() > 1 and union_member(member_name, members)
+    }.
+
+alias_contains(value: TypeDeclarationSyntax, member_name: String): Bool ->
+    value.has_representation
+        and value.representation.valid
+        and type_base(value.representation.syntax.text) == member_name.
+
+type_owner_name(member_name: String, values: List[BackendDeclaration]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            case value.payload {
+                TypePayload(owner) where owner.name != member_name
+    and (union_contains(owner, member_name) or alias_contains(owner, member_name)) ->
+                    Some(type_constructor_name(owner));
+                _ -> type_owner_name(member_name, rest)
+            }
+    }.
+
+constructor_result_name(
+    value: TypeDeclarationSyntax,
+    declarations: List[BackendDeclaration],
+): String ->
+    case type_owner_name(value.name, declarations) {
+        Some(owner) -> owner;
+        None -> type_constructor_name(value)
+    }.
+
+local_type_payload(
+    module_name: String,
+    declaration: BackendDeclaration,
+    payload: TypedDeclarationPayload,
+    declarations: List[BackendDeclaration],
+): List[CallableDeclaration] ->
+    case payload {
+        TypePayload(value) where record_type_alias(value) ->
+            let parameters = type_constructor_parameter_types(value);
+            [
+                callable(
+                    module_name,
+                    value.name,
+                    parameters.length(),
+                    "constructor",
+                    false,
+                    value.type_parameters,
+                    parameters,
+                    Some(constructor_result_name(value, declarations)),
+                    declaration_offset(declaration),
+                ),
+            ];
+        _ -> local_struct_payload(module_name, declaration, payload, declarations)
+    }.
+
+struct_parameter_type(value: StructFieldSyntax): Option[String] ->
+    if {
+        value.annotation.valid -> Some(value.annotation.syntax.text);
+        true -> None
+    }.
+
+struct_parameter_types(values: List[StructFieldSyntax]): List[Option[String]] ->
+    case values {
+        [] -> List.new[Option[String]]();
+        [value | rest] -> [struct_parameter_type(value) | struct_parameter_types(rest)]
+    }.
+
+constructor_clause_has_arity(values: List[ConstructorClauseSyntax], arity: Int): Bool ->
+    case values {
+        [] -> false;
+        [value | rest] ->
+            value.parameters.length() == arity or constructor_clause_has_arity(rest, arity)
+    }.
+
+explicit_constructor_has_arity(
+    name: String,
+    arity: Int,
+    declarations: List[BackendDeclaration],
+): Bool ->
+    case declarations {
+        [] -> false;
+        [value | rest] ->
+            case value.payload {
+                ConstructorPayload(constructor_payload) where callable_name(value.symbol_name) == name
+    and constructor_clause_has_arity(constructor_payload.clauses, arity) ->
+                    true;
+                _ -> explicit_constructor_has_arity(name, arity, rest)
+            }
+    }.
+
+local_struct_payload(
+    module_name: String,
+    declaration: BackendDeclaration,
+    payload: TypedDeclarationPayload,
+    declarations: List[BackendDeclaration],
+): List[CallableDeclaration] ->
+    case payload {
+        StructPayload(value) where value.valid ->
+            let parameters = struct_parameter_types(value.fields);
+            if {
+                explicit_constructor_has_arity(value.name, parameters.length(), declarations) -> List.new[CallableDeclaration]();
+                true -> [
+                    callable(
+                        module_name,
+                        value.name,
+                        parameters.length(),
+                        "constructor",
+                        false,
+                        callable_type_parameters(declaration.symbol_name),
+                        parameters,
+                        Some(declaration.symbol_name),
+                        declaration_offset(declaration),
+                    ),
+                ]
+            };
+        _ -> local_trait_payload(declaration, payload)
+    }.
+
+trait_method_callables(
+    owner: String,
+    type_parameters: List[String],
+    values: List[TraitMethodSyntax],
+    byte_offset: Int,
+): List[CallableDeclaration] ->
+    case values {
+        [] -> List.new[CallableDeclaration]();
+        [value | rest] ->
+            [callable(
+    owner,
+    value.name,
+    value.parameters.length(),
+    "method",
+    false,
+    type_parameters,
+    parameter_types(value.parameters),
+    selected_return_type(value.return_type.valid, value.return_type.syntax.text),
+    byte_offset,
+) | trait_method_callables(owner, type_parameters, rest, byte_offset)]
+    }.
+
+local_trait_payload(
+    declaration: BackendDeclaration,
+    payload: TypedDeclarationPayload,
+): List[CallableDeclaration] ->
+    case payload {
+        TraitPayload(value) where value.valid ->
+            trait_method_callables(
+                value.name,
+                value.type_parameters,
+                value.methods,
+                declaration_offset(declaration),
             );
         _ -> List.new[CallableDeclaration]()
     }.
@@ -228,12 +453,18 @@ reverse(values: List[CallableDeclaration]): List[CallableDeclaration] ->
 local_at(
     module_name: String,
     values: List[BackendDeclaration],
+    declarations: List[BackendDeclaration],
     output: List[CallableDeclaration],
 ): List[CallableDeclaration] ->
     case values {
         [] -> output;
         [value | rest] ->
-            local_at(module_name, rest, prepend_all(local_declaration(module_name, value), output))
+            local_at(
+                module_name,
+                rest,
+                declarations,
+                prepend_all(local_declaration(module_name, value, declarations), output),
+            )
     }.
 
 is_callable_class(value: DeclarationClass): Bool ->
@@ -440,6 +671,7 @@ pub local(current_module: BackendModule): List[CallableDeclaration] ->
         local_at(
             current_module.module_name,
             current_module.declarations,
+            current_module.declarations,
             List.new[CallableDeclaration](),
         ),
     ).
@@ -449,7 +681,12 @@ pub build(
     imported_interfaces: List[ModuleInterface],
 ): List[CallableDeclaration] ->
     prepend_all(
-        local_at("", current_module.declarations, List.new[CallableDeclaration]()),
+        local_at(
+            "",
+            current_module.declarations,
+            current_module.declarations,
+            List.new[CallableDeclaration](),
+        ),
         reverse(
             interfaces_at(
                 imported_interfaces,

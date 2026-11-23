@@ -3,8 +3,6 @@
  */
 module self_host.ProjectedExpressionSupportIrPlan.
 
-import std.core.String.
-
 import self_host.BackendSyntax.{BackendDeclaration}.
 import self_host.ProjectedBodySyntax.{ProjectedBody}.
 import self_host.ProjectedExpressionSyntax.{ProjectedExpressionNode}.
@@ -69,16 +67,14 @@ pub parameter_count(values: List[IrParameter]): Int ->
 pub parameter_named(name: String, values: List[IrParameter]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            value.name == name -> true;
-            true -> parameter_named(name, rest)
-        }
+        [value | rest] ->
+            if {
+                value.name == name -> true;
+                true -> parameter_named(name, rest)
+            }
     }.
 
-pub append_ir_parameters(
-    left: List[IrParameter],
-    right: List[IrParameter],
-): List[IrParameter] ->
+pub append_ir_parameters(left: List[IrParameter], right: List[IrParameter]): List[IrParameter] ->
     case left {
         [] -> right;
         [value | rest] -> [value | append_ir_parameters(rest, right)]
@@ -117,6 +113,44 @@ pub lambda_parameters(node: ProjectedExpressionNode): List[IrParameter] ->
         _ -> List.new[IrParameter]()
     }.
 
+lambda_parameter_with_facts(
+    pattern: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+): IrParameter ->
+    let declared = lambda_pattern_type(pattern);
+    IrParameter(
+        lambda_pattern_name(pattern),
+        if {
+            declared != "" -> declared;
+            true -> case expression_type(pattern, facts, List.new[IrParameter]()) {
+                Some(type_name) -> type_name;
+                None -> "Dynamic"
+            }
+        },
+    ).
+
+lambda_parameter_nodes_with_facts(
+    values: List[ProjectedExpressionNode],
+    facts: List[InferredTypeFact],
+): List[IrParameter] ->
+    case values {
+        [] -> List.new[IrParameter]();
+        [value | rest] ->
+            [lambda_parameter_with_facts(value, facts) | lambda_parameter_nodes_with_facts(rest, facts)]
+    }.
+
+/**
+ * Lowers lambda parameters from annotations or contextual semantic facts.
+ */
+pub lambda_parameters_with_facts(
+    node: ProjectedExpressionNode,
+    facts: List[InferredTypeFact],
+): List[IrParameter] ->
+    case node.children {
+        [patterns, _body] -> lambda_parameter_nodes_with_facts(patterns.children, facts);
+        _ -> List.new[IrParameter]()
+    }.
+
 pub lambda_body(node: ProjectedExpressionNode): Option[ProjectedExpressionNode] ->
     case node.children {
         [_patterns, body] -> Some(body);
@@ -141,10 +175,11 @@ node_references(name: String, node: ProjectedExpressionNode): Bool ->
 children_reference(name: String, values: List[ProjectedExpressionNode]): Bool ->
     case values {
         [] -> false;
-        [value | rest] -> if {
-            node_references(name, value) -> true;
-            true -> children_reference(name, rest)
-        }
+        [value | rest] ->
+            if {
+                node_references(name, value) -> true;
+                true -> children_reference(name, rest)
+            }
     }.
 
 lambda_capture_parameters(
@@ -154,17 +189,14 @@ lambda_capture_parameters(
 ): List[IrParameter] ->
     case outer {
         [] -> List.new[IrParameter]();
-        [value | rest] -> if {
-            not parameter_named(value.name, local) and node_references(value.name, body) ->
-                [value | lambda_capture_parameters(body, local, rest)];
-            true -> lambda_capture_parameters(body, local, rest)
-        }
+        [value | rest] ->
+            if {
+                not parameter_named(value.name, local) and node_references(value.name, body) -> [value | lambda_capture_parameters(body, local, rest)];
+                true -> lambda_capture_parameters(body, local, rest)
+            }
     }.
 
-pub lambda_captures(
-    node: ProjectedExpressionNode,
-    outer: List[IrParameter],
-): List[IrParameter] ->
+pub lambda_captures(node: ProjectedExpressionNode, outer: List[IrParameter]): List[IrParameter] ->
     case lambda_body(node) {
         Some(body) -> lambda_capture_parameters(body, lambda_parameters(node), outer);
         None -> List.new[IrParameter]()
@@ -253,7 +285,7 @@ implicit_binding_pattern(pattern: ProjectedExpressionNode): Bool ->
     }.
 
 binding_initial(value: Int): Bool ->
-    value == 95 or (value >= 97 and value <= 122).
+    value == 95 or value >= 97 and value <= 122.
 
 pattern_ir_kind(pattern: ProjectedExpressionNode): String ->
     if {
@@ -265,8 +297,7 @@ pattern_ir_kind(pattern: ProjectedExpressionNode): String ->
 
 pattern_ir_text(pattern: ProjectedExpressionNode): String ->
     if {
-        typed_binding_pattern(pattern) or typed_wildcard_pattern(pattern) ->
-            lambda_pattern_name(pattern);
+        typed_binding_pattern(pattern) or typed_wildcard_pattern(pattern) -> lambda_pattern_name(pattern);
         true -> pattern.text
     }.
 
@@ -289,8 +320,7 @@ pattern_binding_type(
 
 list_element_type(value: String): String ->
     if {
-        String.starts_with(value, "List[") and String.ends_with(value, "]") ->
-            value.utf8_slice(5, value.byte_size() - 6);
+        String.starts_with(value, "List[") and String.ends_with(value, "]") -> value.utf8_slice(5, value.byte_size() - 6);
         true -> "Dynamic"
     }.
 
@@ -315,7 +345,11 @@ resolved_pattern_binding_type(
 
 pattern_operands(pattern: ProjectedExpressionNode): List[String] ->
     concat(
-        [pattern_ir_kind(pattern), pattern_ir_text(pattern), Int.to_string(pattern.children.length())],
+        [
+            pattern_ir_kind(pattern),
+            pattern_ir_text(pattern),
+            Int.to_string(pattern.children.length()),
+        ],
         pattern_children_operands(pattern.children),
     ).
 
@@ -383,13 +417,8 @@ struct IndexedPatternBindings {
 }.
 
 constructor IndexedPatternBindings {
-    (
-        instructions: List[SemanticInstructionPlan],
-        next_index: Int,
-    ): IndexedPatternBindings -> IndexedPatternBindings {
-        instructions: instructions,
-        next_index: next_index,
-    }
+    (instructions: List[SemanticInstructionPlan], next_index: Int): IndexedPatternBindings ->
+        IndexedPatternBindings {instructions: instructions, next_index: next_index}
 }.
 
 indexed_binding(
@@ -403,15 +432,14 @@ indexed_binding(
 ): IndexedPatternBindings ->
     if {
         binding_pattern(value) -> IndexedPatternBindings(
-            [SemanticInstructionPlan(
-                "get-pattern-binding",
-                some_string(pattern_binding_name(value)),
-                concat(
-                    [environment, Int.to_string(index), source_type],
-                    pattern_metadata,
+            [
+                SemanticInstructionPlan(
+                    "get-pattern-binding",
+                    some_string(pattern_binding_name(value)),
+                    concat([environment, Int.to_string(index), source_type], pattern_metadata),
+                    resolved_pattern_binding_type(value, source_type, facts, parameters),
                 ),
-                resolved_pattern_binding_type(value, source_type, facts, parameters),
-            )],
+            ],
             index + 1,
         );
         true -> IndexedPatternBindings(List.new[SemanticInstructionPlan](), index)
@@ -426,20 +454,28 @@ indexed_pattern_bindings(
     source_type: String,
     pattern_metadata: List[String],
 ): IndexedPatternBindings ->
-    let root = indexed_binding(
-        pattern, environment, facts, parameters, index, source_type, pattern_metadata,
-    );
-    let children = indexed_pattern_children(
-        pattern.children,
-        pattern.kind,
-        environment,
-        facts,
-        parameters,
-        root.next_index,
-        0,
-        source_type,
-        pattern_metadata,
-    );
+    let root =
+        indexed_binding(
+            pattern,
+            environment,
+            facts,
+            parameters,
+            index,
+            source_type,
+            pattern_metadata,
+        );
+    let children =
+        indexed_pattern_children(
+            pattern.children,
+            pattern.kind,
+            environment,
+            facts,
+            parameters,
+            root.next_index,
+            0,
+            source_type,
+            pattern_metadata,
+        );
     IndexedPatternBindings(
         concat_instructions(root.instructions, children.instructions),
         children.next_index,
@@ -459,26 +495,28 @@ indexed_pattern_children(
     case values {
         [] -> IndexedPatternBindings(List.new[SemanticInstructionPlan](), index);
         [value | rest] ->
-            let first = indexed_pattern_bindings(
-                value,
-                environment,
-                facts,
-                parameters,
-                index,
-                pattern_child_source_type(parent_kind, child_index, source_type),
-                pattern_metadata,
-            );
-            let remaining = indexed_pattern_children(
-                rest,
-                parent_kind,
-                environment,
-                facts,
-                parameters,
-                first.next_index,
-                child_index + 1,
-                source_type,
-                pattern_metadata,
-            );
+            let first =
+                indexed_pattern_bindings(
+                    value,
+                    environment,
+                    facts,
+                    parameters,
+                    index,
+                    pattern_child_source_type(parent_kind, child_index, source_type),
+                    pattern_metadata,
+                );
+            let remaining =
+                indexed_pattern_children(
+                    rest,
+                    parent_kind,
+                    environment,
+                    facts,
+                    parameters,
+                    first.next_index,
+                    child_index + 1,
+                    source_type,
+                    pattern_metadata,
+                );
             IndexedPatternBindings(
                 concat_instructions(first.instructions, remaining.instructions),
                 remaining.next_index,
@@ -492,17 +530,17 @@ pub shallow_pattern_bindings(
     parameters: List[IrParameter],
 ): List[SemanticInstructionPlan] ->
     indexed_pattern_bindings(
-        pattern,
-        environment,
-        facts,
-        parameters,
-        0,
-        case expression_type(pattern, facts, parameters) {
-            Some(name) -> name;
-            None -> "Dynamic"
-        },
-        pattern_operands(pattern),
-    ).instructions.
+    pattern,
+    environment,
+    facts,
+    parameters,
+    0,
+    case expression_type(pattern, facts, parameters) {
+        Some(name) -> name;
+        None -> "Dynamic"
+    },
+    pattern_operands(pattern),
+).instructions.
 
 pub shallow_pattern_bindings_with_source(
     pattern: ProjectedExpressionNode,
@@ -512,14 +550,17 @@ pub shallow_pattern_bindings_with_source(
     parameters: List[IrParameter],
 ): List[SemanticInstructionPlan] ->
     indexed_pattern_bindings(
-        pattern,
-        environment,
-        facts,
-        parameters,
-        0,
-        case source_type { Some(name) -> name; None -> "Dynamic" },
-        pattern_operands(pattern),
-    ).instructions.
+    pattern,
+    environment,
+    facts,
+    parameters,
+    0,
+    case source_type {
+        Some(name) -> name;
+        None -> "Dynamic"
+    },
+    pattern_operands(pattern),
+).instructions.
 
 pattern_parameters_at(
     pattern: ProjectedExpressionNode,
@@ -532,14 +573,7 @@ pattern_parameters_at(
             Some(type_name) -> [IrParameter(pattern_binding_name(pattern), type_name)];
             None -> List.new[IrParameter]()
         };
-        true -> pattern_child_parameters(
-            pattern.children,
-            pattern.kind,
-            0,
-            source_type,
-            facts,
-            parameters,
-        )
+        true -> pattern_child_parameters(pattern.children, pattern.kind, 0, source_type, facts, parameters)
     }.
 
 pattern_child_parameters(
@@ -552,22 +586,23 @@ pattern_child_parameters(
 ): List[IrParameter] ->
     case values {
         [] -> List.new[IrParameter]();
-        [value | rest] -> append_ir_parameters(
-            pattern_parameters_at(
-                value,
-                pattern_child_source_type(parent_kind, child_index, source_type),
-                facts,
-                parameters,
-            ),
-            pattern_child_parameters(
-                rest,
-                parent_kind,
-                child_index + 1,
-                source_type,
-                facts,
-                parameters,
-            ),
-        )
+        [value | rest] ->
+            append_ir_parameters(
+                pattern_parameters_at(
+                    value,
+                    pattern_child_source_type(parent_kind, child_index, source_type),
+                    facts,
+                    parameters,
+                ),
+                pattern_child_parameters(
+                    rest,
+                    parent_kind,
+                    child_index + 1,
+                    source_type,
+                    facts,
+                    parameters,
+                ),
+            )
     }.
 
 pub pattern_parameters(
@@ -578,7 +613,10 @@ pub pattern_parameters(
 ): List[IrParameter] ->
     pattern_parameters_at(
         pattern,
-        case source_type { Some(name) -> name; None -> "Dynamic" },
+        case source_type {
+            Some(name) -> name;
+            None -> "Dynamic"
+        },
         facts,
         parameters,
     ).
@@ -591,10 +629,11 @@ pattern_children_bindings(
 ): List[SemanticInstructionPlan] ->
     case values {
         [] -> List.new[SemanticInstructionPlan]();
-        [value | rest] -> concat_instructions(
-            shallow_pattern_bindings(value, environment, facts, parameters),
-            pattern_children_bindings(rest, environment, facts, parameters),
-        )
+        [value | rest] ->
+            concat_instructions(
+                shallow_pattern_bindings(value, environment, facts, parameters),
+                pattern_children_bindings(rest, environment, facts, parameters),
+            )
     }.
 
 shallow_pattern_binding_tail(
@@ -654,10 +693,11 @@ result_fact_type(
 ): Option[String] ->
     case values {
         [] -> current;
-        [value | rest] -> if {
-            value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
-            true -> result_fact_type(byte_offset, rest, current)
-        }
+        [value | rest] ->
+            if {
+                value.byte_offset == byte_offset and value.type_name != None -> value.type_name;
+                true -> result_fact_type(byte_offset, rest, current)
+            }
     }.
 
 select_fact_type(
@@ -711,18 +751,18 @@ pub expression_type(
     parameters: List[IrParameter],
 ): Option[String] ->
     if {
-        String.starts_with(node.text, "$type:") -> Some(String.utf8_slice(
-            node.text,
-            6,
-            String.byte_size(node.text) - 6,
-        ));
+        String.starts_with(node.text, "$type:") -> Some(String.utf8_slice(node.text, 6, String.byte_size(node.text) - 6));
         node.kind == "dynamic-call" -> result_fact_type(node.start_byte, facts, None);
-        node.kind == "identifier" or node.kind == "atom" or node.kind == "binding" or node.kind == "primary" -> case parameter_type(node.text, parameters) {
+        node.kind == "identifier"
+            or node.kind == "atom"
+            or node.kind == "binding"
+            or node.kind == "primary" -> case parameter_type(node.text, parameters) {
             Some(name) -> Some(name);
-            None -> case fact_type(node.start_byte, facts) {
-                Some(name) -> Some(name);
-                None -> expression_type_without_fact(node, facts, parameters)
-            }
+            None ->
+                case fact_type(node.start_byte, facts) {
+                    Some(name) -> Some(name);
+                    None -> expression_type_without_fact(node, facts, parameters)
+                }
         };
         true -> case fact_type(node.start_byte, facts) {
             Some(name) -> some_string(name);
@@ -908,12 +948,15 @@ clause_expression_type(
 merge_expression_type(current: Option[String], next: Option[String]): Option[String] ->
     case current {
         None -> next;
-        Some(current_name) -> case next {
-            Some(next_name) where current_name == next_name -> Some(current_name);
-            Some(next_name) where String.starts_with(current_name, String.append(next_name, "[")) -> Some(current_name);
-            Some(next_name) where String.starts_with(next_name, String.append(current_name, "[")) -> Some(next_name);
-            _ -> None
-        }
+        Some(current_name) ->
+            case next {
+                Some(next_name) where current_name == next_name -> Some(current_name);
+                Some(next_name) where String.starts_with(current_name, String.append(next_name, "[")) ->
+                    Some(current_name);
+                Some(next_name) where String.starts_with(next_name, String.append(current_name, "[")) ->
+                    Some(next_name);
+                _ -> None
+            }
     }.
 
 branch_expression_types(
@@ -924,12 +967,13 @@ branch_expression_types(
 ): Option[String] ->
     case values {
         [] -> current;
-        [value | rest] -> branch_expression_types(
-            rest,
-            facts,
-            parameters,
-            merge_expression_type(current, clause_expression_type(value, facts, parameters)),
-        )
+        [value | rest] ->
+            branch_expression_types(
+                rest,
+                facts,
+                parameters,
+                merge_expression_type(current, clause_expression_type(value, facts, parameters)),
+            )
     }.
 
 case_expression_type(
@@ -1093,14 +1137,16 @@ pub node_opcode(node: ProjectedExpressionNode): String ->
             or node.kind == "string"
             or node.kind == "atom-literal"
             or node.kind == "constructor"
-            or node.kind == "primary" and (node.text == "true" or node.text == "false") ->
-            "load-literal";
+            or node.kind == "primary" and (node.text == "true" or node.text == "false") -> "load-literal";
         true -> move_node_opcode(node)
     }.
 
 move_node_opcode(node: ProjectedExpressionNode): String ->
     if {
-        node.kind == "identifier" or node.kind == "atom" or node.kind == "binding" or node.kind == "primary" -> "move";
+        node.kind == "identifier"
+            or node.kind == "atom"
+            or node.kind == "binding"
+            or node.kind == "primary" -> "move";
         true -> binary_node_opcode(node)
     }.
 

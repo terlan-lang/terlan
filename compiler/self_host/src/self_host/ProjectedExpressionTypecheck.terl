@@ -142,6 +142,7 @@ primitive(text: String): InferredProjectedType ->
     let floating = is_float(text);
     if {
         text == "true" or text == "false" -> known("Bool");
+        text == "Unit" -> known("Unit");
         true -> primitive_string(text, integer, floating)
     }.
 
@@ -505,7 +506,10 @@ resolved_without_fact(
         value.kind == "binary" -> resolved_binary_children(value, value.children, facts, parameters, bindings);
         value.kind == "unary" and (value.text == "not" or value.text == "!") -> known("Bool");
         value.kind == "unary" -> resolved_last_inferred(value.children, facts, parameters, bindings);
-        value.kind == "primary" or value.kind == "identifier" or value.kind == "atom" -> named_type(value.text, parameters, bindings);
+        value.kind == "primary"
+            or value.kind == "identifier"
+            or value.kind == "atom"
+            or value.kind == "constructor" -> named_type(value.text, parameters, bindings);
         true -> infer(value)
     }.
 
@@ -572,6 +576,19 @@ resolved_root_node(
                 Some(name) -> known(name);
                 None -> resolved_infer(node, facts, parameters)
             }
+    }.
+
+@pure
+resolved_body_root(
+    value: Option[ProjectedExpressionNode],
+    expected: String,
+    node_id: Int,
+    facts: List[InferredTypeFact],
+    parameters: List[ProjectedParameterTree],
+): InferredProjectedType ->
+    case value {
+        Some(node) where node.text == "native" -> known(expected);
+        _ -> resolved_root_node(value, node_id, facts, parameters)
     }.
 
 @pure
@@ -670,7 +687,14 @@ check_bodies(
             );
         [body | body_rest] ->
             let expected = type_name(signature.return_type);
-            let actual = resolved_root_node(body.expression.node, next_node_id, facts, signature.parameters);
+            let actual =
+                resolved_body_root(
+                    body.expression.node,
+                    expected,
+                    next_node_id,
+                    facts,
+                    signature.parameters,
+                );
             let guarded = guard_diagnostics(signature, facts, require_resolved, output);
             check_at(
                 signature_rest,

@@ -3,9 +3,10 @@
  */
 module self_host.ProjectedPatternBindingTypeMerge.
 
+import self_host.ModuleInterfaceSyntax.{ExportedStructField}.
 import self_host.ProjectedBodySyntax.{ProjectedBodies, ProjectedBody}.
 import self_host.ProjectedExpressionSyntax.ProjectedExpressionNode.
-import self_host.ProjectedPatternAuthority.{PatternAuthorityCatalog, PatternConstructorContract}.
+import self_host.ProjectedPatternAuthority.{PatternAuthorityCatalog, PatternConstructorContract, PatternRecordContract}.
 import self_host.ProjectedPatternPayloadTypes.
 import self_host.ProjectedTypeConstraintSyntax.{InferredTypeFact, TypeConstraintDiagnostic, TypeConstraintResolution}.
 import std.collections.List.
@@ -92,6 +93,55 @@ find_constructor(
             }
     }.
 
+find_record(name: String, values: List[PatternRecordContract]): Option[PatternRecordContract] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                type_base(value.name) == type_base(name) -> Some(value);
+                true -> find_record(name, rest)
+            }
+    }.
+
+record_field_type(name: String, values: List[ExportedStructField]): Option[String] ->
+    case values {
+        [] -> None;
+        [value | rest] ->
+            if {
+                value.name == name -> value.type_name;
+                true -> record_field_type(name, rest)
+            }
+    }.
+
+keyed_field_seeds(
+    values: List[ProjectedExpressionNode],
+    node_id: Int,
+    source_type: String,
+    record: PatternRecordContract,
+    catalog: PatternAuthorityCatalog,
+): List[PatternTypeSeed] ->
+    case values {
+        [] -> List.new[PatternTypeSeed]();
+        [field | rest] ->
+            append(
+                case {field.children, record_field_type(field.text, record.fields)} {
+                    {[pattern], Some(type_name)} ->
+                        pattern_seeds(
+                            pattern,
+                            node_id + 1,
+                            ProjectedPatternPayloadTypes.instantiate_type(
+                                record.type_parameters,
+                                type_name,
+                                source_type,
+                            ),
+                            catalog,
+                        );
+                    _ -> List.new[PatternTypeSeed]()
+                },
+                keyed_field_seeds(rest, node_id + node_size(field), source_type, record, catalog),
+            )
+    }.
+
 payload_pattern_seeds(
     patterns: List[ProjectedExpressionNode],
     node_id: Int,
@@ -150,6 +200,11 @@ pattern_seeds(
                     ProjectedPatternPayloadTypes.instantiate(contract, source_type),
                     catalog,
                 )
+        };
+        pattern.kind == "keyed-container-pattern" -> case find_record(source_type, catalog.records) {
+            None -> List.new[PatternTypeSeed]();
+            Some(record) ->
+                keyed_field_seeds(pattern.children, node_id + 1, source_type, record, catalog)
         };
         true -> []
     }.
@@ -235,6 +290,7 @@ scan_node(
         append(
             if {
                 value.kind == "case" -> case_seeds(value, node_id, facts, catalog);
+                value.kind == "constructor-pattern" -> pattern_seeds(value, node_id, "", catalog);
                 true -> []
             },
             nested.seeds,
@@ -302,6 +358,13 @@ merge_diagnostics(
             }
     }.
 
+seed_facts(values: List[PatternTypeSeed]): List[InferredTypeFact] ->
+    case values {
+        [] -> List.new[InferredTypeFact]();
+        [value | rest] ->
+            [InferredTypeFact(value.node_id, Some(value.type_name), value.byte_offset) | seed_facts(rest)]
+    }.
+
 /**
  * Adds subject-derived facts for list pattern declarations across all bodies.
  */
@@ -318,6 +381,6 @@ pub merge_with_catalog(
 ): TypeConstraintResolution ->
     let seeds = scan_bodies(bodies.values, 0, value.facts, catalog).seeds;
     TypeConstraintResolution(
-        merge_facts(value.facts, seeds),
+        append(seed_facts(seeds), merge_facts(value.facts, seeds)),
         merge_diagnostics(value.diagnostics, seeds),
     ).
