@@ -24,6 +24,43 @@ import std.core.Ordering.{*}.
 @pure
 pub (value: Int) abs(): Int.
 
+/// Returns the absolute value when its magnitude fits in `Int`.
+///
+/// `Int.MIN` returns `None`; every other value returns its exact magnitude.
+
+@pure
+pub (value: Int) checked_abs(): Option[Int].
+
+/// Adds two integers when the exact result fits in `Int`.
+///
+/// Boundary checks run before arithmetic, so overflow never reaches the
+/// primitive addition operation.
+
+@pure
+pub (left: Int) checked_add(right: Int): Option[Int].
+
+/// Divides two integers when the operation is defined and fits in `Int`.
+///
+/// Division by zero and `Int.MIN / -1` return `None` instead of trapping.
+
+@pure
+pub (left: Int) checked_div(right: Int): Option[Int].
+
+/// Multiplies two integers when the exact result fits in `Int`.
+///
+/// Sign-specific division bounds prove the product safe before multiplication.
+
+@pure
+pub (left: Int) checked_mul(right: Int): Option[Int].
+
+/// Subtracts an integer when the exact result fits in `Int`.
+///
+/// Boundary checks run before arithmetic, so overflow never reaches the
+/// primitive subtraction operation.
+
+@pure
+pub (left: Int) checked_sub(right: Int): Option[Int].
+
 /// Compares two `Int` values using numeric total ordering.
 ///
 /// Input: two `Int` values.

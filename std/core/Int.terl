@@ -11,6 +11,13 @@ import std.core.Ordering.{Eq, Gt, Lt}.
 
 import type std.core.Option.
 
+@pure
+minimum_value(): Int ->
+    -9_223_372_036_854_775_807 - 1.
+
+@pure
+maximum_value(): Int -> 9_223_372_036_854_775_807.
+
 /**
  * Returns whether two `Int` values are equal.
  *
@@ -92,6 +99,109 @@ pub (value: Int) abs(): Int ->
     case value < 0 {
         true -> 0 - value;
         false -> value
+    }.
+
+/**
+ * Adds two integers when the exact result fits in `Int`.
+ *
+ * Boundary checks run before arithmetic, so overflow never reaches the
+ * primitive addition operation.
+ */
+@pure
+pub (left: Int) checked_add(right: Int): Option[Int] ->
+    when {
+        false <- right > 0 and left > maximum_value() - right;
+        false <- right < 0 and left < minimum_value() - right
+    } else {
+        _ -> None
+    };
+    Some(left + right).
+
+/**
+ * Subtracts an integer when the exact result fits in `Int`.
+ *
+ * Boundary checks run before arithmetic, so overflow never reaches the
+ * primitive subtraction operation.
+ */
+@pure
+pub (left: Int) checked_sub(right: Int): Option[Int] ->
+    when {
+        false <- right > 0 and left < minimum_value() + right;
+        false <- right < 0 and left > maximum_value() + right
+    } else {
+        _ -> None
+    };
+    Some(left - right).
+
+/**
+ * Multiplies two integers when the exact result fits in `Int`.
+ *
+ * Sign-specific division bounds prove the product safe before multiplication.
+ */
+@pure
+pub (left: Int) checked_mul(right: Int): Option[Int] ->
+    case left == 0 or right == 0 {
+        true -> Some(0);
+        false ->
+            case left > 0 {
+                true ->
+                    case right > 0 {
+                        true ->
+                            case left > maximum_value() / right {
+                                true -> None;
+                                false -> Some(left * right)
+                            };
+                        false ->
+                            case right < minimum_value() / left {
+                                true -> None;
+                                false -> Some(left * right)
+                            }
+                    };
+                false ->
+                    case right > 0 {
+                        true ->
+                            case left < minimum_value() / right {
+                                true -> None;
+                                false -> Some(left * right)
+                            };
+                        false ->
+                            case left < maximum_value() / right {
+                                true -> None;
+                                false -> Some(left * right)
+                            }
+                    }
+            }
+    }.
+
+/**
+ * Divides two integers when the operation is defined and fits in `Int`.
+ *
+ * Division by zero and `Int.MIN / -1` return `None` instead of trapping.
+ */
+@pure
+pub (left: Int) checked_div(right: Int): Option[Int] ->
+    when {
+        false <- right == 0;
+        false <- left == minimum_value() and right == -1
+    } else {
+        _ -> None
+    };
+    Some(left / right).
+
+/**
+ * Returns the absolute value when its magnitude fits in `Int`.
+ *
+ * `Int.MIN` returns `None`; every other value returns its exact magnitude.
+ */
+@pure
+pub (value: Int) checked_abs(): Option[Int] ->
+    case value == minimum_value() {
+        true -> None;
+        false ->
+            case value < 0 {
+                true -> Some(0 - value);
+                false -> Some(value)
+            }
     }.
 
 /**
