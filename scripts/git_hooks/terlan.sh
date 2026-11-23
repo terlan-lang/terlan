@@ -7,6 +7,8 @@ terlc=$3
 typed_css_checked=$4
 prechecked=${5:-/dev/null}
 specialized_tests=${6:-/dev/null}
+timings=${TERLAN_HOOK_TIMINGS:-1}
+case "$timings" in 0|1) ;; *) echo 'TERLAN_HOOK_TIMINGS must be 0 or 1' >&2; exit 2 ;; esac
 terlan_cache_dir=${TERLAN_HOOK_TERLAN_CACHE_DIR:-}
 receipt_dir=${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-}
 receipt_schema=terlan-hook-validation-v3
@@ -125,13 +127,16 @@ run_terlc_unit() {
 }
 run_terlc() {
   local started=$SECONDS status selected_cache_dir
+  local command=("$terlc")
+  if [[ "$timings" == 1 ]]; then command+=(--timings); fi
   selected_cache_dir=${TERLAN_ACTIVE_UNIT_CACHE_DIR:-$terlan_cache_dir}
   echo "pre-commit: terlc $*"
   if [[ -n "$selected_cache_dir" ]]; then
     mkdir -p "$selected_cache_dir"
-    if "$terlc" --cache-dir "$selected_cache_dir" "$@"; then status=0; else status=$?; fi
+    command+=(--cache-dir "$selected_cache_dir")
+    if "${command[@]}" "$@"; then status=0; else status=$?; fi
   else
-    if "$terlc" "$@"; then status=0; else status=$?; fi
+    if "${command[@]}" "$@"; then status=0; else status=$?; fi
   fi
   local elapsed=$((SECONDS - started))
   echo "pre-commit: terlc ${1:-command} finished in ${elapsed}s"
