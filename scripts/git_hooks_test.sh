@@ -635,11 +635,17 @@ grep -Fq '"$terlc" test scripts/ci --coverage --coverage-threshold 100' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compiler; no compiler inputs changed' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse latest compiler; staged changes are not compiler inputs' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq "! rg -qx 'preflight:compiler-build'" \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'dirname "$TERLAN_HOOK_VALIDATION_RECEIPT_DIR"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'repository_root=$(git remote get-url origin)' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-fast}" bash "$driver" check' \
+grep -Fq 'TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-full}" bash "$driver" check' \
   "$(dirname "$driver")/../.githooks/pre-commit"
 grep -Fq "rg -qx 'preflight:inventory'" \
   "$(dirname "$driver")/git_hooks/check.sh"

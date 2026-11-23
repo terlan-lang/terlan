@@ -292,6 +292,8 @@ pub every_rust_allowance_change_runs_policy_before_expensive_gates(): Bool ->
     Plan.rust_lint_allowances(["crates/terlan/src/lib.rs"])
         and Plan.rust_lint_allowances(["docs/quality/RUST_LINT_ALLOWANCES.tsv"])
         and Plan.preflight_lanes(["crates/terlan/src/lib.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
+        and not Plan.rust_lint_allowances(["scripts/git_hooks/check.sh"])
+        and not Plan.rust_lint_allowances(["scripts/git_hooks/src/git_hooks/Plan.terl"])
         and not Plan.rust_lint_allowances(["README.md"]).
 
 @test
@@ -355,7 +357,7 @@ pub broad_rust_lanes_remove_their_narrow_duplicates(): Bool ->
 
 @test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->
-    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "rust-lint-allowances", "hook-policy"]
+    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
         and Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell"]
         and not Plan.release_contract(["scripts/git_hooks.sh"])
         and not Plan.bootstrap(["scripts/git_hooks/check.sh"])

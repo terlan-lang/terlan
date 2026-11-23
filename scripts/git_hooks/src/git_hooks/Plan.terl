@@ -67,9 +67,7 @@ pub rust_docs(paths: List[String]): Bool ->
 pub rust_lint_allowances(paths: List[String]): Bool ->
     RustFormatting.sources(paths) != []
         or affected(paths, "docs/quality/RUST_LINT_ALLOWANCES.tsv", "")
-        or affected(paths, "scripts/self_validation/rust_quality/", "")
-        or affected(paths, "scripts/git_hooks/src/git_hooks/Plan.terl", "")
-        or affected(paths, "scripts/git_hooks/check.sh", "").
+        or affected(paths, "scripts/self_validation/rust_quality/", "").
 
 pub preparation(paths: List[String]): Bool ->
     affected(paths, "scripts/self_validation/release_promotion/", "")

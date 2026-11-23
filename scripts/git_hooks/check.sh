@@ -121,6 +121,20 @@ if [[ "$hook_mode" == fast ]]; then
   run_plan "$terlc" || { echo 'pre-commit: latest terlc cannot plan the staged source' >&2; exit 1; }
   compiler_build=false
   echo "pre-commit: fast admission uses $terlc"
+elif [[ "$exact_compiler_inputs" == false \
+  && -n ${TERLAN_HOOK_LATEST_TERLC:-} \
+  && -x ${TERLAN_HOOK_LATEST_TERLC:-} \
+  && ! -L ${TERLAN_HOOK_LATEST_TERLC:-} ]] \
+  && run_plan "$TERLAN_HOOK_LATEST_TERLC" \
+  && ! rg -qx 'preflight:compiler-build' "$raw_plan"; then
+  # The cached staged compiler may predate an earlier compiler commit.  That
+  # does not justify rebuilding it for a later documentation, report, or hook
+  # policy commit.  Use the latest checkout compiler to plan those changes;
+  # the planner still requires a candidate rebuild for real compiler inputs.
+  compiler_build=false
+  terlc=$TERLAN_HOOK_LATEST_TERLC
+  export TERLC="$terlc"
+  echo 'pre-commit: reuse latest compiler; staged changes are not compiler inputs'
 elif [[ "$compiler_build" == false ]]; then
   if [[ -x "$terlc" ]] && run_plan "$terlc"; then
     :
@@ -570,9 +584,13 @@ run_commands_test_lane() {
     tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 }
 run_rust_reports_lane() {
+  local report_cache_dir="$CARGO_TARGET_DIR/validation-results/rust-reports"
+  if [[ -n ${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-} ]]; then
+    report_cache_dir="$(dirname "$TERLAN_HOOK_VALIDATION_RECEIPT_DIR")/rust-reports"
+  fi
   TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
   TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
-  TERLAN_RUST_REPORT_CACHE_DIR="$CARGO_TARGET_DIR/validation-results/rust-reports" \
+  TERLAN_RUST_REPORT_CACHE_DIR="$report_cache_dir" \
     bash scripts/git_hooks/rust_reports.sh "${TERLAN_RUST_REPORT_MODE:-check}"
 }
 run_summaries_lane() {

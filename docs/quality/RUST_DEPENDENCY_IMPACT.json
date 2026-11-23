@@ -899,7 +899,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 190335,
+      "physical_lines": 190369,
       "rust_files": 539
     },
     {
@@ -1362,7 +1362,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 57735,
+      "physical_lines": 57744,
       "rust_files": 261
     },
     {
