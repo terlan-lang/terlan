@@ -2014,7 +2014,6 @@ publish: release-plan publish-source-preflight
 	test /dev/fd/7 -ef "$$publication_lock"; \
 	test "$$(git branch --show-current)" = main || { echo 'publish requires main' >&2; exit 1; }; \
 	test "$(VERSION)" = "$(RELEASE_VERSION)" || { echo 'VERSION must match workspace.package.version' >&2; exit 1; }; \
-	bash scripts/publication_process_preflight.sh "$(CURDIR)"; \
 	case "$${MAKEFLAGS%% *}" in *n*) $(MAKE) --no-print-directory -n publish-local VERSION="$(VERSION)" PUBLISH_REVISION="$$(git rev-parse HEAD)"; exit ;; esac; \
 	test ! -L target && test ! -L target/quality; \
 	mkdir -p target/quality; \

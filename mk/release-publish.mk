@@ -635,6 +635,7 @@ publish-remote-preflight: publish-source-preflight
 # Only the existing-evidence path needs their focused repair. This local
 # decision comes from completed commands, never a caller's skip flag.
 publish-prepare: publish-source-preflight
+	bash scripts/publication_process_preflight.sh "$(CURDIR)"
 	@for tool in cargo rustc node npm jq lake clang flock sha256sum realpath timeout; do \
 		command -v "$$tool" >/dev/null 2>&1 || { \
 			echo "publication preparation requires $$tool; install it before preparing the candidate" >&2; \

@@ -103,6 +103,13 @@ if printf '%s\n' "$publish_local" | rg -q 'publish-source-preflight'; then
   echo 'publish-local redundantly replays publish-source-preflight.' >&2
   exit 1
 fi
+publish=$(make_rule publish)
+if printf '%s\n' "$publish" | rg -q 'publication_process_preflight'; then
+  echo 'make publish blocks harmless parallel validation before hosted checks finish.' >&2
+  exit 1
+fi
+publish_prepare=$(make_rule publish-prepare)
+grep -Fq 'publication_process_preflight.sh' <<<"$publish_prepare"
 
 # Publication must not replay the compiler, AOT, sanitizer, or browser suites.
 # The exact hosted release workflow owns those gates and the sealed bundle.
