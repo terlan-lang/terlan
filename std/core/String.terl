@@ -30,7 +30,7 @@
 module std.core.String.
 
 import std.core.Option.{None, Some}.
-import std.core.Ordering.{Eq, Gt, Lt}.
+import std.core.Ordering.{Comparison, Eq, Gt, Lt}.
 import std.core.{Bool, Float, Int, Unit}.
 
 import type std.core.Option.

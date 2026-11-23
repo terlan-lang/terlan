@@ -110,7 +110,7 @@ pub fail(error: E): Effect[T] ->
  */
 @pure
 pub cancelled(): Effect[T] ->
-    {Atom["cancelled"], Unit}.
+    Cancelled(Unit).
 
 /**
  * Declares the VM-owned execution boundary for an effect description.

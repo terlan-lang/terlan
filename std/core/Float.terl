@@ -7,7 +7,7 @@
 module std.core.Float.
 
 import std.core.Option.{None, Some}.
-import std.core.Ordering.{Eq, Gt, Lt}.
+import std.core.Ordering.{Comparison, Eq, Gt, Lt}.
 
 import type std.core.Option.
 
@@ -89,8 +89,8 @@ pub (left: Float) max(right: Float): Float ->
  * ```
  */
 pub (value: Float) abs(): Float ->
-    case value < 0 {
-        true -> 0 - value;
+    case value < 0.0 {
+        true -> 0.0 - value;
         false -> value
     }.
 
