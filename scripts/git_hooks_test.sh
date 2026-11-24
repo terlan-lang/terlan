@@ -1650,6 +1650,7 @@ report_vm_started="$temporary/report-cache.started"
     REPORT_VM_STARTED="$report_vm_started" \
     TERLAN_TEST_FORCE_RERUN=1 \
     TERLAN_HOOK_ARTIFACTS_PREBUILT=1 \
+    TERLAN_RUST_REPORT_MAX_JOBS=2 \
     TERLAN_RUST_REPORT_TERLC="$PWD/owned-target/debug/terlc" \
     TERLAN_RUST_REPORT_VM="$PWD/owned-target/debug/terlan-vm" \
     TERLAN_RUST_REPORT_CACHE_DIR="$PWD/owned-target/validation-results/rust-reports" \
@@ -1657,10 +1658,10 @@ report_vm_started="$temporary/report-cache.started"
 ) > "$temporary/report-cache-interrupt.log" 2>&1 &
 report_owner=$!
 for _attempt in {1..200}; do
-  [[ $(wc -l < "$report_vm_started") == 6 ]] && break
+  [[ $(wc -l < "$report_vm_started") == 2 ]] && break
   sleep 0.01
 done
-test "$(wc -l < "$report_vm_started")" = 6
+test "$(wc -l < "$report_vm_started")" = 2
 kill -TERM "$report_owner"
 report_status=0
 wait "$report_owner" || report_status=$?
