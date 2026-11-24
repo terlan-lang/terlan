@@ -32,7 +32,6 @@ pub workflow(runs: Json, revision: String, name: String): Result[Json, String] -
                     let admitted_event =
                         if {
                             name == "publish.yml" -> event == "push";
-                            name == "ci.yml" -> event == "push" or event == "workflow_dispatch";
                             true -> event == "workflow_dispatch"
                         };
                     if {
@@ -96,6 +95,8 @@ load(revision: String, name: String): Result[Json, String] ->
             revision,
             "--workflow",
             name,
+            "--event",
+            "workflow_dispatch",
             "--limit",
             "1",
             "--json",
