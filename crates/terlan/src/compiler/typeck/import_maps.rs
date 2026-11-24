@@ -433,10 +433,11 @@ fn collect_syntax_module_aliases(
             }
             let full_module_name = format!("{}.{}", module_name, item.name);
             let imports_module = interfaces.contains_key(&full_module_name);
-            if interfaces
-                .get(&full_module_name)
-                .is_some_and(|interface| interface.traits.contains_key(&item.name))
-            {
+            if interfaces.get(&full_module_name).is_some_and(|interface| {
+                interface.traits.contains_key(&item.name)
+                    && interface.functions.is_empty()
+                    && interface.function_overloads.is_empty()
+            }) {
                 continue;
             }
             if let Some(alias) = &item.as_alias {

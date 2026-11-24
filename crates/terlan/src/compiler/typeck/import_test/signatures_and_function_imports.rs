@@ -698,6 +698,23 @@ pub demo(): List[Int] ->\n\
     );
 }
 
+#[test]
+fn module_with_same_named_trait_keeps_ordinary_functions_importable() {
+    let interface = "module fixture.Callable.\n\
+        pub trait Callable[Value] {}.\n\
+        pub convert(value: Int): Int.\n";
+    for (import, alias) in [
+        ("import fixture.{Callable}.", "Callable"),
+        ("import fixture.Callable as Functions.", "Functions"),
+    ] {
+        let source = format!(
+            "module mixed_trait_module.\n{import}\npub value(): Int -> {alias}.convert(42).\n"
+        );
+        let diagnostics = check_syntax_output_with_interface(&source, interface);
+        assert!(diagnostics.is_empty(), "{source}: {diagnostics:?}");
+    }
+}
+
 /// Verifies collapsed uppercase trait imports do not become module aliases.
 ///
 /// Inputs:
