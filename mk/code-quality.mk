@@ -238,9 +238,9 @@ rust-build-graph-boundary-check: \
 			$(TERLAN_RUST_QUALITY) build-graph-boundary-check
 
 .PHONY: build-artifact-budget-record build-artifact-budget-self-test build-artifact-budget-check
-# Measurement must precede every test-owning/package gate because it performs a
-# clean build and then `cargo clean`. Package isolation is still enforced by the
-# consumer below, after the canonical suite has established shared evidence.
+# The multi-lane measurement is an explicit diagnostic benchmark. It performs
+# clean, warm, incremental, release, and coverage builds and must not sit on the
+# release correctness path.
 build-artifact-budget-record: terlan-artifact-measurement-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
 		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE) -- --measure-if-stale
@@ -251,7 +251,7 @@ build-artifact-budget-self-test: terlan-artifact-measurement-bootstrap
 
 build-artifact-budget-check: rust-build-graph-boundary-check package-build-artifact-isolation-check terlan-self-validation-bootstrap
 	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE)
+		$(TERLAN_BOOTSTRAP_VM) run $(TERLAN_SELF_VALIDATION_IMAGE) -- --self-test
 
 rust-canonical-type-ownership-check: rust-build-graph-boundary-check
 	@echo "[rust-canonical-type-ownership] canonical AST ownership passed"

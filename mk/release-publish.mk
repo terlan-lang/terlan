@@ -348,13 +348,12 @@ release-check: release-evidence-refresh
 	$(MAKE) --no-print-directory release-preflight RELEASE_VERSION="$(RELEASE_VERSION)"
 
 
-# Measures build artifacts before the full check, then validates with the
-# compiler and release VM left by that measurement. Quality tools are built
-# after the destructive measurement so no later gate can lose them.
-release-candidate-check: editor-release-contract-check terlan-artifact-measurement-bootstrap
+# Validates one candidate without running the destructive multi-lane artifact
+# benchmark. Artifact measurement is diagnostic work owned by the explicit
+# build-artifact-budget-record target; release correctness uses the fast policy
+# self-test in the canonical check graph and validates packaged artifacts later.
+release-candidate-check: editor-release-contract-check
 	bash scripts/clean_build_outputs.sh --check-partials
-	TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-		$(MAKE) --no-print-directory build-artifact-budget-record
 	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	$(MAKE) --no-print-directory \
 		TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \

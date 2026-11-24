@@ -65,10 +65,15 @@ PRODUCER
   test "$(wc -l < builds)" -eq 2
   make --no-print-directory verify TERLAN_VALIDATION_BOOTSTRAPPED=1
   test "$(wc -l < builds)" -eq 2
-  # Exercise the production release recipe, including its recursive environment.
+  # Release validation reuses the validator without invoking destructive
+  # measurement or rebuilding its unchanged image.
   make --no-print-directory release-candidate-check
   test -s target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
-  test "$(wc -l < builds)" -eq 3
+  test "$(wc -l < builds)" -eq 2
+  # The explicit benchmark remains destructive by design and its next consumer
+  # reconstructs the validator once.
+  make --no-print-directory build-artifact-budget-record
+  test ! -e target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm
   make --no-print-directory verify
   test "$(wc -l < builds)" -eq 3
   # A consumer that claims a completed bootstrap must fail closed if it is gone.
@@ -78,7 +83,7 @@ PRODUCER
     exit 1
   fi
 )
-echo 'Budget validator is rebuilt after Cargo cleanup and retained between consumers.'
+echo 'Release validation retains budget tools; explicit measurement owns cleanup.'
 
 # The optimized validator runtime uses the process owner and honors prebuilt mode.
 mkdir "$temporary/runtime"

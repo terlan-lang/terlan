@@ -144,10 +144,12 @@ inventories for drift auditing, while their normal gates execute canonical
 module batches. Make aggregates express quality subgates as prerequisites, so
 one top-level invocation traverses each shared prerequisite once.
 
-Compile timings are diagnostic evidence. Release and code-quality correctness
+Compile timings and multi-lane build-artifact measurements are diagnostic
+evidence. Release and code-quality correctness never rerun those benchmarks and
 never depend on CPU quietness, scaling-governor state, affinity, ambient load,
-or a timing threshold measured in one run. Timing history can guide an
-investigation, but it cannot reject a candidate.
+or a timing threshold measured in one run. The explicit
+`build-artifact-budget-record` target owns measurement; candidate validation
+runs the deterministic policy self-test and packaging validates release assets.
 
 Isolated Cargo build trees are temporary evidence-generation state. Timing
 tools copy their compact HTML/report evidence under `target/quality` and remove

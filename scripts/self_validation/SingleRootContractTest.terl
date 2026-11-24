@@ -78,26 +78,19 @@ makefile_holds(makefile: String): Bool ->
         and make_variable_contains(makefile, "CHECK_GATES", "runtime-aot-only-check")
         and make_variable_contains(makefile, "CHECK_GATES", "vm-multicore-release-contract-check")
         and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check")
-        and String.contains(
-    makefile,
-    "release-candidate-check: release-proof-evidence-check editor-release-contract-check terlan-artifact-measurement-bootstrap",
-)
-        and release_candidate_budget_before_tests(makefile).
+        and String.contains(makefile, "release-candidate-check: editor-release-contract-check")
+        and release_candidate_avoids_benchmark_measurement(makefile).
 
 @pure
-release_candidate_budget_before_tests(makefile: String): Bool ->
+release_candidate_avoids_benchmark_measurement(makefile: String): Bool ->
     when {
         Some({_prefix, candidate}) <- String.split_once(makefile, "release-candidate-check:");
-        Some({_before_budget, after_budget}) <-
-            String.split_once(
-                candidate,
-                "$(MAKE) --no-print-directory build-artifact-budget-record",
-            );
-        Some({_before_check, after_check}) <- String.split_once(after_budget, "$(MAKE) --no-print-directory check")
+        Some({recipe, _after_recipe}) <- String.split_once(candidate, "\n\n")
     } else {
         _ -> false
     };
-    not String.contains(after_check, "$(MAKE) --no-print-directory build-artifact-budget-record").
+    not String.contains(recipe, "build-artifact-budget-record")
+        and not String.contains(recipe, "--measure-if-stale").
 
 @pure
 workflow_holds(workflow: String): Bool ->
@@ -212,7 +205,7 @@ valid_makefile(): String ->
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\nrelease-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check\nrelease-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check\n",
         String.append(
             "CHECK_GATES := \\\n\tsource-extension-check \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\n",
-            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check:\n\t$(MAKE) --no-print-directory build-artifact-budget-record\n\t$(MAKE) --no-print-directory check\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
+            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check: editor-release-contract-check\n\t$(MAKE) --no-print-directory check\n\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).
 
@@ -298,12 +291,12 @@ pub nested_scratch_checkout_escape_is_rejected(): Bool ->
 ).
 
 @test
-pub artifact_measurement_precedes_candidate_tests(): Bool ->
+pub artifact_measurement_is_rejected_from_candidate_tests(): Bool ->
     not contract_holds(
     String.replace(
         valid_makefile(),
+        "\t$(MAKE) --no-print-directory check",
         "\t$(MAKE) --no-print-directory build-artifact-budget-record\n\t$(MAKE) --no-print-directory check",
-        "\t$(MAKE) --no-print-directory check\n\t$(MAKE) --no-print-directory build-artifact-budget-record",
     ),
     valid_ci_workflow(),
     valid_release_workflow(),
