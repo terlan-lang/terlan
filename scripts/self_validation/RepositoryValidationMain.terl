@@ -895,7 +895,7 @@ build_release_contract(repository: String): Bool ->
         "$(CARGO) clippy --workspace --bins -- -D warnings",
         "$(CARGO) clippy --workspace --bins --all-features -- -D warnings",
         "TERLAN_COMPILER_BOOTSTRAP_BUILD_ARGS = -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker --features terlan/validation-union",
-        "release-candidate-check: editor-release-contract-check",
+        "release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap",
         "$(MAKE) --no-print-directory terlan-quality-tools-bootstrap",
         "TERLAN_BUILD_ARTIFACTS_PREBUILT=1",
         "error: missing prebuilt release Rust tool:",
