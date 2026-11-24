@@ -80,7 +80,7 @@ makefile_holds(makefile: String): Bool ->
         and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check")
         and String.contains(
     makefile,
-    "release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap",
+    "release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap",
 )
         and release_candidate_avoids_benchmark_measurement(makefile).
 
@@ -208,7 +208,7 @@ valid_makefile(): String ->
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\nrelease-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check\nrelease-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check\n",
         String.append(
             "CHECK_GATES := \\\n\tsource-extension-check \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\n",
-            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check: editor-release-contract-check terlan-compiler-bootstrap\n\t$(MAKE) --no-print-directory check\n\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
+            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap\n\t$(MAKE) --no-print-directory check\n\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).
 

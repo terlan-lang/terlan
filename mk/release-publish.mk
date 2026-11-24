@@ -352,7 +352,7 @@ release-check: release-evidence-refresh
 # benchmark. Artifact measurement is diagnostic work owned by the explicit
 # build-artifact-budget-record target; release correctness uses the fast policy
 # self-test in the canonical check graph and validates packaged artifacts later.
-release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap
+release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap
 	bash scripts/clean_build_outputs.sh --check-partials
 	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	$(MAKE) --no-print-directory \
