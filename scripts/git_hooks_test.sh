@@ -586,6 +586,15 @@ if grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body" \
   || grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
   echo 'Release contract rebuilt optimized compiler tools unnecessarily' >&2; exit 1
 fi
+release_manifest_block=$(sed -n \
+  '/^if preflight_has release-manifest; then/,/^fi$/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq '"$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl' \
+  <<< "$release_manifest_block"
+if grep -Fq 'ensure_release_tools' <<< "$release_manifest_block"; then
+  echo 'Release manifest rebuilt optimized compiler tools unnecessarily' >&2
+  exit 1
+fi
 grep -Fq 'TERLAN_VALIDATION_BOOTSTRAPPED=1' <<< "$release_contract_body"
 grep -Fq 'TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality' <<< "$release_contract_body"
 grep -Fq 'prechecked_terlan' <<< "$release_contract_body"

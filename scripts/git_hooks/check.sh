@@ -1015,7 +1015,9 @@ if preflight_has artifact-budget; then
 fi
 if preflight_has release-manifest; then
   echo 'pre-commit: standard-library release manifest'
-  ensure_release_tools
+  # This gate validates source contracts and JavaScript emission. The
+  # already-selected compatible compiler is sufficient; rebuilding optimized
+  # release tools here made validator-only commits pay the full LTO cost.
   "$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl --target js.browser \
     --out-dir target/git-hooks-js-constructor-types
   TERLAN_RELEASE_MANIFEST_ROOT="$PWD" TERLAN_RELEASE_MANIFEST_TERLC="$terlc" \

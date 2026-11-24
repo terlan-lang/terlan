@@ -613,7 +613,7 @@ public_function_lines(lines: List[String], function_name: String): Bool ->
     case lines {
         [] -> false;
         [line | rest] ->
-            String.starts_with(String.trim(line), String.append("pub ", String.append(function_name, "(")))
+            public_function_name(line) == function_name
                 or public_function_lines(rest, function_name)
     }.
 
@@ -653,7 +653,12 @@ public_function_name(line: String): String ->
     if {
         not String.starts_with(trimmed, "pub ") -> "";
         true -> case String.split_once(trimmed, "(") {
-            Some({declaration, _arguments}) -> String.trim(String.replace(declaration, "pub ", ""));
+            Some({declaration, _arguments}) ->
+                let declared_name = String.trim(String.replace(declaration, "pub ", ""));
+                case String.split_once(declared_name, "[") {
+                    Some({function_name, _type_parameters}) -> String.trim(function_name);
+                    None -> declared_name
+                };
             None -> ""
         }
     }.
@@ -1033,6 +1038,10 @@ pub public_function_requires_exact_name(): Bool ->
     not source_has_public_function(
     "pub generated_surface_contract_extra(): Bool -> true.\n",
     "generated_surface_contract",
+)
+        and source_has_public_function(
+    "pub get_typechecks[K, V](receiver: Map[K, V], key: K): Option[V] -> receiver.get(key).\n",
+    "get_typechecks",
 ).
 
 @test
