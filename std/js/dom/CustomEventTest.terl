@@ -15,10 +15,10 @@ module std.js.Dom.CustomEventTest.
 import type std.core.{Option}.
 import type std.js.Dom.CustomEvent.
 
-pub detail_typechecks(receiver: CustomEvent[T]): T ->
+pub detail_typechecks[T](receiver: CustomEvent[T]): T ->
     receiver.detail().
 
-pub init_custom_event_typechecks(
+pub init_custom_event_typechecks[T](
     receiver: CustomEvent[T],
     type_: std.js.String.JsString,
     bubbles: Option[Bool],

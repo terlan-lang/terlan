@@ -73,6 +73,58 @@ fn working_tree_bytes_not_index_blobs_or_timestamps_define_source() {
 }
 
 #[test]
+fn library_phase_identity_ignores_unrelated_hooks_reports_and_integration_tests() {
+    let fixture = temporary_fixture("source-phase-scope");
+    for directory in [
+        "crates/terlan/src",
+        "crates/terlan-test-orchestrator/tests",
+        "scripts/git_hooks",
+        "docs/quality",
+    ] {
+        fs::create_dir_all(fixture.0.join(directory)).unwrap();
+    }
+    for (path, contents) in [
+        ("crates/terlan/src/lib.rs", "library"),
+        (
+            "crates/terlan-test-orchestrator/tests/fixture.rs",
+            "integration",
+        ),
+        ("scripts/git_hooks/check.sh", "hook"),
+        ("docs/quality/RUST_DEPENDENCY_IMPACT.json", "report"),
+    ] {
+        fs::write(fixture.0.join(path), contents).unwrap();
+    }
+    let root = fs::canonicalize(&fixture.0).unwrap();
+    let paths = b"crates/terlan/src/lib.rs\0crates/terlan-test-orchestrator/tests/fixture.rs\0docs/quality/RUST_DEPENDENCY_IMPACT.json\0scripts/git_hooks/check.sh\0";
+    let first = fingerprint(&root, paths, control(), Instant::now(), MAX_BYTES).unwrap();
+
+    fs::write(
+        fixture
+            .0
+            .join("crates/terlan-test-orchestrator/tests/fixture.rs"),
+        "changed integration",
+    )
+    .unwrap();
+    fs::write(fixture.0.join("scripts/git_hooks/check.sh"), "changed hook").unwrap();
+    fs::write(
+        fixture.0.join("docs/quality/RUST_DEPENDENCY_IMPACT.json"),
+        "changed report",
+    )
+    .unwrap();
+    let unrelated = fingerprint(&root, paths, control(), Instant::now(), MAX_BYTES).unwrap();
+    assert_ne!(first.sha256, unrelated.sha256);
+    assert_eq!(first.phase_receipt_sha256, unrelated.phase_receipt_sha256);
+
+    fs::write(
+        fixture.0.join("crates/terlan/src/lib.rs"),
+        "changed library",
+    )
+    .unwrap();
+    let library = fingerprint(&root, paths, control(), Instant::now(), MAX_BYTES).unwrap();
+    assert_ne!(unrelated.phase_receipt_sha256, library.phase_receipt_sha256);
+}
+
+#[test]
 fn additions_deletions_and_ignore_policy_are_observed_without_hashing_outputs() {
     let fixture = temporary_fixture("source-membership");
     git(&fixture.0, &["init", "--quiet"]);

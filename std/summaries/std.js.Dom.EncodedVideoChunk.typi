@@ -40,10 +40,3 @@ pub (receiver: EncodedVideoChunk) duration(): std.core.Option[std.js.Number.JsNu
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/timestamp)
  */
 pub (receiver: EncodedVideoChunk) timestamp(): std.js.Number.JsNumber.
-
-/**
- * The **`copyTo()`** method of the EncodedVideoChunk interface copies the encoded chunk of video data.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedVideoChunk/copyTo)
- */
-pub (receiver: EncodedVideoChunk) copy_to(destination: std.js.Dom.AllowSharedBufferSource): std.core.Unit.

@@ -19,3 +19,17 @@ pub opaque type ObjectConstructor.
  */
 pub (receiver: ObjectConstructor) prototype(): std.js.Object ->
     native.
+
+/**
+ * Prevents the modification of attributes of existing properties, and prevents the addition of new properties.
+ * @param o Object on which to lock the attributes.
+ */
+pub (receiver: ObjectConstructor) seal[T](o: T): T ->
+    native.
+
+/**
+ * Prevents the addition of new properties to an object.
+ * @param o Object to make non-extensible.
+ */
+pub (receiver: ObjectConstructor) prevent_extensions[T](o: T): T ->
+    native.

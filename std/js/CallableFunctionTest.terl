@@ -13,3 +13,6 @@
 module std.js.CallableFunctionTest.
 
 import type std.js.CallableFunction.
+
+pub apply_typechecks[T, R](receiver: CallableFunction, this_arg: T): R ->
+    receiver.apply(this_arg).

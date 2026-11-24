@@ -1,9 +1,14 @@
 use oxc_ast::{
-    ast::{BindingPattern, FormalParameter, TSSignature, TSType, TSTypeAnnotation},
+    ast::{
+        BindingPattern, FormalParameter, TSConstructorType, TSSignature, TSTupleElement, TSType,
+        TSTypeAnnotation, TSTypeOperatorOperator,
+    },
     Comment,
 };
 
-use super::super::ts_type_mapping::{TsPrimitiveType, TsRecordField, TsTypeRef};
+use super::super::ts_type_mapping::{
+    TsConditionalType, TsConstructorType, TsPrimitiveType, TsRecordField, TsTupleElement, TsTypeRef,
+};
 use super::declarations::{TsParameterDeclaration, TsParseError};
 
 #[path = "types/literal_types.rs"]
@@ -151,6 +156,7 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         TSType::TSVoidKeyword(_) => Ok(TsTypeRef::Primitive(TsPrimitiveType::Void)),
         TSType::TSNullKeyword(_) => Ok(TsTypeRef::Null),
         TSType::TSUndefinedKeyword(_) => Ok(TsTypeRef::Undefined),
+        TSType::TSNeverKeyword(_) => Ok(TsTypeRef::Never),
         TSType::TSAnyKeyword(_) => Ok(TsTypeRef::Any),
         TSType::TSUnknownKeyword(_) => Ok(TsTypeRef::Unknown),
         TSType::TSObjectKeyword(_) => Ok(TsTypeRef::Object),
@@ -186,11 +192,24 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         TSType::TSArrayType(array) => {
             Ok(TsTypeRef::Array(Box::new(parse_type(&array.element_type)?)))
         }
+        TSType::TSTupleType(tuple) => Ok(TsTypeRef::Tuple(
+            tuple
+                .element_types
+                .iter()
+                .map(parse_tuple_element)
+                .collect::<Result<_, _>>()?,
+        )),
+        TSType::TSTypeOperatorType(operator)
+            if operator.operator == TSTypeOperatorOperator::Readonly
+                && matches!(operator.type_annotation, TSType::TSTupleType(_)) =>
+        {
+            parse_type(&operator.type_annotation)
+        }
         TSType::TSUnionType(union) => {
             let items = union
                 .types
                 .iter()
-                .map(parse_type)
+                .map(parse_type_argument)
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(TsTypeRef::Union(items))
         }
@@ -198,11 +217,18 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         TSType::TSTypeReference(reference) => parse_type_reference(reference),
         TSType::TSParenthesizedType(parenthesized) => parse_type(&parenthesized.type_annotation),
         TSType::TSTypeLiteral(_) => parse_type_literal(ty),
+        TSType::TSConditionalType(conditional) => {
+            Ok(TsTypeRef::Conditional(Box::new(TsConditionalType {
+                check: parse_type_operand(&conditional.check_type),
+                constraint: parse_type_operand(&conditional.extends_type),
+                then_type: parse_type_operand(&conditional.true_type),
+                else_type: parse_type_operand(&conditional.false_type),
+                distribute_over: None,
+            })))
+        }
         TSType::TSBigIntKeyword(_)
         | TSType::TSIntrinsicKeyword(_)
-        | TSType::TSNeverKeyword(_)
         | TSType::TSSymbolKeyword(_)
-        | TSType::TSConditionalType(_)
         | TSType::TSConstructorType(_)
         | TSType::TSImportType(_)
         | TSType::TSIndexedAccessType(_)
@@ -211,7 +237,6 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
         | TSType::TSMappedType(_)
         | TSType::TSNamedTupleMember(_)
         | TSType::TSTemplateLiteralType(_)
-        | TSType::TSTupleType(_)
         | TSType::TSTypeOperatorType(_)
         | TSType::TSTypePredicate(_)
         | TSType::TSTypeQuery(_)
@@ -222,6 +247,104 @@ pub(super) fn parse_type(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
             "TypeScript type shape is outside the first DOM binding slice",
         )),
     }
+}
+
+fn parse_tuple_element(element: &TSTupleElement<'_>) -> Result<TsTupleElement, TsParseError> {
+    let (ty, optional, rest) = match element {
+        TSTupleElement::TSNamedTupleMember(named) => {
+            let mut element = parse_tuple_element(&named.element_type)?;
+            element.label = Some(named.label.name.to_string());
+            element.optional |= named.optional;
+            return Ok(element);
+        }
+        TSTupleElement::TSOptionalType(value) => (&value.type_annotation, true, false),
+        TSTupleElement::TSRestType(value) => (&value.type_annotation, false, true),
+        other => (other.to_ts_type(), false, false),
+    };
+    if let TSType::TSNamedTupleMember(named) = ty {
+        let mut element = parse_tuple_element(&named.element_type)?;
+        element.label = Some(named.label.name.to_string());
+        element.optional |= named.optional || optional;
+        element.rest |= rest;
+        return Ok(element);
+    }
+    Ok(TsTupleElement {
+        label: None,
+        ty: parse_type(ty)?,
+        optional,
+        rest,
+    })
+}
+
+pub(super) fn parse_type_operand(ty: &TSType<'_>) -> TsTypeRef {
+    match ty {
+        TSType::TSParenthesizedType(ty) => parse_type_operand(&ty.type_annotation),
+        TSType::TSConstructorType(constructor) => parse_constructor_type(constructor),
+        TSType::TSUnionType(union) => {
+            TsTypeRef::Union(union.types.iter().map(parse_type_operand).collect())
+        }
+        TSType::TSFunctionType(function) if is_rest_only(function) => {
+            let rest = function.params.rest.as_ref().unwrap();
+            match &rest.type_annotation {
+                Some(rest) => TsTypeRef::RestCallback {
+                    rest: Box::new(parse_type_operand(&rest.type_annotation)),
+                    return_type: Box::new(parse_type_operand(
+                        &function.return_type.type_annotation,
+                    )),
+                },
+                None => TsTypeRef::Deferred {
+                    reason: "ts_bindgen.missing_type_annotation",
+                    detail: "rest parameter requires an explicit annotation".into(),
+                },
+            }
+        }
+        _ => parse_type(ty).unwrap_or_else(|error| TsTypeRef::Deferred {
+            reason: error.reason,
+            detail: error.message,
+        }),
+    }
+}
+
+pub(super) fn parse_constructor_type(constructor: &TSConstructorType<'_>) -> TsTypeRef {
+    if constructor.type_parameters.is_some() {
+        return TsTypeRef::ConstructorType;
+    }
+    let Ok(params) = super::members::callable_parameters(&constructor.params) else {
+        return TsTypeRef::ConstructorType;
+    };
+    TsTypeRef::Constructor(Box::new(TsConstructorType {
+        is_abstract: constructor.r#abstract,
+        params: tuple_parameters(params),
+        instance: parse_type_operand(&constructor.return_type.type_annotation),
+    }))
+}
+
+pub(super) fn tuple_parameters(params: Vec<TsParameterDeclaration>) -> Vec<TsTupleElement> {
+    params
+        .into_iter()
+        .map(|parameter| TsTupleElement {
+            label: Some(parameter.name),
+            ty: parameter.ty,
+            optional: parameter.optional,
+            rest: parameter.rest,
+        })
+        .collect()
+}
+
+fn parse_type_argument(ty: &TSType<'_>) -> Result<TsTypeRef, TsParseError> {
+    match ty {
+        TSType::TSParenthesizedType(ty) => parse_type_argument(&ty.type_annotation),
+        TSType::TSConstructorType(constructor) => Ok(parse_constructor_type(constructor)),
+        TSType::TSFunctionType(function) if is_rest_only(function) => Ok(parse_type_operand(ty)),
+        _ => parse_type(ty),
+    }
+}
+
+fn is_rest_only(function: &oxc_ast::ast::TSFunctionType<'_>) -> bool {
+    function.this_param.is_none()
+        && function.type_parameters.is_none()
+        && function.params.items.is_empty()
+        && function.params.rest.is_some()
 }
 
 /// Converts an Oxc TypeScript type reference into named or generic form.
@@ -244,10 +367,24 @@ fn parse_type_reference(
     let Some(type_arguments) = reference.type_arguments.as_deref() else {
         return Ok(TsTypeRef::Named(name));
     };
+    if name == "ReturnType" {
+        if let [TSType::TSTypeQuery(query)] = type_arguments.params.as_slice() {
+            if query.type_arguments.is_none()
+                && query
+                    .expr_name
+                    .as_ts_type_name()
+                    .and_then(|name| type_name(name).ok())
+                    .as_deref()
+                    == Some("JSON.parse")
+            {
+                return Ok(TsTypeRef::JsonParseResult);
+            }
+        }
+    }
     let args = type_arguments
         .params
         .iter()
-        .map(parse_type)
+        .map(parse_type_argument)
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(TsTypeRef::Generic { name, args })

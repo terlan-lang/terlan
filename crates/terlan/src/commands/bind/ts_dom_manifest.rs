@@ -6,6 +6,7 @@ use serde_json::json;
 use super::ts_dom_module_mapping::{DomMemberPlan, DomModuleMapping, DomSkippedDeclaration};
 use super::ts_generated_artifact::GeneratedBindingFileHash;
 use super::ts_input_manifest::TsInputManifest;
+use super::ts_parser_adapter::TsCallKind;
 
 /// Renders the generated binding manifest.
 pub(super) fn render_binding_manifest(
@@ -24,15 +25,34 @@ pub(super) fn render_binding_manifest(
                     "kind": "property", "return_type": property.terlan_type, "arity": 1,
                     "undefined_only": property.undefined_only,
                 }),
-                DomMemberPlan::Method(method) => json!({
-                    "type_parameters": method.type_params,
-                    "name": method.terlan_name, "js_name": method.js_name, "kind": "method",
-                    "return_type": method.return_type, "arity": method.params.len() + 1,
+                DomMemberPlan::Method(method) => {
+                    let mut entry = json!({
+                        "type_parameters": if method.has_receiver() { &method.type_params } else { &module.type_params },
+                        "name": method.terlan_name,
+                        "js_name": if method.call_kind == TsCallKind::Method { &method.js_name } else { "" },
+                        "kind": match method.call_kind {
+                            TsCallKind::Method => "method",
+                            TsCallKind::Call => "call",
+                            TsCallKind::Construct => "construct",
+                            TsCallKind::TuplePack => "tuple_pack",
+                        },
+                        "return_type": method.return_type, "arity": method.params.len() + usize::from(method.has_receiver()),
                     "undefined_only": method.undefined_only,
                     "parameters": method.params.iter().map(|parameter| json!({
                         "optional": parameter.optional, "rest": parameter.rest, "type": parameter.terlan_type,
                     })).collect::<Vec<_>>(),
-                }),
+                    });
+                    if method.partial {
+                        entry["partial"] = json!(true);
+                    }
+                    if method.type_constraints.iter().any(Option::is_some) {
+                        entry["type_constraints"] = json!(method.type_constraints);
+                    }
+                    if !method.callable_bounds.is_empty() {
+                        entry["callable_bounds"] = json!(method.callable_bounds);
+                    }
+                    entry
+                },
             }).collect::<Vec<_>>();
             if let Some(methods) = module.callback_members() {
                 members.push(json!({

@@ -23,9 +23,3 @@ pub duration_typechecks(receiver: EncodedVideoChunk): std.core.Option[JsNumber] 
 
 pub timestamp_typechecks(receiver: EncodedVideoChunk): JsNumber ->
     receiver.timestamp().
-
-pub copy_to_typechecks(
-    receiver: EncodedVideoChunk,
-    destination: std.js.Dom.AllowSharedBufferSource,
-): std.core.Unit ->
-    receiver.copy_to(destination).

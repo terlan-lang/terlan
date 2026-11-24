@@ -67,6 +67,14 @@ compiler_input_key="$({
     done < <(git ls-files -s -z -- "$package_root" \
       ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop')
   done < <(compiler_package_roots)
+  embedded_interfaces=crates/terlan/src/formal_pipeline/embedded_interfaces.rs
+  if [[ -f "$embedded_interfaces" ]]; then
+    sed -nE 's/^[[:space:]]*(embedded|namespace)!\("([^"]+)"\),?$/\2/p' \
+      "$embedded_interfaces" \
+      | while IFS= read -r module; do
+          git ls-files -s -z -- "std/summaries/$module.typi"
+        done
+  fi
   if [[ -f crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop ]]; then
     printf 'normalized-lalrpop:'
     sed '/^\/\/ canonical-ebnf-sha256: /d' \
@@ -161,6 +169,19 @@ if [[ "$compiler_build" == true \
   terlc="$target_terlc"
   export TERLC="$terlc"
   echo 'pre-commit: reuse exact staged compiler inputs'
+fi
+# A newly embedded standard module cannot be compiled until its reviewed
+# summary exists.  Check the staged stdlib inventory with the latest scripting
+# compiler before rebuilding the candidate, so a missing `.typi` is reported
+# directly instead of surfacing later as a Rust `include_str!` error.
+if [[ "$compiler_build" == true \
+  && -s "$raw_plan" \
+  && -n ${TERLAN_HOOK_LATEST_TERLC:-} \
+  && -x ${TERLAN_HOOK_LATEST_TERLC:-} \
+  && ! -L ${TERLAN_HOOK_LATEST_TERLC:-} ]] \
+  && rg -qx 'summaries' "$raw_plan"; then
+  echo 'pre-commit: prebuild standard-library summary inventory'
+  "$TERLAN_HOOK_LATEST_TERLC" test scripts/self_validation/SummaryInventoryTest.terl
 fi
 if [[ "$compiler_build" == true ]]; then
   # This target survives staged checkout revisions. Cargo dep-info can still
@@ -467,15 +488,39 @@ if preflight_has terlan-format; then
 fi
 
 if preflight_has rust-lint-allowances; then
-  echo 'pre-commit: early Rust lint allowance policy'
-  rust_quality_dir="$CARGO_TARGET_DIR/terlan-validators/rust-quality"
-  rust_quality_image="$rust_quality_dir/vm/scripts_RustQuality.tvm"
-  "$terlc" build --incremental \
-    scripts/self_validation/rust_quality/scripts/RustQuality.terls \
-    --target terlan-vm --out-dir "$rust_quality_dir"
-  test -s "$rust_quality_image"
-  "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
-    --script-eval -- lint-allowance-check
+  lint_allowance_schema=terlan-rust-lint-allowance-result-v1
+  lint_allowance_key="$({
+    printf '%s\n%s\n' "$lint_allowance_schema" "$compiler_validation_identity"
+    git ls-files -s -- \
+      ':(glob)**/*.rs' \
+      docs/quality/RUST_LINT_ALLOWANCES.tsv \
+      scripts/self_validation/rust_quality
+  } | git hash-object --stdin)"
+  lint_allowance_receipt_dir="${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-$CARGO_TARGET_DIR/validation-results/terlan}/rust-lint-allowances"
+  lint_allowance_receipt="$lint_allowance_receipt_dir/$lint_allowance_key.passed"
+  if [[ ${TERLAN_TEST_FORCE_RERUN:-0} != 1 \
+    && -f "$lint_allowance_receipt" \
+    && $(wc -l < "$lint_allowance_receipt") == 2 \
+    && $(sed -n '1p' "$lint_allowance_receipt") == "$lint_allowance_schema" \
+    && $(sed -n '2p' "$lint_allowance_receipt") == "$lint_allowance_key" ]]; then
+    echo "pre-commit: reuse Rust lint allowance policy ($lint_allowance_key)"
+  else
+    echo 'pre-commit: early Rust lint allowance policy'
+    rust_quality_dir="$CARGO_TARGET_DIR/terlan-validators/rust-quality"
+    rust_quality_image="$rust_quality_dir/vm/scripts_RustQuality.tvm"
+    "$terlc" build --incremental \
+      scripts/self_validation/rust_quality/scripts/RustQuality.terls \
+      --target terlan-vm --out-dir "$rust_quality_dir"
+    test -s "$rust_quality_image"
+    "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
+      --script-eval -- lint-allowance-check
+    test ! -L "$lint_allowance_receipt_dir"
+    mkdir -p "$lint_allowance_receipt_dir"
+    temporary_lint_allowance_receipt=$(mktemp "$lint_allowance_receipt_dir/.result.XXXXXX")
+    printf '%s\n%s\n' "$lint_allowance_schema" "$lint_allowance_key" \
+      > "$temporary_lint_allowance_receipt"
+    mv "$temporary_lint_allowance_receipt" "$lint_allowance_receipt"
+  fi
 fi
 
 release_tools_ready=false
@@ -668,6 +713,7 @@ run_affected_rust_lane() {
       ;;
     phase)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+        --features validation-union \
         tests::run_phase_contract_fixtures_match_golden -- --exact
       ;;
     native-ir)
@@ -686,6 +732,7 @@ run_affected_rust_lane() {
       run_workspace_suite
       ;;
     dependencies) cargo check --locked --workspace --all-targets ;;
+    clippy) make --no-print-directory rust-clippy-check ;;
     test-orchestrator) cargo test --profile dev --locked -p terlan-test-orchestrator ;;
     rust-boundary-audit) cargo test --profile dev --locked -p terlan-rust-boundary-audit ;;
     *) affected_rust_lane_supported=false; return 2 ;;
@@ -722,6 +769,11 @@ run_workspace_suite() {
 run_proof_checks() {
   ensure_quality_tools
   TERLC="$TERLAN_RUST_SUITE_TERLC" bash scripts/git_hooks/proofs.sh
+}
+
+run_proof_evidence() {
+  ensure_quality_tools
+  TERLC="$terlc" bash scripts/git_hooks/proof_evidence.sh
 }
 
 run_release_contract_lane() {
@@ -863,15 +915,9 @@ if lane_has summaries; then
   echo 'pre-commit: early summary drift'
   run_summaries_lane
 fi
-if lane_has proofs; then
-  echo 'pre-commit: early proof source and policy contracts'
-  ensure_quality_tools
-  TERLC="$terlc" bash scripts/git_hooks/proof_evidence.sh
-fi
-
-# Static shell and Clippy diagnostics are candidate contracts. Run them before
-# any broad Rust test lane so a deterministic source failure never appears
-# after the canonical suite.
+# Static shell and Clippy diagnostics are cheap candidate contracts. Run them
+# before broad Rust suites so deterministic source failures cannot invalidate
+# an expensive test result. Proof validation still follows its runtime owner.
 if lane_has shell; then
   echo 'pre-commit: early shell syntax'
   while IFS= read -r path; do
@@ -879,13 +925,6 @@ if lane_has shell; then
   done < "$changes"
   remaining_plan="${plan%.plan}.without-shell.plan"
   rg -vx 'shell' "$plan" > "$remaining_plan" || true
-  mv "$remaining_plan" "$plan"
-fi
-if lane_has clippy; then
-  echo 'pre-commit: early clippy'
-  make --no-print-directory rust-clippy-check
-  remaining_plan="${plan%.plan}.without-clippy.plan"
-  rg -vx 'clippy' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 if lane_has release-contract; then
@@ -927,7 +966,8 @@ if [[ "$workspace_lane_selected" == true ]] && lane_has native-bindings; then
   mv "$remaining_plan" "$plan"
 fi
 if [[ "$workspace_lane_selected" == true ]] && lane_has proofs; then
-  echo 'pre-commit: proof checks immediately follow canonical Rust suite'
+  echo 'pre-commit: proof evidence and checks follow canonical Rust suite'
+  run_proof_evidence
   run_proof_checks
   remaining_plan="${plan%.plan}.without-proofs.plan"
   rg -vx 'proofs' "$plan" > "$remaining_plan" || true
@@ -1072,6 +1112,7 @@ while IFS= read -r lane; do
           exit "$lane_status"
         fi
       fi
+      run_proof_evidence
       run_proof_checks
       ;;
     bootstrap)
@@ -1082,9 +1123,6 @@ while IFS= read -r lane; do
       else
         echo 'pre-commit: Linux bootstrap integration tests require a Linux host'
       fi
-      ;;
-    clippy)
-      make --no-print-directory rust-clippy-check
       ;;
     rust-reports)
       # Executed before expensive proof and workspace gates.
@@ -1097,7 +1135,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|test-orchestrator)
+    clippy|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

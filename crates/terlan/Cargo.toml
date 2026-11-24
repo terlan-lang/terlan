@@ -150,6 +150,7 @@ lalrpop-util = { version = "=0.23.2", default-features = false }
 mio = { workspace = true, features = ["net", "os-poll"] }
 oxc_allocator = "0.134.0"
 oxc_ast = "0.134.0"
+oxc_ast_visit = "0.134.0"
 oxc_codegen = "0.134.0"
 oxc_parser = "0.134.0"
 oxc_span = "0.134.0"

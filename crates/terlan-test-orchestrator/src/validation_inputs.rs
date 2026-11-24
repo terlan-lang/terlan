@@ -62,12 +62,15 @@ impl ValidationInputs {
             outcome: "phase-receipt-failed",
             detail: error.to_string(),
         })?;
-        let bytes = serde_json::to_vec(&semantic_admission(self.snapshot(), &checkout)).map_err(
-            |error| crate::PhaseFailure {
-                outcome: "phase-receipt-failed",
-                detail: error.to_string(),
-            },
-        )?;
+        let mut snapshot = self.snapshot();
+        snapshot["source_binding"] = self.source.phase_receipt_json();
+        let bytes =
+            serde_json::to_vec(&semantic_admission(snapshot, &checkout)).map_err(|error| {
+                crate::PhaseFailure {
+                    outcome: "phase-receipt-failed",
+                    detail: error.to_string(),
+                }
+            })?;
         Ok(crate::file_identity::hex(Sha256::new_with_prefix(bytes)))
     }
 }

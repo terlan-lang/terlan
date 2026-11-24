@@ -101,9 +101,14 @@ fn render_property_test(module: &DomModulePlan, property: &DomPropertyPlan) -> S
 ///   shadow the method-call receiver in generated tests.
 fn render_method_test(module: &DomModulePlan, method: &DomMethodPlan) -> String {
     let mut generics = module.type_params.clone();
-    generics.extend(method.type_params.clone());
-    let receiver_param = format!("receiver: {}", render_type_reference_name(module));
-    let mut params = vec![receiver_param];
+    generics.extend(method.generic_declarations());
+    let mut params = Vec::new();
+    let receiver = if method.has_receiver() {
+        params.push(format!("receiver: {}", render_type_reference_name(module)));
+        "receiver"
+    } else {
+        &module.module_path
+    };
     let argument_names = collision_free_test_argument_names(&method.params);
     params.extend(
         method
@@ -113,10 +118,11 @@ fn render_method_test(module: &DomModulePlan, method: &DomMethodPlan) -> String 
             .map(|(param, name)| format!("{}: {}", name, render_param_type(param))),
     );
     format!(
-        "pub {}_typechecks{}({}): {} ->\n    receiver.{}({}).\n",
+        "pub {}_typechecks{}({}){}: {} ->\n    {receiver}.{}({}).\n",
         method.terlan_name,
         test_generics(&generics),
         params.join(", "),
+        method.callable_constraint_list(),
         return_annotation(&method.return_type),
         method.terlan_name,
         argument_names.join(", ")

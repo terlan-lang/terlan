@@ -14,6 +14,9 @@ module std.js.Dom.MediaKeysTest.
 
 import type std.js.Dom.MediaKeys.
 
+pub create_session_typechecks(receiver: MediaKeys): std.js.Dom.MediaKeySession ->
+    receiver.create_session().
+
 pub set_server_certificate_typechecks(
     receiver: MediaKeys,
     server_certificate: std.js.Dom.BufferSource,

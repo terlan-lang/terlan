@@ -13,7 +13,7 @@
 module std.js.Dom.VTTCue.
 
 import type std.core.{Option, Unit}.
-import type std.js.Dom.{EventListenerOrEventListenerObject, LineAndPositionSetting}.
+import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
 
 /**
@@ -22,20 +22,6 @@ import type std.js.String.{JsString}.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue)
  */
 pub opaque type VTTCue.
-
-/**
- * The **`line`** property of the VTTCue interface represents the cue line of this WebVTT cue.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/line)
- */
-pub (receiver: VTTCue) line(): LineAndPositionSetting.
-
-/**
- * The **`position`** property of the VTTCue interface represents the indentation of the cue within the line.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/position)
- */
-pub (receiver: VTTCue) position(): LineAndPositionSetting.
 
 /**
  * The **`region`** property of the VTTCue interface returns and sets the VTTRegion that this cue belongs to.

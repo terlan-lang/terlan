@@ -108,3 +108,21 @@ pub (receiver: IDBObjectStore) get_key(query: IDBKeyRange | IDBValidKey): IDBReq
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/index)
  */
 pub (receiver: IDBObjectStore) index(name: JsString): IDBIndex.
+
+/**
+ * The **`openCursor()`** method of the and, in a separate thread, returns a new IDBCursorWithValue object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openCursor)
+ */
+pub (receiver: IDBObjectStore) open_cursor(
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+): IDBRequest[Option[std.js.Dom.IDBCursorWithValue]].
+
+/**
+ * The **`openKeyCursor()`** method of the whose result will be set to an IDBCursor that can be used to iterate through matching results.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openKeyCursor)
+ */
+pub (receiver: IDBObjectStore) open_key_cursor(
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+): IDBRequest[Option[std.js.Dom.IDBCursor]].

@@ -13,3 +13,6 @@
 module std.js.NewableFunctionTest.
 
 import type std.js.NewableFunction.
+
+pub apply_typechecks[T](receiver: NewableFunction, this_arg: T): std.core.Unit ->
+    receiver.apply(this_arg).

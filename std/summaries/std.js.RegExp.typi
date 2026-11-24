@@ -48,3 +48,8 @@ pub (receiver: RegExp) ignore_case(): Bool.
 pub (receiver: RegExp) multiline(): Bool.
 
 pub (receiver: RegExp) last_index(): std.js.Number.JsNumber.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (receiver: RegExp) compile(pattern: std.js.String.JsString, flags: std.core.Option[std.js.String.JsString]): RegExp.

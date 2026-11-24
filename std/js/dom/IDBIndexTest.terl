@@ -51,3 +51,15 @@ pub get_key_typechecks(
     query: IDBKeyRange | IDBValidKey,
 ): IDBRequest[Option[IDBValidKey]] ->
     receiver.get_key(query).
+
+pub open_cursor_typechecks(
+    receiver: IDBIndex,
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+): IDBRequest[Option[std.js.Dom.IDBCursorWithValue]] ->
+    receiver.open_cursor(query).
+
+pub open_key_cursor_typechecks(
+    receiver: IDBIndex,
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+): IDBRequest[Option[std.js.Dom.IDBCursor]] ->
+    receiver.open_key_cursor(query).

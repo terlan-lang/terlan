@@ -28,9 +28,6 @@ pub coded_width_typechecks(receiver: VideoDecoderConfig): Option[JsNumber] ->
 pub color_space_typechecks(receiver: VideoDecoderConfig): Option[std.js.Dom.VideoColorSpaceInit] ->
     receiver.color_space().
 
-pub description_typechecks(receiver: VideoDecoderConfig): Option[std.js.Dom.AllowSharedBufferSource] ->
-    receiver.description().
-
 pub display_aspect_height_typechecks(receiver: VideoDecoderConfig): Option[JsNumber] ->
     receiver.display_aspect_height().
 

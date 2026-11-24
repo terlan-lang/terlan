@@ -83,3 +83,21 @@ pub (receiver: IDBIndex) get_all_keys(
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/getKey)
  */
 pub (receiver: IDBIndex) get_key(query: IDBKeyRange | IDBValidKey): IDBRequest[Option[IDBValidKey]].
+
+/**
+ * The **`openCursor()`** method of the IDBIndex interface returns an IDBRequest object, and, in a separate thread, creates a cursor over the specified key range.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openCursor)
+ */
+pub (receiver: IDBIndex) open_cursor(
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+): IDBRequest[Option[std.js.Dom.IDBCursorWithValue]].
+
+/**
+ * The **`openKeyCursor()`** method of the a separate thread, creates a cursor over the specified key range, as arranged by this index.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/openKeyCursor)
+ */
+pub (receiver: IDBIndex) open_key_cursor(
+    query: Option[Option[IDBKeyRange | IDBValidKey]],
+): IDBRequest[Option[std.js.Dom.IDBCursor]].

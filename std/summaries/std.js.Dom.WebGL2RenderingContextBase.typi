@@ -61,21 +61,6 @@ pub (receiver: WebGL2RenderingContextBase) blit_framebuffer(src_x0: std.js.Dom.G
 pub (receiver: WebGL2RenderingContextBase) clear_bufferfi(buffer: std.js.Dom.GLenum, drawbuffer: std.js.Dom.GLint, depth: std.js.Dom.GLfloat, stencil: std.js.Dom.GLint): std.core.Unit.
 
 /**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
- */
-pub (receiver: WebGL2RenderingContextBase) clear_bufferfv(buffer: std.js.Dom.GLenum, drawbuffer: std.js.Dom.GLint, values: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
- */
-pub (receiver: WebGL2RenderingContextBase) clear_bufferiv(buffer: std.js.Dom.GLenum, drawbuffer: std.js.Dom.GLint, values: std.js.Dom.Int32List, src_offset: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clearBuffer)
- */
-pub (receiver: WebGL2RenderingContextBase) clear_bufferuiv(buffer: std.js.Dom.GLenum, drawbuffer: std.js.Dom.GLint, values: std.js.Dom.Uint32List, src_offset: std.core.Option[std.js.Number.JsNumber]): std.core.Unit.
-
-/**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/clientWaitSync)
  */
 pub (receiver: WebGL2RenderingContextBase) client_wait_sync(sync: std.js.Dom.WebGLSync, flags: std.js.Dom.GLbitfield, timeout: std.js.Dom.GLuint64): std.js.Dom.GLenum.
@@ -317,17 +302,7 @@ pub (receiver: WebGL2RenderingContextBase) uniform1ui(location: std.core.Option[
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextBase) uniform1uiv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Uint32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
- */
 pub (receiver: WebGL2RenderingContextBase) uniform2ui(location: std.core.Option[std.js.Dom.WebGLUniformLocation], v0: std.js.Dom.GLuint, v1: std.js.Dom.GLuint): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform2uiv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Uint32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
@@ -337,52 +312,12 @@ pub (receiver: WebGL2RenderingContextBase) uniform3ui(location: std.core.Option[
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
  */
-pub (receiver: WebGL2RenderingContextBase) uniform3uiv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Uint32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
- */
 pub (receiver: WebGL2RenderingContextBase) uniform4ui(location: std.core.Option[std.js.Dom.WebGLUniformLocation], v0: std.js.Dom.GLuint, v1: std.js.Dom.GLuint, v2: std.js.Dom.GLuint, v3: std.js.Dom.GLuint): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform4uiv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], data: std.js.Dom.Uint32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformBlockBinding)
  */
 pub (receiver: WebGL2RenderingContextBase) uniform_block_binding(program: std.js.Dom.WebGLProgram, uniform_block_index: std.js.Dom.GLuint, uniform_block_binding: std.js.Dom.GLuint): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform_matrix2x3fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform_matrix2x4fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform_matrix3x2fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform_matrix3x4fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform_matrix4x2fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextBase) uniform_matrix4x3fv(location: std.core.Option[std.js.Dom.WebGLUniformLocation], transpose: std.js.Dom.GLboolean, data: std.js.Dom.Float32List, src_offset: std.core.Option[std.js.Number.JsNumber], src_length: std.core.Option[std.js.Dom.GLuint]): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribDivisor)
@@ -397,17 +332,7 @@ pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4i(index: std.js.Dom.G
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
  */
-pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4iv(index: std.js.Dom.GLuint, values: std.js.Dom.Int32List): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
- */
 pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4ui(index: std.js.Dom.GLuint, x: std.js.Dom.GLuint, y: std.js.Dom.GLuint, z: std.js.Dom.GLuint, w: std.js.Dom.GLuint): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribI)
- */
-pub (receiver: WebGL2RenderingContextBase) vertex_attrib_i4uiv(index: std.js.Dom.GLuint, values: std.js.Dom.Uint32List): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/vertexAttribIPointer)

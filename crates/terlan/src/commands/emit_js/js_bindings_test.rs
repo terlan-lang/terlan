@@ -51,6 +51,55 @@ fn foreign_operations_reject_unknown_names_and_incorrect_arities() {
 }
 
 #[test]
+fn callable_host_values_invoke_the_function_and_preserve_optional_arguments() {
+    let call: crate::support::js_binding_registry::Member =
+        serde_json::from_value(serde_json::json!({
+            "name": "call", "js_name": "", "kind": "call", "arity": 3,
+            "return_type": "std.js.String.JsString",
+            "parameters": [
+                {"optional": false, "type": "std.js.String.JsString"},
+                {"optional": true, "type": "std.js.String.JsString"}
+            ]
+        }))
+        .unwrap();
+    let expression = member_expression(&call).unwrap();
+    execute("", &format!("const a0 = (name, separator = '!') => name + separator; a0.call = () => {{ throw new Error('called a property'); }}; const a1 = 'hello'; const run = (a2) => {expression}; if (run('none') !== 'hello!' || run(['some', '?']) !== 'hello?') throw new Error('lost optional call arguments');"));
+}
+
+#[test]
+fn constructor_host_values_use_new_and_spread_the_typed_rest_argument() {
+    let construct: crate::support::js_binding_registry::Member =
+        serde_json::from_value(serde_json::json!({
+            "name": "new", "js_name": "", "kind": "construct", "arity": 3,
+            "return_type": "fixture.Instance",
+            "parameters": [
+                {"optional": false, "type": "std.js.String.JsString"},
+                {"optional": false, "rest": true, "type": "std.js.Array[Bool]"}
+            ]
+        }))
+        .unwrap();
+    let expression = member_expression(&construct).unwrap();
+    execute("", &format!("const a0 = class {{ constructor(label, ...flags) {{ this.label = label; this.flags = flags; }} }}; const a1 = 'ready'; const a2 = [true, false]; const value = {expression}; if (!(value instanceof a0) || value.label !== 'ready' || String(value.flags) !== 'true,false') throw new Error('constructor call changed shape');"));
+}
+
+#[test]
+fn tuple_pack_flattens_one_rest_array_and_preserves_fixed_slot_identity() {
+    let pack: crate::support::js_binding_registry::Member =
+        serde_json::from_value(serde_json::json!({
+            "name": "pack", "js_name": "", "kind": "tuple_pack", "arity": 3,
+            "return_type": "fixture.Recipe",
+            "parameters": [
+                {"optional": false, "type": "std.js.Number.JsNumber"},
+                {"optional": false, "rest": true, "type": "std.js.Array[std.js.String.JsString]"},
+                {"optional": false, "type": "(std.js.String.JsString) -> Bool"}
+            ]
+        }))
+        .unwrap();
+    let expression = member_expression(&pack).unwrap();
+    execute("", &format!("const a0 = 7; const a1 = ['left', 'right']; const a2 = value => value === 'ok'; const tuple = {expression}; if (tuple.length !== 4 || tuple[0] !== 7 || tuple[1] !== 'left' || tuple[2] !== 'right' || tuple[3] !== a2) throw new Error('tuple slots drifted');"));
+}
+
+#[test]
 fn recursive_list_patterns_and_integer_text_execute_in_javascript() {
     let source = r#"module tests.js.ListPatterns.
 import std.core.Int.{to_string}.

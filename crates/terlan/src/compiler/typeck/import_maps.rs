@@ -435,8 +435,15 @@ fn collect_syntax_module_aliases(
             let imports_module = interfaces.contains_key(&full_module_name);
             if interfaces.get(&full_module_name).is_some_and(|interface| {
                 interface.traits.contains_key(&item.name)
-                    && interface.functions.is_empty()
-                    && interface.function_overloads.is_empty()
+                    && !interface
+                        .functions
+                        .values()
+                        .any(|signature| signature.public)
+                    && !interface
+                        .function_overloads
+                        .values()
+                        .flatten()
+                        .any(|signature| signature.public)
             }) {
                 continue;
             }

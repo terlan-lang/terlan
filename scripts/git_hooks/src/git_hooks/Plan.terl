@@ -669,9 +669,10 @@ pub hosted_lanes(paths: List[String]): List[String] ->
     without_hosted_lanes(lanes(paths)).
 
 /**
- * Runs changed-code tests before broad static and proof gates, after removing
- * narrower Rust lanes whose selected superset proves the same declarations.
- * Ownership remains expressed by lanes/1; execution never repeats a subset.
+ * Runs cheap static checks before changed-code tests and broad proof gates,
+ * after removing narrower Rust lanes whose selected superset proves the same
+ * declarations. Ownership remains expressed by lanes/1; execution never
+ * repeats a subset.
  */
 pub execution_lanes(paths: List[String]): List[String] ->
     prioritize_test_lanes(minimal_test_lanes(include_proof_workspace(lanes(paths)))).
@@ -735,6 +736,7 @@ prioritize_test_lanes(values: List[String]): List[String] ->
 test_lane_priority(): List[String] ->
     [
         "shell",
+        "clippy",
         "vm-contracts",
         "core-contracts",
         "commands-test",

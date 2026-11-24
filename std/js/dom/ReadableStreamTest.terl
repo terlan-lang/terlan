@@ -13,23 +13,30 @@
 module std.js.Dom.ReadableStreamTest.
 
 import type std.core.{Option}.
-import type std.js.Dom.ReadableStream.
+import type std.js.Dom.{ReadableStream, StreamPipeOptions}.
 
-pub locked_typechecks(receiver: ReadableStream[R]): Bool ->
+pub locked_typechecks[R](receiver: ReadableStream[R]): Bool ->
     receiver.locked().
 
-pub get_reader_typechecks(receiver: ReadableStream[R]): std.js.Dom.ReadableStreamDefaultReader[R] ->
+pub get_reader_typechecks[R](receiver: ReadableStream[R]): std.js.Dom.ReadableStreamDefaultReader[R] ->
     receiver.get_reader().
 
-pub get_reader_overload_2_typechecks(
+pub get_reader_overload_2_typechecks[R](
     receiver: ReadableStream[R],
     options: Option[std.js.Dom.ReadableStreamGetReaderOptions],
 ): std.js.Dom.ReadableStreamReader[R] ->
     receiver.get_reader_overload_2(options).
 
-pub pipe_to_typechecks(
+pub pipe_through_typechecks[R, T](
+    receiver: ReadableStream[R],
+    transform: std.js.Dom.ReadableWritablePair[T, R],
+    options: Option[StreamPipeOptions],
+): ReadableStream[T] ->
+    receiver.pipe_through(transform, options).
+
+pub pipe_to_typechecks[R](
     receiver: ReadableStream[R],
     destination: std.js.Dom.WritableStream[R],
-    options: Option[std.js.Dom.StreamPipeOptions],
+    options: Option[StreamPipeOptions],
 ): std.js.Promise[std.core.Unit] ->
     receiver.pipe_to(destination, options).

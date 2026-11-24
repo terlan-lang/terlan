@@ -14,8 +14,8 @@ module std.js.ReadonlySetTest.
 
 import type std.js.ReadonlySet.
 
-pub has_typechecks(receiver: ReadonlySet[T], value: T): Bool ->
+pub has_typechecks[T](receiver: ReadonlySet[T], value: T): Bool ->
     receiver.has(value).
 
-pub size_typechecks(receiver: ReadonlySet[T]): std.js.Number.JsNumber ->
+pub size_typechecks[T](receiver: ReadonlySet[T]): std.js.Number.JsNumber ->
     receiver.size().

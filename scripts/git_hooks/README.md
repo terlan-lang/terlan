@@ -278,6 +278,11 @@ toolchain, except for the dependency-impact report that the preceding producer
 may regenerate. A staged retry therefore does not repeat an already-passing
 compiler suite merely because that generated report was added.
 
+Affected tests run before proof evidence and Clippy. A failing changed-code
+test therefore stops admission before those expensive feature graphs are
+built, and a focused test repair does not discard completed proof or lint work
+that never needed to run for the failing candidate.
+
 The shared Rust harness also retains per-phase receipts so a late failure does
 not replay every earlier library partition. Phase results remain provisional
 until normal closeout, or until a failed suite rechecks its complete admitted

@@ -3999,6 +3999,7 @@ dependencies = [
  "openapiv3",
  "oxc_allocator",
  "oxc_ast",
+ "oxc_ast_visit",
  "oxc_codegen",
  "oxc_parser",
  "oxc_span",

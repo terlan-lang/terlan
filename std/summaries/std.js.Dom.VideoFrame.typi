@@ -103,10 +103,3 @@ pub (receiver: VideoFrame) clone(): VideoFrame.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/close)
  */
 pub (receiver: VideoFrame) close(): std.core.Unit.
-
-/**
- * The **`copyTo()`** method of the VideoFrame interface copies the contents of the `VideoFrame` to an `ArrayBuffer`.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VideoFrame/copyTo)
- */
-pub (receiver: VideoFrame) copy_to(destination: std.js.Dom.AllowSharedBufferSource, options: std.core.Option[std.js.Dom.VideoFrameCopyToOptions]): std.js.Promise[std.js.Array[std.js.Dom.PlaneLayout]].

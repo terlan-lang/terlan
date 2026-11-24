@@ -12,8 +12,6 @@
  */
 module std.js.Dom.AudioData.
 
-import type std.core.{Unit}.
-import type std.js.Dom.{AudioDataCopyToOptions}.
 import type std.js.Number.{JsNumber}.
 
 /**
@@ -68,7 +66,7 @@ pub (receiver: AudioData) timestamp(): JsNumber ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/allocationSize)
  */
-pub (receiver: AudioData) allocation_size(options: AudioDataCopyToOptions): JsNumber ->
+pub (receiver: AudioData) allocation_size(options: std.js.Dom.AudioDataCopyToOptions): JsNumber ->
     native.
 
 /**
@@ -84,13 +82,5 @@ pub (receiver: AudioData) clone(): AudioData ->
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/close)
  */
-pub (receiver: AudioData) close(): Unit ->
-    native.
-
-/**
- * The **`copyTo()`** method of the AudioData interface copies a plane of an `AudioData` object to a destination buffer.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/copyTo)
- */
-pub (receiver: AudioData) copy_to(destination: std.js.Dom.AllowSharedBufferSource, options: AudioDataCopyToOptions): Unit ->
+pub (receiver: AudioData) close(): std.core.Unit ->
     native.

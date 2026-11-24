@@ -59,14 +59,7 @@ pub(super) fn collect_terlan_sources_recursive(
             if is_nested_terlan_project_root(&path) {
                 continue;
             }
-            if include_interfaces
-                && path.file_name().is_some_and(|name| {
-                    matches!(
-                        name.to_str(),
-                        Some(".git" | ".terlan" | "_build" | "target")
-                    )
-                })
-            {
+            if ignored_source_directory(&path) {
                 continue;
             }
             collect_terlan_sources_recursive(&path, files, include_interfaces)?;
@@ -79,6 +72,19 @@ pub(super) fn collect_terlan_sources_recursive(
         }
     }
     Ok(())
+}
+
+/// Excludes compiler-owned directories without reserving ordinary namespace
+/// segments such as `target`. A `target` directory is ignored only when Cargo
+/// has marked it as an artifact cache.
+fn ignored_source_directory(path: &Path) -> bool {
+    match path.file_name().and_then(|name| name.to_str()) {
+        Some(".git" | ".terlan" | "_build") => true,
+        Some("target") => {
+            path.join("CACHEDIR.TAG").is_file() || path.join(".rustc_info.json").is_file()
+        }
+        _ => false,
+    }
 }
 
 /// Returns whether a directory is a nested Terlan project boundary.

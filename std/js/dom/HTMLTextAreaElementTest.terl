@@ -100,6 +100,14 @@ pub set_custom_validity_typechecks(receiver: HTMLTextAreaElement, error: JsStrin
 pub set_range_text_typechecks(receiver: HTMLTextAreaElement, replacement: JsString): Unit ->
     receiver.set_range_text(replacement).
 
+pub set_range_text_overload_2_typechecks(
+    receiver: HTMLTextAreaElement,
+    replacement: JsString,
+    start: JsNumber,
+    end: JsNumber,
+): Unit ->
+    receiver.set_range_text_overload_2(replacement, start, end).
+
 pub add_event_listener_typechecks(
     receiver: HTMLTextAreaElement,
     type_: JsString,

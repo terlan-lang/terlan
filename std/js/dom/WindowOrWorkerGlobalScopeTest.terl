@@ -81,3 +81,10 @@ pub queue_microtask_typechecks(
     callback: std.js.Dom.VoidFunction,
 ): Unit ->
     receiver.queue_microtask(callback).
+
+pub structured_clone_typechecks[T](
+    receiver: WindowOrWorkerGlobalScope,
+    value: T,
+    options: Option[std.js.Dom.StructuredSerializeOptions],
+): T ->
+    receiver.structured_clone(value, options).

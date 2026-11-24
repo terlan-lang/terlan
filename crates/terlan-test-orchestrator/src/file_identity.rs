@@ -8,6 +8,12 @@ use std::path::Path;
 use std::time::Instant;
 use terlan_process_owner::ProcessControl;
 
+struct ReadBounds<'a> {
+    budget: u64,
+    control: ProcessControl<'a>,
+    started: Instant,
+}
+
 /// Hashes file size, permissions, and bytes under one execution deadline.
 pub(super) fn hash_file(
     path: &Path,
@@ -16,7 +22,41 @@ pub(super) fn hash_file(
     control: ProcessControl<'_>,
     started: Instant,
 ) -> Result<u64, PhaseFailure> {
-    visit_file(path, digest, budget, control, started, true, |_| {})
+    visit_file(
+        path,
+        digest,
+        None,
+        ReadBounds {
+            budget,
+            control,
+            started,
+        },
+        true,
+        |_| {},
+    )
+}
+
+/// Feeds identical guarded file metadata and bytes into two scoped identities.
+pub(super) fn hash_file_pair(
+    path: &Path,
+    first: &mut Sha256,
+    second: &mut Sha256,
+    budget: u64,
+    control: ProcessControl<'_>,
+    started: Instant,
+) -> Result<u64, PhaseFailure> {
+    visit_file(
+        path,
+        first,
+        Some(second),
+        ReadBounds {
+            budget,
+            control,
+            started,
+        },
+        true,
+        |_| {},
+    )
 }
 
 /// Hashes only content bytes through the same guarded reader, without retaining a copy.
@@ -27,7 +67,18 @@ pub(super) fn hash_file_contents(
     control: ProcessControl<'_>,
     started: Instant,
 ) -> Result<u64, PhaseFailure> {
-    visit_file(path, digest, budget, control, started, false, |_| {})
+    visit_file(
+        path,
+        digest,
+        None,
+        ReadBounds {
+            budget,
+            control,
+            started,
+        },
+        false,
+        |_| {},
+    )
 }
 
 /// Retains exactly the bytes hashed in one bounded read, avoiding a second open.
@@ -39,45 +90,74 @@ pub(super) fn read_hashed_file(
     started: Instant,
 ) -> Result<Vec<u8>, PhaseFailure> {
     let mut bytes = Vec::new();
-    visit_file(path, digest, budget, control, started, true, |chunk| {
-        bytes.extend_from_slice(chunk);
-    })?;
+    visit_file(
+        path,
+        digest,
+        None,
+        ReadBounds {
+            budget,
+            control,
+            started,
+        },
+        true,
+        |chunk| {
+            bytes.extend_from_slice(chunk);
+        },
+    )?;
     Ok(bytes)
 }
 
 fn visit_file(
     path: &Path,
     digest: &mut Sha256,
-    budget: u64,
-    control: ProcessControl<'_>,
-    started: Instant,
+    mut second_digest: Option<&mut Sha256>,
+    bounds: ReadBounds<'_>,
     include_metadata: bool,
     mut consume: impl FnMut(&[u8]),
 ) -> Result<u64, PhaseFailure> {
-    control.check(started).map_err(process_failure)?;
+    bounds
+        .control
+        .check(bounds.started)
+        .map_err(process_failure)?;
     let mut file = regular_file(path)?;
     let before = file.metadata().map_err(|error| path_failure(path, error))?;
-    if before.len() > budget {
+    if before.len() > bounds.budget {
         return Err(failure(format!(
-            "input exceeds its byte budget: {} has {} bytes, limit {budget}",
+            "input exceeds its byte budget: {} has {} bytes, limit {}",
             path.display(),
-            before.len()
+            before.len(),
+            bounds.budget
         )));
     }
     if include_metadata {
         field(digest, &before.len().to_le_bytes());
+        if let Some(second) = second_digest.as_deref_mut() {
+            field(second, &before.len().to_le_bytes());
+        }
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
             field(digest, &before.mode().to_le_bytes());
+            if let Some(second) = second_digest.as_deref_mut() {
+                field(second, &before.mode().to_le_bytes());
+            }
         }
         #[cfg(not(unix))]
-        field(digest, &[u8::from(before.permissions().readonly())]);
+        {
+            let readonly = [u8::from(before.permissions().readonly())];
+            field(digest, &readonly);
+            if let Some(second) = second_digest.as_deref_mut() {
+                field(second, &readonly);
+            }
+        }
     }
     let mut read = 0;
     let mut buffer = [0_u8; 64 * 1024];
     loop {
-        control.check(started).map_err(process_failure)?;
+        bounds
+            .control
+            .check(bounds.started)
+            .map_err(process_failure)?;
         let count = file
             .read(&mut buffer)
             .map_err(|error| path_failure(path, error))?;
@@ -89,6 +169,9 @@ fn visit_file(
             return Err(failure("input grew while being hashed"));
         }
         digest.update(&buffer[..count]);
+        if let Some(second) = second_digest.as_deref_mut() {
+            second.update(&buffer[..count]);
+        }
         consume(&buffer[..count]);
     }
     if read != before.len()

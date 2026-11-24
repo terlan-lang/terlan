@@ -12,7 +12,8 @@
  */
 module std.js.Dom.LockManager.
 
-import type std.js.Dom.{LockManagerSnapshot}.
+import type std.js.Dom.{LockGrantedCallback}.
+import type std.js.String.{JsString}.
 import type std.js.{Promise}.
 
 /**
@@ -28,11 +29,20 @@ pub opaque type LockManager.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/query)
  */
-pub (receiver: LockManager) query(): Promise[LockManagerSnapshot] ->
+pub (receiver: LockManager) query(): Promise[std.js.Dom.LockManagerSnapshot] ->
     native.
 
-pub with_members[BindingTarget](
-    binding_target: BindingTarget,
-    query: () -> Promise[LockManagerSnapshot],
-): BindingTarget ->
+/**
+ * The **`request()`** method of the LockManager interface requests a Lock object with parameters specifying its name and characteristics.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/request)
+ */
+pub (receiver: LockManager) request[T](name: JsString, callback: LockGrantedCallback[T]): Promise[T] ->
+    native.
+
+pub (receiver: LockManager) request_overload_2[T](
+    name: JsString,
+    options: std.js.Dom.LockOptions,
+    callback: LockGrantedCallback[T],
+): Promise[T] ->
     native.

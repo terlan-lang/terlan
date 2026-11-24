@@ -94,7 +94,6 @@ report_input_key() {
     build-graph-boundary-check)
       paths+=(
         docs/quality/RUST_BUILD_GRAPH_BOUNDARIES.json
-        docs/quality/RUST_CANONICAL_TYPE_CLASSIFICATIONS.tsv
       )
       ;;
     *) echo "unsupported cached Rust report: $check" >&2; return 2 ;;
@@ -252,7 +251,13 @@ mkfifo "$report_completions"
 exec 8<>"$report_completions"
 declare -a report_pids=() report_logs=() report_durations=()
 declare -A report_job_statuses=()
-report_max_jobs=${TERLAN_RUST_REPORT_MAX_JOBS:-2}
+default_report_jobs=$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1\n')
+case "$default_report_jobs" in ''|*[!0-9]*|0) default_report_jobs=1 ;; esac
+if (( default_report_jobs > 6 )); then default_report_jobs=6; fi
+if (( default_report_jobs > ${#checks_to_run[@]} )); then
+  default_report_jobs=${#checks_to_run[@]}
+fi
+report_max_jobs=${TERLAN_RUST_REPORT_MAX_JOBS:-$default_report_jobs}
 case "$report_max_jobs" in
   ''|*[!0-9]*|0) echo 'invalid Rust report worker limit' >&2; exit 2 ;;
 esac

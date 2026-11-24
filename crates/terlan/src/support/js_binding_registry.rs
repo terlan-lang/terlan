@@ -1,10 +1,15 @@
 //! Loads generated TypeScript host contracts for the selected JavaScript build.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     path::{Path, PathBuf},
     sync::OnceLock,
 };
+
+const BUNDLED_MANIFEST: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../std/js/manifests/std_js_bindings.json"
+));
 
 #[derive(serde::Deserialize)]
 struct Manifest {
@@ -67,13 +72,7 @@ pub(crate) fn registry() -> Result<&'static Registry, String> {
     REGISTRY
         .get_or_init(|| {
             let mut registry = Registry::default();
-            registry.merge(
-                include_str!(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/../../std/js/manifests/std_js_bindings.json"
-                )),
-                None,
-            )?;
+            registry.merge(BUNDLED_MANIFEST, None)?;
             if let Some(paths) = std::env::var_os("TERLAN_JS_BINDING_MANIFESTS") {
                 for path in std::env::split_paths(&paths) {
                     let source = std::fs::read_to_string(&path).map_err(|error| {
@@ -89,6 +88,22 @@ pub(crate) fn registry() -> Result<&'static Registry, String> {
         })
         .as_ref()
         .map_err(Clone::clone)
+}
+
+/// Finds an ambient DOM type in the bundled browser declarations.
+pub(crate) fn browser_type(name: &str) -> Option<String> {
+    static BROWSER_TYPES: OnceLock<BTreeSet<String>> = OnceLock::new();
+    let modules = BROWSER_TYPES.get_or_init(|| {
+        let manifest: Manifest =
+            serde_json::from_str(BUNDLED_MANIFEST).expect("bundled JavaScript binding manifest");
+        manifest
+            .outputs
+            .into_iter()
+            .map(|module| module.module)
+            .collect()
+    });
+    let module = format!("std.js.Dom.{name}");
+    modules.get(&module).cloned()
 }
 
 /// Returns a package-generated summary before consulting bundled interfaces.
@@ -133,7 +148,21 @@ impl Registry {
                     {
                         member.parameters.len()
                     }
-                    "method" => member.parameters.len() + 1,
+                    "method" | "call" | "construct" => member.parameters.len() + 1,
+                    "tuple_pack"
+                        if member
+                            .parameters
+                            .iter()
+                            .filter(|parameter| parameter.rest)
+                            .count()
+                            <= 1
+                            && member
+                                .parameters
+                                .iter()
+                                .all(|parameter| !parameter.optional) =>
+                    {
+                        member.parameters.len()
+                    }
                     "mixin" if member.js_names.len() == member.parameters.len() => {
                         member.parameters.len() + 1
                     }

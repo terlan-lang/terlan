@@ -18,8 +18,6 @@ pub opaque type AudioDecoderConfig.
 
 pub (receiver: AudioDecoderConfig) codec(): std.js.String.JsString.
 
-pub (receiver: AudioDecoderConfig) description(): std.core.Option[std.js.Dom.AllowSharedBufferSource].
-
 pub (receiver: AudioDecoderConfig) number_of_channels(): JsNumber.
 
 pub (receiver: AudioDecoderConfig) sample_rate(): JsNumber.

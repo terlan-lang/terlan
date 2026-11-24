@@ -13,14 +13,8 @@
 module std.js.Dom.VTTCueTest.
 
 import type std.core.{Option, Unit}.
-import type std.js.Dom.{EventListenerOrEventListenerObject, LineAndPositionSetting, VTTCue}.
+import type std.js.Dom.{EventListenerOrEventListenerObject, VTTCue}.
 import type std.js.String.{JsString}.
-
-pub line_typechecks(receiver: VTTCue): LineAndPositionSetting ->
-    receiver.line().
-
-pub position_typechecks(receiver: VTTCue): LineAndPositionSetting ->
-    receiver.position().
 
 pub region_typechecks(receiver: VTTCue): Option[std.js.Dom.VTTRegion] ->
     receiver.region().

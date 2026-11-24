@@ -240,6 +240,9 @@ pub (receiver: HTMLTextAreaElement) set_custom_validity(error: JsString): Unit -
 pub (receiver: HTMLTextAreaElement) set_range_text(replacement: JsString): Unit ->
     native.
 
+pub (receiver: HTMLTextAreaElement) set_range_text_overload_2(replacement: JsString, start: JsNumber, end: JsNumber): Unit ->
+    native.
+
 pub (receiver: HTMLTextAreaElement) add_event_listener(
     type_: JsString,
     listener: EventListenerOrEventListenerObject,

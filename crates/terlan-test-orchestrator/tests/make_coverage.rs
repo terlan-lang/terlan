@@ -80,6 +80,7 @@ fn test_module(names: &[String], prefix: &str) -> String {
         } else {
             let qualified = format!("{prefix}{name}");
             let ignored = if matches!(qualified.as_str(), "normal" | "quality::integration")
+                || qualified == "tests::run_phase_contract_fixtures_match_golden"
                 || qualified.ends_with("::partition_probe")
             {
                 ""
@@ -116,7 +117,11 @@ fn fixture() -> Fixture {
         "[toolchain]\nchannel=\"1.96.0\"\nprofile=\"minimal\"\n",
     );
     write(root, "terlan/Cargo.toml", "[package]\nname=\"terlan\"\nversion=\"0.0.0\"\nedition=\"2021\"\n[features]\nquality-tools=[]\neditor-lsp=[]\nbenchmark-tools=[]\nserve-runtime-bin=[]\nvalidation-union=[\"quality-tools\",\"editor-lsp\",\"benchmark-tools\",\"serve-runtime-bin\"]\n");
-    let mut names = vec!["normal".to_owned(), "quality::integration".to_owned()];
+    let mut names = vec![
+        "normal".to_owned(),
+        "quality::integration".to_owned(),
+        "tests::run_phase_contract_fixtures_match_golden".to_owned(),
+    ];
     names.extend(
         [
             "commands::emit_js::template_runtime::partition_probe",

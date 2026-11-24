@@ -38,29 +38,17 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
         let original_count = members.len();
         members.retain_mut(|member| {
             let mut unknown = Vec::new();
-            let (name, annotations, bound) = match member {
-                DomMemberPlan::Property(property) => (
-                    property.js_name.clone(),
-                    vec![&mut property.terlan_type],
-                    Vec::new(),
-                ),
+            let (name, retained) = match member {
+                DomMemberPlan::Property(property) => {
+                    property.terlan_type =
+                        qualify_type(&property.terlan_type, module, &[], &types, &mut unknown);
+                    (&property.js_name, unknown.is_empty())
+                }
                 DomMemberPlan::Method(method) => {
-                    let mut annotations = method
-                        .params
-                        .iter_mut()
-                        .map(|parameter| &mut parameter.terlan_type)
-                        .collect::<Vec<_>>();
-                    annotations.push(&mut method.return_type);
-                    (
-                        method.js_name.clone(),
-                        annotations,
-                        method.type_params.clone(),
-                    )
+                    let retained = qualify_method(method, module, &types, &mut unknown);
+                    (&method.js_name, retained)
                 }
             };
-            for annotation in annotations {
-                *annotation = qualify_type(annotation, module, &bound, &types, &mut unknown);
-            }
             unknown.sort();
             unknown.dedup();
             for missing in &unknown {
@@ -70,7 +58,7 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
                     detail: format!("member {name} references unavailable type {missing}"),
                 });
             }
-            unknown.is_empty()
+            retained
         });
         module.constructible &= members.len() == original_count;
         module.members = members;
@@ -87,6 +75,55 @@ pub(super) fn qualify(mapping: &mut DomModuleMapping) {
             }
         }
     }
+}
+
+fn qualify_method(
+    method: &mut DomMethodPlan,
+    module: &DomModulePlan,
+    types: &BTreeMap<String, Vec<String>>,
+    unknown: &mut Vec<String>,
+) -> bool {
+    let required = method
+        .params
+        .iter()
+        .rposition(|parameter| !parameter.optional)
+        .map_or(0, |index| index + 1);
+    method.return_type = qualify_type(
+        &method.return_type,
+        module,
+        &method.type_params,
+        types,
+        unknown,
+    );
+    for constraint in method.type_constraints.iter_mut().flatten() {
+        *constraint = qualify_type(constraint, module, &method.type_params, types, unknown);
+    }
+    for bound in &mut method.callable_bounds {
+        *bound = qualify_type(bound, module, &method.type_params, types, unknown);
+    }
+    let mut retained = unknown.is_empty();
+    for (index, parameter) in method.params.iter_mut().enumerate() {
+        let before = unknown.len();
+        parameter.terlan_type = qualify_type(
+            &parameter.terlan_type,
+            module,
+            &method.type_params,
+            types,
+            unknown,
+        );
+        if unknown.len() == before {
+            continue;
+        }
+        if index < required {
+            retained = false;
+        } else {
+            // This prefix is a valid JavaScript call because the whole suffix is optional.
+            method.params.truncate(index);
+            method.partial = true;
+            break;
+        }
+    }
+    retained
 }
 
 fn inventory(mapping: &DomModuleMapping) -> BTreeMap<String, Vec<String>> {

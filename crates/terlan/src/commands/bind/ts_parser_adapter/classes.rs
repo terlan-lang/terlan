@@ -2,9 +2,7 @@
 use oxc_ast::{ast::*, Comment};
 
 use super::declarations::*;
-use super::types::{
-    parse_optional_type_annotation, parse_parameter, parse_type, property_key_name, unsupported,
-};
+use super::types::{parse_optional_type_annotation, parse_type, property_key_name, unsupported};
 
 pub(super) fn heritage(
     expression: &Expression<'_>,
@@ -105,51 +103,17 @@ pub(super) fn parse_class(
                             "standalone class setters are not emitted",
                         ));
                     }
-                    if method
-                        .value
-                        .type_parameters
-                        .as_ref()
-                        .is_some_and(|parameters| {
-                            parameters
-                                .params
-                                .iter()
-                                .any(|parameter| parameter.constraint.is_some())
-                        })
-                    {
-                        return Err(unsupported(
-                            "ts_bindgen.unsupported_generic_constraint",
-                            "generic method constraints must not be erased",
-                        ));
-                    }
-                    let mut params = method
-                        .value
-                        .params
-                        .items
-                        .iter()
-                        .map(parse_parameter)
-                        .collect::<Result<Vec<_>, _>>()?;
-                    if let Some(rest) = &method.value.params.rest {
-                        let BindingPattern::BindingIdentifier(binding) = &rest.rest.argument else {
-                            return Err(unsupported(
-                                "ts_bindgen.unsupported_rest_pattern",
-                                "rest arguments must use an identifier",
-                            ));
-                        };
-                        params.push(TsParameterDeclaration {
-                            name: binding.name.to_string(),
-                            optional: false,
-                            rest: true,
-                            ty: parse_optional_type_annotation(rest.type_annotation.as_deref())?,
-                        });
-                    }
+                    let type_parameters = method.value.type_parameters.as_deref();
                     Ok(TsInterfaceMember::Method(TsMethodDeclaration {
+                        call_kind: TsCallKind::Method,
                         name,
                         doc: leading_jsdoc(source, comments, method.span),
                         optional: method.optional,
-                        type_params: parse_type_parameter_names(
-                            method.value.type_parameters.as_deref(),
-                        ),
-                        params,
+                        type_params: parse_type_parameter_names(type_parameters),
+                        type_constraints: super::members::callable_type_constraints(
+                            type_parameters,
+                        )?,
+                        params: super::members::callable_parameters(&method.value.params)?,
                         return_type: parse_optional_type_annotation(
                             method.value.return_type.as_deref(),
                         )?,
@@ -207,10 +171,14 @@ pub(super) fn parse_class(
     Ok(vec![TsDeclaration::Interface(TsInterfaceDeclaration {
         parents,
         plain_record: false,
+        callable_alias: None,
         namespace: namespace.into(),
         name: id.name.to_string(),
         doc: leading_jsdoc(source, comments, class.span),
         type_params: parse_type_parameter_names(class.type_parameters.as_deref()),
+        type_defaults: super::declarations::parse_type_parameter_defaults(
+            class.type_parameters.as_deref(),
+        ),
         members,
     })])
 }

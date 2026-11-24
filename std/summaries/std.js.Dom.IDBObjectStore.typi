@@ -96,3 +96,17 @@ pub (receiver: IDBObjectStore) get_key(query: std.js.Dom.IDBKeyRange | std.js.Do
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/index)
  */
 pub (receiver: IDBObjectStore) index(name: std.js.String.JsString): std.js.Dom.IDBIndex.
+
+/**
+ * The **`openCursor()`** method of the and, in a separate thread, returns a new IDBCursorWithValue object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openCursor)
+ */
+pub (receiver: IDBObjectStore) open_cursor(query: std.core.Option[std.core.Option[std.js.Dom.IDBKeyRange | std.js.Dom.IDBValidKey]]): std.js.Dom.IDBRequest[std.core.Option[std.js.Dom.IDBCursorWithValue]].
+
+/**
+ * The **`openKeyCursor()`** method of the whose result will be set to an IDBCursor that can be used to iterate through matching results.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/openKeyCursor)
+ */
+pub (receiver: IDBObjectStore) open_key_cursor(query: std.core.Option[std.core.Option[std.js.Dom.IDBKeyRange | std.js.Dom.IDBValidKey]]): std.js.Dom.IDBRequest[std.core.Option[std.js.Dom.IDBCursor]].

@@ -13,8 +13,7 @@
 module std.js.Dom.WebGL2RenderingContextBaseTest.
 
 import type std.core.{Option, Unit}.
-import type std.js.Dom.{Float32List, GLbitfield, GLboolean, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint, Int32List, TexImageSource, Uint32List, WebGL2RenderingContextBase, WebGLBuffer, WebGLProgram, WebGLQuery, WebGLSampler, WebGLSync, WebGLTransformFeedback, WebGLUniformLocation, WebGLVertexArrayObject}.
-import type std.js.Number.{JsNumber}.
+import type std.js.Dom.{GLbitfield, GLboolean, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLsizeiptr, GLuint, TexImageSource, WebGL2RenderingContextBase, WebGLBuffer, WebGLProgram, WebGLQuery, WebGLSampler, WebGLSync, WebGLTransformFeedback, WebGLUniformLocation, WebGLVertexArrayObject}.
 import type std.js.String.{JsString}.
 import type std.js.{Array}.
 
@@ -104,33 +103,6 @@ pub clear_bufferfi_typechecks(
     stencil: GLint,
 ): Unit ->
     receiver.clear_bufferfi(buffer, drawbuffer, depth, stencil).
-
-pub clear_bufferfv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    buffer: GLenum,
-    drawbuffer: GLint,
-    values: Float32List,
-    src_offset: Option[JsNumber],
-): Unit ->
-    receiver.clear_bufferfv(buffer, drawbuffer, values, src_offset).
-
-pub clear_bufferiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    buffer: GLenum,
-    drawbuffer: GLint,
-    values: Int32List,
-    src_offset: Option[JsNumber],
-): Unit ->
-    receiver.clear_bufferiv(buffer, drawbuffer, values, src_offset).
-
-pub clear_bufferuiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    buffer: GLenum,
-    drawbuffer: GLint,
-    values: Uint32List,
-    src_offset: Option[JsNumber],
-): Unit ->
-    receiver.clear_bufferuiv(buffer, drawbuffer, values, src_offset).
 
 pub client_wait_sync_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -579,15 +551,6 @@ pub uniform1ui_typechecks(
 ): Unit ->
     receiver.uniform1ui(location, v0).
 
-pub uniform1uiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    data: Uint32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform1uiv(location, data, src_offset, src_length).
-
 pub uniform2ui_typechecks(
     receiver: WebGL2RenderingContextBase,
     location: Option[WebGLUniformLocation],
@@ -595,15 +558,6 @@ pub uniform2ui_typechecks(
     v1: GLuint,
 ): Unit ->
     receiver.uniform2ui(location, v0, v1).
-
-pub uniform2uiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    data: Uint32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform2uiv(location, data, src_offset, src_length).
 
 pub uniform3ui_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -613,15 +567,6 @@ pub uniform3ui_typechecks(
     v2: GLuint,
 ): Unit ->
     receiver.uniform3ui(location, v0, v1, v2).
-
-pub uniform3uiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    data: Uint32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform3uiv(location, data, src_offset, src_length).
 
 pub uniform4ui_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -633,15 +578,6 @@ pub uniform4ui_typechecks(
 ): Unit ->
     receiver.uniform4ui(location, v0, v1, v2, v3).
 
-pub uniform4uiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    data: Uint32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform4uiv(location, data, src_offset, src_length).
-
 pub uniform_block_binding_typechecks(
     receiver: WebGL2RenderingContextBase,
     program: WebGLProgram,
@@ -649,66 +585,6 @@ pub uniform_block_binding_typechecks(
     uniform_block_binding: GLuint,
 ): Unit ->
     receiver.uniform_block_binding(program, uniform_block_index, uniform_block_binding).
-
-pub uniform_matrix2x3fv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform_matrix2x3fv(location, transpose, data, src_offset, src_length).
-
-pub uniform_matrix2x4fv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform_matrix2x4fv(location, transpose, data, src_offset, src_length).
-
-pub uniform_matrix3x2fv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform_matrix3x2fv(location, transpose, data, src_offset, src_length).
-
-pub uniform_matrix3x4fv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform_matrix3x4fv(location, transpose, data, src_offset, src_length).
-
-pub uniform_matrix4x2fv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform_matrix4x2fv(location, transpose, data, src_offset, src_length).
-
-pub uniform_matrix4x3fv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit ->
-    receiver.uniform_matrix4x3fv(location, transpose, data, src_offset, src_length).
 
 pub vertex_attrib_divisor_typechecks(
     receiver: WebGL2RenderingContextBase,
@@ -727,13 +603,6 @@ pub vertex_attrib_i4i_typechecks(
 ): Unit ->
     receiver.vertex_attrib_i4i(index, x, y, z, w).
 
-pub vertex_attrib_i4iv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    index: GLuint,
-    values: Int32List,
-): Unit ->
-    receiver.vertex_attrib_i4iv(index, values).
-
 pub vertex_attrib_i4ui_typechecks(
     receiver: WebGL2RenderingContextBase,
     index: GLuint,
@@ -743,13 +612,6 @@ pub vertex_attrib_i4ui_typechecks(
     w: GLuint,
 ): Unit ->
     receiver.vertex_attrib_i4ui(index, x, y, z, w).
-
-pub vertex_attrib_i4uiv_typechecks(
-    receiver: WebGL2RenderingContextBase,
-    index: GLuint,
-    values: Uint32List,
-): Unit ->
-    receiver.vertex_attrib_i4uiv(index, values).
 
 pub vertex_attrib_i_pointer_typechecks(
     receiver: WebGL2RenderingContextBase,

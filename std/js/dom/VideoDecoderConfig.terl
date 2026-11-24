@@ -29,9 +29,6 @@ pub (receiver: VideoDecoderConfig) coded_width(): Option[JsNumber] ->
 pub (receiver: VideoDecoderConfig) color_space(): Option[std.js.Dom.VideoColorSpaceInit] ->
     native.
 
-pub (receiver: VideoDecoderConfig) description(): Option[std.js.Dom.AllowSharedBufferSource] ->
-    native.
-
 pub (receiver: VideoDecoderConfig) display_aspect_height(): Option[JsNumber] ->
     native.
 

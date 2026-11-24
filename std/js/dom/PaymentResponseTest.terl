@@ -15,6 +15,7 @@ module std.js.Dom.PaymentResponseTest.
 import type std.core.{Option, Unit}.
 import type std.js.Dom.{EventListenerOrEventListenerObject, PaymentResponse}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 pub method_name_typechecks(receiver: PaymentResponse): JsString ->
     receiver.method_name().
@@ -37,10 +38,13 @@ pub shipping_address_typechecks(receiver: PaymentResponse): Option[std.js.Dom.Pa
 pub shipping_option_typechecks(receiver: PaymentResponse): Option[JsString] ->
     receiver.shipping_option().
 
+pub complete_typechecks(receiver: PaymentResponse): Promise[Unit] ->
+    receiver.complete().
+
 pub retry_typechecks(
     receiver: PaymentResponse,
     error_fields: Option[std.js.Dom.PaymentValidationErrors],
-): std.js.Promise[Unit] ->
+): Promise[Unit] ->
     receiver.retry(error_fields).
 
 pub add_event_listener_typechecks(

@@ -344,9 +344,9 @@ fn resolve_stage_snapshot(resolved: &crate::terlan_hir::ResolvedModule) -> Strin
     imported_traits.sort();
     out.push(format!("imported_traits={}", imported_traits.join(",")));
 
-    let mut interface_map = resolved.interface_map.keys().cloned().collect::<Vec<_>>();
-    interface_map.sort();
-    out.push(format!("interface_map={}", interface_map.join(",")));
+    // Global embedded-interface inventory has dedicated completeness tests.
+    // Keeping it out of every fixture makes these snapshots describe only the
+    // resolver result owned by the fixture itself.
     out.push(format!(
         "interface_functions={}",
         resolved.interface.functions.len()

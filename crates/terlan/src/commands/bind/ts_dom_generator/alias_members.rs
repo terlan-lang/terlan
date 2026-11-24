@@ -57,7 +57,14 @@ fn members(
     let mut result = members(target, inventory, seen)?;
     let args = arguments.map(split_arguments).unwrap_or_default();
     if args.len() != target.type_params.len() {
-        return Err(("ts_bindgen.unresolved_generic_arguments",format!("alias target {name} requires {} generic arguments; found {} (default type resolution is not available)",target.type_params.len(),args.len())));
+        return Err((
+            "ts_bindgen.unresolved_generic_arguments",
+            format!(
+                "alias target {name} requires {} generic arguments; found {}",
+                target.type_params.len(),
+                args.len()
+            ),
+        ));
     }
     let replacements = target
         .type_params
@@ -78,6 +85,12 @@ fn members(
                     .collect();
                 for param in &mut method.params {
                     param.terlan_type = replace(&param.terlan_type, &replacements);
+                }
+                for constraint in method.type_constraints.iter_mut().flatten() {
+                    *constraint = replace(constraint, &replacements);
+                }
+                for bound in &mut method.callable_bounds {
+                    *bound = replace(bound, &replacements);
                 }
                 method.return_type = replace(&method.return_type, &replacements);
             }

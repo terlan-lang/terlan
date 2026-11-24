@@ -14,17 +14,20 @@ module std.js.MapTest.
 
 import type std.js.Map.
 
-pub clear_typechecks(receiver: Map[K, V]): std.core.Unit ->
+pub clear_typechecks[K, V](receiver: Map[K, V]): std.core.Unit ->
     receiver.clear().
 
-pub delete_typechecks(receiver: Map[K, V], key: K): Bool ->
+pub delete_typechecks[K, V](receiver: Map[K, V], key: K): Bool ->
     receiver.delete(key).
 
-pub get_typechecks(receiver: Map[K, V], key: K): std.core.Option[V] ->
+pub get_typechecks[K, V](receiver: Map[K, V], key: K): std.core.Option[V] ->
     receiver.get(key).
 
-pub has_typechecks(receiver: Map[K, V], key: K): Bool ->
+pub has_typechecks[K, V](receiver: Map[K, V], key: K): Bool ->
     receiver.has(key).
 
-pub size_typechecks(receiver: Map[K, V]): std.js.Number.JsNumber ->
+pub set_typechecks[K, V](receiver: Map[K, V], key: K, value: V): Map[K, V] ->
+    receiver.set(key, value).
+
+pub size_typechecks[K, V](receiver: Map[K, V]): std.js.Number.JsNumber ->
     receiver.size().

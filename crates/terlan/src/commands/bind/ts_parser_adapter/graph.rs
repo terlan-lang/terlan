@@ -6,7 +6,10 @@ use super::super::ts_input_manifest::{TsInputFile, TsInputManifest};
 use super::super::ts_type_mapping::TsTypeRef;
 use super::declarations::*;
 use oxc_ast::ast::*;
+use oxc_ast_visit::Visit;
 
+#[path = "conditional_types.rs"]
+mod conditional_types;
 #[path = "graph_types.rs"]
 mod graph_types;
 
@@ -18,10 +21,35 @@ struct Reference {
 struct File {
     namespace: String,
     declarations: Vec<TsDeclaration>,
-    imports: BTreeMap<String, Reference>,
+    imports: BTreeMap<String, Option<Reference>>,
     exports: BTreeMap<String, Reference>,
     stars: Vec<PathBuf>,
     globals: BTreeSet<String>,
+    lexical_bindings: BTreeSet<String>,
+    ambient_bindings: BTreeSet<String>,
+}
+
+#[derive(Default)]
+struct BindingNames {
+    lexical: BTreeSet<String>,
+    ambient: BTreeSet<String>,
+    in_global: bool,
+}
+
+impl<'a> Visit<'a> for BindingNames {
+    fn visit_binding_identifier(&mut self, identifier: &BindingIdentifier<'a>) {
+        if self.in_global {
+            self.ambient.insert(identifier.name.to_string());
+        } else {
+            self.lexical.insert(identifier.name.to_string());
+        }
+    }
+
+    fn visit_ts_global_declaration(&mut self, declaration: &TSGlobalDeclaration<'a>) {
+        let was_global = std::mem::replace(&mut self.in_global, true);
+        oxc_ast_visit::walk::walk_ts_global_declaration(self, declaration);
+        self.in_global = was_global;
+    }
 }
 struct Graph {
     root: PathBuf,
@@ -129,9 +157,11 @@ pub(in crate::commands::bind) fn load_declaration_graph(
                 };
                 declarations.push(TsDeclaration::TypeAlias(TsTypeAliasDeclaration {
                     imported: false,
+                    type_constraints: vec![None; type_params.len()],
                     namespace: file.namespace.clone(),
                     name: name.clone(),
                     doc: None,
+                    type_defaults: vec![None; type_params.len()],
                     type_params,
                     ty,
                 }));
@@ -146,8 +176,21 @@ pub(in crate::commands::bind) fn load_declaration_graph(
             }
         }
     }
+    graph_types::apply_generic_defaults(&mut declarations);
     graph_types::inherit(&mut declarations);
+    conditional_types::normalize_declarations(&mut declarations);
     Ok(TsDeclarationFile { declarations })
+}
+
+/// Replaces TypeScript's polymorphic `this` marker in one neutral type.
+pub(in crate::commands::bind) fn specialize_this_type(
+    ty: &TsTypeRef,
+    this: &TsTypeRef,
+) -> TsTypeRef {
+    let mut specialized = ty.clone();
+    let substitutions = BTreeMap::from([("$this".into(), this.clone())]);
+    graph_types::substitute(&mut specialized, &substitutions);
+    specialized
 }
 
 impl Graph {
@@ -247,7 +290,7 @@ impl Graph {
             )
         });
         let mut globals = BTreeSet::new();
-        if !program.program.body.iter().any(|statement| {
+        let is_script = !program.program.body.iter().any(|statement| {
             matches!(
                 statement,
                 Statement::ImportDeclaration(_)
@@ -256,7 +299,13 @@ impl Graph {
                     | Statement::ExportDefaultDeclaration(_)
                     | Statement::TSExportAssignment(_)
             )
-        }) {
+        });
+        let mut binding_names = BindingNames::default();
+        binding_names.visit_program(&program.program);
+        if is_script {
+            binding_names
+                .ambient
+                .extend(binding_names.lexical.iter().cloned());
             for declaration in &parsed.declarations {
                 let (scope, name) = match declaration {
                     TsDeclaration::Interface(value) => (&value.namespace, &value.name),
@@ -306,6 +355,9 @@ impl Graph {
                                 Declaration::TSInterfaceDeclaration(value) => {
                                     globals.insert(value.id.name.to_string());
                                 }
+                                Declaration::TSTypeAliasDeclaration(value) => {
+                                    globals.insert(value.id.name.to_string());
+                                }
                                 Declaration::TSModuleDeclaration(value) => {
                                     if let TSModuleDeclarationName::Identifier(name) = &value.id {
                                         globals.insert(name.name.to_string());
@@ -317,12 +369,11 @@ impl Graph {
                     }
                 }
                 Statement::ImportDeclaration(import) => {
-                    let Some(target) = self.resolve_file(&path, import.source.value.as_str())
-                    else {
-                        continue;
-                    };
-                    dependencies.insert(target.clone());
-                    resolved_imports.insert(format!("import:{}", import.source.value));
+                    let target = self.resolve_file(&path, import.source.value.as_str());
+                    if let Some(target) = &target {
+                        dependencies.insert(target.clone());
+                        resolved_imports.insert(format!("import:{}", import.source.value));
+                    }
                     for specifier in import.specifiers.iter().flatten() {
                         let (local, name) = match specifier {
                             ImportDeclarationSpecifier::ImportSpecifier(value) => (
@@ -338,10 +389,10 @@ impl Graph {
                         };
                         imports.insert(
                             local,
-                            Reference {
+                            target.as_ref().map(|target| Reference {
                                 file: target.clone(),
                                 name,
-                            },
+                            }),
                         );
                     }
                 }
@@ -434,6 +485,8 @@ impl Graph {
                 exports,
                 stars,
                 globals,
+                lexical_bindings: binding_names.lexical,
+                ambient_bindings: binding_names.ambient,
             },
         );
         for dependency in dependencies {
@@ -533,6 +586,7 @@ impl Graph {
         }
         let (head, tail) = name.split_once('.').unwrap_or((name, ""));
         if let Some(reference) = self.files.get(path)?.imports.get(head) {
+            let reference = reference.as_ref()?;
             let exported = if reference.name == "*" {
                 tail
             } else {
@@ -550,5 +604,37 @@ impl Graph {
             return global.into_iter().next();
         }
         None
+    }
+
+    fn browser_type(&self, path: &Path, scope: &str, name: &str) -> Option<String> {
+        let file = &self.files[path];
+        if name.contains('.')
+            || file.imports.contains_key(name)
+            || self.files.values().any(|file| file.globals.contains(name))
+        {
+            return None;
+        }
+        let scoped_name = graph_types::join(scope, name);
+        if file
+            .declarations
+            .iter()
+            .any(|declaration| match declaration {
+                TsDeclaration::Unsupported(value) => {
+                    value.source == name || value.source == scoped_name
+                }
+                _ => false,
+            })
+        {
+            return None;
+        }
+        crate::support::js_binding_registry::browser_type(name)
+    }
+
+    fn has_unshadowed_standard_name(&self, path: &Path, name: &str) -> bool {
+        !self.files[path].lexical_bindings.contains(name)
+            && !self
+                .files
+                .values()
+                .any(|file| file.ambient_bindings.contains(name))
     }
 }

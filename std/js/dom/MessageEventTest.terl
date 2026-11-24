@@ -15,17 +15,17 @@ module std.js.Dom.MessageEventTest.
 import type std.js.Dom.MessageEvent.
 import type std.js.String.{JsString}.
 
-pub data_typechecks(receiver: MessageEvent[T]): T ->
+pub data_typechecks[T](receiver: MessageEvent[T]): T ->
     receiver.data().
 
-pub last_event_id_typechecks(receiver: MessageEvent[T]): JsString ->
+pub last_event_id_typechecks[T](receiver: MessageEvent[T]): JsString ->
     receiver.last_event_id().
 
-pub origin_typechecks(receiver: MessageEvent[T]): JsString ->
+pub origin_typechecks[T](receiver: MessageEvent[T]): JsString ->
     receiver.origin().
 
-pub ports_typechecks(receiver: MessageEvent[T]): std.js.Array[std.js.Dom.MessagePort] ->
+pub ports_typechecks[T](receiver: MessageEvent[T]): std.js.Array[std.js.Dom.MessagePort] ->
     receiver.ports().
 
-pub source_typechecks(receiver: MessageEvent[T]): std.core.Option[std.js.Dom.MessageEventSource] ->
+pub source_typechecks[T](receiver: MessageEvent[T]): std.core.Option[std.js.Dom.MessageEventSource] ->
     receiver.source().

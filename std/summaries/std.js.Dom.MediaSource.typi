@@ -56,6 +56,13 @@ pub (receiver: MediaSource) add_source_buffer(type_: std.js.String.JsString): st
 pub (receiver: MediaSource) clear_live_seekable_range(): std.core.Unit.
 
 /**
+ * The **`endOfStream()`** method of the ```js-nolint endOfStream() endOfStream(endOfStreamError) ``` - `endOfStreamError` MISSING: optional_inline] - : A string representing an error to throw when the end of the stream is reached.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/endOfStream)
+ */
+pub (receiver: MediaSource) end_of_stream(): std.core.Unit.
+
+/**
  * The **`removeSourceBuffer()`** method of the MediaSource interface removes the given SourceBuffer from the SourceBufferList associated with this `MediaSource` object.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/MediaSource/removeSourceBuffer)

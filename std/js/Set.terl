@@ -14,6 +14,12 @@ module std.js.Set.
 
 pub opaque type Set[T].
 
+/**
+ * Appends a new element with a specified value to the end of the Set.
+ */
+pub (receiver: Set[T]) add(value: T): Set[T] ->
+    native.
+
 pub (receiver: Set[T]) clear(): std.core.Unit ->
     native.
 

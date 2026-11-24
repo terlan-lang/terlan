@@ -16,22 +16,22 @@ import type std.core.{Option, Unit}.
 import type std.js.Dom.WritableStreamDefaultWriter.
 import type std.js.{Promise}.
 
-pub closed_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
+pub closed_typechecks[W](receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
     receiver.closed().
 
-pub desired_size_typechecks(
+pub desired_size_typechecks[W](
     receiver: WritableStreamDefaultWriter[W],
 ): Option[std.js.Number.JsNumber] ->
     receiver.desired_size().
 
-pub ready_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
+pub ready_typechecks[W](receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
     receiver.ready().
 
-pub close_typechecks(receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
+pub close_typechecks[W](receiver: WritableStreamDefaultWriter[W]): Promise[Unit] ->
     receiver.close().
 
-pub release_lock_typechecks(receiver: WritableStreamDefaultWriter[W]): Unit ->
+pub release_lock_typechecks[W](receiver: WritableStreamDefaultWriter[W]): Unit ->
     receiver.release_lock().
 
-pub write_typechecks(receiver: WritableStreamDefaultWriter[W], chunk: Option[W]): Promise[Unit] ->
+pub write_typechecks[W](receiver: WritableStreamDefaultWriter[W], chunk: Option[W]): Promise[Unit] ->
     receiver.write(chunk).

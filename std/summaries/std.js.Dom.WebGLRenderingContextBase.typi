@@ -528,17 +528,7 @@ pub (receiver: WebGLRenderingContextBase) vertex_attrib1f(index: std.js.Dom.GLui
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
  */
-pub (receiver: WebGLRenderingContextBase) vertex_attrib1fv(index: std.js.Dom.GLuint, values: std.js.Dom.Float32List): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
- */
 pub (receiver: WebGLRenderingContextBase) vertex_attrib2f(index: std.js.Dom.GLuint, x: std.js.Dom.GLfloat, y: std.js.Dom.GLfloat): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
- */
-pub (receiver: WebGLRenderingContextBase) vertex_attrib2fv(index: std.js.Dom.GLuint, values: std.js.Dom.Float32List): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
@@ -548,17 +538,7 @@ pub (receiver: WebGLRenderingContextBase) vertex_attrib3f(index: std.js.Dom.GLui
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
  */
-pub (receiver: WebGLRenderingContextBase) vertex_attrib3fv(index: std.js.Dom.GLuint, values: std.js.Dom.Float32List): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
- */
 pub (receiver: WebGLRenderingContextBase) vertex_attrib4f(index: std.js.Dom.GLuint, x: std.js.Dom.GLfloat, y: std.js.Dom.GLfloat, z: std.js.Dom.GLfloat, w: std.js.Dom.GLfloat): std.core.Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttrib)
- */
-pub (receiver: WebGLRenderingContextBase) vertex_attrib4fv(index: std.js.Dom.GLuint, values: std.js.Dom.Float32List): std.core.Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/vertexAttribPointer)

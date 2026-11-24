@@ -316,6 +316,25 @@ fn expand_interface_global_aliases_inner(
             else {
                 return expand_type_aliases(ty, global_aliases);
             };
+            if alias.is_opaque {
+                let (canonical_module, canonical_name) = alias_name
+                    .rsplit_once('.')
+                    .expect("qualified alias key has a type segment");
+                return Type::Named {
+                    module: Some(canonical_module.to_string()),
+                    name: canonical_name.to_string(),
+                    args: args
+                        .iter()
+                        .map(|arg| {
+                            expand_interface_global_aliases_inner(
+                                arg,
+                                global_aliases,
+                                active_aliases,
+                            )
+                        })
+                        .collect(),
+                };
+            }
             if alias.params.len() != args.len() {
                 return expand_type_aliases(ty, global_aliases);
             }
@@ -348,6 +367,23 @@ fn expand_interface_global_aliases_inner(
             active_aliases.remove(alias_name);
             expanded
         }
+        Type::Apply { constructor, args } => Type::Apply {
+            constructor: *constructor,
+            args: args
+                .iter()
+                .map(|arg| {
+                    expand_interface_global_aliases_inner(arg, global_aliases, active_aliases)
+                })
+                .collect(),
+        },
+        Type::Existential { params, body } => Type::Existential {
+            params: params.clone(),
+            body: Box::new(expand_interface_global_aliases_inner(
+                body,
+                global_aliases,
+                active_aliases,
+            )),
+        },
         Type::List(inner) => Type::List(Box::new(expand_interface_global_aliases_inner(
             inner,
             global_aliases,

@@ -12,8 +12,7 @@
  */
 module std.js.Dom.AudioDataTest.
 
-import type std.core.{Unit}.
-import type std.js.Dom.{AudioData, AudioDataCopyToOptions}.
+import type std.js.Dom.AudioData.
 import type std.js.Number.{JsNumber}.
 
 pub duration_typechecks(receiver: AudioData): JsNumber ->
@@ -31,18 +30,14 @@ pub sample_rate_typechecks(receiver: AudioData): JsNumber ->
 pub timestamp_typechecks(receiver: AudioData): JsNumber ->
     receiver.timestamp().
 
-pub allocation_size_typechecks(receiver: AudioData, options: AudioDataCopyToOptions): JsNumber ->
+pub allocation_size_typechecks(
+    receiver: AudioData,
+    options: std.js.Dom.AudioDataCopyToOptions,
+): JsNumber ->
     receiver.allocation_size(options).
 
 pub clone_typechecks(receiver: AudioData): AudioData ->
     receiver.clone().
 
-pub close_typechecks(receiver: AudioData): Unit ->
+pub close_typechecks(receiver: AudioData): std.core.Unit ->
     receiver.close().
-
-pub copy_to_typechecks(
-    receiver: AudioData,
-    destination: std.js.Dom.AllowSharedBufferSource,
-    options: AudioDataCopyToOptions,
-): Unit ->
-    receiver.copy_to(destination, options).

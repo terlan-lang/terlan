@@ -1,0 +1,40 @@
+module std.js.Callable.
+
+/**
+ * Compiler-provided evidence that a value has a checked function type.
+ */
+pub trait Callable[Value] {
+}.
+
+/**
+ * Argument domains of variadic JavaScript signatures.
+ */
+pub opaque type NeverArguments.
+
+pub opaque type AnyArguments.
+
+/**
+ * A callable value whose argument signature and result are unavailable.
+ */
+pub opaque type VariadicCallable[Arguments].
+
+/**
+ * A constructable value whose argument signature and instance type are unavailable.
+ */
+pub opaque type VariadicConstructor[Arguments].
+
+/**
+ * Converts a checked function to a reference accepted by a never-rest signature.
+ */
+pub from_function[Value](
+    callback: Value,
+)[std.js.Callable.Callable[Value]]: VariadicCallable[NeverArguments] ->
+    native.
+
+/**
+ * Converts a checked function to a reference accepted by an any-rest signature.
+ */
+pub from_function_with_any_arguments[Value](
+    callback: Value,
+)[std.js.Callable.Callable[Value]]: VariadicCallable[AnyArguments] ->
+    native.

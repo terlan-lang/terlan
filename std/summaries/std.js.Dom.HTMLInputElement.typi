@@ -373,6 +373,8 @@ pub (receiver: HTMLInputElement) set_custom_validity(error: std.js.String.JsStri
  */
 pub (receiver: HTMLInputElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit.
 
+pub (receiver: HTMLInputElement) set_range_text_overload_2(replacement: std.js.String.JsString, start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.core.Unit.
+
 /**
  * The **`HTMLInputElement.showPicker()`** method displays the browser picker for an `input` element.
  *

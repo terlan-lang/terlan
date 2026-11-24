@@ -377,6 +377,8 @@ pub (receiver: HTMLInputElement) set_custom_validity(error: JsString): Unit.
  */
 pub (receiver: HTMLInputElement) set_range_text(replacement: JsString): Unit.
 
+pub (receiver: HTMLInputElement) set_range_text_overload_2(replacement: JsString, start: JsNumber, end: JsNumber): Unit.
+
 /**
  * The **`HTMLInputElement.showPicker()`** method displays the browser picker for an `input` element.
  *

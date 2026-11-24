@@ -166,3 +166,7 @@ mod graph_tests;
 #[cfg(test)]
 #[path = "typescript_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "typescript_service_types_test.rs"]
+mod service_types_tests;

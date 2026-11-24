@@ -244,6 +244,36 @@ fn terlan_source_discovery_skips_nested_project_roots() {
     );
 }
 
+/// Verifies `target` remains a valid module namespace while compiler-owned
+/// metadata stays excluded.
+#[test]
+fn terlan_source_discovery_distinguishes_target_namespace_from_artifacts() {
+    let directory = crate::support::test_fs::TestDirectory::new(
+        "formal_pipeline",
+        "target_namespace_discovery",
+    );
+    let namespace = directory.path().join("trading/strategy/target");
+    let artifacts = directory.path().join("target/generated");
+    std::fs::create_dir_all(&namespace).expect("create target namespace");
+    std::fs::create_dir_all(&artifacts).expect("create target artifacts");
+    let policy = namespace.join("Policy.terl");
+    let generated = artifacts.join("Generated.terl");
+    std::fs::write(
+        directory.path().join("target/CACHEDIR.TAG"),
+        "Signature: 8a477f597d28d172789f06886806bc55\n",
+    )
+    .expect("mark target artifact cache");
+    std::fs::write(&policy, "module trading.strategy.target.Policy.\n")
+        .expect("write target namespace source");
+    std::fs::write(&generated, "module generated.Generated.\n")
+        .expect("write target artifact source");
+
+    let files = terlan_check_sources_in_dir(directory.path()).expect("scan source root");
+
+    assert!(files.contains(&policy));
+    assert!(!files.contains(&generated));
+}
+
 #[test]
 fn compile_syntax_module_with_erlang_profile_accepts_float() {
     let source = "\

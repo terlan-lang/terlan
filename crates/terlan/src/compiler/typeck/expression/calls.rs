@@ -106,7 +106,7 @@ fn infer_syntax_call_arg_types(
         .map(|(index, arg)| {
             if arg.kind == SyntaxExprKind::Var {
                 let name = arg.text.as_deref().unwrap_or_default();
-                if infer_syntax_var(name, locals, ctx).is_none()
+                if infer_syntax_var(name, locals, ctx, &mut Vec::new()).is_none()
                     && !ctx.signatures.keys().any(|(function, _)| function == name)
                     && !ctx.function_imports.contains_key(name)
                 {

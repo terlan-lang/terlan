@@ -12,10 +12,11 @@
  */
 module std.js.RegExpTest.
 
+import type std.core.{Option}.
 import type std.js.RegExp.
 import type std.js.String.{JsString}.
 
-pub exec_typechecks(receiver: RegExp, string: JsString): std.core.Option[std.js.RegExpExecArray] ->
+pub exec_typechecks(receiver: RegExp, string: JsString): Option[std.js.RegExpExecArray] ->
     receiver.exec(string).
 
 pub test_typechecks(receiver: RegExp, string: JsString): Bool ->
@@ -35,3 +36,6 @@ pub multiline_typechecks(receiver: RegExp): Bool ->
 
 pub last_index_typechecks(receiver: RegExp): std.js.Number.JsNumber ->
     receiver.last_index().
+
+pub compile_typechecks(receiver: RegExp, pattern: JsString, flags: Option[JsString]): RegExp ->
+    receiver.compile(pattern, flags).

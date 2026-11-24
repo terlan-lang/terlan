@@ -738,6 +738,7 @@ pub type List[T] = Dynamic.\n\
 pub trait Enumerable[C[_]] {\n\
     each[T](collection: C[T], cb: (T) -> Unit): Unit.\n\
 }.\n\
+private_helper(value: Int): Int.\n\
 pub impl Enumerable[List] for List {\n\
     each(collection: List[T], cb: (T) -> Unit): Unit.\n\
 }.\n\

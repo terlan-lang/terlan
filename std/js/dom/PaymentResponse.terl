@@ -15,6 +15,7 @@ module std.js.Dom.PaymentResponse.
 import type std.core.{Option, Unit}.
 import type std.js.Dom.{EventListenerOrEventListenerObject}.
 import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
 /**
  * The **`PaymentResponse`** interface of the Payment Request API is returned after a user selects a payment method and approves a payment request.
@@ -81,11 +82,19 @@ pub (receiver: PaymentResponse) shipping_option(): Option[JsString] ->
     native.
 
 /**
+ * The PaymentRequest method **`complete()`** of the Payment Request API notifies the user interface to be closed.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/complete)
+ */
+pub (receiver: PaymentResponse) complete(): Promise[Unit] ->
+    native.
+
+/**
  * The PaymentResponse interface's **`retry()`** method makes it possible to ask the user to retry a payment after an error occurs during processing.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/PaymentResponse/retry)
  */
-pub (receiver: PaymentResponse) retry(error_fields: Option[std.js.Dom.PaymentValidationErrors]): std.js.Promise[Unit] ->
+pub (receiver: PaymentResponse) retry(error_fields: Option[std.js.Dom.PaymentValidationErrors]): Promise[Unit] ->
     native.
 
 pub (receiver: PaymentResponse) add_event_listener(

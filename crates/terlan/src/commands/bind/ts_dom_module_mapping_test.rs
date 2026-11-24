@@ -100,6 +100,23 @@ fn maps_nullable_dom_property_type() {
     assert_eq!(text_content.terlan_type, "Option[std.js.String.JsString]");
 }
 
+/// TypeScript polymorphic `this` resolves to its enclosing generic interface.
+#[test]
+fn maps_this_types_to_the_enclosing_interface() {
+    let declarations = parse_ts_declaration_file(
+        "interface Fluent<T> { current: this; chain(value: this): this; }",
+    )
+    .expect("polymorphic this fixture should parse");
+    let mapping = map_ts_declarations_to_dom_modules(&declarations);
+    let fluent = &mapping.modules[0];
+
+    assert!(mapping.skipped.is_empty());
+    assert_eq!(property(fluent, "current").terlan_type, "Fluent[T]");
+    let chain = method(fluent, "chain");
+    assert_eq!(chain.params[0].terlan_type, "Fluent[T]");
+    assert_eq!(chain.return_type, "Fluent[T]");
+}
+
 /// Verifies unsupported member types become skipped declaration diagnostics.
 ///
 /// Inputs:

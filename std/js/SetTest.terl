@@ -14,14 +14,17 @@ module std.js.SetTest.
 
 import type std.js.Set.
 
-pub clear_typechecks(receiver: Set[T]): std.core.Unit ->
+pub add_typechecks[T](receiver: Set[T], value: T): Set[T] ->
+    receiver.add(value).
+
+pub clear_typechecks[T](receiver: Set[T]): std.core.Unit ->
     receiver.clear().
 
-pub delete_typechecks(receiver: Set[T], value: T): Bool ->
+pub delete_typechecks[T](receiver: Set[T], value: T): Bool ->
     receiver.delete(value).
 
-pub has_typechecks(receiver: Set[T], value: T): Bool ->
+pub has_typechecks[T](receiver: Set[T], value: T): Bool ->
     receiver.has(value).
 
-pub size_typechecks(receiver: Set[T]): std.js.Number.JsNumber ->
+pub size_typechecks[T](receiver: Set[T]): std.js.Number.JsNumber ->
     receiver.size().

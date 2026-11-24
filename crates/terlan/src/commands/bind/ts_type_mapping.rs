@@ -39,6 +39,36 @@ pub(super) struct TsRecordField {
     pub(super) ty: TsTypeRef,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct TsTupleElement {
+    pub(super) label: Option<String>,
+    pub(super) ty: TsTypeRef,
+    pub(super) optional: bool,
+    pub(super) rest: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct TsConditionalType {
+    pub(super) check: TsTypeRef,
+    pub(super) constraint: TsTypeRef,
+    pub(super) then_type: TsTypeRef,
+    pub(super) else_type: TsTypeRef,
+    pub(super) distribute_over: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct TsConstructorType {
+    pub(super) is_abstract: bool,
+    pub(super) params: Vec<TsTupleElement>,
+    pub(super) instance: TsTypeRef,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum TsConstructorUtility {
+    Instance,
+    Parameters,
+}
+
 /// Neutral TypeScript type reference used by binding-generation mapping.
 ///
 /// Inputs:
@@ -58,16 +88,34 @@ pub(super) enum TsTypeRef {
         name: String,
         args: Vec<TsTypeRef>,
     },
+    UnresolvedGenericArguments(String),
     StringLiteral(String),
     NumberLiteral(String),
     BooleanLiteral(bool),
     Array(Box<TsTypeRef>),
+    Tuple(Vec<TsTupleElement>),
     Union(Vec<TsTypeRef>),
     Record(Vec<TsRecordField>),
     Callback {
         params: Vec<TsTypeRef>,
         return_type: Box<TsTypeRef>,
     },
+    RestCallback {
+        rest: Box<TsTypeRef>,
+        return_type: Box<TsTypeRef>,
+    },
+    CallableBound,
+    JsonParseResult,
+    Conditional(Box<TsConditionalType>),
+    /// Constructor-only operands can be distinguished from callable types.
+    ConstructorType,
+    Constructor(Box<TsConstructorType>),
+    ConstructorUtility(TsConstructorUtility, Box<TsTypeRef>),
+    Deferred {
+        reason: &'static str,
+        detail: String,
+    },
+    Never,
     #[cfg(test)]
     OverloadSet(Vec<TsTypeRef>),
     Null,
@@ -75,6 +123,71 @@ pub(super) enum TsTypeRef {
     Object,
     Any,
     Unknown,
+}
+
+impl TsTypeRef {
+    pub(super) fn requires_declaration_graph(&self) -> bool {
+        match self {
+            Self::Never
+            | Self::Tuple(_)
+            | Self::Conditional(_)
+            | Self::Constructor(_)
+            | Self::ConstructorUtility(..)
+            | Self::JsonParseResult => true,
+            Self::Generic { args, .. } | Self::Union(args) => {
+                args.iter().any(Self::requires_declaration_graph)
+            }
+            Self::Array(item) => item.requires_declaration_graph(),
+            Self::Record(fields) => fields
+                .iter()
+                .any(|field| field.ty.requires_declaration_graph()),
+            Self::Callback {
+                params,
+                return_type,
+            } => {
+                params.iter().any(Self::requires_declaration_graph)
+                    || return_type.requires_declaration_graph()
+            }
+            _ => false,
+        }
+    }
+
+    pub(super) fn for_each_child_mut(&mut self, mut visit: impl FnMut(&mut Self)) {
+        match self {
+            Self::Generic { args, .. } | Self::Union(args) => args.iter_mut().for_each(visit),
+            Self::Array(item) => visit(item),
+            Self::Tuple(elements) => elements
+                .iter_mut()
+                .for_each(|element| visit(&mut element.ty)),
+            Self::Record(fields) => fields.iter_mut().for_each(|field| visit(&mut field.ty)),
+            Self::Callback {
+                params,
+                return_type,
+            } => {
+                params.iter_mut().for_each(&mut visit);
+                visit(return_type);
+            }
+            Self::Conditional(conditional) => {
+                visit(&mut conditional.check);
+                visit(&mut conditional.constraint);
+                visit(&mut conditional.then_type);
+                visit(&mut conditional.else_type);
+            }
+            Self::RestCallback { rest, return_type } => {
+                visit(rest);
+                visit(return_type);
+            }
+            Self::Constructor(constructor) => {
+                constructor
+                    .params
+                    .iter_mut()
+                    .for_each(|parameter| visit(&mut parameter.ty));
+                visit(&mut constructor.instance);
+            }
+            Self::ConstructorUtility(_, argument) => visit(argument),
+            _ => {}
+        }
+    }
 }
 
 /// Result of mapping one TypeScript type reference.
@@ -158,10 +271,52 @@ fn map_ts_type_inner(ty: &TsTypeRef) -> Result<String, TsTypeSkip> {
         TsTypeRef::Primitive(TsPrimitiveType::Void) => Ok("Unit".to_string()),
         TsTypeRef::Named(name) => Ok(name.clone()),
         TsTypeRef::Generic { name, args } => map_ts_generic_to_terlan(name, args),
+        TsTypeRef::UnresolvedGenericArguments(detail) => Err(TsTypeSkip {
+            reason: "ts_bindgen.unresolved_generic_arguments",
+            source: detail.clone(),
+        }),
+        TsTypeRef::Conditional(_) => Err(TsTypeSkip {
+            reason: "ts_bindgen.unsupported_type",
+            source: "conditional type requires a proven extends test".into(),
+        }),
+        TsTypeRef::ConstructorType | TsTypeRef::Constructor(_) => {
+            Err(skip_type("ts_bindgen.unsupported_type", ty))
+        }
+        TsTypeRef::ConstructorUtility(utility, _) => Err(TsTypeSkip {
+            reason: "ts_bindgen.unsupported_type",
+            source: format!("{utility:?} utility requires a known constructor signature"),
+        }),
+        TsTypeRef::RestCallback { .. } => {
+            Err(skip_type("ts_bindgen.unsupported_callback_parameters", ty))
+        }
+        TsTypeRef::CallableBound | TsTypeRef::JsonParseResult => {
+            Err(skip_type("ts_bindgen.unsupported_type", ty))
+        }
+        TsTypeRef::Deferred { reason, detail } => Err(TsTypeSkip {
+            reason,
+            source: detail.clone(),
+        }),
+        TsTypeRef::Never => Ok("Never".into()),
         TsTypeRef::StringLiteral(_)
         | TsTypeRef::NumberLiteral(_)
         | TsTypeRef::BooleanLiteral(_) => Err(skip_type("ts_bindgen.unsupported_literal_type", ty)),
         TsTypeRef::Array(item) => Ok(format!("std.js.Array[{}]", map_ts_type_inner(item)?)),
+        TsTypeRef::Tuple(elements)
+            if !elements.is_empty()
+                && elements
+                    .iter()
+                    .all(|element| !element.rest && !element.optional) =>
+        {
+            let elements = elements
+                .iter()
+                .map(|element| map_ts_type_inner(&element.ty))
+                .collect::<Result<Vec<_>, _>>()?;
+            if elements.iter().any(|ty| ty.starts_with("Option[")) {
+                return Err(skip_type("ts_bindgen.unsupported_tuple_element", ty));
+            }
+            Ok(format!("{{{}}}", elements.join(", ")))
+        }
+        TsTypeRef::Tuple(_) => Err(skip_type("ts_bindgen.tuple_requires_binding", ty)),
         TsTypeRef::Union(items) => map_ts_union_to_terlan(items),
         TsTypeRef::Record(fields) => map_ts_record_to_terlan(fields),
         TsTypeRef::Callback {
@@ -270,6 +425,7 @@ fn map_ts_union_to_terlan(items: &[TsTypeRef]) -> Result<String, TsTypeSkip> {
             TsTypeRef::Null | TsTypeRef::Undefined => {
                 is_optional = true;
             }
+            TsTypeRef::Never => {}
             other if is_simple_union_member(other) => mapped.push(map_ts_type_inner(other)?),
             other => return Err(skip_type("ts_bindgen.complex_union", other)),
         }
@@ -278,6 +434,9 @@ fn map_ts_union_to_terlan(items: &[TsTypeRef]) -> Result<String, TsTypeSkip> {
     mapped.sort();
     mapped.dedup();
 
+    if mapped.is_empty() && !is_optional && items.contains(&TsTypeRef::Never) {
+        return Ok("Never".into());
+    }
     if mapped.is_empty() {
         return Err(skip_type(
             "ts_bindgen.nullish_without_value_type",
@@ -317,7 +476,18 @@ fn is_simple_union_member(ty: &TsTypeRef) -> bool {
         TsTypeRef::Generic { args, .. } => args.iter().all(is_simple_union_member),
         TsTypeRef::Union(_)
         | TsTypeRef::Record(_)
+        | TsTypeRef::Tuple(_)
         | TsTypeRef::Callback { .. }
+        | TsTypeRef::RestCallback { .. }
+        | TsTypeRef::CallableBound
+        | TsTypeRef::JsonParseResult
+        | TsTypeRef::Conditional(_)
+        | TsTypeRef::ConstructorType
+        | TsTypeRef::Constructor(_)
+        | TsTypeRef::ConstructorUtility(..)
+        | TsTypeRef::Deferred { .. }
+        | TsTypeRef::Never
+        | TsTypeRef::UnresolvedGenericArguments(_)
         | TsTypeRef::Null
         | TsTypeRef::Undefined
         | TsTypeRef::Object

@@ -499,6 +499,81 @@ fn expand_interface_global_aliases_preserves_recursive_cycle_reference() {
     );
 }
 
+/// Imported aliases nested below higher-kinded and existential wrappers must
+/// normalize exactly as they do below ordinary named generic types.
+#[test]
+fn expand_interface_global_aliases_descends_into_applied_and_existential_types() {
+    let reply = Type::Named {
+        module: Some("fixture.Reply".to_string()),
+        name: "Reply".to_string(),
+        args: Vec::new(),
+    };
+    let reply_body = Type::Union(vec![
+        Type::LiteralAtom("available".to_string()),
+        Type::LiteralAtom("unavailable".to_string()),
+    ]);
+    let aliases = HashMap::from([(
+        "fixture.Reply.Reply".to_string(),
+        TypeAlias {
+            params: Vec::new(),
+            param_variance: Vec::new(),
+            bounds: Vec::new(),
+            body: reply_body.clone(),
+            constructor_param_names: Vec::new(),
+            is_opaque: false,
+        },
+    )]);
+    let wrapped = Type::Existential {
+        params: vec![7],
+        body: Box::new(Type::Apply {
+            constructor: 7,
+            args: vec![reply],
+        }),
+    };
+
+    assert_eq!(
+        expand_interface_global_aliases(&wrapped, &aliases),
+        Type::Existential {
+            params: vec![7],
+            body: Box::new(Type::Apply {
+                constructor: 7,
+                args: vec![reply_body],
+            }),
+        }
+    );
+}
+
+/// Nested uses of an opaque generic may use an abbreviated module spelling in
+/// an imported alias body. Both levels must resolve to the provider's exported
+/// nominal identity without the recursion guard suppressing the inner one.
+#[test]
+fn expand_interface_global_aliases_canonicalizes_nested_opaque_generics() {
+    let process = |module: &str, argument| Type::Named {
+        module: Some(module.to_string()),
+        name: "Process".to_string(),
+        args: vec![argument],
+    };
+    let aliases = HashMap::from([(
+        "std.vm.Process.Process".to_string(),
+        TypeAlias {
+            params: vec![0],
+            param_variance: Vec::new(),
+            bounds: Vec::new(),
+            body: process("std.vm.Process", Type::Var(0)),
+            constructor_param_names: Vec::new(),
+            is_opaque: true,
+        },
+    )]);
+
+    assert_eq!(
+        expand_interface_global_aliases(
+            &process("std.vm.Process", process("std.vm", Type::Bool)),
+            &aliases,
+        ),
+        process("std.vm.Process", process("std.vm.Process", Type::Bool)),
+    );
+}
+
 /// Qualified opaque aliases reveal their representation only inside their owner.
 #[test]
 fn reveal_qualified_opaque_aliases_respects_module_ownership() {

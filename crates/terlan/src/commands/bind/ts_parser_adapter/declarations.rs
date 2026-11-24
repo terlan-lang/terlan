@@ -26,6 +26,51 @@ pub(in crate::commands::bind) struct TsDeclarationFile {
     pub(in crate::commands::bind) declarations: Vec<TsDeclaration>,
 }
 
+impl TsDeclarationFile {
+    /// The checked-in DOM profile retains its existing declaration surface.
+    pub(in crate::commands::bind) fn restrict_to_dom_types(&mut self) {
+        const REASON: &str = "ts_bindgen.unsupported_type";
+        const DETAIL: &str = "TypeScript type shape is outside the first DOM binding slice";
+        for declaration in &mut self.declarations {
+            match declaration {
+                TsDeclaration::TypeAlias(alias) if alias.ty.requires_declaration_graph() => {
+                    *declaration = TsDeclaration::Unsupported(TsUnsupportedDeclaration {
+                        source: qualified_source(&alias.namespace, &alias.name),
+                        reason: REASON,
+                        detail: DETAIL.into(),
+                    });
+                }
+                TsDeclaration::Interface(interface) => {
+                    for member in &mut interface.members {
+                        let source = match member {
+                            TsInterfaceMember::Property(property)
+                                if property.ty.requires_declaration_graph() =>
+                            {
+                                &property.name
+                            }
+                            TsInterfaceMember::Method(method)
+                                if method.return_type.requires_declaration_graph()
+                                    || method.params.iter().any(|parameter| {
+                                        parameter.ty.requires_declaration_graph()
+                                    }) =>
+                            {
+                                &method.name
+                            }
+                            _ => continue,
+                        };
+                        *member = TsInterfaceMember::Unsupported(TsUnsupportedMember {
+                            source: source.clone(),
+                            reason: REASON,
+                            detail: DETAIL.into(),
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
 /// Neutral TypeScript declaration accepted by the generator.
 ///
 /// Inputs:
@@ -79,10 +124,12 @@ pub(in crate::commands::bind) struct TsUnsupportedDeclaration {
 pub(in crate::commands::bind) struct TsInterfaceDeclaration {
     pub(in crate::commands::bind) parents: Vec<TsTypeRef>,
     pub(in crate::commands::bind) plain_record: bool,
+    pub(in crate::commands::bind) callable_alias: Option<TsParseError>,
     pub(in crate::commands::bind) namespace: String,
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) doc: Option<String>,
     pub(in crate::commands::bind) type_params: Vec<String>,
+    pub(in crate::commands::bind) type_defaults: Vec<Option<TsTypeRef>>,
     pub(in crate::commands::bind) members: Vec<TsInterfaceMember>,
 }
 
@@ -99,10 +146,12 @@ pub(in crate::commands::bind) struct TsInterfaceDeclaration {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::commands::bind) struct TsTypeAliasDeclaration {
     pub(in crate::commands::bind) imported: bool,
+    pub(in crate::commands::bind) type_constraints: Vec<Option<TsTypeRef>>,
     pub(in crate::commands::bind) namespace: String,
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) doc: Option<String>,
     pub(in crate::commands::bind) type_params: Vec<String>,
+    pub(in crate::commands::bind) type_defaults: Vec<Option<TsTypeRef>>,
     pub(in crate::commands::bind) ty: TsTypeRef,
 }
 
@@ -177,12 +226,22 @@ pub(in crate::commands::bind) struct TsPropertyDeclaration {
 ///   generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::commands::bind) struct TsMethodDeclaration {
+    pub(in crate::commands::bind) call_kind: TsCallKind,
     pub(in crate::commands::bind) type_params: Vec<String>,
+    pub(in crate::commands::bind) type_constraints: Vec<Option<TsTypeRef>>,
     pub(in crate::commands::bind) name: String,
     pub(in crate::commands::bind) doc: Option<String>,
     pub(in crate::commands::bind) optional: bool,
     pub(in crate::commands::bind) params: Vec<TsParameterDeclaration>,
     pub(in crate::commands::bind) return_type: TsTypeRef,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::commands::bind) enum TsCallKind {
+    Method,
+    Call,
+    Construct,
+    TuplePack,
 }
 
 /// Neutral TypeScript method parameter.
@@ -721,6 +780,7 @@ fn parse_interface(
 
     Ok(TsInterfaceDeclaration {
         parents,
+        callable_alias: None,
         plain_record: interface.extends.is_empty()
             && interface.type_parameters.as_ref().is_none_or(|parameters| {
                 parameters
@@ -732,6 +792,7 @@ fn parse_interface(
         name: interface.id.name.to_string(),
         doc: leading_jsdoc(source, comments, interface.span),
         type_params: parse_type_parameter_names(interface.type_parameters.as_deref()),
+        type_defaults: parse_type_parameter_defaults(interface.type_parameters.as_deref()),
         members,
     })
 }
@@ -756,11 +817,28 @@ fn parse_type_alias(
 ) -> Result<TsTypeAliasDeclaration, TsParseError> {
     Ok(TsTypeAliasDeclaration {
         imported: false,
+        type_constraints: alias
+            .type_parameters
+            .iter()
+            .flat_map(|parameters| &parameters.params)
+            .map(|parameter| {
+                parameter
+                    .constraint
+                    .as_ref()
+                    .map(super::types::parse_type_operand)
+            })
+            .collect(),
         namespace: namespace.to_string(),
         name: alias.id.name.to_string(),
         doc: leading_jsdoc(source, comments, alias.span),
         type_params: parse_type_parameter_names(alias.type_parameters.as_deref()),
-        ty: parse_type(&alias.type_annotation)?,
+        type_defaults: parse_type_parameter_defaults(alias.type_parameters.as_deref()),
+        ty: match &alias.type_annotation {
+            oxc_ast::ast::TSType::TSConstructorType(constructor) if constructor.r#abstract => {
+                super::types::parse_constructor_type(constructor)
+            }
+            ty => parse_type(ty)?,
+        },
     })
 }
 
@@ -786,11 +864,48 @@ fn parse_type_alias_declaration(
 ) -> TsDeclaration {
     match parse_type_alias(source, comments, namespace, alias) {
         Ok(alias) => TsDeclaration::TypeAlias(alias),
-        Err(err) => TsDeclaration::Unsupported(TsUnsupportedDeclaration {
-            source: qualified_source(namespace, alias.id.name.as_str()),
-            reason: err.reason,
-            detail: err.message,
-        }),
+        Err(err) => {
+            use oxc_ast::ast::TSType;
+            let operation = match &alias.type_annotation {
+                TSType::TSFunctionType(call) if call.this_param.is_none() => Some((
+                    TsCallKind::Call,
+                    call.type_parameters.as_deref(),
+                    &*call.params,
+                    &*call.return_type,
+                )),
+                TSType::TSConstructorType(call) if !call.r#abstract => Some((
+                    TsCallKind::Construct,
+                    call.type_parameters.as_deref(),
+                    &*call.params,
+                    &*call.return_type,
+                )),
+                _ => None,
+            };
+            if let Some((kind, generics, params, result)) = operation {
+                if let Ok(method) =
+                    super::members::call_signature(kind, generics, params, Some(result), None)
+                {
+                    return TsDeclaration::Interface(TsInterfaceDeclaration {
+                        parents: Vec::new(),
+                        plain_record: false,
+                        callable_alias: Some(err),
+                        namespace: namespace.into(),
+                        name: alias.id.name.to_string(),
+                        doc: leading_jsdoc(source, comments, alias.span),
+                        type_params: parse_type_parameter_names(alias.type_parameters.as_deref()),
+                        type_defaults: parse_type_parameter_defaults(
+                            alias.type_parameters.as_deref(),
+                        ),
+                        members: vec![method],
+                    });
+                }
+            }
+            TsDeclaration::Unsupported(TsUnsupportedDeclaration {
+                source: qualified_source(namespace, alias.id.name.as_str()),
+                reason: err.reason,
+                detail: err.message,
+            })
+        }
     }
 }
 
@@ -803,9 +918,7 @@ fn parse_type_alias_declaration(
 /// - Type parameter names in source order.
 ///
 /// Transformation:
-/// - Preserves only names for Terlan generic declarations. Constraints and
-///   defaults are intentionally ignored until Terlan has a matching type-level
-///   constraint model.
+/// - Preserves names for Terlan generic declarations.
 pub(super) fn parse_type_parameter_names(
     type_parameters: Option<&TSTypeParameterDeclaration<'_>>,
 ) -> Vec<String> {
@@ -815,6 +928,25 @@ pub(super) fn parse_type_parameter_names(
                 .params
                 .iter()
                 .map(|parameter| parameter.name.name.to_string())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+pub(super) fn parse_type_parameter_defaults(
+    parameters: Option<&TSTypeParameterDeclaration<'_>>,
+) -> Vec<Option<TsTypeRef>> {
+    parameters
+        .map(|parameters| {
+            parameters
+                .params
+                .iter()
+                .map(|parameter| {
+                    parameter
+                        .default
+                        .as_ref()
+                        .and_then(|ty| parse_type(ty).ok())
+                })
                 .collect()
         })
         .unwrap_or_default()

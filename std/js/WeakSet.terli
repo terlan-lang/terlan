@@ -15,6 +15,11 @@ module std.js.WeakSet.
 pub opaque type WeakSet[T].
 
 /**
+ * Appends a new value to the end of the WeakSet.
+ */
+pub (receiver: WeakSet[T]) add(value: T): WeakSet[T].
+
+/**
  * Removes the specified element from the WeakSet.
  * @returns Returns true if the element existed and has been removed, or false if the element does not exist.
  */

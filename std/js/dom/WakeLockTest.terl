@@ -13,3 +13,6 @@
 module std.js.Dom.WakeLockTest.
 
 import type std.js.Dom.WakeLock.
+
+pub request_typechecks(receiver: WakeLock): std.js.Promise[std.js.Dom.WakeLockSentinel] ->
+    receiver.request().

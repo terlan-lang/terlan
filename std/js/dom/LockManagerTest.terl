@@ -12,7 +12,24 @@
  */
 module std.js.Dom.LockManagerTest.
 
-import type std.js.Dom.LockManager.
+import type std.js.Dom.{LockGrantedCallback, LockManager}.
+import type std.js.String.{JsString}.
+import type std.js.{Promise}.
 
-pub query_typechecks(receiver: LockManager): std.js.Promise[std.js.Dom.LockManagerSnapshot] ->
+pub query_typechecks(receiver: LockManager): Promise[std.js.Dom.LockManagerSnapshot] ->
     receiver.query().
+
+pub request_typechecks[T](
+    receiver: LockManager,
+    name: JsString,
+    callback: LockGrantedCallback[T],
+): Promise[T] ->
+    receiver.request(name, callback).
+
+pub request_overload_2_typechecks[T](
+    receiver: LockManager,
+    name: JsString,
+    options: std.js.Dom.LockOptions,
+    callback: LockGrantedCallback[T],
+): Promise[T] ->
+    receiver.request_overload_2(name, options, callback).

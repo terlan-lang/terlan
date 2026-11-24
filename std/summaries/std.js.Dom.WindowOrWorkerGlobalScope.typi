@@ -88,3 +88,8 @@ pub (receiver: WindowOrWorkerGlobalScope) fetch(input: std.js.Dom.RequestInfo | 
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/queueMicrotask)
  */
 pub (receiver: WindowOrWorkerGlobalScope) queue_microtask(callback: std.js.Dom.VoidFunction): std.core.Unit.
+
+/**
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/structuredClone)
+ */
+pub (receiver: WindowOrWorkerGlobalScope) structured_clone[T](value: T, options: std.core.Option[std.js.Dom.StructuredSerializeOptions]): T.

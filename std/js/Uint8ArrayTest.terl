@@ -17,61 +17,132 @@ import type std.js.Number.{JsNumber}.
 import type std.js.String.{JsString}.
 import type std.js.Uint8Array.
 
-pub bytes_per_element_typechecks(receiver: Uint8Array[TArrayBuffer]): JsNumber ->
+pub bytes_per_element_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): JsNumber ->
     receiver.bytes_per_element().
 
-pub buffer_typechecks(receiver: Uint8Array[TArrayBuffer]): TArrayBuffer ->
+pub buffer_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): TArrayBuffer ->
     receiver.buffer().
 
-pub byte_length_typechecks(receiver: Uint8Array[TArrayBuffer]): JsNumber ->
+pub byte_length_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): JsNumber ->
     receiver.byte_length().
 
-pub byte_offset_typechecks(receiver: Uint8Array[TArrayBuffer]): JsNumber ->
+pub byte_offset_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): JsNumber ->
     receiver.byte_offset().
 
-pub index_of_typechecks(
+pub copy_within_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    target_: JsNumber,
+    start: JsNumber,
+    end: Option[JsNumber],
+): Uint8Array[TArrayBuffer] ->
+    receiver.copy_within(target_, start, end).
+
+pub fill_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    value: JsNumber,
+    start: Option[JsNumber],
+    end: Option[JsNumber],
+): Uint8Array[TArrayBuffer] ->
+    receiver.fill(value, start, end).
+
+pub index_of_typechecks[TArrayBuffer](
     receiver: Uint8Array[TArrayBuffer],
     search_element: JsNumber,
     from_index: Option[JsNumber],
 ): JsNumber ->
     receiver.index_of(search_element, from_index).
 
-pub join_typechecks(receiver: Uint8Array[TArrayBuffer], separator: Option[JsString]): JsString ->
+pub join_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    separator: Option[JsString],
+): JsString ->
     receiver.join(separator).
 
-pub last_index_of_typechecks(
+pub last_index_of_typechecks[TArrayBuffer](
     receiver: Uint8Array[TArrayBuffer],
     search_element: JsNumber,
     from_index: Option[JsNumber],
 ): JsNumber ->
     receiver.last_index_of(search_element, from_index).
 
-pub length_typechecks(receiver: Uint8Array[TArrayBuffer]): JsNumber ->
+pub length_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): JsNumber ->
     receiver.length().
 
-pub set_typechecks(
+pub reduce_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8Array[TArrayBuffer]) -> JsNumber,
+): JsNumber ->
+    receiver.reduce(callbackfn).
+
+pub reduce_overload_2_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8Array[TArrayBuffer]) -> JsNumber,
+    initial_value: JsNumber,
+): JsNumber ->
+    receiver.reduce_overload_2(callbackfn, initial_value).
+
+pub reduce_overload_3_typechecks[TArrayBuffer, U](
+    receiver: Uint8Array[TArrayBuffer],
+    callbackfn: (U, JsNumber, JsNumber, Uint8Array[TArrayBuffer]) -> U,
+    initial_value: U,
+): U ->
+    receiver.reduce_overload_3(callbackfn, initial_value).
+
+pub reduce_right_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8Array[TArrayBuffer]) -> JsNumber,
+): JsNumber ->
+    receiver.reduce_right(callbackfn).
+
+pub reduce_right_overload_2_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8Array[TArrayBuffer]) -> JsNumber,
+    initial_value: JsNumber,
+): JsNumber ->
+    receiver.reduce_right_overload_2(callbackfn, initial_value).
+
+pub reduce_right_overload_3_typechecks[TArrayBuffer, U](
+    receiver: Uint8Array[TArrayBuffer],
+    callbackfn: (U, JsNumber, JsNumber, Uint8Array[TArrayBuffer]) -> U,
+    initial_value: U,
+): U ->
+    receiver.reduce_right_overload_3(callbackfn, initial_value).
+
+pub reverse_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): Uint8Array[TArrayBuffer] ->
+    receiver.reverse().
+
+pub set_typechecks[TArrayBuffer](
     receiver: Uint8Array[TArrayBuffer],
     array: std.js.ArrayLike[JsNumber],
     offset: Option[JsNumber],
 ): std.core.Unit ->
     receiver.set(array, offset).
 
-pub slice_typechecks(
+pub slice_typechecks[TArrayBuffer](
     receiver: Uint8Array[TArrayBuffer],
     start: Option[JsNumber],
     end: Option[JsNumber],
 ): Uint8Array[std.js.ArrayBuffer] ->
     receiver.slice(start, end).
 
-pub subarray_typechecks(
+pub sort_typechecks[TArrayBuffer](
+    receiver: Uint8Array[TArrayBuffer],
+    compare_fn: Option[(JsNumber, JsNumber) -> JsNumber],
+): Uint8Array[TArrayBuffer] ->
+    receiver.sort(compare_fn).
+
+pub subarray_typechecks[TArrayBuffer](
     receiver: Uint8Array[TArrayBuffer],
     begin: Option[JsNumber],
     end: Option[JsNumber],
 ): Uint8Array[TArrayBuffer] ->
     receiver.subarray(begin, end).
 
-pub to_locale_string_typechecks(receiver: Uint8Array[TArrayBuffer]): JsString ->
+pub to_locale_string_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): JsString ->
     receiver.to_locale_string().
 
-pub to_string_typechecks(receiver: Uint8Array[TArrayBuffer]): JsString ->
+pub to_string_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): JsString ->
     receiver.to_string().
+
+pub value_of_typechecks[TArrayBuffer](receiver: Uint8Array[TArrayBuffer]): Uint8Array[TArrayBuffer] ->
+    receiver.value_of().

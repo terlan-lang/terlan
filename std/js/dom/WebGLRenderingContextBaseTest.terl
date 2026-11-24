@@ -13,7 +13,7 @@
 module std.js.Dom.WebGLRenderingContextBaseTest.
 
 import type std.core.{Option, Unit}.
-import type std.js.Dom.{Float32List, GLboolean, GLclampf, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLuint, WebGLActiveInfo, WebGLBuffer, WebGLFramebuffer, WebGLProgram, WebGLRenderbuffer, WebGLRenderingContextBase, WebGLShader, WebGLTexture, WebGLUniformLocation}.
+import type std.js.Dom.{GLboolean, GLclampf, GLenum, GLfloat, GLint, GLintptr, GLsizei, GLuint, WebGLActiveInfo, WebGLBuffer, WebGLFramebuffer, WebGLProgram, WebGLRenderbuffer, WebGLRenderingContextBase, WebGLShader, WebGLTexture, WebGLUniformLocation}.
 import type std.js.String.{JsString}.
 import type std.js.{Array}.
 
@@ -618,13 +618,6 @@ pub validate_program_typechecks(receiver: WebGLRenderingContextBase, program: We
 pub vertex_attrib1f_typechecks(receiver: WebGLRenderingContextBase, index: GLuint, x: GLfloat): Unit ->
     receiver.vertex_attrib1f(index, x).
 
-pub vertex_attrib1fv_typechecks(
-    receiver: WebGLRenderingContextBase,
-    index: GLuint,
-    values: Float32List,
-): Unit ->
-    receiver.vertex_attrib1fv(index, values).
-
 pub vertex_attrib2f_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
@@ -632,13 +625,6 @@ pub vertex_attrib2f_typechecks(
     y: GLfloat,
 ): Unit ->
     receiver.vertex_attrib2f(index, x, y).
-
-pub vertex_attrib2fv_typechecks(
-    receiver: WebGLRenderingContextBase,
-    index: GLuint,
-    values: Float32List,
-): Unit ->
-    receiver.vertex_attrib2fv(index, values).
 
 pub vertex_attrib3f_typechecks(
     receiver: WebGLRenderingContextBase,
@@ -649,13 +635,6 @@ pub vertex_attrib3f_typechecks(
 ): Unit ->
     receiver.vertex_attrib3f(index, x, y, z).
 
-pub vertex_attrib3fv_typechecks(
-    receiver: WebGLRenderingContextBase,
-    index: GLuint,
-    values: Float32List,
-): Unit ->
-    receiver.vertex_attrib3fv(index, values).
-
 pub vertex_attrib4f_typechecks(
     receiver: WebGLRenderingContextBase,
     index: GLuint,
@@ -665,13 +644,6 @@ pub vertex_attrib4f_typechecks(
     w: GLfloat,
 ): Unit ->
     receiver.vertex_attrib4f(index, x, y, z, w).
-
-pub vertex_attrib4fv_typechecks(
-    receiver: WebGLRenderingContextBase,
-    index: GLuint,
-    values: Float32List,
-): Unit ->
-    receiver.vertex_attrib4fv(index, values).
 
 pub vertex_attrib_pointer_typechecks(
     receiver: WebGLRenderingContextBase,

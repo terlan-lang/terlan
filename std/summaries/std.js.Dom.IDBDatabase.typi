@@ -62,6 +62,13 @@ pub (receiver: IDBDatabase) create_object_store(name: std.js.String.JsString, op
  */
 pub (receiver: IDBDatabase) delete_object_store(name: std.js.String.JsString): std.core.Unit.
 
+/**
+ * The **`transaction`** method of the IDBDatabase interface immediately returns a transaction object (IDBTransaction) containing the IDBTransaction.objectStore method, which you can use to access your object store.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBDatabase/transaction)
+ */
+pub (receiver: IDBDatabase) transaction(store_names: std.js.Array[std.js.String.JsString] | std.js.String.JsString): std.js.Dom.IDBTransaction.
+
 pub (receiver: IDBDatabase) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
 pub (receiver: IDBDatabase) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

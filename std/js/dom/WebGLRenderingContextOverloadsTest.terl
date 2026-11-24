@@ -12,8 +12,8 @@
  */
 module std.js.Dom.WebGLRenderingContextOverloadsTest.
 
-import type std.core.{Option, Unit}.
-import type std.js.Dom.{AllowSharedBufferSource, Float32List, GLboolean, GLenum, GLint, Int32List, TexImageSource, WebGLRenderingContextOverloads, WebGLUniformLocation}.
+import type std.core.{Unit}.
+import type std.js.Dom.{GLenum, GLint, TexImageSource, WebGLRenderingContextOverloads}.
 
 pub buffer_data_typechecks(
     receiver: WebGLRenderingContextOverloads,
@@ -22,22 +22,6 @@ pub buffer_data_typechecks(
     usage: GLenum,
 ): Unit ->
     receiver.buffer_data(target_, size, usage).
-
-pub buffer_data_overload_2_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    target_: GLenum,
-    data: Option[AllowSharedBufferSource],
-    usage: GLenum,
-): Unit ->
-    receiver.buffer_data_overload_2(target_, data, usage).
-
-pub buffer_sub_data_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    target_: GLenum,
-    offset: std.js.Dom.GLintptr,
-    data: AllowSharedBufferSource,
-): Unit ->
-    receiver.buffer_sub_data(target_, offset, data).
 
 pub tex_image2_d_typechecks(
     receiver: WebGLRenderingContextOverloads,
@@ -61,83 +45,3 @@ pub tex_sub_image2_d_typechecks(
     source: TexImageSource,
 ): Unit ->
     receiver.tex_sub_image2_d(target_, level, xoffset, yoffset, format, type_, source).
-
-pub uniform1fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Float32List,
-): Unit ->
-    receiver.uniform1fv(location, v).
-
-pub uniform1iv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Int32List,
-): Unit ->
-    receiver.uniform1iv(location, v).
-
-pub uniform2fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Float32List,
-): Unit ->
-    receiver.uniform2fv(location, v).
-
-pub uniform2iv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Int32List,
-): Unit ->
-    receiver.uniform2iv(location, v).
-
-pub uniform3fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Float32List,
-): Unit ->
-    receiver.uniform3fv(location, v).
-
-pub uniform3iv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Int32List,
-): Unit ->
-    receiver.uniform3iv(location, v).
-
-pub uniform4fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Float32List,
-): Unit ->
-    receiver.uniform4fv(location, v).
-
-pub uniform4iv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    v: Int32List,
-): Unit ->
-    receiver.uniform4iv(location, v).
-
-pub uniform_matrix2fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    value: Float32List,
-): Unit ->
-    receiver.uniform_matrix2fv(location, transpose, value).
-
-pub uniform_matrix3fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    value: Float32List,
-): Unit ->
-    receiver.uniform_matrix3fv(location, transpose, value).
-
-pub uniform_matrix4fv_typechecks(
-    receiver: WebGLRenderingContextOverloads,
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    value: Float32List,
-): Unit ->
-    receiver.uniform_matrix4fv(location, transpose, value).

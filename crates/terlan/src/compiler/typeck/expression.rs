@@ -382,7 +382,7 @@ pub(super) fn infer_syntax_expr(
             if name == "true" || name == "false" {
                 return Type::Bool;
             }
-            let inferred = infer_syntax_var(name, locals, ctx);
+            let inferred = infer_syntax_var(name, locals, ctx, errors);
             if inferred.is_none()
                 && is_constructor_name(name)
                 && !is_reserved_uppercase_bool_literal_spelling(name)

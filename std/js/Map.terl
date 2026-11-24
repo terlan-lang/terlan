@@ -37,6 +37,12 @@ pub (receiver: Map[K, V]) has(key: K): Bool ->
     native.
 
 /**
+ * Adds a new element with a specified key and value to the Map. If an element with the same key already exists, the element will be updated.
+ */
+pub (receiver: Map[K, V]) set(key: K, value: V): Map[K, V] ->
+    native.
+
+/**
  * @returns the number of elements in the Map.
  */
 pub (receiver: Map[K, V]) size(): std.js.Number.JsNumber ->

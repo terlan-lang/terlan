@@ -15,13 +15,13 @@ module std.js.Dom.ReadableStreamDefaultControllerTest.
 import type std.core.{Option, Unit}.
 import type std.js.Dom.ReadableStreamDefaultController.
 
-pub desired_size_typechecks(
+pub desired_size_typechecks[R](
     receiver: ReadableStreamDefaultController[R],
 ): Option[std.js.Number.JsNumber] ->
     receiver.desired_size().
 
-pub close_typechecks(receiver: ReadableStreamDefaultController[R]): Unit ->
+pub close_typechecks[R](receiver: ReadableStreamDefaultController[R]): Unit ->
     receiver.close().
 
-pub enqueue_typechecks(receiver: ReadableStreamDefaultController[R], chunk: Option[R]): Unit ->
+pub enqueue_typechecks[R](receiver: ReadableStreamDefaultController[R], chunk: Option[R]): Unit ->
     receiver.enqueue(chunk).

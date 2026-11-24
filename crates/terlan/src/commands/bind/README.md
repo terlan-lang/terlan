@@ -49,11 +49,42 @@ public aliases. Unconstrained generic methods and callbacks retain their type
 parameters, with renaming to prevent inherited method parameters from capturing
 receiver arguments. Private/protected class members are excluded.
 
+Generic defaults are resolved at reference sites, including imported aliases,
+base types and nested signatures. A default can reference earlier type parameters.
+Missing, cyclic or unsupported defaults produce a skip when the caller omits
+the corresponding argument. If an optional trailing method parameter has an
+unsupported shape or refers to an unavailable type, the generator keeps the
+callable prefix and marks it as partial in the manifest. The skipped portion
+still counts against completeness.
+
+The declaration graph resolves unshadowed DOM names through the bundled browser
+bindings. Interfaces with call or construct signatures and supported function
+and constructor aliases expose `call` and `new` with the original optional
+arguments and rest arrays. Required closed-field method constraints become
+Terlan structural implications. The typechecker verifies them at call sites.
+
+The declaration graph specializes a conditional alias when it can prove its
+test. It resolves `ConstructorParameters` and `InstanceType` for known
+constructor signatures, and uses fixed argument tuples to specialize callback
+signatures derived from constructors. Constrained aliases specialize only
+when the supplied arguments satisfy their bounds. Named unions distribute
+through naked type parameters. Fixed
+positional tuples use Terlan tuple types. Named variadic tuples with a single
+homogeneous array segment can expose a typed `pack` operation that preserves
+the order of the fixed slots and the identity of their values. A rest-only
+callable constraint with an unrestricted parameter domain and result becomes
+checked callable evidence on the pack operation and its re-exports.
+Rest-only callable and constructable value types with an unknown result use
+opaque JavaScript references. Their type arguments retain the any-rest and
+never-rest domains. These references can cross a generated call boundary
+while the input declarations give no checked parameter list for invocation.
+
 Unresolved imports and aliases never become `Dynamic`. Generated manifests carry
 `coverage.complete` and `coverage.skipped_declarations`, and the declaration CLI
-warns when generation is partial. Unsupported type operators, callable/index
-signatures, generic constraints/default argument resolution, constructor-side
-class APIs, and non-relative package resolution remain explicit gaps in the
+warns when generation is partial. Unresolved conditional tests, unsupported
+type operators, callable/index
+signatures, generic constraints outside the supported shape subset,
+constructor-side class APIs, and non-relative package resolution remain explicit gaps in the
 skipped manifest. A generated module count is not evidence of complete package
 coverage.
 

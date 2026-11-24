@@ -15,20 +15,20 @@ module std.js.TypedPropertyDescriptorTest.
 import type std.core.{Option}.
 import type std.js.TypedPropertyDescriptor.
 
-pub enumerable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
+pub enumerable_typechecks[T](receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
     receiver.enumerable().
 
-pub configurable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
+pub configurable_typechecks[T](receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
     receiver.configurable().
 
-pub writable_typechecks(receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
+pub writable_typechecks[T](receiver: TypedPropertyDescriptor[T]): Option[Bool] ->
     receiver.writable().
 
-pub value_typechecks(receiver: TypedPropertyDescriptor[T]): Option[T] ->
+pub value_typechecks[T](receiver: TypedPropertyDescriptor[T]): Option[T] ->
     receiver.value().
 
-pub get_typechecks(receiver: TypedPropertyDescriptor[T]): Option[() -> T] ->
+pub get_typechecks[T](receiver: TypedPropertyDescriptor[T]): Option[() -> T] ->
     receiver.get().
 
-pub set_typechecks(receiver: TypedPropertyDescriptor[T]): Option[(T) -> std.core.Unit] ->
+pub set_typechecks[T](receiver: TypedPropertyDescriptor[T]): Option[(T) -> std.core.Unit] ->
     receiver.set().

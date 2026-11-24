@@ -6,6 +6,7 @@ use crate::{
 use std::ffi::OsStr;
 
 pub(super) const COMPACT_PHASE_PLAN_ENV: &str = "TERLAN_TEST_COMPACT_PHASE_PLAN";
+pub(super) const PHASE_CONTRACT_FILTER: &str = "tests::run_phase_contract_fixtures_match_golden";
 
 /// Selects the recorded production or compact acceptance plan from one strict setting.
 pub(super) fn selected_test_phases(
@@ -55,7 +56,11 @@ pub(super) fn compact_test_phases(coverage_owns_terlc: bool) -> Vec<TestPhase> {
 /// Keeping them in one list makes it impossible to add a candidate contract
 /// after broad compiler suites without changing this explicit boundary.
 fn candidate_contract_phases() -> Vec<TestPhase> {
-    vec![terlan_integration_phase(), ignored_std_collection_phase()]
+    vec![
+        phase_contract_phase(),
+        terlan_integration_phase(),
+        ignored_std_collection_phase(),
+    ]
 }
 
 /// Host, linker, and process-bound evidence remains after source correctness.
@@ -369,7 +374,7 @@ fn shard_phase(phase: TestPhase, total: usize) -> Vec<TestPhase> {
 
 /// Selects the normal library partition of the shared Terlan harness.
 pub(super) fn terlan_library_phase() -> TestPhase {
-    let mut args = Vec::new();
+    let mut args = vec!["--skip", PHASE_CONTRACT_FILTER];
     for filter in INTEGRATION_FILTERS {
         args.extend(["--skip", filter]);
     }
@@ -378,6 +383,19 @@ pub(super) fn terlan_library_phase() -> TestPhase {
         tier: ValidationTier::FastUnit,
         executor: PhaseExecutor::TerlanHarness,
         args,
+        environment: Vec::new(),
+        shard: None,
+        test_threads: None,
+    }
+}
+
+/// Owns the exact phase-contract snapshot test before broad compiler suites.
+fn phase_contract_phase() -> TestPhase {
+    TestPhase {
+        name: "Terlan phase contracts",
+        tier: ValidationTier::FastUnit,
+        executor: PhaseExecutor::TerlanHarness,
+        args: vec![PHASE_CONTRACT_FILTER, "--exact"],
         environment: Vec::new(),
         shard: None,
         test_threads: None,

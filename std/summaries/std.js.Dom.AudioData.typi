@@ -75,10 +75,3 @@ pub (receiver: AudioData) clone(): AudioData.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/close)
  */
 pub (receiver: AudioData) close(): std.core.Unit.
-
-/**
- * The **`copyTo()`** method of the AudioData interface copies a plane of an `AudioData` object to a destination buffer.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/AudioData/copyTo)
- */
-pub (receiver: AudioData) copy_to(destination: std.js.Dom.AllowSharedBufferSource, options: std.js.Dom.AudioDataCopyToOptions): std.core.Unit.

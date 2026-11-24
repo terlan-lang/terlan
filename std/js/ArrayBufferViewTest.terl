@@ -15,11 +15,11 @@ module std.js.ArrayBufferViewTest.
 import type std.js.ArrayBufferView.
 import type std.js.Number.{JsNumber}.
 
-pub buffer_typechecks(receiver: ArrayBufferView[TArrayBuffer]): TArrayBuffer ->
+pub buffer_typechecks[TArrayBuffer](receiver: ArrayBufferView[TArrayBuffer]): TArrayBuffer ->
     receiver.buffer().
 
-pub byte_length_typechecks(receiver: ArrayBufferView[TArrayBuffer]): JsNumber ->
+pub byte_length_typechecks[TArrayBuffer](receiver: ArrayBufferView[TArrayBuffer]): JsNumber ->
     receiver.byte_length().
 
-pub byte_offset_typechecks(receiver: ArrayBufferView[TArrayBuffer]): JsNumber ->
+pub byte_offset_typechecks[TArrayBuffer](receiver: ArrayBufferView[TArrayBuffer]): JsNumber ->
     receiver.byte_offset().

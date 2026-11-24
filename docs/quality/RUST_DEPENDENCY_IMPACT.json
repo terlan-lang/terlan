@@ -8,7 +8,7 @@
     "maximum_non_optional_normal_dependencies": 58,
     "maximum_resolved_duplicate_families": 34,
     "milestone": "0.0.9",
-    "non_optional_normal_dependencies": 57,
+    "non_optional_normal_dependencies": 58,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -212,10 +212,11 @@
     },
     {
       "domain": "support",
-      "reference_sites": 96,
+      "reference_sites": 98,
       "source_domains": [
         "commands",
         "formal_pipeline",
+        "formal_pipeline_test",
         "root:formal_pipeline",
         "runtime"
       ]
@@ -447,11 +448,12 @@
       "domain": "serve_runtime"
     },
     {
-      "dependent_count": 10,
+      "dependent_count": 11,
       "dependent_domains": [
         "commands",
         "compiler",
         "formal_pipeline",
+        "formal_pipeline_test",
         "lsp",
         "native_worker",
         "root:cli_usage",
@@ -787,7 +789,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 81,
+      "reference_sites": 82,
       "to": "support"
     },
     {
@@ -807,6 +809,11 @@
     },
     {
       "from": "formal_pipeline",
+      "reference_sites": 1,
+      "to": "support"
+    },
+    {
+      "from": "formal_pipeline_test",
       "reference_sites": 1,
       "to": "support"
     },
@@ -894,22 +901,22 @@
     },
     {
       "name": "commands",
-      "physical_lines": 141201,
-      "rust_files": 425
+      "physical_lines": 144203,
+      "rust_files": 430
     },
     {
       "name": "compiler",
-      "physical_lines": 190369,
+      "physical_lines": 190541,
       "rust_files": 539
     },
     {
       "name": "formal_pipeline",
-      "physical_lines": 1287,
+      "physical_lines": 1294,
       "rust_files": 9
     },
     {
       "name": "formal_pipeline_test",
-      "physical_lines": 2191,
+      "physical_lines": 2221,
       "rust_files": 5
     },
     {
@@ -939,7 +946,7 @@
     },
     {
       "name": "root:",
-      "physical_lines": 101750,
+      "physical_lines": 102001,
       "rust_files": 536
     },
     {
@@ -1044,7 +1051,7 @@
     },
     {
       "name": "support",
-      "physical_lines": 1417,
+      "physical_lines": 1446,
       "rust_files": 6
     },
     {
@@ -1290,7 +1297,7 @@
     },
     {
       "from": "commands",
-      "reference_sites": 19,
+      "reference_sites": 22,
       "to": "support"
     },
     {
@@ -1357,12 +1364,12 @@
     },
     {
       "name": "commands",
-      "physical_lines": 55026,
-      "rust_files": 243
+      "physical_lines": 56018,
+      "rust_files": 245
     },
     {
       "name": "compiler",
-      "physical_lines": 57744,
+      "physical_lines": 57822,
       "rust_files": 261
     },
     {
@@ -1806,6 +1813,13 @@
           "features": [],
           "kind": "normal",
           "name": "oxc_ast",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "features": [],
+          "kind": "normal",
+          "name": "oxc_ast_visit",
           "optional": false
         },
         {

@@ -309,9 +309,16 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
         map_source.contains("@returns true if an element in the Map existed and has been removed")
     );
     assert!(map_source.contains("pub (receiver: Map[K, V]) get(key: K): std.core.Option[V] ->"));
+    assert!(map_source.contains("pub (receiver: Map[K, V]) set(key: K, value: V): Map[K, V] ->"));
     assert!(map_source.contains("Returns a specified element from the Map object."));
     assert!(map_source.contains("pub (receiver: Map[K, V]) size(): std.js.Number.JsNumber ->"));
     assert!(map_source.contains("@returns the number of elements in the Map."));
+
+    let regexp_source = fs::read_to_string(out_dir.join("std/js/RegExp.terl"))
+        .expect("read generated RegExp source");
+    assert!(regexp_source.contains(
+        "pub (receiver: RegExp) compile(pattern: JsString, flags: Option[JsString]): RegExp ->"
+    ));
 
     let binding_manifest =
         fs::read_to_string(out_dir.join("std/js/manifests/std_js_bindings.json"))
@@ -371,7 +378,7 @@ fn generate_js_dom_bindings_writes_fixture_outputs() {
     let skipped_manifest = fs::read_to_string(out_dir.join("std/js/manifests/std_js_skipped.json"))
         .expect("read skipped manifest");
     assert!(skipped_manifest.contains("\"schema\": \"terlan.std.js.skipped-declarations.v1\""));
-    assert!(skipped_manifest.contains("\"source\": \"Map.set\""));
+    assert!(!skipped_manifest.contains("\"source\": \"Map.set\""));
     assert!(skipped_manifest.contains("\"source\": \"std.js.NaN\""));
     assert!(skipped_manifest.contains("\"reason\": \"ts_bindgen.unsupported_type\""));
     let skipped_json: serde_json::Value =

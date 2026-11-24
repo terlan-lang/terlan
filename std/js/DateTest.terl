@@ -178,20 +178,17 @@ pub to_iso_string_typechecks(receiver: Date): JsString ->
 pub to_locale_string_overload_2_typechecks(
     receiver: Date,
     locales: Option[Array[JsString] | JsString],
-    options: Option[Intl.DateTimeFormatOptions],
 ): JsString ->
-    receiver.to_locale_string_overload_2(locales, options).
+    receiver.to_locale_string_overload_2(locales).
 
 pub to_locale_date_string_overload_2_typechecks(
     receiver: Date,
     locales: Option[Array[JsString] | JsString],
-    options: Option[Intl.DateTimeFormatOptions],
 ): JsString ->
-    receiver.to_locale_date_string_overload_2(locales, options).
+    receiver.to_locale_date_string_overload_2(locales).
 
 pub to_locale_time_string_overload_2_typechecks(
     receiver: Date,
     locales: Option[Array[JsString] | JsString],
-    options: Option[Intl.DateTimeFormatOptions],
 ): JsString ->
-    receiver.to_locale_time_string_overload_2(locales, options).
+    receiver.to_locale_time_string_overload_2(locales).

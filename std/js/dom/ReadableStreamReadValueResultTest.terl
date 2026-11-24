@@ -14,5 +14,5 @@ module std.js.Dom.ReadableStreamReadValueResultTest.
 
 import type std.js.Dom.ReadableStreamReadValueResult.
 
-pub value_typechecks(receiver: ReadableStreamReadValueResult[T]): T ->
+pub value_typechecks[T](receiver: ReadableStreamReadValueResult[T]): T ->
     receiver.value().

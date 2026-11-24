@@ -41,6 +41,8 @@ crates/terlan/src/commands/bind/ts_dom_generator.rs	8	internal-helper	command-er
 crates/terlan/src/commands/bind/ts_dom_manifest.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/bind/ts_generated_artifact.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/bind/ts_input_manifest.rs	7	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/bind/ts_parser_adapter/graph.rs	2	internal-helper	command-errors	0.0.9
+crates/terlan/src/commands/bind/ts_parser_adapter/graph_types.rs	1	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/bind/typescript.rs	3	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/args.rs	2	internal-helper	command-errors	0.0.9
 crates/terlan/src/commands/build/build_orchestration.rs	4	internal-helper	command-errors	0.0.9

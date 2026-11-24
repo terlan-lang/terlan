@@ -586,15 +586,6 @@ if grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body" \
   || grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
   echo 'Release contract rebuilt optimized compiler tools unnecessarily' >&2; exit 1
 fi
-release_manifest_block=$(sed -n \
-  '/^if preflight_has release-manifest; then/,/^fi$/p' \
-  "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq '"$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl' \
-  <<< "$release_manifest_block"
-if grep -Fq 'ensure_release_tools' <<< "$release_manifest_block"; then
-  echo 'Release manifest rebuilt optimized compiler tools unnecessarily' >&2
-  exit 1
-fi
 grep -Fq 'TERLAN_VALIDATION_BOOTSTRAPPED=1' <<< "$release_contract_body"
 grep -Fq 'TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality' <<< "$release_contract_body"
 grep -Fq 'prechecked_terlan' <<< "$release_contract_body"
@@ -646,9 +637,23 @@ grep -Fq 'reuse compiler; no compiler inputs changed' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse latest compiler; staged changes are not compiler inputs' \
   "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'prebuild standard-library summary inventory' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq '"$TERLAN_HOOK_LATEST_TERLC" test scripts/self_validation/SummaryInventoryTest.terl' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'git ls-files -s -z -- "std/summaries/$module.typi"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq "! rg -qx 'preflight:compiler-build'" \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'dirname "$TERLAN_HOOK_VALIDATION_RECEIPT_DIR"' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'if (( default_report_jobs > 6 ))' \
+  "$(dirname "$driver")/git_hooks/rust_reports.sh"
+grep -Fq 'default_report_jobs=${#checks_to_run[@]}' \
+  "$(dirname "$driver")/git_hooks/rust_reports.sh"
+grep -Fq 'terlan-rust-lint-allowance-result-v1' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse Rust lint allowance policy' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'repository_root=$(git remote get-url origin)' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -697,10 +702,17 @@ early_grammar_line=$(rg -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 inventory_line=$(rg -n -F 'retained source inventory' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+prebuild_summary_line=$(rg -n -F 'prebuild standard-library summary inventory' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+compiler_build_line=$(rg -n -F 'build the changed staged compiler' \
+  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$early_rust_reports_line"
 test -n "$early_affected_rust_line"
 test -n "$early_terlan_format_line"
 test -n "$early_grammar_line"
+test -n "$prebuild_summary_line"
+test -n "$compiler_build_line"
+test "$prebuild_summary_line" -lt "$compiler_build_line"
 test "$early_grammar_line" -lt "$early_terlan_format_line"
 test "$early_terlan_format_line" -lt "$early_rust_reports_line"
 test "$early_rust_reports_line" -lt "$early_terlan_line"
@@ -710,7 +722,7 @@ test "$early_terlan_line" -lt "$inventory_line"
 # Proof semantics depend on the exact staged compiler inputs, not Cargo's
 # optimization profile. Reuse the already validated candidate compiler so the
 # earliest proof gate cannot trigger a redundant release-profile rebuild.
-proof_evidence_block=$(sed -n '/^if lane_has proofs;/,/^fi$/p' \
+proof_evidence_block=$(sed -n '/^run_proof_evidence()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'TERLC="$terlc" bash scripts/git_hooks/proof_evidence.sh' \
   <<< "$proof_evidence_block"
@@ -721,14 +733,24 @@ proof_pr_line=$(grep -n -F '"$quality" lean-proof-pr' "$proof_evidence_driver" |
 proof_runtime_line=$(grep -n -F '"$quality" lean-proof-runtime' "$proof_evidence_driver" | cut -d: -f1)
 test "$proof_pr_line" -lt "$proof_runtime_line"
 check_driver="$(dirname "$driver")/git_hooks/check.sh"
-early_clippy_line=$(grep -n -F "echo 'pre-commit: early clippy'" "$check_driver" | cut -d: -f1)
-affected_rust_line=$(grep -n -F 'while IFS= read -r lane; do' "$check_driver" | head -1 | cut -d: -f1)
-test -n "$early_clippy_line"
-test "$early_clippy_line" -lt "$affected_rust_line"
+grep -Fq 'clippy) make --no-print-directory rust-clippy-check ;;' "$check_driver"
+if grep -Fq "echo 'pre-commit: clippy follows affected Rust lanes'" "$check_driver"; then
+  echo 'Clippy remains deferred until after broad Rust suites' >&2
+  exit 1
+fi
 test "$(grep -Fc 'TERLC="$TERLAN_RUST_SUITE_TERLC" \' \
   "$(dirname "$driver")/git_hooks/check.sh")" -eq 2
 if grep -Fq 'ensure_release_tools' <<< "$proof_evidence_block"; then
   echo 'Proof evidence rebuilt release-profile compiler unnecessarily' >&2
+  exit 1
+fi
+release_manifest_block=$(sed -n \
+  '/^if preflight_has release-manifest; then/,/^fi$/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq '"$terlc" build tests/js/fixtures/JsConstructorTypesTest.terl' \
+  <<< "$release_manifest_block"
+if grep -Fq 'ensure_release_tools' <<< "$release_manifest_block"; then
+  echo 'Release manifest rebuilt optimized compiler tools unnecessarily' >&2
   exit 1
 fi
 if rg -q '\$\(RUST_TEST\).* -p terlan --lib.*lean_proof_' \
@@ -779,6 +801,9 @@ grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-wor
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse affected Rust lane' \
   "$(dirname "$driver")/git_hooks/check.sh"
+phase_lane=$(sed -n '/^    phase)/,/^      ;;/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq -- '--features validation-union' <<< "$phase_lane"
 grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'generated Rust reports regenerated; return them for staging' \
@@ -848,24 +873,25 @@ grep -Fq 'TERLC="$TERLAN_RUST_SUITE_TERLC" bash scripts/git_hooks/proofs.sh' \
   <<< "$proof_checks"
 grep -Fq 'workspace_lane_selected=true' \
   "$(dirname "$driver")/git_hooks/check.sh"
-proof_evidence_line=$(grep -n "early proof source and policy contracts" \
+proof_evidence_line=$(grep -n "proof evidence and checks follow canonical Rust suite" \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 workspace_loop_line=$(grep -n 'run_cached_affected_rust_lane "$lane"' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$proof_evidence_line"
 test -n "$workspace_loop_line"
-test "$proof_evidence_line" -lt "$workspace_loop_line"
+test "$workspace_loop_line" -lt "$proof_evidence_line"
 test "$(grep -c 'bash scripts/git_hooks/proof_evidence.sh' \
   "$(dirname "$driver")/git_hooks/check.sh")" = 1
 early_proof_checks_block=$(sed -n \
   '/^if \[\[ "$workspace_lane_selected" == true \]\] && lane_has proofs;/,/^fi$/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq 'proof checks immediately follow canonical Rust suite' \
+grep -Fq 'proof evidence and checks follow canonical Rust suite' \
   <<< "$early_proof_checks_block"
+grep -Fq 'run_proof_evidence' <<< "$early_proof_checks_block"
 grep -Fq 'run_proof_checks' <<< "$early_proof_checks_block"
 grep -Fq "rg -vx 'proofs'" <<< "$early_proof_checks_block"
 early_proof_checks_line=$(grep -n \
-  'proof checks immediately follow canonical Rust suite' \
+  'proof evidence and checks follow canonical Rust suite' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test "$workspace_loop_line" -lt "$early_proof_checks_line"
 test "$early_proof_checks_line" -lt "$inventory_line"
@@ -874,6 +900,7 @@ proof_lane=$(sed -n '/^    proofs)/,/^      ;;/p' \
 grep -Fq 'if [[ "$workspace_lane_selected" == false ]]' <<< "$proof_lane"
 grep -Fq 'run_workspace_suite' <<< "$proof_lane"
 grep -Fq 'stopping after canonical Rust suite failure' <<< "$proof_lane"
+grep -Fq 'run_proof_evidence' <<< "$proof_lane"
 grep -Fq 'run_proof_checks' <<< "$proof_lane"
 grep -Fq 'make --no-print-directory' \
   "$(dirname "$driver")/git_hooks/proofs.sh"
@@ -1630,10 +1657,10 @@ report_vm_started="$temporary/report-cache.started"
 ) > "$temporary/report-cache-interrupt.log" 2>&1 &
 report_owner=$!
 for _attempt in {1..200}; do
-  [[ $(wc -l < "$report_vm_started") == 2 ]] && break
+  [[ $(wc -l < "$report_vm_started") == 6 ]] && break
   sleep 0.01
 done
-test "$(wc -l < "$report_vm_started")" = 2
+test "$(wc -l < "$report_vm_started")" = 6
 kill -TERM "$report_owner"
 report_status=0
 wait "$report_owner" || report_status=$?

@@ -14,8 +14,11 @@ module std.js.WeakSetTest.
 
 import type std.js.WeakSet.
 
-pub delete_typechecks(receiver: WeakSet[T], value: T): Bool ->
+pub add_typechecks[T](receiver: WeakSet[T], value: T): WeakSet[T] ->
+    receiver.add(value).
+
+pub delete_typechecks[T](receiver: WeakSet[T], value: T): Bool ->
     receiver.delete(value).
 
-pub has_typechecks(receiver: WeakSet[T], value: T): Bool ->
+pub has_typechecks[T](receiver: WeakSet[T], value: T): Bool ->
     receiver.has(value).

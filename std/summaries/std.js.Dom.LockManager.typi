@@ -28,4 +28,11 @@ pub opaque type LockManager.
  */
 pub (receiver: LockManager) query(): std.js.Promise[std.js.Dom.LockManagerSnapshot].
 
-pub with_members[BindingTarget](binding_target: BindingTarget, query: () -> std.js.Promise[std.js.Dom.LockManagerSnapshot]): BindingTarget.
+/**
+ * The **`request()`** method of the LockManager interface requests a Lock object with parameters specifying its name and characteristics.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/LockManager/request)
+ */
+pub (receiver: LockManager) request[T](name: std.js.String.JsString, callback: std.js.Dom.LockGrantedCallback[T]): std.js.Promise[T].
+
+pub (receiver: LockManager) request_overload_2[T](name: std.js.String.JsString, options: std.js.Dom.LockOptions, callback: std.js.Dom.LockGrantedCallback[T]): std.js.Promise[T].

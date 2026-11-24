@@ -172,6 +172,14 @@ pub set_custom_validity_typechecks(receiver: HTMLInputElement, error: JsString):
 pub set_range_text_typechecks(receiver: HTMLInputElement, replacement: JsString): Unit ->
     receiver.set_range_text(replacement).
 
+pub set_range_text_overload_2_typechecks(
+    receiver: HTMLInputElement,
+    replacement: JsString,
+    start: JsNumber,
+    end: JsNumber,
+): Unit ->
+    receiver.set_range_text_overload_2(replacement, start, end).
+
 pub show_picker_typechecks(receiver: HTMLInputElement): Unit ->
     receiver.show_picker().
 

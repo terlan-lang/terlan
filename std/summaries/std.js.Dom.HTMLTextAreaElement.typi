@@ -209,6 +209,8 @@ pub (receiver: HTMLTextAreaElement) set_custom_validity(error: std.js.String.JsS
  */
 pub (receiver: HTMLTextAreaElement) set_range_text(replacement: std.js.String.JsString): std.core.Unit.
 
+pub (receiver: HTMLTextAreaElement) set_range_text_overload_2(replacement: std.js.String.JsString, start: std.js.Number.JsNumber, end: std.js.Number.JsNumber): std.core.Unit.
+
 pub (receiver: HTMLTextAreaElement) add_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[std.js.Dom.AddEventListenerOptions | Bool]): std.core.Unit.
 
 pub (receiver: HTMLTextAreaElement) remove_event_listener(type_: std.js.String.JsString, listener: std.js.Dom.EventListenerOrEventListenerObject, options: std.core.Option[Bool | std.js.Dom.EventListenerOptions]): std.core.Unit.

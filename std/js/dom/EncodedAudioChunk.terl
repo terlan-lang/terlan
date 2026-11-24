@@ -44,11 +44,3 @@ pub (receiver: EncodedAudioChunk) duration(): std.core.Option[JsNumber] ->
  */
 pub (receiver: EncodedAudioChunk) timestamp(): JsNumber ->
     native.
-
-/**
- * The **`copyTo()`** method of the EncodedAudioChunk interface copies the encoded chunk of audio data.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/EncodedAudioChunk/copyTo)
- */
-pub (receiver: EncodedAudioChunk) copy_to(destination: std.js.Dom.AllowSharedBufferSource): std.core.Unit ->
-    native.

@@ -15,13 +15,13 @@ module std.js.Dom.TransformStreamDefaultControllerTest.
 import type std.core.{Option, Unit}.
 import type std.js.Dom.TransformStreamDefaultController.
 
-pub desired_size_typechecks(
+pub desired_size_typechecks[O](
     receiver: TransformStreamDefaultController[O],
 ): Option[std.js.Number.JsNumber] ->
     receiver.desired_size().
 
-pub enqueue_typechecks(receiver: TransformStreamDefaultController[O], chunk: Option[O]): Unit ->
+pub enqueue_typechecks[O](receiver: TransformStreamDefaultController[O], chunk: Option[O]): Unit ->
     receiver.enqueue(chunk).
 
-pub terminate_typechecks(receiver: TransformStreamDefaultController[O]): Unit ->
+pub terminate_typechecks[O](receiver: TransformStreamDefaultController[O]): Unit ->
     receiver.terminate().

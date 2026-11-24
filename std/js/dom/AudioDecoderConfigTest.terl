@@ -18,11 +18,6 @@ import type std.js.Number.{JsNumber}.
 pub codec_typechecks(receiver: AudioDecoderConfig): std.js.String.JsString ->
     receiver.codec().
 
-pub description_typechecks(
-    receiver: AudioDecoderConfig,
-): std.core.Option[std.js.Dom.AllowSharedBufferSource] ->
-    receiver.description().
-
 pub number_of_channels_typechecks(receiver: AudioDecoderConfig): JsNumber ->
     receiver.number_of_channels().
 

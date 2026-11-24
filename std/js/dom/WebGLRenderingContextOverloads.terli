@@ -12,30 +12,15 @@
  */
 module std.js.Dom.WebGLRenderingContextOverloads.
 
-import type std.core.{Option, Unit}.
-import type std.js.Dom.{AllowSharedBufferSource, Float32List, GLboolean, GLenum, GLint, Int32List, TexImageSource, WebGLUniformLocation}.
+import type std.core.{Unit}.
+import type std.js.Dom.{GLenum, GLint, GLsizeiptr, TexImageSource}.
 
 pub opaque type WebGLRenderingContextOverloads.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bufferData)
  */
-pub (receiver: WebGLRenderingContextOverloads) buffer_data(target_: GLenum, size: std.js.Dom.GLsizeiptr, usage: GLenum): Unit.
-
-pub (receiver: WebGLRenderingContextOverloads) buffer_data_overload_2(
-    target_: GLenum,
-    data: Option[AllowSharedBufferSource],
-    usage: GLenum,
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bufferSubData)
- */
-pub (receiver: WebGLRenderingContextOverloads) buffer_sub_data(
-    target_: GLenum,
-    offset: std.js.Dom.GLintptr,
-    data: AllowSharedBufferSource,
-): Unit.
+pub (receiver: WebGLRenderingContextOverloads) buffer_data(target_: GLenum, size: GLsizeiptr, usage: GLenum): Unit.
 
 pub (receiver: WebGLRenderingContextOverloads) tex_image2_d(
     target_: GLenum,
@@ -56,69 +41,9 @@ pub (receiver: WebGLRenderingContextOverloads) tex_sub_image2_d(
     source: TexImageSource,
 ): Unit.
 
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform1fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform1iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform2fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform2iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform3fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform3iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform4fv(location: Option[WebGLUniformLocation], v: Float32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform4iv(location: Option[WebGLUniformLocation], v: Int32List): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform_matrix2fv(
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    value: Float32List,
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform_matrix3fv(
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    value: Float32List,
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
- */
-pub (receiver: WebGLRenderingContextOverloads) uniform_matrix4fv(
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    value: Float32List,
-): Unit.
+pub with_members[BindingTarget](
+    binding_target: BindingTarget,
+    buffer_data: (GLenum, GLsizeiptr, GLenum) -> Unit,
+    tex_image2_d: (GLenum, GLint, GLint, GLenum, GLenum, TexImageSource) -> Unit,
+    tex_sub_image2_d: (GLenum, GLint, GLint, GLint, GLenum, GLenum, TexImageSource) -> Unit,
+): BindingTarget.

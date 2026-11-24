@@ -10,4 +10,4 @@ mod members;
 mod types;
 
 pub(in crate::commands::bind) use declarations::*;
-pub(in crate::commands::bind) use graph::load_declaration_graph;
+pub(in crate::commands::bind) use graph::{load_declaration_graph, specialize_this_type};

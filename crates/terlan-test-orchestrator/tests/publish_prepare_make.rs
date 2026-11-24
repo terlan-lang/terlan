@@ -216,6 +216,10 @@ fn fixture() -> Fixture {
     for directory in ["bin", "dist", "scripts"] {
         fs::create_dir(fixture.0.join(directory)).unwrap();
     }
+    executable(
+        &fixture.0.join("scripts/publication_process_preflight.sh"),
+        "#!/bin/sh\nexit 0\n",
+    );
     for tool in [
         "cargo",
         "rustc",

@@ -116,6 +116,7 @@ pub(super) const EMBEDDED_STD_INTERFACES: &[EmbeddedStdInterface] = &[
     embedded!("std.service.Metrics"),
     embedded!("std.service.Trace"),
     embedded!("std.js.Array"),
+    embedded!("std.js.Callable"),
     embedded!("std.js.Dom.Document"),
     embedded!("std.js.Dom.HTMLElement"),
     embedded!("std.js.Number"),

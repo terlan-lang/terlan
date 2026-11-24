@@ -192,6 +192,9 @@ fn adapter(operation: &str, arity: usize) -> Result<(usize, String), BindingErro
         | "std.js.String.to_string"
         | "std.js.Number.from_float"
         | "std.js.Number.to_float" => Some((1, "a0")),
+        "std.js.Callable.from_function" | "std.js.Callable.from_function_with_any_arguments" => {
+            Some((1, "a0"))
+        }
         "std.js.Number.to_string" => Some((1, "String(a0)")),
         "std.js.Array.from_list" | "std.js.Array.to_list" => Some((1, "a0.slice()")),
         "std.js.Array.length" => Some((1, "a0.length")),
@@ -257,13 +260,14 @@ fn member_expression(
                 .join(", ");
             format!("({{{fields}}})")
         }
-        "method" => {
+        "method" | "call" | "construct" | "tuple_pack" => {
+            let offset = usize::from(member.kind != "tuple_pack");
             let arguments = member
                 .parameters
                 .iter()
                 .enumerate()
                 .map(|(index, parameter)| {
-                    let argument = format!("a{}", index + 1);
+                    let argument = format!("a{}", index + offset);
                     let value = parameter_argument(parameter, &argument);
                     if parameter.rest {
                         format!("...{value}")
@@ -273,7 +277,12 @@ fn member_expression(
                 })
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("a0[{key}]({arguments})")
+            match member.kind.as_str() {
+                "call" => format!("a0({arguments})"),
+                "construct" => format!("new a0({arguments})"),
+                "tuple_pack" => format!("[{arguments}]"),
+                _ => format!("a0[{key}]({arguments})"),
+            }
         }
         _ => {
             return Err(BindingError(format!(

@@ -246,6 +246,7 @@ fn failed_phase_allows_only_input_closeout_and_never_becomes_pass() {
     let mut ledger = LaunchLedger::new(&report_path, 1, Duration::from_secs(2)).unwrap();
     let source = source_inventory::SourceSnapshot {
         sha256: "a".repeat(64),
+        phase_receipt_sha256: "b".repeat(64),
         files: 1,
         bytes: 1,
         covered_paths: std::collections::BTreeSet::new(),

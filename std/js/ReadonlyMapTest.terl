@@ -14,11 +14,11 @@ module std.js.ReadonlyMapTest.
 
 import type std.js.ReadonlyMap.
 
-pub get_typechecks(receiver: ReadonlyMap[K, V], key: K): std.core.Option[V] ->
+pub get_typechecks[K, V](receiver: ReadonlyMap[K, V], key: K): std.core.Option[V] ->
     receiver.get(key).
 
-pub has_typechecks(receiver: ReadonlyMap[K, V], key: K): Bool ->
+pub has_typechecks[K, V](receiver: ReadonlyMap[K, V], key: K): Bool ->
     receiver.has(key).
 
-pub size_typechecks(receiver: ReadonlyMap[K, V]): std.js.Number.JsNumber ->
+pub size_typechecks[K, V](receiver: ReadonlyMap[K, V]): std.js.Number.JsNumber ->
     receiver.size().

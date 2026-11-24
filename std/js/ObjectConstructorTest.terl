@@ -16,3 +16,9 @@ import type std.js.ObjectConstructor.
 
 pub prototype_typechecks(receiver: ObjectConstructor): std.js.Object ->
     receiver.prototype().
+
+pub seal_typechecks[T](receiver: ObjectConstructor, o: T): T ->
+    receiver.seal(o).
+
+pub prevent_extensions_typechecks[T](receiver: ObjectConstructor, o: T): T ->
+    receiver.prevent_extensions(o).

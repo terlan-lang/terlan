@@ -144,6 +144,10 @@ struct FunctionBound {
 /// synthetic trait to users.
 const STRUCTURAL_IMPLICATION_BOUND: &str = "$structural_implication";
 
+fn is_js_callable_bound(name: &str) -> bool {
+    matches!(name, "std.js.Callable" | "std.js.Callable.Callable")
+}
+
 /// Constructor callable type scheme.
 ///
 /// Inputs:

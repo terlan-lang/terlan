@@ -16,7 +16,7 @@ import type std.core.{Option, Unit}.
 import type std.js.Dom.{EventListenerOrEventListenerObject, MessageEventTarget}.
 import type std.js.String.{JsString}.
 
-pub add_event_listener_typechecks(
+pub add_event_listener_typechecks[T](
     receiver: MessageEventTarget[T],
     type_: JsString,
     listener: EventListenerOrEventListenerObject,
@@ -24,7 +24,7 @@ pub add_event_listener_typechecks(
 ): Unit ->
     receiver.add_event_listener(type_, listener, options).
 
-pub remove_event_listener_typechecks(
+pub remove_event_listener_typechecks[T](
     receiver: MessageEventTarget[T],
     type_: JsString,
     listener: EventListenerOrEventListenerObject,

@@ -12,9 +12,8 @@
  */
 module std.js.Dom.WebGL2RenderingContextOverloads.
 
-import type std.core.{Option, Unit}.
-import type std.js.Dom.{AllowSharedBufferSource, Float32List, GLboolean, GLenum, GLint, GLintptr, GLsizei, GLuint, Int32List, TexImageSource, WebGLUniformLocation}.
-import type std.js.Number.{JsNumber}.
+import type std.core.{Unit}.
+import type std.js.Dom.{GLenum, GLint, GLintptr, GLsizei, TexImageSource}.
 
 pub opaque type WebGL2RenderingContextOverloads.
 
@@ -22,21 +21,6 @@ pub opaque type WebGL2RenderingContextOverloads.
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bufferData)
  */
 pub (receiver: WebGL2RenderingContextOverloads) buffer_data(target_: GLenum, size: std.js.Dom.GLsizeiptr, usage: GLenum): Unit.
-
-pub (receiver: WebGL2RenderingContextOverloads) buffer_data_overload_2(
-    target_: GLenum,
-    src_data: Option[AllowSharedBufferSource],
-    usage: GLenum,
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/bufferSubData)
- */
-pub (receiver: WebGL2RenderingContextOverloads) buffer_sub_data(
-    target_: GLenum,
-    dst_byte_offset: GLintptr,
-    src_data: AllowSharedBufferSource,
-): Unit.
 
 /**
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/compressedTexImage2D)
@@ -142,117 +126,4 @@ pub (receiver: WebGL2RenderingContextOverloads) tex_sub_image2_d_overload_3(
     format: GLenum,
     type_: GLenum,
     source: TexImageSource,
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform1fv(
-    location: Option[WebGLUniformLocation],
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform1iv(
-    location: Option[WebGLUniformLocation],
-    data: Int32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform2fv(
-    location: Option[WebGLUniformLocation],
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform2iv(
-    location: Option[WebGLUniformLocation],
-    data: Int32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform3fv(
-    location: Option[WebGLUniformLocation],
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform3iv(
-    location: Option[WebGLUniformLocation],
-    data: Int32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform4fv(
-    location: Option[WebGLUniformLocation],
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniform)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform4iv(
-    location: Option[WebGLUniformLocation],
-    data: Int32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGL2RenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix2fv(
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix3fv(
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
-): Unit.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/uniformMatrix)
- */
-pub (receiver: WebGL2RenderingContextOverloads) uniform_matrix4fv(
-    location: Option[WebGLUniformLocation],
-    transpose: GLboolean,
-    data: Float32List,
-    src_offset: Option[JsNumber],
-    src_length: Option[GLuint],
 ): Unit.

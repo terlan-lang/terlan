@@ -43,6 +43,35 @@ pub (receiver: Uint8ClampedArray[TArrayBuffer]) byte_length(): JsNumber.
 pub (receiver: Uint8ClampedArray[TArrayBuffer]) byte_offset(): JsNumber.
 
 /**
+ * Returns the this object after copying a section of the array identified by start and end
+ * to the same array starting at position target
+ * @param target If target is negative, it is treated as length+target where length is the
+ * length of the array.
+ * @param start If start is negative, it is treated as length+start. If end is negative, it
+ * is treated as length+end.
+ * @param end If not specified, length of the this object is used as its default value.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) copy_within(
+    target_: JsNumber,
+    start: JsNumber,
+    end: Option[JsNumber],
+): Uint8ClampedArray[TArrayBuffer].
+
+/**
+ * Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
+ * @param value value to fill array section with
+ * @param start index to start filling the array at. If start is negative, it is treated as
+ * length+start where length is the length of the array.
+ * @param end index to stop filling the array at. If end is negative, it is treated as
+ * length+end.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) fill(
+    value: JsNumber,
+    start: Option[JsNumber],
+    end: Option[JsNumber],
+): Uint8ClampedArray[TArrayBuffer].
+
+/**
  * Returns the index of the first occurrence of a value in an array.
  * @param searchElement The value to locate in the array.
  * @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
@@ -71,6 +100,79 @@ pub (receiver: Uint8ClampedArray[TArrayBuffer]) last_index_of(search_element: Js
 pub (receiver: Uint8ClampedArray[TArrayBuffer]) length(): JsNumber.
 
 /**
+ * Calls the specified callback function for all the elements in an array. The return value of
+ * the callback function is the accumulated result, and is provided as an argument in the next
+ * call to the callback function.
+ * @param callbackfn A function that accepts up to four arguments. The reduce method calls the
+ * callbackfn function one time for each element in the array.
+ * @param initialValue If initialValue is specified, it is used as the initial value to start
+ * the accumulation. The first call to the callbackfn function provides this value as an argument
+ * instead of an array value.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reduce(
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8ClampedArray[TArrayBuffer]) -> JsNumber,
+): JsNumber.
+
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reduce_overload_2(
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8ClampedArray[TArrayBuffer]) -> JsNumber,
+    initial_value: JsNumber,
+): JsNumber.
+
+/**
+ * Calls the specified callback function for all the elements in an array. The return value of
+ * the callback function is the accumulated result, and is provided as an argument in the next
+ * call to the callback function.
+ * @param callbackfn A function that accepts up to four arguments. The reduce method calls the
+ * callbackfn function one time for each element in the array.
+ * @param initialValue If initialValue is specified, it is used as the initial value to start
+ * the accumulation. The first call to the callbackfn function provides this value as an argument
+ * instead of an array value.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reduce_overload_3[U](
+    callbackfn: (U, JsNumber, JsNumber, Uint8ClampedArray[TArrayBuffer]) -> U,
+    initial_value: U,
+): U.
+
+/**
+ * Calls the specified callback function for all the elements in an array, in descending order.
+ * The return value of the callback function is the accumulated result, and is provided as an
+ * argument in the next call to the callback function.
+ * @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
+ * the callbackfn function one time for each element in the array.
+ * @param initialValue If initialValue is specified, it is used as the initial value to start
+ * the accumulation. The first call to the callbackfn function provides this value as an
+ * argument instead of an array value.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reduce_right(
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8ClampedArray[TArrayBuffer]) -> JsNumber,
+): JsNumber.
+
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reduce_right_overload_2(
+    callbackfn: (JsNumber, JsNumber, JsNumber, Uint8ClampedArray[TArrayBuffer]) -> JsNumber,
+    initial_value: JsNumber,
+): JsNumber.
+
+/**
+ * Calls the specified callback function for all the elements in an array, in descending order.
+ * The return value of the callback function is the accumulated result, and is provided as an
+ * argument in the next call to the callback function.
+ * @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
+ * the callbackfn function one time for each element in the array.
+ * @param initialValue If initialValue is specified, it is used as the initial value to start
+ * the accumulation. The first call to the callbackfn function provides this value as an argument
+ * instead of an array value.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reduce_right_overload_3[U](
+    callbackfn: (U, JsNumber, JsNumber, Uint8ClampedArray[TArrayBuffer]) -> U,
+    initial_value: U,
+): U.
+
+/**
+ * Reverses the elements in an Array.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) reverse(): Uint8ClampedArray[TArrayBuffer].
+
+/**
  * Sets a value or an array of values.
  * @param array A typed or untyped array of values to set.
  * @param offset The index in the current array at which the values are to be written.
@@ -83,6 +185,17 @@ pub (receiver: Uint8ClampedArray[TArrayBuffer]) set(array: std.js.ArrayLike[JsNu
  * @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
  */
 pub (receiver: Uint8ClampedArray[TArrayBuffer]) slice(start: Option[JsNumber], end: Option[JsNumber]): Uint8ClampedArray[std.js.ArrayBuffer].
+
+/**
+ * Sorts an array.
+ * @param compareFn Function used to determine the order of the elements. It is expected to return
+ * a negative value if first argument is less than second argument, zero if they're equal and a positive
+ * value otherwise. If omitted, the elements are sorted in ascending order.
+ * ```ts
+ * [11,2,22,1].sort((a, b) => a - b)
+ * ```
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) sort(compare_fn: Option[(JsNumber, JsNumber) -> JsNumber]): Uint8ClampedArray[TArrayBuffer].
 
 /**
  * Gets a new Uint8ClampedArray view of the ArrayBuffer store for this array, referencing the elements
@@ -101,3 +214,8 @@ pub (receiver: Uint8ClampedArray[TArrayBuffer]) to_locale_string(): JsString.
  * Returns a string representation of an array.
  */
 pub (receiver: Uint8ClampedArray[TArrayBuffer]) to_string(): JsString.
+
+/**
+ * Returns the primitive value of the specified object.
+ */
+pub (receiver: Uint8ClampedArray[TArrayBuffer]) value_of(): Uint8ClampedArray[TArrayBuffer].

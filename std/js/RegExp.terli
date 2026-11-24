@@ -12,6 +12,7 @@
  */
 module std.js.RegExp.
 
+import type std.core.{Option}.
 import type std.js.String.{JsString}.
 
 pub opaque type RegExp.
@@ -20,7 +21,7 @@ pub opaque type RegExp.
  * Executes a search on a string using a regular expression pattern, and returns an array containing the results of that search.
  * @param string The String object or string literal on which to perform the search.
  */
-pub (receiver: RegExp) exec(string: JsString): std.core.Option[std.js.RegExpExecArray].
+pub (receiver: RegExp) exec(string: JsString): Option[std.js.RegExpExecArray].
 
 /**
  * Returns a Boolean value that indicates whether or not a pattern exists in a searched string.
@@ -49,3 +50,8 @@ pub (receiver: RegExp) ignore_case(): Bool.
 pub (receiver: RegExp) multiline(): Bool.
 
 pub (receiver: RegExp) last_index(): std.js.Number.JsNumber.
+
+/**
+ * @deprecated A legacy feature for browser compatibility
+ */
+pub (receiver: RegExp) compile(pattern: JsString, flags: Option[JsString]): RegExp.

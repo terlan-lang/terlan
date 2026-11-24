@@ -11,7 +11,7 @@ use std::time::Instant;
 use sha2::{Digest, Sha256};
 use terlan_process_owner::ProcessControl;
 
-use crate::file_identity::{field, hash_file, hex, same_file};
+use crate::file_identity::{field, hash_file, hash_file_pair, hex, same_file};
 use crate::{process_failure, PhaseFailure};
 
 const MAX_PATHS: usize = 50_000;
@@ -22,6 +22,8 @@ const MAX_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 pub(super) struct SourceSnapshot {
     /// Domain-separated digest of names, presence, links, modes, and contents.
     pub(super) sha256: String,
+    /// Inputs observable by the compiled Terlan library harness.
+    pub(super) phase_receipt_sha256: String,
     /// Git-listed tracked and nonignored untracked input names.
     pub(super) files: usize,
     /// Streamed regular-file contents, excluding generated ignored storage.
@@ -57,6 +59,14 @@ impl SourceBinding {
             "before": self.before.as_ref().map(row),
             "after": self.after.as_ref().map(row),
             "verified": self.verified(),
+        })
+    }
+
+    /// Narrows reusable library-phase identity without weakening full closeout.
+    pub(super) fn phase_receipt_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "scope": "terlan-library-phase-source-v1",
+            "before": self.before.as_ref().map(|snapshot| &snapshot.phase_receipt_sha256),
         })
     }
 }
@@ -136,44 +146,72 @@ fn fingerprint(
 ) -> Result<SourceSnapshot, PhaseFailure> {
     let paths = paths(output)?;
     let mut digest = Sha256::new();
+    let mut phase_receipt_digest = Sha256::new();
     field(&mut digest, b"terlan.rust-suite-working-source.v1");
+    field(
+        &mut phase_receipt_digest,
+        b"terlan.rust-suite-library-phase-source.v1",
+    );
     let mut bytes = 0;
     let mut covered_paths = BTreeSet::new();
     for path in &paths {
         control.check(started).map_err(process_failure)?;
         field(&mut digest, path.as_bytes());
+        let phase_receipt_input = phase_receipt_input(path);
+        if phase_receipt_input {
+            field(&mut phase_receipt_digest, path.as_bytes());
+        }
         let path = root.join(path);
         let metadata = match fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 field(&mut digest, b"absent");
+                if phase_receipt_input {
+                    field(&mut phase_receipt_digest, b"absent");
+                }
                 continue;
             }
             Err(error) => return Err(failure(error)),
         };
         if metadata.is_symlink() {
             field(&mut digest, b"symlink");
-            field(
-                &mut digest,
-                fs::read_link(&path)
-                    .map_err(failure)?
-                    .as_os_str()
-                    .as_encoded_bytes(),
-            );
+            let target = fs::read_link(&path).map_err(failure)?;
+            field(&mut digest, target.as_os_str().as_encoded_bytes());
+            if phase_receipt_input {
+                field(&mut phase_receipt_digest, b"symlink");
+                field(
+                    &mut phase_receipt_digest,
+                    target.as_os_str().as_encoded_bytes(),
+                );
+            }
         } else {
             field(&mut digest, b"regular");
+            if phase_receipt_input {
+                field(&mut phase_receipt_digest, b"regular");
+            }
         }
         let resolved = fs::canonicalize(&path).map_err(failure)?;
         if !resolved.starts_with(root) {
             return Err(failure("source link escapes the working tree"));
         }
-        let read = hash_file(
-            &resolved,
-            &mut digest,
-            budget.saturating_sub(bytes),
-            control,
-            started,
-        )?;
+        let read = if phase_receipt_input {
+            hash_file_pair(
+                &resolved,
+                &mut digest,
+                &mut phase_receipt_digest,
+                budget.saturating_sub(bytes),
+                control,
+                started,
+            )?
+        } else {
+            hash_file(
+                &resolved,
+                &mut digest,
+                budget.saturating_sub(bytes),
+                control,
+                started,
+            )?
+        };
         if !same_file(&metadata, &fs::symlink_metadata(&path).map_err(failure)?) {
             return Err(failure("source changed while being hashed"));
         }
@@ -182,10 +220,23 @@ fn fingerprint(
     }
     Ok(SourceSnapshot {
         sha256: hex(digest),
+        phase_receipt_sha256: hex(phase_receipt_digest),
         files: paths.len(),
         bytes,
         covered_paths,
     })
+}
+
+fn phase_receipt_input(path: &str) -> bool {
+    !path.starts_with("crates/terlan-test-orchestrator/")
+        && !path.starts_with("scripts/git_hooks/")
+        && path != "scripts/git_hooks_test.sh"
+        && !matches!(
+            path,
+            "docs/quality/RUST_DEPENDENCY_IMPACT.json"
+                | "docs/quality/RUST_FILE_HEADROOM.tsv"
+                | "docs/quality/RUST_STRING_ERROR_INVENTORY.tsv"
+        )
 }
 
 fn failure(detail: impl ToString) -> PhaseFailure {

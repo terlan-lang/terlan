@@ -21,20 +21,6 @@ module std.js.Dom.VTTCue.
 pub opaque type VTTCue.
 
 /**
- * The **`line`** property of the VTTCue interface represents the cue line of this WebVTT cue.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/line)
- */
-pub (receiver: VTTCue) line(): std.js.Dom.LineAndPositionSetting.
-
-/**
- * The **`position`** property of the VTTCue interface represents the indentation of the cue within the line.
- *
- * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/position)
- */
-pub (receiver: VTTCue) position(): std.js.Dom.LineAndPositionSetting.
-
-/**
  * The **`region`** property of the VTTCue interface returns and sets the VTTRegion that this cue belongs to.
  *
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/VTTCue/region)

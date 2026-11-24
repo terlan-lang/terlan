@@ -208,9 +208,12 @@ pub unrelated(): Bool -> false.
     let resolved = resolve_syntax_module_output(&syntax).module;
     let diagnostics = type_check_syntax_module_output(&syntax, &resolved);
     assert!(diagnostics.is_empty(), "diagnostics: {diagnostics:#?}");
-    let mut core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let core = lower_syntax_module_output_to_core(&syntax, &resolved);
+    let mut cores = [core];
 
-    prune_module_to_function_roots(&mut core, &["selected"]);
+    prune_application_to_function_roots(&mut cores, &[function("app.SampleTest", "selected", 0)])
+        .expect("prune selected test root");
+    let [core] = cores;
 
     let retained = core
         .functions

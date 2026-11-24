@@ -23,8 +23,6 @@ pub (receiver: VideoDecoderConfig) coded_width(): std.core.Option[std.js.Number.
 
 pub (receiver: VideoDecoderConfig) color_space(): std.core.Option[std.js.Dom.VideoColorSpaceInit].
 
-pub (receiver: VideoDecoderConfig) description(): std.core.Option[std.js.Dom.AllowSharedBufferSource].
-
 pub (receiver: VideoDecoderConfig) display_aspect_height(): std.core.Option[std.js.Number.JsNumber].
 
 pub (receiver: VideoDecoderConfig) display_aspect_width(): std.core.Option[std.js.Number.JsNumber].

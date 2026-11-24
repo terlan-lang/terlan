@@ -136,6 +136,23 @@ pub(crate) fn check_function_call_bounds(
     ctx: &ExprInferContext<'_>,
     subst: &HashMap<TypeVarId, Type>,
 ) -> Result<(), String> {
+    for bound in &scheme.bounds {
+        if !is_js_callable_bound(&bound.trait_name) {
+            continue;
+        }
+        let [subject] = bound.trait_args.as_slice() else {
+            continue;
+        };
+        for (parameter, argument) in scheme.params.iter().zip(args) {
+            if parameter == subject && !has_js_callable_evidence(argument, ctx, subst) {
+                return Err(format!(
+                    "at `{}` call site: expected checked JavaScript callable, found {}",
+                    function_name.unwrap_or("expression"),
+                    pretty_type(&apply_subst(argument, subst)),
+                ));
+            }
+        }
+    }
     let structural_subst = structural_call_subst(scheme, args, subst);
     check_function_bounds_with_structural_subst(
         scheme,
@@ -144,6 +161,30 @@ pub(crate) fn check_function_call_bounds(
         subst,
         &structural_subst,
     )
+}
+
+fn has_js_callable_evidence(
+    subject: &Type,
+    ctx: &ExprInferContext<'_>,
+    subst: &HashMap<TypeVarId, Type>,
+) -> bool {
+    let subject = apply_subst(subject, subst);
+    let subject = qualify_imported_named_heads(&subject, ctx);
+    match expand_type_aliases(&subject, ctx.aliases) {
+        Type::Function { .. } => true,
+        Type::Named { module: Some(module), name, args }
+            if module == "std.js.Callable" && name == "VariadicCallable" && args.len() == 1 =>
+        {
+            true
+        }
+        Type::Union(members) => !members.is_empty()
+            && members.iter().all(|member| has_js_callable_evidence(member, ctx, subst)),
+        subject @ Type::Var(_) => ctx.current_bounds.iter().any(|bound| {
+            is_js_callable_bound(&bound.trait_name)
+                && matches!(bound.trait_args.as_slice(), [evidence] if apply_subst(evidence, subst) == subject)
+        }),
+        _ => false,
+    }
 }
 
 fn check_function_bounds_with_structural_subst(
@@ -190,6 +231,14 @@ fn check_function_bounds_with_structural_subst(
 
         if bound.trait_name == STRUCTURAL_IMPLICATION_BOUND {
             check_structural_implication_bound(&resolved_args, context, ctx, structural_subst)?;
+            continue;
+        }
+
+        if is_js_callable_bound(&bound.trait_name) {
+            if !matches!(resolved_args.as_slice(), [subject] if has_js_callable_evidence(subject, ctx, bound_subst))
+            {
+                return Err(format!("at `{context}` call site: expected checked JavaScript callable `{trait_description}`"));
+            }
             continue;
         }
 

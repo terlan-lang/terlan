@@ -79,7 +79,10 @@ fn compact_fixture_plan_preserves_owners_without_production_shards() {
 #[test]
 fn orchestrator_runs_shared_runtime_tests_in_the_library_harness() {
     let phases = test_phases(false);
-    let integration = phases.first().expect("Terlan integration phase");
+    let integration = phases
+        .iter()
+        .find(|phase| phase.name == "Terlan union-feature integration")
+        .expect("Terlan integration phase");
     assert_eq!(integration.name, "Terlan union-feature integration");
     let library = phases
         .iter()
@@ -94,6 +97,10 @@ fn orchestrator_runs_shared_runtime_tests_in_the_library_harness() {
             .windows(2)
             .any(|arguments| arguments == ["--skip", filter]));
     }
+    assert!(library
+        .args
+        .windows(2)
+        .any(|arguments| { arguments == ["--skip", super::phase_plan::PHASE_CONTRACT_FILTER] }));
 }
 
 #[test]
@@ -138,13 +145,18 @@ fn every_candidate_contract_precedes_broad_and_platform_validation() {
     assert_eq!(
         phases
             .iter()
-            .take(2)
+            .take(3)
             .map(|phase| phase.name)
             .collect::<Vec<_>>(),
         [
+            "Terlan phase contracts",
             "Terlan union-feature integration",
             "ignored std collection contract",
         ]
+    );
+    assert_eq!(
+        phases[0].args,
+        [super::phase_plan::PHASE_CONTRACT_FILTER, "--exact"]
     );
     let broad = phases
         .iter()
@@ -158,7 +170,7 @@ fn every_candidate_contract_precedes_broad_and_platform_validation() {
         .iter()
         .position(|phase| phase.name == "generated C++ package evidence")
         .expect("platform evidence");
-    assert_eq!(broad, 2);
+    assert_eq!(broad, 3);
     assert!(workspace > broad);
     assert!(platform > broad);
     assert!(phases[platform..].iter().all(|phase| matches!(
@@ -253,7 +265,7 @@ fn orchestrator_partitions_one_union_feature_harness_without_test_replay() {
     assert_eq!(
         terlan_library_phases.count(),
         super::phase_plan::terlan_library_partitions().len()
-            + 8
+            + 9
             + 2 * usize::from(cfg!(target_os = "linux"))
     );
 }
@@ -319,10 +331,11 @@ fn orchestrator_runs_ignored_contract_once_in_the_library() {
 fn release_orchestrator_leaves_only_normal_library_tests_to_coverage() {
     let phases = test_phases(true);
 
-    assert_eq!(phases[0].name, "Terlan union-feature integration");
-    assert_eq!(phases[1].name, "ignored std collection contract");
-    assert_eq!(phases[2].name, "workspace support unit targets");
-    assert_eq!(phases[3].name, "workspace integration targets");
+    assert_eq!(phases[0].name, "Terlan phase contracts");
+    assert_eq!(phases[1].name, "Terlan union-feature integration");
+    assert_eq!(phases[2].name, "ignored std collection contract");
+    assert_eq!(phases[3].name, "workspace support unit targets");
+    assert_eq!(phases[4].name, "workspace integration targets");
     assert!(!phases.iter().any(|phase| phase.name == "Terlan library"));
     assert!(phases
         .iter()
@@ -489,7 +502,7 @@ fn every_orchestrated_phase_has_one_known_tier() {
             .iter()
             .filter(|phase| phase.tier == ValidationTier::FastUnit)
             .count(),
-        super::phase_plan::terlan_library_partitions().len()
+        super::phase_plan::terlan_library_partitions().len() + 1
     );
     assert_eq!(
         phases

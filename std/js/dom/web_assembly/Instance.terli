@@ -16,8 +16,3 @@ module std.js.Dom.WebAssembly.Instance.
  * [MDN Reference](https://developer.mozilla.org/docs/WebAssembly/Reference/JavaScript_interface/Instance)
  */
 pub opaque type Instance.
-
-/**
- * [MDN Reference](https://developer.mozilla.org/docs/WebAssembly/Reference/JavaScript_interface/Instance/exports)
- */
-pub (receiver: Instance) exports(): std.js.Dom.WebAssembly.Exports.

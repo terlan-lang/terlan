@@ -16,8 +16,8 @@ use crate::validation::phase_manifest::current_syntax_contract_identity;
 
 use super::ts_dom_manifest::{render_binding_manifest, render_skipped_manifest};
 use super::ts_dom_module_mapping::{
-    map_ts_declarations_to_dom_modules, terlan_type_name, DomMemberPlan, DomMethodPlan,
-    DomModuleMapping, DomModulePlan, DomParamPlan, DomPropertyPlan,
+    map_declarations, map_ts_declarations_to_dom_modules, terlan_type_name, DomMemberPlan,
+    DomMethodPlan, DomModuleMapping, DomModulePlan, DomParamPlan, DomPropertyPlan,
 };
 use super::ts_generated_artifact::{canonicalize, sha256_hex, GeneratedBindingFileHash};
 use super::ts_input_manifest::{load_ts_input_manifest, safe_repo_relative_path, TsInputManifest};
@@ -82,12 +82,13 @@ pub(super) fn generate_js_dom_bindings_from_manifest(
 ) -> Result<TsInputManifest, String> {
     ensure_empty_output_dir(out_dir)?;
     super::ts_input_manifest::validate_ts_input_manifest(repo_root, &manifest)?;
-    let declarations = if manifest.generator.profile == "typescript-declarations" {
+    let graph = manifest.generator.profile == "typescript-declarations";
+    let declarations = if graph {
         super::ts_parser_adapter::load_declaration_graph(repo_root, &mut manifest)?
     } else {
         parse_manifest_inputs(repo_root, &manifest)?
     };
-    let mut mapping = map_ts_declarations_to_dom_modules(&declarations);
+    let mut mapping = map_declarations(&declarations, graph);
     alias_members::expand(&mut mapping);
     type_resolution::qualify(&mut mapping);
     let files = generated_files(&manifest, manifest_path, &mapping)?;
@@ -122,7 +123,7 @@ fn parse_manifest_inputs(
                 input_path.display()
             )
         })?;
-        let parsed = parse_ts_declaration_file(&source).map_err(|err| {
+        let mut parsed = parse_ts_declaration_file(&source).map_err(|err| {
             format!(
                 "{}: `{}`: {}",
                 err.reason,
@@ -130,6 +131,7 @@ fn parse_manifest_inputs(
                 err.message
             )
         })?;
+        parsed.restrict_to_dom_types();
         declarations.extend(
             parsed
                 .declarations
@@ -633,15 +635,26 @@ fn render_method(module: &DomModulePlan, method: &DomMethodPlan, include_body: b
     {
         receiver.push('_');
     }
+    let receiver = if method.has_receiver() {
+        format!("({receiver}: {}) ", render_type_reference_name(module))
+    } else {
+        String::new()
+    };
+    let mut generics = if method.has_receiver() {
+        Vec::new()
+    } else {
+        module.type_params.clone()
+    };
+    generics.extend(method.generic_declarations());
     let signature = format!(
-        "pub ({receiver}: {}) {}({}): {}",
-        render_type_reference_name(module),
-        if method.type_params.is_empty() {
+        "pub {receiver}{}({}){}: {}",
+        if generics.is_empty() {
             method.terlan_name.clone()
         } else {
-            format!("{}[{}]", method.terlan_name, method.type_params.join(", "))
+            format!("{}[{}]", method.terlan_name, generics.join(", "))
         },
         render_params(&method.params),
+        method.callable_constraint_list(),
         return_annotation(&method.return_type)
     );
     output.push_str(&render_signature(signature, include_body));

@@ -30,3 +30,9 @@ pub (receiver: WeakMap[K, V]) get(key: K): std.core.Option[V].
  * @returns a boolean indicating whether an element with the specified key exists or not.
  */
 pub (receiver: WeakMap[K, V]) has(key: K): Bool.
+
+/**
+ * Adds a new element with a specified key and value.
+ * @param key Must be an object or symbol.
+ */
+pub (receiver: WeakMap[K, V]) set(key: K, value: V): WeakMap[K, V].

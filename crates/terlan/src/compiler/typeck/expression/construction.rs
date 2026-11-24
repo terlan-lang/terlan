@@ -550,6 +550,16 @@ fn infer_imported_module_member_function_value(
         ));
         return Some(Type::Dynamic);
     };
+    if scheme
+        .bounds
+        .iter()
+        .any(|bound| is_js_callable_bound(&bound.trait_name))
+    {
+        errors.push(format!(
+            "module-member function value `{module_alias}.{member}` requires a checked callable specialization"
+        ));
+        return Some(Type::Dynamic);
+    }
     let instantiated = ctx.instantiate_function(&scheme, 0);
     Some(Type::Function {
         params: instantiated.params,
@@ -584,9 +594,13 @@ pub(super) fn infer_imported_module_member_function_value_with_expected(
     subst: &mut HashMap<TypeVarId, Type>,
     errors: &mut Vec<String>,
 ) -> Option<Type> {
-    if !matches!(expected, Type::Function { .. }) {
+    let Type::Function {
+        params: expected_params,
+        ..
+    } = expected
+    else {
         return None;
-    }
+    };
     if !matches!(expr.kind, SyntaxExprKind::FieldAccess) || expr.children.len() != 1 {
         return None;
     }
@@ -624,8 +638,8 @@ pub(super) fn infer_imported_module_member_function_value_with_expected(
         };
         let instantiated = ctx.instantiate_function(&scheme, 0);
         let candidate = Type::Function {
-            params: instantiated.params,
-            ret: Box::new(instantiated.ret),
+            params: instantiated.params.clone(),
+            ret: Box::new(instantiated.ret.clone()),
         };
         let mut trial_subst = subst.clone();
         let matches_expected = unify(&candidate, expected, &mut trial_subst).is_ok() || {
@@ -638,7 +652,21 @@ pub(super) fn infer_imported_module_member_function_value_with_expected(
                 })
                 .is_ok()
         };
-        if matches_expected {
+        let callable_bound = scheme
+            .bounds
+            .iter()
+            .any(|bound| is_js_callable_bound(&bound.trait_name));
+        if matches_expected
+            && (!callable_bound
+                || check_function_call_bounds(
+                    &instantiated,
+                    Some(member),
+                    expected_params,
+                    ctx,
+                    &trial_subst,
+                )
+                .is_ok())
+        {
             selected.push((candidate, trial_subst));
         }
     }

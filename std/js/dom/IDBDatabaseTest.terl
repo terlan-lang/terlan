@@ -38,6 +38,12 @@ pub create_object_store_typechecks(
 pub delete_object_store_typechecks(receiver: IDBDatabase, name: JsString): Unit ->
     receiver.delete_object_store(name).
 
+pub transaction_typechecks(
+    receiver: IDBDatabase,
+    store_names: std.js.Array[JsString] | JsString,
+): std.js.Dom.IDBTransaction ->
+    receiver.transaction(store_names).
+
 pub add_event_listener_typechecks(
     receiver: IDBDatabase,
     type_: JsString,

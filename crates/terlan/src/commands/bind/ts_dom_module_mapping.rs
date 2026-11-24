@@ -1,9 +1,11 @@
 use super::ts_parser_adapter::{
-    TsDeclaration, TsDeclarationFile, TsInterfaceDeclaration, TsInterfaceMember,
+    TsCallKind, TsDeclaration, TsDeclarationFile, TsInterfaceDeclaration, TsInterfaceMember,
     TsMethodDeclaration, TsParameterDeclaration, TsPropertyDeclaration, TsTypeAliasDeclaration,
     TsUnsupportedDeclaration, TsUnsupportedMember,
 };
-use super::ts_type_mapping::{map_ts_type_to_terlan, TsTypeMapping, TsTypeRef, TsTypeSkip};
+use super::ts_type_mapping::{
+    map_ts_type_to_terlan, TsTupleElement, TsTypeMapping, TsTypeRef, TsTypeSkip,
+};
 use crate::terlan_hir::source_name_to_terlan_identifier;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -64,6 +66,8 @@ impl DomModulePlan {
             .map(|member| match member {
                 DomMemberPlan::Method(method)
                     if !method.optional
+                        && !method.partial
+                        && method.call_kind == TsCallKind::Method
                         && method.type_params.is_empty()
                         && method.terlan_name != "with_members"
                         && names.insert(method.js_name.as_str())
@@ -133,7 +137,11 @@ pub(super) struct DomPropertyPlan {
 /// - Converts all TypeScript types through the T0.3 mapper before generation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct DomMethodPlan {
+    pub(super) partial: bool,
+    pub(super) call_kind: TsCallKind,
     pub(super) type_params: Vec<String>,
+    pub(super) type_constraints: Vec<Option<String>>,
+    pub(super) callable_bounds: Vec<String>,
     pub(super) js_name: String,
     pub(super) terlan_name: String,
     pub(super) doc: Option<String>,
@@ -141,6 +149,34 @@ pub(super) struct DomMethodPlan {
     pub(super) params: Vec<DomParamPlan>,
     pub(super) return_type: String,
     pub(super) undefined_only: bool,
+}
+
+impl DomMethodPlan {
+    pub(super) fn has_receiver(&self) -> bool {
+        self.call_kind != TsCallKind::TuplePack
+    }
+    pub(super) fn callable_constraint_list(&self) -> String {
+        if self.callable_bounds.is_empty() {
+            return String::new();
+        }
+        let constraints = self
+            .callable_bounds
+            .iter()
+            .map(|ty| format!("std.js.Callable.Callable[{ty}]"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(" [{constraints}]")
+    }
+    pub(super) fn generic_declarations(&self) -> impl Iterator<Item = String> + '_ {
+        self.type_params
+            .iter()
+            .zip(&self.type_constraints)
+            .map(|(name, constraint)| {
+                constraint
+                    .as_ref()
+                    .map_or_else(|| name.clone(), |shape| format!("{name} => {shape}"))
+            })
+    }
 }
 
 /// Planned generated DOM method parameter.
@@ -205,18 +241,26 @@ pub(super) fn terlan_type_name(name: &str) -> String {
 pub(super) fn map_ts_declarations_to_dom_modules(
     declarations: &TsDeclarationFile,
 ) -> DomModuleMapping {
+    map_declarations(declarations, false)
+}
+
+pub(super) fn map_declarations(
+    declarations: &TsDeclarationFile,
+    direct_calls: bool,
+) -> DomModuleMapping {
     let mut modules = Vec::new();
     let mut skipped = Vec::new();
 
     for declaration in &declarations.declarations {
         match declaration {
             TsDeclaration::Interface(interface) => {
-                if let Some(module) = map_interface_to_module(interface, &mut skipped) {
+                if let Some(module) = map_interface_to_module(interface, direct_calls, &mut skipped)
+                {
                     modules.push(module);
                 }
             }
             TsDeclaration::TypeAlias(alias) => {
-                if let Some(module) = map_type_alias_to_module(alias, &mut skipped) {
+                if let Some(module) = map_type_alias_to_module(alias, direct_calls, &mut skipped) {
                     modules.push(module);
                 }
             }
@@ -369,8 +413,19 @@ fn map_unsupported_declaration(unsupported: &TsUnsupportedDeclaration) -> DomSki
 ///   entire module.
 fn map_interface_to_module(
     interface: &TsInterfaceDeclaration,
+    direct_calls: bool,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomModulePlan> {
+    if !direct_calls {
+        if let Some(error) = &interface.callable_alias {
+            skipped.push(DomSkippedDeclaration {
+                source: format!("{}.{}", interface.namespace, interface.name),
+                reason: error.reason,
+                detail: error.message.clone(),
+            });
+            return None;
+        }
+    }
     if reserved_bridge_interface_reason(&interface.name).is_some() {
         skipped.push(DomSkippedDeclaration {
             source: interface.name.clone(),
@@ -381,21 +436,53 @@ fn map_interface_to_module(
         return None;
     }
 
+    let namespace = binding_namespace(&interface.namespace);
+    let type_name = terlan_type_name(&interface.name);
+    let this_type = if interface.type_params.is_empty() {
+        TsTypeRef::Named(type_name.clone())
+    } else {
+        TsTypeRef::Generic {
+            name: type_name.clone(),
+            args: interface
+                .type_params
+                .iter()
+                .cloned()
+                .map(TsTypeRef::Named)
+                .collect(),
+        }
+    };
     let skipped_before = skipped.len();
     let mut members = Vec::new();
     let mut unsupported_member_sources = BTreeMap::new();
     for member in &interface.members {
+        if !direct_calls {
+            if let Some(unsupported) = legacy_method_skip(member) {
+                let source = unique_unsupported_member_source(
+                    &interface.name,
+                    &unsupported,
+                    &mut unsupported_member_sources,
+                );
+                skipped.push(map_unsupported_member(source, &unsupported));
+                continue;
+            }
+        }
         match member {
             TsInterfaceMember::Property(property) => {
-                if let Some(mut plan) =
-                    map_property(&interface.name, &interface.type_params, property, skipped)
-                {
+                if let Some(mut plan) = map_property(
+                    &interface.name,
+                    &interface.type_params,
+                    &this_type,
+                    property,
+                    skipped,
+                ) {
                     plan.write_supported &= interface.plain_record;
                     members.push(DomMemberPlan::Property(plan));
                 }
             }
             TsInterfaceMember::Method(method) => {
-                if let Some(plan) = map_method(&interface.name, method, skipped) {
+                if let Some(plan) =
+                    map_method(&interface.name, &this_type, method, direct_calls, skipped)
+                {
                     members.push(DomMemberPlan::Method(plan));
                 }
             }
@@ -410,8 +497,6 @@ fn map_interface_to_module(
         }
     }
 
-    let namespace = binding_namespace(&interface.namespace);
-    let type_name = terlan_type_name(&interface.name);
     let module_path = format!("{namespace}.{type_name}");
     let source_dir = namespace_to_source_dir(namespace);
     Some(DomModulePlan {
@@ -430,6 +515,41 @@ fn map_interface_to_module(
     })
 }
 
+fn legacy_method_skip(member: &TsInterfaceMember) -> Option<TsUnsupportedMember> {
+    let reason = "ts_bindgen.unsupported_generic_constraint";
+    let source = match member {
+        TsInterfaceMember::Method(method) if method.call_kind != TsCallKind::Method => &method.name,
+        TsInterfaceMember::Unsupported(member)
+            if matches!(
+                member.source.as_str(),
+                "call_signature" | "construct_signature"
+            ) =>
+        {
+            &member.source
+        }
+        TsInterfaceMember::Method(method)
+            if method.type_constraints.iter().any(Option::is_some) =>
+        {
+            &method.name
+        }
+        TsInterfaceMember::Unsupported(member) if member.reason == reason => &member.source,
+        _ => return None,
+    };
+    let (reason, detail) = if matches!(source.as_str(), "call_signature" | "construct_signature") {
+        (
+            "ts_bindgen.unsupported_interface_signature",
+            "only named properties and methods are supported",
+        )
+    } else {
+        (reason, "generic method constraints must not be erased")
+    };
+    Some(TsUnsupportedMember {
+        source: source.into(),
+        reason,
+        detail: detail.into(),
+    })
+}
+
 /// Maps one TypeScript type alias into a generated Terlan module plan.
 ///
 /// Inputs:
@@ -445,6 +565,7 @@ fn map_interface_to_module(
 ///   the generated Terlan surface.
 fn map_type_alias_to_module(
     alias: &TsTypeAliasDeclaration,
+    declaration_graph: bool,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomModulePlan> {
     if alias.imported {
@@ -455,28 +576,39 @@ fn map_type_alias_to_module(
         });
         return None;
     }
-    let mapped = map_ts_type_to_terlan(&alias.ty);
-    if let Some(skip) = mapped.skipped.first() {
-        skipped.push(DomSkippedDeclaration {
-            source: qualified_alias_source(alias),
-            reason: skip.reason,
-            detail: format!("unsupported type alias target {}", skip.source),
-        });
-        return None;
-    }
-    let Some(alias_target) = mapped.terlan_type else {
-        skipped.push(DomSkippedDeclaration {
-            source: qualified_alias_source(alias),
-            reason: "ts_bindgen.unsupported_type_alias",
-            detail: "type alias target could not be mapped".to_string(),
-        });
-        return None;
-    };
-
     let namespace = binding_namespace(&alias.namespace);
     let type_name = terlan_type_name(&alias.name);
     let module_path = format!("{namespace}.{type_name}");
     let source_dir = namespace_to_source_dir(namespace);
+    let source = qualified_alias_source(alias);
+    let (alias_target, members) = match &alias.ty {
+        TsTypeRef::Tuple(elements)
+            if declaration_graph
+                && (elements.is_empty() || elements.iter().any(|element| element.rest)) =>
+        {
+            (
+                None,
+                vec![DomMemberPlan::Method(map_tuple_pack(
+                    alias,
+                    elements,
+                    &module_path,
+                    skipped,
+                )?)],
+            )
+        }
+        _ => {
+            let mapped = map_ts_type_to_terlan(&alias.ty);
+            if let Some(skip) = mapped.skipped.first() {
+                skipped.push(DomSkippedDeclaration {
+                    source,
+                    reason: skip.reason,
+                    detail: format!("unsupported type alias target {}", skip.source),
+                });
+                return None;
+            }
+            (Some(mapped.terlan_type?), Vec::new())
+        }
+    };
     Some(DomModulePlan {
         constructible: false,
         module_path: module_path.clone(),
@@ -484,12 +616,111 @@ fn map_type_alias_to_module(
         doc: alias.doc.clone(),
         type_name: type_name.clone(),
         type_params: alias.type_params.clone(),
-        alias_target: Some(alias_target),
+        alias_target,
         source_path: format!("{source_dir}/{type_name}.terl"),
         interface_path: format!("{source_dir}/{type_name}.terli"),
         summary_path: format!("std/summaries/{module_path}.typi"),
         test_path: format!("{source_dir}/{type_name}Test.terl"),
-        members: Vec::new(),
+        members,
+    })
+}
+
+fn map_tuple_pack(
+    alias: &TsTypeAliasDeclaration,
+    elements: &[TsTupleElement],
+    module_path: &str,
+    skipped: &mut Vec<DomSkippedDeclaration>,
+) -> Option<DomMethodPlan> {
+    let failure = |skipped: &mut Vec<DomSkippedDeclaration>, detail: &str| {
+        skipped.push(DomSkippedDeclaration {
+            source: qualified_alias_source(alias),
+            reason: "ts_bindgen.unsupported_tuple_shape",
+            detail: detail.into(),
+        });
+        None
+    };
+    if alias
+        .type_constraints
+        .iter()
+        .flatten()
+        .any(|constraint| *constraint != TsTypeRef::CallableBound)
+    {
+        return failure(
+            skipped,
+            "tuple pack requires enforcement of the alias type constraints",
+        );
+    }
+    if elements.iter().any(|element| element.optional)
+        || elements.iter().filter(|element| element.rest).count() > 1
+    {
+        return failure(
+            skipped,
+            "tuple pack requires fixed slots and at most one homogeneous rest slot",
+        );
+    }
+    let mut names = BTreeSet::new();
+    let mut params = Vec::new();
+    for (index, element) in elements.iter().enumerate() {
+        if element.rest
+            && !matches!(&element.ty, TsTypeRef::Array(_))
+            && !matches!(&element.ty, TsTypeRef::Generic { name, args } if matches!(name.as_str(), "Array" | "ReadonlyArray") && args.len() == 1)
+        {
+            return failure(
+                skipped,
+                "tuple rest slot requires a native array element type",
+            );
+        }
+        let terlan_type = mapped_type_or_skip(
+            format!("{} slot {index}", qualified_alias_source(alias)),
+            map_ts_type_to_terlan(&element.ty),
+            skipped,
+        )?;
+        if terlan_type.contains("Option[") {
+            return failure(
+                skipped,
+                "tuple pack requires direct JavaScript values in its slots",
+            );
+        }
+        let name = element
+            .label
+            .clone()
+            .unwrap_or_else(|| format!("item_{index}"));
+        let mut terlan_name = source_name_to_terlan_identifier(&name);
+        while !names.insert(terlan_name.clone()) {
+            terlan_name.push('_');
+        }
+        params.push(DomParamPlan {
+            js_name: name,
+            terlan_name,
+            optional: false,
+            rest: element.rest,
+            terlan_type,
+        });
+    }
+    let return_type = if alias.type_params.is_empty() {
+        module_path.into()
+    } else {
+        format!("{module_path}[{}]", alias.type_params.join(", "))
+    };
+    Some(DomMethodPlan {
+        partial: false,
+        call_kind: TsCallKind::TuplePack,
+        type_params: Vec::new(),
+        type_constraints: Vec::new(),
+        callable_bounds: alias
+            .type_params
+            .iter()
+            .zip(&alias.type_constraints)
+            .filter(|(_, constraint)| matches!(constraint, Some(TsTypeRef::CallableBound)))
+            .map(|(name, _)| name.clone())
+            .collect(),
+        js_name: "pack".into(),
+        terlan_name: "pack".into(),
+        doc: None,
+        optional: false,
+        params,
+        return_type,
+        undefined_only: false,
     })
 }
 
@@ -619,10 +850,12 @@ fn unique_unsupported_member_source(
 fn map_property(
     interface_name: &str,
     type_params: &[String],
+    this_type: &TsTypeRef,
     property: &TsPropertyDeclaration,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomPropertyPlan> {
-    let mapping = map_ts_type_to_terlan(&property.ty);
+    let ty = super::ts_parser_adapter::specialize_this_type(&property.ty, this_type);
+    let mapping = map_ts_type_to_terlan(&ty);
     let mut terlan_type = mapped_type_or_skip(
         format!("{interface_name}.{}", property.name),
         mapping,
@@ -633,13 +866,13 @@ fn map_property(
     }
 
     Some(DomPropertyPlan {
-        write_supported: writable_type(&property.ty, type_params),
+        write_supported: writable_type(&ty, type_params),
         js_name: property.name.clone(),
         terlan_name: source_name_to_terlan_identifier(&property.name),
         doc: property.doc.clone(),
         readonly: property.readonly,
         optional: property.optional,
-        undefined_only: undefined_only(&property.ty, property.optional),
+        undefined_only: undefined_only(&ty, property.optional),
         terlan_type,
     })
 }
@@ -649,35 +882,71 @@ fn map_property(
 /// Inputs:
 /// - `interface_name`: source interface name for diagnostics.
 /// - `method`: neutral method declaration.
+/// - `allow_partial`: allow omitting an optional suffix in declaration bindings.
 /// - `skipped`: shared skipped-declaration accumulator.
 ///
 /// Output:
-/// - `Some(DomMethodPlan)` when all parameter and return types map.
-/// - `None` when any type mapping is skipped with diagnostics.
+/// - `Some(DomMethodPlan)` when the method or its callable prefix maps.
+/// - `None` when a required type mapping is skipped with diagnostics.
 ///
 /// Transformation:
 /// - Converts method signature types and derives Terlan names without changing
 ///   the underlying JavaScript method name.
 fn map_method(
     interface_name: &str,
+    this_type: &TsTypeRef,
     method: &TsMethodDeclaration,
+    allow_partial: bool,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomMethodPlan> {
     let mut params = Vec::new();
-    for param in &method.params {
-        params.push(map_param(interface_name, &method.name, param, skipped)?);
+    for (index, param) in method.params.iter().enumerate() {
+        let mapped = map_param(interface_name, &method.name, this_type, param, skipped);
+        match mapped {
+            Some(mapped) => params.push(mapped),
+            None if allow_partial && method.params[index..].iter().all(|param| param.optional) => {
+                break;
+            }
+            None => return None,
+        }
     }
 
+    let return_type =
+        super::ts_parser_adapter::specialize_this_type(&method.return_type, this_type);
     let return_type = mapped_type_or_skip(
         format!("{interface_name}.{} return", method.name),
-        map_ts_type_to_terlan(&method.return_type),
+        map_ts_type_to_terlan(&return_type),
         skipped,
     )?;
 
+    let mut type_constraints = Vec::new();
+    for (name, constraint) in method.type_params.iter().zip(&method.type_constraints) {
+        let ty = if let Some(constraint) = constraint {
+            let ty = super::ts_parser_adapter::specialize_this_type(constraint, this_type);
+            Some(mapped_type_or_skip(
+                format!("{interface_name}.{} constraint {name}", method.name),
+                map_ts_type_to_terlan(&ty),
+                skipped,
+            )?)
+        } else {
+            None
+        };
+        type_constraints.push(ty);
+    }
+
     Some(DomMethodPlan {
+        partial: params.len() != method.params.len(),
+        call_kind: method.call_kind,
         type_params: method.type_params.clone(),
+        type_constraints,
+        callable_bounds: Vec::new(),
         js_name: method.name.clone(),
-        terlan_name: source_name_to_terlan_identifier(&method.name),
+        terlan_name: match method.call_kind {
+            TsCallKind::Call => "call".into(),
+            TsCallKind::Construct => "new".into(),
+            TsCallKind::Method => source_name_to_terlan_identifier(&method.name),
+            TsCallKind::TuplePack => unreachable!("tuple pack is mapped separately"),
+        },
         doc: method.doc.clone(),
         optional: method.optional,
         params,
@@ -717,12 +986,14 @@ fn undefined_only(ty: &TsTypeRef, optional: bool) -> bool {
 fn map_param(
     interface_name: &str,
     method_name: &str,
+    this_type: &TsTypeRef,
     param: &TsParameterDeclaration,
     skipped: &mut Vec<DomSkippedDeclaration>,
 ) -> Option<DomParamPlan> {
+    let ty = super::ts_parser_adapter::specialize_this_type(&param.ty, this_type);
     let terlan_type = mapped_type_or_skip(
         format!("{interface_name}.{method_name} parameter {}", param.name),
-        map_ts_type_to_terlan(&param.ty),
+        map_ts_type_to_terlan(&ty),
         skipped,
     )?;
 

@@ -18,6 +18,7 @@ pub(super) fn infer_syntax_var(
     name: &str,
     locals: &HashMap<String, Type>,
     ctx: &ExprInferContext,
+    errors: &mut Vec<String>,
 ) -> Option<Type> {
     // Syntax output represents canonical Boolean literals as variable-like names.
     if matches!(name, "true" | "false") {
@@ -29,8 +30,8 @@ pub(super) fn infer_syntax_var(
         .or_else(|| infer_singleton_alias_value(name, ctx))
         .or_else(|| infer_implicit_unit_value(name))
         .or_else(|| infer_implicit_type_value(name))
-        .or_else(|| infer_unique_imported_function_value(name, ctx))
-        .or_else(|| infer_unique_local_function_value(name, ctx))
+        .or_else(|| infer_unique_imported_function_value(name, ctx, errors))
+        .or_else(|| infer_unique_local_function_value(name, ctx, errors))
         .or_else(|| ctx.file_imports.get(name).map(|_| Type::Binary))
         .or_else(|| {
             ctx.markdown_imports.get(name).map(|_| Type::Named {
@@ -57,7 +58,11 @@ pub(super) fn infer_syntax_var(
 /// Transformation:
 /// - Mirrors local function-value inference for selected imports so imported
 ///   callees typecheck as real function values instead of unresolved dynamics.
-fn infer_unique_imported_function_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
+fn infer_unique_imported_function_value(
+    name: &str,
+    ctx: &ExprInferContext<'_>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
     let targets = ctx.function_imports.get(name)?;
     let [target] = targets.as_slice() else {
         return None;
@@ -90,6 +95,16 @@ fn infer_unique_imported_function_value(name: &str, ctx: &ExprInferContext<'_>) 
         return None;
     };
     let scheme = parse_interface_signature(signature, interface, ctx.aliases)?;
+    if scheme
+        .bounds
+        .iter()
+        .any(|bound| is_js_callable_bound(&bound.trait_name))
+    {
+        errors.push(format!(
+            "function value `{name}` requires a checked callable specialization"
+        ));
+        return Some(Type::Dynamic);
+    }
     let instantiated = ctx.instantiate_function(&scheme, 0);
     Some(Type::Function {
         params: instantiated.params,
@@ -188,7 +203,11 @@ fn singleton_alias_value_type(
 /// - Converts a unique local function signature into a function-value type so
 ///   higher-order calls can constrain callback parameters without treating the
 ///   identifier as an arbitrary dynamic value.
-fn infer_unique_local_function_value(name: &str, ctx: &ExprInferContext<'_>) -> Option<Type> {
+fn infer_unique_local_function_value(
+    name: &str,
+    ctx: &ExprInferContext<'_>,
+    errors: &mut Vec<String>,
+) -> Option<Type> {
     let mut matches = ctx
         .signatures
         .iter()
@@ -199,6 +218,16 @@ fn infer_unique_local_function_value(name: &str, ctx: &ExprInferContext<'_>) -> 
     let first = matches.next()?;
     if matches.next().is_some() {
         return None;
+    }
+    if first
+        .bounds
+        .iter()
+        .any(|bound| is_js_callable_bound(&bound.trait_name))
+    {
+        errors.push(format!(
+            "function value `{name}` requires a checked callable specialization"
+        ));
+        return Some(Type::Dynamic);
     }
 
     Some(Type::Function {

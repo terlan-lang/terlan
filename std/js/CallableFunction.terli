@@ -13,3 +13,9 @@
 module std.js.CallableFunction.
 
 pub opaque type CallableFunction.
+
+/**
+ * Calls the function with the specified object as the this value and the elements of specified array as the arguments.
+ * @param thisArg The object to be used as the this object.
+ */
+pub (receiver: CallableFunction) apply[T, R](this_arg: T): R.
