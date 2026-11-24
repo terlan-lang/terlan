@@ -46,10 +46,11 @@ fn members(
     let Some(alias) = &module.alias_target else {
         return Ok(module.members.clone());
     };
-    let (name, arguments) = alias
-        .split_once('[')
-        .map(|(name, arguments)| (name, arguments.strip_suffix(']')))
-        .unwrap_or((alias, None));
+    let Some((name, arguments)) = alias_reference(alias) else {
+        // A union containing a generic reference is not an instance of that
+        // generic. Its alternatives must retain their own operations.
+        return Ok(Vec::new());
+    };
     let Some(target) = inventory.get(name) else {
         return Ok(Vec::new());
     };
@@ -83,6 +84,39 @@ fn members(
         }
     }
     Ok(result)
+}
+
+fn alias_reference(source: &str) -> Option<(&str, Option<&str>)> {
+    let source = source.trim();
+    let end = source
+        .find(|c: char| !c.is_ascii_alphanumeric() && !matches!(c, '_' | '.'))
+        .unwrap_or(source.len());
+    if end == 0 {
+        return None;
+    }
+    let (name, arguments) = source.split_at(end);
+    let arguments = arguments.trim();
+    if arguments.is_empty() {
+        return Some((name, None));
+    }
+    if !arguments.starts_with('[') {
+        return None;
+    }
+    let mut depth = 0;
+    for (index, c) in arguments.char_indices() {
+        match c {
+            '[' => depth += 1,
+            ']' => {
+                depth -= 1;
+                if depth == 0 {
+                    return (index + 1 == arguments.len())
+                        .then_some((name, Some(&arguments[1..index])));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn split_arguments(source: &str) -> Vec<String> {

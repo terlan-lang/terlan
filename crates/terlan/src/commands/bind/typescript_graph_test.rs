@@ -40,6 +40,21 @@ fn member<'a>(module: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
+fn generic_union_alias_does_not_inherit_one_alternatives_members() {
+    let (_, _, bindings) = fixture(&[(
+        "Root.d.ts",
+        "export interface Box<T> { value: T; replace(value: T): T; }
+         export type Choice = Box<string> | Box<number>;
+         export type Nested = Box<Box<string | number>>;",
+    )]);
+    assert!(module(&bindings, "fixture.sdk.Choice")["members"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    member(module(&bindings, "fixture.sdk.Nested"), "replace");
+}
+
+#[test]
 fn imported_class_alias_exposes_inherited_generic_callbacks_and_private_members_stay_private() {
     let (_root, options, bindings) = fixture(&[
         ("Root.d.ts", "import type { Widget as Remote } from './barrel.js'; declare global { namespace sdk { type Widget<T> = Remote<T>; } }"),
