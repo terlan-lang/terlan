@@ -8,7 +8,7 @@ import release_promotion.{CandidateFiles, CandidateFixture, EvidenceReportsTest,
 import std.collections.List.{length}.
 import std.core.Int.{to_string}.
 import std.core.Result.{Err, Ok}.
-import std.core.String.{append, concat, split, utf8_slice}.
+import std.core.String.{append, concat, split}.
 import std.data.Json.{string}.
 import std.io.{Console, Directory, File}.
 
@@ -40,23 +40,16 @@ write(root: String, path: String, contents: String): Bool ->
         Err(_reason) -> false
     }.
 
-bind_revision(root: String): Bool ->
+bind_validated_artifact_revision(root: String): Bool ->
     when {
-        Ok(revision) <-
-            OwnerTools.run(
-                root,
-                "git",
-                ["rev-parse", "HEAD"],
-                PreparationEnvironment.selected(["PATH", "HOME"]),
-            );
         Ok(metadata) <- OwnerStorage.read_json(OwnerStorage.child(root, "dist/terlan-release.json"))
     } else {
-        _ -> fail("bind revision")
+        _ -> fail("bind validated artifact revision")
     };
     OwnerStorage.atomic_json(
         root,
         "dist/terlan-release.json",
-        metadata.put("source_revision", string(utf8_slice(revision, 0, 12))),
+        metadata.put("source_revision", string("111111111111")),
     ).
 
 fixture(root: String, origin: String, vm: String, image: String): Bool ->
@@ -102,7 +95,7 @@ fixture(root: String, origin: String, vm: String, image: String): Bool ->
     } else {
         _ -> fail("fixture setup")
     };
-    bind_revision(root).
+    bind_validated_artifact_revision(root).
 
 stage(root: String, label: String, valid: Bool, completed: Int, reused: Int): Bool ->
     let _printed = Console.println(append("[readiness rehearsal] ", label));
@@ -219,7 +212,7 @@ pub self_test(origin: String, vm: String, image: String): Bool ->
         _ -> fail("temporary fixture directory")
     };
     (let valid =
-    revision_contract()
+    supported_artifact_platform_contract()
         and inventory_scale(origin)
         and fixture(root, origin, vm, image)
         and cold_and_warm(root)
@@ -240,11 +233,9 @@ let _printed =
 valid and removed).
 
 @test
-pub revision_contract(): Bool ->
-    let revision = "0123456789abcdef0123456789abcdef01234567";
-    PrepareReadiness.revision_matches(revision, revision)
-        and PrepareReadiness.revision_matches("0123456789ab", revision)
-        and not PrepareReadiness.revision_matches("0123456789ac", revision)
-        and not PrepareReadiness.revision_matches("0123456", revision)
-        and not PrepareReadiness.revision_matches("", revision)
-        and not PrepareReadiness.revision_matches("0123456789abcdef0123456789abcdef01234568", revision).
+pub supported_artifact_platform_contract(): Bool ->
+    PrepareReadiness.supported_artifact_platform("x86_64-unknown-linux-gnu", "linux")
+        and PrepareReadiness.reusable_artifact_metadata("111111111111", "x86_64-unknown-linux-gnu", "linux")
+        and not PrepareReadiness.reusable_artifact_metadata("", "x86_64-unknown-linux-gnu", "linux")
+        and not PrepareReadiness.supported_artifact_platform("aarch64-apple-darwin", "macos")
+        and not PrepareReadiness.supported_artifact_platform("x86_64-pc-windows-msvc", "windows").

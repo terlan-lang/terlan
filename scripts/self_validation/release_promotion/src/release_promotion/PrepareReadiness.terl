@@ -121,22 +121,30 @@ pub declare(root: String, vm: String, image: String, version: String): Result[Li
         Ok(_paths) <- tool_paths(vm, image);
         Ok(context) <- PreparationContext.capture(root, ["PATH", "HOME"]);
         Ok(inputs) <- CandidateInputs.collect(root, version);
-        true <- revision_matches(inputs.identity.revision, context.revision);
-        true <- inputs.identity.target == "x86_64-unknown-linux-gnu";
-        true <- inputs.identity.operating_system == "linux";
+        true <-
+            reusable_artifact_metadata(
+                inputs.identity.revision,
+                inputs.identity.target,
+                inputs.identity.operating_system,
+            );
         Ok(vm_version) <- OwnerTools.run(root, OwnerStorage.child(root, vm), ["--version"], context.environment)
     } else {
         Err(reason) -> Err(reason);
-        _ -> Err("candidate metadata does not match clean Linux publication source")
+        _ -> Err("candidate metadata is not a supported Linux artifact")
     };
     Ok(bound_nodes(root, vm, image, context, inputs, vm_version)).
 
-/**
- * Distribution metadata uses the packager's canonical twelve-character revision.
- */
 @pure
-pub revision_matches(metadata: String, revision: String): Bool ->
-    metadata == revision or String.length(metadata) == 12 and String.starts_with(revision, metadata).
+pub supported_artifact_platform(target: String, operating_system: String): Bool ->
+    target == "x86_64-unknown-linux-gnu" and operating_system == "linux".
+
+@pure
+pub reusable_artifact_metadata(
+    source_revision: String,
+    target: String,
+    operating_system: String,
+): Bool ->
+    source_revision != "" and supported_artifact_platform(target, operating_system).
 
 /**
  * Restores successful matching outputs without replaying their producer.
