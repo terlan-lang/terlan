@@ -38,13 +38,13 @@ retire_download_scratch() {
       shopt -s nullglob dotglob
       for entry in "$scratch"/*; do
         case "$entry" in
-          "$scratch/downloads"|"$scratch/extracted"|"$scratch/evidence"|"$scratch/cache")
+          "$scratch/downloads"|"$scratch/extracted"|"$scratch/evidence"|"$scratch/cache"|"$scratch/artifacts")
             [[ -d "$entry" && ! -L "$entry" ]] || exit 1 ;;
           *) exit 1 ;;
         esac
       done
     ) || { echo "unrecognized publication download scratch contents" >&2; return 1; }
-    rm -rf -- "$scratch/downloads" "$scratch/extracted" "$scratch/evidence" "$scratch/cache"
+    rm -rf -- "$scratch/downloads" "$scratch/extracted" "$scratch/evidence" "$scratch/cache" "$scratch/artifacts"
     rmdir -- "$scratch"
   fi
 }
@@ -157,7 +157,33 @@ trap 'exit 143' TERM
 download_dir="$scratch/downloads"
 extract_dir="$scratch/extracted"
 hosted_evidence_dir="$scratch/evidence"
-mkdir -- "$download_dir" "$extract_dir" "$hosted_evidence_dir"
+artifact_archive_dir="$scratch/artifacts"
+mkdir -- "$download_dir" "$extract_dir" "$hosted_evidence_dir" "$artifact_archive_dir"
+
+download_run_artifact() {
+  local producer_run="$1"
+  local artifact_name="$2"
+  local destination="$3"
+  local inventory matches artifact_id archive
+  [[ "$producer_run" =~ ^[1-9][0-9]*$ \
+    && "$artifact_name" =~ ^[A-Za-z0-9._-]+$ \
+    && -d "$destination" && ! -L "$destination" ]] || exit 1
+  inventory="$(gh api "repos/$repository/actions/runs/$producer_run/artifacts?per_page=100")"
+  matches="$(jq --arg name "$artifact_name" \
+    '[.artifacts[] | select(.name == $name and .expired == false)] | length' <<<"$inventory")"
+  [[ "$matches" == 1 ]] || {
+    echo "run $producer_run does not expose exactly one live $artifact_name artifact" >&2
+    exit 1
+  }
+  artifact_id="$(jq -r --arg name "$artifact_name" \
+    '.artifacts[] | select(.name == $name and .expired == false) | .id' <<<"$inventory")"
+  [[ "$artifact_id" =~ ^[1-9][0-9]*$ ]] || exit 1
+  archive="$artifact_archive_dir/$artifact_id.zip"
+  gh api "repos/$repository/actions/artifacts/$artifact_id/zip" >"$archive"
+  [[ -s "$archive" && ! -L "$archive" ]] || exit 1
+  unzip -q "$archive" -d "$destination"
+  rm -f -- "$archive"
+}
 
 run_json="$(gh api "repos/{owner}/{repo}/actions/runs/$run_id")"
 run_revision="$(jq -r '.head_sha // ""' <<<"$run_json")"
@@ -210,20 +236,34 @@ jq -e --arg revision "$revision" --argjson run "$candidate_run_id" \
   echo "compiler coverage does not identify the successful producing job" >&2
   exit 1
 }
+candidate_validation_mode="$(jq -r '
+  if any(.steps[]; .name == "Reuse unchanged compiler validation" and .conclusion == "success")
+    and any(.steps[]; .name == "Validate release candidate" and .conclusion == "skipped")
+  then "incremental"
+  elif any(.steps[]; .name == "Validate release candidate" and .conclusion == "success")
+  then "full"
+  else "invalid"
+  end' <<<"$candidate_job_json")"
+[[ "$candidate_validation_mode" == full || "$candidate_validation_mode" == incremental ]] || {
+  echo "compiler job has no successful full or incremental validation mode" >&2
+  exit 1
+}
 candidate_attempt="$(jq -r .run_attempt <<<"$candidate_job_json")"
 jq -n \
   --arg revision "$revision" \
   --argjson run_id "$candidate_run_id" \
-  '{schema:"terlan.hosted-candidate-validation.v1",decision:"pass",source_revision:$revision,workflow:".github/workflows/ci.yml",run_id:$run_id}' \
+  --arg mode "$candidate_validation_mode" \
+  '{schema:"terlan.hosted-candidate-validation.v1",decision:"pass",source_revision:$revision,workflow:".github/workflows/ci.yml",run_id:$run_id,validation_mode:$mode}' \
   >"$hosted_evidence_dir/hosted-candidate-validation.json"
 # Cache identity includes both successful producers, their attempts, and the
 # verification implementation. Live workflow checks above are never cached.
 cache_context="$(jq -cnS \
   --arg repository "$repository" --arg revision "$revision" \
+  --arg validation_mode "$candidate_validation_mode" \
   --arg implementation "$(sha256sum "${BASH_SOURCE[0]}" | awk '{print $1}')" \
   --argjson release "$run_json" --argjson compiler "$candidate_run_json" \
   --argjson compiler_job "$candidate_job_json" \
-  '{schema:"terlan.hosted-download-cache.v1",repository:$repository,revision:$revision,implementation:$implementation,
+  '{schema:"terlan.hosted-download-cache.v1",repository:$repository,revision:$revision,implementation:$implementation,validation_mode:$validation_mode,
     release:{id:$release.id,attempt:$release.run_attempt,path:$release.path},
     compiler:{id:$compiler.id,attempt:$compiler_job.run_attempt,job_id:$compiler_job.id,path:$compiler.path}}')"
 jq -e 'all(.release, .compiler; (.id | type == "number" and . > 0) and (.attempt | type == "number" and . > 0))' \
@@ -258,9 +298,17 @@ if [[ -e "$download_cache" || -L "$download_cache" ]]; then
   cache_hit=1
   echo "reusing verified hosted downloads from run $run_id attempt $(jq -r .release.attempt <<<"$cache_context")"
 else
-  gh run download "$run_id" --name release-distribution --dir "$download_dir"
-  gh run download "$run_id" --name release-hosted-validation-evidence --dir "$hosted_reports_dir"
-  gh run download "$candidate_run_id" --name "compiler-test-coverage-$candidate_run_id-$candidate_attempt" --dir "$coverage_dir"
+  download_run_artifact "$run_id" release-distribution "$download_dir"
+  download_run_artifact "$run_id" release-hosted-validation-evidence "$hosted_reports_dir"
+  if [[ "$candidate_validation_mode" == full ]]; then
+    download_run_artifact "$candidate_run_id" \
+      "compiler-test-coverage-$candidate_run_id-$candidate_attempt" "$coverage_dir"
+  else
+    jq -n --arg revision "$revision" --argjson run "$candidate_run_id" \
+      --argjson job "$candidate_job_id" --argjson attempt "$candidate_attempt" \
+      '{schema:"terlan.incremental-compiler-validation.v1",decision:"pass",source_revision:$revision,run_id:$run,job_id:$job,run_attempt:$attempt}' \
+      >"$coverage_dir/incremental-reuse.json"
+  fi
 fi
 hosted_evidence_files=(
   tvm-aot-platform-matrix-report.json
@@ -311,28 +359,37 @@ for artifact in "$download_dir"/terlc-*; do
     --signer-workflow "$repository/.github/workflows/release.yml" \
     >/dev/null
 done
-for evidence in "${coverage_files[@]}"; do
-  [[ -f "$coverage_dir/$evidence" && ! -L "$coverage_dir/$evidence" ]] || exit 1
-  gh attestation verify "$coverage_dir/$evidence" \
-    --repo "$repository" --signer-workflow "$repository/.github/workflows/ci.yml" \
-    --source-ref refs/heads/main --source-digest "$revision" >/dev/null
-done
+if [[ "$candidate_validation_mode" == full ]]; then
+  for evidence in "${coverage_files[@]}"; do
+    [[ -f "$coverage_dir/$evidence" && ! -L "$coverage_dir/$evidence" ]] || exit 1
+    gh attestation verify "$coverage_dir/$evidence" \
+      --repo "$repository" --signer-workflow "$repository/.github/workflows/ci.yml" \
+      --source-ref refs/heads/main --source-digest "$revision" >/dev/null
+  done
+fi
 fi
 
-# Integrity is checked by the shared prebuilt reader on both cold and warm
-# preparation. It is not itself authentication or local-current test coverage.
-coverage_reader="target/validation-tools/terlan-test-orchestrator"
-[[ -x "$coverage_reader" && ! -L "$coverage_reader" ]] || {
-  echo "hosted coverage requires the bootstrapped Rust validation driver" >&2
-  exit 1
-}
-"$coverage_reader" --check-hosted-coverage-records "$coverage_dir" \
-  "$hosted_evidence_dir/context.json" > "$hosted_evidence_dir/coverage-records.json"
-jq --arg cache_key "$cache_key" --argjson job "$candidate_job_json" \
-  --slurpfile coverage "$hosted_evidence_dir/coverage-records.json" \
-  '. + {coverage:{cache_key:$cache_key,producer_job_id:$job.id,producer_attempt:$job.run_attempt,
-    authentication:"github-attestation",records:$coverage[0]}}' \
-  "$hosted_evidence_dir/hosted-candidate-validation.json" > "$hosted_evidence_dir/candidate.pending"
+if [[ "$candidate_validation_mode" == full ]]; then
+  # Integrity is checked by the shared prebuilt reader on both cold and warm
+  # preparation. It is not itself authentication or local-current test coverage.
+  coverage_reader="target/validation-tools/terlan-test-orchestrator"
+  [[ -x "$coverage_reader" && ! -L "$coverage_reader" ]] || {
+    echo "hosted coverage requires the bootstrapped Rust validation driver" >&2
+    exit 1
+  }
+  "$coverage_reader" --check-hosted-coverage-records "$coverage_dir" \
+    "$hosted_evidence_dir/context.json" > "$hosted_evidence_dir/coverage-records.json"
+  jq --arg cache_key "$cache_key" --argjson job "$candidate_job_json" \
+    --slurpfile coverage "$hosted_evidence_dir/coverage-records.json" \
+    '. + {coverage:{cache_key:$cache_key,producer_job_id:$job.id,producer_attempt:$job.run_attempt,
+      authentication:"github-attestation",records:$coverage[0]}}' \
+    "$hosted_evidence_dir/hosted-candidate-validation.json" > "$hosted_evidence_dir/candidate.pending"
+else
+  jq --arg cache_key "$cache_key" --argjson job "$candidate_job_json" \
+    '. + {coverage:{cache_key:$cache_key,producer_job_id:$job.id,producer_attempt:$job.run_attempt,
+      authentication:"github-job",records:{schema:"terlan.incremental-compiler-validation.v1",decision:"pass"}}}' \
+    "$hosted_evidence_dir/hosted-candidate-validation.json" > "$hosted_evidence_dir/candidate.pending"
+fi
 mv -f "$hosted_evidence_dir/candidate.pending" "$hosted_evidence_dir/hosted-candidate-validation.json"
 
 if [[ "$cache_hit" == 0 ]]; then
