@@ -1,6 +1,6 @@
 # Terlan type-directed fuzzing executable roadmap
 
-Status date: 2026-11-22
+Status date: 2026-11-26
 
 ## Outcome
 
@@ -45,6 +45,11 @@ failure when any applicable oracle disagrees:
 7. Formatting changes meaning or is not idempotent.
 8. A clean build and a warm cached build disagree.
 9. An in-package program and the equivalent path-dependency program disagree.
+10. Adding an unreachable native provider changes native planning work, peak
+    RSS, generated units, or helper materialization.
+11. Focused and aggregate roots produce different reachable native closures,
+    or warm-cache and cold-cache runs disagree without an attributed
+    invalidation reason.
 
 Backend comparison uses a canonical typed value format. Unsupported target
 features must have a precise capability diagnostic; they are not silently
@@ -139,12 +144,14 @@ commits or release publication.
 
 ### TF0: Contract and deterministic skeleton
 
-- [ ] Define the versioned case manifest and canonical typed-value format.
-- [ ] Implement deterministic seed splitting and case identifiers.
+- [x] Define the versioned case manifest and canonical typed-value format.
+- [x] Implement deterministic seed splitting and case identifiers.
 - [ ] Implement bounded subprocess execution with CPU, wall, RSS, and output
   limits, transitive cancellation, and orphan detection.
-- [ ] Add replay tests proving identical inputs produce identical source,
+- [x] Add replay tests proving identical inputs produce identical source,
   manifests, and outcomes.
+- [x] Keep the deterministic generator model in an isolated workspace crate
+  whose complete unit and coverage gate does not compile the compiler binary.
 
 Acceptance:
 
@@ -154,6 +161,12 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 ```
 
 Two independent runs must produce byte-identical case artifacts.
+
+The initial generator crate has 100% line, function, and region coverage. Its
+complete coverage gate takes 10.6 seconds cold and its warm unit gate is
+subsecond. Reconnecting the crate to the monolithic compiler library currently
+takes 63 seconds; that integration cost is tracked by P11-1 rather than hidden
+inside the fuzz gate.
 
 ### TF1: Typed scalar and control-flow generator
 
@@ -175,6 +188,13 @@ format-idempotence, and managed-execution oracles with zero unexplained skips.
 - [ ] Compare canonical results and structured failures with managed execution.
 - [ ] Record native phase timings, monomorphization counts, semantic type IDs,
   generated native units, compiler RSS, and cache disposition.
+- [ ] Separate planning, lowering, native compilation, linking, test execution,
+  and coverage collection so immediate assertions cannot conceal multi-minute
+  compiler planning.
+- [ ] Generate matched narrow/broad dependency graphs and prove unreachable
+  native providers add no helpers, monomorphizations, planning work, or RSS.
+- [ ] Compare focused, combined-root, cold-cache, and warm-cache runs with
+  explicit progress and cache-invalidation diagnostics.
 - [ ] Reduce and check in every discovered failure before closing it.
 
 Acceptance: the corpus includes permanent regressions for contextual union
