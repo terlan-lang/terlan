@@ -14,7 +14,7 @@ candidate_size=$(wc -c < "$fixture/source/dist/release-candidate.json" | tr -d '
 archive_hash=$(sha256sum "$fixture/source/dist/terlc-linux-x86_64.tar.gz" | awk '{print $1}')
 candidate_hash=$(sha256sum "$fixture/source/dist/release-candidate.json" | awk '{print $1}')
 cat > "$fixture/source/publication-plan.json" <<JSON
-{"schema":"terlan.publication-plan.v1","version":"0.0.10","source_revision":"aaaaaaaaaaaa","candidate_seal":"sha256:$candidate_hash","artifacts":[{"path":"dist/terlc-linux-x86_64.tar.gz","size_bytes":$archive_size,"sha256":"sha256:$archive_hash"},{"path":"dist/release-candidate.json","size_bytes":$candidate_size,"sha256":"sha256:$candidate_hash"}]}
+{"schema":"terlan.publication-plan.v1","version":"0.0.10","source_revision":"bbbbbbbbbbbb","candidate_seal":"sha256:$candidate_hash","artifacts":[{"path":"dist/terlc-linux-x86_64.tar.gz","size_bytes":$archive_size,"sha256":"sha256:$archive_hash"},{"path":"dist/release-candidate.json","size_bytes":$candidate_size,"sha256":"sha256:$candidate_hash"}]}
 JSON
 (
   cd "$fixture/source"

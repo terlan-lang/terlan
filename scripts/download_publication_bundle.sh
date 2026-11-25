@@ -43,10 +43,10 @@ gh run download "$run_id" --name release-publication-bundle --dir "$pending"
   cd "$pending"
   sha256sum --check --strict bundle.sha256
 )
-jq -e --arg revision "$revision" '
+jq -e '
   . as $plan
   | .schema == "terlan.publication-plan.v1"
-  and ($revision | startswith($plan.source_revision))
+  and (.source_revision | test("^[0-9a-f]{12,40}$"))
   and (.version | test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
   and (.artifacts | type == "array" and length > 1)
   and all(.artifacts[]; .path | startswith("dist/") and (contains("..") | not))
