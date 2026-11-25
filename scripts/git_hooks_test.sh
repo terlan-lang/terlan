@@ -205,7 +205,7 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 case "$*" in
-  'build --locked -p terlan --bin terlc --bin terlan-vm') exit 0 ;;
+  'check --locked -p terlan --lib --bin terlc --bin terlan-vm') exit 0 ;;
   *'--release'*) exit 99 ;;
   *) exit 97 ;;
 esac
@@ -654,13 +654,13 @@ early_terlan_format_line=$(grep -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_grammar_line=$(grep -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-compiler_build_line=$(grep -n -F 'build the changed staged compiler' \
+compiler_check_line=$(grep -n -F 'check the changed staged compiler' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$early_rust_reports_line"
 test -n "$early_affected_rust_line"
 test -n "$early_terlan_format_line"
 test -n "$early_grammar_line"
-test -n "$compiler_build_line"
+test -n "$compiler_check_line"
 test "$early_grammar_line" -lt "$early_terlan_format_line"
 test "$early_terlan_format_line" -lt "$early_rust_reports_line"
 test "$early_rust_reports_line" -lt "$early_terlan_line"
@@ -744,9 +744,11 @@ grep -Fq '.terlan-native-worker-input' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'build --locked -p terlan --bin terlan-native-worker --features validation-union' \
   "$(dirname "$driver")/git_hooks/check.sh"
-compiler_bootstrap=$(grep -F 'build --locked -p terlan --bin terlc --bin terlan-vm' \
+compiler_bootstrap=$(grep -F 'check --locked -p terlan --lib --bin terlc --bin terlan-vm' \
   "$(dirname "$driver")/git_hooks/check.sh")
 [[ "$compiler_bootstrap" != *'--features validation-union'* ]]
+! grep -Fq 'build --locked -p terlan --bin terlc --bin terlan-vm' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse affected Rust lane' \

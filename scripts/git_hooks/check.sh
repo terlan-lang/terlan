@@ -180,18 +180,19 @@ if [[ "$compiler_build" == true ]]; then
   trap cleanup_cache_metadata EXIT
   node scripts/git_hooks/invalidate_workspace_cache.cjs \
     "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
-  echo 'pre-commit: build the changed staged compiler'
-  # Candidate compiler admission needs only the shipped compiler and VM feature
-  # graph. LSP, quality, benchmark, and serve tools own separate gates below;
-  # pulling their feature union into this bootstrap recompiles unrelated code
-  # and makes every compiler edit pay its memory cost.
-  cargo build --locked -p terlan --bin terlc --bin terlan-vm
-  terlc="$target_terlc"
+  echo 'pre-commit: check the changed staged compiler'
+  # Candidate source is compiled here without duplicating code generation for
+  # both CLI binaries. Affected Rust lanes below execute the candidate tests;
+  # release and publication gates own executable construction. Planning and
+  # Terlan-script admission intentionally use the latest working compiler.
+  cargo check --locked -p terlan --lib --bin terlc --bin terlan-vm
+  terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}
+  [[ -x "$terlc" && ! -L "$terlc" ]] || {
+    echo 'pre-commit: candidate checking requires a latest working compiler' >&2
+    exit 1
+  }
   export TERLC="$terlc"
   run_plan "$terlc"
-  temporary_compiler_receipt=$(mktemp "$CARGO_TARGET_DIR/.terlan-compiler-input.XXXXXX")
-  printf '%s\n' "$compiler_input_key" > "$temporary_compiler_receipt"
-  mv "$temporary_compiler_receipt" "$compiler_input_receipt"
 else
   echo 'pre-commit: reuse compiler; no compiler inputs changed'
 fi
