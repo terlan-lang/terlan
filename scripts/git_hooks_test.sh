@@ -205,7 +205,7 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
 cat > "$temporary/early-bindings/bin/cargo" <<'CARGO'
 #!/usr/bin/env bash
 case "$*" in
-  'build --locked -p terlan --bin terlc --bin terlan-vm --features validation-union') exit 0 ;;
+  'build --locked -p terlan --bin terlc --bin terlan-vm') exit 0 ;;
   *'--release'*) exit 99 ;;
   *) exit 97 ;;
 esac
@@ -744,6 +744,9 @@ grep -Fq '.terlan-native-worker-input' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'build --locked -p terlan --bin terlan-native-worker --features validation-union' \
   "$(dirname "$driver")/git_hooks/check.sh"
+compiler_bootstrap=$(grep -F 'build --locked -p terlan --bin terlc --bin terlan-vm' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+[[ "$compiler_bootstrap" != *'--features validation-union'* ]]
 grep -Fq 'export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse affected Rust lane' \

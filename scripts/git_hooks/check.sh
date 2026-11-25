@@ -181,9 +181,11 @@ if [[ "$compiler_build" == true ]]; then
   node scripts/git_hooks/invalidate_workspace_cache.cjs \
     "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
   echo 'pre-commit: build the changed staged compiler'
-  # Use the quality superset once. Building without it and the report binary
-  # with it would alternate two `terlan` feature graphs.
-  cargo build --locked -p terlan --bin terlc --bin terlan-vm --features validation-union
+  # Candidate compiler admission needs only the shipped compiler and VM feature
+  # graph. LSP, quality, benchmark, and serve tools own separate gates below;
+  # pulling their feature union into this bootstrap recompiles unrelated code
+  # and makes every compiler edit pay its memory cost.
+  cargo build --locked -p terlan --bin terlc --bin terlan-vm
   terlc="$target_terlc"
   export TERLC="$terlc"
   run_plan "$terlc"
