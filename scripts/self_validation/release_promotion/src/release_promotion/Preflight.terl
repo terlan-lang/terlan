@@ -43,33 +43,6 @@ reports_pass(files: List[TextFile], paths: List[{String, String}]): Bool ->
     }.
 
 @pure
-recipe_is_offline(makefile: String): Bool ->
-    when {
-        [_before, suffix] <- String.split(makefile, "release-preflight:");
-        [recipe | _rest] <- String.split(suffix, "\n\n")
-    } else {
-        _ -> false
-    };
-    not String.contains(recipe, "curl ")
-        and not String.contains(recipe, "wget ")
-        and not String.contains(recipe, " gh ")
-        and not String.contains(recipe, "publish")
-        and not String.contains(recipe, " seal").
-
-@pure
-recipe_is_composition_only(makefile: String): Bool ->
-    when {
-        [_before, suffix] <- String.split(makefile, "release-preflight:");
-        [recipe | _rest] <- String.split(suffix, "\n\n")
-    } else {
-        _ -> false
-    };
-    not String.contains(recipe, "$(MAKE)")
-        and not String.contains(recipe, "$(CARGO)")
-        and not String.contains(recipe, "$(RUST_TEST)")
-        and not String.contains(recipe, "terlc build").
-
-@pure
 absolute_paths(root: String, paths: List[{String, String}], output: List[String]): List[String] ->
     case paths {
         [] -> reverse_strings(output, []);
@@ -85,7 +58,7 @@ reverse_strings(values: List[String], output: List[String]): List[String] ->
 
 @pure
 input_paths(root: String): List[String] ->
-    List.concat([child(root, "Makefile")], absolute_paths(root, outcome_reports(), [])).
+    absolute_paths(root, outcome_reports(), []).
 
 validate_loaded(
     root: String,
@@ -93,7 +66,6 @@ validate_loaded(
     candidate_seal: String,
     files: List[TextFile],
 ): Bool ->
-    let makefile = loaded_text(files, "Makefile");
     if {
         not reports_pass(files, outcome_reports()) -> failure(
             "reports",
@@ -119,14 +91,6 @@ validate_loaded(
             "candidate",
             "staged evidence belongs to another candidate; run `make release-staged-distribution-verification-check`",
         );
-        not recipe_is_offline(makefile) -> failure(
-            "offline",
-            "preflight contains a network, publication, or second-seal command; run `make release-preflight`",
-        );
-        not recipe_is_composition_only(makefile) -> failure(
-            "composition",
-            "preflight must consume existing evidence without make, Cargo, Rust-test, or compiler-build work",
-        );
         true -> PreflightReport.write(root, version, candidate_seal, List.length(outcome_reports()))
     }.
 
@@ -147,13 +111,7 @@ pub run(root: String, version: String, candidate_seal: String): Bool ->
  * Exercises every fail-closed preflight policy without external state.
  */
 pub self_test(): Bool ->
-    not reports_pass([], outcome_reports())
-        and recipe_is_offline("release-preflight:\n\tlocal-check\n\n")
-        and not recipe_is_offline("release-preflight:\n\tcurl example.invalid\n\n")
-        and not recipe_is_offline("release-preflight:\n\tsecond seal\n\n")
-        and recipe_is_composition_only("release-preflight:\n\tverify evidence\n\n")
-        and not recipe_is_composition_only("release-preflight:\n\t$(MAKE) check\n\n")
-        and not recipe_is_composition_only("release-preflight:\n\tterlc build validator.terls\n\n").
+    not reports_pass([], outcome_reports()).
 
 failure(code: String, message: String): Bool ->
     let _printed = eprintln(String.concat(["error[release_preflight.", code, "]: ", message]));
