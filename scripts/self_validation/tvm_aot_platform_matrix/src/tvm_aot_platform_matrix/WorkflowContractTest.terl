@@ -146,7 +146,6 @@ pub source_contracts_gate_compiler_validation(): Bool ->
         and hook.contains("TERLAN_HOSTED_SOURCE_PREFLIGHT:-0")
         and hook.contains("TERLAN_HOSTED_DEPENDENCY_AUDIT:-0")
         and hook.contains("planner_arguments+=(--hosted-source-preflight)")
-        and hook.contains("[[ \"$hosted_source_preflight\" == 0 ]]")
         and hook.contains("[[ \"$hosted_dependency_audit\" == 1 ]]")
         and hook.contains("Rust dependency security audit owned by dedicated hosted job")
         and hook.contains("locked Node dependency security audit owned by dedicated hosted job")

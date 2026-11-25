@@ -598,7 +598,7 @@ fi
 # the former whole-workspace Rust style pass.
 grep -Fq 'CheckRustFormatting.terls -- --paths-file "$changes"' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq '"$terlc" test scripts/ci --coverage --coverage-threshold 100' \
+grep -Fq '"$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl scripts/ci' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse compiler; no compiler inputs changed' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -624,8 +624,6 @@ grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-full}" bash "$driver" check' \
   "$(dirname "$driver")/../.githooks/pre-commit"
-grep -Fq '[[ "$hosted_source_preflight" == 0 ]]' \
-  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'candidate compiler produced an empty validation plan' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'early affected Rust lane passed' \

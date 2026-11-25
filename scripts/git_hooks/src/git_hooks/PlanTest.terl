@@ -210,7 +210,7 @@ pub ordinary_docs_avoid_artifact_workloads(): Bool ->
 pub workflow_changes_validate_release_contracts_early(): Bool ->
     Plan.preflight_lanes([".github/actions/setup-rust/action.yml"]) == ["workflow-contract"]
         and Plan.release_contract([".github/workflows/ci.yml"])
-        and Plan.release_contract([".github/workflows/source-preflight.yml"])
+        and not Plan.release_contract([".github/workflows/source-preflight.yml"])
         and Plan.release_contract([".github/workflows/release.yml"])
         and Plan.release_contract([".github/workflows/publish.yml"])
         and Plan.release_contract([".github/actions/setup-rust/action.yml"]).
@@ -225,6 +225,10 @@ pub hosted_compiler_validation_omits_parallel_source_duplicates(): Bool ->
         and Plan.hosted_lanes(["std/core/Int.terl"]) == ["shell", "proofs", "terlan"]
         and Plan.hosted_preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "negative-api", "rust-docs"]
         and Plan.hosted_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
+
+@test
+pub source_preflight_changes_avoid_unrelated_release_builds(): Bool ->
+    Plan.lanes([".github/workflows/source-preflight.yml"]) == ["shell", "workflow"].
 
 @test
 pub cheap_static_checks_execute_before_broad_validation(): Bool ->

@@ -457,7 +457,7 @@ pub workflow(paths: List[String]): Bool ->
     affected(paths, ".github/workflows/", "") or affected(paths, ".github/actions/", "").
 
 pub release_contract(paths: List[String]): Bool ->
-    workflow(paths)
+    release_workflow_contract(paths)
         or affected(paths, "Makefile", "")
         or affected(paths, "mk/", "")
         or release_script(paths)
@@ -465,6 +465,19 @@ pub release_contract(paths: List[String]): Bool ->
         or platform_release_contract(paths)
         or affected(paths, "editors/editor.mk", "")
         or affected(paths, "rust-toolchain.toml", "").
+
+release_workflow_contract(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            path == ".github/workflows/ci.yml"
+                or path == ".github/workflows/release.yml"
+                or path == ".github/workflows/publish.yml"
+                or String.starts_with(path, ".github/actions/setup-native-dependencies/")
+                or String.starts_with(path, ".github/actions/setup-rust/")
+                or String.starts_with(path, ".github/actions/setup-terlan-script-runner/")
+                or release_workflow_contract(rest)
+    }.
 
 platform_release_contract(paths: List[String]): Bool ->
     case paths {

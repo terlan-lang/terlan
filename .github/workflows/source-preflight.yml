@@ -167,12 +167,6 @@ jobs:
             --script-eval -- \
             "$BASE_REVISION" "$HEAD_REVISION" "$STYLE_ALL" \
             "${{ steps.script-runner.outputs.terlc }}"
-      - name: Install release-tool test dependencies
-        if: ${{ inputs.hooks }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends ripgrep
-          rg --version
       - name: Test staged Git hook isolation
         if: ${{ inputs.hooks }}
         run: |

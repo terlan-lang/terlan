@@ -1040,16 +1040,32 @@ if preflight_has preparation; then
 fi
 if preflight_has hook-policy; then
   echo 'pre-commit: hook policy and snapshot regression tests'
-  "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl
-  "$terlc" test scripts/ci --coverage --coverage-threshold 100
+  "$terlc" test scripts/git_hooks/src/git_hooks/PlanTest.terl scripts/ci \
+    --coverage --coverage-threshold 100
+  hook_policy_status=0
   "$terlc" run scripts/ci/scripts/CheckRustFormatting.terls -- \
-    --revisions HEAD HEAD false
-  bash scripts/git_hooks_test.sh
-  bash scripts/git_commit_message_test.sh
-  bash scripts/publication_process_preflight_test.sh
-  node scripts/git_hooks/cache_test.cjs
-  node --test scripts/git_hooks/filter_version_changes_test.cjs
-  TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh
+    --revisions HEAD HEAD false &
+  formatting_pid=$!
+  bash scripts/git_hooks_test.sh &
+  hook_regression_pid=$!
+  bash scripts/git_commit_message_test.sh &
+  commit_message_pid=$!
+  bash scripts/publication_process_preflight_test.sh &
+  publication_preflight_pid=$!
+  node scripts/git_hooks/cache_test.cjs &
+  cache_test_pid=$!
+  node --test scripts/git_hooks/filter_version_changes_test.cjs &
+  version_filter_pid=$!
+  TERLC="$terlc" bash scripts/git_hooks_formatting_test.sh &
+  formatting_test_pid=$!
+  wait "$formatting_pid" || hook_policy_status=1
+  wait "$hook_regression_pid" || hook_policy_status=1
+  wait "$commit_message_pid" || hook_policy_status=1
+  wait "$publication_preflight_pid" || hook_policy_status=1
+  wait "$cache_test_pid" || hook_policy_status=1
+  wait "$version_filter_pid" || hook_policy_status=1
+  wait "$formatting_test_pid" || hook_policy_status=1
+  [[ "$hook_policy_status" == 0 ]]
   printf '%s\n' \
     scripts/git_hooks/src/git_hooks/Plan.terl \
     scripts/git_hooks/src/git_hooks/PlanTest.terl \
