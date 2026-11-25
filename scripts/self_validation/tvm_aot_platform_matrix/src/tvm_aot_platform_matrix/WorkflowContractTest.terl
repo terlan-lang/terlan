@@ -117,6 +117,8 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
         Err(_reason) -> false
     };
     workflow.contains("name: Check Rust lint allowance policy")
+        and workflow.contains("name: Check Rust lint allowance policy\n        if: $")
+        and workflow.contains("name: Check Rust file size policy\n        if: $")
         and workflow.contains("steps.script-runner.outputs.rust-quality-image")
         and workflow.contains("lint-allowance-check")
         and not workflow.contains("cargo test")
