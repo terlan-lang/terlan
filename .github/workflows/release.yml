@@ -369,6 +369,20 @@ jobs:
         with:
           name: release-hosted-validation-evidence
           path: |
+            target/quality/release-example-projects-report.json
+            target/quality/release-project-upgrade-matrix-report.json
+            target/quality/release-reference-app-suite-report.json
+            target/quality/release-diagnostic-catalog-report.json
+            target/quality/release-compatibility-baseline-report.json
+            target/quality/release-notes-accuracy-report.json
+            target/quality/release-supply-chain-provenance-report.json
+            target/quality/release-security-hardening-report.json
+            target/quality/release-support-bundle-report.json
+            target/quality/release-performance-baseline-report.json
+            target/quality/release-adversarial-corpus-report.json
+            target/quality/release-mutation-check-report.json
+            target/quality/release-fault-injection-report.json
+            target/quality/vm-release-artifact-matrix-report.json
             target/quality/tvm-aot-platform-matrix-report.json
             target/quality/tvm-aot-thread-sanitizer-report.json
             target/quality/vm-multicore-thread-sanitizer-report.json

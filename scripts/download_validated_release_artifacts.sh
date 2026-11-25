@@ -311,6 +311,20 @@ else
   fi
 fi
 hosted_evidence_files=(
+  release-example-projects-report.json
+  release-project-upgrade-matrix-report.json
+  release-reference-app-suite-report.json
+  release-diagnostic-catalog-report.json
+  release-compatibility-baseline-report.json
+  release-notes-accuracy-report.json
+  release-supply-chain-provenance-report.json
+  release-security-hardening-report.json
+  release-support-bundle-report.json
+  release-performance-baseline-report.json
+  release-adversarial-corpus-report.json
+  release-mutation-check-report.json
+  release-fault-injection-report.json
+  vm-release-artifact-matrix-report.json
   tvm-aot-platform-matrix-report.json
   tvm-aot-thread-sanitizer-report.json
   vm-multicore-thread-sanitizer-report.json
