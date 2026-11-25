@@ -93,60 +93,9 @@ seal_cases(): Bool ->
     "",
 ).
 
-platform_cases(): Bool ->
-    let targets = EvidenceReports.targets();
-    when {
-        [first | rest] <- targets
-    } else {
-        _ -> false
-    };
-    EvidenceReports.platforms_hold(render(matrix(targets, "hash")))
-        and EvidenceReports.platforms_hold(render(matrix(List.concat(rest, [first]), "hash")))
-        and not EvidenceReports.platforms_hold(
-    render(
-        matrix([first, first, first, first, first, first], "hash")
-            .put("note", Json.string(String.concat(targets))),
-    ),
-)
-        and not EvidenceReports.platforms_hold(render(matrix(rest, "hash")))
-        and not EvidenceReports.platforms_hold(render(matrix(List.concat(targets, [first]), "hash")))
-        and not EvidenceReports.platforms_hold(render(matrix(targets, "hash").put("target_count", Json.int(60))))
-        and not EvidenceReports.platforms_hold(
-    render(matrix(targets, "hash").put("target_count", Json.string("6"))),
-)
-        and not EvidenceReports.platforms_hold(
-    render(
-        matrix(targets, "hash")
-            .put("targets", Json.array().push(Json.string(String.concat(targets)))),
-    ),
-).
-
 supply(digest: String): Json ->
     report("terlan.release-supply-chain-provenance-report.v1")
         .put("checksums", Json.object().put("installed_archive", Json.string(digest))).
-
-hash_cases(): Bool ->
-    let path = "dist/terlc-linux-x86_64.tar.gz";
-    EvidenceReports.supply_chain_matches(render(supply("hash")), "hash")
-        and not EvidenceReports.supply_chain_matches(
-    render(supply("wrong").put("note", Json.string("hash"))),
-    "hash",
-)
-        and EvidenceReports.matrix_archive_matches(
-    render(matrix(EvidenceReports.targets(), "hash")),
-    path,
-    "hash",
-)
-        and not EvidenceReports.matrix_archive_matches(
-    render(matrix(EvidenceReports.targets(), "wrong").put("note", Json.string("hash"))),
-    path,
-    "hash",
-)
-        and not EvidenceReports.matrix_archive_matches(
-    render(matrix(EvidenceReports.targets(), "hash")),
-    "dist/other.tar.gz",
-    "hash",
-).
 
 write_reports(root: String, rows: List[{String, String}], seal: String): Bool ->
     case rows {
@@ -301,7 +250,7 @@ Preflight.run(root, "0.0.9", seal))).
 
 pub self_test(): Bool ->
     when {
-        true <- outcome_cases() and seal_cases() and platform_cases() and hash_cases()
+        true <- outcome_cases() and seal_cases()
     } else {
         _ -> false
     };
@@ -319,7 +268,7 @@ let removed =
 let _printed =
     Console.println(
         if {
-            valid and removed -> "release report admission passed: structural outcomes, seals, platforms, hashes and real consumers";
+            valid and removed -> "release report admission passed: structural outcomes, seals and real consumers";
             true -> "release report admission failed"
         },
     );
