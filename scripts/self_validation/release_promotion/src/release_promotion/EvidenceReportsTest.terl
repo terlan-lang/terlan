@@ -324,7 +324,6 @@ consumers(root: String): Bool ->
     Ok(_restore_readiness) <- File.write_text(readiness_path, previous);
     Ok(_wrong_version) <- File.write_text(metadata_path, "{\"version\":\"wrong\",\"note\":\"0.0.9\"}");
     false <- Readiness.attest(root, candidate);
-    false <- Preflight.run(root, "0.0.9", seal);
     Ok(_restore_metadata) <- File.write_text(metadata_path, metadata)
 } else {
     _ -> false

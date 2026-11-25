@@ -325,8 +325,6 @@ release-preflight:
 	test -x $(TERLAN_BOOTSTRAP_VM)
 	test -s $(TERLAN_RELEASE_PROMOTION_IMAGE)
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
-		$(TERLAN_RELEASE_PROMOTION) preflight-self-test
-	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) preflight --version "$(RELEASE_VERSION)"
 	test -s target/quality/release-support-manifest.json
 	test -s target/quality/release-preflight-report.json
@@ -725,6 +723,8 @@ publish-prepare-locked:
 .PHONY: publish-preparation-cold publish-preparation-warm publish-preparation-checks publish-preparation-verified
 # Runs the shared metadata, boundary, extension, and bootstrap checks common to prep
 publish-preparation-checks: release-version-metadata-check release-boundary-check terlan-release-promotion-bootstrap publish-preparation-admission
+	TERLAN_RELEASE_ROOT="$(CURDIR)" \
+		$(TERLAN_RELEASE_PROMOTION) preflight-self-test
 
 
 # Refreshes evidence, then confirms it passes the evidence check
