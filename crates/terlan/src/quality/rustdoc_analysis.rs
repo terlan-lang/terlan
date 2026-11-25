@@ -311,47 +311,49 @@ pub(super) fn rustdoc_baseline_path(root: &Path) -> PathBuf {
 /// Reads the file-size quality baseline.
 ///
 /// Inputs:
-/// - `root`: repository root containing `tools/quality/rust_file_size_baseline.tsv`.
+/// - `root`: repository root containing `docs/quality/RUST_FILE_HEADROOM.tsv`.
 ///
 /// Output:
 /// - Mapping from repository-relative path to exact oversized-file line count.
 /// - Diagnostics for malformed rows.
 ///
 /// Transformation:
-/// - Parses tab-separated path/count rows into typed baseline values.
+/// - Reuses the canonical Terlan-owned headroom registry instead of maintaining
+///   a second file-size baseline.
 pub(super) fn read_size_baseline(
     root: &Path,
 ) -> QualityResult<(BTreeMap<PathBuf, usize>, Vec<String>)> {
     let path = root
-        .join("tools")
+        .join("docs")
         .join("quality")
-        .join("rust_file_size_baseline.tsv");
+        .join("RUST_FILE_HEADROOM.tsv");
     let text = fs::read_to_string(&path)
         .map_err(|err| format!("{}: failed to read baseline: {err}", path.display()))?;
     let mut baseline = BTreeMap::new();
     let mut diagnostics = Vec::new();
     for (index, line) in text.lines().enumerate() {
-        if line.is_empty() || line.starts_with('#') {
+        if line.is_empty() || line.starts_with('#') || line.starts_with("path\t") {
             continue;
         }
         let fields = line.split('\t').collect::<Vec<_>>();
-        if fields.len() != 2 {
+        if fields.len() != 7 {
             diagnostics.push(format!(
-                "{}:{}: expected path<TAB>lines",
+                "{}:{}: expected canonical file-headroom row",
                 path.display(),
                 index + 1
             ));
             continue;
         }
-        match fields[1].parse::<usize>() {
-            Ok(lines) => {
-                baseline.insert(PathBuf::from(fields[0]), lines);
+        match (fields[2].parse::<usize>(), fields[4].parse::<usize>()) {
+            (Ok(lines), Ok(hard_limit)) => {
+                if lines >= hard_limit {
+                    baseline.insert(PathBuf::from(fields[0]), lines);
+                }
             }
-            Err(_) => diagnostics.push(format!(
-                "{}:{}: invalid line count `{}`",
+            _ => diagnostics.push(format!(
+                "{}:{}: invalid recorded or hard line limit",
                 path.display(),
-                index + 1,
-                fields[1]
+                index + 1
             )),
         }
     }

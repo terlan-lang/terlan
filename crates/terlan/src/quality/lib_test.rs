@@ -27,7 +27,7 @@ impl TestRepo {
     /// - `name`: diagnostic name segment for the temporary directory.
     ///
     /// Output:
-    /// - New fixture with `crates/` and `tools/quality/` directories.
+    /// - New fixture with source, documentation-policy, and tool directories.
     ///
     /// Transformation:
     /// - Combines process id and monotonic-ish time into a unique temp path,
@@ -42,8 +42,12 @@ impl TestRepo {
             std::process::id()
         ));
         fs::create_dir_all(root.join("crates/test/src"))?;
+        fs::create_dir_all(root.join("docs/quality"))?;
         fs::create_dir_all(root.join("tools/quality"))?;
-        fs::write(root.join("tools/quality/rust_file_size_baseline.tsv"), "")?;
+        fs::write(
+            root.join("docs/quality/RUST_FILE_HEADROOM.tsv"),
+            "path\tcategory\trecorded_lines\theadroom_limit\thard_limit\towner\tmilestone\n",
+        )?;
         fs::write(root.join("tools/quality/rust_inline_test_baseline.txt"), "")?;
         fs::write(root.join("tools/quality/rustdoc_missing_baseline.tsv"), "")?;
         Ok(Self { root })
@@ -95,6 +99,16 @@ impl TestRepo {
     /// - Updates the fixture baseline used by `run_rust_quality`.
     fn write_baseline(&self, name: &str, text: &str) -> io::Result<()> {
         fs::write(self.root.join("tools/quality").join(name), text)
+    }
+
+    /// Writes one canonical reviewed file-size row.
+    fn write_size_baseline(&self, path: &str, lines: usize) -> io::Result<()> {
+        fs::write(
+            self.root.join("docs/quality/RUST_FILE_HEADROOM.tsv"),
+            format!(
+                "path\tcategory\trecorded_lines\theadroom_limit\thard_limit\towner\tmilestone\n{path}\timplementation\t{lines}\t900\t1000\ttest-structure\t0.0.10\n"
+            ),
+        )
     }
 }
 
@@ -405,10 +419,7 @@ fn rust_quality_accepts_exact_size_baseline() -> io::Result<()> {
         .map(|index| format!("pub fn value_{index}() -> i32 {{ {index} }}\n"))
         .collect::<String>();
     repo.write_source("crates/test/src/lib.rs", &source)?;
-    repo.write_baseline(
-        "rust_file_size_baseline.tsv",
-        "crates/test/src/lib.rs\t1001\n",
-    )?;
+    repo.write_size_baseline("crates/test/src/lib.rs", 1001)?;
 
     let summary = run_rust_quality(repo.root()).expect("exact baseline should pass");
 
@@ -424,10 +435,7 @@ fn rust_quality_rejects_size_baseline_headroom() -> io::Result<()> {
         .map(|index| format!("pub fn value_{index}() -> i32 {{ {index} }}\n"))
         .collect::<String>();
     repo.write_source("crates/test/src/lib.rs", &source)?;
-    repo.write_baseline(
-        "rust_file_size_baseline.tsv",
-        "crates/test/src/lib.rs\t1100\n",
-    )?;
+    repo.write_size_baseline("crates/test/src/lib.rs", 1100)?;
 
     let error = run_rust_quality(repo.root()).expect_err("baseline headroom must fail");
 
@@ -445,10 +453,7 @@ fn rust_quality_rejects_growth_above_size_baseline() -> io::Result<()> {
         .map(|index| format!("pub fn value_{index}() -> i32 {{ {index} }}\n"))
         .collect::<String>();
     repo.write_source("crates/test/src/lib.rs", &source)?;
-    repo.write_baseline(
-        "rust_file_size_baseline.tsv",
-        "crates/test/src/lib.rs\t1001\n",
-    )?;
+    repo.write_size_baseline("crates/test/src/lib.rs", 1001)?;
 
     let error = run_rust_quality(repo.root()).expect_err("baseline growth must fail");
 
@@ -461,10 +466,7 @@ fn rust_quality_rejects_growth_above_size_baseline() -> io::Result<()> {
 fn rust_quality_rejects_obsolete_size_baseline_row() -> io::Result<()> {
     let repo = TestRepo::new("obsolete-size")?;
     repo.write_source("crates/test/src/lib.rs", "pub fn value() -> i32 { 1 }\n")?;
-    repo.write_baseline(
-        "rust_file_size_baseline.tsv",
-        "crates/test/src/lib.rs\t1001\n",
-    )?;
+    repo.write_size_baseline("crates/test/src/lib.rs", 1001)?;
 
     let error = run_rust_quality(repo.root()).expect_err("obsolete baseline must fail");
 
@@ -489,10 +491,7 @@ fn rust_quality_rejects_obsolete_size_baseline_row() -> io::Result<()> {
 fn rust_quality_rejects_stale_size_baseline_row() -> io::Result<()> {
     let repo = TestRepo::new("stale-size")?;
     repo.write_source("crates/test/src/lib.rs", "pub fn value() -> i32 { 1 }\n")?;
-    repo.write_baseline(
-        "rust_file_size_baseline.tsv",
-        "crates/test/src/missing.rs\t1200\n",
-    )?;
+    repo.write_size_baseline("crates/test/src/missing.rs", 1200)?;
 
     let error = run_rust_quality(repo.root()).expect_err("stale baseline failure");
 

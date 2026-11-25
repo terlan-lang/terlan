@@ -941,7 +941,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 49189,
+      "physical_lines": 49191,
       "rust_files": 146
     },
     {
@@ -1399,7 +1399,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 27963,
+      "physical_lines": 27962,
       "rust_files": 125
     },
     {
