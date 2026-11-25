@@ -231,8 +231,10 @@ if [[ "$hook_mode" == fast ]]; then
   case "$fast_jobs" in ''|*[!0-9]*|0) echo 'Invalid fast admission job count' >&2; exit 2 ;; esac
   fast_output_dir=$(mktemp -d "$CARGO_TARGET_DIR/fast-admission.XXXXXX")
   fast_receipt_dir=${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-$CARGO_TARGET_DIR/validation-results/fast-admission}
+  fast_cache_dir="$CARGO_TARGET_DIR/fast-admission-cache/$(git hash-object "$terlc")"
   test ! -L "$fast_receipt_dir"
-  mkdir -p "$fast_receipt_dir"
+  test ! -L "$fast_cache_dir"
+  mkdir -p "$fast_receipt_dir" "$fast_cache_dir"
   fast_receipt_schema=terlan-fast-admission-v1
   fast_compiler_hash=$(git hash-object "$terlc")
   fast_labels=()
@@ -251,20 +253,20 @@ if [[ "$hook_mode" == fast ]]; then
   done < "$changes"
   fast_rust_format() {
     "$terlc" run scripts/ci/scripts/CheckRustFormatting.terls \
-      --out-dir "$fast_output_dir/rust-format-build" \
-      --cache-dir "$fast_output_dir/rust-format-cache" \
+      --out-dir "$fast_cache_dir/rust-format-build" \
+      --cache-dir "$fast_cache_dir/rust-format-cache" \
       -- --paths-file "$changes"
   }
   fast_grammar() {
     local status=0
     TERLAN_EBNF_ROOT="$PWD" TERLAN_EBNF_COMPILER="$terlc" \
       "$terlc" run scripts/self_validation/EbnfValidator.terls \
-        --out-dir "$fast_output_dir/grammar-build" \
-        --cache-dir "$fast_output_dir/grammar-cache" || status=1
+        --out-dir "$fast_cache_dir/grammar-build" \
+        --cache-dir "$fast_cache_dir/grammar-cache" || status=1
     TERLAN_SYNTAX_ARTIFACT_ROOT="$PWD" TERLAN_SYNTAX_ARTIFACT_COMPILER="$terlc" \
       "$terlc" run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls \
-        --out-dir "$fast_output_dir/syntax-artifacts-build" \
-        --cache-dir "$fast_output_dir/syntax-artifacts-cache" \
+        --out-dir "$fast_cache_dir/syntax-artifacts-build" \
+        --cache-dir "$fast_cache_dir/syntax-artifacts-cache" \
         -- --check || status=1
     return "$status"
   }
@@ -283,13 +285,13 @@ if [[ "$hook_mode" == fast ]]; then
   }
   fast_inventory() {
     "$terlc" test scripts/self_validation/InventoryTest.terl \
-      --out-dir "$fast_output_dir/inventory-build" \
-      --cache-dir "$fast_output_dir/inventory-cache"
+      --out-dir "$fast_cache_dir/inventory-build" \
+      --cache-dir "$fast_cache_dir/inventory-cache"
     if [[ -f scripts/self_validation/RepositorySourceExtensions.terls ]]; then
       TERLAN_REPOSITORY_ROOT="$PWD" \
         "$terlc" run scripts/self_validation/RepositorySourceExtensions.terls \
-          --out-dir "$fast_output_dir/source-extensions-build" \
-          --cache-dir "$fast_output_dir/source-extensions-cache"
+          --out-dir "$fast_cache_dir/source-extensions-build" \
+          --cache-dir "$fast_cache_dir/source-extensions-cache"
     fi
   }
   fast_shell() {
@@ -564,26 +566,39 @@ ensure_orchestrator() {
   fi
 }
 ensure_native_test_companions() {
-  if [[ "$native_test_companions_ready" == false ]]; then
-    local worker="$CARGO_TARGET_DIR/debug/terlan-native-worker"
-    local receipt="$CARGO_TARGET_DIR/.terlan-native-worker-input"
-    if [[ -x "$worker" \
-      && ! -L "$worker" \
-      && -f "$receipt" \
-      && ! -L "$receipt" \
-      && $(wc -l < "$receipt") == 1 \
-      && $(sed -n '1p' "$receipt") == "$compiler_input_key" ]]; then
-      echo 'pre-commit: reuse exact native test companion'
-    else
-      echo 'pre-commit: build required native test companion once'
-      cargo build --locked -p terlan --bin terlan-native-worker --features validation-union
-      local temporary_receipt
-      temporary_receipt=$(mktemp "$CARGO_TARGET_DIR/.terlan-native-worker-input.XXXXXX")
-      printf '%s\n' "$compiler_input_key" > "$temporary_receipt"
-      mv "$temporary_receipt" "$receipt"
-    fi
-    native_test_companions_ready=true
+  if [[ "$native_test_companions_ready" == true ]]; then
+    return
   fi
+  if [[ "$terlc" != "$target_terlc" ]]; then
+    local latest_worker
+    latest_worker="$(dirname "$terlc")/terlan-native-worker"
+    [[ -x "$latest_worker" && ! -L "$latest_worker" ]] || {
+      echo "pre-commit: latest compiler has no matching native worker: $latest_worker" >&2
+      return 1
+    }
+    echo "pre-commit: reuse latest native test companion $latest_worker"
+    export TERLAN_NATIVE_WORKER="$latest_worker"
+    native_test_companions_ready=true
+    return
+  fi
+  local worker="$CARGO_TARGET_DIR/debug/terlan-native-worker"
+  local receipt="$CARGO_TARGET_DIR/.terlan-native-worker-input"
+  if [[ -x "$worker" \
+    && ! -L "$worker" \
+    && -f "$receipt" \
+    && ! -L "$receipt" \
+    && $(wc -l < "$receipt") == 1 \
+    && $(sed -n '1p' "$receipt") == "$compiler_input_key" ]]; then
+    echo 'pre-commit: reuse exact native test companion'
+  else
+    echo 'pre-commit: build required native test companion once'
+    cargo build --locked -p terlan --bin terlan-native-worker --features validation-union
+    local temporary_receipt
+    temporary_receipt=$(mktemp "$CARGO_TARGET_DIR/.terlan-native-worker-input.XXXXXX")
+    printf '%s\n' "$compiler_input_key" > "$temporary_receipt"
+    mv "$temporary_receipt" "$receipt"
+  fi
+  native_test_companions_ready=true
   export TERLAN_NATIVE_WORKER="$CARGO_TARGET_DIR/debug/terlan-native-worker"
 }
 snapshot_test_programs() {

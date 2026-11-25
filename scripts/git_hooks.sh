@@ -157,7 +157,17 @@ echo "pre-commit: validating staged tree $tree in $snapshot"
   export TERLAN_HOOK_VALIDATION_RECEIPT_DIR="$cache/validation-results/terlan"
   # Commit admission intentionally uses the newest locally built scripting
   # compiler. Candidate validation separately proves the staged compiler.
-  if [[ -x "$root/target/debug/terlc" && ! -L "$root/target/debug/terlc" ]]; then
+  if [[ -n ${TERLAN_HOOK_LATEST_TERLC:-} ]]; then
+    case "$TERLAN_HOOK_LATEST_TERLC" in /*) ;; *)
+      echo 'TERLAN_HOOK_LATEST_TERLC must be an absolute path' >&2
+      exit 2
+      ;;
+    esac
+    [[ -x "$TERLAN_HOOK_LATEST_TERLC" && ! -L "$TERLAN_HOOK_LATEST_TERLC" ]] || {
+      echo "TERLAN_HOOK_LATEST_TERLC is not an executable regular file: $TERLAN_HOOK_LATEST_TERLC" >&2
+      exit 2
+    }
+  elif [[ -x "$root/target/debug/terlc" && ! -L "$root/target/debug/terlc" ]]; then
     export TERLAN_HOOK_LATEST_TERLC="$root/target/debug/terlc"
   else
     unset TERLAN_HOOK_LATEST_TERLC
