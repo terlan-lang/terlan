@@ -134,6 +134,12 @@ publish_line=$(grep -n -F '      - name: Publish the existing sealed tag' "$root
 test -n "$prewarm_line" && test -n "$publish_line" && test "$prewarm_line" -lt "$publish_line"
 grep -Fq 'run: bash scripts/download_publication_bundle.sh "$(git rev-parse HEAD)"' "$root/.github/workflows/publish.yml"
 grep -Fq 'TERLAN_PUBLICATION_PLAN:' "$root/.github/workflows/publish.yml"
+grep -Fq 'and (.source_revision | test("^[0-9a-f]{12,40}$"))' \
+  "$root/scripts/publish_release_from_dist.sh"
+if grep -Fq 'startswith($plan.source_revision)' "$root/scripts/publish_release_from_dist.sh"; then
+  echo 'Tag publication still rejects validated ancestor compiler artifacts.' >&2
+  exit 1
+fi
 awk '/^      - name: Require an annotated version tag$/ { guard=1; next }
   guard && /^        run: \|$/ { body=1; next }
   body && /^          / { sub(/^          /, ""); print; next }

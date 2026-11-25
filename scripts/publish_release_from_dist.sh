@@ -174,10 +174,10 @@ else
   # A failing producer cannot be hidden by process-substitution exit semantics.
   TERLAN_RELEASE_ROOT="$repo_root" "${release_promotion[@]}" publication-plan --version "$version" > "$publication_plan"
 fi
-jq -e --arg version "$version" --arg revision "$head_commit" '
+jq -e --arg version "$version" '
   . as $plan
   | .schema == "terlan.publication-plan.v1" and .version == $version
-  and ($revision | startswith($plan.source_revision))
+  and (.source_revision | test("^[0-9a-f]{12,40}$"))
   and (.candidate_seal | test("^sha256:[0-9a-f]{64}$"))
   and (.artifacts | type == "array" and length > 1)
   and all(.artifacts[];
