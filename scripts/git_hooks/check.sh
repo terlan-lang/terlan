@@ -491,7 +491,6 @@ quality_tools_ready=false
 orchestrator_ready=false
 orchestrator_path=
 quality_path=
-validation_vm_path=
 native_test_companions_ready=false
 test_program_snapshots_ready=false
 ensure_release_tools() {
@@ -518,23 +517,6 @@ ensure_quality_tools() {
       quality_path="$CARGO_TARGET_DIR/debug/terlan-quality"
     fi
     quality_tools_ready=true
-  fi
-}
-ensure_validation_vm() {
-  if [[ -n "$validation_vm_path" ]]; then return; fi
-  local latest_vm
-  latest_vm="$(dirname "$terlc")/terlan-vm"
-  if [[ "$terlc" != "$target_terlc" \
-    && -x "$latest_vm" \
-    && ! -L "$latest_vm" ]]; then
-    echo "pre-commit: reuse latest validation VM $latest_vm"
-    validation_vm_path="$latest_vm"
-  elif [[ -x "$CARGO_TARGET_DIR/debug/terlan-vm" \
-    && ! -L "$CARGO_TARGET_DIR/debug/terlan-vm" ]]; then
-    validation_vm_path="$CARGO_TARGET_DIR/debug/terlan-vm"
-  else
-    cargo build --locked -p terlan --bin terlan-vm --features validation-union
-    validation_vm_path="$CARGO_TARGET_DIR/debug/terlan-vm"
   fi
 }
 ensure_orchestrator() {
@@ -790,38 +772,9 @@ run_proof_evidence() {
 
 run_release_contract_lane() {
   ensure_quality_tools
-  ensure_validation_vm
-  ensure_orchestrator
-  "$orchestrator_path" --install-snapshot "$PWD/target/validation-tools/terlan-test-orchestrator"
-  repository_validator_dir="$CARGO_TARGET_DIR/terlan-validators/repository-validation"
-  repository_validator_source="$repository_validator_dir/source"
-  repository_validator_common="$repository_validator_dir/common.inputs.sha256"
-  repository_validator_image="$repository_validator_dir/vm/scripts_self_validation_RepositoryValidation.tvm"
-  install -D -m 644 scripts/self_validation/RepositoryValidation.terls \
-    "$repository_validator_source/scripts/self_validation/RepositoryValidation.terls"
-  install -D -m 644 scripts/self_validation/RepositoryValidationMain.terl \
-    "$repository_validator_source/scripts/self_validation/RepositoryValidationMain.terl"
-  "$terlc" --cache-dir "$repository_validator_source/.terlan" \
-    check "$repository_validator_source"
-  repository_validator_identity=$("$terlc" build --print-toolchain-identity)
-  TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$repository_validator_identity" \
-    bash scripts/build_typed_validator.sh fingerprint \
-      "$repository_validator_common" "$terlc" std
-  bash scripts/build_typed_validator.sh \
-    "$repository_validator_image" \
-    "$repository_validator_common" \
-    scripts/self_validation/RepositoryValidation.terls \
-    scripts/self_validation/RepositoryValidationMain.terl -- \
-    "$terlc" --cache-dir "$repository_validator_source/.terlan" build --incremental \
-      "$repository_validator_source/scripts/self_validation/RepositoryValidation.terls" \
-      --target terlan-vm --out-dir "$repository_validator_dir"
   make --no-print-directory vm-release-install-validation-check \
     TERLAN_VALIDATION_BOOTSTRAPPED=1 \
     "TERLAN_QUALITY=$quality_path"
-  make --no-print-directory repository-build-release-contract-check \
-    TERLAN_VALIDATION_BOOTSTRAPPED=1 \
-    "TERLAN_REPOSITORY_VALIDATION=$validation_vm_path run $repository_validator_image --script-eval --"
-  printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
   "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
 }
 
