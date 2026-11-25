@@ -553,19 +553,30 @@ publication_test_pattern='cargo '
 publication_test_pattern+='test --profile dev --locked -p terlan-test-orchestrator --test publish_preflight'
 grep -Fq "$publication_test_pattern" <<< "$bootstrap_body"
 grep -Fq 'ensure_quality_tools' <<< "$release_contract_body"
+grep -Fq 'ensure_validation_vm' <<< "$release_contract_body"
+grep -Fq 'reuse latest validation quality tool' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse latest validation VM' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'reuse latest test orchestrator' \
+  "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body" \
   || grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
   echo 'Release contract rebuilt optimized compiler tools unnecessarily' >&2; exit 1
 fi
 grep -Fq 'TERLAN_VALIDATION_BOOTSTRAPPED=1' <<< "$release_contract_body"
-grep -Fq 'TERLAN_QUALITY=$CARGO_TARGET_DIR/debug/terlan-quality' <<< "$release_contract_body"
 grep -Fq 'prechecked_terlan' <<< "$release_contract_body"
 grep -Fq 'build_typed_validator.sh' <<< "$release_contract_body"
 grep -Fq 'scripts/self_validation/RepositoryValidationMain.terl' \
   <<< "$release_contract_body"
 grep -Fq 'repository_validator_image' <<< "$release_contract_body"
-grep -Fq 'TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run' \
+grep -Fq 'check "$repository_validator_source"' <<< "$release_contract_body"
+grep -Fq -- '--cache-dir "$repository_validator_source/.terlan" build --incremental' \
   <<< "$release_contract_body"
+grep -Fq 'TERLAN_REPOSITORY_VALIDATION=$validation_vm_path run' \
+  <<< "$release_contract_body"
+grep -Fq 'TERLAN_QUALITY=$quality_path' <<< "$release_contract_body"
+grep -Fq '"$orchestrator_path" --install-snapshot' <<< "$release_contract_body"
 if grep -Fq 'TERLAN_REPOSITORY_VALIDATION=\"$terlc\" run' <<< "$release_contract_body"; then
   echo 'Release contract recompiles the repository validator on every run' >&2; exit 1
 fi
@@ -771,10 +782,13 @@ grep -Fq '"$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'workflow_contract_cache="$CARGO_TARGET_DIR/terlan-validators/tvm-aot-platform-matrix"' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq -- '--cache-dir "$workflow_contract_cache/self-test-cache"' \
-  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq -- '--cache-dir "$workflow_contract_cache/test-cache"' \
   "$(dirname "$driver")/git_hooks/check.sh"
+if grep -Fq -- '--cache-dir "$workflow_contract_cache/self-test-cache"' \
+  "$(dirname "$driver")/git_hooks/check.sh"; then
+  echo 'Workflow changes still compile the complete platform matrix' >&2
+  exit 1
+fi
 grep -Fq 'TERLAN_RUST_REPORT_MODE:-check' \
   "$(dirname "$driver")/git_hooks/check.sh"
 reports_lane=$(sed -n '/^run_rust_reports_lane()/,/^}/p' \
