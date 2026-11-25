@@ -194,7 +194,7 @@ pub run(vm: String, image: String): Bool ->
     root,
     "push-compiler",
     true,
-    "dispatch release.yml compiler_run_id=17\nsleep\npublish-prepare\npublish-upload\n",
+    "dispatch ci.yml\nsleep\ndispatch release.yml compiler_run_id=17\nsleep\npublish-prepare\npublish-upload\n",
     vm,
     image,
 )

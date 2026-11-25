@@ -493,6 +493,10 @@ CHECK_GATES := \
 	no-tvm-json-runtime-check \
 	no-vmir-interpreter-check
 
+ifeq ($(TERLAN_RELEASE_CONTROL_PRECHECKED),1)
+CHECK_GATES := $(filter-out release-control-check,$(CHECK_GATES))
+endif
+
 # A validation cycle owns one compiler bootstrap and one build of each typed
 # validation artifact. Every aggregate gate waits for this boundary, including
 # under parallel Make execution, and later recipes execute the sealed image
@@ -702,12 +706,16 @@ endif
 
 # Records the compiler toolchain identity fingerprint used by typed validator builds.
 terlan-typed-validator-fingerprint: terlan-compiler-bootstrap
+ifeq ($(TERLAN_TYPED_VALIDATOR_FINGERPRINT_PREBUILT),1)
+	test -s $(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT)
+else
 ifneq ($(TERLAN_VALIDATION_BOOTSTRAPPED),1)
 	@identity=$$($(TERLAN_BOOTSTRAP_COMPILER) build --print-toolchain-identity) || exit $$?; \
 	TERLAN_TYPED_VALIDATOR_TOOLCHAIN_IDENTITY="$$identity" \
 	$(TERLAN_TYPED_VALIDATOR_BUILD) fingerprint \
 		$(TERLAN_TYPED_VALIDATOR_COMMON_FINGERPRINT) \
 		$(TERLAN_BOOTSTRAP_COMPILER) std
+endif
 endif
 
 # Shares the toolchain fingerprint prerequisite across all typed-validator bootstrap targets.

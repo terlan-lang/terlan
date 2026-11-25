@@ -357,11 +357,16 @@ release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap
 	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	$(MAKE) --no-print-directory \
 		TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
+		release-control-check
+	$(MAKE) --no-print-directory \
+		TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
 		TERLAN_VALIDATION_VM_PREBUILT=1 \
 		release-proof-evidence-check
 	$(MAKE) --no-print-directory \
 		TERLAN_BUILD_ARTIFACTS_PREBUILT=1 \
 		TERLAN_VALIDATION_VM_PREBUILT=1 \
+		TERLAN_RELEASE_CONTROL_PRECHECKED=1 \
+		TERLAN_TYPED_VALIDATOR_FINGERPRINT_PREBUILT=1 \
 		check
 	bash scripts/clean_build_outputs.sh --check-partials
 

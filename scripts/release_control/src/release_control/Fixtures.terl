@@ -151,6 +151,9 @@ workflow(): Bool ->
     if {
         mode() == "failed-missing" and arg(9) == "release.yml" -> json(Json.array());
         mode() == "push-compiler"
+            and arg(9) == "ci.yml"
+            and File.exists("dispatched-ci.yml") == false -> json(Json.array());
+        mode() == "push-compiler"
             and arg(9) == "release.yml"
             and File.exists("dispatched-release.yml") == false -> json(Json.array());
         mode() == "missing" and File.exists(String.append("dispatched-", arg(9))) == false -> json(Json.array());
@@ -213,7 +216,6 @@ workflow_row(): Bool ->
                         Json.string(
                             if {
                                 arg(9) == "publish.yml" -> "push";
-                                mode() == "push-compiler" and compiler -> "push";
                                 true -> "workflow_dispatch"
                             },
                         ),
