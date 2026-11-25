@@ -1142,17 +1142,17 @@ pub build_matrix(reports: List[Report]): Option[Json] ->
             [] -> json_failure("aggregate", "platform attestations are empty");
             [first | _rest] ->
                 let reference = first.value;
-                when {
-                    Some(target_rows) <- append_valid_targets(targets(), reports, reference, Json.array());
-                    Some(version) <- json_string(reference, "version");
-                    Some(revision) <- json_string(reference, "source_revision");
-                    Some(workflow_ref) <- json_string(reference, "workflow_ref");
-                    Some(run_id) <- json_int(reference, "run_id");
-                    Some(commit) <- json_string(reference, "commit_sha")
-                } else {
-                    _ -> None
-                };
-                (let identity =
+                (when {
+    Some(target_rows) <- append_valid_targets(targets(), reports, reference, Json.array());
+    Some(version) <- json_string(reference, "version");
+    Some(revision) <- json_string(reference, "source_revision");
+    Some(workflow_ref) <- json_string(reference, "workflow_ref");
+    Some(run_id) <- json_int(reference, "run_id");
+    Some(commit) <- json_string(reference, "commit_sha")
+} else {
+    _ -> None
+};
+(let identity =
     Json.object()
         .put("schema", Json.string(matrix_schema()))
         .put("decision", Json.string("pass"))
@@ -1171,7 +1171,7 @@ Some(
         .put("target_count", Json.int(6))
         .put("targets", target_rows)
         .put("static_or_skipped_rows", Json.int(0)),
-))
+)))
         }
     }.
 
