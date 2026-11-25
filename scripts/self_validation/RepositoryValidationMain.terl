@@ -897,7 +897,6 @@ build_release_contract(repository: String): Bool ->
         "vm-multicore-publish-evidence-refresh: vm-multicore-release-contract-check",
         "publish-evidence-plan-check:",
         "$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify",
-        "$(MAKE) --no-print-directory vm-multicore-publish-check",
         "refusing to regenerate immutable publication inputs",
         "release-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check",
         "release-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check",

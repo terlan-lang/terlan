@@ -1,0 +1,11 @@
+module tvm_aot_platform_matrix.MulticoreReleaseTest.
+
+import tvm_aot_platform_matrix.MulticoreRelease.{self_test, verify}.
+
+@test
+pub multicore_release_contract_is_self_consistent(): Bool ->
+    self_test().
+
+@test
+pub unsealed_checkout_is_not_publication_evidence(): Bool ->
+    not verify().

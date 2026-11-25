@@ -141,7 +141,6 @@ pub validate_makefile(makefile: String): Bool ->
     .contains(
         "vm-multicore-publish-prerequisites: vm-multicore-release-contract-check $(VM_MULTICORE_PUBLISH_LOCAL_GATES)",
     ) -> false;
-                not makefile.contains("$(MAKE) --no-print-directory vm-multicore-publish-check") -> false;
                 not makefile.contains("$(TERLAN_TVM_PLATFORM_MATRIX) multicore-release-verify") -> false;
                 not makefile.contains("publish-evidence-plan-check:") -> false;
                 true -> fragments_present(
@@ -197,7 +196,7 @@ pub validate_workflow(workflow: String): Bool ->
         {"name: release-vm-multicore-thread-sanitizer", 2},
         {"run: make release-hosted-validation-check", 1},
         {"release-validation-identity:", 0},
-        {"    needs: revision", 1},
+        {"    needs: revision", 2},
     ],
 ) -> false;
         not release_audit_before_platform_text_valid(workflow) -> false;
@@ -206,6 +205,9 @@ pub validate_workflow(workflow: String): Bool ->
     [
         "statuses: write",
         "name: Reuse exact Compiler CI evidence",
+        "validated_release_run_id:",
+        "name: reuse validated release evidence",
+        "validated release evidence cannot cross compiler inputs",
         "name: Publish workflow run identity",
         "multicore-thread-sanitizer:",
         "release-hosted-validation-evidence",

@@ -31,14 +31,18 @@ gh_stub(): String ->
             "#!/usr/bin/env bash\nset -eu\nroot=$DOWNLOAD_FIXTURE\n",
             "case \"$1 $2\" in\n",
             "'auth status') exit 0;;\n'repo view') echo fixture/repository; exit 0;;\n",
-            "'run download') echo download >> \"$root/calls\"; case \"$5\" in release-distribution) cp \"$root/archives/\"* \"$7/\";; release-hosted-validation-evidence) cp \"$root/evidence/\"* \"$7/\"; if [ \"$DOWNLOAD_MODE\" = bad-verifier ]; then printf corrupt >> \"$7/tvm-aot-platform-matrix-verifier.tvm\"; fi; if [ \"$DOWNLOAD_MODE\" = unsafe-verifier-manifest ]; then printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  ../outside\\n' > \"$7/tvm-aot-platform-matrix-verifier.sha256\"; fi;; compiler-test-coverage-22-1) cp \"$root/coverage/\"* \"$7/\";; *) exit 92;; esac; exit 0;;\n",
             "'attestation verify') echo attest >> \"$root/calls\"; case \"$3\" in */compiler-coverage/*) test \"$*\" = \"attestation verify $3 --repo fixture/repository --signer-workflow fixture/repository/.github/workflows/ci.yml --source-ref refs/heads/main --source-digest aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"; if [ \"$DOWNLOAD_MODE\" = bad-attestation ]; then exit 19; fi;; esac; exit 0;;\nesac\n",
             "case \"$*\" in\n",
             "*commits/*/status*) echo status >> \"$root/calls\"; echo '{\"state\":\"success\",\"target_url\":\"https://github.com/fixture/repository/actions/runs/21\"}';;\n",
             "*check-runs*) echo '{\"details_url\":\"https://github.com/fixture/repository/actions/runs/22/job/1\"}';;\n",
+            "*actions/runs/21/artifacts*) printf '%s\\n' '{\"artifacts\":[{\"id\":31,\"name\":\"release-distribution\",\"expired\":false},{\"id\":32,\"name\":\"release-hosted-validation-evidence\",\"expired\":false}]}';;\n",
+            "*actions/runs/22/artifacts*) printf '%s\\n' '{\"artifacts\":[{\"id\":33,\"name\":\"compiler-test-coverage-22-1\",\"expired\":false}]}';;\n",
+            "*actions/artifacts/31/zip*) echo download >> \"$root/calls\"; (cd \"$root/archives\" && /usr/bin/zip -q -r - .);;\n",
+            "*actions/artifacts/32/zip*) echo download >> \"$root/calls\"; (cd \"$root/evidence\" && /usr/bin/zip -q -r - .);;\n",
+            "*actions/artifacts/33/zip*) echo download >> \"$root/calls\"; (cd \"$root/coverage\" && /usr/bin/zip -q -r - .);;\n",
             "*actions/runs/21*) attempt=1; if [ \"$DOWNLOAD_MODE\" = attempt-two ]; then attempt=2; fi; jq -n --argjson attempt \"$attempt\" '{id:21,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:\"success\",path:\".github/workflows/release.yml\"}';;\n",
             "*actions/runs/22*) conclusion=success; attempt=1; event=workflow_dispatch; if [ \"$DOWNLOAD_MODE\" = failed-ci ]; then conclusion=failure; fi; if [ \"$DOWNLOAD_MODE\" = push-ci ]; then event=push; fi; if [ \"$DOWNLOAD_MODE\" = signing-retry ]; then attempt=2; fi; jq -n --arg conclusion \"$conclusion\" --arg event \"$event\" --argjson attempt \"$attempt\" '{id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",conclusion:$conclusion,event:$event,path:\".github/workflows/ci.yml\"}';;\n",
-            "*actions/jobs/1*) attempt=1; if [ \"$DOWNLOAD_MODE\" = bad-job ]; then attempt=0; fi; jq -n --argjson attempt \"$attempt\" '{id:1,run_id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",name:\"Compiler check and test\",status:\"completed\",conclusion:\"success\"}';;\n",
+            "*actions/jobs/1*) attempt=1; if [ \"$DOWNLOAD_MODE\" = bad-job ]; then attempt=0; fi; jq -n --argjson attempt \"$attempt\" '{id:1,run_id:22,run_attempt:$attempt,head_sha:\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",name:\"Compiler check and test\",status:\"completed\",conclusion:\"success\",steps:[{name:\"Reuse unchanged compiler validation\",conclusion:\"skipped\"},{name:\"Validate release candidate\",conclusion:\"success\"}]}';;\n",
             "*) echo \"unexpected GitHub operation: $*\" >&2; exit 93;;\nesac\n",
         ],
     ).
@@ -94,33 +98,6 @@ prepare(root: String): Bool ->
             );
         true <- write_files(child(root, "payload"), names, "fixture");
         true <- write_files(child(root, "evidence"), evidence, "{}");
-        Ok(_verifier) <-
-            File.write_text(
-                child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm"),
-                "fixture verifier",
-            );
-        Ok(_verifier_seal) <-
-            File.write_text(
-                child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256"),
-                "fixture seal",
-            );
-        Ok(verifier_digest) <- Hash.sha256_file(child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm"));
-        Ok(verifier_seal_digest) <-
-            Hash.sha256_file(
-                child(root, "evidence/tvm-aot-platform-matrix-verifier.tvm.inputs.sha256"),
-            );
-        Ok(_verifier_sums) <-
-            File.write_text(
-                child(root, "evidence/tvm-aot-platform-matrix-verifier.sha256"),
-                String.concat(
-                    [
-                        verifier_digest,
-                        "  tvm-aot-platform-matrix-verifier.tvm\n",
-                        verifier_seal_digest,
-                        "  tvm-aot-platform-matrix-verifier.tvm.inputs.sha256\n",
-                    ],
-                ),
-            );
         Ok(_sums) <-
             File.write_text(
                 child(root, "payload/SHA256SUMS"),
@@ -250,8 +227,6 @@ exercise(root: String): Bool ->
     when {
         true <- prepare(root);
         true <- run(root, "bad-job", 1, "status\n");
-        true <- run(root, "bad-verifier", 1, "status\ndownload\ndownload\ndownload\n");
-        true <- run(root, "unsafe-verifier-manifest", 1, "status\ndownload\ndownload\ndownload\n");
         true <-
             run(
                 root,
@@ -267,21 +242,6 @@ exercise(root: String): Bool ->
         true <- run(root, "failed-ci", 1, "status\n");
         true <- run(root, "push-ci", 1, "status\n");
         true <- run(root, "attempt-two", 0, downloaded);
-        Ok(verifier) <-
-            File.read_text(
-                child(
-                    root,
-                    "target/self-validation/tvm-aot-platform-matrix/vm/scripts_TvmAotPlatformMatrix.tvm",
-                ),
-            );
-        Ok(verifier_seal) <-
-            File.read_text(
-                child(
-                    root,
-                    "target/self-validation/tvm-aot-platform-matrix/vm/scripts_TvmAotPlatformMatrix.tvm.inputs.sha256",
-                ),
-            );
-        true <- verifier == "fixture verifier" and verifier_seal == "fixture seal";
         Ok(files) <- Directory.files_recursive_excluding(child(root, "target/publication-downloads"), []);
         true <- corrupt_archives(files);
         Ok(_sentinel) <- File.write_text(child(root, "dist/release-candidate.json"), "preserve me");

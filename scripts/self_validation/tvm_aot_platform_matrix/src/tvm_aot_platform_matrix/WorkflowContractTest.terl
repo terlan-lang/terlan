@@ -251,4 +251,11 @@ pub release_reuse_requires_exact_compiler_evidence(): Bool ->
         and compiler
     .contains(
         "if: \${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}",
-    ).
+    )
+        and workflow.contains("validated_release_run_id:")
+        and workflow.contains("name: reuse validated release evidence")
+        and workflow.contains("validated release evidence cannot cross compiler inputs")
+        and workflow.contains("validated release evidence diff exceeds the bounded admission window")
+        and workflow.contains("run-id: \${{ inputs.validated_release_run_id }}")
+        and workflow.contains("needs.revision.outputs.reuse-release-evidence != 'true'")
+        and workflow.contains("needs.reuse-validation.result == 'success'").

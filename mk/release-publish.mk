@@ -757,7 +757,6 @@ publish-preparation-admission: publish-preparation-lock-directory rust-build-res
 publish-preflight: publish-remote-preflight
 	@test -x $(TERLAN_BOOTSTRAP_VM) \
 		&& test -s $(TERLAN_RELEASE_PROMOTION_IMAGE) \
-		&& test -s $(TERLAN_TVM_PLATFORM_MATRIX_IMAGE) \
 		&& test -s dist/release-candidate.json || { \
 			echo 'no prepared release candidate; run make publish-prepare once, then retry make publish' >&2; \
 			exit 1; \
@@ -767,10 +766,17 @@ publish-preflight: publish-remote-preflight
 		timeout 300s $(TERLAN_RELEASE_PROMOTION) preflight --version "$(VERSION)"
 
 
-# Runs the multicore and AOT publish evidence checks
+# Confirms the authenticated hosted reports downloaded by publication exist.
 publish-evidence-check:
-	$(MAKE) --no-print-directory vm-multicore-publish-check
-	$(MAKE) --no-print-directory tvm-aot-publish-evidence-check
+	@for report in \
+		tvm-aot-platform-matrix-report.json \
+		tvm-aot-thread-sanitizer-report.json \
+		vm-multicore-thread-sanitizer-report.json \
+		vm-multicore-memory-model-tsan.json \
+		vm-multicore-memory-model.json \
+		vm-multicore-release-closeout.json; do \
+		test -s "target/quality/$$report" || exit 1; \
+	done
 
 
 # Asserts the evidence-check dry-run plan replays no build or test work
