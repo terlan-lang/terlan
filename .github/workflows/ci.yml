@@ -7,6 +7,10 @@ on:
         description: Exact commit expected at the selected ref
         required: false
         type: string
+      validated_revision:
+        description: Exact ancestor already validated by the normal local hook
+        required: false
+        type: string
   pull_request:
     paths:
       - "Cargo.toml"
@@ -174,10 +178,15 @@ jobs:
         id: validation-base
         env:
           MAIN_VALIDATED_REVISION: ${{ steps.validated-main.outputs.revision }}
+          MANUAL_VALIDATED_REVISION: ${{ inputs.validated_revision || '' }}
           EVENT_BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
         run: |
           base="$EVENT_BASE_REVISION"
-          if [[ ( "$GITHUB_EVENT_NAME" == push || "$GITHUB_EVENT_NAME" == workflow_dispatch ) && "$GITHUB_REF" == refs/heads/main ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch && -n "$MANUAL_VALIDATED_REVISION" ]]; then
+            [[ "$MANUAL_VALIDATED_REVISION" =~ ^[0-9a-f]{40}$ ]]
+            git merge-base --is-ancestor "$MANUAL_VALIDATED_REVISION" "$GITHUB_SHA"
+            base="$MANUAL_VALIDATED_REVISION"
+          elif [[ ( "$GITHUB_EVENT_NAME" == push || "$GITHUB_EVENT_NAME" == workflow_dispatch ) && "$GITHUB_REF" == refs/heads/main ]]; then
             base="$MAIN_VALIDATED_REVISION"
           fi
           if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]] || ! git merge-base --is-ancestor "$base" "$GITHUB_SHA"; then
@@ -424,9 +433,9 @@ jobs:
     name: Compiler check and test
     runs-on: ubuntu-24.04
     if: ${{ (needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch') && (github.event_name != 'push' || !startsWith(github.ref_name, 'release-validation/')) }}
-    # Cold hosted runs need about 114 minutes before the remaining stdlib,
-    # proof, runtime, and package gates; allow the complete validation to finish.
-    timeout-minutes: 180
+    # Incremental validation targets five minutes and full validation targets
+    # ten. Fifteen minutes is the aggregate ceiling for either path.
+    timeout-minutes: 15
     outputs:
       coverage-artifact-id: ${{ steps.coverage.outputs.artifact-id }}
 
@@ -439,7 +448,7 @@ jobs:
           persist-credentials: false
 
       - name: Install native build dependencies
-        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: ./.github/actions/setup-native-dependencies
         with:
           target: linux-x86_64
@@ -447,7 +456,7 @@ jobs:
 
       - name: Install Rust toolchain
         id: rust
-        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: ./.github/actions/setup-rust
         with:
           cache-build: "true"
@@ -456,14 +465,22 @@ jobs:
 
       - name: Validate release candidate
         id: release-candidate
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
         run: make release-candidate-check
         env:
-          # The serialized compiler library suite exceeds thirty minutes on
-          # hosted runners; retain a bounded deadline without skipping tests.
-          TERLAN_TEST_PHASE_TIMEOUT_SECONDS: "3600"
+          TERLAN_TEST_PHASE_TIMEOUT_SECONDS: "600"
           # The required source-preflight job already ran the exact policy.
           TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED: "1"
+
+      - name: Reuse unchanged compiler validation
+        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler != 'true' }}
+        env:
+          VALIDATED_REVISION: ${{ needs.changes.outputs.validation-base }}
+        run: |
+          [[ "$VALIDATED_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$VALIDATED_REVISION" "$GITHUB_SHA"
+          test "$VALIDATED_REVISION" != "$GITHUB_SHA"
+          echo "Compiler inputs unchanged since validated revision $VALIDATED_REVISION"
 
       - name: Validate changed compiler scope
         if: ${{ github.event_name != 'workflow_dispatch' }}
@@ -490,7 +507,7 @@ jobs:
           git diff --exit-code
 
       - name: Preserve compiled Rust cache
-        if: ${{ always() && (needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch') && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
+        if: ${{ always() && needs.changes.outputs.compiler == 'true' && steps.rust.outputs.compiled-cache-key != '' && steps.rust.outputs.compiled-cache-hit != 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -540,12 +557,12 @@ jobs:
           key: ${{ steps.rust.outputs.compiled-cache-key }}
 
       - name: Test local commit policy
-        if: ${{ needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch' }}
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
         run: target/debug/terlc test scripts/git_hooks/src/git_hooks/PlanTest.terl
 
       - name: Upload completed compiler coverage
         id: coverage
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: compiler-test-coverage-${{ github.run_id }}-${{ github.run_attempt }}
@@ -557,7 +574,7 @@ jobs:
           retention-days: 90
 
       - name: Upload failure evidence
-        if: ${{ failure() && (needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch') }}
+        if: ${{ failure() && needs.changes.outputs.compiler == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: compiler-ci-failure-${{ github.run_id }}
@@ -567,7 +584,7 @@ jobs:
   attest-compiler-coverage:
     name: Attest compiler test coverage
     needs: [changes, check]
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && needs.changes.outputs.compiler == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
