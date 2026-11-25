@@ -23,7 +23,6 @@ pub struct Classification {
     terlan_style_all: Bool,
     ci_contracts: Bool,
     editor: Bool,
-    inventory: Bool,
     release_tooling: Bool,
     hooks: Bool,
     workflow: Bool,
@@ -146,12 +145,6 @@ pub is_ci_contract_file(path: String): Bool ->
 pub is_editor_file(path: String): Bool ->
     starts_with_any(path, ["editors/", "tree-sitter-terlan/"]).
 
-pub is_inventory_file(path: String): Bool ->
-    String.ends_with(path, ".rs")
-        or String.ends_with(path, ".py")
-        or String.ends_with(path, ".terls")
-        or starts_with_any(path, ["tools/rust_boundary_audit/", "scripts/self_validation/Inventory"]).
-
 pub is_release_tooling_file(path: String): Bool ->
     contains(["Makefile", ".github/workflows/release.yml", ".github/workflows/publish.yml"], path)
         or starts_with_any(
@@ -227,7 +220,6 @@ any_matching(paths: List[String], kind: String): Bool ->
                 case kind {
                     "ci" -> is_ci_contract_file(path);
                     "editor" -> is_editor_file(path);
-                    "inventory" -> is_inventory_file(path);
                     "release" -> is_release_tooling_file(path);
                     "hooks" -> is_hook_file(path);
                     "workflow" -> is_workflow_file(path);
@@ -265,7 +257,6 @@ pub classify(paths: List[String], force_full: Bool): Classification ->
         terlan_style_all = false,
         ci_contracts = force_full or any_matching(normalized, "ci"),
         editor = force_full or any_matching(normalized, "editor"),
-        inventory = force_full or any_matching(normalized, "inventory"),
         release_tooling = force_full or any_matching(normalized, "release"),
         hooks = force_full or any_matching(normalized, "hooks"),
         workflow = force_full or any_matching(normalized, "workflow"),
@@ -333,8 +324,6 @@ pub render_outputs(value: Classification): String ->
             boolean(value.ci_contracts),
             "\neditor=",
             boolean(value.editor),
-            "\ninventory=",
-            boolean(value.inventory),
             "\nrelease-tooling=",
             boolean(value.release_tooling),
             "\nhooks=",

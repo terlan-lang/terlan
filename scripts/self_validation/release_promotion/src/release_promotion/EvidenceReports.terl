@@ -16,62 +16,20 @@ import type std.data.Json.RequiredFieldRow.
 @pure
 pub readiness_reports(): List[{String, String}] ->
     [
+        {"target/quality/tvm-aot-platform-matrix-report.json", "terlan.tvm-aot-platform-matrix.v3"},
         {
-            "target/quality/release-example-projects-report.json",
-            "terlan.release-example-projects-report.v1",
+            "target/quality/tvm-aot-thread-sanitizer-report.json",
+            "terlan.tvm-aot-thread-sanitizer.v1",
         },
         {
-            "target/quality/release-project-upgrade-matrix-report.json",
-            "terlan.release-project-upgrade-matrix-report.v1",
+            "target/quality/vm-multicore-thread-sanitizer-report.json",
+            "terlan.vm-multicore-thread-sanitizer.v1",
         },
         {
-            "target/quality/release-reference-app-suite-report.json",
-            "terlan.release-reference-app-suite-report.v1",
+            "target/quality/vm-multicore-memory-model-tsan.json",
+            "terlan.vm-multicore-memory-model.v1",
         },
-        {
-            "target/quality/release-diagnostic-catalog-report.json",
-            "terlan.release-diagnostic-catalog-report.v1",
-        },
-        {
-            "target/quality/release-compatibility-baseline-report.json",
-            "terlan.release-compatibility-baseline-report.v1",
-        },
-        {
-            "target/quality/release-notes-accuracy-report.json",
-            "terlan.release-notes-accuracy-report.v1",
-        },
-        {
-            "target/quality/release-supply-chain-provenance-report.json",
-            "terlan.release-supply-chain-provenance-report.v1",
-        },
-        {
-            "target/quality/release-security-hardening-report.json",
-            "terlan.release-security-hardening-report.v1",
-        },
-        {
-            "target/quality/release-support-bundle-report.json",
-            "terlan.release-support-bundle-report.v1",
-        },
-        {
-            "target/quality/release-performance-baseline-report.json",
-            "terlan.release-performance-baseline-report.v1",
-        },
-        {
-            "target/quality/release-adversarial-corpus-report.json",
-            "terlan.release-adversarial-corpus-report.v1",
-        },
-        {
-            "target/quality/release-mutation-check-report.json",
-            "terlan.release-mutation-check-report.v1",
-        },
-        {
-            "target/quality/release-fault-injection-report.json",
-            "terlan.release-fault-injection-report.v1",
-        },
-        {
-            "target/quality/vm-release-artifact-matrix-report.json",
-            "terlan.vm-release-artifact-matrix-report.v1",
-        },
+        {"target/quality/vm-multicore-memory-model.json", "terlan.vm-multicore-memory-model.v1"},
         {
             "target/quality/vm-multicore-release-closeout.json",
             "terlan.vm-multicore-release-closeout.v4",

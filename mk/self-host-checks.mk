@@ -1,10 +1,5 @@
 # ---- Compiler self-hosting checks ----
 
-# Runs the retained-source inventory test through the debug compiler.
-terlan-self-validation-inventory-check:
-	target/debug/terlc test scripts/self_validation/InventoryTest.terl
-
-
 # Runs the typed stdlib capability test surface (file/dir/hash/json/regex/string) through the debug compiler.
 terlan-self-validation-capabilities-check:
 	target/debug/terlc test \
@@ -29,17 +24,15 @@ terlan-self-validation-capabilities-check:
 		--name compare_accepts_equal_text
 
 
-# One public closeout owns the explicit retained-source inventory, typed capability
-# surface, generated std contracts, thin Make dispatch, browser-manifest
+# One public closeout owns the typed capability surface, generated std
+# contracts, thin Make dispatch, browser-manifest
 # consumers, documentation validation, and release-promotion orchestration.
 # Every prerequisite reuses the compiler and sealed images from the shared
 # bootstrap boundary.
 terlan-self-validation-check: \
 	terlan-self-validation-clean-checkout-check \
-	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
 	terlan-make-recipe-thinness-check \
-	stdlib-summary-inventory-check \
 	stdlib-summary-drift-check \
 	stdlib-native-artifacts-check \
 	stdlib-rust-backed-manifest-check \

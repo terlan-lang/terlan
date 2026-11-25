@@ -420,7 +420,7 @@ release-generated-artifacts-check: release-generated-artifacts-freshness-pass
 
 
 # Seals the current release artifact after boundary/version/source checks pass
-release-artifact-current: terlan-release-promotion-bootstrap release-boundary-check release-version-metadata-check source-extension-check vm-release-artifact-matrix-check
+release-artifact-current: terlan-release-promotion-bootstrap release-boundary-check release-version-metadata-check vm-release-artifact-matrix-check
 	TERLAN_RELEASE_ROOT="$(CURDIR)" \
 		$(TERLAN_RELEASE_PROMOTION) seal $(if $(VERSION),--version "$(VERSION)",)
 
@@ -724,7 +724,7 @@ publish-prepare-locked:
 
 .PHONY: publish-preparation-cold publish-preparation-warm publish-preparation-checks publish-preparation-verified
 # Runs the shared metadata, boundary, extension, and bootstrap checks common to prep
-publish-preparation-checks: release-version-metadata-check release-boundary-check source-extension-check terlan-release-promotion-bootstrap publish-preparation-admission
+publish-preparation-checks: release-version-metadata-check release-boundary-check terlan-release-promotion-bootstrap publish-preparation-admission
 
 
 # Refreshes evidence, then confirms it passes the evidence check

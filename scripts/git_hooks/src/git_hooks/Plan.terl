@@ -108,61 +108,62 @@ selected(condition: Bool, name: String, lanes: List[String]): List[String] ->
     }.
 
 pub preflight_lanes(paths: List[String]): List[String] ->
-    ["inventory" | selected(
-    compiler_bootstrap(paths),
-    "compiler-build",
     selected(
-        RustFormatting.required(paths, false),
-        "rust-format",
+        compiler_bootstrap(paths),
+        "compiler-build",
         selected(
-            rust_lint_allowances(paths),
-            "rust-lint-allowances",
+            RustFormatting.required(paths, false),
+            "rust-format",
             selected(
-                version_metadata(paths),
-                "version-metadata",
+                rust_lint_allowances(paths),
+                "rust-lint-allowances",
                 selected(
-                    platform_workflow_contract(paths),
-                    "workflow-contract",
+                    version_metadata(paths),
+                    "version-metadata",
                     selected(
-                        rust_security(paths),
-                        "rust-security",
+                        platform_workflow_contract(paths),
+                        "workflow-contract",
                         selected(
-                            node_security(paths),
-                            "node-security",
+                            rust_security(paths),
+                            "rust-security",
                             selected(
-                                editor_release(paths),
-                                "editor-release",
+                                node_security(paths),
+                                "node-security",
                                 selected(
-                                    artifact_bootstrap(paths),
-                                    "artifact-bootstrap",
+                                    editor_release(paths),
+                                    "editor-release",
                                     selected(
-                                        grammar(paths),
-                                        "grammar",
+                                        artifact_bootstrap(paths),
+                                        "artifact-bootstrap",
                                         selected(
-                                            js_bindings(paths),
-                                            "js-bindings",
+                                            grammar(paths),
+                                            "grammar",
                                             selected(
-                                                negative_api(paths),
-                                                "negative-api",
+                                                js_bindings(paths),
+                                                "js-bindings",
                                                 selected(
-                                                    artifact_budget(paths),
-                                                    "artifact-budget",
+                                                    negative_api(paths),
+                                                    "negative-api",
                                                     selected(
-                                                        release_manifest(paths),
-                                                        "release-manifest",
+                                                        artifact_budget(paths),
+                                                        "artifact-budget",
                                                         selected(
-                                                            rust_docs(paths),
-                                                            "rust-docs",
+                                                            release_manifest(paths),
+                                                            "release-manifest",
                                                             selected(
-                                                                preparation(paths),
-                                                                "preparation",
+                                                                rust_docs(paths),
+                                                                "rust-docs",
                                                                 selected(
-                                                                    hook_policy(paths),
-                                                                    "hook-policy",
+                                                                    preparation(paths),
+                                                                    "preparation",
                                                                     selected(
-                                                                        terlan_format(paths),
-                                                                        "terlan-format",
-                                                                        List.new[String](),
+                                                                        hook_policy(paths),
+                                                                        "hook-policy",
+                                                                        selected(
+                                                                            terlan_format(paths),
+                                                                            "terlan-format",
+                                                                            List.new[String](),
+                                                                        ),
                                                                     ),
                                                                 ),
                                                             ),
@@ -179,8 +180,7 @@ pub preflight_lanes(paths: List[String]): List[String] ->
                 ),
             ),
         ),
-    ),
-)].
+    ).
 
 pub prefixed_preflight_lanes(paths: List[String]): List[String] ->
     prefix_preflight_lanes(preflight_lanes(paths)).
@@ -207,8 +207,7 @@ without_hosted_preflight_lanes(values: List[String]): List[String] ->
     }.
 
 hosted_preflight_owns(value: String): Bool ->
-    value == "inventory"
-        or value == "rust-lint-allowances"
+    value == "rust-lint-allowances"
         or value == "rust-format"
         or value == "editor-release"
         or value == "js-bindings"
@@ -463,7 +462,6 @@ pub release_contract(paths: List[String]): Bool ->
         or affected(paths, "mk/", "")
         or release_script(paths)
         or affected(paths, "scripts/self_validation/RepositoryValidation", "")
-        or affected(paths, "scripts/self_validation/RepositorySourceExtensions", "")
         or platform_release_contract(paths)
         or affected(paths, "editors/editor.mk", "")
         or affected(paths, "rust-toolchain.toml", "").

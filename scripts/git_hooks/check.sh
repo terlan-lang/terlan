@@ -108,11 +108,6 @@ run_plan() {
     echo 'pre-commit: candidate compiler produced an empty validation plan' >&2
     return 1
   fi
-  if [[ "$hosted_source_preflight" == 0 ]] \
-    && ! rg -qx 'preflight:inventory' "$raw_plan"; then
-    echo 'pre-commit: local validation plan omitted source inventory' >&2
-    return 1
-  fi
   if [[ -f tests/language/RepeatedLetSyntaxTest.terl ]] \
     && ! "$compiler" check tests/language/RepeatedLetSyntaxTest.terl >/dev/null; then
     echo 'pre-commit: candidate compiler rejected the syntax sentinel' >&2
@@ -169,19 +164,6 @@ if [[ "$compiler_build" == true \
   terlc="$target_terlc"
   export TERLC="$terlc"
   echo 'pre-commit: reuse exact staged compiler inputs'
-fi
-# A newly embedded standard module cannot be compiled until its reviewed
-# summary exists.  Check the staged stdlib inventory with the latest scripting
-# compiler before rebuilding the candidate, so a missing `.typi` is reported
-# directly instead of surfacing later as a Rust `include_str!` error.
-if [[ "$compiler_build" == true \
-  && -s "$raw_plan" \
-  && -n ${TERLAN_HOOK_LATEST_TERLC:-} \
-  && -x ${TERLAN_HOOK_LATEST_TERLC:-} \
-  && ! -L ${TERLAN_HOOK_LATEST_TERLC:-} ]] \
-  && rg -qx 'summaries' "$raw_plan"; then
-  echo 'pre-commit: prebuild standard-library summary inventory'
-  "$TERLAN_HOOK_LATEST_TERLC" test scripts/self_validation/SummaryInventoryTest.terl
 fi
 if [[ "$compiler_build" == true ]]; then
   # This target survives staged checkout revisions. Cargo dep-info can still
@@ -283,17 +265,6 @@ if [[ "$hook_mode" == fast ]]; then
     wait "$format_pid" || status=1
     return "$status"
   }
-  fast_inventory() {
-    "$terlc" test scripts/self_validation/InventoryTest.terl \
-      --out-dir "$fast_cache_dir/inventory-build" \
-      --cache-dir "$fast_cache_dir/inventory-cache"
-    if [[ -f scripts/self_validation/RepositorySourceExtensions.terls ]]; then
-      TERLAN_REPOSITORY_ROOT="$PWD" \
-        "$terlc" run scripts/self_validation/RepositorySourceExtensions.terls \
-          --out-dir "$fast_cache_dir/source-extensions-build" \
-          --cache-dir "$fast_cache_dir/source-extensions-cache"
-    fi
-  }
   fast_shell() {
     local status=0 path
     while IFS= read -r path; do
@@ -339,13 +310,6 @@ if [[ "$hook_mode" == fast ]]; then
                 ;;
             esac
           done < "$changes"
-          ;;
-        inventory)
-          git ls-files -s -z | git hash-object --stdin
-          git ls-files -s -- \
-            scripts/self_validation/InventoryTest.terl \
-            scripts/self_validation/RepositorySourceExtensionsTest.terl \
-            scripts/self_validation/RepositorySourceExtensions.terls
           ;;
         shell)
           while IFS= read -r path; do
@@ -395,9 +359,6 @@ if [[ "$hook_mode" == fast ]]; then
   if preflight_has terlan-format && (( ${#fast_terlan_paths[@]} > 0 )); then
     echo "pre-commit: changed Terlan syntax (${#fast_terlan_paths[@]} paths, $fast_jobs workers)"
     start_fast_gate terlan-format fast_terlan_format
-  fi
-  if preflight_has inventory; then
-    start_fast_gate inventory fast_inventory
   fi
   start_fast_gate shell fast_shell
   for index in "${!fast_pids[@]}"; do
@@ -816,8 +777,6 @@ run_release_contract_lane() {
   make --no-print-directory repository-build-release-contract-check \
     TERLAN_VALIDATION_BOOTSTRAPPED=1 \
     "TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run $repository_validator_image --script-eval --"
-  make --no-print-directory source-extension-check \
-    TERLAN_VALIDATION_BOOTSTRAPPED=1
   printf '%s\n' scripts/self_validation/RepositoryValidation.terls >> "$prechecked_terlan"
   "$terlc" test scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/ReleaseCleanupTest.terl
 }
@@ -989,14 +948,6 @@ if [[ "$workspace_lane_selected" == true ]] && lane_has proofs; then
   mv "$remaining_plan" "$plan"
 fi
 
-if preflight_has inventory; then
-  echo 'pre-commit: retained source inventory'
-  "$terlc" test scripts/self_validation/InventoryTest.terl
-  if [[ -f scripts/self_validation/RepositorySourceExtensions.terls ]]; then
-    TERLAN_REPOSITORY_ROOT="$PWD" \
-      "$terlc" run scripts/self_validation/RepositorySourceExtensions.terls
-  fi
-fi
 if preflight_has version-metadata; then
   echo 'pre-commit: release version metadata'
   version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)

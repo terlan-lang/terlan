@@ -15,7 +15,6 @@ pub workflow_and_documentation_changes_avoid_compiler_validation(): Bool ->
         and not result.terlan_style_all
         and result.ci_contracts
         and not result.editor
-        and not result.inventory
         and not result.release_tooling
         and not result.hooks
         and result.workflow
@@ -37,7 +36,6 @@ pub compiler_sources_select_compiler_validation(): Bool ->
         and not result.rust_format_all
         and result.terlan_style
         and not result.terlan_style_all
-        and result.inventory
         and not result.editor
         and not result.release_tooling.
 
@@ -63,7 +61,6 @@ pub dependency_manifests_select_dependency_and_compiler_validation(): Bool ->
         and not result.terlan_style_all
         and not result.ci_contracts
         and not result.editor
-        and not result.inventory
         and not result.release_tooling
         and not result.hooks
         and not result.workflow
@@ -87,7 +84,6 @@ pub manual_dispatches_skip_duplicate_style_validation(): Bool ->
         and not result.terlan_style_all
         and result.ci_contracts
         and result.editor
-        and result.inventory
         and result.release_tooling
         and result.hooks
         and result.workflow
@@ -134,8 +130,7 @@ pub release_tooling_receives_source_checks_without_compiler_replay(): Bool ->
         and not result.rust_format_all
         and result.terlan_style
         and not result.terlan_style_all
-        and result.release_tooling
-        and not result.inventory.
+        and result.release_tooling.
 
 @test
 pub rust_formatting_scope_is_independent_of_compiler_scope(): Bool ->
@@ -210,29 +205,22 @@ pub generated_orchestration_uses_contracts_without_regeneration(): Bool ->
 pub preflight_domains_are_selected_by_their_own_inputs(): Bool ->
     let ci = ChangeClassifier.classify(["scripts/ci/src/ci/ChangeClassifier.terl"], false);
     let editor = ChangeClassifier.classify(["editors/vscode/package.json"], false);
-    let inventory = ChangeClassifier.classify(["tools/example.py"], false);
-    let script_inventory = ChangeClassifier.classify(["scripts/example.terls"], false);
     let release = ChangeClassifier.classify(["mk/hermetic-support.mk"], false);
     let hooks = ChangeClassifier.classify(["scripts/git_hooks/check.sh"], false);
     let workflow = ChangeClassifier.classify([".github/workflows/security.yml"], false);
     ci.ci_contracts
         and not ci.editor
         and editor.editor
-        and inventory.inventory
-        and script_inventory.inventory
         and release.release_tooling
         and hooks.hooks
         and workflow.workflow
         and ChangeClassifier.is_ci_contract_file(".github/actions/setup-terlan-script-runner/action.yml")
         and ChangeClassifier.is_editor_file("tree-sitter-terlan/grammar.js")
-        and ChangeClassifier.is_inventory_file("crates/terlan/src/main.rs")
-        and ChangeClassifier.is_inventory_file("scripts/example.terls")
         and ChangeClassifier.is_release_tooling_file(".github/workflows/release.yml")
         and ChangeClassifier.is_hook_file(".githooks/pre-commit")
         and ChangeClassifier.is_workflow_file(".github/actions/security-audit/action.yml")
         and not ChangeClassifier.is_ci_contract_file("README.md")
         and not ChangeClassifier.is_editor_file("README.md")
-        and not ChangeClassifier.is_inventory_file("README.md")
         and not ChangeClassifier.is_release_tooling_file("README.md")
         and not ChangeClassifier.is_hook_file("README.md")
         and not ChangeClassifier.is_workflow_file("README.md").
@@ -251,4 +239,4 @@ pub revisions_are_strict_and_indeterminate_bases_fail_closed(): Bool ->
 pub github_outputs_are_complete_and_stable(): Bool ->
     ChangeClassifier.render_outputs(
     ChangeClassifier.classify(["crates/terlan/src/main.rs", "Cargo.lock"], false),
-) == "source=true\ncompiler=true\ndependencies=true\ngenerated=false\ngenerated-summaries=false\ngenerated-js-bindings=false\ngenerated-native-artifacts=false\ngenerated-release-manifest=false\ngenerated-tree-sitter=false\nrust-format=true\nrust-format-all=false\nterlan-style=false\nterlan-style-all=false\nci-contracts=false\neditor=false\ninventory=true\nrelease-tooling=false\nhooks=false\nworkflow=false\nchanged-count=2\n".
+) == "source=true\ncompiler=true\ndependencies=true\ngenerated=false\ngenerated-summaries=false\ngenerated-js-bindings=false\ngenerated-native-artifacts=false\ngenerated-release-manifest=false\ngenerated-tree-sitter=false\nrust-format=true\nrust-format-all=false\nterlan-style=false\nterlan-style-all=false\nci-contracts=false\neditor=false\nrelease-tooling=false\nhooks=false\nworkflow=false\nchanged-count=2\n".

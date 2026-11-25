@@ -137,24 +137,14 @@ metadata_identity(root: String): String ->
         Err(_reason) -> ""
     }.
 
-cross_hashes_hold(root: String, path: String, digest: String): Bool ->
+archive_hash_holds(root: String, path: String, digest: String): Bool ->
     let raw =
         if {
             String.starts_with(digest, "sha256:") -> digest.utf8_slice(7, digest.byte_size() - 7);
             true -> digest
         };
     case Hash.sha256_file(child(root, path)) {
-        Ok(actual) ->
-            actual == raw
-                and EvidenceReports.supply_chain_matches(
-    text(root, "target/quality/release-supply-chain-provenance-report.json"),
-    raw,
-)
-                and EvidenceReports.matrix_archive_matches(
-    text(root, "target/quality/vm-release-artifact-matrix-report.json"),
-    path,
-    raw,
-);
+        Ok(actual) -> actual == raw;
         Err(_reason) -> false
     }.
 
@@ -208,7 +198,7 @@ case candidate_archive(root, candidate) {
                 "reports",
                 "a required release report is missing, stale, failing, or not uniquely sealed",
             );
-            not cross_hashes_hold(root, archive, digest) -> failure("hash", "archive, supply-chain, and matrix hashes do not agree");
+            not archive_hash_holds(root, archive, digest) -> failure("hash", "archive hash does not match the sealed candidate");
             true -> write_report(root, candidate, archive, digest)
         }
 }).

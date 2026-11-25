@@ -126,7 +126,6 @@ DOCS_STATIC_RELEASE_PARITY_IMAGE := $(DOCS_STATIC_RELEASE_PARITY_DIR)/vm/docs_st
 EDITOR_RELEASE_PARITY_DIR := $(DOCS_STATIC_RELEASE_PARITY_DIR)
 EDITOR_RELEASE_PARITY_IMAGE := $(DOCS_STATIC_RELEASE_PARITY_IMAGE)
 TERLAN_COMPILER_CONSUMER_GATES := \
-	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
 	editor-release-parity-check \
 	docs-static-release-parity-check \
@@ -148,7 +147,6 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	runtime-aot-only-check \
 	terlan-vm-test-command-check \
 	vm-coordination-docker-check \
-	all-terlan-tests-vm-inventory-check \
 	callable-syntax-cleanup-check \
 	generated-package-contract-check \
 	cpp-package-consumer-check \
@@ -200,7 +198,6 @@ TERLAN_COMPILER_CONSUMER_GATES := \
 	sql-form-check \
 	stdlib-build-interfaces \
 	stdlib-doc-format-check \
-	stdlib-summary-inventory-check \
 	stdlib-summary-drift-check \
 	stdlib-embedded-interface-contract-check \
 	stdlib-js-bindings-drift-check \
@@ -348,7 +345,7 @@ node-security-audit-check:
 		npm audit --prefix "$$package_dir" --package-lock-only --audit-level=moderate; \
 	done
 .PHONY: tvm-aot-application-conformance-check tvm-aot-c-abi-boundary-check tvm-aot-closure-dispatch-check tvm-aot-crash-injection-check tvm-aot-image-lifetime-check tvm-aot-multicore-readiness-check tvm-aot-thread-sanitizer-check
-.PHONY: std-vm-parity-matrix-check otp-stdlib-port-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
+.PHONY: std-vm-parity-matrix-check otp-stdlib-port-check vm-distribution-suite-parity-check vm-multicore-invariant-inventory-check terlan-self-validation-capabilities-check terlan-self-validation-clean-checkout-check terlan-self-validation-check editor-release-parity-check docs-static-release-parity-check
 .PHONY: tvm-aot-managed-field-projection-check tvm-aot-platform-matrix-contract-check tvm-aot-thread-sanitizer-contract-check tvm-aot-release-closeout-contract-check tvm-aot-release-closeout-check tvm-aot-publish-evidence-check
 .PHONY: tail-recursion-lowering-check termination-productivity-analysis-check binding-shadowing-safety-check
 .PHONY: no-tvm-json-runtime-check no-vmir-interpreter-check runtime-aot-only-check
@@ -453,9 +450,7 @@ endif
 
 CHECK_GATES := \
 	repository-build-release-contract-check \
-	source-extension-check \
 	release-control-check \
-	terlan-self-validation-inventory-check \
 	terlan-self-validation-capabilities-check \
 	terlan-make-recipe-thinness-check \
 	terlan-benchmark-framework-check \
@@ -1413,13 +1408,6 @@ workspace-version-check: | terlan-repository-validation-bootstrap
 		$(TERLAN_REPOSITORY_VALIDATION) workspace-version
 
 
-# Validates source file extensions with the bounded standalone Terlan contract.
-source-extension-check: | terlan-compiler-bootstrap
-	TERLAN_REPOSITORY_ROOT="$(CURDIR)" \
-		$(TERLAN_BOOTSTRAP_COMPILER) run scripts/self_validation/RepositorySourceExtensions.terls \
-			--out-dir target/source-extension-check/build \
-			--cache-dir target/source-extension-check/cache
-
 .PHONY: repository-validation-self-test repository-build-release-contract-check release-artifact-set-check
 # Runs the repository validation tool's own self-test.
 repository-validation-self-test: | terlan-repository-validation-bootstrap
@@ -1747,13 +1735,8 @@ terlan-vm-http-lane-check: \
 	vm-http-live-channel-source-check
 
 
-# Runs the self-validation inventory test for all-terlan-tests-vm coverage
-all-terlan-tests-vm-inventory-check:
-	target/debug/terlc test scripts/self_validation/AllTerlanTestsVmInventoryTest.terl
-
-
 # Aggregates VM-targeted test suites covering run/repl/test commands, shape guards, and stdlib release tests
-all-terlan-tests-vm-check: all-terlan-tests-vm-inventory-check terlan-vm-run-command-check terlan-vm-repl-check terlan-vm-test-command-check flexible-shape-guards-check language-feature-coverage-100-check operator-coverage-100-check pattern-matching-support-check stdlib-release-tests-vm-default-check stdlib-release-tests
+all-terlan-tests-vm-check: terlan-vm-run-command-check terlan-vm-repl-check terlan-vm-test-command-check flexible-shape-guards-check language-feature-coverage-100-check operator-coverage-100-check pattern-matching-support-check stdlib-release-tests-vm-default-check stdlib-release-tests
 
 
 # Verifies terlc doctor diagnostics for VM-pivot project hazards

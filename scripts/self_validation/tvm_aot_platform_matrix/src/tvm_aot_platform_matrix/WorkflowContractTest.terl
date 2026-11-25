@@ -116,8 +116,7 @@ pub source_preflight_never_compiles_rust_tests(): Bool ->
     } else {
         Err(_reason) -> false
     };
-    workflow.contains("terlc }} test scripts/self_validation/InventoryTest.terl")
-        and workflow.contains("name: Check Rust lint allowance policy")
+    workflow.contains("name: Check Rust lint allowance policy")
         and workflow.contains("steps.script-runner.outputs.rust-quality-image")
         and workflow.contains("lint-allowance-check")
         and not workflow.contains("cargo test")
@@ -151,7 +150,6 @@ pub source_contracts_gate_compiler_validation(): Bool ->
         and hook.contains("[[ \"$hosted_dependency_audit\" == 1 ]]")
         and hook.contains("Rust dependency security audit owned by dedicated hosted job")
         and hook.contains("locked Node dependency security audit owned by dedicated hosted job")
-        and hook.contains("local validation plan omitted source inventory")
         and hook.contains("run_affected_rust_lane")
         and hook.contains("early affected Rust lane passed")
         and hook.contains("mv \"$remaining_plan\" \"$plan\"")

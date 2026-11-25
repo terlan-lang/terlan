@@ -556,18 +556,18 @@ checksums_hold(root_path: String, archives: List[String]): Bool ->
         [] -> true;
         [archive | rest] ->
             let sidecar = child(root_path, String.append(archive, ".sha256"));
-            (when {
-    Ok(row) <- File.read_text(sidecar);
-    [expected, name] <- String.split(String.trim(row), "  ");
-    true <- name == archive;
-    Ok(pattern) <- Regex.compile("^[0-9a-f]{64}$");
-    true <- Regex.is_match(pattern, expected);
-    Ok(actual) <- Hash.sha256_file(child(root_path, archive));
-    true <- actual == expected
-} else {
-    _ -> failure("artifacts.checksum", String.append("invalid checksum: ", archive))
-};
-checksums_hold(root_path, rest))
+            when {
+                Ok(row) <- File.read_text(sidecar);
+                [expected, name] <- String.split(String.trim(row), "  ");
+                true <- name == archive;
+                Ok(pattern) <- Regex.compile("^[0-9a-f]{64}$");
+                true <- Regex.is_match(pattern, expected);
+                Ok(actual) <- Hash.sha256_file(child(root_path, archive));
+                true <- actual == expected
+            } else {
+                _ -> failure("artifacts.checksum", String.append("invalid checksum: ", archive))
+            };
+            checksums_hold(root_path, rest)
     }.
 
 release_artifact_set(root_path: String, local_payload: Bool): Bool ->
@@ -591,18 +591,18 @@ write_release_fixture(path: String, archives: List[String]): Bool ->
         [] -> true;
         [archive | rest] ->
             let artifact = child(path, archive);
-            (when {
-    Ok(Unit) <- File.write_text(artifact, String.append("fixture:", archive));
-    Ok(digest) <- Hash.sha256_file(artifact);
-    Ok(Unit) <-
-        File.write_text(
-            String.append(artifact, ".sha256"),
-            String.concat([digest, "  ", archive, "\n"]),
-        )
-} else {
-    _ -> false
-};
-write_release_fixture(path, rest))
+            when {
+                Ok(Unit) <- File.write_text(artifact, String.append("fixture:", archive));
+                Ok(digest) <- Hash.sha256_file(artifact);
+                Ok(Unit) <-
+                    File.write_text(
+                        String.append(artifact, ".sha256"),
+                        String.concat([digest, "  ", archive, "\n"]),
+                    )
+            } else {
+                _ -> false
+            };
+            write_release_fixture(path, rest)
     }.
 
 release_artifact_self_test(): Bool ->
@@ -613,17 +613,17 @@ release_artifact_self_test(): Bool ->
             if {
                 not base -> cleanup_temporary(temporary, false);
                 true -> let accepted = release_artifact_set(temporary, false);
-                (when {
-    Ok(Unit) <- File.write_text(child(temporary, "unexpected.txt"), "unexpected\n");
-    Ok(paths) <- Directory.entries(temporary)
-} else {
-    _ -> cleanup_temporary(temporary, false)
-};
-(let rejected = not same_set(entry_names(paths, List.new[String]()), release_expected(false));
+                when {
+                    Ok(Unit) <- File.write_text(child(temporary, "unexpected.txt"), "unexpected\n");
+                    Ok(paths) <- Directory.entries(temporary)
+                } else {
+                    _ -> cleanup_temporary(temporary, false)
+                };
+                (let rejected = not same_set(entry_names(paths, List.new[String]()), release_expected(false));
 case File.delete(child(temporary, "unexpected.txt")) {
     Err(_reason) -> cleanup_temporary(temporary, false);
     Ok(Unit) -> cleanup_temporary(temporary, accepted and rejected)
-}))
+})
             }
     }.
 
@@ -814,8 +814,6 @@ build_release_contract(repository: String): Bool ->
             "scripts/ci/scripts/ClassifyChanges.terls",
             "scripts/ci/src/ci/ChangeClassifier.terl",
             "scripts/self_validation/RepositoryValidation.terls",
-            "scripts/self_validation/RepositorySourceExtensionsTest.terl",
-            "scripts/self_validation/RepositorySourceExtensions.terls",
             "scripts/build_typed_validator.sh",
             "scripts/run_prebuilt_terlan_binary.sh",
             "scripts/clean_build_outputs.sh",

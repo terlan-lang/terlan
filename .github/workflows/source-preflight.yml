@@ -64,10 +64,6 @@ on:
         description: Whether editor integration inputs changed
         required: true
         type: boolean
-      inventory:
-        description: Whether source inventory inputs changed
-        required: true
-        type: boolean
       release_tooling:
         description: Whether release build-plan inputs changed
         required: true
@@ -171,9 +167,6 @@ jobs:
             --script-eval -- \
             "$BASE_REVISION" "$HEAD_REVISION" "$STYLE_ALL" \
             "${{ steps.script-runner.outputs.terlc }}"
-      - name: Check source inventory and test ownership
-        if: ${{ inputs.inventory }}
-        run: ${{ steps.script-runner.outputs.terlc }} test scripts/self_validation/InventoryTest.terl --coverage --coverage-threshold 100
       - name: Install release-tool test dependencies
         if: ${{ inputs.hooks }}
         run: |

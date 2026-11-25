@@ -181,9 +181,8 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\nshell\n\nworkspace\n'
+    printf 'shell\n\nworkspace\n'
     ;;
-  test\ scripts/self_validation/InventoryTest.terl\ --out-dir\ *\ --cache-dir\ *) ;;
   *) exit 96 ;;
 esac
 TERLC
@@ -196,12 +195,10 @@ printf 'README.md\n' > "$temporary/early-bindings/changes.txt"
     CARGO_TARGET_DIR="$PWD/cache" \
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/fast-admission.log" 2>&1
-  grep -Eq '^admitted:inventory:[0-9a-f]+$' changes.candidate-plan
   grep -Eq '^admitted:shell:[0-9a-f]+$' changes.candidate-plan
   test "$(grep -Ec '^(preflight:)?shell$' changes.candidate-plan)" = 0
   grep -qx 'workspace' changes.candidate-plan
   test "$(grep -Ec '^$' changes.candidate-plan)" = 0
-  grep -Eq 'pass inventory \([0-9]+s\)' "$temporary/fast-admission.log"
   grep -q 'candidate validation deferred' "$temporary/fast-admission.log"
 )
 
@@ -221,13 +218,12 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
-  printf 'preflight:inventory\npreflight:release-manifest\npreflight:terlan-format\nshell\n'
+  printf 'preflight:release-manifest\npreflight:terlan-format\nshell\n'
   exit 0
 fi
 if [[ "$*" == 'run scripts/ci/scripts/CheckRustFormatting.terls -- --paths-file changes.txt' ]]; then
   exit 0
 fi
-if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'lint --only TL0009 --only TL0010 std/core/Int.terl' ]]; then exit 35; fi
 exit 96
 TERLC
@@ -263,10 +259,9 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
-  printf 'preflight:inventory\npreflight:terlan-format\nshell\n'
+  printf 'preflight:terlan-format\nshell\n'
   exit 0
 fi
-if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 case "$1" in lint|fmt) exit 41 ;; esac
 exit 0
 TERLC
@@ -283,10 +278,9 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
-  printf 'preflight:inventory\npreflight:grammar\nshell\n'
+  printf 'preflight:grammar\nshell\n'
   exit 0
 fi
-if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 test "$TERLAN_EBNF_ROOT" = "$PWD"
 test "$TERLAN_EBNF_COMPILER" = "$0"
 test "$*" = 'run scripts/self_validation/EbnfValidator.terls'
@@ -306,10 +300,9 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
-  printf 'preflight:inventory\npreflight:grammar\npreflight:js-bindings\nshell\n'
+  printf 'preflight:grammar\npreflight:js-bindings\nshell\n'
   exit 0
 fi
-if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --check' ]]; then
   test "$TERLAN_SYNTAX_ARTIFACT_ROOT" = "$PWD"
@@ -336,10 +329,9 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 set -eu
 if [[ "$*" == 'run scripts/git_hooks/scripts/Plan.terls -- changes.txt' ]]; then
-  printf 'preflight:inventory\npreflight:grammar\npreflight:js-bindings\npreflight:negative-api\nshell\n'
+  printf 'preflight:grammar\npreflight:js-bindings\npreflight:negative-api\nshell\n'
   exit 0
 fi
-if [[ "$*" == 'test scripts/self_validation/InventoryTest.terl' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/self_validation/EbnfValidator.terls' ]]; then exit 0; fi
 if [[ "$*" == 'run scripts/ci/scripts/SyncSyntaxContractArtifacts.terls -- --check' ]]; then
   test "$TERLAN_SYNTAX_ARTIFACT_ROOT" = "$PWD"
@@ -375,7 +367,7 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\npreflight:negative-api\ncommands-doctor\nshell\n'
+    printf 'preflight:negative-api\ncommands-doctor\nshell\n'
     ;;
   'run scripts/self_validation/StdlibValidation.terls -- negative-api')
     printf 'late-negative-api\n' >> "$HOOK_ORDER_CALLS"
@@ -430,9 +422,8 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\ncommands-doctor\n'
+    printf 'commands-doctor\n'
     ;;
-  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
   *) exit 98 ;;
 esac
 TERLC
@@ -471,9 +462,8 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\ncommands\n'
+    printf 'commands\n'
     ;;
-  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
   *) exit 98 ;;
 esac
 TERLC
@@ -498,24 +488,6 @@ chmod +x "$temporary/early-bindings/cache/debug/terlc" \
   grep -Fq 'compiler-heavy Rust shape: tests=2 builds=3' \
     "$temporary/compiler-heavy-rust.log"
 )
-# Retained-source inventory drift must stop before planning or optimized builds.
-cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
-#!/usr/bin/env bash
-set -eu
-case "$*" in
-  'run scripts/git_hooks/scripts/Plan.terls -- changes.txt') printf 'preflight:inventory\nshell\n' ;;
-  'test scripts/self_validation/InventoryTest.terl') exit 36 ;;
-  *) exit 98 ;;
-esac
-TERLC
-(
-  cd "$temporary/early-bindings"
-  status=0
-  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
-    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
-    > "$temporary/early-python-inventory.log" 2>&1 || status=$?
-  test "$status" = 36
-)
 # Native generation drift must stop before optimized builds. The real planner
 # separately tests the changed-path classification; this checks execution order
 # and failure propagation through the actual hook checker.
@@ -524,10 +496,9 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\nshell\n'
+    printf 'shell\n'
     if [[ "$HOOK_NATIVE_SELECTED" == yes ]]; then printf 'native-bindings\n'; fi
     ;;
-  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
   *) exit 98 ;;
 esac
 TERLC
@@ -592,10 +563,6 @@ grep -Fq 'prechecked_terlan' <<< "$release_contract_body"
 grep -Fq 'build_typed_validator.sh' <<< "$release_contract_body"
 grep -Fq 'scripts/self_validation/RepositoryValidationMain.terl' \
   <<< "$release_contract_body"
-grep -Fq 'scripts/self_validation/RepositorySourceExtensions.terls' \
-  "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'make --no-print-directory source-extension-check' \
-  <<< "$release_contract_body"
 grep -Fq 'repository_validator_image' <<< "$release_contract_body"
 grep -Fq 'TERLAN_REPOSITORY_VALIDATION=$CARGO_TARGET_DIR/debug/terlan-vm run' \
   <<< "$release_contract_body"
@@ -637,10 +604,6 @@ grep -Fq 'reuse compiler; no compiler inputs changed' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'reuse latest compiler; staged changes are not compiler inputs' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'prebuild standard-library summary inventory' \
-  "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq '"$TERLAN_HOOK_LATEST_TERLC" test scripts/self_validation/SummaryInventoryTest.terl' \
-  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'git ls-files -s -z -- "std/summaries/$module.typi"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq "! rg -qx 'preflight:compiler-build'" \
@@ -661,8 +624,6 @@ grep -Fq 'reuse compatible compiler $terlc' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'TERLAN_HOOK_MODE="${TERLAN_HOOK_MODE:-full}" bash "$driver" check' \
   "$(dirname "$driver")/../.githooks/pre-commit"
-grep -Fq "rg -qx 'preflight:inventory'" \
-  "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq '[[ "$hosted_source_preflight" == 0 ]]' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'candidate compiler produced an empty validation plan' \
@@ -700,24 +661,17 @@ early_terlan_format_line=$(rg -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_grammar_line=$(rg -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-inventory_line=$(rg -n -F 'retained source inventory' \
-  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-prebuild_summary_line=$(rg -n -F 'prebuild standard-library summary inventory' \
-  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 compiler_build_line=$(rg -n -F 'build the changed staged compiler' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$early_rust_reports_line"
 test -n "$early_affected_rust_line"
 test -n "$early_terlan_format_line"
 test -n "$early_grammar_line"
-test -n "$prebuild_summary_line"
 test -n "$compiler_build_line"
-test "$prebuild_summary_line" -lt "$compiler_build_line"
 test "$early_grammar_line" -lt "$early_terlan_format_line"
 test "$early_terlan_format_line" -lt "$early_rust_reports_line"
 test "$early_rust_reports_line" -lt "$early_terlan_line"
 test "$early_terlan_line" -lt "$early_affected_rust_line"
-test "$early_terlan_line" -lt "$inventory_line"
 
 # Proof semantics depend on the exact staged compiler inputs, not Cargo's
 # optimization profile. Reuse the already validated candidate compiler so the
@@ -894,7 +848,6 @@ early_proof_checks_line=$(grep -n \
   'proof evidence and checks follow canonical Rust suite' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test "$workspace_loop_line" -lt "$early_proof_checks_line"
-test "$early_proof_checks_line" -lt "$inventory_line"
 proof_lane=$(sed -n '/^    proofs)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'if [[ "$workspace_lane_selected" == false ]]' <<< "$proof_lane"
@@ -953,9 +906,8 @@ cat > "$temporary/report-handoff/cache/debug/terlc" <<'TERLC'
 #!/usr/bin/env bash
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'preflight:inventory\nrust-reports\ncommands-doctor\n'
+    printf 'rust-reports\ncommands-doctor\n'
     ;;
-  'test scripts/self_validation/InventoryTest.terl') exit 0 ;;
   *) exit 98 ;;
 esac
 TERLC

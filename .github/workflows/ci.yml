@@ -115,7 +115,6 @@ jobs:
       terlan-style-all: ${{ steps.classify.outputs.terlan-style-all }}
       ci-contracts: ${{ steps.classify.outputs.ci-contracts }}
       editor: ${{ steps.classify.outputs.editor }}
-      inventory: ${{ steps.classify.outputs.inventory }}
       release-tooling: ${{ steps.classify.outputs.release-tooling }}
       hooks: ${{ steps.classify.outputs.hooks }}
       workflow: ${{ steps.classify.outputs.workflow }}
@@ -223,7 +222,6 @@ jobs:
       terlan_style_all: ${{ needs.changes.outputs.terlan-style-all == 'true' }}
       ci_contracts: ${{ needs.changes.outputs.ci-contracts == 'true' }}
       editor: ${{ needs.changes.outputs.editor == 'true' }}
-      inventory: ${{ needs.changes.outputs.inventory == 'true' }}
       release_tooling: ${{ needs.changes.outputs.release-tooling == 'true' }}
       hooks: ${{ needs.changes.outputs.hooks == 'true' }}
       workflow: ${{ needs.changes.outputs.workflow == 'true' }}

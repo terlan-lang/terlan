@@ -31,6 +31,7 @@ require 'candidate_validation_mode" == incremental'
 require 'terlan.incremental-compiler-validation.v1'
 require 'authentication:"github-job"'
 require 'authentication:"github-attestation"'
+require 'hosted release artifact is missing required report $evidence'
 
 mapfile -t readiness_reports < <(
   sed -n '/pub readiness_reports/,/pub preflight_reports/p' "$reports_file" \

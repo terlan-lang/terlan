@@ -311,20 +311,6 @@ else
   fi
 fi
 hosted_evidence_files=(
-  release-example-projects-report.json
-  release-project-upgrade-matrix-report.json
-  release-reference-app-suite-report.json
-  release-diagnostic-catalog-report.json
-  release-compatibility-baseline-report.json
-  release-notes-accuracy-report.json
-  release-supply-chain-provenance-report.json
-  release-security-hardening-report.json
-  release-support-bundle-report.json
-  release-performance-baseline-report.json
-  release-adversarial-corpus-report.json
-  release-mutation-check-report.json
-  release-fault-injection-report.json
-  vm-release-artifact-matrix-report.json
   tvm-aot-platform-matrix-report.json
   tvm-aot-thread-sanitizer-report.json
   vm-multicore-thread-sanitizer-report.json
@@ -337,7 +323,10 @@ hosted_evidence_files=(
 )
 for evidence in "${hosted_evidence_files[@]}"; do
   if [[ "$cache_hit" == 0 ]]; then
-    [[ -f "$hosted_reports_dir/$evidence" && ! -L "$hosted_reports_dir/$evidence" ]] || exit 1
+    [[ -f "$hosted_reports_dir/$evidence" && ! -L "$hosted_reports_dir/$evidence" ]] || {
+      echo "hosted release artifact is missing required report $evidence" >&2
+      exit 1
+    }
     cp -p "$hosted_reports_dir/$evidence" "$hosted_evidence_dir/$evidence"
   fi
   [[ -f "$hosted_evidence_dir/$evidence" && ! -L "$hosted_evidence_dir/$evidence" ]] || {

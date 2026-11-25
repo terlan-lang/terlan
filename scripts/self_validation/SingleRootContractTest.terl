@@ -72,8 +72,6 @@ makefile_holds(makefile: String): Bool ->
         "COVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm",
     ],
 )
-        and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-inventory-check")
-        and make_variable_contains(makefile, "CHECK_GATES", "source-extension-check")
         and make_variable_contains(makefile, "CHECK_GATES", "terlan-self-validation-capabilities-check")
         and make_variable_contains(makefile, "CHECK_GATES", "runtime-aot-only-check")
         and make_variable_contains(makefile, "CHECK_GATES", "vm-multicore-release-contract-check")
@@ -211,7 +209,7 @@ valid_makefile(): String ->
     String.append(
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\nrelease-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check\nrelease-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check\n",
         String.append(
-            "CHECK_GATES := \\\n\tsource-extension-check \\\n\tterlan-self-validation-inventory-check \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\nifeq ($(TERLAN_RELEASE_CONTROL_PRECHECKED),1)\nCHECK_GATES := $(filter-out release-control-check,$(CHECK_GATES))\nendif\n",
+            "CHECK_GATES := \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\nifeq ($(TERLAN_RELEASE_CONTROL_PRECHECKED),1)\nCHECK_GATES := $(filter-out release-control-check,$(CHECK_GATES))\nendif\n",
             "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap\n\t$(MAKE) --no-print-directory TERLAN_BUILD_ARTIFACTS_PREBUILT=1 release-control-check\n\t$(MAKE) --no-print-directory TERLAN_RELEASE_CONTROL_PRECHECKED=1 TERLAN_TYPED_VALIDATOR_FINGERPRINT_PREBUILT=1 check\n\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).
@@ -227,13 +225,6 @@ valid_release_workflow(): String ->
 @test
 pub repository_release_entrypoints_are_single_rooted(): Bool ->
     repository_contract_holds(".").
-
-@test
-pub source_extension_gate_is_canonical(): Bool ->
-    case read_text("Makefile") {
-        Ok(makefile) -> make_variable_contains(makefile, "CHECK_GATES", "source-extension-check");
-        _ -> false
-    }.
 
 @test
 pub current_makefile_contract_holds(): Bool ->

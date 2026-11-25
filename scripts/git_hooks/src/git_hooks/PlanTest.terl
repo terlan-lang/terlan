@@ -108,7 +108,7 @@ pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     "native-ir",
     "phase",
 ]
-        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "negative-api", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "negative-api", "rust-docs"]
         and Plan.lanes(
     [
         "crates/terlan/src/compiler/native_ir/collection_values.rs",
@@ -201,14 +201,14 @@ pub specialized_integration_tests_require_their_owning_environment(): Bool ->
 
 @test
 pub ordinary_docs_avoid_artifact_workloads(): Bool ->
-    Plan.preflight_lanes(["README.md"]) == ["inventory"]
+    Plan.preflight_lanes(["README.md"]) == []
         and not Plan.artifact_budget(["README.md"])
         and not Plan.release_manifest(["README.md"])
         and not Plan.rust_docs(["README.md"]).
 
 @test
 pub workflow_changes_validate_release_contracts_early(): Bool ->
-    Plan.preflight_lanes([".github/actions/setup-rust/action.yml"]) == ["inventory", "workflow-contract"]
+    Plan.preflight_lanes([".github/actions/setup-rust/action.yml"]) == ["workflow-contract"]
         and Plan.release_contract([".github/workflows/ci.yml"])
         and Plan.release_contract([".github/workflows/source-preflight.yml"])
         and Plan.release_contract([".github/workflows/release.yml"])
@@ -259,7 +259,7 @@ pub workspace_changes_supersede_owned_runtime_tests(): Bool ->
 pub platform_validator_changes_validate_themselves_early(): Bool ->
     Plan.preflight_lanes(
     ["scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"],
-) == ["inventory", "workflow-contract", "terlan-format"]
+) == ["workflow-contract", "terlan-format"]
         and not Plan.release_contract(
     ["scripts/self_validation/tvm_aot_platform_matrix/src/tvm_aot_platform_matrix/Core.terl"],
 )
@@ -272,7 +272,7 @@ pub platform_validator_changes_validate_themselves_early(): Bool ->
 @test
 pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "clippy", "rust-reports", "commands-doctor"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"].
 
 @test
 pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
@@ -284,14 +284,14 @@ pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
 
 @test
 pub rust_formatting_uses_changed_inputs_unless_configuration_changes(): Bool ->
-    Plan.preflight_lanes(["tools/example.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
-        and Plan.preflight_lanes(["rustfmt.toml"]) == ["inventory", "rust-format"].
+    Plan.preflight_lanes(["tools/example.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
+        and Plan.preflight_lanes(["rustfmt.toml"]) == ["rust-format"].
 
 @test
 pub every_rust_allowance_change_runs_policy_before_expensive_gates(): Bool ->
     Plan.rust_lint_allowances(["crates/terlan/src/lib.rs"])
         and Plan.rust_lint_allowances(["docs/quality/RUST_LINT_ALLOWANCES.tsv"])
-        and Plan.preflight_lanes(["crates/terlan/src/lib.rs"]) == ["inventory", "compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan/src/lib.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
         and not Plan.rust_lint_allowances(["scripts/git_hooks/check.sh"])
         and not Plan.rust_lint_allowances(["scripts/git_hooks/src/git_hooks/Plan.terl"])
         and not Plan.rust_lint_allowances(["README.md"]).
@@ -357,7 +357,7 @@ pub broad_rust_lanes_remove_their_narrow_duplicates(): Bool ->
 
 @test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->
-    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["inventory", "hook-policy"]
+    Plan.preflight_lanes(["scripts/git_hooks/check.sh"]) == ["hook-policy"]
         and Plan.lanes(["scripts/git_hooks/check.sh"]) == ["shell"]
         and not Plan.release_contract(["scripts/git_hooks.sh"])
         and not Plan.bootstrap(["scripts/git_hooks/check.sh"])
@@ -367,19 +367,19 @@ pub hook_changes_skip_unrelated_artifacts(): Bool ->
 
 @test
 pub dependency_changes_select_security_and_binary_consumers(): Bool ->
-    Plan.preflight_lanes(["Cargo.lock"]) == ["inventory", "compiler-build", "rust-security"]
+    Plan.preflight_lanes(["Cargo.lock"]) == ["compiler-build", "rust-security"]
         and Plan.compiler_bootstrap(["Cargo.toml"])
         and Plan.compiler_bootstrap(["crates/terlan/src/main.rs"])
         and not Plan.compiler_bootstrap(["README.md"]).
 
 @test
 pub exact_version_metadata_uses_only_its_owned_gate(): Bool ->
-    Plan.preflight_lanes([".terlan-hook/version-metadata"]) == ["inventory", "version-metadata"]
+    Plan.preflight_lanes([".terlan-hook/version-metadata"]) == ["version-metadata"]
         and Plan.lanes([".terlan-hook/version-metadata"]) == ["shell"].
 
 @test
 pub standard_library_changes_select_owned_contracts(): Bool ->
-    Plan.preflight_lanes(["std/core/Int.terl"]) == ["inventory", "negative-api", "release-manifest", "terlan-format"].
+    Plan.preflight_lanes(["std/core/Int.terl"]) == ["negative-api", "release-manifest", "terlan-format"].
 
 @test
 pub terlan_manifests_trigger_package_validation(): Bool ->
@@ -477,7 +477,7 @@ pub summary_metadata_changes_check_both_generators(): Bool ->
 @test
 pub generated_native_boundaries_use_only_summary_validation(): Bool ->
     let generated = ["std/summaries/std_data_json_native_boundary.native_boundary.rs"];
-    Plan.preflight_lanes(generated) == ["inventory"]
+    Plan.preflight_lanes(generated) == []
         and Plan.lanes(generated) == ["shell", "summaries"]
         and not Plan.workspace(generated)
         and not Plan.compiler_bootstrap(generated)
@@ -504,8 +504,7 @@ pub publication_workflow_checks_release_contract(): Bool ->
 @test
 pub release_validator_changes_execute_the_contract(): Bool ->
     Plan.lanes(["scripts/self_validation/RepositoryValidation.terls"]) == ["shell", "release-contract", "terlan"]
-        and Plan.lanes(["scripts/self_validation/RepositoryValidationMain.terl"]) == ["shell", "release-contract", "terlan"]
-        and Plan.lanes(["scripts/self_validation/RepositorySourceExtensionsTest.terl"]) == ["shell", "release-contract", "terlan"].
+        and Plan.lanes(["scripts/self_validation/RepositoryValidationMain.terl"]) == ["shell", "release-contract", "terlan"].
 
 @test
 pub platform_installer_changes_execute_release_contract_tests(): Bool ->

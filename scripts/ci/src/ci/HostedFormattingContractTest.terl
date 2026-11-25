@@ -32,7 +32,6 @@ pub local_and_hosted_formatting_share_changed_input_ownership(): Bool ->
         and String.contains(runner, "scripts/ci/scripts/CheckTerlanStyle.terls")
         and String.contains(preflight, "steps.script-runner.outputs.terlan-style-image")
         and String.contains(preflight, "if: \${{ inputs.editor }}")
-        and String.contains(preflight, "if: \${{ inputs.inventory }}")
         and String.contains(preflight, "if: \${{ inputs.release_tooling }}")
         and String.contains(preflight, "if: \${{ inputs.hooks }}")
         and String.contains(preflight, "if: \${{ inputs.workflow }}")
