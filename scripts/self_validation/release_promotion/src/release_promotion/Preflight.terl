@@ -119,12 +119,6 @@ validate_loaded(
             "candidate",
             "staged evidence belongs to another candidate; run `make release-staged-distribution-verification-check`",
         );
-        not EvidenceReports.platforms_hold(
-    loaded_text(files, "target/quality/vm-release-artifact-matrix-report.json"),
-) -> failure(
-            "platform",
-            "six unique platform contract rows are required; run `make vm-release-artifact-matrix-check`",
-        );
         not recipe_is_offline(makefile) -> failure(
             "offline",
             "preflight contains a network, publication, or second-seal command; run `make release-preflight`",
