@@ -41,6 +41,9 @@ execution—the first optimization target.
   does not compile the monolithic compiler test harness.
 - [x] Replace per-expression linear provider scans and import-set rebuilding
   with an indexed provider catalog and one import scope per function.
+- [x] Emit a 10-second phase heartbeat during low-memory application planning
+  so frontend, standard-library, reachability, pruning, and native-image stalls
+  are distinguishable before a gate completes.
 
 Acceptance uses matched focused/combined, narrow/broad dependency, cold/warm
 cache, and reachable/unreachable native-provider fixtures. Test execution time
