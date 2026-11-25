@@ -39,6 +39,8 @@ execution—the first optimization target.
   declared budget is exceeded.
 - [x] Extract the type-fuzz generator model so its complete 100% coverage gate
   does not compile the monolithic compiler test harness.
+- [x] Replace per-expression linear provider scans and import-set rebuilding
+  with an indexed provider catalog and one import scope per function.
 
 Acceptance uses matched focused/combined, narrow/broad dependency, cold/warm
 cache, and reachable/unreachable native-provider fixtures. Test execution time
