@@ -1392,7 +1392,7 @@ build_plan_report_valid(report: Json): Bool ->
         and report_integer(report, "terlc_build_invocation_count") >= 0
         and report_integer(report, "typed_validator_request_count") >= 0
         and report_integer(report, "typed_validator_parallelism") >= 1
-        and report_integer(report, "terlc_toolchain_probe_invocation_count") == 1
+        and report_integer(report, "terlc_toolchain_probe_invocation_count") <= 1
         and report_integer(report, "rust_orchestrator_count") == 1
         and report_integer(report, "duplicate_equivalent_build_count") == 0
         and report_integer(report, "cargo_run_count") == 0
@@ -1563,6 +1563,12 @@ build_plan_count_fields_self_test(fields: List[String]): Bool ->
 
 build_plan_report_self_test(): Bool ->
     build_plan_report_valid(build_plan_report_fixture())
+        and build_plan_report_valid(
+    build_plan_report_fixture().put("terlc_toolchain_probe_invocation_count", Json.int(0)),
+)
+        and not build_plan_report_valid(
+    build_plan_report_fixture().put("terlc_toolchain_probe_invocation_count", Json.int(2)),
+)
         and not build_plan_report_valid(Json.object())
         and not build_plan_report_text_valid("not json")
         and not build_plan_report_valid(build_plan_report_fixture().put("decision", Json.string("fail")))
