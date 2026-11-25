@@ -498,6 +498,7 @@ release_script(paths: List[String]): Bool ->
     and String.ends_with(path, ".sh")
     and path != "scripts/git_hooks.sh"
     and path != "scripts/git_hooks_test.sh"
+    and path != "scripts/publish_command_test.sh"
     and path != "scripts/git_hooks/check.sh"
     and path != "scripts/git_hooks/formatting_only.sh"
     and path != "scripts/git_hooks/js_browser.sh"

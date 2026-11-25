@@ -538,9 +538,9 @@ done
 # Release-facing source changes must execute the concrete installer validator
 # before the broader repository contract. This would have caught stale getter
 # spellings during the struct-field migration rather than at publication time.
-release_install_line=$(rg -n -F 'make --no-print-directory vm-release-install-validation-check' \
+release_install_line=$(grep -n -F 'make --no-print-directory vm-release-install-validation-check' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-repository_contract_line=$(rg -n -F 'make --no-print-directory repository-build-release-contract-check' \
+repository_contract_line=$(grep -n -F 'make --no-print-directory repository-build-release-contract-check' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$release_install_line"
 test -n "$repository_contract_line"
@@ -606,7 +606,7 @@ grep -Fq 'reuse latest compiler; staged changes are not compiler inputs' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'git ls-files -s -z -- "std/summaries/$module.typi"' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq "! rg -qx 'preflight:compiler-build'" \
+grep -Fq "! grep -Fxq 'preflight:compiler-build'" \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'dirname "$TERLAN_HOOK_VALIDATION_RECEIPT_DIR"' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -630,7 +630,7 @@ grep -Fq 'early affected Rust lane passed' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'canonical Rust suite failed with status' \
   "$(dirname "$driver")/git_hooks/check.sh"
-if rg -q '^export TERLAN_CUDA_DIR$$' "$(dirname "$driver")/../Makefile"; then
+if grep -Eq '^export TERLAN_CUDA_DIR$$' "$(dirname "$driver")/../Makefile"; then
   echo 'CUDA package routing leaked into every validation recipe' >&2
   exit 1
 fi
@@ -649,17 +649,17 @@ grep -Fq 'terlc="$target_terlc"' \
 if grep -Fq 'cargo fmt --all' "$(dirname "$driver")/git_hooks/check.sh"; then
   echo 'Hook redundantly formats unchanged Rust sources' >&2; exit 1
 fi
-early_terlan_line=$(rg -n -F 'early terlan ownership and coverage' \
+early_terlan_line=$(grep -n -F 'early terlan ownership and coverage' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-early_rust_reports_line=$(rg -n -F 'early Rust report drift' \
+early_rust_reports_line=$(grep -n -F 'early Rust report drift' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-early_affected_rust_line=$(rg -n -F 'early affected Rust lane passed' \
+early_affected_rust_line=$(grep -n -F 'early affected Rust lane passed' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-early_terlan_format_line=$(rg -n -F 'early Terlan formatting' \
+early_terlan_format_line=$(grep -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-early_grammar_line=$(rg -n -F 'early canonical grammar and summary' \
+early_grammar_line=$(grep -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-compiler_build_line=$(rg -n -F 'build the changed staged compiler' \
+compiler_build_line=$(grep -n -F 'build the changed staged compiler' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$early_rust_reports_line"
 test -n "$early_affected_rust_line"
@@ -705,7 +705,7 @@ if grep -Fq 'ensure_release_tools' <<< "$release_manifest_block"; then
   echo 'Release manifest rebuilt optimized compiler tools unnecessarily' >&2
   exit 1
 fi
-if rg -q '\$\(RUST_TEST\).* -p terlan --lib.*lean_proof_' \
+if grep -Eq '\$\(RUST_TEST\).* -p terlan --lib.*lean_proof_' \
   "$(dirname "$driver")/../mk/lean-proof-checks.mk"; then
   echo 'Proof producers duplicated Rust tests owned by rust-test-suite' >&2
   exit 1
@@ -722,7 +722,7 @@ fi
 workspace_native_binding_block=$(sed -n \
   '/^if \[\[ "$workspace_lane_selected" == true \]\] && lane_has native-bindings;/,/^fi$/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq "rg -vx 'native-bindings'" <<< "$workspace_native_binding_block"
+grep -Fq "grep -Fvx 'native-bindings'" <<< "$workspace_native_binding_block"
 grep -Fq 'canonical Rust suite owns native binding contracts' \
   <<< "$workspace_native_binding_block"
 
@@ -731,9 +731,9 @@ grep -Fq 'canonical Rust suite owns native binding contracts' \
 # provide the remaining debug native worker before invoking its validator.
 native_worker_build_pattern='cargo '
 native_worker_build_pattern+='build --locked -p terlan --bin terlan-native-worker'
-native_worker_build_line=$(rg -n -F "$native_worker_build_pattern" \
+native_worker_build_line=$(grep -n -F "$native_worker_build_pattern" \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1 | tail -1)
-executable_budget_line=$(rg -n -F -- '-- --check-executables "$CARGO_TARGET_DIR"' \
+executable_budget_line=$(grep -n -F -- '-- --check-executables "$CARGO_TARGET_DIR"' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$native_worker_build_line"
 test -n "$executable_budget_line"
@@ -841,7 +841,7 @@ grep -Fq 'proof evidence and checks follow canonical Rust suite' \
   <<< "$early_proof_checks_block"
 grep -Fq 'run_proof_evidence' <<< "$early_proof_checks_block"
 grep -Fq 'run_proof_checks' <<< "$early_proof_checks_block"
-grep -Fq "rg -vx 'proofs'" <<< "$early_proof_checks_block"
+grep -Fq "grep -Fvx 'proofs'" <<< "$early_proof_checks_block"
 early_proof_checks_line=$(grep -n \
   'proof evidence and checks follow canonical Rust suite' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
@@ -1104,9 +1104,9 @@ git -C "$temporary/terlan-lane" add .
       changes.txt unused "$PWD/terlc" false prechecked.txt specialized.txt \
     > "$temporary/terlan-lane.log" 2>&1
 )
-rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check src/Legacy.terl src/LegacyTest.terl src/SpecializedTest.terl$" "$temporary/terlan-lane.calls"
-rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} test src/DeclaredTest.terl src/SecondTest.terl --coverage --coverage-source src/Declared.terl --coverage-source src/Second.terl --coverage-threshold 100$" "$temporary/terlan-lane.calls"
-if rg -q -- ' build ' "$temporary/terlan-lane.calls"; then
+grep -Eq -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check src/Legacy.terl src/LegacyTest.terl src/SpecializedTest.terl$" "$temporary/terlan-lane.calls"
+grep -Eq -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} test src/DeclaredTest.terl src/SecondTest.terl --coverage --coverage-source src/Declared.terl --coverage-source src/Second.terl --coverage-threshold 100$" "$temporary/terlan-lane.calls"
+if grep -Eq -- ' build ' "$temporary/terlan-lane.calls"; then
   echo 'Hook linked a native image during source validation' >&2; exit 1
 fi
 if grep -Fxq 'test src/LegacyTest.terl' "$temporary/terlan-lane.calls"; then
@@ -1251,9 +1251,9 @@ git -C "$temporary/terlan-lane" add manifest-only
       manifest-only-changes.txt unused "$PWD/terlc" false /dev/null /dev/null \
     > "$temporary/terlan-manifest-only.log" 2>&1
 )
-rg -q -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check tests/Only.terl$" \
+grep -Eq -- "^--cache-dir $temporary/terlan-lane-cache/[0-9a-f]{64} check tests/Only.terl$" \
   "$temporary/terlan-manifest-only.calls"
-if rg -q -- 'check src($| )' "$temporary/terlan-manifest-only.calls"; then
+if grep -Eq -- 'check src($| )' "$temporary/terlan-manifest-only.calls"; then
   echo 'Hook ignored manifest source roots and assumed src' >&2; exit 1
 fi
 

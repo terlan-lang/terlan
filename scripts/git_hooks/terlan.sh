@@ -22,7 +22,7 @@ if [[ -z "$compiler_identity" ]]; then
   compiler_identity=$(git hash-object "$terlc")
 fi
 coverage_sources_supported=false
-if "$terlc" test --help 2>&1 | rg -q -- '--coverage-source'; then
+if "$terlc" test --help 2>&1 | grep -Fq -- '--coverage-source'; then
   coverage_sources_supported=true
 fi
 hash_stream() {
@@ -219,7 +219,7 @@ run_terlan_test() {
   for previous in "${tested_terlan[@]}"; do
     if [[ "$previous" == "$1" ]]; then return 0; fi
   done
-  if [[ -f "$specialized_tests" ]] && rg -Fqx -- "$1" "$specialized_tests"; then
+  if [[ -f "$specialized_tests" ]] && grep -Fqx -- "$1" "$specialized_tests"; then
     queue_check "$1"
     tested_terlan+=("$1")
     echo "pre-commit: specialized owner will execute: $1"
@@ -229,7 +229,7 @@ run_terlan_test() {
   # test declarations. Their owning package build above still type-checks them,
   # but `terlc test` correctly rejects an empty test selection. Only launch the
   # test runner when it can discover at least one declaration.
-  if ! rg -q '^[[:space:]]*@test([[:space:](]|$)' "$1"; then
+  if ! grep -Eq '^[[:space:]]*@test([[:space:](]|$)' "$1"; then
     echo "pre-commit: compiled legacy self-test module: $1"
     queue_check "$coverage_source"
     queue_check "$1"
@@ -301,7 +301,7 @@ while IFS= read -r path; do
   # JavaScript sources execute through the browser matrix below.
   if [[ "$path" == std/js/* || "$path" == tests/js/* ]]; then continue; fi
   if [[ "$path" == *.terl || "$path" == *.terls || "$path" == *.terli || "$path" == *terlan.toml ]]; then
-    if [[ -f "$prechecked" ]] && rg -Fqx -- "$path" "$prechecked"; then
+    if [[ -f "$prechecked" ]] && grep -Fqx -- "$path" "$prechecked"; then
       echo "pre-commit: reused earlier Terlan validation: $path"
       continue
     fi

@@ -119,7 +119,7 @@ headroom_report=docs/quality/RUST_FILE_HEADROOM.tsv
 api_inventory_report=docs/quality/RUST_STRING_ERROR_INVENTORY.tsv
 dependency_report_refresh=false
 rust_report_input=false
-if rg -q '(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
+if grep -Eq '(^|/)Cargo\.(toml|lock)$|(^|/)(rustfmt|clippy)\.toml$|^rust-toolchain\.toml$|^\.cargo/|^scripts/self_validation/rust_quality/|^scripts/git_hooks/rust_reports\.sh$' "$changes" \
   || awk '/\.rs$/ && $0 !~ /\.native_boundary\.rs$/ { found = 1 } END { exit found ? 0 : 1 }' "$changes"; then
   rust_report_input=true
 fi

@@ -367,7 +367,8 @@ pub hook_changes_skip_unrelated_artifacts(): Bool ->
         and not Plan.bootstrap(["scripts/git_hooks/check.sh"])
         and not Plan.native_bindings(["scripts/git_hooks/check.sh"])
         and not Plan.artifact_budget(["scripts/git_hooks/check.sh"])
-        and not Plan.release_contract(["scripts/git_hooks_test.sh"]).
+        and not Plan.release_contract(["scripts/git_hooks_test.sh"])
+        and not Plan.release_contract(["scripts/publish_command_test.sh"]).
 
 @test
 pub dependency_changes_select_security_and_binary_consumers(): Bool ->

@@ -99,12 +99,12 @@ workspace_version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/
 release_plan_dry_run=$(make --no-print-directory -n release-plan)
 grep -Fq "status \"$workspace_version\"" <<<"$release_plan_dry_run"
 publish_local=$(make_rule publish-local)
-if printf '%s\n' "$publish_local" | rg -q 'publish-source-preflight'; then
+if printf '%s\n' "$publish_local" | grep -Eq 'publish-source-preflight'; then
   echo 'publish-local redundantly replays publish-source-preflight.' >&2
   exit 1
 fi
 publish=$(make_rule publish)
-if printf '%s\n' "$publish" | rg -q 'publication_process_preflight'; then
+if printf '%s\n' "$publish" | grep -Eq 'publication_process_preflight'; then
   echo 'make publish blocks harmless parallel validation before hosted checks finish.' >&2
   exit 1
 fi
@@ -114,12 +114,12 @@ grep -Fq 'publication_process_preflight.sh' <<<"$publish_prepare"
 # Publication must not replay the compiler, AOT, sanitizer, or browser suites.
 # The exact hosted release workflow owns those gates and the sealed bundle.
 publish_local_check=$(make_rule publish-local-check)
-if printf '%s\n' "$publish_local_check" | rg -q 'release-candidate-check|browser-release-check|thread-sanitizer-check|tvm-aot-platform-target-check'; then
+if printf '%s\n' "$publish_local_check" | grep -Eq 'release-candidate-check|browser-release-check|thread-sanitizer-check|tvm-aot-platform-target-check'; then
   echo 'make publish still replays an expensive validation gate.' >&2
   exit 1
 fi
 grep -Fq 'CARGO_TARGET_DIR="$(CURDIR)/target" bash scripts/git_hooks/js_browser.sh' "${make_sources[@]}"
-if rg -q 'scripts/git_hooks/js_browser\.sh' "$root/scripts/git_hooks/check.sh"; then
+if grep -Eq 'scripts/git_hooks/js_browser\.sh' "$root/scripts/git_hooks/check.sh"; then
   echo 'The complete browser matrix must run once at publication, not per commit.' >&2
   exit 1
 fi

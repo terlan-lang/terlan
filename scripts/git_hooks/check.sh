@@ -129,7 +129,7 @@ elif [[ "$exact_compiler_inputs" == false \
   && -x ${TERLAN_HOOK_LATEST_TERLC:-} \
   && ! -L ${TERLAN_HOOK_LATEST_TERLC:-} ]] \
   && run_plan "$TERLAN_HOOK_LATEST_TERLC" \
-  && ! rg -qx 'preflight:compiler-build' "$raw_plan"; then
+  && ! grep -Fxq 'preflight:compiler-build' "$raw_plan"; then
   # The cached staged compiler may predate an earlier compiler commit.  That
   # does not justify rebuilding it for a later documentation, report, or hook
   # policy commit.  Use the latest checkout compiler to plan those changes;
@@ -155,7 +155,7 @@ elif [[ "$compiler_build" == false ]]; then
   fi
 fi
 if [[ "$hook_mode" == full && "$compiler_build" == false ]]; then
-  if rg -qx 'preflight:compiler-build' "$raw_plan"; then compiler_build=true; fi
+  if grep -Fxq 'preflight:compiler-build' "$raw_plan"; then compiler_build=true; fi
 fi
 if [[ "$compiler_build" == true \
   && "$exact_compiler_inputs" == true ]] \
@@ -201,10 +201,10 @@ if [[ "$terlc" != "$target_terlc" ]]; then
 fi
 sed -n 's/^preflight://p' "$raw_plan" > "$preflight_plan"
 sed -n 's/^specialized-test://p' "$raw_plan" > "$specialized_tests"
-rg -v '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
+grep -Ev '^(preflight:|specialized-test:)' "$raw_plan" > "$plan"
 : > "$prechecked_terlan"
-preflight_has() { rg -qx "$1" "$preflight_plan"; }
-lane_has() { rg -qx "$1" "$plan"; }
+preflight_has() { grep -Fxq "$1" "$preflight_plan"; }
+lane_has() { grep -Fxq "$1" "$plan"; }
 
 if [[ "$hook_mode" == fast ]]; then
   admission_started=$SECONDS
@@ -844,7 +844,7 @@ if lane_has vm-contracts; then
       >> "$prechecked_terlan"
   done
   remaining_plan="${plan%.plan}.without-vm-contracts.plan"
-  rg -vx 'vm-contracts' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'vm-contracts' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 if lane_has core-contracts; then
@@ -855,7 +855,7 @@ if lane_has core-contracts; then
   done
   printf '%s\n' tests/language/ComprehensionGuardsTest.terl >> "$prechecked_terlan"
   remaining_plan="${plan%.plan}.without-core-contracts.plan"
-  rg -vx 'core-contracts' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'core-contracts' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 
@@ -867,7 +867,7 @@ if lane_has typed-css; then
   TERLC="$terlc" bash scripts/check_typed_css.sh
   typed_css_checked=true
   remaining_plan="${plan%.plan}.without-typed-css.plan"
-  rg -vx 'typed-css' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'typed-css' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 # Generated Rust reports and source-structure policy fail before any broad
@@ -898,14 +898,14 @@ if lane_has shell; then
     if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
   done < "$changes"
   remaining_plan="${plan%.plan}.without-shell.plan"
-  rg -vx 'shell' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'shell' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 if lane_has release-contract; then
   echo 'pre-commit: early release and install contract'
   run_release_contract_lane
   remaining_plan="${plan%.plan}.without-release-contract.plan"
-  rg -vx 'release-contract' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'release-contract' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 if preflight_has artifact-bootstrap; then
@@ -936,7 +936,7 @@ mv "$remaining_plan" "$plan"
 if [[ "$workspace_lane_selected" == true ]] && lane_has native-bindings; then
   echo 'pre-commit: canonical Rust suite owns native binding contracts'
   remaining_plan="${plan%.plan}.without-native-bindings.plan"
-  rg -vx 'native-bindings' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'native-bindings' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 if [[ "$workspace_lane_selected" == true ]] && lane_has proofs; then
@@ -944,7 +944,7 @@ if [[ "$workspace_lane_selected" == true ]] && lane_has proofs; then
   run_proof_evidence
   run_proof_checks
   remaining_plan="${plan%.plan}.without-proofs.plan"
-  rg -vx 'proofs' "$plan" > "$remaining_plan" || true
+  grep -Fvx 'proofs' "$plan" > "$remaining_plan" || true
   mv "$remaining_plan" "$plan"
 fi
 
