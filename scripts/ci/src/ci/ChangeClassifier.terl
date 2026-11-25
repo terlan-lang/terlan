@@ -72,7 +72,8 @@ pub is_product_file(path: String): Bool ->
 
 pub is_compiler_file(path: String): Bool ->
     contains(["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "rustfmt.toml"], path)
-        or starts_with_any(path, ["build/", "crates/", "std/", "tests/", "tree-sitter-terlan/"]).
+        or starts_with_any(path, ["build/", "crates/", "tests/", "tree-sitter-terlan/"])
+        or String.starts_with(path, "std/") and not String.ends_with(path, ".mk").
 
 pub is_dependency_file(path: String): Bool ->
     path == "Cargo.lock"

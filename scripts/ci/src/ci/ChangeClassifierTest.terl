@@ -116,6 +116,8 @@ pub root_and_prefix_contracts_are_explicit(): Bool ->
         and ChangeClassifier.is_product_file("tree-sitter-terlan/grammar.js")
         and not ChangeClassifier.is_product_file("docs/compiler.md")
         and not ChangeClassifier.is_compiler_file("scripts/release_control/Main.terl")
+        and not ChangeClassifier.is_compiler_file("std/stdlib.mk")
+        and ChangeClassifier.is_compiler_file("std/core/Int.terl")
         and ChangeClassifier.is_dependency_file("Cargo.lock")
         and not ChangeClassifier.is_dependency_file("README.md").
 
