@@ -134,6 +134,13 @@ load_rows(root: String): RowsLoad ->
         true -> load_rows_at(root, discovered.paths, List.new[HeadroomRow]())
     }.
 
+load_visible_rows(root: String): RowsLoad ->
+    let discovered = SourceInventory.discover_visible(root, ["*.rs"]);
+    if {
+        not discovered.valid -> RowsLoad(valid = false, rows = List.new[HeadroomRow](), message = discovered.message);
+        true -> load_rows_at(root, discovered.paths, List.new[HeadroomRow]())
+    }.
+
 @pure
 parse_row(fields: List[String]): HeadroomRow ->
     case fields {
@@ -493,8 +500,7 @@ pub record(root: String): Bool ->
         }
     }.
 
-pub check(root: String, enforce_milestone: Bool): Bool ->
-    let loaded = load_rows(root);
+check_loaded(root: String, loaded: RowsLoad, enforce_milestone: Bool): Bool ->
     if {
         not loaded.valid -> let _printed = eprintln(String.concat(["Rust file headroom failed: ", loaded.message]));
         false;
@@ -526,6 +532,12 @@ pub check(root: String, enforce_milestone: Bool): Bool ->
                 }
         }
     }.
+
+pub check(root: String, enforce_milestone: Bool): Bool ->
+    check_loaded(root, load_rows(root), enforce_milestone).
+
+pub check_visible(root: String): Bool ->
+    check_loaded(root, load_visible_rows(root), false).
 
 @pure
 contains(findings: List[String], expected: String): Bool ->
@@ -585,8 +597,7 @@ pub self_test(): Bool ->
             eprintln(
                 "error[rust_quality.file_headroom.self_test.milestone]: excess milestone rows were accepted",
             );
-        false;
-        true;
+        (false; true);
         true -> let _printed = println("Rust file-headroom self-test passed");
         true
     }.

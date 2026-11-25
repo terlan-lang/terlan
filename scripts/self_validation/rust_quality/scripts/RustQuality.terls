@@ -22,6 +22,7 @@ entry(): Bool ->
         Some("module-structure-check") -> ModuleStructure.check(repository_root());
         Some("file-headroom-self-test") -> FileHeadroom.self_test();
         Some("file-headroom-check") -> FileHeadroom.check(repository_root(), false);
+        Some("file-headroom-source-check") -> FileHeadroom.check_visible(repository_root());
         Some("file-headroom-record") -> FileHeadroom.record(repository_root());
         Some("file-headroom-milestone-0.0.9") -> FileHeadroom.check(repository_root(), true);
         Some("lint-allowance-self-test") -> LintAllowances.self_test();
