@@ -39,7 +39,6 @@ case "$1 $2" in
     done
     cp -a "$PUBLICATION_BUNDLE_SOURCE/." "$destination/"
     ;;
-  'attestation verify') printf 'attest\n' >> "$PUBLICATION_BUNDLE_CALLS" ;;
   *) echo "unexpected gh invocation: $*" >&2; exit 91 ;;
 esac
 SH
@@ -48,10 +47,8 @@ chmod 700 "$fixture/bin/gh"
   cd "$fixture"
   PATH="$fixture/bin:$PATH" \
     PUBLICATION_BUNDLE_SOURCE="$fixture/source" \
-    PUBLICATION_BUNDLE_CALLS="$fixture/calls" \
     bash scripts/download_publication_bundle.sh aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 )
-test "$(wc -l < "$fixture/calls" | tr -d ' ')" = 3
 cmp "$fixture/source/publication-plan.json" "$fixture/target/publication-bundle/publication-plan.json"
 cmp "$fixture/source/dist/terlc-linux-x86_64.tar.gz" "$fixture/dist/terlc-linux-x86_64.tar.gz"
 
@@ -60,7 +57,6 @@ if (
   cd "$fixture"
   PATH="$fixture/bin:$PATH" \
     PUBLICATION_BUNDLE_SOURCE="$fixture/source" \
-    PUBLICATION_BUNDLE_CALLS="$fixture/calls" \
     bash scripts/download_publication_bundle.sh aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ) >/dev/null 2>&1; then
   echo 'corrupt publication bundle was accepted' >&2

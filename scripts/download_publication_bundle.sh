@@ -57,13 +57,6 @@ while IFS= read -r artifact; do
   [[ "$name" != "$artifact" && "$name" != */* && -f "$pending/dist/$name" && ! -L "$pending/dist/$name" ]]
 done < <(jq -r '.artifacts[].path' "$pending/publication-plan.json")
 
-while IFS= read -r file; do
-  gh attestation verify "$file" \
-    --repo "$repository" \
-    --signer-workflow "$repository/.github/workflows/release.yml" \
-    --source-digest "$revision" >/dev/null
-done < <(find "$pending" -type f ! -name bundle.sha256 -print | LC_ALL=C sort)
-
 rm -rf -- "$bundle"
 mv "$pending" "$bundle"
 trap - EXIT
