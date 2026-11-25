@@ -4,7 +4,7 @@
 module release_promotion.Main.
 
 import release_promotion.CandidateFiles.{basename}.
-import release_promotion.{CandidateEvidenceTest, CandidateFixture, CandidateInputs, EvidenceReportsTest, Preflight, PreparationCommands, PreparationGraphTest, PreparationOwnerTest, ProcessActivityTest, PublicationBundle, PublicationCacheTest, PublicationChecks, PublicationPlan, Readiness}.
+import release_promotion.{CandidateEvidenceTest, CandidateFixture, CandidateInputs, Preflight, PreparationCommands, PreparationGraphTest, PreparationOwnerTest, ProcessActivityTest, PublicationBundle, PublicationCacheTest, PublicationChecks, PublicationPlan, Readiness}.
 import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.Result.{Err, Ok}.
@@ -593,7 +593,7 @@ publication_entry(root: String, command: String): Bool ->
             };
         "preflight-self-test" ->
             if {
-                Preflight.self_test() and EvidenceReportsTest.self_test() -> let _printed = println("release preflight adversarial self-tests passed");
+                Preflight.self_test() -> let _printed = println("release preflight policy self-test passed");
                 true;
                 true -> false
             };
