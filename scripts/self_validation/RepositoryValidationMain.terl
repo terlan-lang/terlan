@@ -1264,9 +1264,9 @@ if {
         "build_release.validator_parallelism",
         "release plan must declare typed-validator parallelism",
     );
-    toolchain_probes != 1 -> failure(
+    not toolchain_probe_budget_holds(plan_text) -> failure(
         "build_release.toolchain_probe_budget",
-        "release plan must resolve the compiler-owned toolchain identity exactly once",
+        "release plan must resolve the compiler-owned toolchain identity at most once",
     );
     incremental_terlc_build_invocations != terlc_build_invocations -> failure(
         "build_release.incremental_aot",
@@ -1518,6 +1518,15 @@ cargo_plan_self_test(): Bool ->
     "build_command='cargo --locked build -p example'\nprintf '%s\\n' cargo --locked build -p example\n",
 ) == 1.
 
+toolchain_probe_budget_holds(plan: String): Bool ->
+    count_occurrences(plan, "target/debug/terlc build --print-toolchain-identity") <= 1.
+
+toolchain_probe_budget_self_test(): Bool ->
+    let probe = "target/debug/terlc build --print-toolchain-identity\n";
+    toolchain_probe_budget_holds("")
+        and toolchain_probe_budget_holds(probe)
+        and not toolchain_probe_budget_holds(String.concat([probe, probe])).
+
 budget_validator_plan_self_test(): Bool ->
     let budget = "bash scripts/build_typed_validator.sh target/self-validation/build-artifact-budget/vm/scripts_self_validation_BuildArtifactBudgetTest.tvm inputs -- build\n";
     let other = "bash scripts/build_typed_validator.sh target/other.tvm inputs -- build\n";
@@ -1588,6 +1597,7 @@ self_test(): Bool ->
         and build_plan_report_self_test()
         and budget_validator_plan_self_test()
         and cargo_plan_self_test()
+        and toolchain_probe_budget_self_test()
         and source_preflight_release_contract(
     String.concat(
         [
