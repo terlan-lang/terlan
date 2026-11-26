@@ -638,6 +638,11 @@ run_commands_test_lane() {
     && run_compiler_heavy_rust_tests --locked -p terlan --lib \
     tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
 }
+run_commands_vm_artifact_lane() {
+  run_compiler_heavy_rust_tests --locked -p terlan --lib commands::build::vm_artifact:: \
+    && run_compiler_heavy_rust_tests --locked -p terlan --lib \
+      commands::build::build_test::tests::artifact_test::vm_artifacts::
+}
 run_summaries_lane() {
   TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
     bash scripts/git_hooks/stdlib_summaries.sh
@@ -711,6 +716,7 @@ run_affected_rust_lane() {
     commands-build)
       run_compiler_heavy_rust_tests --locked -p terlan --lib commands::build::
       ;;
+    commands-vm-artifact) run_commands_vm_artifact_lane ;;
     commands-clean)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test
       ;;
@@ -1159,7 +1165,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-construction|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
+    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-vm-artifact|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-construction|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

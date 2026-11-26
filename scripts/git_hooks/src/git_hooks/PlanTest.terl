@@ -298,7 +298,13 @@ pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
 
 @test
 pub build_command_changes_use_owned_tests_without_bootstrap(): Bool ->
-    Plan.execution_lanes(["crates/terlan/src/commands/build/vm_artifact/native_image.rs"]) == ["shell", "clippy", "commands-build", "rust-reports"]
+    Plan.execution_lanes(["crates/terlan/src/commands/build/vm_artifact/native_image.rs"]) == ["shell", "clippy", "commands-vm-artifact", "rust-reports"]
+        and Plan.execution_lanes(
+    [
+        "crates/terlan/src/commands/build/vm_artifact/native_image.rs",
+        "crates/terlan/src/commands/build/css.rs",
+    ],
+) == ["shell", "clippy", "commands-build", "typed-css", "rust-reports"]
         and Plan.preflight_lanes(["crates/terlan/src/commands/build/vm_artifact/native_image.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"].
 
 @test

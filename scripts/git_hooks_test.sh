@@ -462,7 +462,7 @@ cat > "$temporary/early-bindings/cache/debug/terlc" <<'TERLC'
 set -eu
 case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
-    printf 'commands\n'
+    printf 'commands-vm-artifact\n'
     ;;
   *) exit 98 ;;
 esac
@@ -484,7 +484,8 @@ chmod +x "$temporary/early-bindings/cache/debug/terlc" \
     RUST_TEST_THREADS=2 TERLAN_BUILD_JOBS=3 TERLAN_TEST_FORCE_RERUN=1 \
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
     > "$temporary/compiler-heavy-rust.log" 2>&1
-  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands:::tests=2:builds=3' "$calls"
+  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::build::vm_artifact:::tests=2:builds=3' "$calls"
+  grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::build::build_test::tests::artifact_test::vm_artifacts:::tests=2:builds=3' "$calls"
   grep -Fq 'compiler-heavy Rust shape: tests=2 builds=3' \
     "$temporary/compiler-heavy-rust.log"
 )
