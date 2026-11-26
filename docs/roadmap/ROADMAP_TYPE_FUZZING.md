@@ -173,17 +173,22 @@ gate.
 
 ### TF1: Typed scalar and control-flow generator
 
-- [ ] Generate scalar values, lexical bindings, products, records, `if`, and
+- [x] Generate scalar values, lexical bindings, products, records, `if`, and
   `case` from requested checked types.
-- [ ] Generate `Option`, `Result`, and closed unions with both nullary and
+- [x] Generate `Option`, `Result`, and closed unions with both nullary and
   payload alternatives.
-- [ ] Cover nested contextual joins with repeated `None`, `Some`, `Ok`, and
+- [x] Cover nested contextual joins with repeated `None`, `Some`, `Ok`, and
   `Err` alternatives.
-- [ ] Reject generator output that requires a cast not justified by the typed
+- [x] Reject generator output that requires a cast not justified by the typed
   generation derivation.
 
 Acceptance: 10,000 deterministic generated programs pass parse, type-check,
 format-idempotence, and managed-execution oracles with zero unexplained skips.
+
+Generation-scale acceptance is executable: 10,000 cases cover 17 initial
+families in 0.05 seconds and preserve unique identities, checked result types,
+canonical values, and the no-unjustified-cast invariant. Compiler and runtime
+oracle acceptance remains open; generation success alone does not close TF1.
 
 ### TF2: Native differential execution
 
