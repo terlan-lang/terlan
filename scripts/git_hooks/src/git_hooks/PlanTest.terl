@@ -462,6 +462,16 @@ pub focused_support_crates_do_not_select_the_monolithic_workspace(): Bool ->
 ) == ["shell", "rust-reports", "native-planning", "process-owner", "type-fuzz"].
 
 @test
+pub focused_support_manifests_use_their_owning_crate_lanes(): Bool ->
+    Plan.lanes(["crates/terlan-native-planning/Cargo.toml"]) == ["shell", "rust-reports", "native-planning"]
+        and Plan.lanes(["crates/terlan-process-owner/Cargo.toml"]) == ["shell", "rust-reports", "process-owner"]
+        and Plan.lanes(["crates/terlan-type-fuzz/Cargo.toml"]) == ["shell", "rust-reports", "type-fuzz"]
+        and Plan.lanes(["crates/terlan-test-orchestrator/Cargo.toml"]) == ["shell", "rust-reports", "test-orchestrator"]
+        and Plan.lanes(["tools/rust_boundary_audit/Cargo.toml"]) == ["shell", "rust-reports", "rust-boundary-audit"]
+        and not Plan.dependency_inputs(["crates/terlan-type-fuzz/Cargo.toml"])
+        and not Plan.compiler_bootstrap(["crates/terlan-type-fuzz/Cargo.toml"]).
+
+@test
 pub focused_support_crates_do_not_rebuild_the_compiler(): Bool ->
     Plan.preflight_lanes(["crates/terlan-type-fuzz/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
         and Plan.preflight_lanes(["crates/terlan-native-planning/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
@@ -470,6 +480,7 @@ pub focused_support_crates_do_not_rebuild_the_compiler(): Bool ->
 @test
 pub focused_support_crates_own_clippy_without_weakening_global_changes(): Bool ->
     Plan.focused_clippy(["crates/terlan-type-fuzz/src/lib.rs"])
+        and Plan.focused_clippy(["crates/terlan-type-fuzz/Cargo.toml", "crates/terlan-type-fuzz/src/lib.rs"])
         and Plan.focused_clippy(
     [
         "crates/terlan-native-planning/src/lib.rs",

@@ -260,8 +260,23 @@ pub runtime(paths: List[String]): Bool ->
 pub workspace(paths: List[String]): Bool ->
     general_fixtures(paths) or non_owned_rust(paths).
 
+focused_manifest(path: String): Bool ->
+    path == "crates/terlan-native-planning/Cargo.toml"
+        or path == "crates/terlan-process-owner/Cargo.toml"
+        or path == "crates/terlan-type-fuzz/Cargo.toml"
+        or path == "crates/terlan-test-orchestrator/Cargo.toml"
+        or path == "tools/rust_boundary_audit/Cargo.toml".
+
+unowned_manifest(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.ends_with(path, "Cargo.toml") and not focused_manifest(path)
+                or unowned_manifest(rest)
+    }.
+
 pub dependency_inputs(paths: List[String]): Bool ->
-    affected(paths, "", "Cargo.toml")
+    unowned_manifest(paths)
         or affected(paths, "", "Cargo.lock")
         or affected(paths, "", "rust-toolchain.toml")
         or affected(paths, ".cargo/", "").
@@ -281,19 +296,23 @@ compiler_bootstrap_source(paths: List[String]): Bool ->
     }.
 
 pub test_orchestrator(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan-test-orchestrator/", ".rs").
+    affected(paths, "crates/terlan-test-orchestrator/", ".rs")
+        or affected(paths, "crates/terlan-test-orchestrator/Cargo.toml", "").
 
 pub native_planning(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-native-planning/", ".rs")
+        or affected(paths, "crates/terlan-native-planning/Cargo.toml", "")
         or affected(paths, "crates/terlan/src/commands/build/vm_artifact/low_memory.rs", "")
         or affected(paths, "crates/terlan/src/compiler/native_ir/open_std_pruning.rs", "")
         or affected(paths, "crates/terlan/src/compiler/native_ir/open_std_pruning_test.rs", "").
 
 pub process_owner(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan-process-owner/", ".rs").
+    affected(paths, "crates/terlan-process-owner/", ".rs")
+        or affected(paths, "crates/terlan-process-owner/Cargo.toml", "").
 
 pub type_fuzz(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-type-fuzz/", ".rs")
+        or affected(paths, "crates/terlan-type-fuzz/Cargo.toml", "")
         or affected(paths, "crates/terlan/src/commands/fuzz/", ".rs").
 
 pub cli_integration(paths: List[String]): Bool ->
@@ -640,6 +659,7 @@ pub focused_clippy(paths: List[String]): Bool ->
 
 pub reports(paths: List[String]): Bool ->
     dependency_inputs(paths)
+        or rust_security(paths)
         or clippy(paths) and has_non_native_lowering(paths)
         or affected(paths, "docs/quality/", "")
         or affected(paths, "scripts/self_validation/rust_quality/", "")
