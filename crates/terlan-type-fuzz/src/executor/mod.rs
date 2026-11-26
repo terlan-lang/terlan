@@ -1,6 +1,7 @@
 mod artifacts;
 mod oracle;
 mod planning;
+mod reduce;
 mod resources;
 
 use std::path::Path;
@@ -12,6 +13,7 @@ pub fn execute(action: Action, compiler: &Path, compiler_revision: &str) -> Resu
     match action {
         Action::Types(options) => artifacts::generate_run(&options, compiler, compiler_revision),
         Action::Replay(path) => artifacts::replay(&path, compiler),
+        Action::Reduce(path) => reduce::run(&path, compiler),
         Action::CorpusCheck(path) => artifacts::check_corpus(&path, compiler),
     }
 }
@@ -39,6 +41,13 @@ mod tests {
     fn invalid_or_offline_actions_are_owned_without_a_compiler_process() {
         assert!(execute(
             Action::Replay("missing-case".into()),
+            Path::new("missing-compiler"),
+            "test",
+        )
+        .unwrap_err()
+        .contains("read case manifest"));
+        assert!(execute(
+            Action::Reduce("missing-case".into()),
             Path::new("missing-compiler"),
             "test",
         )

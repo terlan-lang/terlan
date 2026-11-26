@@ -98,6 +98,13 @@ fn run_batches(
 }
 
 pub(super) fn replay(directory: &Path, compiler: &Path) -> Result<(), String> {
+    let case = load_generated_case(directory)?;
+    run_and_record(directory, &case, compiler)?;
+    println!("replayed {}", case.manifest.case_id);
+    Ok(())
+}
+
+pub(super) fn load_generated_case(directory: &Path) -> Result<GeneratedCase, String> {
     let manifest_path = directory.join("case.toml");
     let text = fs::read_to_string(&manifest_path).map_err(io_error("read case manifest"))?;
     let manifest: CaseManifest = toml::from_str(&text)
@@ -116,9 +123,7 @@ pub(super) fn replay(directory: &Path, compiler: &Path) -> Result<(), String> {
     };
     let case = generate(manifest.case_index, &options, &manifest.compiler_revision);
     verify_case(directory, &case)?;
-    run_and_record(directory, &case, compiler)?;
-    println!("replayed {}", manifest.case_id);
-    Ok(())
+    Ok(case)
 }
 
 pub(super) fn check_corpus(root: &Path, compiler: &Path) -> Result<(), String> {
@@ -154,7 +159,7 @@ fn check_corpus_entries(
     Ok(())
 }
 
-fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
+pub(super) fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
     fs::create_dir_all(directory).map_err(io_error("create case directory"))?;
     atomic_write(&directory.join("Cargo.toml"), case.project.as_bytes())?;
     atomic_write(&directory.join(CASE_SOURCE_FILE), case.source.as_bytes())?;
@@ -186,7 +191,7 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
     ensure_success(case, &result)
 }
 
-fn record_observation(
+pub(super) fn record_observation(
     directory: &Path,
     result: &OracleResult,
     manifest: &CaseManifest,
@@ -441,7 +446,7 @@ fn resource_evidence_json(
     )
 }
 
-fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
+pub(super) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let temporary = temporary_path(path);
     fs::write(&temporary, bytes).map_err(io_error("write temporary fuzz artifact"))?;
     fs::rename(&temporary, path).map_err(io_error("publish fuzz artifact"))

@@ -7,6 +7,7 @@ use crate::{Oracle, RunOptions};
 pub enum Action {
     Types(RunOptions),
     Replay(PathBuf),
+    Reduce(PathBuf),
     CorpusCheck(PathBuf),
 }
 
@@ -16,11 +17,13 @@ pub fn parse(args: &[String]) -> Result<Action, String> {
         Some("types") => parse_types(&args[1..]).map(Action::Types),
         Some("replay") if args.len() == 2 => Ok(Action::Replay(PathBuf::from(&args[1]))),
         Some("replay") => Err("usage: terlc fuzz replay <case-dir>".into()),
+        Some("reduce") if args.len() == 2 => Ok(Action::Reduce(PathBuf::from(&args[1]))),
+        Some("reduce") => Err("usage: terlc fuzz reduce <case-dir>".into()),
         Some("corpus") if args.get(1).map(String::as_str) == Some("check") && args.len() == 3 => {
             Ok(Action::CorpusCheck(PathBuf::from(&args[2])))
         }
         Some("corpus") => Err("usage: terlc fuzz corpus check <corpus-dir>".into()),
-        _ => Err("expected `types`, `replay`, or `corpus`; run `terlc help fuzz`".into()),
+        _ => Err("expected `types`, `replay`, `reduce`, or `corpus`; run `terlc help fuzz`".into()),
     }
 }
 
@@ -126,6 +129,10 @@ mod tests {
             Ok(Action::Replay(PathBuf::from("case")))
         );
         assert_eq!(
+            parse(&strings(&["reduce", "case"])),
+            Ok(Action::Reduce(PathBuf::from("case")))
+        );
+        assert_eq!(
             parse(&strings(&["corpus", "check", "cases"])),
             Ok(Action::CorpusCheck(PathBuf::from("cases")))
         );
@@ -151,6 +158,11 @@ mod tests {
             apply_output_directory(replay, Some(Path::new("ignored"))),
             Action::Replay(PathBuf::from("case"))
         );
+        let reduce = Action::Reduce(PathBuf::from("case"));
+        assert_eq!(
+            apply_output_directory(reduce, Some(Path::new("ignored"))),
+            Action::Reduce(PathBuf::from("case"))
+        );
         let corpus = Action::CorpusCheck(PathBuf::from("corpus"));
         assert_eq!(
             apply_output_directory(corpus, Some(Path::new("ignored"))),
@@ -165,6 +177,8 @@ mod tests {
             (strings(&["unknown"]), "expected"),
             (strings(&["replay"]), "usage"),
             (strings(&["replay", "one", "two"]), "usage"),
+            (strings(&["reduce"]), "usage"),
+            (strings(&["reduce", "one", "two"]), "usage"),
             (strings(&["corpus"]), "usage"),
             (strings(&["corpus", "other", "cases"]), "usage"),
             (strings(&["corpus", "check"]), "usage"),
