@@ -34,7 +34,7 @@ rust-locked-binary-check: rust-clippy-check
 	@echo "[rust-locked-binary] clippy compiled every workspace binary in both feature profiles"
 
 rust-clippy-compiler-precommit-check:
-	$(CARGO) clippy -p terlan --lib --bins -- -D warnings
+	$(CARGO) clippy -p terlan --lib -- -D warnings
 
 rust-clippy-precommit-check:
 	$(CARGO) clippy --workspace --lib --bins -- -D warnings

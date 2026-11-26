@@ -267,7 +267,18 @@ pub dependency_inputs(paths: List[String]): Bool ->
         or affected(paths, ".cargo/", "").
 
 pub compiler_bootstrap(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan/", ".rs") or dependency_inputs(paths).
+    compiler_bootstrap_source(paths) or dependency_inputs(paths).
+
+compiler_bootstrap_source(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            String.starts_with(path, "crates/terlan/")
+    and String.ends_with(path, ".rs")
+    and not String.starts_with(path, "crates/terlan/src/commands/")
+    and not String.starts_with(path, "crates/terlan/src/tests/")
+                or compiler_bootstrap_source(rest)
+    }.
 
 pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").

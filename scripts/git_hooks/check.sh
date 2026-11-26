@@ -756,6 +756,8 @@ run_affected_rust_lane() {
     clippy)
       if [[ "$candidate_clippy_checked" == true ]] && ! lane_has workspace; then
         echo 'pre-commit: reuse candidate compiler Clippy result'
+      elif ! lane_has workspace; then
+        make --no-print-directory rust-clippy-compiler-precommit-check
       else
         make --no-print-directory rust-clippy-precommit-check
       fi
