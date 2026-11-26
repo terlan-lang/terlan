@@ -422,7 +422,7 @@ missing, malformed, live, zombie, and dead entries. The focused crate passes
 
 - [x] Run the deterministic smoke corpus before expensive release-candidate
   compilation gates.
-- [ ] Run only impacted target families for ordinary changes, using explicit
+- [x] Run only impacted target families for ordinary changes, using explicit
   source-to-feature ownership rather than filename guesses.
 - [x] Run the bounded cross-backend corpus on every release compiler candidate.
 - [ ] Run rotating and mutation-derived seeds on a schedule.
@@ -445,13 +445,18 @@ check/native/JavaScript matrix; scheduled seeds rotate and mutate without
 wall-clock input; impacted selection maps changed compiler ownership roots to
 deduplicated family/oracle sets. A successful profile publishes its complete
 plan with the exact compiler revision, and `terlc fuzz result verify` refuses
-failed, malformed, or different-revision results. Ordinary-change and scheduled
-CI wiring remains open. One profile now shares a five-minute wall budget across
-all of its backends rather than granting each backend a fresh allowance.
+failed, malformed, or different-revision results. Full commit validation now
+attaches the impacted profile to its existing compiler, runtime, standard-
+library, dependency, and fuzz lanes before broad validation. The profile
+registry remains the sole owner of family selection. Results are reused only
+for the same automatically derived candidate Git tree and exact compiler
+revision; no manual evidence hash is maintained. Scheduled CI wiring remains
+open. One profile shares a five-minute wall budget across all of its backends
+rather than granting each backend a fresh allowance.
 Release-candidate validation runs the check corpus first, then native and
-JavaScript, and reuses
-an existing result only when the compiler itself accepts its exact embedded
-revision. The Make integration fixture proves both first-run and reuse paths.
+JavaScript, and reuses an existing result only when the compiler itself accepts
+its exact embedded revision. The Make integration fixture proves both first-run
+and reuse paths.
 The focused crate passes 134 tests with exact 100% coverage across 12,035
 regions, 562 functions, and 7,771 lines.
 

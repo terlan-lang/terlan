@@ -705,9 +705,36 @@ run_focused_rust_crate() {
   cargo test --profile dev --locked -p "$package" --lib
 }
 
+impacted_type_fuzz_checked=false
+run_impacted_type_fuzz_profile() {
+  local candidate_tree output_dir result
+  local arguments=(fuzz profile impacted)
+  if [[ "$impacted_type_fuzz_checked" == true ]]; then return 0; fi
+  candidate_tree=$(git write-tree)
+  output_dir="$CARGO_TARGET_DIR/fuzz/profile/impacted/$candidate_tree"
+  result="$output_dir/result.json"
+  if "$terlc" fuzz result verify "$result" >/dev/null 2>&1; then
+    echo '[type-fuzz] reused impacted profile for exact candidate tree'
+    impacted_type_fuzz_checked=true
+    return 0
+  fi
+  arguments+=(--out-dir "$output_dir")
+  while IFS= read -r path; do
+    if [[ -n "$path" ]]; then arguments+=(--changed-path "$path"); fi
+  done < "$changes"
+  echo '[type-fuzz] running impacted families before broad validation'
+  "$terlc" "${arguments[@]}"
+  impacted_type_fuzz_checked=true
+}
+
 run_affected_rust_lane() {
   local lane=$1 filter
   affected_rust_lane_supported=true
+  case "$lane" in
+    commands*|phase|native-construction|native-ir|runtime|syntax|compiler|workspace|dependencies|type-fuzz)
+      run_impacted_type_fuzz_profile
+      ;;
+  esac
   case "$lane" in
     commands-test) run_commands_test_lane ;;
     commands)
@@ -920,6 +947,7 @@ fi
 # Generated Rust reports and source-structure policy fail before any broad
 # Terlan compilation. Directly affected compiler and source ownership follows.
 if lane_has terlan; then
+  run_impacted_type_fuzz_profile
   echo 'pre-commit: early terlan ownership and coverage'
   # Terlan tests may cross a capability boundary even when no Rust test lane
   # is selected.  Provision the worker at the test boundary so a clean CI
