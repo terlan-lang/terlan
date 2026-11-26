@@ -73,6 +73,9 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
         wall_ms,
         options,
     )?;
+    profiles::ensure_warm_reuse("narrow warm", &narrow_warm)?;
+    profiles::ensure_warm_reuse("combined warm", &combined_warm)?;
+    profiles::ensure_warm_reuse("broad warm", &broad_warm)?;
     profiles::ensure_broad_regression_absent(&broad_cold, &narrow_cold)?;
     let evidence = serde_json::json!({
         "schema": "terlan.type-fuzz-planning.v1",
@@ -263,6 +266,21 @@ fn write(path: PathBuf, contents: &str) -> Result<(), String> {
     let parent = path.parent().expect("planning fixture path has a parent");
     fs::create_dir_all(parent).map_err(|error| format!("create planning fixture: {error}"))?;
     fs::write(&path, contents).map_err(|error| format!("write {}: {error}", path.display()))
+}
+
+#[cfg(test)]
+fn attributed_compiler_script(body: &str) -> String {
+    format!(
+        concat!(
+            "#!/bin/sh\n",
+            "echo 'terlc timing: frontend.parse: +1ms total=1ms' >&2\n",
+            "echo 'terlc native-aot: planning.graph: reachable-declarations=1 native-providers=none' >&2\n",
+            "echo 'terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image' >&2\n",
+            "echo 'terlc native-aot: image.types: semantic-types=0 aggregate-layouts=0 collection-layouts=0 semantic-type-ids=none' >&2\n",
+            "{}\n",
+        ),
+        body
+    )
 }
 
 #[cfg(test)]

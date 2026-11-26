@@ -38,6 +38,7 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
     assert_eq!(measured.semantic_types, 2);
     assert_eq!(measured.aggregate_layouts, 2);
     assert_eq!(measured.collection_layouts, 1);
+    assert_eq!(measured.semantic_inventory_events, 1);
     assert_eq!(
         measured.semantic_type_ids,
         ["0101".to_string(), "0202".to_string()].into()
@@ -137,4 +138,35 @@ fn comparison_reports_signed_work_deltas() {
     );
     assert!(!same_structural_work(&right, &left));
     assert!(same_structural_work(&right, &right));
+}
+
+#[test]
+fn attribution_requires_every_planning_dimension() {
+    let complete = measure(concat!(
+        "terlc timing: frontend.parse: +1ms total=1ms\n",
+        "terlc native-aot: planning.graph: reachable-declarations=1 native-providers=none\n",
+        "terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image\n",
+        "terlc native-aot: image.types: semantic-types=0 aggregate-layouts=0 ",
+        "collection-layouts=0 semantic-type-ids=none\n",
+    ));
+    assert!(attribution_gaps(&complete).is_empty());
+    assert!(has_native_image_cache_hit(&complete));
+
+    let missing = measure("");
+    assert_eq!(
+        attribution_gaps(&missing),
+        [
+            "phase timings",
+            "reachable declarations",
+            "cache disposition",
+            "semantic type inventory",
+        ]
+    );
+    assert!(!has_native_image_cache_hit(&missing));
+
+    let inventory_without_identities = measure(
+        "terlc native-aot: image.types: semantic-types=0 aggregate-layouts=0 collection-layouts=0\n",
+    );
+    assert_eq!(inventory_without_identities.semantic_inventory_events, 1);
+    assert!(inventory_without_identities.semantic_type_ids.is_empty());
 }

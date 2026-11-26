@@ -24,6 +24,7 @@ pub(super) fn run_source(
         options.cpu_limit_ms,
     );
     ensure_passed(profile, &result)?;
+    ensure_attributed(profile, &result)?;
     Ok(result)
 }
 
@@ -45,7 +46,33 @@ pub(super) fn run_batch(
         options.cpu_limit_ms,
     );
     ensure_passed(profile, &result)?;
+    ensure_attributed(profile, &result)?;
     Ok(result)
+}
+
+pub(super) fn ensure_warm_reuse(
+    profile: &str,
+    result: &oracle::OracleResult,
+) -> Result<(), String> {
+    if metrics::has_native_image_cache_hit(&metrics::measure(&result.stderr)) {
+        Ok(())
+    } else {
+        Err(format!(
+            "{profile} did not reuse a verified native image cache entry"
+        ))
+    }
+}
+
+fn ensure_attributed(profile: &str, result: &oracle::OracleResult) -> Result<(), String> {
+    let gaps = metrics::attribution_gaps(&metrics::measure(&result.stderr));
+    if gaps.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{profile} native planning telemetry is incomplete: {}",
+            gaps.join(", ")
+        ))
+    }
 }
 
 pub(super) fn ensure_broad_regression_absent(

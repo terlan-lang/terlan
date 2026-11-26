@@ -37,6 +37,86 @@ fn planning_failures_retain_phase_graph_and_resource_evidence() {
     assert!(failure.contains("rss_limit_bytes\":1024"));
 }
 
+#[test]
+fn missing_telemetry_and_warm_reuse_fail_before_comparison() {
+    let root = tempfile::tempdir().expect("planning root");
+    let source = root.path().join("CaseTest.terl");
+    fs::write(&source, "module planning.CaseTest.").expect("source");
+    let result = oracle::run(
+        Path::new("/bin/true"),
+        Oracle::Native,
+        &source,
+        1_000,
+        1024 * 1024 * 1024,
+        1_000,
+    );
+    assert!(profiles::run_source(
+        "focused cold",
+        Path::new("/bin/true"),
+        &source,
+        1_000,
+        &RunOptions::default(),
+    )
+    .unwrap_err()
+    .contains("telemetry is incomplete"));
+    assert!(profiles::run_batch(
+        "combined cold",
+        Path::new("/bin/true"),
+        root.path(),
+        &[PathBuf::from("CaseTest.terl")],
+        1_000,
+        &RunOptions::default(),
+    )
+    .unwrap_err()
+    .contains("telemetry is incomplete"));
+    assert!(profiles::ensure_warm_reuse("focused warm", &result)
+        .unwrap_err()
+        .contains("did not reuse"));
+}
+
+#[cfg(unix)]
+#[test]
+fn every_warm_profile_rejects_an_attributed_cache_miss() {
+    use std::os::unix::fs::PermissionsExt;
+
+    for (miss_launch, expected) in [(2, "narrow warm"), (4, "combined warm"), (6, "broad warm")] {
+        let root = tempfile::tempdir().expect("planning root");
+        let launches = root.path().join("launches");
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            format!(
+                concat!(
+                    "#!/bin/sh\n",
+                    "printf 'launch\\n' >> {}\n",
+                    "echo 'terlc timing: frontend.parse: +1ms total=1ms' >&2\n",
+                    "echo 'terlc native-aot: planning.graph: reachable-declarations=1 native-providers=none' >&2\n",
+                    "echo 'terlc native-aot: image.types: semantic-types=0 aggregate-layouts=0 collection-layouts=0 semantic-type-ids=none' >&2\n",
+                    "if [ $(wc -l < {}) -eq {} ]; then\n",
+                    "  echo 'terlc native-aot: rooted.cache: cache-miss-reason=checked_core_or_artifact_changed' >&2\n",
+                    "else\n",
+                    "  echo 'terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image' >&2\n",
+                    "fi\n",
+                ),
+                launches.display(),
+                launches.display(),
+                miss_launch,
+            ),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+        let options = RunOptions {
+            oracle: Oracle::Native,
+            out_dir: root.path().join("cases"),
+            ..RunOptions::default()
+        };
+        assert!(run(&options, &compiler, 2_000)
+            .unwrap_err()
+            .contains(&format!("{expected} did not reuse")));
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn every_warm_profile_failure_is_attributed() {
@@ -53,11 +133,11 @@ fn every_warm_profile_failure_is_attributed() {
         let compiler = root.path().join("compiler");
         fs::write(
             &compiler,
-            format!(
-                "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -ne {failure} ]\n",
+            attributed_compiler_script(&format!(
+                "printf 'launch\\n' >> {}\n[ $(wc -l < {}) -ne {failure} ]",
                 launches.display(),
                 launches.display(),
-            ),
+            )),
         )
         .expect("compiler fixture");
         fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
@@ -151,11 +231,11 @@ fn broad_work_regression_fails_the_complete_probe() {
     let compiler = root.path().join("compiler");
     fs::write(
         &compiler,
-        format!(
-            "#!/bin/sh\nprintf 'launch\\n' >> {}\nif [ $(wc -l < {}) -eq 5 ]; then echo 'terlc native-aot: module-unit.begin.extra functions=1 continuations=0' >&2; fi\n",
+        attributed_compiler_script(&format!(
+            "printf 'launch\\n' >> {}\nif [ $(wc -l < {}) -eq 5 ]; then echo 'terlc native-aot: module-unit.begin.extra functions=1 continuations=0' >&2; fi",
             launches.display(),
             launches.display(),
-        ),
+        )),
     )
     .expect("compiler fixture");
     fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))

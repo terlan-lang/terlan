@@ -15,7 +15,13 @@ fn disabled_planning_probe_is_inert() {
 #[cfg(unix)]
 #[test]
 fn matched_planning_graphs_record_bounded_evidence() {
+    use std::os::unix::fs::PermissionsExt;
+
     let root = tempfile::tempdir().expect("planning root");
+    let compiler = root.path().join("compiler");
+    fs::write(&compiler, attributed_compiler_script("true")).expect("compiler fixture");
+    fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+        .expect("compiler permissions");
     let options = RunOptions {
         oracle: Oracle::Native,
         out_dir: root.path().join("cases"),
@@ -25,17 +31,17 @@ fn matched_planning_graphs_record_bounded_evidence() {
         cpu_limit_ms: 1_000,
         ..RunOptions::default()
     };
-    run(&options, Path::new("/bin/true"), 2_000).expect("planning probe");
+    run(&options, &compiler, 2_000).expect("planning probe");
     let planning = options.out_dir.join("planning");
     let comparison: serde_json::Value = serde_json::from_slice(
         &fs::read(planning.join("comparison.json")).expect("planning comparison"),
     )
     .expect("planning comparison JSON");
     assert_eq!(comparison["schema"], "terlan.type-fuzz-planning.v1");
-    assert_eq!(comparison["narrow"]["cold"]["compiler"]["timing_events"], 0);
+    assert_eq!(comparison["narrow"]["cold"]["compiler"]["timing_events"], 4);
     assert_eq!(
         comparison["combined_root"]["cold"]["compiler"]["timing_events"],
-        0
+        4
     );
     assert_eq!(
         comparison["delta"]["cold_broad_minus_narrow"]["compiler_work"]["native_units_built"],
@@ -127,11 +133,11 @@ fn broad_execution_failure_is_attributed() {
     let compiler = root.path().join("compiler");
     fs::write(
         &compiler,
-        format!(
-            "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -lt 5 ]\n",
+        attributed_compiler_script(&format!(
+            "printf 'launch\\n' >> {}\n[ $(wc -l < {}) -lt 5 ]",
             launches.display(),
             launches.display(),
-        ),
+        )),
     )
     .expect("compiler fixture");
     fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))

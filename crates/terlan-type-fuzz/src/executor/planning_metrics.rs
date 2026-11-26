@@ -20,6 +20,7 @@ pub(super) struct CompilerMetrics {
     semantic_types: u64,
     aggregate_layouts: u64,
     collection_layouts: u64,
+    semantic_inventory_events: u64,
     semantic_type_ids: BTreeSet<String>,
     native_units_built: u64,
     native_functions_built: u64,
@@ -115,6 +116,7 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
             metrics.native_image_cache_hits = metrics.native_image_cache_hits.saturating_add(1);
         }
         if line.starts_with("terlc native-aot: image.types:") {
+            metrics.semantic_inventory_events = metrics.semantic_inventory_events.saturating_add(1);
             metrics.semantic_types = metrics
                 .semantic_types
                 .saturating_add(field(line, "semantic-types=").unwrap_or(0));
@@ -140,6 +142,27 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
             .saturating_sub(metrics.native_image_cache_misses),
     );
     metrics
+}
+
+pub(super) fn attribution_gaps(metrics: &CompilerMetrics) -> Vec<&'static str> {
+    let mut gaps = Vec::new();
+    if metrics.phase_elapsed_ms.is_empty() {
+        gaps.push("phase timings");
+    }
+    if metrics.reachable_declarations.is_none() {
+        gaps.push("reachable declarations");
+    }
+    if metrics.native_image_cache_hits == 0 && metrics.cache_miss_reasons.is_empty() {
+        gaps.push("cache disposition");
+    }
+    if metrics.semantic_inventory_events == 0 {
+        gaps.push("semantic type inventory");
+    }
+    gaps
+}
+
+pub(super) fn has_native_image_cache_hit(metrics: &CompilerMetrics) -> bool {
+    metrics.native_image_cache_hits > 0
 }
 
 pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> CompilerMetricDelta {
