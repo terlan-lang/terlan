@@ -1,4 +1,5 @@
 mod artifacts;
+mod interface_cache_transaction;
 mod interface_roundtrip;
 mod javascript;
 mod oracle;

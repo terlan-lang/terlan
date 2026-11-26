@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use super::interface_cache_transaction;
 use super::interface_roundtrip;
 use super::oracle::{self, OracleResult};
 use super::package_roundtrip;
@@ -144,6 +145,14 @@ fn run_batches(
                     )
                 })?;
             interface_roundtrip::run(
+                directory,
+                case,
+                compiler,
+                remaining_ms.min(case.manifest.case_timeout_ms),
+                case.manifest.rss_limit_bytes,
+                case.manifest.cpu_limit_ms,
+            )?;
+            interface_cache_transaction::run(
                 directory,
                 case,
                 compiler,
@@ -318,6 +327,14 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
         return Ok(());
     }
     interface_roundtrip::run(
+        directory,
+        case,
+        compiler,
+        case.manifest.case_timeout_ms,
+        case.manifest.rss_limit_bytes,
+        case.manifest.cpu_limit_ms,
+    )?;
+    interface_cache_transaction::run(
         directory,
         case,
         compiler,
@@ -1319,8 +1336,8 @@ mod tests {
         let manifest = fs::read_to_string(root.path().join("case.toml"))
             .expect("manifest")
             .replace(
-                "terlan.type-fuzz-generator.v5",
                 "terlan.type-fuzz-generator.v6",
+                "terlan.type-fuzz-generator.v7",
             );
         fs::write(root.path().join("case.toml"), manifest).expect("future generator");
         assert!(replay(root.path(), Path::new("missing-compiler"))
@@ -1533,6 +1550,7 @@ mod tests {
                 concat!(
                     "#!/bin/sh\n",
                     "printf 'launch\\n' >> {}\n",
+                    "grep -R -q 'pub broken(' . && exit 1\n",
                     "find . -path '*/src/*' -name '*.terl' -type f | while read -r source; do\n",
                     "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
                     "  [ -n \"$module\" ] || continue\n",
@@ -1563,7 +1581,7 @@ mod tests {
                 .expect("launch ledger")
                 .lines()
                 .count(),
-            26
+            34
         );
     }
 

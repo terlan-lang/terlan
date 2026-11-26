@@ -11,6 +11,7 @@ const GENERATOR_V2: &str = "terlan.type-fuzz-generator.v2";
 const GENERATOR_V3: &str = "terlan.type-fuzz-generator.v3";
 const GENERATOR_V4: &str = "terlan.type-fuzz-generator.v4";
 const GENERATOR_V5: &str = "terlan.type-fuzz-generator.v5";
+const GENERATOR_V6: &str = "terlan.type-fuzz-generator.v6";
 
 #[derive(Clone, Copy)]
 enum GeneratorVersion {
@@ -19,6 +20,7 @@ enum GeneratorVersion {
     V3,
     V4,
     V5,
+    V6,
 }
 
 impl GeneratorVersion {
@@ -29,6 +31,7 @@ impl GeneratorVersion {
             GENERATOR_V3 => Ok(Self::V3),
             GENERATOR_V4 => Ok(Self::V4),
             GENERATOR_V5 => Ok(Self::V5),
+            GENERATOR_V6 => Ok(Self::V6),
             _ => Err(format!("unsupported type fuzz generator `{value}`")),
         }
     }
@@ -40,6 +43,7 @@ impl GeneratorVersion {
             Self::V3 => GENERATOR_V3,
             Self::V4 => GENERATOR_V4,
             Self::V5 => GENERATOR_V5,
+            Self::V6 => GENERATOR_V6,
         }
     }
 
@@ -50,6 +54,7 @@ impl GeneratorVersion {
             Self::V3 => "v3",
             Self::V4 => "v4",
             Self::V5 => "v5",
+            Self::V6 => "v6",
         }
     }
 }
@@ -67,7 +72,7 @@ pub struct GenerationConfig<'a> {
 
 /// Generates one deterministic typed program and its replay manifest.
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
-    generate_version(index, config, GeneratorVersion::V5)
+    generate_version(index, config, GeneratorVersion::V6)
 }
 
 pub(crate) fn regenerate(
@@ -178,6 +183,7 @@ enum Family {
     GenericTraitPackage,
     SuspensionCapture,
     NativeProviderTransport,
+    InterfaceCacheTransaction,
 }
 
 impl Family {
@@ -194,6 +200,7 @@ impl Family {
                 GeneratorVersion::V3 => 19,
                 GeneratorVersion::V4 => 20,
                 GeneratorVersion::V5 => 21,
+                GeneratorVersion::V6 => 22,
             },
         };
         match index % family_count {
@@ -217,7 +224,8 @@ impl Family {
             17 => Self::GenericFieldReceiver,
             18 => Self::GenericTraitPackage,
             19 => Self::SuspensionCapture,
-            _ => Self::NativeProviderTransport,
+            20 => Self::NativeProviderTransport,
+            _ => Self::InterfaceCacheTransaction,
         }
     }
 
@@ -263,6 +271,7 @@ impl Family {
             Self::GenericTraitPackage => "generic_trait_package",
             Self::SuspensionCapture => "suspension_capture",
             Self::NativeProviderTransport => "native_provider_transport",
+            Self::InterfaceCacheTransaction => "interface_cache_transaction",
         }
     }
 
@@ -401,6 +410,10 @@ impl Family {
             Self::NativeProviderTransport => {
                 let (body, fixture) = native_provider_cases::dual_provider();
                 return (body, Vec::new(), Some(fixture));
+            }
+            Self::InterfaceCacheTransaction => {
+                let (body, support) = module_cases::generic_trait_package(index, value);
+                return (body, support, None);
             }
         };
         (rendered, Vec::new(), None)

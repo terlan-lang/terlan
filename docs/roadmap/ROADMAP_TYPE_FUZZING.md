@@ -398,6 +398,17 @@ real native regression prepared 49 reachable declarations and both helper
 bindings, then passed in 2.17 seconds. The focused crate passes 118 tests with
 exact 100% coverage across 9,896 regions, 459 functions, and 6,388 lines.
 
+Generator v6 adds an interface-cache transaction family while preserving every
+v1-v5 replay mapping. It first establishes a valid multi-module interface
+generation, changes an earlier public API, injects a fatal error into a later
+module, and requires every prior `.typi*` byte to remain unchanged. Restoring
+the generated sources must then pass against the same cache without a clean or
+manual dependency rebuild. The oracle attributes initial-build, failed-build,
+cache-mutation, recovery, filesystem, deadline, and publication failures, and
+both batch and replay paths propagate disagreements immediately. The focused
+crate passes 123 tests with exact 100% coverage across 10,598 regions, 490
+functions, and 6,803 lines.
+
 ### TF6: Continuous and release integration
 
 - [ ] Run the deterministic smoke corpus before expensive compilation gates.
