@@ -1114,8 +1114,8 @@ mod tests {
         let manifest = fs::read_to_string(root.path().join("case.toml"))
             .expect("manifest")
             .replace(
-                "terlan.type-fuzz-generator.v3",
                 "terlan.type-fuzz-generator.v4",
+                "terlan.type-fuzz-generator.v5",
             );
         fs::write(root.path().join("case.toml"), manifest).expect("future generator");
         assert!(replay(root.path(), Path::new("missing-compiler"))

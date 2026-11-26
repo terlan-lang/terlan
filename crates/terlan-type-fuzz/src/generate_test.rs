@@ -18,7 +18,7 @@ fn case(seed: u64, index: u32, depth: u8) -> GeneratedCase {
 #[test]
 fn generation_is_stable_and_covers_each_initial_family() {
     assert_eq!(case(17, 3, 8), case(17, 3, 8));
-    let cases = (0..19).map(|index| case(1, index, 8)).collect::<Vec<_>>();
+    let cases = (0..20).map(|index| case(1, index, 8)).collect::<Vec<_>>();
     let families = cases
         .iter()
         .map(|case| case.manifest.family.as_str())
@@ -44,7 +44,8 @@ fn generation_is_stable_and_covers_each_initial_family() {
             "closed_union",
             "closed_union_empty",
             "generic_field_receiver",
-            "generic_trait_package"
+            "generic_trait_package",
+            "suspension_capture"
         ]
     );
     for case in cases {
@@ -86,6 +87,12 @@ fn generation_is_stable_and_covers_each_initial_family() {
             .count(),
         2
     );
+    let suspension = &case(1, 19, 8);
+    assert!(suspension.support_sources.is_empty());
+    assert!(suspension.source.contains("Process.yield_now()"));
+    assert!(suspension.source.contains("suspend_signal(prepared, 2)"));
+    assert!(suspension.source.contains("Ready(next)"));
+    assert_eq!(suspension.expected.value, serde_json::json!(46));
 }
 
 #[test]
@@ -118,9 +125,9 @@ fn ten_thousand_cases_preserve_type_and_identity_invariants() {
         assert!(identities.insert(generated.manifest.case_id));
         families.insert(generated.manifest.family);
     }
-    assert_eq!(families.len(), 19);
+    assert_eq!(families.len(), 20);
     assert_eq!(support_paths.len(), support_count);
-    assert_eq!(support_count, 3_682);
+    assert_eq!(support_count, 3_500);
 }
 
 #[test]
@@ -154,8 +161,8 @@ fn checked_oracle_is_encoded_in_identity_and_manifest() {
     );
     assert_eq!(native.manifest.oracle, Oracle::Native);
     assert!(native.manifest.case_id.ends_with("-onative"));
-    assert!(native.manifest.case_id.starts_with("v3-"));
-    assert_eq!(native.manifest.generator, GENERATOR_V3);
+    assert!(native.manifest.case_id.starts_with("v4-"));
+    assert_eq!(native.manifest.generator, GENERATOR_V4);
 }
 
 #[test]
@@ -178,13 +185,17 @@ fn recorded_generator_versions_retain_their_family_mapping() {
     assert_eq!(second.manifest.family, "scalar_unit");
     assert!(second.manifest.case_id.starts_with("v2-"));
 
-    let current = regenerate(18, &config, GENERATOR_V3).expect("current generator");
-    assert_eq!(current.manifest.family, "generic_trait_package");
-    assert!(current.manifest.case_id.starts_with("v3-"));
-    assert_eq!(current.support_sources.len(), 3);
+    let third = regenerate(19, &config, GENERATOR_V3).expect("third generator");
+    assert_eq!(third.manifest.family, "scalar_unit");
+    assert!(third.manifest.case_id.starts_with("v3-"));
+
+    let current = regenerate(19, &config, GENERATOR_V4).expect("current generator");
+    assert_eq!(current.manifest.family, "suspension_capture");
+    assert!(current.manifest.case_id.starts_with("v4-"));
+    assert!(current.support_sources.is_empty());
     assert_eq!(
-        regenerate(18, &config, "terlan.type-fuzz-generator.v4").unwrap_err(),
-        "unsupported type fuzz generator `terlan.type-fuzz-generator.v4`"
+        regenerate(19, &config, "terlan.type-fuzz-generator.v5").unwrap_err(),
+        "unsupported type fuzz generator `terlan.type-fuzz-generator.v5`"
     );
 }
 

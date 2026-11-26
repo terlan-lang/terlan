@@ -364,8 +364,8 @@ functions, and 5,799 lines.
 
 ### TF5: Suspension, actors, and native providers
 
-- [ ] Generate typed suspension boundaries and continuation captures.
-- [ ] Exercise ordinary calls, structured control flow, constructors, and
+- [x] Generate typed suspension boundaries and continuation captures.
+- [x] Exercise ordinary calls, structured control flow, constructors, and
   union values before and after suspension.
 - [ ] Generate cases using two compatible native providers in one package and
   verify helper routing and bounded binary transport.
@@ -373,6 +373,17 @@ functions, and 5,799 lines.
 
 Acceptance: no generated case may end in an unclassified suspension profile,
 missing continuation capture, helper protocol mismatch, or orphan process.
+
+Generator v4 adds a suspension-capture family while preserving every v1-v3
+replay mapping. It constructs a closed union, calls an ordinary helper and
+matches the union before `Process.yield_now()`, then retains captured scalar and
+union facts through the scheduler continuation before executing an `if`, a
+second ordinary call, another constructor, and exhaustive inspection. The
+generated native regression lowered three continuations and 77 reachable
+declarations, then passed in 0.33 seconds at 111.6 MiB peak RSS. The reducer
+searches the new family without changing recorded older cases. The focused
+crate retains exact 100% coverage across 8,876 regions, 418 functions, and
+5,824 lines.
 
 ### TF6: Continuous and release integration
 

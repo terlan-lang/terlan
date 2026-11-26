@@ -8,12 +8,14 @@ mod module_cases;
 const GENERATOR_V1: &str = "terlan.type-fuzz-generator.v1";
 const GENERATOR_V2: &str = "terlan.type-fuzz-generator.v2";
 const GENERATOR_V3: &str = "terlan.type-fuzz-generator.v3";
+const GENERATOR_V4: &str = "terlan.type-fuzz-generator.v4";
 
 #[derive(Clone, Copy)]
 enum GeneratorVersion {
     V1,
     V2,
     V3,
+    V4,
 }
 
 impl GeneratorVersion {
@@ -22,6 +24,7 @@ impl GeneratorVersion {
             GENERATOR_V1 => Ok(Self::V1),
             GENERATOR_V2 => Ok(Self::V2),
             GENERATOR_V3 => Ok(Self::V3),
+            GENERATOR_V4 => Ok(Self::V4),
             _ => Err(format!("unsupported type fuzz generator `{value}`")),
         }
     }
@@ -31,6 +34,7 @@ impl GeneratorVersion {
             Self::V1 => GENERATOR_V1,
             Self::V2 => GENERATOR_V2,
             Self::V3 => GENERATOR_V3,
+            Self::V4 => GENERATOR_V4,
         }
     }
 
@@ -39,6 +43,7 @@ impl GeneratorVersion {
             Self::V1 => "v1",
             Self::V2 => "v2",
             Self::V3 => "v3",
+            Self::V4 => "v4",
         }
     }
 }
@@ -56,7 +61,7 @@ pub struct GenerationConfig<'a> {
 
 /// Generates one deterministic typed program and its replay manifest.
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
-    generate_version(index, config, GeneratorVersion::V3)
+    generate_version(index, config, GeneratorVersion::V4)
 }
 
 pub(crate) fn regenerate(
@@ -155,6 +160,7 @@ enum Family {
     ClosedUnionEmpty,
     GenericFieldReceiver,
     GenericTraitPackage,
+    SuspensionCapture,
 }
 
 impl Family {
@@ -169,6 +175,7 @@ impl Family {
                 GeneratorVersion::V1 => 17,
                 GeneratorVersion::V2 => 18,
                 GeneratorVersion::V3 => 19,
+                GeneratorVersion::V4 => 20,
             },
         };
         match index % family_count {
@@ -190,7 +197,8 @@ impl Family {
             15 => Self::ClosedUnion,
             16 => Self::ClosedUnionEmpty,
             17 => Self::GenericFieldReceiver,
-            _ => Self::GenericTraitPackage,
+            18 => Self::GenericTraitPackage,
+            _ => Self::SuspensionCapture,
         }
     }
 
@@ -234,6 +242,7 @@ impl Family {
             Self::ClosedUnionEmpty => "closed_union_empty",
             Self::GenericFieldReceiver => "generic_field_receiver",
             Self::GenericTraitPackage => "generic_trait_package",
+            Self::SuspensionCapture => "suspension_capture",
         }
     }
 
@@ -354,6 +363,7 @@ impl Family {
             .with_prelude(choice_declarations()),
             Self::GenericFieldReceiver => return module_cases::generic_field_receiver(index, value),
             Self::GenericTraitPackage => return module_cases::generic_trait_package(index, value),
+            Self::SuspensionCapture => suspension_cases::structured_capture(value),
         };
         (rendered, Vec::new())
     }
@@ -412,3 +422,5 @@ fn choice_declarations() -> &'static str {
 #[cfg(test)]
 #[path = "generate_test.rs"]
 mod tests;
+
+mod suspension_cases;

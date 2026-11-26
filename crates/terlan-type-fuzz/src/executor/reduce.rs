@@ -122,7 +122,7 @@ fn reduction_candidates(original: &GeneratedCase) -> Vec<GeneratedCase> {
             depth,
         ));
     }
-    for index in 0..19 {
+    for index in 0..20 {
         candidates.push(generate(manifest, manifest.seed, index, manifest.max_depth));
     }
     for seed in 0..=128 {
