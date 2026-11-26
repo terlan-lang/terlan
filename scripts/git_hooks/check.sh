@@ -740,6 +740,13 @@ run_affected_rust_lane() {
       ;;
     native-planning) cargo test --profile dev --locked -p terlan-native-planning --lib ;;
     type-fuzz) cargo test --profile dev --locked -p terlan-type-fuzz --lib ;;
+    cli-integration)
+      cargo build --profile dev --locked -p terlan --bin terlc
+      cli_fuzz_root=$(mktemp -d)
+      "$target_terlc" fuzz types --cases 1 --oracle none --out-dir "$cli_fuzz_root"
+      test -s "$cli_fuzz_root"/case-*/case.toml
+      rm -rf -- "$cli_fuzz_root"
+      ;;
     clippy)
       if [[ "$candidate_clippy_checked" == true ]]; then
         echo 'pre-commit: reuse candidate workspace Clippy result'
@@ -1124,7 +1131,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    clippy|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|type-fuzz|test-orchestrator)
+    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|type-fuzz|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

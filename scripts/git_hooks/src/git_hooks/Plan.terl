@@ -272,10 +272,19 @@ pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").
 
 pub native_planning(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan-native-planning/", ".rs").
+    affected(paths, "crates/terlan-native-planning/", ".rs")
+        or affected(paths, "crates/terlan/src/commands/build/vm_artifact/low_memory.rs", "")
+        or affected(paths, "crates/terlan/src/compiler/native_ir/open_std_pruning.rs", "")
+        or affected(paths, "crates/terlan/src/compiler/native_ir/open_std_pruning_test.rs", "").
 
 pub type_fuzz(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan-type-fuzz/", ".rs").
+    affected(paths, "crates/terlan-type-fuzz/", ".rs")
+        or affected(paths, "crates/terlan/src/commands/fuzz/", ".rs").
+
+pub cli_integration(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan/src/cli_dispatch.rs", "")
+        or affected(paths, "crates/terlan/src/cli_usage.rs", "")
+        or affected(paths, "crates/terlan/src/commands/mod.rs", "").
 
 pub build_support(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/build.rs", "")
@@ -316,9 +325,12 @@ pub rust_boundary_audit(paths: List[String]): Bool ->
     affected(paths, "tools/rust_boundary_audit/", "").
 
 pub commands(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan/src/commands/", ".rs")
-        or affected(paths, "crates/terlan/src/cli_dispatch.rs", "")
-        or affected(paths, "crates/terlan/src/cli_usage.rs", "").
+    other_commands(paths)
+        or commands_emit_js(paths)
+        or affected(paths, "crates/terlan/src/commands/test/", ".rs")
+        or affected(paths, "crates/terlan/src/commands/clean/", ".rs")
+        or affected(paths, "crates/terlan/src/commands/doctor/", ".rs")
+        or affected(paths, "crates/terlan/src/commands/init/", ".rs").
 
 pub commands_emit_js(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/src/commands/emit_js/", ".rs").
@@ -350,10 +362,11 @@ other_commands(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            path == "crates/terlan/src/cli_dispatch.rs"
-                or path == "crates/terlan/src/cli_usage.rs"
-                or String.starts_with(path, "crates/terlan/src/commands/")
+            String.starts_with(path, "crates/terlan/src/commands/")
     and String.ends_with(path, ".rs")
+    and path != "crates/terlan/src/commands/mod.rs"
+    and path != "crates/terlan/src/commands/build/vm_artifact/low_memory.rs"
+    and not String.starts_with(path, "crates/terlan/src/commands/fuzz/")
     and not String.starts_with(path, "crates/terlan/src/commands/test/")
     and not String.starts_with(path, "crates/terlan/src/commands/clean/")
     and not String.starts_with(path, "crates/terlan/src/commands/doctor/")
@@ -391,6 +404,8 @@ pub compiler(paths: List[String]): Bool ->
         [path | rest] ->
             String.starts_with(path, "crates/terlan/src/compiler/")
     and not String.starts_with(path, "crates/terlan/src/compiler/syntax/")
+    and path != "crates/terlan/src/compiler/native_ir/open_std_pruning.rs"
+    and path != "crates/terlan/src/compiler/native_ir/open_std_pruning_test.rs"
                 or compiler(rest)
     }.
 
@@ -411,6 +426,8 @@ pub native_lowering(paths: List[String]): Bool ->
         [path | rest] ->
             path == "crates/terlan/src/compiler/native_ir.rs"
                 or String.starts_with(path, "crates/terlan/src/compiler/native_ir/")
+    and path != "crates/terlan/src/compiler/native_ir/open_std_pruning.rs"
+    and path != "crates/terlan/src/compiler/native_ir/open_std_pruning_test.rs"
                 or native_lowering(rest)
     }.
 
@@ -599,6 +616,11 @@ pub lanes(paths: List[String]): List[String] ->
             commands(paths) -> command_lanes(paths);
             true -> List.new[String]()
         };
+    let cli_rust =
+        if {
+            cli_integration(paths) -> ["cli-integration"];
+            true -> List.new[String]()
+        };
     let compiler_rust =
         if {
             native_lowering(paths) and non_native_compiler(paths) -> ["compiler", "phase"];
@@ -627,7 +649,10 @@ pub lanes(paths: List[String]): List[String] ->
                     focused_crates,
                     append(
                         command_rust,
-                        append(compiler_rust, append(runtime_rust, workspace_rust)),
+                        append(
+                            cli_rust,
+                            append(compiler_rust, append(runtime_rust, workspace_rust)),
+                        ),
                     ),
                 ),
             ),
@@ -759,6 +784,7 @@ workspace_test_subset(lane: String): Bool ->
         or lane == "syntax"
         or lane == "phase"
         or lane == "runtime"
+        or lane == "cli-integration"
         or lane == "test-orchestrator"
         or lane == "rust-boundary-audit"
         or lane == "dependencies".
@@ -780,6 +806,7 @@ test_lane_priority(): List[String] ->
     [
         "shell",
         "clippy",
+        "cli-integration",
         "vm-contracts",
         "core-contracts",
         "commands-test",

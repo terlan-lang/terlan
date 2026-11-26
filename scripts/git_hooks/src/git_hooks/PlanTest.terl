@@ -435,8 +435,18 @@ pub focused_support_crates_do_not_select_the_monolithic_workspace(): Bool ->
     Plan.lanes(["crates/terlan-native-planning/src/lib.rs", "crates/terlan-type-fuzz/src/lib.rs"]) == ["shell", "clippy", "rust-reports", "native-planning", "type-fuzz"].
 
 @test
-pub root_cli_sources_use_the_command_owner(): Bool ->
-    Plan.lanes(["crates/terlan/src/cli_dispatch.rs", "crates/terlan/src/cli_usage.rs"]) == ["shell", "clippy", "rust-reports", "commands"].
+pub root_cli_sources_use_the_bounded_integration_owner(): Bool ->
+    Plan.lanes(["crates/terlan/src/cli_dispatch.rs", "crates/terlan/src/cli_usage.rs"]) == ["shell", "clippy", "rust-reports", "cli-integration"].
+
+@test
+pub fuzz_and_planning_adapters_avoid_monolithic_test_harnesses(): Bool ->
+    Plan.lanes(
+    [
+        "crates/terlan/src/commands/fuzz/mod.rs",
+        "crates/terlan/src/commands/build/vm_artifact/low_memory.rs",
+        "crates/terlan/src/compiler/native_ir/open_std_pruning.rs",
+    ],
+) == ["shell", "clippy", "rust-reports", "native-planning", "type-fuzz"].
 
 @test
 pub bootstrap_changes_already_cover_orchestrator_regressions(): Bool ->
