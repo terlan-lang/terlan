@@ -4,8 +4,9 @@
 mod linker;
 use linker::*;
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::ffi::{OsStr, OsString};
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -590,6 +591,56 @@ fn rooted_cache_event(disposition: RootedCacheDisposition) -> &'static str {
             "terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image"
         }
     }
+}
+
+pub(super) fn trace_native_semantic_inventory(
+    descriptor: &crate::runtime::native_image::TvmExecutableDescriptor,
+) {
+    if crate::compiler_timings::native_enabled() {
+        let aggregate_ids = descriptor
+            .managed_layouts
+            .iter()
+            .map(|layout| layout.semantic_id)
+            .collect::<Vec<_>>();
+        let collection_ids = descriptor
+            .managed_collections
+            .iter()
+            .map(|collection| collection.semantic_id)
+            .collect::<Vec<_>>();
+        eprintln!(
+            "{}",
+            native_semantic_inventory_event(&aggregate_ids, &collection_ids)
+        );
+    }
+}
+
+fn native_semantic_inventory_event(
+    aggregate_ids: &[[u8; 16]],
+    collection_ids: &[[u8; 16]],
+) -> String {
+    let semantic_ids = aggregate_ids
+        .iter()
+        .chain(collection_ids)
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let mut rendered = String::new();
+    for (index, semantic) in semantic_ids.iter().enumerate() {
+        if index > 0 {
+            rendered.push(',');
+        }
+        for byte in semantic {
+            write!(rendered, "{byte:02x}").expect("writing to a String cannot fail");
+        }
+    }
+    if rendered.is_empty() {
+        rendered.push_str("none");
+    }
+    format!(
+        "terlc native-aot: image.types: semantic-types={} aggregate-layouts={} collection-layouts={} semantic-type-ids={rendered}",
+        semantic_ids.len(),
+        aggregate_ids.len(),
+        collection_ids.len(),
+    )
 }
 
 /// Compiles an owned CoreIR closure after pruning it in place to executable roots.

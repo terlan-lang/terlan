@@ -100,7 +100,7 @@ pub(super) fn native_application_image_descriptor(
             .then_with(|| left.encoded_layout.cmp(&right.encoded_layout))
     });
     managed_collections.dedup();
-    Ok(TvmExecutableDescriptor {
+    let descriptor = TvmExecutableDescriptor {
         runtime_abi_min: 3,
         runtime_abi_max: 3,
         native_boundary_min: PUBLIC_ADAPTER_ABI_VERSION,
@@ -134,7 +134,9 @@ pub(super) fn native_application_image_descriptor(
             immutable_data_digest: [0; 32],
         },
         signature: None,
-    })
+    };
+    super::native_image::trace_native_semantic_inventory(&descriptor);
+    Ok(descriptor)
 }
 
 fn native_boundary_type(ty: NativeType) -> TvmBoundaryType {

@@ -230,6 +230,7 @@ impl CoreReuse {
         {
             return Ok(None);
         }
+        super::native_image::trace_native_semantic_inventory(&image.descriptor);
         fs::create_dir_all(vm_dir).map_err(|error| {
             BuildOneError::Message(format!(
                 "cannot create VM artifact directory `{}`: {error}",
