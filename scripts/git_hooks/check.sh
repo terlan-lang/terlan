@@ -180,10 +180,9 @@ if [[ "$compiler_build" == true ]]; then
   trap cleanup_cache_metadata EXIT
   node scripts/git_hooks/invalidate_workspace_cache.cjs \
     "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
-  # The affected Rust test lane compiles the same candidate dependency graph.
-  # Run it first, then let deferred Clippy reuse those artifacts instead of
-  # paying for two cold compiler graphs before reaching one assertion.
-  echo 'pre-commit: defer candidate compiler Clippy until after affected tests'
+  # Plan with the latest working compiler. Candidate Clippy runs before the
+  # affected Rust test lane, so static failures cannot invalidate test builds.
+  echo 'pre-commit: prepare candidate compiler validation'
   terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}
   [[ -x "$terlc" && ! -L "$terlc" ]] || {
     echo 'pre-commit: candidate checking requires a latest working compiler' >&2
@@ -476,6 +475,11 @@ if preflight_has rust-lint-allowances; then
       scripts/self_validation/rust_quality/scripts/RustQuality.terls \
       --target terlan-vm --out-dir "$rust_quality_dir"
     test -s "$rust_quality_image"
+    paired_terlan_vm="$(dirname "$terlc")/terlan-vm"
+    if [[ ! -x "$paired_terlan_vm" || -L "$paired_terlan_vm" ]]; then
+      echo "pre-commit: compiler-paired VM is unavailable: $paired_terlan_vm" >&2
+      exit 1
+    fi
     rust_allowance_paths=()
     lint_allowance_registry_changed=false
     while IFS= read -r path; do
@@ -489,10 +493,10 @@ if preflight_has rust-lint-allowances; then
       esac
     done < "$changes"
     if [[ "$lint_allowance_registry_changed" == true ]]; then
-      "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
+      "$paired_terlan_vm" run "$rust_quality_image" \
         --script-eval -- lint-allowance-check
     else
-      "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
+      "$paired_terlan_vm" run "$rust_quality_image" \
         --script-eval -- lint-allowance-changed-check "${rust_allowance_paths[@]}"
     fi
     test ! -L "$lint_allowance_receipt_dir"
@@ -712,6 +716,12 @@ run_affected_rust_lane() {
       ;;
     commands-emit-js)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
+      ;;
+    commands-build-cache)
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+        commands::build::source_roots_test::
+      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+        commands::build::vm_artifact::parallel_compile_test::
       ;;
     commands-build)
       run_compiler_heavy_rust_tests --locked -p terlan --lib commands::build::
@@ -951,14 +961,25 @@ if preflight_has artifact-bootstrap; then
 fi
 
 # Focused Terlan and generated-contract checks above are cheaper and produce
-# more actionable diagnostics than broad Cargo suites. Only after they pass,
-# execute each selected Rust lane and remove it from the later broad plan.
+# more actionable diagnostics than broad Cargo suites. Clippy must precede
+# candidate test compilation: a static lint failure must never invalidate a
+# successfully compiled multi-minute test binary.
 remaining_plan="${plan%.plan}.remaining-plan"
 : > "$remaining_plan"
-deferred_clippy=false
+early_clippy=false
+if lane_has clippy; then early_clippy=true; fi
+if [[ "$early_clippy" == true ]]; then
+  affected_rust_lane_supported=true
+  if run_cached_affected_rust_lane clippy; then
+    echo 'pre-commit: early affected Rust lane passed: clippy'
+  else
+    clippy_status=$?
+    echo 'pre-commit: early affected Rust lane failed: clippy' >&2
+    exit "$clippy_status"
+  fi
+fi
 while IFS= read -r lane; do
   if [[ "$lane" == clippy ]]; then
-    deferred_clippy=true
     continue
   fi
   affected_rust_lane_supported=true
@@ -974,16 +995,6 @@ while IFS= read -r lane; do
     fi
   fi
 done < "$plan"
-if [[ "$deferred_clippy" == true ]]; then
-  affected_rust_lane_supported=true
-  if run_cached_affected_rust_lane clippy; then
-    echo 'pre-commit: deferred affected Rust lane passed: clippy'
-  else
-    clippy_status=$?
-    echo 'pre-commit: deferred affected Rust lane failed: clippy' >&2
-    exit "$clippy_status"
-  fi
-fi
 mv "$remaining_plan" "$plan"
 if [[ "$workspace_lane_selected" == true ]] && lane_has native-bindings; then
   echo 'pre-commit: canonical Rust suite owns native binding contracts'

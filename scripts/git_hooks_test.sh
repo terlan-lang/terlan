@@ -663,12 +663,12 @@ early_terlan_line=$(grep -n -F 'early terlan ownership and coverage' \
 deferred_rust_reports_line=$(grep -n -F 'defer full Rust inventories to release validation' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_affected_rust_line=$(grep -n -F 'early affected Rust lane passed' \
-  "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
+  "$(dirname "$driver")/git_hooks/check.sh" | head -1 | cut -d: -f1)
 early_terlan_format_line=$(grep -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_grammar_line=$(grep -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-compiler_check_line=$(grep -n -F 'defer candidate compiler Clippy until after affected tests' \
+compiler_check_line=$(grep -n -F 'prepare candidate compiler validation' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$deferred_rust_reports_line"
 test -n "$early_affected_rust_line"
@@ -698,8 +698,11 @@ grep -Fq 'make --no-print-directory rust-clippy-compiler-precommit-check' "$chec
 test "$(grep -Fc 'make --no-print-directory rust-clippy-compiler-precommit-check' "$check_driver")" -eq 1
 test "$(grep -Fc 'make --no-print-directory rust-clippy-precommit-check' "$check_driver")" -eq 1
 grep -Fq 'if ! lane_has workspace; then' "$check_driver"
-grep -Fq 'deferred affected Rust lane passed: clippy' "$check_driver"
-grep -Fq 'deferred affected Rust lane failed: clippy' "$check_driver"
+grep -Fq 'early affected Rust lane passed: clippy' "$check_driver"
+grep -Fq 'early affected Rust lane failed: clippy' "$check_driver"
+early_clippy_line=$(grep -n -F 'if run_cached_affected_rust_lane clippy; then' "$check_driver" | cut -d: -f1)
+affected_lane_loop_line=$(grep -n -F 'while IFS= read -r lane; do' "$check_driver" | tail -1 | cut -d: -f1)
+test "$early_clippy_line" -lt "$affected_lane_loop_line"
 if grep -Fq 'make --no-print-directory rust-clippy-check' "$check_driver"; then
   echo 'Pre-commit still invokes the duplicate all-features Clippy owner' >&2
   exit 1
@@ -716,7 +719,7 @@ test "$(sed -n '/^\[profile.dev.package.terlan\]$/,/^$/p' "$profile_manifest" \
   | grep -Fc 'codegen-units = 256')" -eq 1
 test "$(sed -n '/^\[profile.test.package.terlan\]$/,/^$/p' "$profile_manifest" \
   | grep -Fc 'codegen-units = 256')" -eq 1
-grep -Fq "echo 'pre-commit: defer candidate compiler Clippy until after affected tests'" \
+grep -Fq "echo 'pre-commit: prepare candidate compiler validation'" \
   "$check_driver"
 test "$(grep -Fc 'TERLC="$TERLAN_RUST_SUITE_TERLC" \' \
   "$(dirname "$driver")/git_hooks/check.sh")" -eq 2

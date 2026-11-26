@@ -1,6 +1,6 @@
 //! Tests for implementation-free interface prepass reuse.
 
-use std::fs;
+use std::{fs, path::Path};
 
 use crate::commands::artifacts::{fingerprint, DependencyManifest};
 use crate::support::test_fs;
@@ -9,6 +9,7 @@ use crate::terlan_syntax::cached_canonical_terlan_syntax_contract_identity;
 use crate::CliState;
 
 use super::source_roots::{cached_interface_is_current, prepare_source_root_interfaces};
+use super::write_build_file;
 
 /// A contract exposes fewer declarations than its implementation, including on
 /// repeat prepasses using a populated compiler cache.
@@ -179,4 +180,92 @@ fn interface_prepass_reuses_only_complete_current_signature_artifacts() {
         &cache_dir
     ));
     fs::remove_dir_all(root).expect("remove interface cache fixture");
+}
+
+/// A failed graph preparation never publishes interfaces parsed earlier in the batch.
+#[test]
+fn interface_prepass_failure_preserves_the_complete_previous_generation() {
+    let directory = test_fs::TestDirectory::new("interfaces", "transactional_prepass");
+    let root = directory.path().join("src");
+    let cache = directory.path().join("cache");
+    fs::create_dir_all(root.join("app")).expect("source layout");
+    let stable = root.join("app/Alpha.terl");
+    let final_module = root.join("app/Zulu.terl");
+    fs::write(&stable, "module app.Alpha.\npub value(): Int -> 1.\n").expect("stable source");
+    fs::write(&final_module, "module app.Zulu.\npub value(): Int -> 2.\n").expect("final source");
+    let state = CliState {
+        cache_dir: Some(cache.clone()),
+        incremental: true,
+        ..CliState::default()
+    };
+    prepare_source_root_interfaces(&root, &state).expect("initial interface generation");
+    let alpha_interface = fs::read(cache.join("app.Alpha.typi")).expect("alpha interface");
+    let alpha_hash = fs::read(cache.join("app.Alpha.typi.hash")).expect("alpha hash");
+    let zulu_interface = fs::read(cache.join("app.Zulu.typi")).expect("zulu interface");
+    let zulu_hash = fs::read(cache.join("app.Zulu.typi.hash")).expect("zulu hash");
+
+    fs::write(
+        &stable,
+        "module app.Alpha.\npub value(): String -> \"changed\".\n",
+    )
+    .expect("changed source");
+    fs::write(
+        root.join("app/Middle.terl"),
+        "module app.Middle.\npub value(): Int -> 3.\n",
+    )
+    .expect("new source");
+    fs::write(&final_module, "module app.Zulu.\npub broken(: Int -> 2.\n").expect("invalid source");
+
+    assert!(prepare_source_root_interfaces(&root, &state).is_err());
+    assert_eq!(
+        fs::read(cache.join("app.Alpha.typi")).expect("preserved alpha interface"),
+        alpha_interface
+    );
+    assert_eq!(
+        fs::read(cache.join("app.Alpha.typi.hash")).expect("preserved alpha hash"),
+        alpha_hash
+    );
+    assert_eq!(
+        fs::read(cache.join("app.Zulu.typi")).expect("preserved zulu interface"),
+        zulu_interface
+    );
+    assert_eq!(
+        fs::read(cache.join("app.Zulu.typi.hash")).expect("preserved zulu hash"),
+        zulu_hash
+    );
+    assert!(!cache.join("app.Middle.typi").exists());
+    assert!(!cache.join("app.Middle.typi.hash").exists());
+}
+
+/// Build cache replacement is complete and never leaves publication scratch.
+#[test]
+fn build_output_publication_is_atomic_and_incremental() {
+    let root = tempfile::tempdir().expect("atomic output root");
+    let target = root.path().join("module.typi");
+    fs::write(&target, b"previous interface").expect("seed interface");
+
+    write_build_file(&target, b"complete replacement", false).expect("replace interface");
+    write_build_file(&target, b"complete replacement", true).expect("reuse interface");
+
+    assert_eq!(
+        fs::read(&target).expect("read interface"),
+        b"complete replacement"
+    );
+    assert_eq!(fs::read_dir(root.path()).expect("read root").count(), 1);
+}
+
+/// Failed or malformed publications preserve destinations and clean scratch.
+#[test]
+fn build_output_publication_failures_leave_no_partial_artifact() {
+    let root = tempfile::tempdir().expect("failed output root");
+    let target = root.path().join("module.typi");
+    fs::create_dir(&target).expect("destination blocker");
+
+    assert!(write_build_file(&target, b"partial interface", false).is_err());
+    assert!(target.is_dir());
+    assert_eq!(fs::read_dir(root.path()).expect("read root").count(), 1);
+
+    let missing_parent = root.path().join("missing/module.typi");
+    assert!(write_build_file(&missing_parent, b"interface", false).is_err());
+    assert!(write_build_file(Path::new(""), b"interface", false).is_err());
 }

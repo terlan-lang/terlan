@@ -1,4 +1,10 @@
 use super::*;
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+const MAX_BUILD_OUTPUT_TEMPORARY_ATTEMPTS: usize = 64;
+static NEXT_BUILD_OUTPUT_TEMPORARY_ID: AtomicU64 = AtomicU64::new(0);
 
 /// Resolves source roots for a Terlan VM directory build.
 ///
@@ -257,15 +263,69 @@ pub(in crate::commands::build) fn path_to_manifest_string(path: &Path) -> String
 /// - `Err(message)` when the write fails.
 ///
 /// Transformation:
-/// - Delegates to the shared incremental-write helper and wraps errors with the
-///   build output path.
+/// - Preserves incremental no-op behavior, then writes and synchronizes a
+///   private same-directory file before one atomic replacement. A compiler
+///   abort therefore leaves either the old complete artifact or the new one,
+///   never a truncated cache entry.
 pub(in crate::commands::build) fn write_build_file(
     path: &Path,
     bytes: &[u8],
     incremental: bool,
 ) -> Result<(), String> {
-    crate::support::write_if_changed_or_forced(path, bytes, incremental)
-        .map_err(|err| format!("failed to write {}: {err}", path.display()))
+    if incremental && fs::read(path).is_ok_and(|existing| existing == bytes) {
+        return Ok(());
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("failed to write {}: output has no parent", path.display()))?;
+    let name = path.file_name().ok_or_else(|| {
+        format!(
+            "failed to write {}: output has no file name",
+            path.display()
+        )
+    })?;
+    let mut temporary = None;
+    for _ in 0..MAX_BUILD_OUTPUT_TEMPORARY_ATTEMPTS {
+        let id = NEXT_BUILD_OUTPUT_TEMPORARY_ID.fetch_add(1, Ordering::Relaxed);
+        let candidate = parent.join(format!(
+            ".{}.{}.{}.tmp",
+            name.to_string_lossy(),
+            std::process::id(),
+            id
+        ));
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(file) => {
+                temporary = Some((candidate, file));
+                break;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(format!("failed to write {}: {error}", path.display()));
+            }
+        }
+    }
+    let (temporary_path, mut file) = temporary.ok_or_else(|| {
+        format!(
+            "failed to write {}: exhausted temporary names",
+            path.display()
+        )
+    })?;
+    let publish = file
+        .write_all(bytes)
+        .and_then(|()| file.sync_all())
+        .and_then(|()| {
+            drop(file);
+            fs::rename(&temporary_path, path)
+        });
+    if let Err(error) = publish {
+        let _ = fs::remove_file(&temporary_path);
+        return Err(format!("failed to write {}: {error}", path.display()));
+    }
+    Ok(())
 }
 
 /// Copies the compiler-paired VM runtime into the executable package bundle.

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -55,7 +56,9 @@ pub(crate) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
 /// Transformation:
 /// - Reuses current incremental interfaces, prefers explicit `.terli`
 ///   contracts over sibling implementations, and applies the same interface
-///   graph validation as a complete source-root preparation.
+///   graph validation as a complete source-root preparation. All output bytes
+///   are prepared before publication, so a failed graph leaves the prior cache
+///   generation unchanged.
 pub(crate) fn prepare_source_interfaces(
     root: &Path,
     state: &CliState,
@@ -71,7 +74,8 @@ pub(crate) fn prepare_source_interfaces(
             cache_dir.display()
         )
     })?;
-    let mut declarations = Vec::new();
+    let mut parsed = Vec::new();
+    let mut prepared_outputs = BTreeMap::<PathBuf, Vec<u8>>::new();
     for file in files {
         let path_text = file.to_string_lossy().to_string();
         let source = crate::support::read_file(&path_text)?;
@@ -93,7 +97,10 @@ pub(crate) fn prepare_source_interfaces(
             let module = expected_module_name_for_source_path(root, &file)?;
             let manifest = read_manifest(&cache_dir.join(format!("{module}.typi.deps")))
                 .ok_or_else(|| format!("current interface manifest disappeared for `{module}`"))?;
-            write_prepared_interface_hash(cache_dir, &module, manifest.interface_hash, state)?;
+            prepared_outputs.insert(
+                cache_dir.join(format!("{module}.typi.hash")),
+                manifest.interface_hash.to_string().into_bytes(),
+            );
             continue;
         }
         let syntax_output = crate::formal_pipeline::parse_source_as_syntax_output(
@@ -113,34 +120,37 @@ pub(crate) fn prepare_source_interfaces(
             ));
         }
         validate_module_layout(root, &file, &syntax_output.module_name)?;
-        let interface = syntax_module_output_to_interface(&syntax_output);
-        if syntax_output.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface {
-            declarations.push((file, source, syntax_output.clone()));
-            continue;
+        if syntax_output.source_kind != crate::terlan_syntax::SyntaxSourceKind::Interface {
+            let interface = syntax_module_output_to_interface(&syntax_output);
+            let interface_text = interface.to_terlan_interface_text();
+            let interface_hash = prepared_interface_hash(&interface_text)?;
+            prepared_outputs.insert(
+                cache_dir.join(format!("{}.typi", syntax_output.module_name)),
+                interface_text.into_bytes(),
+            );
+            prepared_outputs.insert(
+                cache_dir.join(format!("{}.typi.hash", syntax_output.module_name)),
+                interface_hash.to_string().into_bytes(),
+            );
         }
-        let target = cache_dir.join(format!("{}.typi", syntax_output.module_name));
-        let interface_text = interface.to_terlan_interface_text();
-        let interface_hash = prepared_interface_hash(&interface_text)?;
-        write_build_file(&target, interface_text.as_bytes(), state.incremental)?;
-        write_prepared_interface_hash(
-            cache_dir,
-            &syntax_output.module_name,
-            interface_hash,
-            state,
-        )?;
+        parsed.push((file, source, syntax_output));
     }
-    if !declarations.is_empty() {
+    if parsed.iter().any(|(_, _, syntax)| {
+        syntax.source_kind == crate::terlan_syntax::SyntaxSourceKind::Interface
+    }) {
         let source_graph = crate::formal_pipeline::interface_graph::SourceInterfaceGraph::collect(
-            declarations
+            parsed
                 .iter()
                 .map(|(path, _, syntax)| (path.as_path(), syntax)),
             Some(cache_dir),
         );
-        let mut validated = Vec::new();
-        for (path, source, syntax) in declarations {
+        for (path, source, syntax) in &parsed {
+            if syntax.source_kind != crate::terlan_syntax::SyntaxSourceKind::Interface {
+                continue;
+            }
             let result = crate::formal_pipeline::compile_syntax_module_with_interfaces(
                 &path.to_string_lossy(),
-                &source,
+                source,
                 state.diagnostic_format,
                 crate::formal_pipeline::InterfaceInputs {
                     cache_dir: Some(cache_dir),
@@ -158,31 +168,20 @@ pub(crate) fn prepare_source_interfaces(
             };
             let interface_text = checked.interface.to_terlan_interface_text();
             let interface_hash = prepared_interface_hash(&interface_text)?;
-            validated.push((syntax.module_name, interface_text, interface_hash));
-        }
-        for (module, interface, interface_hash) in validated {
-            write_build_file(
-                &cache_dir.join(format!("{module}.typi")),
-                interface.as_bytes(),
-                state.incremental,
-            )?;
-            write_prepared_interface_hash(cache_dir, &module, interface_hash, state)?;
+            prepared_outputs.insert(
+                cache_dir.join(format!("{}.typi", syntax.module_name)),
+                interface_text.into_bytes(),
+            );
+            prepared_outputs.insert(
+                cache_dir.join(format!("{}.typi.hash", syntax.module_name)),
+                interface_hash.to_string().into_bytes(),
+            );
         }
     }
+    for (path, bytes) in prepared_outputs {
+        write_build_file(&path, &bytes, state.incremental)?;
+    }
     Ok(())
-}
-
-fn write_prepared_interface_hash(
-    cache_dir: &Path,
-    module: &str,
-    interface_hash: u64,
-    state: &CliState,
-) -> Result<(), String> {
-    write_build_file(
-        &cache_dir.join(format!("{module}.typi.hash")),
-        interface_hash.to_string().as_bytes(),
-        state.incremental,
-    )
 }
 
 fn prepared_interface_hash(interface_text: &str) -> Result<u64, String> {

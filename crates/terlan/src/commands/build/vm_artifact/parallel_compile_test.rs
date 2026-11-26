@@ -56,6 +56,26 @@ fn indexed_parallel_tasks_return_the_lowest_indexed_failure() {
     assert_eq!(error, ParallelTaskError::Task("source-two"));
 }
 
+/// A fatal frontend diagnostic prevents later work from entering compilation.
+#[test]
+fn indexed_parallel_tasks_stop_admitting_work_after_failure() {
+    let inputs = (0usize..8).collect::<Vec<_>>();
+    let calls = AtomicUsize::new(0);
+
+    let error = run_indexed_bounded(&inputs, 1, |value| {
+        calls.fetch_add(1, Ordering::SeqCst);
+        if *value == 2 {
+            Err("fatal-interface-diagnostic")
+        } else {
+            Ok(*value)
+        }
+    })
+    .expect_err("task set must fail");
+
+    assert_eq!(error, ParallelTaskError::Task("fatal-interface-diagnostic"));
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+}
+
 /// Proves simultaneous worker panics become one typed orchestration failure.
 #[test]
 fn indexed_parallel_tasks_report_worker_panics() {

@@ -361,6 +361,7 @@ pub rust_boundary_audit(paths: List[String]): Bool ->
 
 pub commands(paths: List[String]): Bool ->
     other_commands(paths)
+        or commands_build_cache(paths)
         or commands_build(paths)
         or commands_vm_artifact(paths)
         or commands_emit_js(paths)
@@ -375,12 +376,41 @@ pub commands_emit_js(paths: List[String]): Bool ->
 pub commands_build(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/src/commands/build/", ".rs")
         and not affected(paths, "crates/terlan/src/commands/build/vm_artifact/low_memory.rs", "")
+        and not commands_build_cache(paths)
         and not commands_vm_artifact(paths).
 
 pub commands_vm_artifact(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/src/commands/build/vm_artifact/", ".rs")
         and not affected(paths, "crates/terlan/src/commands/build/vm_artifact/low_memory.rs", "")
+        and not commands_build_cache(paths)
         and not non_vm_artifact_build(paths).
+
+pub commands_build_cache(paths: List[String]): Bool ->
+    contains_build_cache_path(paths) and only_build_cache_command_paths(paths).
+
+contains_build_cache_path(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> build_cache_path(path) or contains_build_cache_path(rest)
+    }.
+
+only_build_cache_command_paths(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            if {
+                String.starts_with(path, "crates/terlan/src/commands/build/")
+                    and String.ends_with(path, ".rs") -> build_cache_path(path) and only_build_cache_command_paths(rest);
+                true -> only_build_cache_command_paths(rest)
+            }
+    }.
+
+build_cache_path(path: String): Bool ->
+    path == "crates/terlan/src/commands/build/source_roots.rs"
+        or path == "crates/terlan/src/commands/build/source_roots_test.rs"
+        or path == "crates/terlan/src/commands/build/build_orchestration/source_root_builds.rs"
+        or path == "crates/terlan/src/commands/build/vm_artifact/parallel_compile.rs"
+        or path == "crates/terlan/src/commands/build/vm_artifact/parallel_compile_test.rs".
 
 non_vm_artifact_build(paths: List[String]): Bool ->
     case paths {
@@ -394,27 +424,31 @@ non_vm_artifact_build(paths: List[String]): Bool ->
 
 pub command_lanes(paths: List[String]): List[String] ->
     selected(
-        commands_emit_js(paths),
-        "commands-emit-js",
+        commands_build_cache(paths),
+        "commands-build-cache",
         selected(
-            commands_vm_artifact(paths),
-            "commands-vm-artifact",
+            commands_emit_js(paths),
+            "commands-emit-js",
             selected(
-                commands_build(paths),
-                "commands-build",
+                commands_vm_artifact(paths),
+                "commands-vm-artifact",
                 selected(
-                    affected(paths, "crates/terlan/src/commands/test/", ".rs"),
-                    "commands-test",
+                    commands_build(paths),
+                    "commands-build",
                     selected(
-                        affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
-                        "commands-clean",
+                        affected(paths, "crates/terlan/src/commands/test/", ".rs"),
+                        "commands-test",
                         selected(
-                            affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
-                            "commands-doctor",
+                            affected(paths, "crates/terlan/src/commands/clean/", ".rs"),
+                            "commands-clean",
                             selected(
-                                affected(paths, "crates/terlan/src/commands/init/", ".rs"),
-                                "commands-init",
-                                selected(other_commands(paths), "commands", List.new[String]()),
+                                affected(paths, "crates/terlan/src/commands/doctor/", ".rs"),
+                                "commands-doctor",
+                                selected(
+                                    affected(paths, "crates/terlan/src/commands/init/", ".rs"),
+                                    "commands-init",
+                                    selected(other_commands(paths), "commands", List.new[String]()),
+                                ),
                             ),
                         ),
                     ),
@@ -909,6 +943,7 @@ workspace_test_subset(lane: String): Bool ->
 
 command_test_subset(lane: String): Bool ->
     lane == "commands-test"
+        or lane == "commands-build-cache"
         or lane == "commands-build"
         or lane == "commands-vm-artifact"
         or lane == "commands-clean"
@@ -929,6 +964,7 @@ test_lane_priority(): List[String] ->
         "cli-integration",
         "vm-contracts",
         "core-contracts",
+        "commands-build-cache",
         "commands-build",
         "commands-vm-artifact",
         "commands-test",

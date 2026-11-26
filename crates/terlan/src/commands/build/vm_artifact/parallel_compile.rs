@@ -1,6 +1,7 @@
 //! Bounded deterministic frontend compilation for native applications.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Instant;
 
@@ -91,8 +92,9 @@ pub(crate) fn bounded_worker_limit() -> usize {
 /// - `WorkerPanicked` when a worker exits without returning outcomes.
 ///
 /// Transformation:
-/// - Distributes indexes round-robin across scoped workers, joins every worker,
-///   restores indexed slots, and only then resolves typed task results.
+/// - Distributes indexes round-robin across scoped workers, stops admitting
+///   higher-indexed work after the first observed failure, joins every active
+///   worker, and restores deterministic input or failure order.
 pub(crate) fn run_indexed_bounded<I, O, E, F>(
     inputs: &[I],
     worker_limit: usize,
@@ -108,15 +110,27 @@ where
         return Ok(Vec::new());
     }
     let worker_count = worker_limit.max(1).min(inputs.len());
+    let first_failure = AtomicUsize::new(usize::MAX);
     thread::scope(|scope| {
         let mut workers = Vec::with_capacity(worker_count);
         for worker_index in 0..worker_count {
             let operation = &operation;
+            let first_failure = &first_failure;
             workers.push(scope.spawn(move || {
-                (worker_index..inputs.len())
-                    .step_by(worker_count)
-                    .map(|index| (index, operation(&inputs[index])))
-                    .collect::<Vec<_>>()
+                let mut outcomes = Vec::new();
+                for index in (worker_index..inputs.len()).step_by(worker_count) {
+                    if index > first_failure.load(Ordering::Acquire) {
+                        break;
+                    }
+                    let outcome = operation(&inputs[index]);
+                    let failed = outcome.is_err();
+                    outcomes.push((index, outcome));
+                    if failed {
+                        first_failure.fetch_min(index, Ordering::AcqRel);
+                        break;
+                    }
+                }
+                outcomes
             }));
         }
 
@@ -138,13 +152,16 @@ where
             return Err(ParallelTaskError::WorkerPanicked);
         }
 
-        indexed
-            .into_iter()
-            .map(|outcome| {
-                outcome
-                    .expect("every indexed task is assigned to exactly one worker")
-                    .map_err(ParallelTaskError::Task)
-            })
-            .collect()
+        let mut outputs = Vec::with_capacity(inputs.len());
+        for outcome in indexed {
+            match outcome {
+                Some(Ok(output)) => outputs.push(output),
+                Some(Err(error)) => return Err(ParallelTaskError::Task(error)),
+                None => {
+                    debug_assert_ne!(first_failure.load(Ordering::Acquire), usize::MAX);
+                }
+            }
+        }
+        Ok(outputs)
     })
 }
