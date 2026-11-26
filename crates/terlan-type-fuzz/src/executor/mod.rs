@@ -12,6 +12,7 @@ pub fn execute(action: Action, compiler: &Path, compiler_revision: &str) -> Resu
     match action {
         Action::Types(options) => artifacts::generate_run(&options, compiler, compiler_revision),
         Action::Replay(path) => artifacts::replay(&path, compiler),
+        Action::CorpusCheck(path) => artifacts::check_corpus(&path, compiler),
     }
 }
 
@@ -43,6 +44,13 @@ mod tests {
         )
         .unwrap_err()
         .contains("read case manifest"));
+        assert!(execute(
+            Action::CorpusCheck("missing-corpus".into()),
+            Path::new("missing-compiler"),
+            "test",
+        )
+        .unwrap_err()
+        .contains("read corpus directory"));
 
         let root = tempfile::tempdir().expect("fuzz root");
         let options = RunOptions {

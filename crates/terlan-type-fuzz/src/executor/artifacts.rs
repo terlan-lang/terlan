@@ -121,6 +121,39 @@ pub(super) fn replay(directory: &Path, compiler: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub(super) fn check_corpus(root: &Path, compiler: &Path) -> Result<(), String> {
+    let mut entries = fs::read_dir(root).map_err(io_error("read corpus directory"))?;
+    check_corpus_entries(root, compiler, &mut entries)
+}
+
+fn check_corpus_entries(
+    root: &Path,
+    compiler: &Path,
+    entries: &mut dyn Iterator<Item = std::io::Result<fs::DirEntry>>,
+) -> Result<(), String> {
+    let mut cases = Vec::new();
+    for entry in entries {
+        let path = entry
+            .map(|entry| entry.path())
+            .map_err(io_error("read corpus entry"))?;
+        if path.is_dir() && path.join("case.toml").is_file() {
+            cases.push(path);
+        }
+    }
+    cases.sort();
+    if cases.is_empty() {
+        return Err(format!(
+            "type fuzz corpus `{}` contains no replayable cases",
+            root.display()
+        ));
+    }
+    for case in &cases {
+        replay(case, compiler)?;
+    }
+    println!("checked {} type fuzz corpus cases", cases.len());
+    Ok(())
+}
+
 fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
     fs::create_dir_all(directory).map_err(io_error("create case directory"))?;
     atomic_write(&directory.join("Cargo.toml"), case.project.as_bytes())?;
@@ -528,6 +561,48 @@ mod tests {
         assert!(replay(root.path(), Path::new("missing-compiler"))
             .unwrap_err()
             .contains("invalid"));
+    }
+
+    #[test]
+    fn corpus_check_replays_sorted_cases_and_rejects_invalid_roots() {
+        let root = tempfile::tempdir().expect("temporary corpus root");
+        assert!(check_corpus(root.path(), Path::new("missing-compiler"))
+            .unwrap_err()
+            .contains("contains no replayable cases"));
+        fs::write(root.path().join("README.md"), "corpus").expect("corpus readme");
+        fs::create_dir(root.path().join("ignored")).expect("ignored directory");
+
+        let options = RunOptions {
+            oracle: Oracle::None,
+            ..RunOptions::default()
+        };
+        let first = generate(0, &options, "test");
+        let second = generate(1, &options, "test");
+        write_case(&root.path().join("z-case"), &second).expect("second case");
+        write_case(&root.path().join("a-case"), &first).expect("first case");
+        check_corpus(root.path(), Path::new("missing-compiler")).expect("valid corpus");
+
+        fs::write(root.path().join("z-case").join(CASE_SOURCE_FILE), "drifted")
+            .expect("corrupt case");
+        assert!(check_corpus(root.path(), Path::new("missing-compiler"))
+            .unwrap_err()
+            .contains("drifted"));
+
+        let file = root.path().join("not-a-directory");
+        fs::write(&file, "file").expect("corpus file");
+        assert!(check_corpus(&file, Path::new("missing-compiler"))
+            .unwrap_err()
+            .contains("read corpus directory"));
+        let failed_entry: std::io::Result<fs::DirEntry> =
+            Err(std::io::Error::other("entry failure"));
+        let mut failed_entries = [failed_entry].into_iter();
+        assert!(check_corpus_entries(
+            root.path(),
+            Path::new("missing-compiler"),
+            &mut failed_entries,
+        )
+        .unwrap_err()
+        .contains("read corpus entry"));
     }
 
     #[test]
