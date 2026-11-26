@@ -1,0 +1,93 @@
+use std::path::{Path, PathBuf};
+
+use super::metrics;
+use crate::{executor::oracle, Oracle, RunOptions};
+
+const BROAD_WALL_TOLERANCE_MS: u64 = 1_000;
+const BROAD_RSS_TOLERANCE_BYTES: u64 = 16 * 1024 * 1024;
+
+pub(super) fn run_source(
+    profile: &str,
+    compiler: &Path,
+    source: &Path,
+    wall_ms: u64,
+    options: &RunOptions,
+) -> Result<oracle::OracleResult, String> {
+    let result = oracle::run(
+        compiler,
+        Oracle::Native,
+        source,
+        wall_ms,
+        options.rss_limit_bytes,
+        options.cpu_limit_ms,
+    );
+    ensure_passed(profile, &result)?;
+    Ok(result)
+}
+
+pub(super) fn run_batch(
+    profile: &str,
+    compiler: &Path,
+    root: &Path,
+    sources: &[PathBuf],
+    wall_ms: u64,
+    options: &RunOptions,
+) -> Result<oracle::OracleResult, String> {
+    let result = oracle::run_batch(
+        compiler,
+        Oracle::Native,
+        root,
+        sources,
+        wall_ms,
+        options.rss_limit_bytes,
+        options.cpu_limit_ms,
+    );
+    ensure_passed(profile, &result)?;
+    Ok(result)
+}
+
+pub(super) fn ensure_broad_regression_absent(
+    broad: &oracle::OracleResult,
+    narrow: &oracle::OracleResult,
+) -> Result<(), String> {
+    if !metrics::same_structural_work(
+        &metrics::measure(&broad.stderr),
+        &metrics::measure(&narrow.stderr),
+    ) {
+        return Err("unreachable native provider added compiler work".into());
+    }
+    if !within_increase(
+        broad.resources.wall_elapsed_ms,
+        narrow.resources.wall_elapsed_ms,
+        BROAD_WALL_TOLERANCE_MS,
+    ) {
+        return Err("unreachable native provider exceeded wall tolerance".into());
+    }
+    if !within_increase(
+        broad.resources.peak_rss_bytes,
+        narrow.resources.peak_rss_bytes,
+        BROAD_RSS_TOLERANCE_BYTES,
+    ) {
+        return Err("unreachable native provider exceeded RSS tolerance".into());
+    }
+    Ok(())
+}
+
+fn ensure_passed(profile: &str, result: &oracle::OracleResult) -> Result<(), String> {
+    if result.outcome == "passed" {
+        Ok(())
+    } else {
+        Err(format!(
+            "{profile} native planning probe ended as {}: {}",
+            result.outcome, result.stderr
+        ))
+    }
+}
+
+pub(super) fn within_increase(right: Option<u64>, left: Option<u64>, tolerance: u64) -> bool {
+    match (right, left) {
+        (Some(right), Some(left)) => right <= left.saturating_add(tolerance),
+        (None, None) => true,
+        _ => false,
+    }
+}

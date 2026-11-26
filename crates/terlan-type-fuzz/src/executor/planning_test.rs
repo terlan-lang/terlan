@@ -34,10 +34,16 @@ fn matched_planning_graphs_record_bounded_evidence() {
     assert_eq!(comparison["schema"], "terlan.type-fuzz-planning.v1");
     assert_eq!(comparison["narrow"]["cold"]["compiler"]["timing_events"], 0);
     assert_eq!(
+        comparison["combined_root"]["cold"]["compiler"]["timing_events"],
+        0
+    );
+    assert_eq!(
         comparison["delta"]["cold_broad_minus_narrow"]["compiler_work"]["native_units_built"],
         0
     );
     assert!(planning.join("narrow").join(NARROW_SOURCE).is_file());
+    assert!(planning.join("combined").join(COMBINED_FIRST).is_file());
+    assert!(planning.join("combined").join(COMBINED_SECOND).is_file());
     assert!(planning.join("broad").join(BROAD_SOURCE).is_file());
     assert!(planning.join("broad/unused-native/terlan.toml").is_file());
 }
@@ -85,6 +91,14 @@ fn every_nested_fixture_write_failure_is_attributed() {
         assert!(error.contains("write"), "{blocked}: {error}");
     }
 
+    for blocked in ["terlan.toml", COMBINED_FIRST, COMBINED_SECOND] {
+        let root = tempfile::tempdir().expect("planning root");
+        let path = root.path().join(blocked);
+        fs::create_dir_all(&path).expect("blocking directory");
+        let error = write_combined_fixture(root.path()).expect_err("fixture write must fail");
+        assert!(error.contains("write"), "{blocked}: {error}");
+    }
+
     let root = tempfile::tempdir().expect("planning root");
     let blocked_parent = root.path().join("blocked");
     fs::write(&blocked_parent, "file").expect("blocking file");
@@ -114,7 +128,7 @@ fn broad_execution_failure_is_attributed() {
     fs::write(
         &compiler,
         format!(
-            "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -lt 3 ]\n",
+            "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -lt 5 ]\n",
             launches.display(),
             launches.display(),
         ),
@@ -136,17 +150,28 @@ fn broad_execution_failure_is_attributed() {
 fn fixture_root_failures_are_attributed() {
     let root = tempfile::tempdir().expect("planning root");
     let narrow = root.path().join("narrow");
+    let combined = root.path().join("combined");
     let broad = root.path().join("broad");
     fs::write(&narrow, "file").expect("blocking narrow profile");
-    assert!(write_fixtures(&narrow, &broad)
+    assert!(write_fixtures(&narrow, &combined, &broad)
         .unwrap_err()
         .contains("create planning fixture"));
 
     let root = tempfile::tempdir().expect("planning root");
     let narrow = root.path().join("narrow");
+    let combined = root.path().join("combined");
+    let broad = root.path().join("broad");
+    fs::write(&combined, "file").expect("blocking combined profile");
+    assert!(write_fixtures(&narrow, &combined, &broad)
+        .unwrap_err()
+        .contains("create planning fixture"));
+
+    let root = tempfile::tempdir().expect("planning root");
+    let narrow = root.path().join("narrow");
+    let combined = root.path().join("combined");
     let broad = root.path().join("broad");
     fs::write(&broad, "file").expect("blocking broad profile");
-    assert!(write_fixtures(&narrow, &broad)
+    assert!(write_fixtures(&narrow, &combined, &broad)
         .unwrap_err()
         .contains("create planning fixture"));
 

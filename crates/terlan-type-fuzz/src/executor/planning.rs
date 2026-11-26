@@ -1,16 +1,18 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::oracle::{self, OracleResult};
+use super::oracle::OracleResult;
 use crate::{Oracle, RunOptions};
 
 #[path = "planning_metrics.rs"]
 mod metrics;
+#[path = "planning_profiles.rs"]
+mod profiles;
 
 const NARROW_SOURCE: &str = "src/type_fuzz/narrow/NarrowTest.terl";
+const COMBINED_FIRST: &str = "src/type_fuzz/combined/FirstTest.terl";
+const COMBINED_SECOND: &str = "src/type_fuzz/combined/SecondTest.terl";
 const BROAD_SOURCE: &str = "src/type_fuzz/broad/BroadTest.terl";
-const BROAD_WALL_TOLERANCE_MS: u64 = 1_000;
-const BROAD_RSS_TOLERANCE_BYTES: u64 = 16 * 1024 * 1024;
 
 pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> Result<(), String> {
     if options.oracle != Oracle::Native {
@@ -19,38 +21,59 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
     let root = options.out_dir.join("planning");
     reset_root(&root)?;
     let narrow = root.join("narrow");
+    let combined = root.join("combined");
     let broad = root.join("broad");
-    write_fixtures(&narrow, &broad)?;
-    let wall_ms = options.case_timeout_ms.min(remaining_ms / 4).max(1);
-    let narrow_cold = run_profile(
+    write_fixtures(&narrow, &combined, &broad)?;
+    let wall_ms = options.case_timeout_ms.min(remaining_ms / 6).max(1);
+    let narrow_cold = profiles::run_source(
         "narrow cold",
         compiler,
         &narrow.join(NARROW_SOURCE),
         wall_ms,
         options,
     )?;
-    let narrow_warm = run_profile(
+    let narrow_warm = profiles::run_source(
         "narrow warm",
         compiler,
         &narrow.join(NARROW_SOURCE),
         wall_ms,
         options,
     )?;
-    let broad_cold = run_profile(
+    let combined_sources = [
+        PathBuf::from(COMBINED_FIRST),
+        PathBuf::from(COMBINED_SECOND),
+    ];
+    let combined_cold = profiles::run_batch(
+        "combined cold",
+        compiler,
+        &combined,
+        &combined_sources,
+        wall_ms,
+        options,
+    )?;
+    let combined_warm = profiles::run_batch(
+        "combined warm",
+        compiler,
+        &combined,
+        &combined_sources,
+        wall_ms,
+        options,
+    )?;
+    let broad_cold = profiles::run_source(
         "broad cold",
         compiler,
         &broad.join(BROAD_SOURCE),
         wall_ms,
         options,
     )?;
-    let broad_warm = run_profile(
+    let broad_warm = profiles::run_source(
         "broad warm",
         compiler,
         &broad.join(BROAD_SOURCE),
         wall_ms,
         options,
     )?;
-    ensure_broad_regression_absent(&broad_cold, &narrow_cold)?;
+    profiles::ensure_broad_regression_absent(&broad_cold, &narrow_cold)?;
     let evidence = serde_json::json!({
         "schema": "terlan.type-fuzz-planning.v1",
         "narrow": {
@@ -61,54 +84,46 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
             "cold": observation(&broad_cold),
             "warm": observation(&broad_warm),
         },
+        "combined_root": {
+            "cold": observation(&combined_cold),
+            "warm": observation(&combined_warm),
+        },
         "delta": {
             "cold_broad_minus_narrow": comparison(&broad_cold, &narrow_cold),
             "warm_broad_minus_narrow": comparison(&broad_warm, &narrow_warm),
             "narrow_warm_minus_cold": comparison(&narrow_warm, &narrow_cold),
             "broad_warm_minus_cold": comparison(&broad_warm, &broad_cold),
+            "combined_cold_minus_narrow": comparison(&combined_cold, &narrow_cold),
+            "combined_warm_minus_narrow": comparison(&combined_warm, &narrow_warm),
+            "combined_warm_minus_cold": comparison(&combined_warm, &combined_cold),
         }
     });
     publish(&root, &evidence)
 }
 
-fn ensure_broad_regression_absent(
-    broad: &OracleResult,
-    narrow: &OracleResult,
-) -> Result<(), String> {
-    if !metrics::same_structural_work(
-        &metrics::measure(&broad.stderr),
-        &metrics::measure(&narrow.stderr),
-    ) {
-        return Err("unreachable native provider added compiler work".into());
-    }
-    if !within_increase(
-        broad.resources.wall_elapsed_ms,
-        narrow.resources.wall_elapsed_ms,
-        BROAD_WALL_TOLERANCE_MS,
-    ) {
-        return Err("unreachable native provider exceeded wall tolerance".into());
-    }
-    if !within_increase(
-        broad.resources.peak_rss_bytes,
-        narrow.resources.peak_rss_bytes,
-        BROAD_RSS_TOLERANCE_BYTES,
-    ) {
-        return Err("unreachable native provider exceeded RSS tolerance".into());
-    }
-    Ok(())
-}
-
-fn within_increase(right: Option<u64>, left: Option<u64>, tolerance: u64) -> bool {
-    match (right, left) {
-        (Some(right), Some(left)) => right <= left.saturating_add(tolerance),
-        (None, None) => true,
-        _ => false,
-    }
-}
-
-fn write_fixtures(narrow: &Path, broad: &Path) -> Result<(), String> {
+fn write_fixtures(narrow: &Path, combined: &Path, broad: &Path) -> Result<(), String> {
     write_fixture(narrow, false)?;
+    write_combined_fixture(combined)?;
     write_fixture(broad, true)
+}
+
+fn write_combined_fixture(root: &Path) -> Result<(), String> {
+    write(
+        root.join("terlan.toml"),
+        concat!(
+            "[package]\nname = \"type-fuzz-combined\"\nversion = \"0.0.0\"\n",
+            "namespace = \"type_fuzz.combined\"\n\n[build]\nsource_roots = [\"src\"]\n",
+            "artifact = \"library\"\n",
+        ),
+    )?;
+    write(
+        root.join(COMBINED_FIRST),
+        "module type_fuzz.combined.FirstTest.\n\n@test\npub first_is_stable(): Bool ->\n    7 == 7.\n",
+    )?;
+    write(
+        root.join(COMBINED_SECOND),
+        "module type_fuzz.combined.SecondTest.\n\n@test\npub second_is_stable(): Bool ->\n    9 == 9.\n",
+    )
 }
 
 fn reset_root(root: &Path) -> Result<(), String> {
@@ -118,40 +133,10 @@ fn reset_root(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn run_profile(
-    profile: &str,
-    compiler: &Path,
-    source: &Path,
-    wall_ms: u64,
-    options: &RunOptions,
-) -> Result<OracleResult, String> {
-    let result = oracle::run(
-        compiler,
-        Oracle::Native,
-        source,
-        wall_ms,
-        options.rss_limit_bytes,
-        options.cpu_limit_ms,
-    );
-    ensure_passed(profile, &result)?;
-    Ok(result)
-}
-
 fn publish(root: &Path, evidence: &serde_json::Value) -> Result<(), String> {
     let bytes = serde_json::to_vec(&evidence).expect("planning evidence JSON serializes");
     fs::write(root.join("comparison.json"), bytes)
         .map_err(|error| format!("write planning comparison: {error}"))
-}
-
-fn ensure_passed(profile: &str, result: &OracleResult) -> Result<(), String> {
-    if result.outcome == "passed" {
-        Ok(())
-    } else {
-        Err(format!(
-            "{profile} native planning probe ended as {}: {}",
-            result.outcome, result.stderr
-        ))
-    }
 }
 
 fn observation(result: &OracleResult) -> serde_json::Value {

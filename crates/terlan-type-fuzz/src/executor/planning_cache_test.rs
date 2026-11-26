@@ -1,11 +1,17 @@
 use super::*;
+use crate::executor::oracle;
 
 #[cfg(unix)]
 #[test]
 fn every_warm_profile_failure_is_attributed() {
     use std::os::unix::fs::PermissionsExt;
 
-    for (failure, expected) in [(2, "narrow warm"), (4, "broad warm")] {
+    for (failure, expected) in [
+        (2, "narrow warm"),
+        (3, "combined cold"),
+        (4, "combined warm"),
+        (6, "broad warm"),
+    ] {
         let root = tempfile::tempdir().expect("planning root");
         let launches = root.path().join("launches");
         let compiler = root.path().join("compiler");
@@ -79,24 +85,24 @@ fn broad_regressions_are_rejected_by_owned_dimension() {
     let narrow = result();
     let mut broad = result();
     broad.stderr = "terlc native-aot: module-unit.begin.extra functions=1 continuations=0".into();
-    assert!(ensure_broad_regression_absent(&broad, &narrow)
+    assert!(profiles::ensure_broad_regression_absent(&broad, &narrow)
         .unwrap_err()
         .contains("compiler work"));
 
     broad.stderr.clear();
     broad.resources.wall_elapsed_ms = Some(2_000);
     broad.resources.peak_rss_bytes = narrow.resources.peak_rss_bytes;
-    assert!(ensure_broad_regression_absent(&broad, &narrow)
+    assert!(profiles::ensure_broad_regression_absent(&broad, &narrow)
         .unwrap_err()
         .contains("wall tolerance"));
 
     broad.resources.wall_elapsed_ms = narrow.resources.wall_elapsed_ms;
     broad.resources.peak_rss_bytes = Some(u64::MAX);
-    assert!(ensure_broad_regression_absent(&broad, &narrow)
+    assert!(profiles::ensure_broad_regression_absent(&broad, &narrow)
         .unwrap_err()
         .contains("RSS tolerance"));
-    assert!(within_increase(None, None, 1));
-    assert!(!within_increase(Some(1), None, 1));
+    assert!(profiles::within_increase(None, None, 1));
+    assert!(!profiles::within_increase(Some(1), None, 1));
 }
 
 #[cfg(unix)]
@@ -110,7 +116,7 @@ fn broad_work_regression_fails_the_complete_probe() {
     fs::write(
         &compiler,
         format!(
-            "#!/bin/sh\nprintf 'launch\\n' >> {}\nif [ $(wc -l < {}) -eq 3 ]; then echo 'terlc native-aot: module-unit.begin.extra functions=1 continuations=0' >&2; fi\n",
+            "#!/bin/sh\nprintf 'launch\\n' >> {}\nif [ $(wc -l < {}) -eq 5 ]; then echo 'terlc native-aot: module-unit.begin.extra functions=1 continuations=0' >&2; fi\n",
             launches.display(),
             launches.display(),
         ),
