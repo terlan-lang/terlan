@@ -4256,6 +4256,9 @@ version = "0.0.10"
 dependencies = [
  "serde",
  "serde_json",
+ "tempfile",
+ "terlan-process-owner",
+ "toml",
 ]
 
 [[package]]

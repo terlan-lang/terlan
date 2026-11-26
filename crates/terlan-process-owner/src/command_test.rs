@@ -200,6 +200,60 @@ fn capture_result_retains_failure_diagnostics_without_turning_exit_failure_into_
 }
 
 #[test]
+fn dual_stream_capture_preserves_output_status_and_combined_limit() {
+    let captured = ProcessControl::new(Duration::from_secs(2))
+        .capture_output_result(&mut shell("printf out; printf err >&2; exit 7"), 6, |_| {
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(captured.stdout, b"out");
+    assert_eq!(captured.stderr, b"err");
+    assert_eq!(captured.status.code(), Some(7));
+
+    let error = ProcessControl::new(Duration::from_secs(2))
+        .capture_output_result(&mut shell("printf four; printf four >&2"), 7, |_| Ok(()))
+        .unwrap_err();
+    assert_eq!(error.kind, "output-limit");
+}
+
+#[test]
+fn dual_stream_timeout_cleans_descendants_and_drains_pipes() {
+    let mut launched = None;
+    let error = ProcessControl::new(Duration::from_millis(50))
+        .capture_output_result(
+            &mut shell("printf ready; printf diagnostic >&2; sleep 30 & wait"),
+            1024,
+            |pid| {
+                launched = rustix::process::Pid::from_raw(pid as i32);
+                Ok(())
+            },
+        )
+        .unwrap_err();
+    assert_eq!(error.kind, "timed-out");
+    assert!(matches!(
+        rustix::process::waitpid(launched, rustix::process::WaitOptions::NOHANG),
+        Err(rustix::io::Errno::CHILD)
+    ));
+}
+
+#[test]
+fn successful_dual_stream_capture_reaps_background_group_members() {
+    let captured = ProcessControl::new(Duration::from_secs(2))
+        .capture_output_result(&mut shell("sleep 30 & printf $!"), 64, |_| Ok(()))
+        .unwrap();
+    assert!(captured.status.success());
+    let descendant = String::from_utf8(captured.stdout)
+        .unwrap()
+        .parse::<i32>()
+        .unwrap();
+    let descendant = rustix::process::Pid::from_raw(descendant).unwrap();
+    assert_eq!(
+        rustix::process::test_kill_process(descendant),
+        Err(rustix::io::Errno::SRCH)
+    );
+}
+
+#[test]
 fn capture_rejects_overflow_including_short_lived_producers() {
     for script in ["printf abcd", "while :; do printf abcdefgh; done"] {
         let error = capture_stdout(&mut shell(script), Duration::from_secs(2), 3).unwrap_err();

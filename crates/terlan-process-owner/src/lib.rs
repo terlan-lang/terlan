@@ -26,6 +26,6 @@ pub mod pipe;
 
 pub use child::OwnedChild;
 pub use command::{
-    capture_stdout, capture_stdout_with_launch, run, run_with_launch, CapturedOutput, Failure,
-    ProcessControl,
+    capture_stdout, capture_stdout_with_launch, run, run_with_launch, CapturedCommandOutput,
+    CapturedOutput, Failure, ProcessControl,
 };

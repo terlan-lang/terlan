@@ -1,8 +1,8 @@
 //! Closed-stdin tool execution with a shared execution/pipe deadline.
 
 use std::io::{self, Read};
-use std::process::{ChildStdout, Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::process::{Command, ExitStatus, Stdio};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -113,6 +113,20 @@ impl<'a> ProcessControl<'a> {
         capture_controlled(command, self, limit, true, launched, |_| Ok(()))
     }
 
+    /// Captures bounded stdout and stderr while retaining the exact exit status.
+    ///
+    /// Both streams share one byte budget and the same execution deadline. The
+    /// owned child and every member of its process group are cleaned before a
+    /// result is returned, including timeout, cancellation, and overflow paths.
+    pub fn capture_output_result(
+        self,
+        command: &mut Command,
+        limit: usize,
+        launched: impl FnOnce(u32) -> Result<(), String>,
+    ) -> Result<CapturedCommandOutput, Failure> {
+        capture_output_controlled(command, self, limit, launched)
+    }
+
     /// Observes bounded stdout chunks on the owner thread before process completion.
     ///
     /// Concatenating successful observations yields exactly the returned stdout.
@@ -148,6 +162,17 @@ pub struct CapturedOutput {
     pub stdout: Vec<u8>,
     /// The observed exit status; captured output does not imply successful execution.
     pub outcome: Result<(), Failure>,
+}
+
+/// Byte-exact dual-stream output and the observed direct-child exit status.
+#[derive(Debug)]
+pub struct CapturedCommandOutput {
+    /// Captured standard output.
+    pub stdout: Vec<u8>,
+    /// Captured standard error.
+    pub stderr: Vec<u8>,
+    /// Direct-child status after transitive process-group cleanup.
+    pub status: ExitStatus,
 }
 
 /// An attributed process failure suitable for a producer's outcome ledger.
@@ -252,7 +277,8 @@ fn capture_controlled(
     let stdout = child
         .take_stdout()
         .ok_or_else(|| Failure::new("capture-failed", "missing stdout"))?;
-    let reader = Reader::new(stdout, limit)?;
+    configure_nonblocking(&stdout)?;
+    let reader = Reader::new("stdout", stdout, limit, Arc::new(AtomicUsize::new(0)))?;
     let mut output = Vec::new();
     let mut drained = false;
     let mut exited = None;
@@ -298,6 +324,76 @@ fn capture_controlled(
         }
         thread::sleep(POLL_INTERVAL);
     }
+}
+
+fn capture_output_controlled(
+    command: &mut Command,
+    control: ProcessControl<'_>,
+    limit: usize,
+    launched: impl FnOnce(u32) -> Result<(), String>,
+) -> Result<CapturedCommandOutput, Failure> {
+    validate_limits(control.timeout, limit)?;
+    let started = Instant::now();
+    control.check(started)?;
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = control.spawn(command, started)?;
+    launched(child.id()).map_err(|error| Failure::new("observation-failed", error))?;
+    let stdout = child
+        .take_stdout()
+        .ok_or_else(|| Failure::new("capture-failed", "missing stdout"))?;
+    let stderr = child
+        .take_stderr()
+        .ok_or_else(|| Failure::new("capture-failed", "missing stderr"))?;
+    configure_nonblocking(&stdout)?;
+    configure_nonblocking(&stderr)?;
+    let used = Arc::new(AtomicUsize::new(0));
+    let stdout_reader = Reader::new("stdout", stdout, limit, Arc::clone(&used))?;
+    let stderr_reader = Reader::new("stderr", stderr, limit, used)?;
+    let mut stdout_bytes = Vec::new();
+    let mut stderr_bytes = Vec::new();
+    let mut stdout_drained = false;
+    let mut stderr_drained = false;
+    let mut exited = None;
+    loop {
+        control.check(started)?;
+        drain_reader(&stdout_reader, &mut stdout_drained, &mut stdout_bytes)?;
+        drain_reader(&stderr_reader, &mut stderr_drained, &mut stderr_bytes)?;
+        if exited.is_none() {
+            exited = child
+                .try_wait()
+                .map_err(|error| Failure::new("wait-failed", error))?;
+        }
+        if let Some(status) = exited {
+            if stdout_drained && stderr_drained {
+                return Ok(CapturedCommandOutput {
+                    stdout: stdout_bytes,
+                    stderr: stderr_bytes,
+                    status,
+                });
+            }
+        }
+        thread::sleep(POLL_INTERVAL);
+    }
+}
+
+fn drain_reader(reader: &Reader, drained: &mut bool, output: &mut Vec<u8>) -> Result<(), Failure> {
+    for _ in 0..OUTPUT_QUEUE_CHUNKS {
+        if *drained {
+            break;
+        }
+        match reader.event()? {
+            Some(ReadEvent::Chunk(bytes)) => output.extend_from_slice(&bytes),
+            Some(ReadEvent::Finished(result)) => {
+                result?;
+                *drained = true;
+            }
+            None => break,
+        }
+    }
+    Ok(())
 }
 
 fn validate_limits(timeout: Duration, limit: usize) -> Result<(), Failure> {
@@ -346,10 +442,12 @@ enum ReadEvent {
 }
 
 impl Reader {
-    fn new(stdout: ChildStdout, limit: usize) -> Result<Self, Failure> {
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
-        crate::pipe::set_nonblocking(&stdout)
-            .map_err(|error| Failure::new("capture-failed", error))?;
+    fn new(
+        stream: &'static str,
+        reader: impl Read + Send + 'static,
+        limit: usize,
+        used: Arc<AtomicUsize>,
+    ) -> Result<Self, Failure> {
         let stop = Arc::new(AtomicBool::new(false));
         let stopped = Arc::clone(&stop);
         // At most 512 KiB plus one pending chunk, within the overall byte limit.
@@ -357,7 +455,7 @@ impl Reader {
         let thread = thread::Builder::new()
             .name("tool-stdout".into())
             .spawn(move || {
-                let result = read_bounded(stdout, limit, &stopped, &sender);
+                let result = read_bounded(stream, reader, limit, &used, &stopped, &sender);
                 send_event(&sender, ReadEvent::Finished(result), &stopped);
             })
             .map_err(|error| Failure::new("capture-failed", error))?;
@@ -391,28 +489,41 @@ impl Drop for Reader {
     }
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn configure_nonblocking(stream: &impl std::os::fd::AsFd) -> Result<(), Failure> {
+    crate::pipe::set_nonblocking(stream).map_err(|error| Failure::new("capture-failed", error))
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn configure_nonblocking<T>(_stream: &T) -> Result<(), Failure> {
+    Ok(())
+}
+
 fn read_bounded(
-    mut stdout: ChildStdout,
+    stream: &'static str,
+    mut reader: impl Read,
     limit: usize,
+    used: &AtomicUsize,
     stop: &AtomicBool,
     sender: &mpsc::SyncSender<ReadEvent>,
 ) -> Result<(), Failure> {
-    let mut bytes = 0;
     let mut buffer = [0; 8192];
     loop {
         if stop.load(Ordering::Acquire) {
             return Err(Failure::new("cancelled", "stdout owner stopped"));
         }
-        match stdout.read(&mut buffer) {
+        match reader.read(&mut buffer) {
             Ok(0) => return Ok(()),
             Ok(count) => {
-                if count > limit.saturating_sub(bytes) {
+                let previous = used.fetch_add(count, Ordering::AcqRel);
+                if count > limit.saturating_sub(previous) {
                     return Err(Failure::new(
                         "output-limit",
-                        "stdout exceeded capture byte limit",
+                        format!(
+                            "combined output exceeded capture byte limit while reading {stream}"
+                        ),
                     ));
                 }
-                bytes += count;
                 if !send_event(sender, ReadEvent::Chunk(buffer[..count].to_vec()), stop) {
                     return Err(Failure::new("cancelled", "stdout owner stopped"));
                 }
