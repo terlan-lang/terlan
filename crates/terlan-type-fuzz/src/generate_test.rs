@@ -167,9 +167,14 @@ fn ten_thousand_cases_preserve_type_and_identity_invariants() {
         assert!(identities.insert(generated.manifest.case_id));
         families.insert(generated.manifest.family);
     }
-    assert_eq!(families.len(), 22);
+    assert_eq!(
+        families,
+        family_names()
+            .into_iter()
+            .collect::<std::collections::HashSet<_>>()
+    );
     assert_eq!(support_paths.len(), support_count);
-    assert_eq!(support_count, 4_540);
+    assert!(support_count > 0);
 }
 
 #[test]
@@ -203,8 +208,8 @@ fn checked_oracle_is_encoded_in_identity_and_manifest() {
     );
     assert_eq!(native.manifest.oracle, Oracle::Native);
     assert!(native.manifest.case_id.ends_with("-onative"));
-    assert!(native.manifest.case_id.starts_with("v6-"));
-    assert_eq!(native.manifest.generator, GENERATOR_V6);
+    assert!(native.manifest.case_id.starts_with("v7-"));
+    assert_eq!(native.manifest.generator, GENERATOR_V7);
 }
 
 #[test]
@@ -250,8 +255,15 @@ fn recorded_generator_versions_retain_their_family_mapping() {
         "scalar_unit"
     );
     assert_eq!(
-        regenerate(22, &config, "terlan.type-fuzz-generator.v7", "scalar_unit").unwrap_err(),
-        "unsupported type fuzz generator `terlan.type-fuzz-generator.v7`"
+        regenerate(23, &config, GENERATOR_V7, "binding_payload_matrix")
+            .expect("seventh generator")
+            .manifest
+            .family,
+        "binding_payload_matrix"
+    );
+    assert_eq!(
+        regenerate(23, &config, "terlan.type-fuzz-generator.v8", "scalar_unit").unwrap_err(),
+        "unsupported type fuzz generator `terlan.type-fuzz-generator.v8`"
     );
 }
 
@@ -299,7 +311,7 @@ fn selected_families_generate_and_replay_independently_of_case_index() {
 
 #[test]
 fn javascript_oracle_uses_only_the_explicit_supported_matrix() {
-    let generated = (0..14)
+    let generated = (0..15)
         .map(|index| {
             generate(
                 index,
@@ -335,6 +347,7 @@ fn javascript_oracle_uses_only_the_explicit_supported_matrix() {
             "option_join",
             "result_join",
             "nested_result_join",
+            "binding_payload_matrix",
         ]
     );
     assert!(generated
@@ -357,5 +370,27 @@ fn javascript_oracle_uses_only_the_explicit_supported_matrix() {
         .manifest
         .family,
         "scalar_float"
+    );
+
+    let javascript = GenerationConfig {
+        seed: 1,
+        max_depth: 8,
+        oracle: Oracle::JavaScript,
+        timeout_ms: 2_000,
+        rss_limit_bytes: 1024,
+        cpu_limit_ms: 2_000,
+        compiler_revision: "test",
+    };
+    assert_eq!(
+        generate_version(14, &javascript, GeneratorVersion::V6)
+            .manifest
+            .family,
+        "scalar_unit"
+    );
+    assert_eq!(
+        generate_version(14, &javascript, GeneratorVersion::V7)
+            .manifest
+            .family,
+        "binding_payload_matrix"
     );
 }

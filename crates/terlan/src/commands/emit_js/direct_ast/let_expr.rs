@@ -12,7 +12,8 @@ pub(super) fn core_let_to_oxc_expression<'a>(
 
     let mut expression = core_expr_to_oxc_expression(ast, body)?;
     for binding in bindings.iter().rev() {
-        let parameter = core_lam_param_to_oxc_formal_parameter(ast, &binding.pattern)?;
+        let binding_pattern = super::case::core_case_binding_pattern(&binding.pattern)?;
+        let parameter = core_lam_param_to_oxc_formal_parameter(ast, &binding_pattern)?;
         let parameters = ast.alloc_formal_parameters(
             SPAN,
             FormalParameterKind::FormalParameter,

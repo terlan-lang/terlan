@@ -146,6 +146,45 @@ pub is_ready(value: Dynamic): Bool ->
     assert!(js.contains("value === \"ready\""), "{js}");
 }
 
+/// Verifies an irrefutable nested constructor pattern retains its payload binding.
+#[test]
+fn emit_core_module_with_direct_oxc_ast_handles_nested_constructor_let() {
+    let source = r#"module js_core_direct_nested_constructor_let.
+
+pub type Maybe = {Atom["some"], Int}.
+
+pub constructor Some {
+    (value: Int): Maybe -> {Atom["some"], value}
+}.
+
+pub sum(): Int ->
+    let input = {7, Some(8)};
+    case input {
+        {first, Some(second)} -> first + second
+    }.
+"#;
+    let artifacts = compile_syntax_module_through_phases_with_profile(
+        "js_core_direct_nested_constructor_let.terl",
+        source,
+        DiagnosticFormat::default(),
+        None,
+        NativePolicy::default(),
+        TargetProfile::JsShared,
+    )
+    .expect("compile nested constructor let to CoreIR");
+
+    let js =
+        oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).unwrap_or_else(|| {
+            panic!(
+                "direct nested constructor let rejected: {:#?}",
+                artifacts.core
+            )
+        });
+
+    assert!(js.contains("[first, [, second]]"), "{js}");
+    assert!(js.contains("first + second"), "{js}");
+}
+
 /// Verifies that direct Oxc AST lowering handles integer literal returns.
 ///
 /// Inputs:

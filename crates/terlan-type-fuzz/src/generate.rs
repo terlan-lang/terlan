@@ -3,6 +3,7 @@ use serde_json::json;
 use crate::checked::{CheckedType, GeneratedBody};
 use crate::{CaseManifest, GeneratedCase, Oracle, TypedValue, CASE_SCHEMA, VALUE_SCHEMA};
 
+mod binding_cases;
 mod module_cases;
 mod native_provider_cases;
 
@@ -12,6 +13,7 @@ const GENERATOR_V3: &str = "terlan.type-fuzz-generator.v3";
 const GENERATOR_V4: &str = "terlan.type-fuzz-generator.v4";
 const GENERATOR_V5: &str = "terlan.type-fuzz-generator.v5";
 const GENERATOR_V6: &str = "terlan.type-fuzz-generator.v6";
+const GENERATOR_V7: &str = "terlan.type-fuzz-generator.v7";
 
 #[derive(Clone, Copy)]
 enum GeneratorVersion {
@@ -21,6 +23,7 @@ enum GeneratorVersion {
     V4,
     V5,
     V6,
+    V7,
 }
 
 impl GeneratorVersion {
@@ -32,6 +35,7 @@ impl GeneratorVersion {
             GENERATOR_V4 => Ok(Self::V4),
             GENERATOR_V5 => Ok(Self::V5),
             GENERATOR_V6 => Ok(Self::V6),
+            GENERATOR_V7 => Ok(Self::V7),
             _ => Err(format!("unsupported type fuzz generator `{value}`")),
         }
     }
@@ -44,6 +48,7 @@ impl GeneratorVersion {
             Self::V4 => GENERATOR_V4,
             Self::V5 => GENERATOR_V5,
             Self::V6 => GENERATOR_V6,
+            Self::V7 => GENERATOR_V7,
         }
     }
 
@@ -55,6 +60,7 @@ impl GeneratorVersion {
             Self::V4 => "v4",
             Self::V5 => "v5",
             Self::V6 => "v6",
+            Self::V7 => "v7",
         }
     }
 }
@@ -72,7 +78,7 @@ pub struct GenerationConfig<'a> {
 
 /// Generates one deterministic typed program and its replay manifest.
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
-    generate_version(index, config, GeneratorVersion::V6)
+    generate_version(index, config, GeneratorVersion::V7)
 }
 
 pub(crate) fn generate_selected(
@@ -86,7 +92,7 @@ pub(crate) fn generate_selected(
     generate_family_version(
         index,
         config,
-        GeneratorVersion::V6,
+        GeneratorVersion::V7,
         Family::parse(name).expect("run validation accepts every selected family"),
     )
 }
@@ -247,10 +253,11 @@ enum Family {
     SuspensionCapture,
     NativeProviderTransport,
     InterfaceCacheTransaction,
+    BindingPayloadMatrix,
 }
 
 impl Family {
-    const ALL: [Self; 22] = [
+    const ALL: [Self; 23] = [
         Self::UnitScalar,
         Self::BoolScalar,
         Self::IntScalar,
@@ -273,8 +280,9 @@ impl Family {
         Self::SuspensionCapture,
         Self::NativeProviderTransport,
         Self::InterfaceCacheTransaction,
+        Self::BindingPayloadMatrix,
     ];
-    const JAVASCRIPT: [Self; 14] = [
+    const JAVASCRIPT: [Self; 15] = [
         Self::UnitScalar,
         Self::BoolScalar,
         Self::IntScalar,
@@ -289,6 +297,7 @@ impl Family {
         Self::OptionJoin,
         Self::ResultJoin,
         Self::NestedResultJoin,
+        Self::BindingPayloadMatrix,
     ];
 
     fn parse(name: &str) -> Result<Self, String> {
@@ -300,7 +309,7 @@ impl Family {
 
     fn from_index(index: u32, max_depth: u8, oracle: Oracle, version: GeneratorVersion) -> Self {
         if oracle == Oracle::JavaScript && max_depth > 2 {
-            return Self::from_javascript_index(index);
+            return Self::from_javascript_index(index, version);
         }
         let family_count = match max_depth {
             1 => 6,
@@ -312,6 +321,7 @@ impl Family {
                 GeneratorVersion::V4 => 20,
                 GeneratorVersion::V5 => 21,
                 GeneratorVersion::V6 => 22,
+                GeneratorVersion::V7 => 23,
             },
         };
         match index % family_count {
@@ -336,12 +346,22 @@ impl Family {
             18 => Self::GenericTraitPackage,
             19 => Self::SuspensionCapture,
             20 => Self::NativeProviderTransport,
-            _ => Self::InterfaceCacheTransaction,
+            21 => Self::InterfaceCacheTransaction,
+            _ => Self::BindingPayloadMatrix,
         }
     }
 
-    fn from_javascript_index(index: u32) -> Self {
-        match index % 14 {
+    fn from_javascript_index(index: u32, version: GeneratorVersion) -> Self {
+        let count = match version {
+            GeneratorVersion::V1
+            | GeneratorVersion::V2
+            | GeneratorVersion::V3
+            | GeneratorVersion::V4
+            | GeneratorVersion::V5
+            | GeneratorVersion::V6 => 14,
+            GeneratorVersion::V7 => 15,
+        };
+        match index % count {
             0 => Self::UnitScalar,
             1 => Self::BoolScalar,
             2 => Self::IntScalar,
@@ -355,7 +375,8 @@ impl Family {
             10 => Self::CaseProductJoin,
             11 => Self::OptionJoin,
             12 => Self::ResultJoin,
-            _ => Self::NestedResultJoin,
+            13 => Self::NestedResultJoin,
+            _ => Self::BindingPayloadMatrix,
         }
     }
 
@@ -383,6 +404,7 @@ impl Family {
             Self::SuspensionCapture => "suspension_capture",
             Self::NativeProviderTransport => "native_provider_transport",
             Self::InterfaceCacheTransaction => "interface_cache_transaction",
+            Self::BindingPayloadMatrix => "binding_payload_matrix",
         }
     }
 
@@ -419,6 +441,15 @@ impl Family {
             Self::InterfaceCacheTransaction => {
                 &["interface", "cache", "transaction", "multi_module"]
             }
+            Self::BindingPayloadMatrix => &[
+                "lexical_binding",
+                "product",
+                "list_pattern",
+                "option_pattern",
+                "record_pattern",
+                "lambda_capture",
+                "call_argument",
+            ],
         }
     }
 
@@ -562,6 +593,7 @@ impl Family {
                 let (body, support) = module_cases::generic_trait_package(index, value);
                 return (body, support, None);
             }
+            Self::BindingPayloadMatrix => binding_cases::payload_matrix(value),
         };
         (rendered, Vec::new(), None)
     }

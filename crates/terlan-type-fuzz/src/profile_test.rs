@@ -1,4 +1,5 @@
 use super::*;
+use crate::generate::{family_names, javascript_family_names};
 
 fn request(profile: FuzzProfile, root: &Path) -> ProfileRequest {
     ProfileRequest {
@@ -9,25 +10,33 @@ fn request(profile: FuzzProfile, root: &Path) -> ProfileRequest {
     }
 }
 
+fn sorted(values: Vec<String>) -> Vec<String> {
+    values
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
 #[test]
 fn named_profiles_are_bounded_and_cover_the_target_matrix() {
     let root = Path::new("profiles");
     let smoke = plan(&request(FuzzProfile::Smoke, root)).expect("smoke plan");
     assert_eq!(smoke.len(), 1);
     assert_eq!(smoke[0].options.oracle, Oracle::Check);
-    assert_eq!(smoke[0].options.cases, 22);
+    assert_eq!(smoke[0].options.cases as usize, family_names().len());
 
     let candidate = plan(&request(FuzzProfile::Candidate, root)).expect("candidate plan");
     assert_eq!(candidate.len(), 3);
-    assert_eq!(candidate[0].options.families.len(), 22);
+    assert_eq!(candidate[0].options.families, family_names());
     assert_eq!(candidate[1].options.oracle, Oracle::Native);
-    assert_eq!(candidate[2].options.families.len(), 14);
+    assert_eq!(candidate[2].options.families, javascript_family_names());
 
     let mut scheduled_request = request(FuzzProfile::Scheduled, root);
     scheduled_request.rotation = 7;
     let scheduled = plan(&scheduled_request).expect("scheduled plan");
     assert_eq!(scheduled.len(), 6);
-    assert!(scheduled.iter().all(|run| run.options.cases >= 28));
+    assert!(scheduled.iter().all(|run| run.options.cases >= 30));
     assert_ne!(scheduled[0].options.seed, scheduled[3].options.seed);
     assert!(scheduled.iter().all(|run| {
         run.options.total_timeout_ms == 300_000
@@ -48,14 +57,20 @@ fn impacted_profile_uses_explicit_owned_families() {
     };
     let frontend = plans("crates/terlan/src/compiler/typeck/expression.rs");
     assert_eq!(frontend.len(), 3);
-    assert_eq!(frontend[0].options.families.len(), 22);
-    assert_eq!(frontend[1].options.families.len(), 14);
-    assert_eq!(frontend[2].options.families.len(), 22);
+    assert_eq!(frontend[0].options.families, sorted(family_names()));
+    assert_eq!(
+        frontend[1].options.families,
+        sorted(javascript_family_names())
+    );
+    assert_eq!(frontend[2].options.families, sorted(family_names()));
 
     let javascript = plans("crates/terlan/src/commands/emit_js/direct_ast.rs");
     assert_eq!(javascript.len(), 1);
     assert_eq!(javascript[0].options.oracle, Oracle::JavaScript);
-    assert_eq!(javascript[0].options.cases, 14);
+    assert_eq!(
+        javascript[0].options.cases as usize,
+        javascript_family_names().len()
+    );
 
     let runtime = plans("crates/terlan/src/runtime/vm.rs");
     assert_eq!(runtime.len(), 1);
@@ -80,7 +95,7 @@ fn impacted_profile_uses_explicit_owned_families() {
     ];
     let deduplicated = plan(&overlapping).expect("deduplicated ownership");
     assert_eq!(deduplicated.len(), 3);
-    assert_eq!(deduplicated[0].options.families.len(), 22);
+    assert_eq!(deduplicated[0].options.families, sorted(family_names()));
 }
 
 #[test]

@@ -274,7 +274,7 @@ as compiler reductions.
 
 - [x] Select generated cases from an explicit JavaScript capability matrix.
 - [ ] Compare canonical JavaScript results with managed results.
-- [ ] Exercise lexical and pattern-bound payloads in tuples, options, lists,
+- [x] Exercise lexical and pattern-bound payloads in tuples, options, lists,
   records, lambdas, and call arguments.
 - [ ] Require precise diagnostics for genuinely unsupported target operations.
 
@@ -286,14 +286,16 @@ The JavaScript oracle stages generated modules by canonical module identity,
 builds the complete supported batch through `js.shared`, and invokes every
 exported semantic assertion under Node. Formatting, emission, and execution
 share one wall, CPU, RSS, and output budget. The initial explicit matrix covers
-14 scalar, lexical, product, record, list, control-flow, `Option`, and `Result`
+15 scalar, lexical, product, record, list, control-flow, `Option`, and `Result`
 families and completes in 5.97 seconds. Its first executions found two backend
 defects rather than silently excluding the affected families: Terlan structural
 equality had been emitted as JavaScript reference equality, and Boolean case
 scrutinees could be emitted as undefined lexical bindings. Both now have
-domain-neutral regressions. Canonical managed-result comparison, the complete
-binding/payload matrix, and precise unsupported-operation diagnostics remain
-open before TF3 can close.
+domain-neutral regressions. The binding/payload matrix then found and fixed
+nested constructor patterns that direct JavaScript lowering had rejected even
+after type checking proved the binding irrefutable. Canonical managed-result
+comparison and precise unsupported-operation diagnostics remain open before TF3
+can close.
 
 ### TF4: Modules, interfaces, traits, and packages
 
