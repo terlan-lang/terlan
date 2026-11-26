@@ -607,6 +607,11 @@ fn run_terlan_vm_test_file_group(
                 return ExitCode::from(1);
             }
         };
+    super::planning_facts::emit(
+        state.timings,
+        &application_cores,
+        &native_helper_environment,
+    );
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
     let native_cache_root = state
         .cache_dir

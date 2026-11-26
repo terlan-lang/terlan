@@ -7,6 +7,7 @@ mod manifest;
 mod manifest_evidence;
 #[cfg(test)]
 mod manifest_evidence_test;
+mod planning_facts;
 mod project_closure;
 mod project_context;
 mod style;

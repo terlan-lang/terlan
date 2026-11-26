@@ -427,6 +427,11 @@ pub(super) fn run_terlan_vm_test_file(
                 return ExitCode::from(1);
             }
         };
+    super::planning_facts::emit(
+        state.timings,
+        &application_cores,
+        &native_helper_environment,
+    );
 
     let module_stem = module_name.replace('.', "_");
     let test_aot_workspace = state.out_dir.join("test-aot").join(&module_stem);
