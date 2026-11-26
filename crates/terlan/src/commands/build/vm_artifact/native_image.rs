@@ -499,14 +499,18 @@ pub(super) fn compile_rooted_native_application_image(
     cores: &[&CoreModule],
     input: RootedNativeApplicationInput<'_>,
 ) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let trace_timings = crate::compiler_timings::native_enabled();
     let reuse =
         super::core_reuse::CoreReuse::for_input(native_cache_root, image_stem, cores, &input);
     if let Some(reuse) = &reuse {
         if let Some(image) = reuse.load(vm_dir)? {
+            trace_rooted_cache(trace_timings, RootedCacheDisposition::Hit);
             return Ok(Some(image));
         }
+        trace_rooted_cache(trace_timings, RootedCacheDisposition::Invalidated);
+    } else {
+        trace_rooted_cache(trace_timings, RootedCacheDisposition::Disabled);
     }
-    let trace_timings = crate::compiler_timings::native_enabled();
     let started = Instant::now();
     let mut previous = started;
     let mut mark = |phase: &str| {
@@ -559,6 +563,33 @@ pub(super) fn compile_rooted_native_application_image(
         reuse.publish(image);
     }
     Ok(image)
+}
+
+#[derive(Clone, Copy)]
+enum RootedCacheDisposition {
+    Disabled,
+    Invalidated,
+    Hit,
+}
+
+fn trace_rooted_cache(enabled: bool, disposition: RootedCacheDisposition) {
+    if enabled {
+        eprintln!("{}", rooted_cache_event(disposition));
+    }
+}
+
+fn rooted_cache_event(disposition: RootedCacheDisposition) -> &'static str {
+    match disposition {
+        RootedCacheDisposition::Disabled => {
+            "terlc native-aot: rooted.cache: cache-miss-reason=incremental_reuse_disabled"
+        }
+        RootedCacheDisposition::Invalidated => {
+            "terlc native-aot: rooted.cache: cache-miss-reason=checked_core_or_artifact_changed"
+        }
+        RootedCacheDisposition::Hit => {
+            "terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image"
+        }
+    }
 }
 
 /// Compiles an owned CoreIR closure after pruning it in place to executable roots.
@@ -927,3 +958,7 @@ fn build_error_message(error: BuildOneError) -> String {
         BuildOneError::Exit(code) => format!("REPL AOT compilation failed with exit code {code:?}"),
     }
 }
+
+#[cfg(test)]
+#[path = "native_image_cache_event_test.rs"]
+mod native_image_cache_event_test;
