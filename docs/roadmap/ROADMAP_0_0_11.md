@@ -19,6 +19,12 @@ the same crate connected to the monolithic compiler library takes 63 seconds.
 These measurements make dependency-graph breadth and native planning—not test
 execution—the first optimization target.
 
+A focused manifest/parser source check on the application dependency graph took
+63.39 seconds and 454 MiB peak RSS on 2026-11-26. The checked source is not the
+workload: this is a compiler package-discovery, interface-loading, or trait-
+lookup performance defect. Source-only checking has its own stricter contract
+and cannot inherit the native image budget below.
+
 - [ ] Emit live phase progress and final timings for dependency discovery,
   interface loading, type checking, monomorphization, native planning,
   lowering, C/C++ compilation, linking, test discovery, instrumentation, and
@@ -33,6 +39,11 @@ execution—the first optimization target.
   complete package graph.
 - [ ] Keep ordinary local validation below the 10-minute goal and 15-minute
   hard ceiling. A phase silent for 10 seconds must emit progress.
+- [ ] Keep a warm focused source check below 5 seconds and 256 MiB peak RSS,
+  and a cold focused source check below 15 seconds and 384 MiB peak RSS.
+  Report discovered, loaded, reused, and invalidated interfaces plus attributed
+  cache misses. Rechecking an unchanged source and dependency closure must not
+  parse or reload unchanged interfaces.
 - [ ] Keep a focused native regression below 30 seconds and 1 GiB peak RSS, and
   a broad release-candidate compiler gate below 5 minutes and 4 GiB peak RSS.
 - [ ] Stop immediately with an attributed phase and resource diagnostic when a
