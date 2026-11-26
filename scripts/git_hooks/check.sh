@@ -739,6 +739,7 @@ run_affected_rust_lane() {
       cargo check --locked --workspace --tests --exclude terlan
       ;;
     native-planning) cargo test --profile dev --locked -p terlan-native-planning --lib ;;
+    process-owner) cargo test --profile dev --locked -p terlan-process-owner --lib ;;
     type-fuzz) cargo test --profile dev --locked -p terlan-type-fuzz --lib ;;
     cli-integration)
       echo 'pre-commit: CLI adapters compiled by candidate workspace Clippy'
@@ -1127,7 +1128,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|type-fuzz|test-orchestrator)
+    clippy|cli-integration|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|process-owner|type-fuzz|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;

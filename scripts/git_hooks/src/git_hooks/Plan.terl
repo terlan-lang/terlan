@@ -277,6 +277,9 @@ pub native_planning(paths: List[String]): Bool ->
         or affected(paths, "crates/terlan/src/compiler/native_ir/open_std_pruning.rs", "")
         or affected(paths, "crates/terlan/src/compiler/native_ir/open_std_pruning_test.rs", "").
 
+pub process_owner(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan-process-owner/", ".rs").
+
 pub type_fuzz(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-type-fuzz/", ".rs")
         or affected(paths, "crates/terlan/src/commands/fuzz/", ".rs").
@@ -314,6 +317,7 @@ non_owned_rust(paths: List[String]): Bool ->
     and path != "crates/terlan/build.rs"
     and not String.starts_with(path, "crates/terlan-test-orchestrator/")
     and not String.starts_with(path, "crates/terlan-native-planning/")
+    and not String.starts_with(path, "crates/terlan-process-owner/")
     and not String.starts_with(path, "crates/terlan-type-fuzz/")
     and not String.starts_with(path, "tools/rust_boundary_audit/")
     and not String.starts_with(path, "tree-sitter-terlan/")
@@ -606,10 +610,16 @@ pub lanes(paths: List[String]): List[String] ->
                 native_planning(paths) -> ["native-planning"];
                 true -> List.new[String]()
             },
-            if {
-                type_fuzz(paths) -> ["type-fuzz"];
-                true -> List.new[String]()
-            },
+            append(
+                if {
+                    process_owner(paths) -> ["process-owner"];
+                    true -> List.new[String]()
+                },
+                if {
+                    type_fuzz(paths) -> ["type-fuzz"];
+                    true -> List.new[String]()
+                },
+            ),
         );
     let command_rust =
         if {
@@ -822,6 +832,7 @@ test_lane_priority(): List[String] ->
         "runtime",
         "workspace",
         "native-planning",
+        "process-owner",
         "type-fuzz",
         "test-orchestrator",
         "rust-boundary-audit",

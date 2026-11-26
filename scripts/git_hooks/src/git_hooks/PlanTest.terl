@@ -432,7 +432,13 @@ pub orchestrator_tests_use_their_owning_crate_lane(): Bool ->
 
 @test
 pub focused_support_crates_do_not_select_the_monolithic_workspace(): Bool ->
-    Plan.lanes(["crates/terlan-native-planning/src/lib.rs", "crates/terlan-type-fuzz/src/lib.rs"]) == ["shell", "clippy", "rust-reports", "native-planning", "type-fuzz"].
+    Plan.lanes(
+    [
+        "crates/terlan-native-planning/src/lib.rs",
+        "crates/terlan-process-owner/src/lib.rs",
+        "crates/terlan-type-fuzz/src/lib.rs",
+    ],
+) == ["shell", "clippy", "rust-reports", "native-planning", "process-owner", "type-fuzz"].
 
 @test
 pub root_cli_sources_use_the_bounded_integration_owner(): Bool ->
