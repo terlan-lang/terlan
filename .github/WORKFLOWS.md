@@ -157,6 +157,16 @@ pinned SHA-256, bounded retries, an explicit `elan` link and a version smoke
 test. Compiler CI and publication therefore share one fail-closed installer; a
 missing host toolchain is an infrastructure failure, not a failed theorem.
 
+## Scheduled type fuzzing
+
+`type-fuzz.yml` runs the deterministic rotating and mutation-derived type corpus
+weekly or on explicit dispatch. It builds the candidate compiler once, shares a
+five-minute profile budget across check, native, and JavaScript backends, and
+retains metrics and reduced cases for seven days. Rotation comes from the
+monotonic workflow run number or an explicit input; the generator does not read
+wall-clock time. The read-only job has a 15-minute hard ceiling and does not
+start the broader compiler or release graphs.
+
 The direct-AOT portable matrix contract covers Linux, macOS, and Windows on
 x86-64 and AArch64. Each available native runner may compile, package, install,
 execute, reload, crash, and reject incompatible images, while local closeout

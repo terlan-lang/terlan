@@ -425,7 +425,7 @@ missing, malformed, live, zombie, and dead entries. The focused crate passes
 - [x] Run only impacted target families for ordinary changes, using explicit
   source-to-feature ownership rather than filename guesses.
 - [x] Run the bounded cross-backend corpus on every release compiler candidate.
-- [ ] Run rotating and mutation-derived seeds on a schedule.
+- [x] Run rotating and mutation-derived seeds on a schedule.
 - [ ] Publish aggregate seed, feature-pair, oracle, failure, timing, RSS, cache,
   and reduction metrics without content hashes that require manual bumps.
 
@@ -450,9 +450,11 @@ attaches the impacted profile to its existing compiler, runtime, standard-
 library, dependency, and fuzz lanes before broad validation. The profile
 registry remains the sole owner of family selection. Results are reused only
 for the same automatically derived candidate Git tree and exact compiler
-revision; no manual evidence hash is maintained. Scheduled CI wiring remains
-open. One profile shares a five-minute wall budget across all of its backends
-rather than granting each backend a fresh allowance.
+revision; no manual evidence hash is maintained. A dedicated weekly workflow
+uses its monotonic run number as the explicit rotation, retains generated
+metrics and reductions for seven days, and owns a 15-minute job ceiling without
+waking the broader compiler graph. One profile shares a five-minute wall budget
+across all of its backends rather than granting each backend a fresh allowance.
 Release-candidate validation runs the check corpus first, then native and
 JavaScript, and reuses an existing result only when the compiler itself accepts
 its exact embedded revision. The Make integration fixture proves both first-run

@@ -259,3 +259,26 @@ pub release_reuse_requires_exact_compiler_evidence(): Bool ->
         and workflow.contains("run-id: \${{ inputs.validated_release_run_id }}")
         and workflow.contains("needs.revision.outputs.reuse-release-evidence != 'true'")
         and workflow.contains("needs.reuse-validation.result == 'success'").
+
+@test
+pub scheduled_type_fuzzing_is_bounded_and_rotating(): Bool ->
+    when {
+        Ok(workflow) <- read_text(".github/workflows/type-fuzz.yml");
+        Ok(compiler) <- read_text(".github/workflows/ci.yml")
+    } else {
+        Err(_reason) -> false
+    };
+    workflow.contains("schedule:")
+        and workflow.contains("timeout-minutes: 15")
+        and workflow.contains("permissions:\n  contents: read")
+        and workflow.contains("cancel-in-progress: false")
+        and workflow.contains("make --no-print-directory terlan-compiler-bootstrap")
+        and workflow.contains("ROTATION: \${{ inputs.rotation || github.run_number }}")
+        and workflow.contains("fuzz profile scheduled")
+        and workflow.contains("--rotation \"$ROTATION\"")
+        and workflow.contains("if: \${{ always() }}")
+        and workflow.contains("target/fuzz/profile/scheduled")
+        and workflow.contains("if-no-files-found: ignore")
+        and not workflow.contains("date +")
+        and not workflow.contains("sha256")
+        and occurrences(compiler, "\".github/workflows/type-fuzz.yml\"") == 2.
