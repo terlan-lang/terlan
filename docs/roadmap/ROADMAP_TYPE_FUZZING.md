@@ -163,7 +163,7 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 Two independent runs must produce byte-identical case artifacts.
 
 The generator and bounded executor crate has 100% line, function, and region
-coverage: 3,530 regions, 180 functions, and 2,298 lines. Its 55-test execution
+coverage: 5,356 regions, 261 functions, and 3,555 lines. Its 75-test execution
 is subsecond, and its complete instrumented coverage gate finishes in under 15
 seconds. The executor measures the whole process group, enforces combined
 stdout/stderr limits, and cleans up descendants after success, failure,
@@ -206,6 +206,8 @@ oracle acceptance remains open; generation success alone does not close TF1.
 - [x] Fail focused planning early when it exceeds 60 seconds or 1 GiB RSS, with
   the responsible phase, reachable declaration count, native-provider set,
   and cache-miss reasons in the failure evidence.
+- [x] Provide a bounded deterministic reducer that preserves the oracle outcome
+  and first structured diagnostic class.
 - [ ] Reduce and check in every discovered failure before closing it.
 
 Acceptance: the corpus includes permanent regressions for contextual union
@@ -256,6 +258,12 @@ Rooted native lowering now releases the frontend-only binding and reference
 inventory after pruning, before specialization and layout planning. The planning
 comparison records those released counts and requires focused, combined, and
 broad graphs to scale linearly in both dimensions.
+
+`terlc fuzz reduce <case-dir>` now checks the original failure, probes at most
+eight smaller same-family generated cases, retains only a matching structured
+failure class, and publishes replayable observation and reduction artifacts.
+Passing and infrastructure-only cases are rejected instead of being mislabeled
+as compiler reductions.
 
 ### TF3: JavaScript differential execution
 
