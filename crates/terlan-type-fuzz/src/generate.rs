@@ -4,11 +4,13 @@ use crate::checked::{CheckedType, GeneratedBody};
 use crate::{CaseManifest, GeneratedCase, Oracle, TypedValue, CASE_SCHEMA, VALUE_SCHEMA};
 
 mod module_cases;
+mod native_provider_cases;
 
 const GENERATOR_V1: &str = "terlan.type-fuzz-generator.v1";
 const GENERATOR_V2: &str = "terlan.type-fuzz-generator.v2";
 const GENERATOR_V3: &str = "terlan.type-fuzz-generator.v3";
 const GENERATOR_V4: &str = "terlan.type-fuzz-generator.v4";
+const GENERATOR_V5: &str = "terlan.type-fuzz-generator.v5";
 
 #[derive(Clone, Copy)]
 enum GeneratorVersion {
@@ -16,6 +18,7 @@ enum GeneratorVersion {
     V2,
     V3,
     V4,
+    V5,
 }
 
 impl GeneratorVersion {
@@ -25,6 +28,7 @@ impl GeneratorVersion {
             GENERATOR_V2 => Ok(Self::V2),
             GENERATOR_V3 => Ok(Self::V3),
             GENERATOR_V4 => Ok(Self::V4),
+            GENERATOR_V5 => Ok(Self::V5),
             _ => Err(format!("unsupported type fuzz generator `{value}`")),
         }
     }
@@ -35,6 +39,7 @@ impl GeneratorVersion {
             Self::V2 => GENERATOR_V2,
             Self::V3 => GENERATOR_V3,
             Self::V4 => GENERATOR_V4,
+            Self::V5 => GENERATOR_V5,
         }
     }
 
@@ -44,6 +49,7 @@ impl GeneratorVersion {
             Self::V2 => "v2",
             Self::V3 => "v3",
             Self::V4 => "v4",
+            Self::V5 => "v5",
         }
     }
 }
@@ -61,7 +67,7 @@ pub struct GenerationConfig<'a> {
 
 /// Generates one deterministic typed program and its replay manifest.
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
-    generate_version(index, config, GeneratorVersion::V4)
+    generate_version(index, config, GeneratorVersion::V5)
 }
 
 pub(crate) fn regenerate(
@@ -97,11 +103,20 @@ fn generate_version(
         config.max_depth
     );
     let module = format!("type_fuzz.Case{index:06}");
-    let (rendered, support_sources) = family.render(index, number);
+    let (rendered, support_sources, fixture) = family.render(index, number);
     let expected_type = rendered.checked_type.source_name();
     let source = format!("module {module}.\n\n{}\n", rendered.source());
+    let dependencies = if fixture.is_some() {
+        concat!(
+            "\n[dependencies]\n",
+            "alpha-provider = { path = \"providers/alpha\" }\n",
+            "beta-provider = { path = \"providers/beta\" }\n",
+        )
+    } else {
+        ""
+    };
     let project = format!(
-        "[package]\nname = \"type-fuzz-case-{index:06}\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n"
+        "[package]\nname = \"type-fuzz-case-{index:06}\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n{dependencies}"
     );
     GeneratedCase {
         manifest: CaseManifest {
@@ -123,6 +138,7 @@ fn generate_version(
         project,
         source,
         support_sources,
+        fixture,
         expected: TypedValue {
             schema: VALUE_SCHEMA,
             type_name: expected_type,
@@ -161,6 +177,7 @@ enum Family {
     GenericFieldReceiver,
     GenericTraitPackage,
     SuspensionCapture,
+    NativeProviderTransport,
 }
 
 impl Family {
@@ -176,6 +193,7 @@ impl Family {
                 GeneratorVersion::V2 => 18,
                 GeneratorVersion::V3 => 19,
                 GeneratorVersion::V4 => 20,
+                GeneratorVersion::V5 => 21,
             },
         };
         match index % family_count {
@@ -198,7 +216,8 @@ impl Family {
             16 => Self::ClosedUnionEmpty,
             17 => Self::GenericFieldReceiver,
             18 => Self::GenericTraitPackage,
-            _ => Self::SuspensionCapture,
+            19 => Self::SuspensionCapture,
+            _ => Self::NativeProviderTransport,
         }
     }
 
@@ -243,10 +262,19 @@ impl Family {
             Self::GenericFieldReceiver => "generic_field_receiver",
             Self::GenericTraitPackage => "generic_trait_package",
             Self::SuspensionCapture => "suspension_capture",
+            Self::NativeProviderTransport => "native_provider_transport",
         }
     }
 
-    fn render(self, index: u32, value: i64) -> (GeneratedBody, Vec<crate::GeneratedSource>) {
+    fn render(
+        self,
+        index: u32,
+        value: i64,
+    ) -> (
+        GeneratedBody,
+        Vec<crate::GeneratedSource>,
+        Option<crate::GeneratedFixture>,
+    ) {
         let rendered = match self {
             Self::UnitScalar => generated(
                 CheckedType::Unit,
@@ -361,11 +389,21 @@ impl Family {
                 "Empty()".into(),
             )
             .with_prelude(choice_declarations()),
-            Self::GenericFieldReceiver => return module_cases::generic_field_receiver(index, value),
-            Self::GenericTraitPackage => return module_cases::generic_trait_package(index, value),
+            Self::GenericFieldReceiver => {
+                let (body, support) = module_cases::generic_field_receiver(index, value);
+                return (body, support, None);
+            }
+            Self::GenericTraitPackage => {
+                let (body, support) = module_cases::generic_trait_package(index, value);
+                return (body, support, None);
+            }
             Self::SuspensionCapture => suspension_cases::structured_capture(value),
+            Self::NativeProviderTransport => {
+                let (body, fixture) = native_provider_cases::dual_provider();
+                return (body, Vec::new(), Some(fixture));
+            }
         };
-        (rendered, Vec::new())
+        (rendered, Vec::new(), None)
     }
 }
 

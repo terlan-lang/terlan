@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -10,7 +10,8 @@ use super::planning;
 use super::resources::ResourceEvidence;
 use super::{generate_case as generate, regenerate_case};
 use crate::{
-    CaseManifest, GeneratedCase, GeneratedSource, Oracle, RunOptions, TypedValue, CASE_SCHEMA,
+    CaseManifest, GeneratedCase, GeneratedFixture, GeneratedSource, Oracle, RunOptions, TypedValue,
+    CASE_SCHEMA,
 };
 
 const CHECK_BATCH_SIZE: usize = 32;
@@ -68,7 +69,10 @@ fn run_batches(
     pending: &[(PathBuf, GeneratedCase)],
     elapsed: &mut dyn FnMut() -> Duration,
 ) -> Result<(), String> {
-    for batch in pending.chunks(CHECK_BATCH_SIZE) {
+    let mut remaining = pending;
+    while !remaining.is_empty() {
+        let batch = next_batch(remaining);
+        remaining = &remaining[batch.len()..];
         let spent_ms = u64::try_from(elapsed().as_millis()).unwrap_or(u64::MAX);
         let remaining_ms = options
             .total_timeout_ms
@@ -93,13 +97,20 @@ fn run_batches(
                 let relative = directory
                     .strip_prefix(&options.out_dir)
                     .expect("case directory belongs to fuzz output");
-                std::iter::once(relative.join(CASE_SOURCE_FILE)).chain(
-                    case.support_sources
-                        .iter()
-                        .map(|support| relative.join(&support.path)),
-                )
+                std::iter::once(relative.join(CASE_SOURCE_FILE))
+                    .chain(
+                        case.support_sources
+                            .iter()
+                            .map(|support| relative.join(&support.path)),
+                    )
+                    .chain(
+                        fixture_sources(case)
+                            .into_iter()
+                            .map(|path| relative.join(path)),
+                    )
             })
             .collect::<Vec<_>>();
+        let environment = batch_environment(batch)?;
         let result = oracle::run_formatted_batch_inputs(
             compiler,
             options.oracle,
@@ -107,6 +118,7 @@ fn run_batches(
                 root: &options.out_dir,
                 semantic_sources: &sources,
                 formatting_sources: &formatting_sources,
+                environment: &environment,
             },
             wall_ms,
             options.rss_limit_bytes,
@@ -161,6 +173,15 @@ fn run_batches(
         }
     }
     Ok(())
+}
+
+fn next_batch(pending: &[(PathBuf, GeneratedCase)]) -> &[(PathBuf, GeneratedCase)] {
+    let bounded = &pending[..pending.len().min(CHECK_BATCH_SIZE)];
+    match bounded.iter().position(|(_, case)| case.fixture.is_some()) {
+        Some(0) => &bounded[..1],
+        Some(index) => &bounded[..index],
+        None => bounded,
+    }
 }
 
 pub(super) fn replay(directory: &Path, compiler: &Path) -> Result<(), String> {
@@ -232,6 +253,7 @@ fn check_corpus_entries(
 
 pub(super) fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
     validate_support_sources(&case.support_sources)?;
+    validate_fixture(case.fixture.as_ref(), &case.support_sources)?;
     fs::create_dir_all(directory).map_err(io_error("create case directory"))?;
     fs::create_dir_all(directory.join("src")).map_err(io_error("create case source root"))?;
     atomic_write(&directory.join(PROJECT_SOURCE_ROOT_MARKER), b"")?;
@@ -248,6 +270,9 @@ pub(super) fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), S
             .expect("validated support source belongs to the source root");
         fs::create_dir_all(parent).map_err(io_error("create support source directory"))?;
         atomic_write(&path, support.source.as_bytes())?;
+    }
+    if let Some(fixture) = &case.fixture {
+        write_fixture(directory, fixture)?;
     }
     let manifest = toml_text(&case.manifest);
     atomic_write(&directory.join("case.toml"), manifest.as_bytes())?;
@@ -271,7 +296,9 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
                 .iter()
                 .map(|support| support.path.clone()),
         )
+        .chain(fixture_sources(case))
         .collect::<Vec<_>>();
+    let environment = case_environment(directory, case)?;
     let result = oracle::run_formatted_batch_inputs(
         compiler,
         case.manifest.oracle,
@@ -279,6 +306,7 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
             root: directory,
             semantic_sources: &semantic_sources,
             formatting_sources: &formatting_sources,
+            environment: &environment,
         },
         case.manifest.case_timeout_ms,
         case.manifest.rss_limit_bytes,
@@ -415,6 +443,7 @@ fn ensure_batch_success(
 
 fn verify_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
     validate_support_sources(&case.support_sources)?;
+    validate_fixture(case.fixture.as_ref(), &case.support_sources)?;
     let expected = [
         (PROJECT_MANIFEST_FILE, case.project.as_bytes().to_vec()),
         (PROJECT_SOURCE_ROOT_MARKER, Vec::new()),
@@ -439,6 +468,9 @@ fn verify_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
         if actual != support.source.as_bytes() {
             return Err(format!("replay input drifted: {}", path.display()));
         }
+    }
+    if let Some(fixture) = &case.fixture {
+        verify_fixture(directory, fixture)?;
     }
     Ok(())
 }
@@ -483,6 +515,179 @@ fn validate_support_sources(sources: &[GeneratedSource]) -> Result<(), String> {
     }
     interface_roundtrip::support_modules(sources)?;
     Ok(())
+}
+
+fn fixture_sources(case: &GeneratedCase) -> Vec<PathBuf> {
+    case.fixture
+        .iter()
+        .flat_map(|fixture| &fixture.files)
+        .filter(|file| file.path.extension().and_then(|value| value.to_str()) == Some("terl"))
+        .map(|file| file.path.clone())
+        .collect()
+}
+
+fn validate_fixture(
+    fixture: Option<&GeneratedFixture>,
+    support_sources: &[GeneratedSource],
+) -> Result<(), String> {
+    let Some(fixture) = fixture else {
+        return Ok(());
+    };
+    let mut paths = support_sources
+        .iter()
+        .map(|source| source.path.clone())
+        .collect::<BTreeSet<_>>();
+    let reserved = [
+        Path::new(CASE_SOURCE_FILE),
+        Path::new(PROJECT_MANIFEST_FILE),
+        Path::new("replay.terl"),
+        Path::new("case.toml"),
+    ];
+    for file in &fixture.files {
+        let safe = !file.path.as_os_str().is_empty()
+            && file
+                .path
+                .components()
+                .all(|component| matches!(component, Component::Normal(_)))
+            && !reserved.contains(&file.path.as_path());
+        if !safe || !paths.insert(file.path.clone()) {
+            return Err(format!(
+                "invalid or duplicate generated fixture path `{}`",
+                file.path.display()
+            ));
+        }
+    }
+    let executable = fixture
+        .files
+        .iter()
+        .filter(|file| file.executable)
+        .map(|file| file.path.clone())
+        .collect::<BTreeSet<_>>();
+    let mut names = BTreeSet::new();
+    for binding in &fixture.environment {
+        let canonical_name = !binding.name.is_empty()
+            && binding
+                .name
+                .chars()
+                .all(|value| value.is_ascii_uppercase() || value.is_ascii_digit() || value == '_');
+        if !canonical_name
+            || !names.insert(binding.name.clone())
+            || !executable.contains(&binding.executable)
+        {
+            return Err(format!(
+                "invalid generated fixture environment `{}` -> `{}`",
+                binding.name,
+                binding.executable.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn write_fixture(directory: &Path, fixture: &GeneratedFixture) -> Result<(), String> {
+    write_fixture_with(directory, fixture, &mut set_executable)
+}
+
+fn write_fixture_with(
+    directory: &Path,
+    fixture: &GeneratedFixture,
+    permissions: &mut dyn FnMut(&Path, bool) -> Result<(), String>,
+) -> Result<(), String> {
+    for file in &fixture.files {
+        let path = directory.join(&file.path);
+        let parent = path.parent().expect("validated fixture file has a parent");
+        fs::create_dir_all(parent).map_err(io_error("create fixture directory"))?;
+        atomic_write(&path, file.contents.as_bytes())?;
+        permissions(&path, file.executable)?;
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_executable(path: &Path, executable: bool) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mode = if executable { 0o700 } else { 0o600 };
+    fs::set_permissions(path, fs::Permissions::from_mode(mode))
+        .map_err(io_error("set fixture permissions"))
+}
+
+#[cfg(not(unix))]
+fn set_executable(_path: &Path, _executable: bool) -> Result<(), String> {
+    Ok(())
+}
+
+fn verify_fixture(directory: &Path, fixture: &GeneratedFixture) -> Result<(), String> {
+    verify_fixture_with(directory, fixture, &mut verify_executable)
+}
+
+fn verify_fixture_with(
+    directory: &Path,
+    fixture: &GeneratedFixture,
+    verify: &mut dyn FnMut(&Path, bool) -> Result<(), String>,
+) -> Result<(), String> {
+    for file in &fixture.files {
+        let path = directory.join(&file.path);
+        let actual = fs::read(&path).map_err(io_error("read replay fixture"))?;
+        if actual != file.contents.as_bytes() {
+            return Err(format!("replay input drifted: {}", path.display()));
+        }
+        verify(&path, file.executable)?;
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn verify_executable(path: &Path, expected: bool) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let metadata = match fs::metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) => return Err(io_error("read fixture permissions")(error)),
+    };
+    let actual = metadata.permissions().mode() & 0o111 != 0;
+    if actual != expected {
+        return Err(format!("replay fixture mode drifted: {}", path.display()));
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn verify_executable(_path: &Path, _expected: bool) -> Result<(), String> {
+    Ok(())
+}
+
+fn case_environment(
+    directory: &Path,
+    case: &GeneratedCase,
+) -> Result<Vec<(String, PathBuf)>, String> {
+    case.fixture
+        .iter()
+        .flat_map(|fixture| &fixture.environment)
+        .map(|binding| {
+            fs::canonicalize(directory.join(&binding.executable))
+                .map(|path| (binding.name.clone(), path))
+                .map_err(io_error("resolve fixture executable"))
+        })
+        .collect()
+}
+
+fn batch_environment(batch: &[(PathBuf, GeneratedCase)]) -> Result<Vec<(String, PathBuf)>, String> {
+    let mut bindings = BTreeMap::<String, PathBuf>::new();
+    for (directory, case) in batch {
+        for (name, path) in case_environment(directory, case)? {
+            if let Some(existing) = bindings.get(&name) {
+                let same = fs::read(existing).map_err(io_error("read batch helper"))?
+                    == fs::read(&path).map_err(io_error("read batch helper"))?;
+                if !same {
+                    return Err(format!("conflicting fuzz helper environment `{name}`"));
+                }
+                continue;
+            }
+            bindings.insert(name, path);
+        }
+    }
+    Ok(bindings.into_iter().collect())
 }
 
 fn toml_text(manifest: &CaseManifest) -> String {
@@ -1114,8 +1319,8 @@ mod tests {
         let manifest = fs::read_to_string(root.path().join("case.toml"))
             .expect("manifest")
             .replace(
-                "terlan.type-fuzz-generator.v4",
                 "terlan.type-fuzz-generator.v5",
+                "terlan.type-fuzz-generator.v6",
             );
         fs::write(root.path().join("case.toml"), manifest).expect("future generator");
         assert!(replay(root.path(), Path::new("missing-compiler"))
@@ -1358,7 +1563,7 @@ mod tests {
                 .expect("launch ledger")
                 .lines()
                 .count(),
-            18
+            26
         );
     }
 
@@ -1549,6 +1754,284 @@ mod tests {
         assert!(verify_case(root.path(), &case)
             .unwrap_err()
             .contains("read replay artifact"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_fixtures_are_confined_executable_and_replay_checked() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let case = generate(20, &test_options(5), "test");
+        write_case(root.path(), &case).expect("native fixture artifacts");
+        verify_case(root.path(), &case).expect("native fixture replay");
+        let fixture = case.fixture.as_ref().expect("fixture");
+        let helper = fixture
+            .files
+            .iter()
+            .find(|file| file.executable)
+            .expect("helper");
+        let helper_path = root.path().join(&helper.path);
+        assert_ne!(
+            fs::metadata(&helper_path)
+                .expect("helper metadata")
+                .permissions()
+                .mode()
+                & 0o111,
+            0
+        );
+        fs::write(&helper_path, "drift").expect("helper drift");
+        assert!(verify_case(root.path(), &case)
+            .unwrap_err()
+            .contains("replay input drifted"));
+
+        write_case(root.path(), &case).expect("restore helper");
+        fs::set_permissions(&helper_path, fs::Permissions::from_mode(0o600)).expect("mode drift");
+        assert!(verify_case(root.path(), &case)
+            .unwrap_err()
+            .contains("mode drifted"));
+    }
+
+    #[test]
+    fn native_fixture_validation_rejects_every_unsafe_binding() {
+        let case = generate(20, &test_options(5), "test");
+        let fixture = case.fixture.as_ref().expect("fixture");
+        let support = GeneratedSource {
+            path: PathBuf::from("src/Support.terl"),
+            source: "module Support.\n".into(),
+        };
+        validate_fixture(Some(fixture), std::slice::from_ref(&support))
+            .expect("distinct support path");
+        let colliding_support = GeneratedSource {
+            path: fixture.files[0].path.clone(),
+            source: "module Collision.\n".into(),
+        };
+        assert!(validate_fixture(Some(fixture), &[colliding_support])
+            .unwrap_err()
+            .contains("invalid or duplicate"));
+        let mut invalid_path = fixture.clone();
+        invalid_path.files[0].path = PathBuf::from("../escape");
+        assert!(validate_fixture(Some(&invalid_path), &[])
+            .unwrap_err()
+            .contains("invalid or duplicate"));
+
+        let mut reserved = fixture.clone();
+        reserved.files[0].path = PathBuf::from(CASE_SOURCE_FILE);
+        assert!(validate_fixture(Some(&reserved), &[])
+            .unwrap_err()
+            .contains("invalid or duplicate"));
+
+        let mut duplicate_path = fixture.clone();
+        duplicate_path.files[1].path = duplicate_path.files[0].path.clone();
+        assert!(validate_fixture(Some(&duplicate_path), &[])
+            .unwrap_err()
+            .contains("invalid or duplicate"));
+
+        let mut invalid_name = fixture.clone();
+        invalid_name.environment[0].name = "lowercase".into();
+        assert!(validate_fixture(Some(&invalid_name), &[])
+            .unwrap_err()
+            .contains("invalid generated fixture environment"));
+
+        let mut duplicate_name = fixture.clone();
+        duplicate_name.environment[1].name = duplicate_name.environment[0].name.clone();
+        assert!(validate_fixture(Some(&duplicate_name), &[])
+            .unwrap_err()
+            .contains("invalid generated fixture environment"));
+
+        let mut non_executable = fixture.clone();
+        non_executable.environment[0].executable = non_executable.files[0].path.clone();
+        assert!(validate_fixture(Some(&non_executable), &[])
+            .unwrap_err()
+            .contains("invalid generated fixture environment"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_fixture_filesystem_failures_are_attributed() {
+        let case = generate(20, &test_options(5), "test");
+        let fixture = case.fixture.as_ref().expect("fixture");
+
+        let root = tempfile::tempdir().expect("invalid fixture root");
+        let mut invalid = case.clone();
+        invalid.fixture.as_mut().expect("fixture").files[0].path = PathBuf::from("../escape");
+        assert!(write_case(root.path(), &invalid)
+            .unwrap_err()
+            .contains("invalid or duplicate"));
+
+        let root = tempfile::tempdir().expect("mkdir fixture root");
+        fs::write(root.path().join("providers"), "blocker").expect("directory blocker");
+        assert!(write_fixture(root.path(), fixture)
+            .unwrap_err()
+            .contains("create fixture directory"));
+
+        let root = tempfile::tempdir().expect("write fixture root");
+        let first = root.path().join(&fixture.files[0].path);
+        fs::create_dir_all(first.parent().expect("fixture parent")).expect("fixture parent");
+        fs::create_dir(temporary_path(&first)).expect("temporary blocker");
+        assert!(write_fixture(root.path(), fixture)
+            .unwrap_err()
+            .contains("write temporary fuzz artifact"));
+
+        let root = tempfile::tempdir().expect("write-case fixture root");
+        let first = root.path().join(&fixture.files[0].path);
+        fs::create_dir_all(first.parent().expect("fixture parent")).expect("fixture parent");
+        fs::create_dir(temporary_path(&first)).expect("temporary blocker");
+        assert!(write_case(root.path(), &case)
+            .unwrap_err()
+            .contains("write temporary fuzz artifact"));
+
+        let root = tempfile::tempdir().expect("permission fixture root");
+        let mut reject_permissions = |_: &Path, _: bool| Err("permission fixture".into());
+        assert_eq!(
+            write_fixture_with(root.path(), fixture, &mut reject_permissions),
+            Err("permission fixture".into())
+        );
+
+        let root = tempfile::tempdir().expect("read fixture root");
+        write_fixture(root.path(), fixture).expect("fixture files");
+        fs::remove_file(root.path().join(&fixture.files[0].path)).expect("remove fixture file");
+        assert!(verify_fixture(root.path(), fixture)
+            .unwrap_err()
+            .contains("read replay fixture"));
+
+        let root = tempfile::tempdir().expect("metadata fixture root");
+        write_fixture(root.path(), fixture).expect("fixture files");
+        let mut reject_metadata = |_: &Path, _: bool| Err("metadata fixture".into());
+        assert_eq!(
+            verify_fixture_with(root.path(), fixture, &mut reject_metadata),
+            Err("metadata fixture".into())
+        );
+        assert!(
+            verify_executable(&root.path().join("missing-helper"), false)
+                .unwrap_err()
+                .contains("read fixture permissions")
+        );
+
+        let root = tempfile::tempdir().expect("environment fixture root");
+        write_case(root.path(), &case).expect("case fixture");
+        let helper = &fixture.environment[0].executable;
+        fs::remove_file(root.path().join(helper)).expect("remove helper");
+        assert!(
+            run_and_record(root.path(), &case, Path::new("unused-compiler"))
+                .unwrap_err()
+                .contains("resolve fixture executable")
+        );
+
+        let root = tempfile::tempdir().expect("verify fixture root");
+        write_case(root.path(), &case).expect("case fixture");
+        let mut invalid = case.clone();
+        invalid.fixture.as_mut().expect("fixture").files[0].path = PathBuf::from("../escape");
+        assert!(verify_case(root.path(), &invalid)
+            .unwrap_err()
+            .contains("invalid or duplicate"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn batch_fixture_filesystem_failures_are_attributed() {
+        let root = tempfile::tempdir().expect("batch root");
+        let mut options = test_options(5);
+        options.oracle = Oracle::Check;
+        options.out_dir = root.path().join("cases");
+        let case = generate(20, &options, "test");
+        let directory = options.out_dir.join(&case.manifest.case_id);
+        write_case(&directory, &case).expect("case fixture");
+        let helper = case.fixture.as_ref().expect("fixture").environment[0]
+            .executable
+            .clone();
+        fs::remove_file(directory.join(helper)).expect("remove helper");
+        let mut elapsed = || Duration::ZERO;
+        assert!(run_batches(
+            &options,
+            Path::new("unused-compiler"),
+            &[(directory, case)],
+            &mut elapsed,
+        )
+        .unwrap_err()
+        .contains("resolve fixture executable"));
+
+        for directory_failure in [0, 1] {
+            let first_root = tempfile::tempdir().expect("first fixture root");
+            let second_root = tempfile::tempdir().expect("second fixture root");
+            let first = generate(20, &test_options(5), "test");
+            let second = first.clone();
+            write_case(first_root.path(), &first).expect("first fixture");
+            write_case(second_root.path(), &second).expect("second fixture");
+            let helper = &first.fixture.as_ref().expect("fixture").environment[0].executable;
+            let failed = if directory_failure == 0 {
+                first_root.path().join(helper)
+            } else {
+                second_root.path().join(helper)
+            };
+            fs::remove_file(&failed).expect("remove helper");
+            fs::create_dir(&failed).expect("directory helper");
+            let error = batch_environment(&[
+                (first_root.path().to_path_buf(), first),
+                (second_root.path().to_path_buf(), second),
+            ])
+            .expect_err("directory helper must fail");
+            assert!(error.contains("read batch helper"));
+        }
+    }
+
+    #[test]
+    fn batch_helpers_must_have_identical_implementations() {
+        let first_root = tempfile::tempdir().expect("first fuzz root");
+        let second_root = tempfile::tempdir().expect("second fuzz root");
+        let first = generate(20, &test_options(5), "test");
+        let second = first.clone();
+        write_case(first_root.path(), &first).expect("first fixture");
+        write_case(second_root.path(), &second).expect("second fixture");
+        assert_eq!(
+            batch_environment(&[
+                (first_root.path().to_path_buf(), first.clone()),
+                (second_root.path().to_path_buf(), second.clone()),
+            ])
+            .expect("identical helper bindings")
+            .len(),
+            2
+        );
+
+        let mut second = second;
+        second
+            .fixture
+            .as_mut()
+            .expect("fixture")
+            .files
+            .iter_mut()
+            .find(|file| file.executable)
+            .expect("helper")
+            .contents
+            .push_str("# conflict\n");
+        write_case(second_root.path(), &second).expect("second fixture");
+        let error = batch_environment(&[
+            (first_root.path().to_path_buf(), first),
+            (second_root.path().to_path_buf(), second),
+        ])
+        .expect_err("conflicting helper must fail");
+        assert!(error.contains("conflicting fuzz helper environment"));
+    }
+
+    #[test]
+    fn native_fixture_cases_own_their_compiler_batch() {
+        let options = test_options(5);
+        let ordinary = generate(0, &options, "test");
+        let native = generate(20, &options, "test");
+        let pending = vec![
+            (PathBuf::from("first"), ordinary.clone()),
+            (PathBuf::from("native"), native),
+            (PathBuf::from("last"), ordinary),
+        ];
+        assert_eq!(next_batch(&pending).len(), 1);
+        assert_eq!(next_batch(&pending[1..]).len(), 1);
+        assert_eq!(next_batch(&pending[2..]).len(), 1);
+
+        let ordinary = generate(0, &options, "test");
+        let many = (0..CHECK_BATCH_SIZE + 1)
+            .map(|index| (PathBuf::from(index.to_string()), ordinary.clone()))
+            .collect::<Vec<_>>();
+        assert_eq!(next_batch(&many).len(), CHECK_BATCH_SIZE);
     }
 
     fn test_options(seed: u64) -> RunOptions {

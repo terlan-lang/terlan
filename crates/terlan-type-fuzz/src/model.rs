@@ -118,6 +118,7 @@ pub struct GeneratedCase {
     pub project: String,
     pub source: String,
     pub support_sources: Vec<GeneratedSource>,
+    pub fixture: Option<GeneratedFixture>,
     pub expected: TypedValue,
 }
 
@@ -126,6 +127,28 @@ pub struct GeneratedCase {
 pub struct GeneratedSource {
     pub path: PathBuf,
     pub source: String,
+}
+
+/// Deterministic non-source inputs required by an executable fuzz case.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeneratedFixture {
+    pub files: Vec<GeneratedFile>,
+    pub environment: Vec<GeneratedEnvironment>,
+}
+
+/// One replay-owned fixture file staged beneath the case directory.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeneratedFile {
+    pub path: PathBuf,
+    pub contents: String,
+    pub executable: bool,
+}
+
+/// Environment binding from a stable name to one staged executable.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeneratedEnvironment {
+    pub name: String,
+    pub executable: PathBuf,
 }
 
 #[cfg(test)]

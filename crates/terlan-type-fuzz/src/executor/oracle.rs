@@ -21,6 +21,13 @@ pub(super) struct FormattedBatchInputs<'a> {
     pub(super) root: &'a Path,
     pub(super) semantic_sources: &'a [PathBuf],
     pub(super) formatting_sources: &'a [PathBuf],
+    pub(super) environment: &'a [(String, PathBuf)],
+}
+
+struct BatchInputs<'a> {
+    root: &'a Path,
+    sources: &'a [PathBuf],
+    environment: &'a [(String, PathBuf)],
 }
 
 pub(super) fn run(
@@ -73,6 +80,7 @@ pub(super) fn run_formatted_batch_inputs(
         .arg("--check")
         .args(inputs.formatting_sources)
         .current_dir(inputs.root);
+    apply_environment(&mut command, inputs.environment);
     let formatting = capture_result(
         command,
         oracle,
@@ -90,11 +98,14 @@ pub(super) fn run_formatted_batch_inputs(
         rss_limit_bytes,
         cpu_limit_ms,
         |remaining_wall, remaining_cpu| {
-            run_batch(
+            run_batch_with_environment(
                 compiler,
                 oracle,
-                inputs.root,
-                inputs.semantic_sources,
+                BatchInputs {
+                    root: inputs.root,
+                    sources: inputs.semantic_sources,
+                    environment: inputs.environment,
+                },
                 remaining_wall,
                 rss_limit_bytes,
                 remaining_cpu,
@@ -112,6 +123,28 @@ pub(super) fn run_batch(
     rss_limit_bytes: u64,
     cpu_limit_ms: u64,
 ) -> OracleResult {
+    run_batch_with_environment(
+        compiler,
+        oracle,
+        BatchInputs {
+            root,
+            sources,
+            environment: &[],
+        },
+        timeout_ms,
+        rss_limit_bytes,
+        cpu_limit_ms,
+    )
+}
+
+fn run_batch_with_environment(
+    compiler: &Path,
+    oracle: Oracle,
+    inputs: BatchInputs<'_>,
+    timeout_ms: u64,
+    rss_limit_bytes: u64,
+    cpu_limit_ms: u64,
+) -> OracleResult {
     let operation = match oracle {
         Oracle::Check => Some("check"),
         Oracle::Native => Some("test"),
@@ -119,8 +152,8 @@ pub(super) fn run_batch(
         Oracle::JavaScript => {
             return super::javascript::run(
                 compiler,
-                root,
-                sources,
+                inputs.root,
+                inputs.sources,
                 timeout_ms,
                 rss_limit_bytes,
                 cpu_limit_ms,
@@ -142,15 +175,23 @@ pub(super) fn run_batch(
     if oracle == Oracle::Native {
         command.arg("--timings");
     }
-    command.arg(operation).args(sources).current_dir(root);
+    command
+        .arg(operation)
+        .args(inputs.sources)
+        .current_dir(inputs.root);
+    apply_environment(&mut command, inputs.environment);
     capture_result(
         command,
         oracle,
-        root,
+        inputs.root,
         timeout_ms,
         rss_limit_bytes,
         cpu_limit_ms,
     )
+}
+
+fn apply_environment(command: &mut Command, environment: &[(String, PathBuf)]) {
+    command.envs(environment.iter().map(|(name, path)| (name, path)));
 }
 
 pub(super) fn base_command(compiler: &Path) -> Command {
@@ -502,6 +543,7 @@ mod tests {
                 root: root.path(),
                 semantic_sources: &["case.terl".into()],
                 formatting_sources: &["case.terl".into(), "support.terl".into()],
+                environment: &[],
             },
             1_000,
             1024 * 1024 * 1024,
@@ -515,6 +557,46 @@ mod tests {
         assert_eq!(launches.len(), 2);
         assert!(launches[0].contains(" fmt --check case.terl support.terl"));
         assert!(launches[1].contains(" check case.terl"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formatted_oracles_inherit_owned_environment_bindings() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("case root");
+        std::fs::write(root.path().join("case.terl"), "module case.\n").expect("source");
+        let compiler = root.path().join("compiler");
+        let launches = root.path().join("launches");
+        std::fs::write(
+            &compiler,
+            format!(
+                "#!/bin/sh\nprintf '%s\\n' \"$TYPE_FUZZ_HELPER\" >> {}\nexit 0\n",
+                launches.display()
+            ),
+        )
+        .expect("compiler");
+        std::fs::set_permissions(&compiler, std::fs::Permissions::from_mode(0o700))
+            .expect("permissions");
+        let environment = vec![("TYPE_FUZZ_HELPER".into(), PathBuf::from("owned-helper"))];
+        let result = run_formatted_batch_inputs(
+            &compiler,
+            Oracle::Check,
+            FormattedBatchInputs {
+                root: root.path(),
+                semantic_sources: &["case.terl".into()],
+                formatting_sources: &["case.terl".into()],
+                environment: &environment,
+            },
+            1_000,
+            1024 * 1024 * 1024,
+            1_000,
+        );
+        assert_eq!(result.outcome, "passed");
+        assert_eq!(
+            std::fs::read_to_string(launches).expect("launch ledger"),
+            "owned-helper\nowned-helper\n"
+        );
     }
 
     #[cfg(unix)]
@@ -544,6 +626,7 @@ mod tests {
                 root: root.path(),
                 semantic_sources: &["case.terl".into()],
                 formatting_sources: &["case.terl".into()],
+                environment: &[],
             },
             1_000,
             1024 * 1024 * 1024,

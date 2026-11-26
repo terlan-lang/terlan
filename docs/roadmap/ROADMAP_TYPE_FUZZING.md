@@ -367,7 +367,7 @@ functions, and 5,799 lines.
 - [x] Generate typed suspension boundaries and continuation captures.
 - [x] Exercise ordinary calls, structured control flow, constructors, and
   union values before and after suspension.
-- [ ] Generate cases using two compatible native providers in one package and
+- [x] Generate cases using two compatible native providers in one package and
   verify helper routing and bounded binary transport.
 - [ ] Verify worker, helper, and compiler processes are cancelled transitively.
 
@@ -384,6 +384,19 @@ declarations, then passed in 0.33 seconds at 111.6 MiB peak RSS. The reducer
 searches the new family without changing recorded older cases. The focused
 crate retains exact 100% coverage across 8,876 regions, 418 functions, and
 5,824 lines.
+
+Generator v5 adds a path-dependency fixture containing two compatible native
+providers while preserving every v1-v4 replay mapping. The generated program
+builds a 2 MiB `Bytes` value, routes it independently through both providers,
+and requires asymmetric results to produce `402`; swapped helpers cannot pass.
+Each replay owns the provider sources, manifests, executable helpers, and
+environment bindings. Helpers reject unordered frames, changed request
+identities, empty data frames, and payloads that did not use multiple bounded
+transport chunks. Fixture cases receive isolated compiler batches so their
+path-dependency projects cannot contaminate ordinary generated projects. The
+real native regression prepared 49 reachable declarations and both helper
+bindings, then passed in 2.17 seconds. The focused crate passes 118 tests with
+exact 100% coverage across 9,896 regions, 459 functions, and 6,388 lines.
 
 ### TF6: Continuous and release integration
 
