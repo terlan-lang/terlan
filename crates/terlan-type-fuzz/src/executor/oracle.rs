@@ -51,7 +51,12 @@ pub(super) fn run_batch(
     rss_limit_bytes: u64,
     cpu_limit_ms: u64,
 ) -> OracleResult {
-    if oracle == Oracle::None {
+    let operation = match oracle {
+        Oracle::Check => Some("check"),
+        Oracle::Native => Some("test"),
+        Oracle::None => None,
+    };
+    let Some(operation) = operation else {
         return OracleResult {
             schema: "terlan.type-fuzz-observation.v1",
             oracle,
@@ -61,16 +66,17 @@ pub(super) fn run_batch(
             stderr: String::new(),
             resources: ResourceEvidence::unmeasured(timeout_ms, rss_limit_bytes, cpu_limit_ms),
         };
-    }
+    };
     let mut command = Command::new(compiler);
     command
         .arg("--diagnostic-format")
         .arg("json")
         .arg("--color")
-        .arg("never")
-        .arg("check")
-        .args(sources)
-        .current_dir(root);
+        .arg("never");
+    if oracle == Oracle::Native {
+        command.arg("--timings");
+    }
+    command.arg(operation).args(sources).current_dir(root);
     let resources::Capture { output, resources } =
         resources::capture(&mut command, timeout_ms, rss_limit_bytes, cpu_limit_ms);
     let output = match output {
@@ -154,6 +160,34 @@ mod tests {
         );
         assert_eq!(result.outcome, "infrastructure_error");
         assert_eq!(result.exit_code, None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn native_oracle_selects_the_test_operation() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("case root");
+        let source = root.path().join("case.terl");
+        std::fs::write(&source, "module case.").expect("source");
+        let compiler = root.path().join("compiler");
+        std::fs::write(
+            &compiler,
+            "#!/bin/sh\nfor argument in \"$@\"; do [ \"$argument\" = test ] && exit 0; done\nexit 9\n",
+        )
+        .expect("compiler");
+        std::fs::set_permissions(&compiler, std::fs::Permissions::from_mode(0o700))
+            .expect("permissions");
+        let result = run(
+            &compiler,
+            Oracle::Native,
+            &source,
+            1_000,
+            1024 * 1024 * 1024,
+            1_000,
+        );
+        assert_eq!(result.outcome, "passed");
+        assert_eq!(result.exit_code, Some(0));
     }
 
     #[cfg(unix)]

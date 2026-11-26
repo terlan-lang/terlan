@@ -23,6 +23,7 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
     let family = Family::from_index(index, config.max_depth);
     let oracle_name = match config.oracle {
         Oracle::Check => "check",
+        Oracle::Native => "native",
         Oracle::None => "none",
     };
     let case_id = format!(
@@ -174,10 +175,11 @@ impl Family {
                 json!({"atom": "ready"}),
                 "Atom[\"ready\"]".into(),
             ),
-            Self::LexicalProduct => generated(
+            Self::LexicalProduct => generated_with_expected(
                 product_type(),
                 json!([value, true]),
                 format!("let item = {{{value}, true}};\nitem"),
+                format!("{{{value}, true}}"),
             ),
             Self::Record => generated(
                 CheckedType::Nominal("Pair"),
@@ -191,41 +193,47 @@ impl Family {
                 format!("[{value}, {}]", value + 1),
             )
             .with_prelude("import type std.collections.List."),
-            Self::IfProductJoin => generated(
+            Self::IfProductJoin => generated_with_expected(
                 product_type(),
                 json!([value, true]),
                 format!("let selected = if {{ false -> {{0, false}}; true -> {{{value}, true}} }};\nselected"),
+                format!("{{{value}, true}}"),
             ),
-            Self::CaseProductJoin => generated(
+            Self::CaseProductJoin => generated_with_expected(
                 product_type(),
                 json!([value, true]),
                 format!("case {{{value}, true}} {{\n    {{left, right}} -> {{left, right}}\n}}"),
+                format!("{{{value}, true}}"),
             ),
-            Self::OptionJoin => generated(
+            Self::OptionJoin => generated_with_expected(
                 CheckedType::option(CheckedType::Int),
                 json!({"variant": "some", "payload": value}),
                 format!("let selected = case true {{\n    false -> None;\n    true -> case false {{ false -> Some({value}); true -> None }}\n}};\nselected"),
+                format!("Some({value})"),
             )
             .with_prelude(option_prelude()),
-            Self::NominalOptionJoin => generated(
+            Self::NominalOptionJoin => generated_with_expected(
                 CheckedType::option(CheckedType::Nominal("Evidence")),
                 json!({"variant": "some", "payload": {"value": value}}),
                 format!("let evidence = case true {{\n    false -> None;\n    true -> case false {{ false -> Some(Evidence {{ value: {value} }}); true -> None }}\n}};\nevidence"),
+                format!("Some(Evidence {{ value: {value} }})"),
             )
             .with_prelude(format!(
                 "{}\n\npub struct Evidence {{ value: Int }}.",
                 option_prelude()
             )),
-            Self::ResultJoin => generated(
+            Self::ResultJoin => generated_with_expected(
                 CheckedType::result(CheckedType::Int, CheckedType::String),
                 json!({"variant": "ok", "payload": value}),
                 format!("case true {{ false -> Err(\"rejected\"); true -> Ok({value}) }}"),
+                format!("Ok({value})"),
             )
             .with_prelude(result_prelude()),
-            Self::NestedResultJoin => generated(
+            Self::NestedResultJoin => generated_with_expected(
                 CheckedType::result(CheckedType::Int, CheckedType::String),
                 json!({"variant": "ok", "payload": value}),
                 format!("let selected = case true {{\n    false -> Err(\"outer\");\n    true -> case false {{ false -> Ok({value}); true -> Err(\"inner\") }}\n}};\nselected"),
+                format!("Ok({value})"),
             )
             .with_prelude(result_prelude()),
             Self::ClosedUnion => generated(
@@ -249,7 +257,17 @@ fn product_type() -> CheckedType {
 }
 
 fn generated(checked_type: CheckedType, value: serde_json::Value, source: String) -> GeneratedBody {
-    GeneratedBody::expression(checked_type, value, source)
+    let expected = source.clone();
+    GeneratedBody::expression(checked_type, value, source, expected)
+}
+
+fn generated_with_expected(
+    checked_type: CheckedType,
+    value: serde_json::Value,
+    source: String,
+    expected: String,
+) -> GeneratedBody {
+    GeneratedBody::expression(checked_type, value, source, expected)
 }
 
 fn option_prelude() -> &'static str {

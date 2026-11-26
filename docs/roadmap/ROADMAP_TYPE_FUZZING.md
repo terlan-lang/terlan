@@ -163,13 +163,13 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 Two independent runs must produce byte-identical case artifacts.
 
 The generator and bounded executor crate has 100% line, function, and region
-coverage: 2,031 regions, 101 functions, and 1,287 lines. Its 33-test unit gate
-and complete warm coverage gate are both subsecond. The executor measures the
-whole process group, enforces combined stdout/stderr limits, and cleans up
-descendants after success, failure, timeout, cancellation, or resource
-exhaustion. Reconnecting the crate to the monolithic compiler library remains
-the expensive step and is tracked by P11-1 rather than hidden inside the fuzz
-gate.
+coverage: 2,703 regions, 136 functions, and 1,760 lines. Its 42-test execution
+is subsecond, and its complete instrumented coverage gate finishes in under 15
+seconds. The executor measures the whole process group, enforces combined
+stdout/stderr limits, and cleans up descendants after success, failure,
+timeout, cancellation, or resource exhaustion. Reconnecting the crate to the
+monolithic compiler library remains the expensive step and is tracked by P11-1
+rather than hidden inside the fuzz gate.
 
 ### TF1: Typed scalar and control-flow generator
 
@@ -211,6 +211,13 @@ oracle acceptance remains open; generation success alone does not close TF1.
 Acceptance: the corpus includes permanent regressions for contextual union
 identity, mixed-union aggregate results, recursive managed values, generic
 record layout, suspension captures, and constructor-pattern identity.
+
+The bounded native oracle is executable: generated cases contain independent
+typed semantic assertions, native batches invoke `terlc test --timings`, and
+successful runs retain measured CPU and RSS evidence. Its first three-family
+probe immediately found a direct `Option[record]` return losing contextual
+identity after scalar-case normalization. That minimized compiler regression
+must pass before the first TF2 checkbox is closed.
 
 ### TF3: JavaScript differential execution
 

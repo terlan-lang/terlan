@@ -77,15 +77,22 @@ pub(crate) struct GeneratedBody {
     pub(crate) value: Value,
     prelude: String,
     expression: String,
+    expected_expression: String,
 }
 
 impl GeneratedBody {
-    pub(crate) fn expression(checked_type: CheckedType, value: Value, expression: String) -> Self {
+    pub(crate) fn expression(
+        checked_type: CheckedType,
+        value: Value,
+        expression: String,
+        expected_expression: String,
+    ) -> Self {
         Self {
             checked_type,
             value,
             prelude: String::new(),
             expression,
+            expected_expression,
         }
     }
 
@@ -102,10 +109,17 @@ impl GeneratedBody {
             .map(|line| format!("    {line}"))
             .collect::<Vec<_>>()
             .join("\n");
+        let semantic_test = format!(
+            "@test\npub sample_matches_expected(): Bool ->\n    sample() == {}.",
+            self.expected_expression
+        );
         if self.prelude.is_empty() {
-            format!("{signature}\n{expression}.")
+            format!("{signature}\n{expression}.\n\n{semantic_test}")
         } else {
-            format!("{}\n\n{signature}\n{expression}.", self.prelude)
+            format!(
+                "{}\n\n{signature}\n{expression}.\n\n{semantic_test}",
+                self.prelude
+            )
         }
     }
 }
@@ -140,13 +154,17 @@ mod tests {
 
     #[test]
     fn generated_body_retains_the_requested_type_and_value() {
-        let body = GeneratedBody::expression(CheckedType::Int, Value::from(7), "7".into());
+        let body =
+            GeneratedBody::expression(CheckedType::Int, Value::from(7), "7".into(), "7".into());
         assert_eq!(body.checked_type, CheckedType::Int);
         assert_eq!(body.value, Value::from(7));
-        assert_eq!(body.source(), "pub sample(): Int ->\n    7.");
+        assert_eq!(
+            body.source(),
+            "pub sample(): Int ->\n    7.\n\n@test\npub sample_matches_expected(): Bool ->\n    sample() == 7."
+        );
         assert_eq!(
             body.with_prelude("pub type Number = Int.").source(),
-            "pub type Number = Int.\n\npub sample(): Int ->\n    7."
+            "pub type Number = Int.\n\npub sample(): Int ->\n    7.\n\n@test\npub sample_matches_expected(): Bool ->\n    sample() == 7."
         );
     }
 }

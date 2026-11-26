@@ -48,6 +48,10 @@ fn generation_is_stable_and_covers_each_initial_family() {
     for case in cases {
         assert_eq!(case.manifest.expected_type, case.expected.type_name);
         assert!(!case.source.contains(" as "));
+        assert!(case
+            .source
+            .contains("@test\npub sample_matches_expected(): Bool"));
+        assert!(case.source.contains("sample() =="));
     }
 }
 
@@ -93,4 +97,19 @@ fn checked_oracle_is_encoded_in_identity_and_manifest() {
     );
     assert_eq!(generated.manifest.oracle, Oracle::Check);
     assert!(generated.manifest.case_id.ends_with("-ocheck"));
+
+    let native = generate(
+        0,
+        &GenerationConfig {
+            seed: 1,
+            max_depth: 8,
+            oracle: Oracle::Native,
+            timeout_ms: 2_000,
+            rss_limit_bytes: 1024,
+            cpu_limit_ms: 2_000,
+            compiler_revision: "test",
+        },
+    );
+    assert_eq!(native.manifest.oracle, Oracle::Native);
+    assert!(native.manifest.case_id.ends_with("-onative"));
 }

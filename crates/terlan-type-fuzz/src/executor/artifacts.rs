@@ -162,7 +162,13 @@ fn record_observation(
         &directory.join("diagnostics.json"),
         &json_bytes(&diagnostics),
     )?;
-    let resources = if matches!(result.outcome, "passed" | "not_run") {
+    atomic_write(
+        &directory.join("timings.json"),
+        &json_bytes(&timing_evidence_json(result)),
+    )?;
+    let resources = if result.oracle == Oracle::Native && result.outcome == "passed" {
+        result.resources.clone()
+    } else if matches!(result.outcome, "passed" | "not_run") {
         ResourceEvidence::unmeasured(
             manifest.case_timeout_ms,
             manifest.rss_limit_bytes,
@@ -182,8 +188,10 @@ fn record_observation(
 fn ensure_success(case: &GeneratedCase, result: &OracleResult) -> Result<(), String> {
     if !matches!(result.outcome, "passed" | "not_run") {
         return Err(format!(
-            "case {} check oracle ended as {}",
-            case.manifest.case_id, result.outcome
+            "case {} {} oracle ended as {}",
+            case.manifest.case_id,
+            oracle_name(case.manifest.oracle),
+            result.outcome
         ));
     }
     Ok(())
@@ -211,10 +219,7 @@ fn verify_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
 }
 
 fn toml_text(manifest: &CaseManifest) -> String {
-    let oracle = match manifest.oracle {
-        Oracle::Check => "check",
-        Oracle::None => "none",
-    };
+    let oracle = oracle_name(manifest.oracle);
     format!(
         concat!(
             "schema = {}\n",
@@ -293,13 +298,7 @@ fn oracle_result_json(result: &OracleResult) -> serde_json::Value {
     serde_json::Value::Object(
         [
             ("schema".into(), result.schema.into()),
-            (
-                "oracle".into(),
-                match result.oracle {
-                    Oracle::Check => "check".into(),
-                    Oracle::None => "none".into(),
-                },
-            ),
+            ("oracle".into(), oracle_name(result.oracle).into()),
             ("outcome".into(), result.outcome.into()),
             (
                 "exit_code".into(),
@@ -311,6 +310,31 @@ fn oracle_result_json(result: &OracleResult) -> serde_json::Value {
         .into_iter()
         .collect(),
     )
+}
+
+fn oracle_name(oracle: Oracle) -> &'static str {
+    match oracle {
+        Oracle::Check => "check",
+        Oracle::Native => "native",
+        Oracle::None => "none",
+    }
+}
+
+fn timing_evidence_json(result: &OracleResult) -> serde_json::Value {
+    let events = result
+        .stderr
+        .lines()
+        .filter(|line| line.starts_with("terlc timing:") || line.starts_with("terlc native-aot:"))
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "schema": "terlan.type-fuzz-timings.v1",
+        "measurement": if result.oracle == Oracle::Native {
+            "compiler_events"
+        } else {
+            "not_requested"
+        },
+        "events": events
+    })
 }
 
 fn resource_evidence_json(evidence: &ResourceEvidence) -> serde_json::Value {
@@ -369,6 +393,50 @@ fn io_error(action: &'static str) -> impl FnOnce(std::io::Error) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_oracle_has_stable_artifact_spelling() {
+        assert_eq!(oracle_name(Oracle::Check), "check");
+        assert_eq!(oracle_name(Oracle::Native), "native");
+        assert_eq!(oracle_name(Oracle::None), "none");
+    }
+
+    #[test]
+    fn native_success_keeps_measured_resources() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let mut options = test_options(7);
+        options.oracle = Oracle::Native;
+        let case = generate(0, &options, "test");
+        write_case(root.path(), &case).expect("case artifacts");
+        let mut resources = ResourceEvidence::unmeasured(10, 20, 30);
+        resources.peak_rss_bytes = Some(42);
+        resources.peak_cpu_ms = Some(7);
+        let result = OracleResult {
+            schema: "terlan.type-fuzz-observation.v1",
+            oracle: Oracle::Native,
+            outcome: "passed",
+            exit_code: Some(0),
+            stdout: String::new(),
+            stderr: concat!(
+                "terlc timing: frontend.parse: +3ms total=3ms\n",
+                "ordinary diagnostic\n",
+                "terlc native-aot: image.native-ir: +5ms total=5ms\n"
+            )
+            .into(),
+            resources,
+        };
+        record_observation(root.path(), &result, &case.manifest).expect("observation");
+        let recorded =
+            fs::read_to_string(root.path().join("resources.json")).expect("resource evidence");
+        assert!(recorded.contains("\"peak_rss_bytes\":42"));
+        assert!(recorded.contains("\"peak_cpu_ms\":7"));
+        let timings =
+            fs::read_to_string(root.path().join("timings.json")).expect("timing evidence");
+        assert!(timings.contains("\"measurement\":\"compiler_events\""));
+        assert!(timings.contains("frontend.parse"));
+        assert!(timings.contains("image.native-ir"));
+        assert!(!timings.contains("ordinary diagnostic"));
+    }
 
     #[test]
     fn case_artifacts_are_byte_identical_across_writes() {
@@ -657,7 +725,12 @@ mod tests {
         let mut options = test_options(5);
         options.oracle = Oracle::Check;
         let case = generate(0, &options, "test");
-        for name in ["observed.json", "diagnostics.json", "resources.json"] {
+        for name in [
+            "observed.json",
+            "diagnostics.json",
+            "timings.json",
+            "resources.json",
+        ] {
             let root = tempfile::tempdir().expect("temporary fuzz root");
             write_case(root.path(), &case).expect("case artifacts");
             let blocker = temporary_path(&root.path().join(name));
