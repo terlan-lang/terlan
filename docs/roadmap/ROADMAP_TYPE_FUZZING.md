@@ -243,14 +243,19 @@ providers are rejected if they add any structural compiler work, more than one
 second of wall time, or more than 16 MiB RSS. Every profile must now report
 phase timings, reachability, semantic-type inventory, and a cache disposition;
 every warm profile must reuse a verified native image. The focused
-implementation has 68 tests with exact 100% coverage across 4,614 regions, 228
-functions, and 3,123 lines. A two-root profile must remain linear in structural
+implementation has 69 tests with exact 100% coverage across 4,791 regions, 232
+functions, and 3,229 lines. A two-root profile must remain linear in structural
 compiler work, below twice the focused wall time plus five seconds, and below
 128 MiB of additive peak RSS. Its warm instrumented coverage gate finishes in
 under three seconds; a dependency-cold instrumented build remains below 15
 seconds. Focused and grouped test commands now emit independent `test.native-image`,
 `test.execution`, and `test.coverage` timings around the existing native-IR,
 module-unit, object, link, seal, and publication phases.
+
+Rooted native lowering now releases the frontend-only binding and reference
+inventory after pruning, before specialization and layout planning. The planning
+comparison records those released counts and requires focused, combined, and
+broad graphs to scale linearly in both dimensions.
 
 ### TF3: JavaScript differential execution
 

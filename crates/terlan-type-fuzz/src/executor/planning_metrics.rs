@@ -22,6 +22,8 @@ pub(super) struct CompilerMetrics {
     collection_layouts: u64,
     semantic_inventory_events: u64,
     semantic_type_ids: BTreeSet<String>,
+    released_bindings: u64,
+    released_references: u64,
     native_units_built: u64,
     native_functions_built: u64,
     native_continuations_built: u64,
@@ -39,6 +41,8 @@ pub(super) struct CompilerMetricDelta {
     semantic_types: i128,
     aggregate_layouts: i128,
     collection_layouts: i128,
+    released_bindings: i128,
+    released_references: i128,
     native_units_built: i128,
     native_functions_built: i128,
     native_continuations_built: i128,
@@ -135,6 +139,14 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
                 );
             }
         }
+        if line.starts_with("terlc native-aot: rooted.release-evidence:") {
+            metrics.released_bindings = metrics
+                .released_bindings
+                .saturating_add(field(line, "bindings=").unwrap_or(0));
+            metrics.released_references = metrics
+                .released_references
+                .saturating_add(field(line, "references=").unwrap_or(0));
+        }
     }
     metrics.native_image_cache_hits = metrics.native_image_cache_hits.saturating_add(
         metrics
@@ -188,6 +200,8 @@ pub(super) fn combined_work_is_linear(
         && bounded(combined.semantic_types, focused.semantic_types)
         && bounded(combined.aggregate_layouts, focused.aggregate_layouts)
         && bounded(combined.collection_layouts, focused.collection_layouts)
+        && bounded(combined.released_bindings, focused.released_bindings)
+        && bounded(combined.released_references, focused.released_references)
         && bounded(
             combined.semantic_type_ids.len() as u64,
             focused.semantic_type_ids.len() as u64,
@@ -224,6 +238,8 @@ pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> Compiler
         semantic_types: difference(right.semantic_types, left.semantic_types),
         aggregate_layouts: difference(right.aggregate_layouts, left.aggregate_layouts),
         collection_layouts: difference(right.collection_layouts, left.collection_layouts),
+        released_bindings: difference(right.released_bindings, left.released_bindings),
+        released_references: difference(right.released_references, left.released_references),
         native_units_built: difference(right.native_units_built, left.native_units_built),
         native_functions_built: difference(
             right.native_functions_built,
@@ -237,33 +253,20 @@ pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> Compiler
 }
 
 pub(super) fn same_structural_work(right: &CompilerMetrics, left: &CompilerMetrics) -> bool {
-    (
-        right.generic_specializations,
-        right.call_profiles,
-        right.lowered_calls,
-        right.native_units_built,
-        right.native_functions_built,
-        right.native_continuations_built,
-        right.semantic_types,
-        right.aggregate_layouts,
-        right.collection_layouts,
-        &right.semantic_type_ids,
-        right.reachable_declarations,
-        &right.native_providers,
-    ) == (
-        left.generic_specializations,
-        left.call_profiles,
-        left.lowered_calls,
-        left.native_units_built,
-        left.native_functions_built,
-        left.native_continuations_built,
-        left.semantic_types,
-        left.aggregate_layouts,
-        left.collection_layouts,
-        &left.semantic_type_ids,
-        left.reachable_declarations,
-        &left.native_providers,
-    )
+    right.generic_specializations == left.generic_specializations
+        && right.call_profiles == left.call_profiles
+        && right.lowered_calls == left.lowered_calls
+        && right.native_units_built == left.native_units_built
+        && right.native_functions_built == left.native_functions_built
+        && right.native_continuations_built == left.native_continuations_built
+        && right.semantic_types == left.semantic_types
+        && right.aggregate_layouts == left.aggregate_layouts
+        && right.collection_layouts == left.collection_layouts
+        && right.released_bindings == left.released_bindings
+        && right.released_references == left.released_references
+        && right.semantic_type_ids == left.semantic_type_ids
+        && right.reachable_declarations == left.reachable_declarations
+        && right.native_providers == left.native_providers
 }
 
 fn phase_name(line: &str, prefix: &str) -> Option<String> {

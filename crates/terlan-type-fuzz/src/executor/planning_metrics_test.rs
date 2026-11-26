@@ -19,10 +19,11 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
         "cache-miss-reason=source_changed\n",
         "terlc native-aot: image.types: semantic-types=2 aggregate-layouts=2 ",
         "collection-layouts=1 semantic-type-ids=0101,0202\n",
+        "terlc native-aot: rooted.release-evidence: bindings=19 references=31\n",
         "terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image\n",
     );
     let measured = measure(stderr);
-    assert_eq!(measured.timing_events, 12);
+    assert_eq!(measured.timing_events, 13);
     assert_eq!(measured.phase_elapsed_ms["frontend.parse"], 20);
     assert_eq!(
         measured.phase_elapsed_ms["application.generic-specialization"],
@@ -39,6 +40,8 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
     assert_eq!(measured.aggregate_layouts, 2);
     assert_eq!(measured.collection_layouts, 1);
     assert_eq!(measured.semantic_inventory_events, 1);
+    assert_eq!(measured.released_bindings, 19);
+    assert_eq!(measured.released_references, 31);
     assert_eq!(
         measured.semantic_type_ids,
         ["0101".to_string(), "0202".to_string()].into()
@@ -97,6 +100,8 @@ fn comparison_reports_signed_work_deltas() {
         semantic_types: 2,
         aggregate_layouts: 3,
         collection_layouts: 4,
+        released_bindings: 10,
+        released_references: 20,
         native_units_built: 1,
         native_functions_built: 9,
         native_continuations_built: 8,
@@ -113,6 +118,8 @@ fn comparison_reports_signed_work_deltas() {
         semantic_types: 5,
         aggregate_layouts: 7,
         collection_layouts: 11,
+        released_bindings: 14,
+        released_references: 15,
         native_units_built: 5,
         native_functions_built: 6,
         native_continuations_built: 7,
@@ -131,6 +138,8 @@ fn comparison_reports_signed_work_deltas() {
             semantic_types: 3,
             aggregate_layouts: 4,
             collection_layouts: 7,
+            released_bindings: 4,
+            released_references: -5,
             native_units_built: 4,
             native_functions_built: -3,
             native_continuations_built: -1,
@@ -183,6 +192,8 @@ fn combined_work_accepts_linear_growth_only() {
         semantic_types: 1,
         aggregate_layouts: 1,
         collection_layouts: 1,
+        released_bindings: 1,
+        released_references: 1,
         semantic_type_ids: ["one".to_string()].into(),
         reachable_declarations: Some(1),
         ..CompilerMetrics::default()
@@ -197,6 +208,8 @@ fn combined_work_accepts_linear_growth_only() {
         semantic_types: 4,
         aggregate_layouts: 4,
         collection_layouts: 4,
+        released_bindings: 4,
+        released_references: 4,
         semantic_type_ids: ["one".to_string(), "two".to_string()].into(),
         reachable_declarations: Some(4),
         ..CompilerMetrics::default()
@@ -238,6 +251,14 @@ fn combined_work_accepts_linear_growth_only() {
         },
         CompilerMetrics {
             collection_layouts: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            released_bindings: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            released_references: 5,
             ..linear.clone()
         },
         CompilerMetrics {
