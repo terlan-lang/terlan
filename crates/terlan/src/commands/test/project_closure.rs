@@ -10,9 +10,111 @@ use crate::commands::build::vm_artifact::parallel_compile::{
 };
 use crate::terlan_typeck::{CoreImportKind, CoreModule};
 use crate::CliState;
+use terlan_native_planning::{SourceModule, SourceModuleIndex};
 
 use super::execution::{TestCompiledModule, TestProjectContext};
 use super::project_context::test_target_profile_options;
+
+/// Prepares interfaces only for project modules imported by one focused test.
+///
+/// Inputs:
+/// - The project source roots and cache from `context`.
+/// - The active compiler `state` and focused test source.
+///
+/// Output:
+/// - Current interfaces for the test's transitive project import closure, or
+///   the first source-layout, duplicate-module, parse, or interface error.
+///
+/// Transformation:
+/// - Indexes module paths without parsing unused sources, prefers an explicit
+///   `.terli` sibling, traverses imports breadth-first, and prepares selected
+///   files grouped by their original source-root order.
+pub(super) fn prepare_project_source_interface_closure(
+    context: &TestProjectContext,
+    state: &CliState,
+    test_path: &str,
+    test_source: &str,
+) -> Result<(), String> {
+    let started = Instant::now();
+    let syntax = crate::formal_pipeline::parse_source_as_syntax_output(test_path, test_source)
+        .map_err(|error| format!("cannot parse focused test imports: {error:?}"))?;
+    let mut sources = Vec::new();
+    let mut discovered = 0_usize;
+    for root in &context.compilation_source_roots {
+        let files = crate::formal_pipeline::terlan_check_sources_in_dir(root)
+            .map_err(|error| error.to_string())?;
+        discovered += files.len();
+        for file in files {
+            let identity =
+                crate::commands::source_layout::expected_module_name_for_source_path(root, &file)?;
+            sources.push(SourceModule {
+                identity,
+                root: root.clone(),
+                path: file,
+            });
+        }
+    }
+
+    let sources = SourceModuleIndex::new(sources).map_err(|error| error.to_string())?;
+    let mut load_imports = |module: &SourceModule| {
+        let path = module.path.to_string_lossy();
+        let source = crate::support::read_file(&path)?;
+        let syntax = crate::formal_pipeline::parse_source_as_syntax_output(&path, &source)
+            .map_err(|error| {
+                format!(
+                    "cannot parse focused import `{}`: {error:?}",
+                    module.identity
+                )
+            })?;
+        Ok::<_, String>(syntax_module_imports(&syntax))
+    };
+    let selected_sources =
+        sources.transitive_closure(syntax_module_imports(&syntax), &mut load_imports)?;
+    let mut selected = BTreeMap::<PathBuf, Vec<PathBuf>>::new();
+    for module in selected_sources {
+        selected.entry(module.root).or_default().push(module.path);
+    }
+    let selected_count = selected.values().map(Vec::len).sum::<usize>();
+    for root in &context.compilation_source_roots {
+        let Some(files) = selected.remove(root) else {
+            continue;
+        };
+        crate::commands::build::prepare_source_interfaces(root, state, files)?;
+    }
+    if state.timings {
+        eprintln!(
+            "terlc timing: test.interface-closure: discovered={discovered} reachable={selected_count} elapsed={}ms",
+            started.elapsed().as_millis()
+        );
+    }
+    Ok(())
+}
+
+fn syntax_module_imports(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> Vec<String> {
+    syntax
+        .declarations
+        .iter()
+        .filter_map(|declaration| {
+            let crate::terlan_syntax::SyntaxDeclarationPayload::Import {
+                import_kind,
+                module_name,
+                items,
+                is_selected,
+                ..
+            } = &declaration.payload
+            else {
+                return None;
+            };
+            (*import_kind == crate::terlan_syntax::SyntaxImportKind::Module).then(|| {
+                crate::terlan_syntax::syntax_module_import_identity(
+                    module_name,
+                    items,
+                    *is_selected,
+                )
+            })
+        })
+        .collect()
+}
 
 /// Compiles every project module for directory and coverage test suites.
 pub(super) fn compile_project_source_core_modules(
@@ -227,4 +329,107 @@ fn compile_project_source_core_module(
         core: compiled.core,
         native_debug,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn context(root: &Path, cache: &Path) -> TestProjectContext {
+        TestProjectContext {
+            project_root: root.to_path_buf(),
+            cache_dir: cache.to_path_buf(),
+            compilation_source_roots: vec![root.to_path_buf()],
+            coverage_source_roots: vec![root.to_path_buf()],
+            native_helper_environment: Vec::new(),
+            native_helper_candidates: Vec::new(),
+        }
+    }
+
+    fn state(cache: &Path) -> CliState {
+        CliState {
+            cache_dir: Some(cache.to_path_buf()),
+            incremental: true,
+            ..CliState::default()
+        }
+    }
+
+    #[test]
+    fn focused_interface_preparation_visits_only_the_import_closure() {
+        let fixture = tempfile::tempdir().expect("focused closure fixture");
+        let root = fixture.path().join("src");
+        let cache = fixture.path().join("cache");
+        fs::create_dir_all(root.join("app")).expect("source layout");
+        fs::write(
+            root.join("app/Reachable.terl"),
+            "module app.Reachable.\nimport app.Transitive.\npub value(): Int -> Transitive.value().\n",
+        )
+        .expect("reachable source");
+        fs::write(
+            root.join("app/Transitive.terl"),
+            "module app.Transitive.\npub value(): Int -> 7.\n",
+        )
+        .expect("transitive source");
+        fs::write(
+            root.join("app/Unused.terl"),
+            "module app.Unused.\npub broken(: Int -> 0.\n",
+        )
+        .expect("invalid unused source");
+        fs::write(
+            root.join("app/Contract.terl"),
+            "module app.Contract.\npub broken(: Int -> 0.\n",
+        )
+        .expect("hidden implementation");
+        fs::write(
+            root.join("app/Contract.terli"),
+            "module app.Contract.\npub value(): Int.\n",
+        )
+        .expect("public interface");
+        let source = concat!(
+            "module app.FocusedTest.\n",
+            "import app.Reachable.\n",
+            "import app.Contract.\n",
+            "@test\npub works(): Bool -> Reachable.value() == 7.\n",
+        );
+
+        prepare_project_source_interface_closure(
+            &context(&root, &cache),
+            &state(&cache),
+            "FocusedTest.terl",
+            source,
+        )
+        .expect("prepare focused closure");
+
+        assert!(cache.join("app.Reachable.typi").is_file());
+        assert!(cache.join("app.Transitive.typi").is_file());
+        assert!(cache.join("app.Contract.typi").is_file());
+        assert!(!cache.join("app.Unused.typi").exists());
+    }
+
+    #[test]
+    fn focused_interface_preparation_rejects_duplicate_modules() {
+        let fixture = tempfile::tempdir().expect("duplicate closure fixture");
+        let left = fixture.path().join("left");
+        let right = fixture.path().join("right");
+        let cache = fixture.path().join("cache");
+        for root in [&left, &right] {
+            fs::create_dir_all(root.join("app")).expect("source layout");
+            fs::write(
+                root.join("app/Shared.terl"),
+                "module app.Shared.\npub value(): Int -> 1.\n",
+            )
+            .expect("duplicate source");
+        }
+        let mut context = context(&left, &cache);
+        context.compilation_source_roots.push(right);
+        let error = prepare_project_source_interface_closure(
+            &context,
+            &state(&cache),
+            "FocusedTest.terl",
+            "module app.FocusedTest.\nimport app.Shared.\n",
+        )
+        .expect_err("duplicate module must fail");
+        assert!(error.contains("duplicate project source module `app.Shared`"));
+    }
 }

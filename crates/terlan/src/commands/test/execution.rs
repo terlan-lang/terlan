@@ -10,7 +10,9 @@ use super::manifest::{
     print_validation_report, validation_report, write_test_manifest, write_test_result_manifest,
     TestRunReport, TestRunStatus,
 };
-use super::project_closure::compile_project_source_core_closure;
+use super::project_closure::{
+    compile_project_source_core_closure, prepare_project_source_interface_closure,
+};
 use super::project_context::{
     discover_test_project_context, is_test_source_path, prepare_test_project_context,
     reachable_native_helper_environment, run_js_test_directory, run_terlan_vm_test_directory,
@@ -306,18 +308,6 @@ pub(super) fn run_terlan_vm_test_file(
     let mut state = state;
     state.target_profile = TargetProfile::Vm;
     state.incremental = true;
-    if let Some(context) = project_context.as_ref() {
-        state.cache_dir = Some(context.cache_dir.clone());
-        for root in &context.compilation_source_roots {
-            if let Err(message) =
-                crate::commands::build::prepare_source_root_interfaces(root, &state)
-            {
-                eprintln!("{message}");
-                return ExitCode::from(1);
-            }
-        }
-    }
-
     let source = match crate::support::read_file(path) {
         Ok(source) => source,
         Err(message) => {
@@ -325,6 +315,15 @@ pub(super) fn run_terlan_vm_test_file(
             return ExitCode::from(1);
         }
     };
+    if let Some(context) = project_context.as_ref() {
+        state.cache_dir = Some(context.cache_dir.clone());
+        if let Err(message) =
+            prepare_project_source_interface_closure(context, &state, path, &source)
+        {
+            eprintln!("{message}");
+            return ExitCode::from(1);
+        }
+    }
     let compiled = match crate::commands::build::vm_artifact::compile_checked_vm_artifacts(
         path,
         &source,

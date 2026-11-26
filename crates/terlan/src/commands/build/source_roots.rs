@@ -36,6 +36,31 @@ pub(super) struct SourceRootBuildUnit {
 /// module layout, then writes `.typi` files so the following per-module build
 /// pass can resolve imports while doing the actual typecheck only once.
 pub(crate) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> Result<(), String> {
+    let files = crate::formal_pipeline::terlan_check_sources_in_dir(root)
+        .map_err(|error| error.to_string())?;
+    prepare_source_interfaces(root, state, files)
+}
+
+/// Writes interfaces only for an already-selected source closure.
+///
+/// Inputs:
+/// - `root` defines module identities for every selected source path.
+/// - `state` supplies the interface cache and incremental-write policy.
+/// - `files` is a caller-computed closure in deterministic source order.
+///
+/// Output:
+/// - Current `.typi` interfaces and dependency manifests for the selected
+///   modules, or the first parse, layout, or filesystem diagnostic.
+///
+/// Transformation:
+/// - Reuses current incremental interfaces, prefers explicit `.terli`
+///   contracts over sibling implementations, and applies the same interface
+///   graph validation as a complete source-root preparation.
+pub(crate) fn prepare_source_interfaces(
+    root: &Path,
+    state: &CliState,
+    files: Vec<PathBuf>,
+) -> Result<(), String> {
     let cache_dir = state
         .cache_dir
         .as_deref()
@@ -46,8 +71,6 @@ pub(crate) fn prepare_source_root_interfaces(root: &Path, state: &CliState) -> R
             cache_dir.display()
         )
     })?;
-    let files = crate::formal_pipeline::terlan_check_sources_in_dir(root)
-        .map_err(|error| error.to_string())?;
     let mut declarations = Vec::new();
     for file in files {
         let path_text = file.to_string_lossy().to_string();

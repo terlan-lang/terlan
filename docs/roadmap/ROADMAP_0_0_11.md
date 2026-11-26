@@ -29,7 +29,7 @@ execution—the first optimization target.
   unused provider must not change helpers, native units, planning time, or RSS.
 - [ ] Reuse unchanged dependency interfaces, native helpers, monomorphized
   closures, and native images across `check`, focused `test`, and package gates.
-- [ ] Compile focused tests from their transitive import closure rather than the
+- [x] Compile focused tests from their transitive import closure rather than the
   complete package graph.
 - [ ] Keep ordinary local validation below the 10-minute goal and 15-minute
   hard ceiling. A phase silent for 10 seconds must emit progress.
@@ -44,6 +44,15 @@ execution—the first optimization target.
 - [x] Emit a 10-second phase heartbeat during low-memory application planning
   so frontend, standard-library, reachability, pruning, and native-image stalls
   are distinguishable before a gate completes.
+
+Focused test interface preparation now indexes source identities without
+parsing their bodies, traverses only imports reachable from the selected test,
+and prefers explicit `.terli` contracts over sibling implementations. The
+deterministic closure algorithm lives in the existing planning boundary: its
+complete 14-test crate gate finishes in 0.52 seconds at 195 MiB, and its 795
+regions, 50 functions, and 447 lines have exact 100% coverage. Parsing and
+interface publication remain thin compiler adapters; directory coverage still
+prepares the complete package by design.
 
 Acceptance uses matched focused/combined, narrow/broad dependency, cold/warm
 cache, and reachable/unreachable native-provider fixtures. Test execution time
