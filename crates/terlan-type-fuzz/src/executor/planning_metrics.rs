@@ -194,7 +194,7 @@ fn field(line: &str, prefix: &str) -> Option<u64> {
 fn text_field<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
     line.split_whitespace()
         .find_map(|value| value.strip_prefix(prefix))
-        .map(|value| value.trim_end_matches(|character: char| matches!(character, ',' | ';')))
+        .map(|value| value.trim_end_matches([',', ';']))
 }
 
 fn difference(right: u64, left: u64) -> i128 {
