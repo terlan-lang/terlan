@@ -1,10 +1,12 @@
-//! Indexed callable lookup for bounded native application planning.
+//! Bounded, independently testable compiler planning primitives.
 
 use std::collections::{HashMap, HashSet};
 
 mod progress;
+mod source_closure;
 
 pub use progress::{ProgressEvent, ProgressWatch};
+pub use source_closure::{DuplicateSourceModule, SourceModule, SourceModuleIndex};
 
 /// Canonical module, function name, and arity for one callable provider.
 pub type FunctionKey = (String, String, usize);

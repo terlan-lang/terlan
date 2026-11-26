@@ -314,10 +314,11 @@
     },
     {
       "name": "terlan-native-planning",
-      "responsibility": "Own indexed callable reachability and bounded native-planning progress telemetry outside the compiler monolith.",
+      "responsibility": "Own deterministic reachable-source and native-callable planning plus bounded planning progress telemetry outside the compiler monolith.",
       "top_level_feature_modules": [
         "lib",
-        "progress"
+        "progress",
+        "source_closure"
       ]
     },
     {
