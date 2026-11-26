@@ -92,7 +92,7 @@ pub syntax_test_changes_include_cross_phase_contracts(): Bool ->
 @test
 pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
     Plan.lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"]
-        and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"]
+        and Plan.lanes(["crates/terlan/src/compiler/native_ir/source_constructor_test.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-construction", "phase"]
         and Plan.lanes(
     [
         "crates/terlan/src/compiler/native_ir/application/mutable_receivers.rs",
@@ -118,6 +118,15 @@ pub lowering_changes_run_compiler_and_phase_tests(): Bool ->
         "crates/terlan/src/compiler/native_ir/source_constructor_test.rs",
         "crates/terlan/src/compiler/native_ir/structured_case/lowering.rs",
         "",
+    ],
+) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
+
+@test
+pub unrelated_native_changes_keep_the_complete_native_lane(): Bool ->
+    Plan.lanes(
+    [
+        "crates/terlan/src/compiler/native_ir/collection_values/typed_values.rs",
+        "crates/terlan/src/compiler/native_ir/application/mutable_receivers.rs",
     ],
 ) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
 

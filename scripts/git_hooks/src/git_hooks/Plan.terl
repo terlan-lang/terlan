@@ -435,6 +435,26 @@ pub native_lowering(paths: List[String]): Bool ->
                 or native_lowering(rest)
     }.
 
+native_construction_path(path: String): Bool ->
+    path == "crates/terlan/src/compiler/native_ir/collection_values/typed_values.rs"
+        or path == "crates/terlan/src/compiler/native_ir/function_lowering/contextual_construction.rs"
+        or path == "crates/terlan/src/compiler/native_ir/source_constructor_test.rs"
+        or path == "crates/terlan/src/compiler/native_ir/structured_case/lowering.rs".
+
+native_construction(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] -> native_construction_path(path) or native_construction(rest)
+    }.
+
+other_native_lowering(paths: List[String]): Bool ->
+    case paths {
+        [] -> false;
+        [path | rest] ->
+            native_lowering([path]) and not native_construction_path(path)
+                or other_native_lowering(rest)
+    }.
+
 non_native_compiler(paths: List[String]): Bool ->
     case paths {
         [] -> false;
@@ -634,6 +654,7 @@ pub lanes(paths: List[String]): List[String] ->
     let compiler_rust =
         if {
             native_lowering(paths) and non_native_compiler(paths) -> ["compiler", "phase"];
+            native_construction(paths) and not other_native_lowering(paths) -> ["native-construction", "phase"];
             native_lowering(paths) -> ["native-ir", "phase"];
             compiler(paths) -> ["compiler", "phase"];
             syntax(paths) or build_support(paths) -> ["syntax", "phase"];
@@ -789,6 +810,7 @@ workspace_test_subset(lane: String): Bool ->
         or lane == "commands-init"
         or lane == "commands-emit-js"
         or lane == "commands"
+        or lane == "native-construction"
         or lane == "native-ir"
         or lane == "compiler"
         or lane == "syntax"
@@ -807,7 +829,7 @@ command_test_subset(lane: String): Bool ->
         or lane == "commands-emit-js".
 
 compiler_test_subset(lane: String): Bool ->
-    lane == "native-ir" or lane == "syntax".
+    lane == "native-construction" or lane == "native-ir" or lane == "syntax".
 
 prioritize_test_lanes(values: List[String]): List[String] ->
     append(selected_priority_lanes(test_lane_priority(), values), remaining_lanes(values)).
@@ -825,6 +847,7 @@ test_lane_priority(): List[String] ->
         "commands-init",
         "commands-emit-js",
         "commands",
+        "native-construction",
         "native-ir",
         "compiler",
         "syntax",
