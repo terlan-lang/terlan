@@ -726,7 +726,13 @@ run_affected_rust_lane() {
         tests::run_phase_contract_fixtures_match_golden -- --exact
       ;;
     native-ir)
-      bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
+      if lane_has phase; then
+        echo 'pre-commit: native IR and phase tests share validation-union artifact'
+        bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \
+          --features validation-union compiler::native_ir::
+      else
+        bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib compiler::native_ir::
+      fi
       ;;
     native-construction)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib \

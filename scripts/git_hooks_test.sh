@@ -789,6 +789,10 @@ grep -Fq 'reuse affected Rust lane' \
 phase_lane=$(sed -n '/^    phase)/,/^      ;;/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq -- '--features validation-union' <<< "$phase_lane"
+native_ir_lane=$(sed -n '/^    native-ir)/,/^      ;;/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'if lane_has phase; then' <<< "$native_ir_lane"
+grep -Fq -- '--features validation-union compiler::native_ir::' <<< "$native_ir_lane"
 grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'generated Rust reports regenerated; return them for staging' \
