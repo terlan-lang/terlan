@@ -265,8 +265,9 @@ mod tests {
                 "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
                 "  test -n \"$module\" || continue\n",
                 "  project=${source%%/src/*}\n",
-                "  mkdir -p \"$project/.terlan\"\n",
+                "  mkdir -p \"$project/.terlan\" \"$project/src/.terlan\"\n",
                 "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                "  cp \"$source\" \"$project/src/.terlan/$module.typi\"\n",
                 "done\n",
             ),
         )

@@ -452,8 +452,11 @@ fn ensure_batch_success(
     } else {
         format!("case {}", implicated.join(", "))
     };
+    let detail = (!diagnostics.is_empty())
+        .then(|| format!(": {diagnostics}"))
+        .unwrap_or_default();
     Err(format!(
-        "{subject} {} oracle ended as {}",
+        "{subject} {} oracle ended as {}{detail}",
         oracle_name(batch[0].1.manifest.oracle),
         result.outcome
     ))
@@ -1069,7 +1072,7 @@ mod tests {
         options.rss_limit_bytes = 1 << 30;
         let case = generate(17, &options, "test");
         write_case(root.path(), &case).expect("multi-module artifacts");
-        let cache = root.path().join(".terlan");
+        let cache = root.path().join("src").join(".terlan");
         fs::create_dir(&cache).expect("interface cache");
         for support in &case.support_sources {
             let module = interface_roundtrip::support_modules(std::slice::from_ref(support))
@@ -1144,8 +1147,9 @@ mod tests {
                 "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
                 "  [ -n \"$module\" ] || continue\n",
                 "  project=${source%%/src/*}\n",
-                "  mkdir -p \"$project/.terlan\"\n",
+                "  mkdir -p \"$project/.terlan\" \"$project/src/.terlan\"\n",
                 "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                "  cp \"$source\" \"$project/src/.terlan/$module.typi\"\n",
                 "done\n",
             ),
         )
@@ -1189,8 +1193,9 @@ mod tests {
                 "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
                 "  [ -n \"$module\" ] || continue\n",
                 "  project=${source%%/src/*}\n",
-                "  mkdir -p \"$project/.terlan\"\n",
+                "  mkdir -p \"$project/.terlan\" \"$project/src/.terlan\"\n",
                 "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                "  cp \"$source\" \"$project/src/.terlan/$module.typi\"\n",
                 "done\n",
                 "case \"$PWD\" in\n",
                 "  *.package-roundtrip-*/consumer) exit 1 ;;\n",
@@ -1556,8 +1561,9 @@ mod tests {
                     "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
                     "  [ -n \"$module\" ] || continue\n",
                     "  project=${{source%%/src/*}}\n",
-                    "  mkdir -p \"$project/.terlan\"\n",
+                    "  mkdir -p \"$project/.terlan\" \"$project/src/.terlan\"\n",
                     "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                    "  cp \"$source\" \"$project/src/.terlan/$module.typi\"\n",
                     "done\n",
                 ),
                 launches.display()
@@ -1570,10 +1576,10 @@ mod tests {
             cases: 65,
             oracle: Oracle::Check,
             out_dir: root.path().join("cases"),
-            case_timeout_ms: 1_000,
-            total_timeout_ms: 10_000,
+            case_timeout_ms: 5_000,
+            total_timeout_ms: 30_000,
             rss_limit_bytes: 1024 * 1024 * 1024,
-            cpu_limit_ms: 1_000,
+            cpu_limit_ms: 5_000,
             ..RunOptions::default()
         };
         generate_run(&options, &compiler, "test").expect("batched run");

@@ -9,6 +9,7 @@ use crate::{GeneratedCase, GeneratedSource, Oracle};
 const ENTRY_SOURCE: &str = "CaseTest.terl";
 const PROJECT_MANIFEST: &str = "terlan.toml";
 const ROUNDTRIP_ARTIFACT: &str = "interface-roundtrip.json";
+const SOURCE_ROOT: &str = "src";
 
 /// Rechecks a generated consumer against only its emitted interfaces.
 ///
@@ -32,33 +33,52 @@ pub(super) fn run(
         .prefix(".interface-roundtrip-")
         .tempdir_in(directory)
         .map_err(|error| format!("create interface round-trip workspace: {error}"))?;
-    stage(workspace.path(), directory, &modules)?;
-
-    let result = oracle::run(
-        compiler,
-        Oracle::Check,
-        &workspace.path().join(ENTRY_SOURCE),
-        timeout_ms,
-        rss_limit_bytes,
-        cpu_limit_ms,
-    );
-    let evidence = serde_json::json!({
-        "schema": "terlan.type-fuzz-interface-roundtrip.v1",
-        "comparison": "source_and_interface_consumers_accepted",
-        "source_oracle": oracle_name(case.manifest.oracle),
-        "source_outcome": "passed",
-        "interface_oracle": "check",
-        "interface_outcome": result.outcome,
-        "expected_type": case.manifest.expected_type,
-        "modules": modules,
-        "exit_code": result.exit_code,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-        "resources": result.resources,
-    });
-    let mut bytes = serde_json::to_vec(&evidence).expect("interface evidence JSON serializes");
-    bytes.push(b'\n');
-    atomic_write(&directory.join(ROUNDTRIP_ARTIFACT), &bytes)?;
+    let interface_cache = directory.join(SOURCE_ROOT).join(".terlan");
+    let result = if interfaces_complete(&interface_cache, &modules) {
+        stage(workspace.path(), directory, &interface_cache, &modules)?;
+        oracle::run(
+            compiler,
+            Oracle::Check,
+            &workspace.path().join(ENTRY_SOURCE),
+            timeout_ms,
+            rss_limit_bytes,
+            cpu_limit_ms,
+        )
+    } else {
+        let generation = oracle::run(
+            compiler,
+            Oracle::Check,
+            &directory.join(SOURCE_ROOT),
+            timeout_ms,
+            rss_limit_bytes,
+            cpu_limit_ms,
+        );
+        if generation.outcome != "passed" {
+            record_evidence(case, directory, &modules, "not_run", &generation)?;
+            return Err(format!(
+                "case {} interface generation ended as {}",
+                case.manifest.case_id, generation.outcome
+            ));
+        }
+        stage(workspace.path(), directory, &interface_cache, &modules)?;
+        oracle::finish_phase(
+            generation,
+            timeout_ms,
+            rss_limit_bytes,
+            cpu_limit_ms,
+            |remaining_wall, remaining_cpu| {
+                oracle::run(
+                    compiler,
+                    Oracle::Check,
+                    &workspace.path().join(ENTRY_SOURCE),
+                    remaining_wall,
+                    rss_limit_bytes,
+                    remaining_cpu,
+                )
+            },
+        )
+    };
+    record_evidence(case, directory, &modules, &result.outcome, &result)?;
     if result.outcome != "passed" {
         return Err(format!(
             "case {} interface-only semantic comparison ended as {}",
@@ -68,7 +88,44 @@ pub(super) fn run(
     Ok(())
 }
 
-fn stage(workspace: &Path, directory: &Path, modules: &[String]) -> Result<(), String> {
+fn interfaces_complete(cache: &Path, modules: &[String]) -> bool {
+    modules
+        .iter()
+        .all(|module| cache.join(format!("{module}.typi")).is_file())
+}
+
+fn record_evidence(
+    case: &GeneratedCase,
+    directory: &Path,
+    modules: &[String],
+    interface_outcome: &str,
+    result: &oracle::OracleResult,
+) -> Result<(), String> {
+    let evidence = serde_json::json!({
+        "schema": "terlan.type-fuzz-interface-roundtrip.v1",
+        "comparison": "source_and_interface_consumers_accepted",
+        "source_oracle": oracle_name(case.manifest.oracle),
+        "source_outcome": "passed",
+        "interface_oracle": "check",
+        "interface_outcome": interface_outcome,
+        "expected_type": case.manifest.expected_type,
+        "modules": modules,
+        "exit_code": result.exit_code,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "resources": result.resources,
+    });
+    let mut bytes = serde_json::to_vec(&evidence).expect("interface evidence JSON serializes");
+    bytes.push(b'\n');
+    atomic_write(&directory.join(ROUNDTRIP_ARTIFACT), &bytes)
+}
+
+fn stage(
+    workspace: &Path,
+    directory: &Path,
+    interface_cache: &Path,
+    modules: &[String],
+) -> Result<(), String> {
     let cache = workspace.join(".terlan");
     fs::create_dir_all(&cache)
         .map_err(|error| format!("create interface round-trip cache: {error}"))?;
@@ -79,7 +136,7 @@ fn stage(workspace: &Path, directory: &Path, modules: &[String]) -> Result<(), S
     copy(directory, workspace, ENTRY_SOURCE)?;
     for module in modules {
         let name = format!("{module}.typi");
-        copy(&directory.join(".terlan"), &cache, &name)?;
+        copy(interface_cache, &cache, &name)?;
     }
     Ok(())
 }
@@ -168,7 +225,7 @@ mod tests {
         let root = tempfile::tempdir().expect("interface case root");
         let case = generated_case(oracle);
         super::super::artifacts::write_case(root.path(), &case).expect("case artifacts");
-        let cache = root.path().join(".terlan");
+        let cache = root.path().join(SOURCE_ROOT).join(".terlan");
         fs::create_dir(&cache).expect("interface cache");
         for support in &case.support_sources {
             let module = source_module(support).expect("support module");
@@ -253,6 +310,71 @@ mod tests {
         assert!(fs::read_to_string(root.path().join(ROUNDTRIP_ARTIFACT))
             .expect("failed evidence")
             .contains("\"interface_outcome\":\"failed\""));
+
+        let missing = support_modules(&case.support_sources).expect("support modules")[0].clone();
+        fs::remove_file(
+            root.path()
+                .join(SOURCE_ROOT)
+                .join(".terlan")
+                .join(format!("{missing}.typi")),
+        )
+        .expect("remove generated interface");
+        let error = run(
+            root.path(),
+            &case,
+            Path::new("/bin/false"),
+            1_000,
+            1 << 30,
+            1_000,
+        )
+        .expect_err("failed interface generation");
+        assert!(error.contains("interface generation ended as failed"));
+        assert!(fs::read_to_string(root.path().join(ROUNDTRIP_ARTIFACT))
+            .expect("generation evidence")
+            .contains("\"interface_outcome\":\"not_run\""));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn missing_interfaces_are_generated_once_before_consumption() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let (root, case) = prepared_case(Oracle::Check);
+        let modules = support_modules(&case.support_sources).expect("support modules");
+        for module in &modules {
+            fs::remove_file(
+                root.path()
+                    .join(SOURCE_ROOT)
+                    .join(".terlan")
+                    .join(format!("{module}.typi")),
+            )
+            .expect("remove prepared interface");
+        }
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            concat!(
+                "#!/bin/sh\n",
+                "find src -name '*.terl' -type f 2>/dev/null | while read -r source; do\n",
+                "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
+                "  test -n \"$module\" || continue\n",
+                "  mkdir -p src/.terlan\n",
+                "  cp \"$source\" \"src/.terlan/$module.typi\"\n",
+                "done\n",
+            ),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+
+        run(root.path(), &case, &compiler, 1_000, 1 << 30, 1_000)
+            .expect("generated interface comparison");
+        assert!(modules.iter().all(|module| root
+            .path()
+            .join(SOURCE_ROOT)
+            .join(".terlan")
+            .join(format!("{module}.typi"))
+            .is_file()));
     }
 
     #[test]
@@ -284,24 +406,51 @@ mod tests {
             .unwrap_err()
             .contains("create interface round-trip workspace"));
 
+        let (missing_manifest_root, missing_manifest_case) = prepared_case(Oracle::Check);
+        fs::remove_file(missing_manifest_root.path().join(PROJECT_MANIFEST))
+            .expect("remove manifest");
+        assert!(run(
+            missing_manifest_root.path(),
+            &missing_manifest_case,
+            Path::new("/bin/true"),
+            1_000,
+            1 << 30,
+            1_000,
+        )
+        .unwrap_err()
+        .contains("copy interface round-trip input `terlan.toml`"));
+
         let cache_blocked = tempfile::tempdir().expect("cache blocked");
         fs::write(cache_blocked.path().join(".terlan"), "blocked").expect("cache blocker");
-        assert!(stage(cache_blocked.path(), root.path(), &modules)
-            .unwrap_err()
-            .contains("create interface round-trip cache"));
+        assert!(stage(
+            cache_blocked.path(),
+            root.path(),
+            &root.path().join(SOURCE_ROOT).join(".terlan"),
+            &modules,
+        )
+        .unwrap_err()
+        .contains("create interface round-trip cache"));
 
         let source_blocked = tempfile::tempdir().expect("source blocked");
         fs::write(source_blocked.path().join("src"), "blocked").expect("source blocker");
-        assert!(stage(source_blocked.path(), root.path(), &modules)
-            .unwrap_err()
-            .contains("create interface round-trip source root"));
+        assert!(stage(
+            source_blocked.path(),
+            root.path(),
+            &root.path().join(SOURCE_ROOT).join(".terlan"),
+            &modules,
+        )
+        .unwrap_err()
+        .contains("create interface round-trip source root"));
 
         let missing_manifest = tempfile::tempdir().expect("missing manifest");
-        assert!(
-            stage(missing_manifest.path(), Path::new("missing"), &modules)
-                .unwrap_err()
-                .contains("copy interface round-trip input `terlan.toml`")
-        );
+        assert!(stage(
+            missing_manifest.path(),
+            Path::new("missing"),
+            &root.path().join(SOURCE_ROOT).join(".terlan"),
+            &modules,
+        )
+        .unwrap_err()
+        .contains("copy interface round-trip input `terlan.toml`"));
 
         let missing_entry_root = tempfile::tempdir().expect("missing entry root");
         fs::write(
@@ -313,6 +462,7 @@ mod tests {
         assert!(stage(
             missing_entry_workspace.path(),
             missing_entry_root.path(),
+            &root.path().join(SOURCE_ROOT).join(".terlan"),
             &modules,
         )
         .unwrap_err()
@@ -321,15 +471,28 @@ mod tests {
         let missing_interface = tempfile::tempdir().expect("missing interface");
         let absent = root
             .path()
+            .join(SOURCE_ROOT)
             .join(".terlan")
             .join(format!("{}.typi", modules[0]));
         fs::remove_file(&absent).expect("remove interface");
-        assert!(stage(missing_interface.path(), root.path(), &modules)
-            .unwrap_err()
-            .contains("copy interface round-trip input"));
-        assert!(run(root.path(), &case, Path::new("missing"), 1, 1, 1,)
-            .unwrap_err()
-            .contains("copy interface round-trip input"));
+        assert!(stage(
+            missing_interface.path(),
+            root.path(),
+            &root.path().join(SOURCE_ROOT).join(".terlan"),
+            &modules,
+        )
+        .unwrap_err()
+        .contains("copy interface round-trip input"));
+        assert!(run(
+            root.path(),
+            &case,
+            Path::new("/bin/true"),
+            1_000,
+            1 << 30,
+            1_000,
+        )
+        .unwrap_err()
+        .contains("copy interface round-trip input"));
 
         let mut invalid_module = case.clone();
         invalid_module.support_sources[0].source = "not a module".into();
@@ -350,6 +513,28 @@ mod tests {
             root.path(),
             &case,
             Path::new("/bin/true"),
+            1_000,
+            1 << 30,
+            1_000
+        )
+        .unwrap_err()
+        .contains("write temporary fuzz artifact"));
+
+        let (root, case) = prepared_case(Oracle::Check);
+        let missing = support_modules(&case.support_sources).expect("support modules")[0].clone();
+        fs::remove_file(
+            root.path()
+                .join(SOURCE_ROOT)
+                .join(".terlan")
+                .join(format!("{missing}.typi")),
+        )
+        .expect("remove generated interface");
+        fs::create_dir(root.path().join(format!("{ROUNDTRIP_ARTIFACT}.tmp")))
+            .expect("generation publication blocker");
+        assert!(run(
+            root.path(),
+            &case,
+            Path::new("/bin/false"),
             1_000,
             1 << 30,
             1_000
