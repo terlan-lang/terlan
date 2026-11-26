@@ -70,6 +70,27 @@ is reported separately from compiler planning time.
 - [ ] Demonstrate that an unchanged self-hosted unit is compiled once per
   source/dependency identity, not once per command or test root.
 
+## P11-4: Correctness and runtime prerequisites
+
+The primary tracks must exercise and close these release-blocking contracts;
+application-level workarounds do not satisfy them.
+
+- [ ] Add `Int.checked_mul_div` with widened, overflow-safe intermediate
+  arithmetic and complete boundary coverage.
+- [ ] Add atomic bounded file reads that enforce their allocation limit across
+  concurrent file replacement.
+- [ ] Add bounded, correlated, monitor-aware request/reply through a stable
+  supervised service reference across physical process replacement.
+- [ ] Preserve concrete generic receiver identity through field projection,
+  chained receivers, imported trait results, and applied generic records.
+- [ ] Lower exhaustive products of receiver-returned options, branch-local
+  options, and valid recursive union constructors without semantic-ID drift,
+  scalar/native-profile failure, or compiler stack overflow.
+- [ ] Treat receiver-provider imports as used when method resolution consumes
+  them.
+- [ ] Admit domain-neutral fuzz regressions for every item above before marking
+  the corresponding compiler fix complete.
+
 ## Release exit
 
 0.0.11 is not ready while compiler planning remains unbounded or opaque, while
