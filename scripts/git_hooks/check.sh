@@ -693,6 +693,12 @@ run_core_contracts_lane() {
   fi
 }
 
+run_focused_rust_crate() {
+  local package=$1
+  cargo clippy --locked -p "$package" --lib --bins -- -D warnings
+  cargo test --profile dev --locked -p "$package" --lib
+}
+
 run_affected_rust_lane() {
   local lane=$1 filter
   affected_rust_lane_supported=true
@@ -742,9 +748,9 @@ run_affected_rust_lane() {
       echo 'pre-commit: Terlan library and binaries reuse candidate Clippy'
       cargo check --locked --workspace --tests --exclude terlan
       ;;
-    native-planning) cargo test --profile dev --locked -p terlan-native-planning --lib ;;
-    process-owner) cargo test --profile dev --locked -p terlan-process-owner --lib ;;
-    type-fuzz) cargo test --profile dev --locked -p terlan-type-fuzz --lib ;;
+    native-planning) run_focused_rust_crate terlan-native-planning ;;
+    process-owner) run_focused_rust_crate terlan-process-owner ;;
+    type-fuzz) run_focused_rust_crate terlan-type-fuzz ;;
     cli-integration)
       echo 'pre-commit: CLI adapters compiled by candidate workspace Clippy'
       ;;
@@ -755,8 +761,8 @@ run_affected_rust_lane() {
         make --no-print-directory rust-clippy-precommit-check
       fi
       ;;
-    test-orchestrator) cargo test --profile dev --locked -p terlan-test-orchestrator ;;
-    rust-boundary-audit) cargo test --profile dev --locked -p terlan-rust-boundary-audit ;;
+    test-orchestrator) run_focused_rust_crate terlan-test-orchestrator ;;
+    rust-boundary-audit) run_focused_rust_crate terlan-rust-boundary-audit ;;
     *) affected_rust_lane_supported=false; return 2 ;;
   esac
 }

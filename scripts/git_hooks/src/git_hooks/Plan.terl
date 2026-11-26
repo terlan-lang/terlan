@@ -574,6 +574,28 @@ pub clippy(paths: List[String]): Bool ->
         or RustFormatting.sources(paths) != []
         or affected(paths, "", "clippy.toml").
 
+focused_clippy_sources(paths: List[String]): Bool ->
+    case paths {
+        [] -> true;
+        [path | rest] ->
+            if {
+                not RustFormatting.is_source(path) -> focused_clippy_sources(rest);
+                String.starts_with(path, "crates/terlan-native-planning/")
+                    or String.starts_with(path, "crates/terlan-process-owner/")
+                    or String.starts_with(path, "crates/terlan-type-fuzz/")
+                    or String.starts_with(path, "crates/terlan-test-orchestrator/")
+                    or String.starts_with(path, "tools/rust_boundary_audit/") -> focused_clippy_sources(rest);
+                true -> false
+            }
+    }.
+
+pub focused_clippy(paths: List[String]): Bool ->
+    RustFormatting.sources(paths) != []
+        and focused_clippy_sources(paths)
+        and not dependency_inputs(paths)
+        and not affected(paths, "", "clippy.toml")
+        and not RustFormatting.requires_all(paths).
+
 pub reports(paths: List[String]): Bool ->
     dependency_inputs(paths)
         or clippy(paths) and has_non_native_lowering(paths)
@@ -721,6 +743,7 @@ pub lanes(paths: List[String]): List[String] ->
         };
     let checked_rust =
         if {
+            focused_clippy(paths) -> reported_rust;
             clippy(paths) -> ["clippy" | reported_rust];
             true -> reported_rust
         };

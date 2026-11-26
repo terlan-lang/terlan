@@ -628,6 +628,12 @@ grep -Fq 'candidate compiler produced an empty validation plan' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'early affected Rust lane passed' \
   "$(dirname "$driver")/git_hooks/check.sh"
+focused_rust_crate=$(sed -n '/^run_focused_rust_crate()/,/^}/p' \
+  "$(dirname "$driver")/git_hooks/check.sh")
+grep -Fq 'cargo clippy --locked -p "$package" --lib --bins -- -D warnings' \
+  <<< "$focused_rust_crate"
+grep -Fq 'cargo test --profile dev --locked -p "$package" --lib' \
+  <<< "$focused_rust_crate"
 grep -Fq 'canonical Rust suite failed with status' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Eq '^export TERLAN_CUDA_DIR$$' "$(dirname "$driver")/../Makefile"; then
