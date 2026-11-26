@@ -71,51 +71,80 @@ fn split(seed: u64, index: u32) -> u64 {
 
 #[derive(Clone, Copy)]
 enum Family {
-    Scalar,
+    UnitScalar,
+    BoolScalar,
+    IntScalar,
+    FloatScalar,
+    StringScalar,
+    AtomScalar,
     LexicalProduct,
     Record,
     IfProductJoin,
+    CaseProductJoin,
     OptionJoin,
     NominalOptionJoin,
     ResultJoin,
+    NestedResultJoin,
     ClosedUnion,
+    ClosedUnionEmpty,
 }
 
 impl Family {
     fn from_index(index: u32, max_depth: u8) -> Self {
         let family_count = match max_depth {
-            1 => 1,
-            2 => 3,
-            _ => 8,
+            1 => 6,
+            2 => 9,
+            _ => 16,
         };
         match index % family_count {
-            0 => Self::Scalar,
-            1 => Self::LexicalProduct,
-            2 => Self::Record,
-            3 => Self::IfProductJoin,
-            4 => Self::OptionJoin,
-            5 => Self::NominalOptionJoin,
-            6 => Self::ResultJoin,
-            _ => Self::ClosedUnion,
+            0 => Self::UnitScalar,
+            1 => Self::BoolScalar,
+            2 => Self::IntScalar,
+            3 => Self::FloatScalar,
+            4 => Self::StringScalar,
+            5 => Self::AtomScalar,
+            6 => Self::LexicalProduct,
+            7 => Self::Record,
+            8 => Self::IfProductJoin,
+            9 => Self::CaseProductJoin,
+            10 => Self::OptionJoin,
+            11 => Self::NominalOptionJoin,
+            12 => Self::ResultJoin,
+            13 => Self::NestedResultJoin,
+            14 => Self::ClosedUnion,
+            _ => Self::ClosedUnionEmpty,
         }
     }
 
     fn name(self) -> &'static str {
         match self {
-            Self::Scalar => "scalar",
+            Self::UnitScalar => "scalar_unit",
+            Self::BoolScalar => "scalar_bool",
+            Self::IntScalar => "scalar_int",
+            Self::FloatScalar => "scalar_float",
+            Self::StringScalar => "scalar_string",
+            Self::AtomScalar => "scalar_atom",
             Self::LexicalProduct => "lexical_product",
             Self::Record => "record",
             Self::IfProductJoin => "if_product_join",
+            Self::CaseProductJoin => "case_product_join",
             Self::OptionJoin => "option_join",
             Self::NominalOptionJoin => "nominal_option_join",
             Self::ResultJoin => "result_join",
+            Self::NestedResultJoin => "nested_result_join",
             Self::ClosedUnion => "closed_union",
+            Self::ClosedUnionEmpty => "closed_union_empty",
         }
     }
 
     fn render(self, value: i64) -> (&'static str, serde_json::Value, String) {
         match self {
-            Self::Scalar => ("Int", json!(value), format!("pub sample(): Int -> {value}.")),
+            Self::UnitScalar => ("Unit", serde_json::Value::Null, "pub sample(): Unit -> Unit.".into()),
+            Self::BoolScalar => ("Bool", json!(value % 2 == 0), format!("pub sample(): Bool -> {}.", value % 2 == 0)),
+            Self::IntScalar => ("Int", json!(value), format!("pub sample(): Int -> {value}.")),
+            Self::FloatScalar => ("Float", json!(value as f64 + 0.5), format!("pub sample(): Float -> {value}.5.")),
+            Self::StringScalar => ("String", json!(format!("value-{value}")), format!("pub sample(): String -> \"value-{value}\".")),
+            Self::AtomScalar => ("Atom[\"ready\"]", json!({"atom": "ready"}), "pub sample(): Atom[\"ready\"] -> Atom[\"ready\"].".into()),
             Self::LexicalProduct => (
                 "{Int, Bool}",
                 json!([value, true]),
@@ -130,6 +159,11 @@ impl Family {
                 "{Int, Bool}",
                 json!([value, true]),
                 format!("pub sample(): {{Int, Bool}} ->\n    let selected = if {{ false -> {{0, false}}; true -> {{{value}, true}} }};\n    selected."),
+            ),
+            Self::CaseProductJoin => (
+                "{Int, Bool}",
+                json!([value, true]),
+                format!("pub sample(): {{Int, Bool}} ->\n    case {{{value}, true}} {{\n        {{left, right}} -> {{left, right}}\n    }}."),
             ),
             Self::OptionJoin => (
                 "Option[Int]",
@@ -146,13 +180,33 @@ impl Family {
                 json!({"variant": "ok", "payload": value}),
                 format!("import std.core.Result.{{Err, Ok}}.\nimport type std.core.Result.{{Result}}.\n\npub sample(): Result[Int, String] ->\n    case true {{ false -> Err(\"rejected\"); true -> Ok({value}) }}."),
             ),
+            Self::NestedResultJoin => (
+                "Result[Int, String]",
+                json!({"variant": "ok", "payload": value}),
+                format!("import std.core.Result.{{Err, Ok}}.\nimport type std.core.Result.{{Result}}.\n\npub sample(): Result[Int, String] ->\n    let selected = case true {{\n        false -> Err(\"outer\");\n        true -> case false {{ false -> Ok({value}); true -> Err(\"inner\") }}\n    }};\n    selected."),
+            ),
             Self::ClosedUnion => (
                 "Choice",
                 json!({"variant": "value", "payload": value}),
-                format!("pub type ValueTag = Atom[\"value\"].\npub type EmptyTag = Atom[\"empty\"].\npub type Choice = {{ValueTag, Int}} | EmptyTag.\npub constructor Value {{ (value: Int): Choice -> {{ValueTag, value}} }}.\n\npub sample(): Choice -> Value({value})."),
+                format!("{}\n\npub sample(): Choice -> Value({value}).", choice_declarations()),
+            ),
+            Self::ClosedUnionEmpty => (
+                "Choice",
+                json!({"variant": "empty"}),
+                format!("{}\n\npub sample(): Choice -> Empty().", choice_declarations()),
             ),
         }
     }
+}
+
+fn choice_declarations() -> &'static str {
+    concat!(
+        "pub type ValueTag = Atom[\"value\"].\n",
+        "pub type EmptyTag = Atom[\"empty\"].\n",
+        "pub type Choice = {ValueTag, Int} | EmptyTag.\n",
+        "pub constructor Value { (value: Int): Choice -> {ValueTag, value} }.\n",
+        "pub constructor Empty { (): Choice -> EmptyTag }."
+    )
 }
 
 #[cfg(test)]
@@ -177,31 +231,39 @@ mod tests {
     #[test]
     fn generation_is_stable_and_covers_each_initial_family() {
         assert_eq!(case(17, 3, 8), case(17, 3, 8));
-        let families = (0..8)
+        let families = (0..16)
             .map(|index| case(1, index, 8).manifest.family)
             .collect::<Vec<_>>();
         assert_eq!(
             families,
             [
-                "scalar",
+                "scalar_unit",
+                "scalar_bool",
+                "scalar_int",
+                "scalar_float",
+                "scalar_string",
+                "scalar_atom",
                 "lexical_product",
                 "record",
                 "if_product_join",
+                "case_product_join",
                 "option_join",
                 "nominal_option_join",
                 "result_join",
-                "closed_union"
+                "nested_result_join",
+                "closed_union",
+                "closed_union_empty"
             ]
         );
     }
 
     #[test]
     fn seed_and_depth_budgets_change_only_their_owned_dimensions() {
-        assert_ne!(case(1, 0, 8).expected, case(2, 0, 8).expected);
+        assert_ne!(case(1, 2, 8).expected, case(2, 2, 8).expected);
         for index in 0..12 {
-            assert_eq!(case(1, index, 1).manifest.family, "scalar");
+            assert!(case(1, index, 1).manifest.family.starts_with("scalar_"));
         }
-        assert_eq!(case(1, 3, 2).manifest.family, "scalar");
+        assert_eq!(case(1, 9, 2).manifest.family, "scalar_unit");
     }
 
     #[test]
