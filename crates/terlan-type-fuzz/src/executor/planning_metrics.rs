@@ -1,11 +1,15 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
 
 #[derive(Debug, Default, PartialEq, Eq, Serialize)]
 pub(super) struct CompilerMetrics {
     timing_events: usize,
+    last_phase: Option<String>,
     phase_elapsed_ms: BTreeMap<String, u64>,
+    reachable_declarations: Option<u64>,
+    native_providers: BTreeSet<String>,
+    cache_miss_reasons: BTreeMap<String, u64>,
     generic_specializations: u64,
     call_profiles: u64,
     lowered_calls: u64,
@@ -44,6 +48,9 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
         };
         let Some(prefix) = prefix else { continue };
         metrics.timing_events += 1;
+        if let Some(phase) = phase_name(line, prefix) {
+            metrics.last_phase = Some(phase);
+        }
         if let Some((phase, elapsed)) = phase_elapsed(line, prefix) {
             let total = metrics.phase_elapsed_ms.entry(phase).or_default();
             *total = total.saturating_add(elapsed);
@@ -78,6 +85,24 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
         }
         if line.starts_with("terlc native-aot: publish.publish:") {
             metrics.native_image_cache_misses += 1;
+        }
+        if let Some(count) = field(line, "reachable-declarations=") {
+            metrics.reachable_declarations = Some(count);
+        }
+        if let Some(providers) = text_field(line, "native-providers=") {
+            metrics.native_providers.extend(
+                providers
+                    .split(',')
+                    .filter(|provider| !provider.is_empty() && *provider != "none")
+                    .map(str::to_string),
+            );
+        }
+        if let Some(reason) = text_field(line, "cache-miss-reason=") {
+            let count = metrics
+                .cache_miss_reasons
+                .entry(reason.to_string())
+                .or_default();
+            *count = count.saturating_add(1);
         }
     }
     metrics.native_image_cache_hits = metrics
@@ -124,6 +149,8 @@ pub(super) fn same_structural_work(right: &CompilerMetrics, left: &CompilerMetri
         right.native_units_built,
         right.native_functions_built,
         right.native_continuations_built,
+        right.reachable_declarations,
+        &right.native_providers,
     ) == (
         left.generic_specializations,
         left.call_profiles,
@@ -131,7 +158,16 @@ pub(super) fn same_structural_work(right: &CompilerMetrics, left: &CompilerMetri
         left.native_units_built,
         left.native_functions_built,
         left.native_continuations_built,
+        left.reachable_declarations,
+        &left.native_providers,
     )
+}
+
+fn phase_name(line: &str, prefix: &str) -> Option<String> {
+    line.strip_prefix(prefix)?
+        .trim_start()
+        .split_once(':')
+        .map(|(phase, _)| phase.to_string())
 }
 
 fn phase_elapsed(line: &str, prefix: &str) -> Option<(String, u64)> {
@@ -153,6 +189,12 @@ fn field(line: &str, prefix: &str) -> Option<u64> {
             .parse()
             .ok()
     })
+}
+
+fn text_field<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
+    line.split_whitespace()
+        .find_map(|value| value.strip_prefix(prefix))
+        .map(|value| value.trim_end_matches(|character: char| matches!(character, ',' | ';')))
 }
 
 fn difference(right: u64, left: u64) -> i128 {

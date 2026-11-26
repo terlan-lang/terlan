@@ -14,7 +14,9 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
         "terlc native-aot: module-unit.begin.more functions=4 continuations=1\n",
         "terlc native-aot: image.cache-or-build: +4ms total=5ms\n",
         "terlc native-aot: publish.publish: +1ms total=4ms\n",
-        "terlc native-aot: image.cache-or-build: +0ms total=1ms\n",
+        "terlc native-aot: image.cache-or-build: +0ms total=1ms ",
+        "reachable-declarations=17 native-providers=ndarray,polars ",
+        "cache-miss-reason=source_changed\n",
     );
     let measured = measure(stderr);
     assert_eq!(measured.timing_events, 10);
@@ -33,10 +35,18 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
     assert_eq!(measured.native_units_built, 2);
     assert_eq!(measured.native_functions_built, 17);
     assert_eq!(measured.native_continuations_built, 3);
+    assert_eq!(measured.last_phase.as_deref(), Some("image.cache-or-build"));
+    assert_eq!(measured.reachable_declarations, Some(17));
+    assert_eq!(
+        measured.native_providers,
+        ["ndarray".to_string(), "polars".to_string()].into()
+    );
+    assert_eq!(measured.cache_miss_reasons["source_changed"], 1);
 }
 
 #[test]
 fn malformed_events_are_counted_without_inventing_work() {
+    assert_eq!(phase_name("ignored", "terlc timing:"), None);
     let measured = measure(concat!(
         "terlc timing: incomplete\n",
         "terlc timing: wrong.unit: +7seconds\n",
@@ -57,6 +67,10 @@ fn malformed_events_are_counted_without_inventing_work() {
     assert_eq!(measured.native_units_built, 1);
     assert_eq!(measured.native_functions_built, 0);
     assert_eq!(measured.native_continuations_built, 0);
+    assert_eq!(measured.last_phase.as_deref(), Some("profiles-converged"));
+    assert_eq!(measured.reachable_declarations, None);
+    assert!(measured.native_providers.is_empty());
+    assert!(measured.cache_miss_reasons.is_empty());
 }
 
 #[test]

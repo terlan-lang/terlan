@@ -1,6 +1,42 @@
 use super::*;
 use crate::executor::oracle;
 
+#[test]
+fn planning_profiles_enforce_the_hard_ceiling() {
+    assert_eq!(profiles::planning_wall_limit(u64::MAX), 60_000);
+    assert_eq!(profiles::planning_wall_limit(59_999), 59_999);
+    assert_eq!(profiles::planning_rss_limit(u64::MAX), 1024 * 1024 * 1024);
+    assert_eq!(profiles::planning_rss_limit(1024), 1024);
+}
+
+#[test]
+fn planning_failures_retain_phase_graph_and_resource_evidence() {
+    let root = tempfile::tempdir().expect("planning root");
+    let source = root.path().join("CaseTest.terl");
+    fs::write(&source, "module planning.CaseTest.").expect("source");
+    let mut result = oracle::run(
+        Path::new("/bin/false"),
+        Oracle::Native,
+        &source,
+        1_000,
+        1024,
+        1_000,
+    );
+    result.stderr = concat!(
+        "terlc timing: test.project-complete.finish: +9ms total=9ms ",
+        "reachable-declarations=2 native-providers=none ",
+        "cache-miss-reason=source_changed\n",
+    )
+    .into();
+    let failure = profiles::ensure_passed("focused cold", &result)
+        .expect_err("failed compiler must retain planning evidence");
+    assert!(failure.contains("terlan.type-fuzz-planning-failure.v1"));
+    assert!(failure.contains("test.project-complete.finish"));
+    assert!(failure.contains("reachable_declarations\":2"));
+    assert!(failure.contains("source_changed"));
+    assert!(failure.contains("rss_limit_bytes\":1024"));
+}
+
 #[cfg(unix)]
 #[test]
 fn every_warm_profile_failure_is_attributed() {

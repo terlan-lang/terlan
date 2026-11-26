@@ -5,6 +5,8 @@ use crate::{executor::oracle, Oracle, RunOptions};
 
 const BROAD_WALL_TOLERANCE_MS: u64 = 1_000;
 const BROAD_RSS_TOLERANCE_BYTES: u64 = 16 * 1024 * 1024;
+const PLANNING_WALL_LIMIT_MS: u64 = 60_000;
+const PLANNING_RSS_LIMIT_BYTES: u64 = 1024 * 1024 * 1024;
 
 pub(super) fn run_source(
     profile: &str,
@@ -17,8 +19,8 @@ pub(super) fn run_source(
         compiler,
         Oracle::Native,
         source,
-        wall_ms,
-        options.rss_limit_bytes,
+        planning_wall_limit(wall_ms),
+        planning_rss_limit(options.rss_limit_bytes),
         options.cpu_limit_ms,
     );
     ensure_passed(profile, &result)?;
@@ -38,8 +40,8 @@ pub(super) fn run_batch(
         Oracle::Native,
         root,
         sources,
-        wall_ms,
-        options.rss_limit_bytes,
+        planning_wall_limit(wall_ms),
+        planning_rss_limit(options.rss_limit_bytes),
         options.cpu_limit_ms,
     );
     ensure_passed(profile, &result)?;
@@ -73,15 +75,30 @@ pub(super) fn ensure_broad_regression_absent(
     Ok(())
 }
 
-fn ensure_passed(profile: &str, result: &oracle::OracleResult) -> Result<(), String> {
+pub(super) fn ensure_passed(profile: &str, result: &oracle::OracleResult) -> Result<(), String> {
     if result.outcome == "passed" {
         Ok(())
     } else {
+        let evidence = serde_json::json!({
+            "schema": "terlan.type-fuzz-planning-failure.v1",
+            "profile": profile,
+            "outcome": result.outcome,
+            "resources": result.resources,
+            "compiler": metrics::measure(&result.stderr),
+            "diagnostic": result.stderr,
+        });
         Err(format!(
-            "{profile} native planning probe ended as {}: {}",
-            result.outcome, result.stderr
+            "{profile} native planning probe failed: {evidence}"
         ))
     }
+}
+
+pub(super) fn planning_wall_limit(requested: u64) -> u64 {
+    requested.min(PLANNING_WALL_LIMIT_MS)
+}
+
+pub(super) fn planning_rss_limit(requested: u64) -> u64 {
+    requested.min(PLANNING_RSS_LIMIT_BYTES)
 }
 
 pub(super) fn within_increase(right: Option<u64>, left: Option<u64>, tolerance: u64) -> bool {
