@@ -654,7 +654,7 @@ pub lanes(paths: List[String]): List[String] ->
     let compiler_rust =
         if {
             native_lowering(paths) and non_native_compiler(paths) -> ["compiler", "phase"];
-            native_construction(paths) and not other_native_lowering(paths) -> ["native-construction", "phase"];
+            native_construction(paths) and not other_native_lowering(paths) -> ["native-construction"];
             native_lowering(paths) -> ["native-ir", "phase"];
             compiler(paths) -> ["compiler", "phase"];
             syntax(paths) or build_support(paths) -> ["syntax", "phase"];
