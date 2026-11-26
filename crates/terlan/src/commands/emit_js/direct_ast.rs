@@ -42,6 +42,13 @@ use float_intrinsics::{float_intrinsic_call_to_oxc_expression, float_math_method
 ///   named exports; reachable private functions are emitted as local
 ///   declarations so direct local calls can resolve inside the generated module.
 pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Option<String> {
+    emit_core_module_with_direct_oxc_ast_diagnostic(module).ok()
+}
+
+/// Emits direct JavaScript or identifies the exact rejected function and body.
+pub(crate) fn emit_core_module_with_direct_oxc_ast_diagnostic(
+    module: &CoreModule,
+) -> Result<String, String> {
     use oxc_ast::{
         ast::{FormalParameterKind, FunctionType, ImportOrExportKind, Statement},
         AstBuilder, NONE,
@@ -57,19 +64,40 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
         .filter(|function| reachable_functions.contains(&function.name))
     {
         if !is_direct_oxc_js_identifier(&function.name) {
-            return None;
+            return Err(format!(
+                "function `{}` has an unsupported JavaScript identifier",
+                function.name
+            ));
         }
         let [clause] = function.clauses.as_slice() else {
-            return None;
+            return Err(format!(
+                "function `{}` has {} clauses; direct JavaScript lowering requires one",
+                function.name,
+                function.clauses.len()
+            ));
         };
-        if clause.guard.is_some() || function.params.len() != clause.core_patterns.len() {
-            return None;
+        if clause.guard.is_some() {
+            return Err(format!(
+                "function `{}` has a guard unsupported by direct JavaScript lowering",
+                function.name
+            ));
+        }
+        if function.params.len() != clause.core_patterns.len() {
+            return Err(format!(
+                "function `{}` has {} parameters but {} checked patterns",
+                function.name,
+                function.params.len(),
+                clause.core_patterns.len()
+            ));
         }
         for (param, pattern) in function.params.iter().zip(clause.core_patterns.iter()) {
             if !matches!(pattern, Some(crate::terlan_typeck::CorePattern::Var(name)) if name == &param.name)
                 || !is_direct_oxc_js_identifier(&param.name)
             {
-                return None;
+                return Err(format!(
+                    "function `{}` parameter `{}` is not a direct JavaScript binding",
+                    function.name, param.name
+                ));
             }
         }
         let mut params = ast.vec();
@@ -89,7 +117,25 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
         }
         let params =
             ast.alloc_formal_parameters(SPAN, FormalParameterKind::FormalParameter, params, NONE);
-        let return_expr = core_expr_to_oxc_expression(ast, clause.body.core_expr.as_ref()?)?;
+        let core_expr = clause.body.core_expr.as_ref().ok_or_else(|| {
+            format!(
+                "function `{}` has no checked Core expression",
+                function.name
+            )
+        })?;
+        let return_expr = core_expr_to_oxc_expression(ast, core_expr).ok_or_else(|| {
+            let rendered = format!("{core_expr:?}");
+            let excerpt = rendered.chars().take(512).collect::<String>();
+            let suffix = if excerpt.len() < rendered.len() {
+                "..."
+            } else {
+                ""
+            };
+            format!(
+                "function `{}` cannot lower Core expression `{excerpt}{suffix}`",
+                function.name
+            )
+        })?;
         let body = ast.alloc_function_body(
             SPAN,
             ast.vec(),
@@ -131,7 +177,7 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
         ast.vec(),
         statements,
     );
-    Some(super::equality_runtime::attach(
+    Ok(super::equality_runtime::attach(
         oxc_codegen::Codegen::new().build(&program).code,
     ))
 }

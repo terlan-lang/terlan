@@ -49,13 +49,15 @@ pub(crate) fn emit_core_module_with_template_runtime(
     let module_source = if let Some(source) = tail_recursion::emit_stack_safe_tail_module(core) {
         oxc_backend::emit_js_with_oxc_codegen(&source)?
     } else {
-        let Some(source) = oxc_backend::emit_core_module_with_direct_oxc_ast(core) else {
+        oxc_backend::emit_core_module_with_direct_oxc_ast_diagnostic(core).map_err(|reason| {
             if std::env::var_os("TERLAN_NATIVE_AOT_TRACE").is_some() {
                 eprintln!("[js unsupported linked core] {}", core.contract_text());
             }
-            return Ok(None);
-        };
-        source
+            format!(
+                "error[{}]: {reason}",
+                target_contract::JS_UNSUPPORTED_FEATURE_CODE
+            )
+        })?
     };
     let runtime_source = format!(
         "{}\n{}\n{}",

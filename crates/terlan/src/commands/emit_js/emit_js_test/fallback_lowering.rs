@@ -37,6 +37,10 @@ pub make(): Dynamic ->
     .expect("compile source to CoreIR");
 
     assert!(oxc_backend::emit_core_module_with_direct_oxc_ast(&artifacts.core).is_none());
+    let diagnostic = oxc_backend::emit_core_module_with_direct_oxc_ast_diagnostic(&artifacts.core)
+        .expect_err("constructor call remains unsupported");
+    assert!(diagnostic.contains("function `make`"), "{diagnostic}");
+    assert!(diagnostic.contains("ConstructorCall"), "{diagnostic}");
 
     let js = oxc_backend::emit_core_module_with_oxc_codegen(&artifacts.core)
         .expect("fallback Oxc backend emits bootstrap JS");

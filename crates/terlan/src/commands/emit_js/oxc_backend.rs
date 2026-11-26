@@ -5,7 +5,9 @@ use crate::terlan_typeck::CoreModule;
 
 use super::{core_lowering, direct_ast};
 
+#[cfg(test)]
 pub(crate) use direct_ast::emit_core_module_with_direct_oxc_ast;
+pub(crate) use direct_ast::emit_core_module_with_direct_oxc_ast_diagnostic;
 
 #[cfg(test)]
 pub(crate) use direct_ast::emit_minimal_direct_oxc_ast_module;

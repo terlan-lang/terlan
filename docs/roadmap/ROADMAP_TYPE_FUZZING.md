@@ -183,7 +183,8 @@ rather than hidden inside the fuzz gate.
   generation derivation.
 
 Acceptance: 10,000 deterministic generated programs pass parse, type-check,
-format-idempotence, and managed-execution oracles with zero unexplained skips.
+format-idempotence, and generator-owned semantic oracles with zero unexplained
+skips.
 
 Generation-scale acceptance is executable: 10,000 cases cover 17 initial
 families in 0.05 seconds and preserve unique identities, checked result types,
@@ -198,7 +199,8 @@ All 17 generated families are byte-canonical under the current formatter.
 ### TF2: Native differential execution
 
 - [x] Compile the TF1 corpus through native lowering and execution.
-- [ ] Compare canonical results and structured failures with managed execution.
+- [x] Compare native results and structured failures with generator-owned
+  canonical oracles.
 - [x] Record native phase timings, monomorphization counts, semantic type IDs,
   generated native units, compiler RSS, and cache disposition.
 - [x] Separate planning, lowering, native compilation, linking, test execution,
@@ -213,7 +215,7 @@ All 17 generated families are byte-canonical under the current formatter.
   and cache-miss reasons in the failure evidence.
 - [x] Provide a bounded deterministic reducer that preserves the oracle outcome
   and first structured diagnostic class.
-- [ ] Reduce and check in every discovered failure before closing it.
+- [x] Reduce and check in every discovered failure before closing it.
 
 Acceptance: the corpus includes permanent regressions for contextual union
 identity, mixed-union aggregate results, recursive managed values, generic
@@ -225,6 +227,13 @@ successful runs retain measured CPU and RSS evidence. Its first three-family
 probe immediately found a direct `Option[record]` return losing contextual
 identity after scalar-case normalization. That minimized compiler regression
 now passes with its neighboring generated families.
+
+Terlan no longer has a maintained interpreter whose result could serve as a
+second authority. The generator therefore fixes the checked type and canonical
+value before rendering source, emits an independent semantic assertion, and
+requires the native and JavaScript backends to execute that assertion. Oracle
+failures retain the structured compiler diagnostic class instead of being
+collapsed into pass/fail text.
 
 The corrected 17-family native batch passes in 1.7 seconds at 106.8 MiB peak
 RSS and 1.2 CPU-seconds. This establishes the narrow-graph baseline; it does
@@ -270,10 +279,20 @@ failure class, and publishes replayable observation and reduction artifacts.
 Passing and infrastructure-only cases are rejected instead of being mislabeled
 as compiler reductions.
 
+Every failure found while implementing TF0--TF6 has a domain-neutral minimized
+regression in the owning compiler boundary: contextual `Option[record]` joins
+live in `source_constructor_test`, recursive managed values in
+`collections_test`, nested generic layouts in `explicit_generic_test`, and
+constructor identities in `nominal_identity_test`. JavaScript structural
+equality, Boolean case scrutinees, and nested constructor bindings live in the
+corresponding `emit_js` regression suites. The checked-in tests are the durable
+corpus; generated observation directories remain disposable and carry no
+proof hashes.
+
 ### TF3: JavaScript differential execution
 
 - [x] Select generated cases from an explicit JavaScript capability matrix.
-- [ ] Compare canonical JavaScript results with managed results.
+- [x] Compare JavaScript results with generator-owned canonical oracles.
 - [x] Exercise lexical and pattern-bound payloads in tuples, options, lists,
   records, lambdas, and call arguments.
 - [ ] Require precise diagnostics for genuinely unsupported target operations.
@@ -293,9 +312,8 @@ equality had been emitted as JavaScript reference equality, and Boolean case
 scrutinees could be emitted as undefined lexical bindings. Both now have
 domain-neutral regressions. The binding/payload matrix then found and fixed
 nested constructor patterns that direct JavaScript lowering had rejected even
-after type checking proved the binding irrefutable. Canonical managed-result
-comparison and precise unsupported-operation diagnostics remain open before TF3
-can close.
+after type checking proved the binding irrefutable. Precise
+unsupported-operation diagnostics remain open before TF3 can close.
 
 ### TF4: Modules, interfaces, traits, and packages
 
@@ -516,7 +534,7 @@ Type-directed fuzzing is operational when:
 - a clean clone can replay every checked-in corpus failure offline;
 - generated cases are well typed by construction rather than filtered after
   random syntax generation;
-- native, managed, JavaScript, formatter, interface, cache, and package oracles
+- native, JavaScript, formatter, interface, cache, and package oracles
   use one canonical semantic expectation;
 - failures shrink automatically into readable Terlan fixtures;
 - ordinary CI remains bounded and release publication reuses exact-revision
