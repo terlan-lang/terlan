@@ -116,7 +116,12 @@ pub(super) fn run_batch(
 }
 
 fn normalize(text: &str, root: &Path) -> String {
-    text.replace(root.to_string_lossy().as_ref(), "$CASE")
+    let case_normalized = text.replace(root.to_string_lossy().as_ref(), "$CASE");
+    let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("type-fuzz crate belongs to the compiler workspace");
+    case_normalized.replace(workspace.to_string_lossy().as_ref(), "$TOOLCHAIN")
 }
 
 #[cfg(test)]
@@ -142,6 +147,17 @@ mod tests {
         assert_eq!(
             normalize("/tmp/case/case.terl", Path::new("/tmp/case")),
             "$CASE/case.terl"
+        );
+        let workspace = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("workspace");
+        assert_eq!(
+            normalize(
+                &workspace.join("std/core/Result.terl").to_string_lossy(),
+                Path::new("/tmp/case"),
+            ),
+            "$TOOLCHAIN/std/core/Result.terl"
         );
     }
 
