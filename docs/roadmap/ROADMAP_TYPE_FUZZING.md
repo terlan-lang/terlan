@@ -146,7 +146,7 @@ commits or release publication.
 
 - [x] Define the versioned case manifest and canonical typed-value format.
 - [x] Implement deterministic seed splitting and case identifiers.
-- [ ] Implement bounded subprocess execution with CPU, wall, RSS, and output
+- [x] Implement bounded subprocess execution with CPU, wall, RSS, and output
   limits, transitive cancellation, and orphan detection.
 - [x] Add replay tests proving identical inputs produce identical source,
   manifests, and outcomes.
@@ -162,11 +162,14 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 
 Two independent runs must produce byte-identical case artifacts.
 
-The initial generator crate has 100% line, function, and region coverage. Its
-complete coverage gate takes 10.6 seconds cold and its warm unit gate is
-subsecond. Reconnecting the crate to the monolithic compiler library currently
-takes 63 seconds; that integration cost is tracked by P11-1 rather than hidden
-inside the fuzz gate.
+The generator and bounded executor crate has 100% line, function, and region
+coverage: 2,031 regions, 101 functions, and 1,287 lines. Its 33-test unit gate
+and complete warm coverage gate are both subsecond. The executor measures the
+whole process group, enforces combined stdout/stderr limits, and cleans up
+descendants after success, failure, timeout, cancellation, or resource
+exhaustion. Reconnecting the crate to the monolithic compiler library remains
+the expensive step and is tracked by P11-1 rather than hidden inside the fuzz
+gate.
 
 ### TF1: Typed scalar and control-flow generator
 
@@ -195,6 +198,9 @@ format-idempotence, and managed-execution oracles with zero unexplained skips.
   native providers add no helpers, monomorphizations, planning work, or RSS.
 - [ ] Compare focused, combined-root, cold-cache, and warm-cache runs with
   explicit progress and cache-invalidation diagnostics.
+- [ ] Fail focused planning early when it exceeds 60 seconds or 1 GiB RSS, with
+  the responsible phase, reachable declaration count, native-provider set,
+  and cache-miss reasons in the failure evidence.
 - [ ] Reduce and check in every discovered failure before closing it.
 
 Acceptance: the corpus includes permanent regressions for contextual union
