@@ -710,6 +710,9 @@ run_affected_rust_lane() {
     commands-emit-js)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::emit_js::
       ;;
+    commands-build)
+      run_compiler_heavy_rust_tests --locked -p terlan --lib commands::build::
+      ;;
     commands-clean)
       bash scripts/run_exact_cargo_test.sh --locked -p terlan --lib commands::clean::clean_test
       ;;
