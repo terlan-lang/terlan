@@ -12,6 +12,9 @@ use record_forwarding::inline_record_forwarder;
 #[path = "generic_specialization/constructor_signatures.rs"]
 mod constructor_signatures;
 mod contextual_result;
+#[cfg(test)]
+#[path = "generic_specialization/generic_field_receiver_test.rs"]
+mod generic_field_receiver_test;
 #[path = "generic_specialization/generic_unification.rs"]
 mod generic_unification;
 #[path = "generic_specialization/inference.rs"]

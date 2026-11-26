@@ -253,7 +253,7 @@ pub(in crate::compiler::native_ir) fn infer_type(
         }
         CoreExpr::FieldAccess { base, field } | CoreExpr::RecordAccess { base, field, .. } => {
             let base_type = infer_type(base, variables, templates, module)?;
-            named_field_type(&base_type, field).cloned()
+            templates.field_type(&base_type, field, module)
         }
         CoreExpr::Cast { expr, target_type } if contains_implicit_generic_type(target_type) => {
             infer_type(expr, variables, templates, module)
@@ -644,24 +644,6 @@ pub(super) fn explicit_type_bindings(
         .cloned()
         .zip(type_args.iter().cloned())
         .collect())
-}
-
-fn named_field_type<'a>(ty: &'a CoreType, name: &str) -> Option<&'a CoreType> {
-    match ty {
-        CoreType::Tuple(elements) => elements.iter().find_map(|element| match element {
-            CoreTupleTypeElem::Field { name: field, ty } if field == name => Some(ty),
-            _ => None,
-        }),
-        CoreType::Struct { fields, .. } => fields
-            .iter()
-            .find(|field| field.name == name)
-            .map(|field| &field.ty),
-        CoreType::Map(fields) => fields
-            .iter()
-            .find(|field| field.key == name)
-            .map(|field| &field.value),
-        _ => None,
-    }
 }
 
 fn list_element_type(ty: &CoreType) -> Option<&CoreType> {

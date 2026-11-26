@@ -306,6 +306,13 @@ open before TF3 can close.
 Acceptance: 5,000 package cases pass with no difference between source facts,
 interface facts, qualified dispatch, generic bounds, or constructor coverage.
 
+The first TF4 regression now covers a generic field projection followed by an
+imported receiver chain across four modules. Source checking completed in 0.56
+seconds, while the pre-fix native path reproduced
+`native_ir.generic_argument` in 0.22 seconds. Nominal field projection now
+substitutes the enclosing generic arguments before receiver specialization; the
+same fixture executes in 0.26 seconds. Multi-module generation remains open.
+
 ### TF5: Suspension, actors, and native providers
 
 - [ ] Generate typed suspension boundaries and continuation captures.
