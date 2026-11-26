@@ -18,6 +18,7 @@ pub(crate) use trait_bound_refinement::refine_call_local_trait_bounds;
 #[derive(Debug, Default)]
 pub(crate) struct TraitLookupCache {
     bound_checks: HashMap<TraitBoundLookupKey, bool>,
+    imported_bound_impls: HashMap<String, Vec<Vec<Type>>>,
     pub(crate) method_calls: HashMap<TraitMethodLookupKey, TraitMethodLookupResult>,
 }
 
@@ -691,19 +692,14 @@ pub(crate) fn trait_has_bound_implementation(
         }
     }
 
-    let Some(candidates) = ctx.trait_bound_impl_type_args.get(trait_name) else {
-        let found = current_bounds_satisfy_trait_bound(trait_name, bound_args, ctx);
-        if ctx.current_bounds.is_empty() {
-            ctx.trait_lookup_cache
-                .borrow_mut()
-                .bound_checks
-                .insert(cache_key, found);
-        }
-        return found;
-    };
+    let candidates = ctx
+        .trait_bound_impl_type_args
+        .get(trait_name)
+        .cloned()
+        .unwrap_or_else(|| imported_interface_trait_bound_impls(trait_name, ctx));
 
     let mut found = false;
-    for impl_args in candidates {
+    for impl_args in &candidates {
         if impl_args.len() != bound_args.len() {
             continue;
         }
@@ -730,6 +726,82 @@ pub(crate) fn trait_has_bound_implementation(
             .insert(cache_key, found);
     }
     found
+}
+
+/// Loads provider conformance facts required only by imported function bounds.
+///
+/// Selected function imports retain declaration-site trait constraints without
+/// making that trait a callable namespace in the consumer. The ordinary method
+/// candidate map intentionally excludes those traits, so this lookup indexes
+/// their public conformance facts lazily and caches the result per module.
+fn imported_interface_trait_bound_impls(
+    trait_name: &str,
+    ctx: &ExprInferContext<'_>,
+) -> Vec<Vec<Type>> {
+    if let Some(cached) = ctx
+        .trait_lookup_cache
+        .borrow()
+        .imported_bound_impls
+        .get(trait_name)
+        .cloned()
+    {
+        return cached;
+    }
+
+    let mut candidates = Vec::new();
+    for interface in ctx.interface_map.values() {
+        for conformance in &interface.trait_conformances {
+            if !conformance.public || conformance.is_negative {
+                continue;
+            }
+            let Some(implemented_trait) = parse_trait_instance_from_text(&conformance.trait_ref)
+            else {
+                continue;
+            };
+            let short_name = implemented_trait
+                .name
+                .rsplit('.')
+                .next()
+                .unwrap_or(&implemented_trait.name);
+            let matches = if trait_name.contains('.') {
+                implemented_trait.name == trait_name
+            } else {
+                implemented_trait.name == trait_name || short_name == trait_name
+            };
+            if !matches {
+                continue;
+            }
+            let qualified_args =
+                crate::compiler::typeck::trait_model::qualify_interface_trait_type_args(
+                    &implemented_trait.type_args,
+                    interface,
+                    ctx.interface_map,
+                );
+            let mut vars = conformance
+                .generic_params
+                .iter()
+                .enumerate()
+                .map(|(index, param)| (normalize_type_param_name(param), index))
+                .collect::<HashMap<_, _>>();
+            let mut next_var = vars.len();
+            let Some(parsed_args) = qualified_args
+                .iter()
+                .map(|arg| parse_type_expr(arg, ctx.alias_names, &mut vars, &mut next_var))
+                .collect::<Option<Vec<_>>>()
+            else {
+                continue;
+            };
+            if !candidates.iter().any(|candidate| candidate == &parsed_args) {
+                candidates.push(parsed_args);
+            }
+        }
+    }
+
+    ctx.trait_lookup_cache
+        .borrow_mut()
+        .imported_bound_impls
+        .insert(trait_name.to_string(), candidates.clone());
+    candidates
 }
 
 /// Checks whether active generic bounds satisfy a requested trait bound.

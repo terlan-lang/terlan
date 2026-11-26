@@ -5,6 +5,9 @@ pub(super) use super::*;
 #[path = "import_test/alias_imports.rs"]
 mod alias_imports;
 #[cfg(test)]
+#[path = "import_test/imported_function_trait_bounds.rs"]
+mod imported_function_trait_bounds;
+#[cfg(test)]
 #[path = "import_test/primary_type_paths.rs"]
 mod primary_type_paths;
 #[cfg(test)]

@@ -383,16 +383,13 @@ pub broad_rust_lanes_remove_their_narrow_duplicates(): Bool ->
         "crates/terlan/src/compiler/native_ir/collection_values.rs",
         "crates/terlan/src/compiler/typeck/import_maps.rs",
     ],
-) == [
-    "shell",
-    "clippy",
-    "vm-contracts",
-    "core-contracts",
-    "compiler",
-    "phase",
-    "rust-reports",
-    "summaries",
-].
+) == ["shell", "clippy", "vm-contracts", "core-contracts", "compiler", "phase", "rust-reports"].
+
+@test
+pub ordinary_typechecking_changes_skip_summary_regeneration(): Bool ->
+    not Plan.summaries(["crates/terlan/src/compiler/typeck/expression/function_inference/trait_bounds.rs"])
+        and Plan.summaries(["crates/terlan/src/compiler/hir/interface_render.rs"])
+        and Plan.summaries(["crates/terlan/src/formal_pipeline/interface_contract.rs"]).
 
 @test
 pub hook_changes_skip_unrelated_artifacts(): Bool ->

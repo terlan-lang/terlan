@@ -73,7 +73,7 @@ fn generation_is_stable_and_covers_each_initial_family() {
         .contains("batch.state.execution_state().latest_sequence()")));
     let trait_case = &case(1, 18, 8);
     assert_eq!(trait_case.support_sources.len(), 3);
-    assert!(trait_case.source.contains("Score.score(value)"));
+    assert!(trait_case.source.contains("Contract.{score_with}"));
     assert!(trait_case.source.contains("Ready as LeftReady"));
     assert!(trait_case.source.contains("RightStopped()"));
     assert_eq!(trait_case.expected.value, serde_json::json!(255));
@@ -81,6 +81,9 @@ fn generation_is_stable_and_covers_each_initial_family() {
         .support_sources
         .iter()
         .any(|source| source.source.contains("Value implements Score[Value]")));
+    assert!(trait_case.support_sources.iter().any(|source| {
+        source.source.contains("pub score_with[T]") && source.source.contains("Score.score(value)")
+    }));
     assert_eq!(
         trait_case
             .support_sources
@@ -111,7 +114,7 @@ fn generation_is_stable_and_covers_each_initial_family() {
         .all(|file| file.contents.contains("test \"$next\" -ge 2")));
     let transaction = &case(1, 21, 8);
     assert_eq!(transaction.support_sources.len(), 3);
-    assert!(transaction.source.contains("Score.score(value)"));
+    assert!(transaction.source.contains("Contract.{score_with}"));
 }
 
 #[test]

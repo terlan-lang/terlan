@@ -126,14 +126,11 @@ pub(super) fn generic_trait_package(
     )
     .with_prelude(format!(
         concat!(
-            "import {module}.Contract.{{Score}}.\n",
+            "import {module}.Contract.{{score_with}}.\n",
             "import {module}.Left.{{Ready as LeftReady, Stopped as LeftStopped, Value as LeftValue}}.\n",
             "import {module}.Right.{{Ready as RightReady, Stopped as RightStopped, Value as RightValue}}.\n\n",
-            "import type {module}.Contract.{{Score}}.\n",
             "import type {module}.Left.{{Event as LeftEvent}}.\n",
             "import type {module}.Right.{{Event as RightEvent}}.\n\n",
-            "score_with[T](value: T)[Score[T]]: Int ->\n",
-            "    Score.score(value).\n\n",
             "inspect_left(event: LeftEvent): Int ->\n",
             "    case event {{\n",
             "        LeftReady(value) -> score_with(value);\n",
@@ -156,7 +153,9 @@ pub(super) fn generic_trait_package(
                     "module {module}.Contract.\n\n",
                     "pub trait Score[T] {{\n",
                     "    score(value: T): Int.\n",
-                    "}}.\n",
+                    "}}.\n\n",
+                    "pub score_with[T](value: T)[Score[T]]: Int ->\n",
+                    "    Score.score(value).\n",
                 ),
                 module = module,
             ),

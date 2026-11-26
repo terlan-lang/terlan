@@ -73,8 +73,10 @@ pub(crate) fn parse_interface_signature(
 
 /// Immutable alias tables shared by signatures from the same interface.
 pub(crate) struct InterfaceSignatureContext<'a> {
+    module: &'a str,
     global_aliases: &'a HashMap<String, TypeAlias>,
     local_type_names: HashSet<String>,
+    local_trait_names: HashSet<String>,
     alias_names: HashSet<String>,
     qualified_names: HashMap<String, QualifiedTypeName>,
     interface_aliases: HashMap<String, TypeAlias>,
@@ -83,15 +85,17 @@ pub(crate) struct InterfaceSignatureContext<'a> {
 impl<'a> InterfaceSignatureContext<'a> {
     /// Resolves provider names once while keeping dependency aliases borrowed.
     pub(crate) fn new(
-        interface: &ModuleInterface,
+        interface: &'a ModuleInterface,
         global_aliases: &'a HashMap<String, TypeAlias>,
     ) -> Self {
         let local_type_names = interface_type_names(interface);
         let mut alias_names = local_type_names.clone();
         alias_names.extend(unique_global_alias_short_names(global_aliases));
         Self {
+            module: &interface.module,
             global_aliases,
             local_type_names,
+            local_trait_names: interface.traits.keys().cloned().collect(),
             alias_names,
             qualified_names: interface_qualified_type_names(interface),
             interface_aliases: interface_type_aliases(interface),
@@ -160,7 +164,11 @@ fn parse_interface_signature_in_context(
     let bounds = parsed_bounds
         .into_iter()
         .map(|bound| FunctionBound {
-            trait_name: bound.trait_name,
+            trait_name: if context.local_trait_names.contains(&bound.trait_name) {
+                crate::terlan_hir::public_type_path(context.module, &bound.trait_name)
+            } else {
+                bound.trait_name
+            },
             trait_args: bound
                 .trait_args
                 .into_iter()

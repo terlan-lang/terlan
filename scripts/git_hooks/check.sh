@@ -648,7 +648,7 @@ run_commands_vm_artifact_lane() {
       commands::build::build_test::tests::artifact_test::vm_artifacts::
 }
 run_summaries_lane() {
-  TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
+  TERLAN_SUMMARY_HOOK_TERLC="$terlc" \
     bash scripts/git_hooks/stdlib_summaries.sh
 }
 
