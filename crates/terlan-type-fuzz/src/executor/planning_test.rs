@@ -27,7 +27,16 @@ fn matched_planning_graphs_record_bounded_evidence() {
     };
     run(&options, Path::new("/bin/true"), 2_000).expect("planning probe");
     let planning = options.out_dir.join("planning");
-    assert!(planning.join("comparison.json").is_file());
+    let comparison: serde_json::Value = serde_json::from_slice(
+        &fs::read(planning.join("comparison.json")).expect("planning comparison"),
+    )
+    .expect("planning comparison JSON");
+    assert_eq!(comparison["schema"], "terlan.type-fuzz-planning.v1");
+    assert_eq!(comparison["narrow"]["compiler"]["timing_events"], 0);
+    assert_eq!(
+        comparison["delta"]["compiler_work"]["native_units_built"],
+        0
+    );
     assert!(planning.join("narrow").join(NARROW_SOURCE).is_file());
     assert!(planning.join("broad").join(BROAD_SOURCE).is_file());
     assert!(planning.join("broad/unused-native/terlan.toml").is_file());

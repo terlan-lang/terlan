@@ -4,6 +4,9 @@ use std::path::{Path, PathBuf};
 use super::oracle::{self, OracleResult};
 use crate::{Oracle, RunOptions};
 
+#[path = "planning_metrics.rs"]
+mod metrics;
+
 const NARROW_SOURCE: &str = "src/type_fuzz/narrow/NarrowTest.terl";
 const BROAD_SOURCE: &str = "src/type_fuzz/broad/BroadTest.terl";
 
@@ -35,10 +38,12 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
         options.cpu_limit_ms,
     );
     ensure_passed("broad", &broad_result)?;
+    let narrow_metrics = metrics::measure(&narrow_result.stderr);
+    let broad_metrics = metrics::measure(&broad_result.stderr);
     let evidence = serde_json::json!({
         "schema": "terlan.type-fuzz-planning.v1",
-        "narrow": observation(&narrow_result),
-        "broad_unreachable_native": observation(&broad_result),
+        "narrow": observation(&narrow_result, &narrow_metrics),
+        "broad_unreachable_native": observation(&broad_result, &broad_metrics),
         "delta": {
             "wall_elapsed_ms": signed_delta(
                 broad_result.resources.wall_elapsed_ms,
@@ -54,6 +59,7 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
                 &narrow_result.stderr,
                 "terlc native-aot: module-unit.begin.",
             ),
+            "compiler_work": metrics::delta(&broad_metrics, &narrow_metrics),
         }
     });
     let bytes = serde_json::to_vec(&evidence).expect("planning evidence JSON serializes");
@@ -72,7 +78,7 @@ fn ensure_passed(profile: &str, result: &OracleResult) -> Result<(), String> {
     }
 }
 
-fn observation(result: &OracleResult) -> serde_json::Value {
+fn observation(result: &OracleResult, compiler: &metrics::CompilerMetrics) -> serde_json::Value {
     serde_json::json!({
         "outcome": result.outcome,
         "wall_elapsed_ms": result.resources.wall_elapsed_ms,
@@ -83,6 +89,7 @@ fn observation(result: &OracleResult) -> serde_json::Value {
             &result.stderr,
             "terlc native-aot: module-unit.begin.",
         ),
+        "compiler": compiler,
     })
 }
 
