@@ -181,11 +181,10 @@ if [[ "$compiler_build" == true ]]; then
   trap cleanup_cache_metadata EXIT
   node scripts/git_hooks/invalidate_workspace_cache.cjs \
     "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
-  echo 'pre-commit: lint and check the changed staged workspace once'
-  # One default-feature Clippy build owns candidate checking and Rust linting.
-  # The affected Clippy lane below reuses this result instead of compiling the
-  # workspace again. Release validation owns the all-features profile.
-  make --no-print-directory rust-clippy-precommit-check
+  echo 'pre-commit: lint and check the staged compiler package once'
+  # Building the candidate compiler must not compile unrelated workspace
+  # packages. Their focused lanes remain independently owned below.
+  make --no-print-directory rust-clippy-compiler-precommit-check
   candidate_clippy_checked=true
   terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}
   [[ -x "$terlc" && ! -L "$terlc" ]] || {
@@ -755,8 +754,8 @@ run_affected_rust_lane() {
       echo 'pre-commit: CLI adapters compiled by candidate workspace Clippy'
       ;;
     clippy)
-      if [[ "$candidate_clippy_checked" == true ]]; then
-        echo 'pre-commit: reuse candidate workspace Clippy result'
+      if [[ "$candidate_clippy_checked" == true ]] && ! lane_has workspace; then
+        echo 'pre-commit: reuse candidate compiler Clippy result'
       else
         make --no-print-directory rust-clippy-precommit-check
       fi

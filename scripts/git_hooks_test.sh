@@ -667,7 +667,7 @@ early_terlan_format_line=$(grep -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_grammar_line=$(grep -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-compiler_check_line=$(grep -n -F 'lint and check the changed staged workspace once' \
+compiler_check_line=$(grep -n -F 'lint and check the staged compiler package once' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 test -n "$deferred_rust_reports_line"
 test -n "$early_affected_rust_line"
@@ -693,9 +693,10 @@ proof_pr_line=$(grep -n -F '"$quality" lean-proof-pr' "$proof_evidence_driver" |
 proof_runtime_line=$(grep -n -F '"$quality" lean-proof-runtime' "$proof_evidence_driver" | cut -d: -f1)
 test "$proof_pr_line" -lt "$proof_runtime_line"
 check_driver="$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'make --no-print-directory rust-clippy-precommit-check' "$check_driver"
-grep -Fq "echo 'pre-commit: reuse candidate workspace Clippy result'" "$check_driver"
-test "$(grep -Fc 'make --no-print-directory rust-clippy-precommit-check' "$check_driver")" -eq 2
+grep -Fq 'make --no-print-directory rust-clippy-compiler-precommit-check' "$check_driver"
+grep -Fq "echo 'pre-commit: reuse candidate compiler Clippy result'" "$check_driver"
+test "$(grep -Fc 'make --no-print-directory rust-clippy-compiler-precommit-check' "$check_driver")" -eq 1
+test "$(grep -Fc 'make --no-print-directory rust-clippy-precommit-check' "$check_driver")" -eq 1
 if grep -Fq 'make --no-print-directory rust-clippy-check' "$check_driver"; then
   echo 'Pre-commit still invokes the duplicate all-features Clippy owner' >&2
   exit 1
@@ -775,7 +776,7 @@ grep -Fq '.terlan-native-worker-input' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'build --locked -p terlan --bin terlan-native-worker --features validation-union' \
   "$(dirname "$driver")/git_hooks/check.sh"
-compiler_bootstrap=$(grep -F 'make --no-print-directory rust-clippy-precommit-check' \
+compiler_bootstrap=$(grep -F 'make --no-print-directory rust-clippy-compiler-precommit-check' \
   "$(dirname "$driver")/git_hooks/check.sh" | head -1)
 test -n "$compiler_bootstrap"
 [[ "$compiler_bootstrap" != *'--features validation-union'* ]]
