@@ -299,7 +299,7 @@ open before TF3 can close.
 
 - [x] Generate multi-module selected and qualified imports.
 - [x] Round-trip generated `.typi` interfaces and compare semantic facts.
-- [ ] Generate generic traits, declaration-site implementations, constructors,
+- [x] Generate generic traits, declaration-site implementations, constructors,
   aliases, exhaustive patterns, and same-named types from distinct providers.
 - [ ] Run equivalent in-workspace and external path-dependency layouts.
 
@@ -334,9 +334,19 @@ and accepted the same generic receiver facts in 0.80 seconds. Each case records
 the compared module identities, expected type, diagnostics, and bounded
 resource evidence without proof hashes. Missing or malformed interfaces,
 source/interface disagreement, deadlines, and publication failures are all
-attributed to the originating case. The focused type-fuzz crate now passes 104
-tests with exact 100% region, function, and line coverage across 8,119 regions,
-388 functions, and 5,346 lines.
+attributed to the originating case.
+
+Generator v3 adds a four-module trait/package family. Two providers each
+declare a distinct type named `Value`, a transparent `Payload` alias, the same
+`Ready` and `Stopped` constructor names, and a declaration-site
+`Score[Value]` implementation. The consumer aliases both constructor sets,
+dispatches through a generic trait bound, and exhaustively matches both closed
+event unions. Native execution passed in 0.42 seconds after preparing exactly
+three reachable providers; an interface-only replay accepted the same facts in
+1.24 seconds with no provider source. Generator v1 and v2 replay mappings
+remain stable. The focused type-fuzz crate now passes 104 tests with exact 100%
+region, function, and line coverage across 8,206 regions, 392 functions, and
+5,412 lines.
 
 ### TF5: Suspension, actors, and native providers
 

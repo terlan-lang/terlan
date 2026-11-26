@@ -7,11 +7,13 @@ mod module_cases;
 
 const GENERATOR_V1: &str = "terlan.type-fuzz-generator.v1";
 const GENERATOR_V2: &str = "terlan.type-fuzz-generator.v2";
+const GENERATOR_V3: &str = "terlan.type-fuzz-generator.v3";
 
 #[derive(Clone, Copy)]
 enum GeneratorVersion {
     V1,
     V2,
+    V3,
 }
 
 impl GeneratorVersion {
@@ -19,6 +21,7 @@ impl GeneratorVersion {
         match value {
             GENERATOR_V1 => Ok(Self::V1),
             GENERATOR_V2 => Ok(Self::V2),
+            GENERATOR_V3 => Ok(Self::V3),
             _ => Err(format!("unsupported type fuzz generator `{value}`")),
         }
     }
@@ -27,6 +30,7 @@ impl GeneratorVersion {
         match self {
             Self::V1 => GENERATOR_V1,
             Self::V2 => GENERATOR_V2,
+            Self::V3 => GENERATOR_V3,
         }
     }
 
@@ -34,6 +38,7 @@ impl GeneratorVersion {
         match self {
             Self::V1 => "v1",
             Self::V2 => "v2",
+            Self::V3 => "v3",
         }
     }
 }
@@ -51,7 +56,7 @@ pub struct GenerationConfig<'a> {
 
 /// Generates one deterministic typed program and its replay manifest.
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
-    generate_version(index, config, GeneratorVersion::V2)
+    generate_version(index, config, GeneratorVersion::V3)
 }
 
 pub(crate) fn regenerate(
@@ -149,6 +154,7 @@ enum Family {
     ClosedUnion,
     ClosedUnionEmpty,
     GenericFieldReceiver,
+    GenericTraitPackage,
 }
 
 impl Family {
@@ -162,6 +168,7 @@ impl Family {
             _ => match version {
                 GeneratorVersion::V1 => 17,
                 GeneratorVersion::V2 => 18,
+                GeneratorVersion::V3 => 19,
             },
         };
         match index % family_count {
@@ -182,7 +189,8 @@ impl Family {
             14 => Self::NestedResultJoin,
             15 => Self::ClosedUnion,
             16 => Self::ClosedUnionEmpty,
-            _ => Self::GenericFieldReceiver,
+            17 => Self::GenericFieldReceiver,
+            _ => Self::GenericTraitPackage,
         }
     }
 
@@ -225,6 +233,7 @@ impl Family {
             Self::ClosedUnion => "closed_union",
             Self::ClosedUnionEmpty => "closed_union_empty",
             Self::GenericFieldReceiver => "generic_field_receiver",
+            Self::GenericTraitPackage => "generic_trait_package",
         }
     }
 
@@ -344,6 +353,7 @@ impl Family {
             )
             .with_prelude(choice_declarations()),
             Self::GenericFieldReceiver => return module_cases::generic_field_receiver(index, value),
+            Self::GenericTraitPackage => return module_cases::generic_trait_package(index, value),
         };
         (rendered, Vec::new())
     }

@@ -102,6 +102,115 @@ pub(super) fn generic_field_receiver(
     (body, sources)
 }
 
+pub(super) fn generic_trait_package(
+    index: u32,
+    sequence: i64,
+) -> (GeneratedBody, Vec<GeneratedSource>) {
+    let module = format!("type_fuzz.case{index:06}");
+    let path = format!("src/type_fuzz/case{index:06}");
+    let expected = sequence * 2 + 119;
+    let body = GeneratedBody::expression(
+        CheckedType::Int,
+        json!(expected),
+        format!(
+            concat!(
+                "inspect_left(LeftReady(LeftValue({sequence}))) + ",
+                "inspect_left(LeftStopped()) + ",
+                "inspect_right(RightReady(RightValue({right}))) + ",
+                "inspect_right(RightStopped())"
+            ),
+            sequence = sequence,
+            right = sequence + 1,
+        ),
+        expected.to_string(),
+    )
+    .with_prelude(format!(
+        concat!(
+            "import {module}.Contract.{{Score}}.\n",
+            "import {module}.Left.{{Ready as LeftReady, Stopped as LeftStopped, Value as LeftValue}}.\n",
+            "import {module}.Right.{{Ready as RightReady, Stopped as RightStopped, Value as RightValue}}.\n\n",
+            "import type {module}.Contract.{{Score}}.\n",
+            "import type {module}.Left.{{Event as LeftEvent}}.\n",
+            "import type {module}.Right.{{Event as RightEvent}}.\n\n",
+            "score_with[T](value: T)[Score[T]]: Int ->\n",
+            "    Score.score(value).\n\n",
+            "inspect_left(event: LeftEvent): Int ->\n",
+            "    case event {{\n",
+            "        LeftReady(value) -> score_with(value);\n",
+            "        LeftStopped() -> 7\n",
+            "    }}.\n\n",
+            "inspect_right(event: RightEvent): Int ->\n",
+            "    case event {{\n",
+            "        RightReady(value) -> score_with(value);\n",
+            "        RightStopped() -> 11\n",
+            "    }}."
+        ),
+        module = module,
+    ));
+    let sources = vec![
+        source(
+            &path,
+            "Contract",
+            format!(
+                concat!(
+                    "module {module}.Contract.\n\n",
+                    "pub trait Score[T] {{\n",
+                    "    score(value: T): Int.\n",
+                    "}}.\n",
+                ),
+                module = module,
+            ),
+        ),
+        scored_provider(&path, &module, "Left", "left", 0),
+        scored_provider(&path, &module, "Right", "right", 100),
+    ];
+    (body, sources)
+}
+
+fn scored_provider(
+    path: &str,
+    module: &str,
+    provider: &str,
+    tag_prefix: &str,
+    increment: i64,
+) -> GeneratedSource {
+    source(
+        path,
+        provider,
+        format!(
+            concat!(
+                "module {module}.{provider}.\n\n",
+                "import type {module}.Contract.{{Score}}.\n\n",
+                "pub type ReadyTag = Atom[\"{tag_prefix}_ready\"].\n\n",
+                "pub type StoppedTag = Atom[\"{tag_prefix}_stopped\"].\n\n",
+                "pub struct Value implements Score[Value] {{\n",
+                "    amount: Int,\n",
+                "}}.\n\n",
+                "pub type Payload = Value.\n\n",
+                "pub type Event = {{ReadyTag, Payload}} | StoppedTag.\n\n",
+                "pub constructor Value {{\n",
+                "    (amount: Int): Value ->\n",
+                "        Value {{amount: amount}}\n",
+                "}}.\n\n",
+                "pub constructor Ready {{\n",
+                "    (value: Payload): Event ->\n",
+                "        {{ReadyTag, value}}\n",
+                "}}.\n\n",
+                "pub constructor Stopped {{\n",
+                "    (): Event ->\n",
+                "        StoppedTag\n",
+                "}}.\n\n",
+                "pub (value: Value) score(): Int ->\n",
+                "    value.amount + {increment}.\n",
+            ),
+            module = module,
+            provider = provider,
+            tag_prefix = tag_prefix,
+            increment = increment,
+        ),
+    )
+}
+
 fn source(root: &str, name: &str, source: String) -> GeneratedSource {
     GeneratedSource {
         path: PathBuf::from(format!("{root}/{name}.terl")),

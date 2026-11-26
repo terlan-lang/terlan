@@ -18,7 +18,7 @@ fn case(seed: u64, index: u32, depth: u8) -> GeneratedCase {
 #[test]
 fn generation_is_stable_and_covers_each_initial_family() {
     assert_eq!(case(17, 3, 8), case(17, 3, 8));
-    let cases = (0..18).map(|index| case(1, index, 8)).collect::<Vec<_>>();
+    let cases = (0..19).map(|index| case(1, index, 8)).collect::<Vec<_>>();
     let families = cases
         .iter()
         .map(|case| case.manifest.family.as_str())
@@ -43,12 +43,13 @@ fn generation_is_stable_and_covers_each_initial_family() {
             "nested_result_join",
             "closed_union",
             "closed_union_empty",
-            "generic_field_receiver"
+            "generic_field_receiver",
+            "generic_trait_package"
         ]
     );
     for case in cases {
         assert_eq!(case.manifest.expected_type, case.expected.type_name);
-        assert!(!case.source.contains(" as "));
+        assert!(!case.source.contains(" as Dynamic"));
         assert!(case
             .source
             .contains("@test\npub sample_matches_expected(): Bool"));
@@ -67,6 +68,24 @@ fn generation_is_stable_and_covers_each_initial_family() {
     assert!(module_case.support_sources.iter().any(|source| source
         .source
         .contains("batch.state.execution_state().latest_sequence()")));
+    let trait_case = &case(1, 18, 8);
+    assert_eq!(trait_case.support_sources.len(), 3);
+    assert!(trait_case.source.contains("Score.score(value)"));
+    assert!(trait_case.source.contains("Ready as LeftReady"));
+    assert!(trait_case.source.contains("RightStopped()"));
+    assert_eq!(trait_case.expected.value, serde_json::json!(255));
+    assert!(trait_case
+        .support_sources
+        .iter()
+        .any(|source| source.source.contains("Value implements Score[Value]")));
+    assert_eq!(
+        trait_case
+            .support_sources
+            .iter()
+            .filter(|source| source.source.contains("pub struct Value"))
+            .count(),
+        2
+    );
 }
 
 #[test]
@@ -83,22 +102,25 @@ fn ten_thousand_cases_preserve_type_and_identity_invariants() {
     let mut identities = std::collections::HashSet::new();
     let mut families = std::collections::HashSet::new();
     let mut support_paths = std::collections::HashSet::new();
+    let mut support_count = 0;
     for index in 0..10_000 {
         let generated = case(17, index, 8);
         assert_eq!(
             generated.manifest.expected_type,
             generated.expected.type_name
         );
-        assert!(!generated.source.contains(" as "));
+        assert!(!generated.source.contains(" as Dynamic"));
         for support in &generated.support_sources {
             assert!(!support.source.contains(" as "));
             assert!(support_paths.insert(support.path.clone()));
+            support_count += 1;
         }
         assert!(identities.insert(generated.manifest.case_id));
         families.insert(generated.manifest.family);
     }
-    assert_eq!(families.len(), 18);
-    assert_eq!(support_paths.len(), 4 * (10_000 / 18));
+    assert_eq!(families.len(), 19);
+    assert_eq!(support_paths.len(), support_count);
+    assert_eq!(support_count, 3_682);
 }
 
 #[test]
@@ -132,8 +154,8 @@ fn checked_oracle_is_encoded_in_identity_and_manifest() {
     );
     assert_eq!(native.manifest.oracle, Oracle::Native);
     assert!(native.manifest.case_id.ends_with("-onative"));
-    assert!(native.manifest.case_id.starts_with("v2-"));
-    assert_eq!(native.manifest.generator, GENERATOR_V2);
+    assert!(native.manifest.case_id.starts_with("v3-"));
+    assert_eq!(native.manifest.generator, GENERATOR_V3);
 }
 
 #[test]
@@ -152,13 +174,17 @@ fn recorded_generator_versions_retain_their_family_mapping() {
     assert!(legacy.manifest.case_id.starts_with("v1-"));
     assert!(legacy.support_sources.is_empty());
 
-    let current = regenerate(17, &config, GENERATOR_V2).expect("current generator");
-    assert_eq!(current.manifest.family, "generic_field_receiver");
-    assert!(current.manifest.case_id.starts_with("v2-"));
-    assert_eq!(current.support_sources.len(), 4);
+    let second = regenerate(18, &config, GENERATOR_V2).expect("second generator");
+    assert_eq!(second.manifest.family, "scalar_unit");
+    assert!(second.manifest.case_id.starts_with("v2-"));
+
+    let current = regenerate(18, &config, GENERATOR_V3).expect("current generator");
+    assert_eq!(current.manifest.family, "generic_trait_package");
+    assert!(current.manifest.case_id.starts_with("v3-"));
+    assert_eq!(current.support_sources.len(), 3);
     assert_eq!(
-        regenerate(17, &config, "terlan.type-fuzz-generator.v3").unwrap_err(),
-        "unsupported type fuzz generator `terlan.type-fuzz-generator.v3`"
+        regenerate(18, &config, "terlan.type-fuzz-generator.v4").unwrap_err(),
+        "unsupported type fuzz generator `terlan.type-fuzz-generator.v4`"
     );
 }
 
