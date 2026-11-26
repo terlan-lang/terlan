@@ -503,14 +503,8 @@ pub(super) fn compile_rooted_native_application_image(
     let trace_timings = crate::compiler_timings::native_enabled();
     let reuse =
         super::core_reuse::CoreReuse::for_input(native_cache_root, image_stem, cores, &input);
-    if let Some(reuse) = &reuse {
-        if let Some(image) = reuse.load(vm_dir)? {
-            trace_rooted_cache(trace_timings, RootedCacheDisposition::Hit);
-            return Ok(Some(image));
-        }
-        trace_rooted_cache(trace_timings, RootedCacheDisposition::Invalidated);
-    } else {
-        trace_rooted_cache(trace_timings, RootedCacheDisposition::Disabled);
+    if let Some(image) = load_rooted_reuse(reuse.as_ref(), vm_dir, trace_timings)? {
+        return Ok(Some(image));
     }
     let started = Instant::now();
     let mut previous = started;
@@ -593,6 +587,27 @@ fn rooted_cache_event(disposition: RootedCacheDisposition) -> &'static str {
     }
 }
 
+fn load_rooted_reuse(
+    reuse: Option<&super::core_reuse::CoreReuse>,
+    vm_dir: &Path,
+    trace_timings: bool,
+) -> Result<Option<CompiledNativeApplicationImage>, BuildOneError> {
+    let Some(reuse) = reuse else {
+        trace_rooted_cache(trace_timings, RootedCacheDisposition::Disabled);
+        return Ok(None);
+    };
+    let image = reuse.load(vm_dir)?;
+    trace_rooted_cache(
+        trace_timings,
+        if image.is_some() {
+            RootedCacheDisposition::Hit
+        } else {
+            RootedCacheDisposition::Invalidated
+        },
+    );
+    Ok(image)
+}
+
 pub(super) fn trace_native_semantic_inventory(
     descriptor: &crate::runtime::native_image::TvmExecutableDescriptor,
 ) {
@@ -660,10 +675,12 @@ pub(super) fn compile_owned_rooted_native_application_image(
         &cores.iter().collect::<Vec<_>>(),
         &input,
     );
-    if let Some(reuse) = &reuse {
-        if let Some(image) = reuse.load(vm_dir)? {
-            return Ok(Some(image));
-        }
+    if let Some(image) = load_rooted_reuse(
+        reuse.as_ref(),
+        vm_dir,
+        crate::compiler_timings::native_enabled(),
+    )? {
+        return Ok(Some(image));
     }
     let RootedNativeApplicationInput {
         roots,
