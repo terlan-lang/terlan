@@ -102,4 +102,6 @@ fn comparison_reports_signed_work_deltas() {
             native_continuations_built: -1,
         }
     );
+    assert!(!same_structural_work(&right, &left));
+    assert!(same_structural_work(&right, &right));
 }

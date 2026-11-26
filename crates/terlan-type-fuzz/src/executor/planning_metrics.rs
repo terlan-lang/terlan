@@ -116,6 +116,24 @@ pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> Compiler
     }
 }
 
+pub(super) fn same_structural_work(right: &CompilerMetrics, left: &CompilerMetrics) -> bool {
+    (
+        right.generic_specializations,
+        right.call_profiles,
+        right.lowered_calls,
+        right.native_units_built,
+        right.native_functions_built,
+        right.native_continuations_built,
+    ) == (
+        left.generic_specializations,
+        left.call_profiles,
+        left.lowered_calls,
+        left.native_units_built,
+        left.native_functions_built,
+        left.native_continuations_built,
+    )
+}
+
 fn phase_elapsed(line: &str, prefix: &str) -> Option<(String, u64)> {
     let body = line
         .strip_prefix(prefix)

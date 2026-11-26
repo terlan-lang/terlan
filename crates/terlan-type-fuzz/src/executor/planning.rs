@@ -9,6 +9,8 @@ mod metrics;
 
 const NARROW_SOURCE: &str = "src/type_fuzz/narrow/NarrowTest.terl";
 const BROAD_SOURCE: &str = "src/type_fuzz/broad/BroadTest.terl";
+const BROAD_WALL_TOLERANCE_MS: u64 = 1_000;
+const BROAD_RSS_TOLERANCE_BYTES: u64 = 16 * 1024 * 1024;
 
 pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> Result<(), String> {
     if options.oracle != Oracle::Native {
@@ -48,6 +50,7 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
         wall_ms,
         options,
     )?;
+    ensure_broad_regression_absent(&broad_cold, &narrow_cold)?;
     let evidence = serde_json::json!({
         "schema": "terlan.type-fuzz-planning.v1",
         "narrow": {
@@ -66,6 +69,41 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
         }
     });
     publish(&root, &evidence)
+}
+
+fn ensure_broad_regression_absent(
+    broad: &OracleResult,
+    narrow: &OracleResult,
+) -> Result<(), String> {
+    if !metrics::same_structural_work(
+        &metrics::measure(&broad.stderr),
+        &metrics::measure(&narrow.stderr),
+    ) {
+        return Err("unreachable native provider added compiler work".into());
+    }
+    if !within_increase(
+        broad.resources.wall_elapsed_ms,
+        narrow.resources.wall_elapsed_ms,
+        BROAD_WALL_TOLERANCE_MS,
+    ) {
+        return Err("unreachable native provider exceeded wall tolerance".into());
+    }
+    if !within_increase(
+        broad.resources.peak_rss_bytes,
+        narrow.resources.peak_rss_bytes,
+        BROAD_RSS_TOLERANCE_BYTES,
+    ) {
+        return Err("unreachable native provider exceeded RSS tolerance".into());
+    }
+    Ok(())
+}
+
+fn within_increase(right: Option<u64>, left: Option<u64>, tolerance: u64) -> bool {
+    match (right, left) {
+        (Some(right), Some(left)) => right <= left.saturating_add(tolerance),
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 fn write_fixtures(narrow: &Path, broad: &Path) -> Result<(), String> {
