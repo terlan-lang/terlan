@@ -350,7 +350,20 @@ release-check: release-evidence-refresh
 # benchmark. Artifact measurement is diagnostic work owned by the explicit
 # build-artifact-budget-record target; release correctness uses the fast policy
 # self-test in the canonical check graph and validates packaged artifacts later.
-release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap
+TERLAN_TYPE_FUZZ_CANDIDATE_DIR ?= target/fuzz/profile/candidate
+TERLAN_TYPE_FUZZ_CANDIDATE_RESULT := $(TERLAN_TYPE_FUZZ_CANDIDATE_DIR)/result.json
+
+.PHONY: type-fuzz-candidate-check
+type-fuzz-candidate-check: terlan-compiler-bootstrap
+	@if $(TERLAN_BOOTSTRAP_COMPILER) fuzz result verify "$(TERLAN_TYPE_FUZZ_CANDIDATE_RESULT)" >/dev/null 2>&1; then \
+		echo '[type-fuzz] reused exact compiler candidate result'; \
+	else \
+		echo '[type-fuzz] running bounded candidate profile'; \
+		$(TERLAN_BOOTSTRAP_COMPILER) fuzz profile candidate --out-dir "$(TERLAN_TYPE_FUZZ_CANDIDATE_DIR)"; \
+	fi
+
+
+release-candidate-check: editor-release-contract-check type-fuzz-candidate-check terlan-validation-vm-bootstrap
 	bash scripts/clean_build_outputs.sh --check-partials
 	$(MAKE) --no-print-directory terlan-quality-tools-bootstrap
 	$(MAKE) --no-print-directory \

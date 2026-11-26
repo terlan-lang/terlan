@@ -420,10 +420,11 @@ missing, malformed, live, zombie, and dead entries. The focused crate passes
 
 ### TF6: Continuous and release integration
 
-- [ ] Run the deterministic smoke corpus before expensive compilation gates.
+- [x] Run the deterministic smoke corpus before expensive release-candidate
+  compilation gates.
 - [ ] Run only impacted target families for ordinary changes, using explicit
   source-to-feature ownership rather than filename guesses.
-- [ ] Run the bounded cross-backend corpus on every compiler candidate.
+- [x] Run the bounded cross-backend corpus on every release compiler candidate.
 - [ ] Run rotating and mutation-derived seeds on a schedule.
 - [ ] Publish aggregate seed, feature-pair, oracle, failure, timing, RSS, cache,
   and reduction metrics without content hashes that require manual bumps.
@@ -444,10 +445,15 @@ check/native/JavaScript matrix; scheduled seeds rotate and mutate without
 wall-clock input; impacted selection maps changed compiler ownership roots to
 deduplicated family/oracle sets. A successful profile publishes its complete
 plan with the exact compiler revision, and `terlc fuzz result verify` refuses
-failed, malformed, or different-revision results. These are executable
-integration primitives; wiring them ahead of expensive repository gates remains
-open. The focused crate passes 132 tests with exact 100% coverage across 11,769
-regions, 548 functions, and 7,547 lines.
+failed, malformed, or different-revision results. Ordinary-change and scheduled
+CI wiring remains open. One profile now shares a five-minute wall budget across
+all of its backends rather than granting each backend a fresh allowance.
+Release-candidate validation runs the check corpus first, then native and
+JavaScript, and reuses
+an existing result only when the compiler itself accepts its exact embedded
+revision. The Make integration fixture proves both first-run and reuse paths.
+The focused crate passes 134 tests with exact 100% coverage across 12,035
+regions, 562 functions, and 7,771 lines.
 
 Acceptance: a release candidate consumes the already-successful exact-revision
 fuzz result. Publication does not rerun an unchanged fuzz corpus, and a changed

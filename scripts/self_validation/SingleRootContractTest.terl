@@ -48,6 +48,7 @@ makefile_holds(makefile: String): Bool ->
         "check",
         "test",
         "publish-preflight",
+        "type-fuzz-candidate-check",
         "release-candidate-check",
         "release-artifact-current",
         "release-artifact-linux",
@@ -78,8 +79,11 @@ makefile_holds(makefile: String): Bool ->
         and make_variable_contains(makefile, "CHECK_GATES", "no-vmir-interpreter-check")
         and String.contains(
     makefile,
-    "release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap",
+    "release-candidate-check: editor-release-contract-check type-fuzz-candidate-check terlan-validation-vm-bootstrap",
 )
+        and String.contains(makefile, "type-fuzz-candidate-check: terlan-compiler-bootstrap")
+        and String.contains(makefile, "fuzz result verify \"$(TERLAN_TYPE_FUZZ_CANDIDATE_RESULT)\"")
+        and String.contains(makefile, "fuzz profile candidate --out-dir")
         and String.contains(makefile, "CHECK_GATES := $(filter-out release-control-check,$(CHECK_GATES))")
         and release_candidate_avoids_benchmark_measurement(makefile).
 
@@ -210,7 +214,7 @@ valid_makefile(): String ->
         "COVERAGE_MIN ?= 84.20\nCOVERAGE_VM_RUNNER ?= $(CURDIR)/target/debug/terlan-vm\nrelease-hosted-multicore-evidence-check: vm-multicore-memory-model-check vm-multicore-release-contract-check\nrelease-hosted-validation-check: tvm-aot-platform-aggregate-check release-artifact-set-check release-hosted-multicore-evidence-check tvm-aot-release-closeout-contract-check\n",
         String.append(
             "CHECK_GATES := \\\n\tterlan-self-validation-capabilities-check \\\n\truntime-aot-only-check \\\n\tvm-multicore-release-contract-check \\\n\tno-vmir-interpreter-check\nifeq ($(TERLAN_RELEASE_CONTROL_PRECHECKED),1)\nCHECK_GATES := $(filter-out release-control-check,$(CHECK_GATES))\nendif\n",
-            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nrelease-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap\n\t$(MAKE) --no-print-directory TERLAN_BUILD_ARTIFACTS_PREBUILT=1 release-control-check\n\t$(MAKE) --no-print-directory TERLAN_RELEASE_CONTROL_PRECHECKED=1 TERLAN_TYPED_VALIDATOR_FINGERPRINT_PREBUILT=1 check\n\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
+            "check: rust-test-suite\n\tTERLAN_VALIDATION_BOOTSTRAPPED=1 $(MAKE) --no-print-directory check-gates\ntest: cli-test\nVERSION ?= $(RELEASE_VERSION)\npublish-preflight:\n\t$(MAKE) --no-print-directory publish-evidence-check\n\t@echo refusing to regenerate immutable publication inputs\npublish-evidence-plan-check:\nTERLAN_TYPE_FUZZ_CANDIDATE_RESULT := target/fuzz/profile/candidate/result.json\ntype-fuzz-candidate-check: terlan-compiler-bootstrap\n\t@if $(TERLAN_BOOTSTRAP_COMPILER) fuzz result verify \"$(TERLAN_TYPE_FUZZ_CANDIDATE_RESULT)\"; then true; else $(TERLAN_BOOTSTRAP_COMPILER) fuzz profile candidate --out-dir target/fuzz/profile/candidate; fi\n\nrelease-candidate-check: editor-release-contract-check type-fuzz-candidate-check terlan-validation-vm-bootstrap\n\t$(MAKE) --no-print-directory TERLAN_BUILD_ARTIFACTS_PREBUILT=1 release-control-check\n\t$(MAKE) --no-print-directory TERLAN_RELEASE_CONTROL_PRECHECKED=1 TERLAN_TYPED_VALIDATOR_FINGERPRINT_PREBUILT=1 check\n\nrelease-artifact-current:\nrelease-artifact-linux:\nrelease-boundary-check:\ninstaller-contract-check:\n",
         ),
     ).
 
@@ -293,8 +297,8 @@ pub artifact_measurement_is_rejected_from_candidate_tests(): Bool ->
     not contract_holds(
     String.replace(
         valid_makefile(),
-        "release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap\n",
-        "release-candidate-check: editor-release-contract-check terlan-compiler-bootstrap terlan-validation-vm-bootstrap\n\t$(MAKE) --no-print-directory build-artifact-budget-record\n",
+        "release-candidate-check: editor-release-contract-check type-fuzz-candidate-check terlan-validation-vm-bootstrap\n",
+        "release-candidate-check: editor-release-contract-check type-fuzz-candidate-check terlan-validation-vm-bootstrap\n\t$(MAKE) --no-print-directory build-artifact-budget-record\n",
     ),
     valid_ci_workflow(),
     valid_release_workflow(),
