@@ -194,16 +194,16 @@ oracle acceptance remains open; generation success alone does not close TF1.
 
 - [x] Compile the TF1 corpus through native lowering and execution.
 - [ ] Compare canonical results and structured failures with managed execution.
-- [ ] Record native phase timings, monomorphization counts, semantic type IDs,
+- [x] Record native phase timings, monomorphization counts, semantic type IDs,
   generated native units, compiler RSS, and cache disposition.
 - [ ] Separate planning, lowering, native compilation, linking, test execution,
   and coverage collection so immediate assertions cannot conceal multi-minute
   compiler planning.
 - [x] Generate matched narrow/broad dependency graphs and prove unreachable
   native providers add no helpers, monomorphizations, planning work, or RSS.
-- [ ] Compare focused, combined-root, cold-cache, and warm-cache runs with
+- [x] Compare focused, combined-root, cold-cache, and warm-cache runs with
   explicit progress and cache-invalidation diagnostics.
-- [ ] Fail focused planning early when it exceeds 60 seconds or 1 GiB RSS, with
+- [x] Fail focused planning early when it exceeds 60 seconds or 1 GiB RSS, with
   the responsible phase, reachable declaration count, native-provider set,
   and cache-miss reasons in the failure evidence.
 - [ ] Reduce and check in every discovered failure before closing it.
@@ -231,19 +231,21 @@ deliberately absent, so successful execution proves the helper was not
 materialized. Both graphs completed in 0.21 seconds; peak RSS changed from
 105,216 KiB to 105,588 KiB. The comparison artifact records per-phase elapsed
 time, generic specialization count, suspension profiles, lowered calls,
-lowering-cache hits, and native unit/function/continuation counts with signed
-deltas. Semantic-type inventory and explicit cache-disposition events remain
-open under the broader metrics item.
+lowering-cache hits, native unit/function/continuation counts, and canonical
+semantic-type identities with signed deltas. Both cold builds and verified
+warm reuse now emit explicit cache outcomes from the owned test-image path.
 
 The planning probe now executes six bounded profiles in one comparison:
 focused, two-file combined-root, and broad-unreachable graphs, each cold and
 warm. It records cache outcome, phase work, native image shape, CPU, RSS, and
 wall-time deltas without rebuilding the compiler workspace. Unreachable native
 providers are rejected if they add any structural compiler work, more than one
-second of wall time, or more than 16 MiB RSS. The focused implementation has 60
-tests with exact 100% region, function, and line coverage and completes its
-local validation in under four seconds. Compiler-emitted invalidation reasons,
-semantic-type inventory, and strict combined-root bounds remain open.
+second of wall time, or more than 16 MiB RSS. Every profile must now report
+phase timings, reachability, semantic-type inventory, and a cache disposition;
+every warm profile must reuse a verified native image. The focused
+implementation has 65 tests with exact 100% coverage across 4,381 regions, 216
+functions, and 2,871 lines. Its complete instrumented coverage gate finishes
+in under 11 seconds. Strict relative combined-root growth bounds remain open.
 
 ### TF3: JavaScript differential execution
 
