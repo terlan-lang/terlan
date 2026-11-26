@@ -3,12 +3,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{FuzzProfile, Oracle, ProfileRequest, RunOptions};
 
 const RESULT_SCHEMA: &str = "terlan.type-fuzz-profile-result.v1";
+const PROFILE_TIMEOUT_MS: u64 = 300_000;
 const INTERFACE_FAMILIES: [&str; 3] = [
     "generic_field_receiver",
     "generic_trait_package",
@@ -45,13 +47,42 @@ pub(crate) fn run(
     compiler: &Path,
     compiler_revision: &str,
 ) -> Result<(), String> {
-    let runs = plan(request)?;
+    let mut runs = plan(request)?;
     fs::create_dir_all(&request.out_dir)
         .map_err(|error| format!("create fuzz profile output: {error}"))?;
-    for planned in &runs {
-        crate::executor::run_generated(&planned.options, compiler, compiler_revision)?;
-    }
+    execute_bounded(&mut runs, &mut |options| {
+        timed_run(options, compiler, compiler_revision)
+    })?;
     publish_result(request, compiler_revision, &runs)
+}
+
+fn timed_run(
+    options: &RunOptions,
+    compiler: &Path,
+    compiler_revision: &str,
+) -> Result<u64, String> {
+    let started = Instant::now();
+    crate::executor::run_generated(options, compiler, compiler_revision)?;
+    Ok(started.elapsed().as_millis() as u64)
+}
+
+fn execute_bounded(
+    runs: &mut [PlannedRun],
+    execute: &mut dyn FnMut(&RunOptions) -> Result<u64, String>,
+) -> Result<(), String> {
+    let mut remaining_ms = PROFILE_TIMEOUT_MS;
+    for planned in runs {
+        if remaining_ms == 0 {
+            return Err(format!(
+                "fuzz profile exhausted its {PROFILE_TIMEOUT_MS}ms wall budget before `{}`",
+                planned.label
+            ));
+        }
+        planned.options.total_timeout_ms = planned.options.total_timeout_ms.min(remaining_ms);
+        let elapsed_ms = execute(&planned.options)?;
+        remaining_ms = remaining_ms.saturating_sub(elapsed_ms);
+    }
+    Ok(())
 }
 
 pub(crate) fn verify(path: &Path, compiler_revision: &str) -> Result<(), String> {
@@ -195,7 +226,7 @@ fn planned(
             families,
             out_dir: request.out_dir.join(format!("{label}-s{seed}")),
             case_timeout_ms: 5_000,
-            total_timeout_ms: 300_000,
+            total_timeout_ms: PROFILE_TIMEOUT_MS,
             rss_limit_bytes: 2 * 1024 * 1024 * 1024,
             cpu_limit_ms: 5_000,
             ..RunOptions::default()

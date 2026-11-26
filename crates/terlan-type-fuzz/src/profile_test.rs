@@ -103,6 +103,38 @@ fn successful_result_is_revision_bound_and_reusable() {
 }
 
 #[test]
+fn profile_runs_share_one_wall_budget() {
+    let root = Path::new("profiles");
+    let mut runs = plan(&request(FuzzProfile::Candidate, root)).expect("candidate plan");
+    let mut admitted = Vec::new();
+    execute_bounded(&mut runs, &mut |options| {
+        admitted.push(options.total_timeout_ms);
+        Ok(120_000)
+    })
+    .expect("profile remains inside its shared budget");
+    assert_eq!(admitted, [300_000, 180_000, 60_000]);
+
+    let mut exhausted = plan(&request(FuzzProfile::Candidate, root)).expect("candidate plan");
+    let mut calls = 0;
+    let failure = execute_bounded(&mut exhausted, &mut |_| {
+        calls += 1;
+        Ok(300_000)
+    })
+    .expect_err("later backends cannot receive a fresh budget");
+    assert_eq!(calls, 1);
+    assert!(failure.contains("before `native-s1`"));
+
+    let offline = tempfile::tempdir().expect("offline profile");
+    let options = RunOptions {
+        cases: 1,
+        oracle: Oracle::None,
+        out_dir: offline.path().to_path_buf(),
+        ..RunOptions::default()
+    };
+    assert!(timed_run(&options, Path::new("missing-compiler"), "revision").is_ok());
+}
+
+#[test]
 fn result_records_every_planned_backend() {
     let root = tempfile::tempdir().expect("profile root");
     let request = request(FuzzProfile::Candidate, root.path());
