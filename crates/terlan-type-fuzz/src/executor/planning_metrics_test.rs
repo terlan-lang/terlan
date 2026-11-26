@@ -17,9 +17,10 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
         "terlc native-aot: image.cache-or-build: +0ms total=1ms ",
         "reachable-declarations=17 native-providers=ndarray,polars ",
         "cache-miss-reason=source_changed\n",
+        "terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image\n",
     );
     let measured = measure(stderr);
-    assert_eq!(measured.timing_events, 10);
+    assert_eq!(measured.timing_events, 11);
     assert_eq!(measured.phase_elapsed_ms["frontend.parse"], 20);
     assert_eq!(
         measured.phase_elapsed_ms["application.generic-specialization"],
@@ -30,12 +31,12 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
     assert_eq!(measured.lowered_calls, 11);
     assert_eq!(measured.lowering_cache_hits, 5);
     assert_eq!(measured.native_images, 2);
-    assert_eq!(measured.native_image_cache_hits, 1);
+    assert_eq!(measured.native_image_cache_hits, 2);
     assert_eq!(measured.native_image_cache_misses, 1);
     assert_eq!(measured.native_units_built, 2);
     assert_eq!(measured.native_functions_built, 17);
     assert_eq!(measured.native_continuations_built, 3);
-    assert_eq!(measured.last_phase.as_deref(), Some("image.cache-or-build"));
+    assert_eq!(measured.last_phase.as_deref(), Some("rooted.cache"));
     assert_eq!(measured.reachable_declarations, Some(17));
     assert_eq!(
         measured.native_providers,

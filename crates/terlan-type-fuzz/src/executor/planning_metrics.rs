@@ -104,10 +104,15 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
                 .or_default();
             *count = count.saturating_add(1);
         }
+        if text_field(line, "cache-hit=").is_some() {
+            metrics.native_image_cache_hits = metrics.native_image_cache_hits.saturating_add(1);
+        }
     }
-    metrics.native_image_cache_hits = metrics
-        .native_images
-        .saturating_sub(metrics.native_image_cache_misses);
+    metrics.native_image_cache_hits = metrics.native_image_cache_hits.saturating_add(
+        metrics
+            .native_images
+            .saturating_sub(metrics.native_image_cache_misses),
+    );
     metrics
 }
 
