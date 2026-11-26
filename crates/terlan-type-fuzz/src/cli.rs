@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{Oracle, RunOptions};
 
@@ -16,6 +16,17 @@ pub fn parse(args: &[String]) -> Result<Action, String> {
         Some("replay") if args.len() == 2 => Ok(Action::Replay(PathBuf::from(&args[1]))),
         Some("replay") => Err("usage: terlc fuzz replay <case-dir>".into()),
         _ => Err("expected `types` or `replay`; run `terlc help fuzz`".into()),
+    }
+}
+
+/// Applies a command-adapter output directory to generated cases.
+pub fn apply_output_directory(action: Action, out_dir: Option<&Path>) -> Action {
+    match (action, out_dir) {
+        (Action::Types(mut options), Some(path)) => {
+            options.out_dir = path.to_path_buf();
+            Action::Types(options)
+        }
+        (other, _) => other,
     }
 }
 
@@ -108,6 +119,28 @@ mod tests {
         assert_eq!(
             parse(&strings(&["replay", "case"])),
             Ok(Action::Replay(PathBuf::from("case")))
+        );
+    }
+
+    #[test]
+    fn output_override_only_changes_generated_cases() {
+        let generated = parse(&strings(&["types"])).expect("type fuzz action");
+        let mut expected = RunOptions::default();
+        expected.out_dir = PathBuf::from("target/fuzz/custom");
+        assert_eq!(
+            apply_output_directory(generated, Some(Path::new("target/fuzz/custom"))),
+            Action::Types(expected)
+        );
+
+        let default = parse(&strings(&["types"])).expect("type fuzz action");
+        assert_eq!(
+            apply_output_directory(default, None),
+            parse(&strings(&["types"])).expect("default action")
+        );
+        let replay = Action::Replay(PathBuf::from("case"));
+        assert_eq!(
+            apply_output_directory(replay, Some(Path::new("ignored"))),
+            Action::Replay(PathBuf::from("case"))
         );
     }
 
