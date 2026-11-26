@@ -195,38 +195,82 @@ fn recorded_generator_versions_retain_their_family_mapping() {
         cpu_limit_ms: 2_000,
         compiler_revision: "test",
     };
-    let legacy = regenerate(17, &config, GENERATOR_V1).expect("legacy generator");
+    let legacy = regenerate(17, &config, GENERATOR_V1, "scalar_unit").expect("legacy generator");
     assert_eq!(legacy.manifest.family, "scalar_unit");
     assert!(legacy.manifest.case_id.starts_with("v1-"));
     assert!(legacy.support_sources.is_empty());
 
-    let second = regenerate(18, &config, GENERATOR_V2).expect("second generator");
+    let second = regenerate(18, &config, GENERATOR_V2, "scalar_unit").expect("second generator");
     assert_eq!(second.manifest.family, "scalar_unit");
     assert!(second.manifest.case_id.starts_with("v2-"));
 
-    let third = regenerate(19, &config, GENERATOR_V3).expect("third generator");
+    let third = regenerate(19, &config, GENERATOR_V3, "scalar_unit").expect("third generator");
     assert_eq!(third.manifest.family, "scalar_unit");
     assert!(third.manifest.case_id.starts_with("v3-"));
 
-    let fourth = regenerate(19, &config, GENERATOR_V4).expect("fourth generator");
+    let fourth =
+        regenerate(19, &config, GENERATOR_V4, "suspension_capture").expect("fourth generator");
     assert_eq!(fourth.manifest.family, "suspension_capture");
     assert!(fourth.manifest.case_id.starts_with("v4-"));
     assert!(fourth.support_sources.is_empty());
 
-    let current = regenerate(20, &config, GENERATOR_V5).expect("current generator");
+    let current = regenerate(20, &config, GENERATOR_V5, "native_provider_transport")
+        .expect("current generator");
     assert_eq!(current.manifest.family, "native_provider_transport");
     assert!(current.manifest.case_id.starts_with("v5-"));
     assert!(current.fixture.is_some());
     assert_eq!(
-        regenerate(22, &config, GENERATOR_V6)
+        regenerate(22, &config, GENERATOR_V6, "scalar_unit")
             .expect("sixth generator")
             .manifest
             .family,
         "scalar_unit"
     );
     assert_eq!(
-        regenerate(22, &config, "terlan.type-fuzz-generator.v7").unwrap_err(),
+        regenerate(22, &config, "terlan.type-fuzz-generator.v7", "scalar_unit").unwrap_err(),
         "unsupported type fuzz generator `terlan.type-fuzz-generator.v7`"
+    );
+}
+
+#[test]
+fn selected_families_generate_and_replay_independently_of_case_index() {
+    let config = GenerationConfig {
+        seed: 1,
+        max_depth: 8,
+        oracle: Oracle::Check,
+        timeout_ms: 2_000,
+        rss_limit_bytes: 1024,
+        cpu_limit_ms: 2_000,
+        compiler_revision: "test",
+    };
+    let names = Family::ALL
+        .into_iter()
+        .map(|family| family.name().to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(validate_families(&names), Ok(()));
+    for (index, name) in names.iter().enumerate() {
+        let generated = generate_selected(index as u32 + 100, &config, std::slice::from_ref(name));
+        assert_eq!(generated.manifest.family, *name);
+        let replayed = regenerate(
+            generated.manifest.case_index,
+            &config,
+            &generated.manifest.generator,
+            &generated.manifest.family,
+        )
+        .expect("selected family replay");
+        assert_eq!(replayed, generated);
+    }
+    assert_eq!(
+        validate_families(&["unknown".into()]),
+        Err("unknown fuzz family `unknown`".into())
+    );
+    assert_eq!(
+        validate_families(&["record".into(), "record".into()]),
+        Err("fuzz family `record` was selected more than once".into())
+    );
+    assert_eq!(
+        regenerate(100, &config, GENERATOR_V6, "unknown").unwrap_err(),
+        "unknown fuzz family `unknown`"
     );
 }
 

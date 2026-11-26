@@ -222,6 +222,7 @@ pub(super) fn load_generated_case(directory: &Path) -> Result<GeneratedCase, Str
         &options,
         &manifest.compiler_revision,
         &manifest.generator,
+        &manifest.family,
     )?;
     verify_case(directory, &case)?;
     Ok(case)

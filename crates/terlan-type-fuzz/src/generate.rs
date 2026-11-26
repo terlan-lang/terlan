@@ -75,15 +75,51 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
     generate_version(index, config, GeneratorVersion::V6)
 }
 
+pub(crate) fn generate_selected(
+    index: u32,
+    config: &GenerationConfig<'_>,
+    families: &[String],
+) -> GeneratedCase {
+    let Some(name) = families.get(index as usize % families.len().max(1)) else {
+        return generate(index, config);
+    };
+    generate_family_version(
+        index,
+        config,
+        GeneratorVersion::V6,
+        Family::parse(name).expect("run validation accepts every selected family"),
+    )
+}
+
+pub(crate) fn validate_families(families: &[String]) -> Result<(), String> {
+    let mut selected = std::collections::BTreeSet::new();
+    for family in families {
+        Family::parse(family)?;
+        if !selected.insert(family) {
+            return Err(format!(
+                "fuzz family `{family}` was selected more than once"
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn regenerate(
     index: u32,
     config: &GenerationConfig<'_>,
     generator: &str,
+    family: &str,
 ) -> Result<GeneratedCase, String> {
-    Ok(generate_version(
+    let version = GeneratorVersion::parse(generator)?;
+    let generated = generate_version(index, config, version);
+    if generated.manifest.family == family {
+        return Ok(generated);
+    }
+    Ok(generate_family_version(
         index,
         config,
-        GeneratorVersion::parse(generator)?,
+        version,
+        Family::parse(family)?,
     ))
 }
 
@@ -92,9 +128,18 @@ fn generate_version(
     config: &GenerationConfig<'_>,
     version: GeneratorVersion,
 ) -> GeneratedCase {
+    let family = Family::from_index(index, config.max_depth, config.oracle, version);
+    generate_family_version(index, config, version, family)
+}
+
+fn generate_family_version(
+    index: u32,
+    config: &GenerationConfig<'_>,
+    version: GeneratorVersion,
+    family: Family,
+) -> GeneratedCase {
     let split_seed = split(config.seed, index);
     let number = (split_seed % 97) as i64 + 1;
-    let family = Family::from_index(index, config.max_depth, config.oracle, version);
     let oracle_name = match config.oracle {
         Oracle::Check => "check",
         Oracle::JavaScript => "js",
@@ -187,6 +232,38 @@ enum Family {
 }
 
 impl Family {
+    const ALL: [Self; 22] = [
+        Self::UnitScalar,
+        Self::BoolScalar,
+        Self::IntScalar,
+        Self::FloatScalar,
+        Self::StringScalar,
+        Self::AtomScalar,
+        Self::LexicalProduct,
+        Self::Record,
+        Self::List,
+        Self::IfProductJoin,
+        Self::CaseProductJoin,
+        Self::OptionJoin,
+        Self::NominalOptionJoin,
+        Self::ResultJoin,
+        Self::NestedResultJoin,
+        Self::ClosedUnion,
+        Self::ClosedUnionEmpty,
+        Self::GenericFieldReceiver,
+        Self::GenericTraitPackage,
+        Self::SuspensionCapture,
+        Self::NativeProviderTransport,
+        Self::InterfaceCacheTransaction,
+    ];
+
+    fn parse(name: &str) -> Result<Self, String> {
+        Self::ALL
+            .into_iter()
+            .find(|family| family.name() == name)
+            .ok_or_else(|| format!("unknown fuzz family `{name}`"))
+    }
+
     fn from_index(index: u32, max_depth: u8, oracle: Oracle, version: GeneratorVersion) -> Self {
         if oracle == Oracle::JavaScript && max_depth > 2 {
             return Self::from_javascript_index(index);

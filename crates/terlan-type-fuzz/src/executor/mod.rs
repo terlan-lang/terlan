@@ -23,7 +23,7 @@ pub fn execute(action: Action, compiler: &Path, compiler_revision: &str) -> Resu
 }
 
 fn generate_case(index: u32, options: &RunOptions, compiler_revision: &str) -> GeneratedCase {
-    crate::generate(
+    crate::generate::generate_selected(
         index,
         &GenerationConfig {
             seed: options.seed,
@@ -34,6 +34,7 @@ fn generate_case(index: u32, options: &RunOptions, compiler_revision: &str) -> G
             cpu_limit_ms: options.cpu_limit_ms,
             compiler_revision,
         },
+        &options.families,
     )
 }
 
@@ -42,6 +43,7 @@ fn regenerate_case(
     options: &RunOptions,
     compiler_revision: &str,
     generator: &str,
+    family: &str,
 ) -> Result<GeneratedCase, String> {
     crate::generate::regenerate(
         index,
@@ -55,6 +57,7 @@ fn regenerate_case(
             compiler_revision,
         },
         generator,
+        family,
     )
 }
 

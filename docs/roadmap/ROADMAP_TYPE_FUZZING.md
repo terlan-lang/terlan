@@ -428,6 +428,16 @@ missing, malformed, live, zombie, and dead entries. The focused crate passes
 - [ ] Publish aggregate seed, feature-pair, oracle, failure, timing, RSS, cache,
   and reduction metrics without content hashes that require manual bumps.
 
+`terlc fuzz types` now accepts repeatable `--family` selections. Selection is
+validated against the generator-owned family registry, preserves deterministic
+case identities, and records the selected family in each replay manifest.
+Replay reconstructs that exact family even when its case index would ordinarily
+select another one. This is the execution primitive for explicit impacted-family
+ownership; it does not infer ownership from filenames. All 22 current families,
+unknown and duplicate selections, and cross-index replay are covered. The
+focused crate passes 126 tests with exact 100% coverage across 10,835 regions,
+503 functions, and 6,959 lines.
+
 Acceptance: a release candidate consumes the already-successful exact-revision
 fuzz result. Publication does not rerun an unchanged fuzz corpus, and a changed
 compiler cannot reuse evidence from another revision.

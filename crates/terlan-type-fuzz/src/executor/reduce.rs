@@ -160,6 +160,7 @@ fn generate(manifest: &CaseManifest, seed: u64, index: u32, max_depth: u8) -> Ge
         &options,
         &manifest.compiler_revision,
         &manifest.generator,
+        &manifest.family,
     )
     .expect("loaded manifests use supported fuzz generators")
 }

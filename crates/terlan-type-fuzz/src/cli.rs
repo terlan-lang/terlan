@@ -51,6 +51,7 @@ fn parse_types(args: &[String]) -> Result<RunOptions, String> {
             "--cases" => options.cases = number(value, flag)?,
             "--max-depth" => options.max_depth = number(value, flag)?,
             "--oracle" => options.oracle = Oracle::parse(value)?,
+            "--family" => options.families.push(value.clone()),
             "--out-dir" => options.out_dir = PathBuf::from(value),
             "--case-timeout-ms" => options.case_timeout_ms = number(value, flag)?,
             "--total-timeout-ms" => options.total_timeout_ms = number(value, flag)?,
@@ -97,6 +98,10 @@ mod tests {
             "4",
             "--oracle",
             "none",
+            "--family",
+            "record",
+            "--family",
+            "generic_field_receiver",
             "--out-dir",
             "cases",
             "--case-timeout-ms",
@@ -113,6 +118,7 @@ mod tests {
             cases: 9,
             max_depth: 4,
             oracle: Oracle::None,
+            families: vec!["record".into(), "generic_field_receiver".into()],
             out_dir: PathBuf::from("cases"),
             case_timeout_ms: 3,
             total_timeout_ms: 4,
@@ -188,6 +194,14 @@ mod tests {
             (strings(&["types", "--seed"]), "requires a value"),
             (strings(&["types", "--seed", "no"]), "positive integer"),
             (strings(&["types", "--surprise", "1"]), "unknown"),
+            (
+                strings(&["types", "--family", "unknown"]),
+                "unknown fuzz family",
+            ),
+            (
+                strings(&["types", "--family", "record", "--family", "record"]),
+                "selected more than once",
+            ),
         ] {
             assert!(parse(&args).expect_err("must reject").contains(expected));
         }

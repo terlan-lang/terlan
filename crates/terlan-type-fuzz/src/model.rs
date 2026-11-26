@@ -35,6 +35,7 @@ pub struct RunOptions {
     pub cases: u32,
     pub max_depth: u8,
     pub oracle: Oracle,
+    pub families: Vec<String>,
     pub out_dir: PathBuf,
     pub case_timeout_ms: u64,
     pub total_timeout_ms: u64,
@@ -49,6 +50,7 @@ impl Default for RunOptions {
             cases: 100,
             max_depth: 8,
             oracle: Oracle::Check,
+            families: Vec::new(),
             out_dir: PathBuf::from("target/fuzz/cases"),
             case_timeout_ms: 2_000,
             total_timeout_ms: 30_000,
@@ -79,6 +81,7 @@ impl RunOptions {
         if self.cpu_limit_ms == 0 || self.cpu_limit_ms > 300_000 {
             return Err("--cpu-limit-ms must be between 1 and 300000".into());
         }
+        crate::generate::validate_families(&self.families)?;
         Ok(())
     }
 }
@@ -178,6 +181,7 @@ mod tests {
         assert_eq!(options.validate(), Ok(()));
         assert_eq!(options.seed, 1);
         assert_eq!(options.oracle, Oracle::Check);
+        assert!(options.families.is_empty());
         assert_eq!(options.out_dir, PathBuf::from("target/fuzz/cases"));
     }
 
