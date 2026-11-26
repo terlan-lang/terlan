@@ -136,6 +136,28 @@ fn dynamic_return_script_direct_call_reaches_native_object() {
     super::emit_native_application_object("script_direct_call", &modules).unwrap();
 }
 
+/// A script sequence must contextualize its final scalar with the recovered type.
+#[test]
+fn dynamic_return_script_sequence_uses_recovered_scalar_context() {
+    let syntax = crate::terlan_syntax::parse_script_as_syntax_output(
+        "effect(value: Int): Unit -> Unit.\nanswer = 40 + 2;\neffect(answer);\nanswer.\n",
+        "script.ScalarSequence",
+    )
+    .unwrap();
+    let resolved = crate::terlan_hir::resolve_syntax_module_output(&syntax).module;
+    let diagnostics = crate::terlan_typeck::type_check_syntax_module_output(&syntax, &resolved);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let core = crate::terlan_typeck::lower_syntax_module_output_to_core(&syntax, &resolved);
+    let modules = super::NativeModule::lower_application(&[&core]).unwrap();
+    let main = modules[0]
+        .functions
+        .iter()
+        .find(|function| function.name == "main")
+        .unwrap();
+    assert_eq!(main.return_type, super::NativeType::Int);
+    super::emit_native_application_object("script_scalar_sequence", &modules).unwrap();
+}
+
 /// Qualified identity and arity select the callee, not another module's short name.
 #[test]
 fn dynamic_return_resolves_qualified_managed_calls_without_rewriting_body() {

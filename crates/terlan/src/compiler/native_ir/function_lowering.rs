@@ -153,10 +153,20 @@ pub(super) fn lower_native_function_with_callables(
         .core_expr
         .as_ref()
         .ok_or_else(|| native_error(function, "has no typed CoreIR body"))?;
-    let contextual_body = function
-        .core_return_type
+    let dynamic_return_contract = function.core_return_type.as_ref().is_some_and(|ty| {
+        matches!(ty, CoreType::Dynamic) || matches!(ty, CoreType::Named(name) if name == "Dynamic")
+    });
+    let structural_dynamic_return =
+        dynamic_return::inferred_dynamic_return_type(function).filter(|ty| {
+            !matches!(ty, CoreType::Dynamic)
+                && !matches!(ty, CoreType::Named(name) if name == "Dynamic")
+        });
+    let contextual_return = structural_dynamic_return
         .as_ref()
-        .map(|target| contextualize_tail_construction(core_body, target));
+        .filter(|_| dynamic_return_contract)
+        .or(function.core_return_type.as_ref());
+    let contextual_body =
+        contextual_return.map(|target| contextualize_tail_construction(core_body, target));
     let core_body = scalar_replacement::scalar_replace_fixed_aggregates(
         contextual_body.as_ref().unwrap_or(core_body),
         constructors,
@@ -187,29 +197,17 @@ pub(super) fn lower_native_function_with_callables(
                 .map(|core_type| (param.name.clone(), core_type.clone()))
         })
         .collect::<HashMap<_, _>>();
-    let dynamic_return_contract = function.core_return_type.as_ref().is_some_and(|ty| {
-        matches!(ty, CoreType::Dynamic) || matches!(ty, CoreType::Named(name) if name == "Dynamic")
+    let inferred_dynamic_return = structural_dynamic_return.or_else(|| {
+        dynamic_return_contract
+            .then(|| {
+                structured_case::core_expr_type(&core_body, &param_core_types, function_core_types)
+            })
+            .flatten()
+            .filter(|ty| {
+                !matches!(ty, CoreType::Dynamic)
+                    && !matches!(ty, CoreType::Named(name) if name == "Dynamic")
+            })
     });
-    let inferred_dynamic_return = dynamic_return::inferred_dynamic_return_type(function)
-        .filter(|ty| {
-            !matches!(ty, CoreType::Dynamic)
-                && !matches!(ty, CoreType::Named(name) if name == "Dynamic")
-        })
-        .or_else(|| {
-            dynamic_return_contract
-                .then(|| {
-                    structured_case::core_expr_type(
-                        &core_body,
-                        &param_core_types,
-                        function_core_types,
-                    )
-                })
-                .flatten()
-                .filter(|ty| {
-                    !matches!(ty, CoreType::Dynamic)
-                        && !matches!(ty, CoreType::Named(name) if name == "Dynamic")
-                })
-        });
     let effective_function_core_types = inferred_dynamic_return.as_ref().map(|inferred| {
         let mut effective = function_core_types.clone();
         effective.insert((function.name.clone(), function.arity), inferred.clone());
