@@ -181,7 +181,10 @@ fn record_observation(
     };
     atomic_write(
         &directory.join("resources.json"),
-        &json_bytes(&resource_evidence_json(&resources)),
+        &json_bytes(&resource_evidence_json(
+            &resources,
+            last_compiler_phase(&result.stderr),
+        )),
     )?;
     Ok(())
 }
@@ -338,7 +341,21 @@ fn timing_evidence_json(result: &OracleResult) -> serde_json::Value {
     })
 }
 
-fn resource_evidence_json(evidence: &ResourceEvidence) -> serde_json::Value {
+fn timing_phase(line: &str) -> Option<&str> {
+    let event = line
+        .strip_prefix("terlc timing: ")
+        .or_else(|| line.strip_prefix("terlc native-aot: "))?;
+    event.split_once(':').map(|(phase, _)| phase)
+}
+
+fn last_compiler_phase(stderr: &str) -> Option<&str> {
+    stderr.lines().filter_map(timing_phase).next_back()
+}
+
+fn resource_evidence_json(
+    evidence: &ResourceEvidence,
+    last_compiler_phase: Option<&str>,
+) -> serde_json::Value {
     let optional_u64 = |value: Option<u64>| value.map_or(serde_json::Value::Null, Into::into);
     serde_json::Value::Object(
         [
@@ -368,6 +385,10 @@ fn resource_evidence_json(evidence: &ResourceEvidence) -> serde_json::Value {
                 evidence
                     .limit_exceeded
                     .map_or(serde_json::Value::Null, Into::into),
+            ),
+            (
+                "last_compiler_phase".into(),
+                last_compiler_phase.map_or(serde_json::Value::Null, Into::into),
             ),
             (
                 "process_group_cleanup".into(),
@@ -437,12 +458,18 @@ mod tests {
         assert!(recorded.contains("\"peak_rss_bytes\":42"));
         assert!(recorded.contains("\"peak_cpu_ms\":7"));
         assert!(recorded.contains("\"wall_elapsed_ms\":9"));
+        assert!(recorded.contains("\"last_compiler_phase\":\"image.native-ir\""));
         let timings =
             fs::read_to_string(root.path().join("timings.json")).expect("timing evidence");
         assert!(timings.contains("\"measurement\":\"compiler_events\""));
         assert!(timings.contains("frontend.parse"));
         assert!(timings.contains("image.native-ir"));
         assert!(!timings.contains("ordinary diagnostic"));
+        assert_eq!(timing_phase("ordinary diagnostic"), None);
+        assert_eq!(
+            timing_phase("terlc timing: frontend.parse: +3ms total=3ms"),
+            Some("frontend.parse")
+        );
     }
 
     #[test]
