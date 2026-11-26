@@ -68,15 +68,37 @@ impl CheckedType {
 pub(crate) struct GeneratedBody {
     pub(crate) checked_type: CheckedType,
     pub(crate) value: Value,
-    pub(crate) source: String,
+    prelude: String,
+    expression: String,
 }
 
 impl GeneratedBody {
-    pub(crate) fn for_type(checked_type: CheckedType, value: Value, source: String) -> Self {
+    pub(crate) fn expression(checked_type: CheckedType, value: Value, expression: String) -> Self {
         Self {
             checked_type,
             value,
-            source,
+            prelude: String::new(),
+            expression,
+        }
+    }
+
+    pub(crate) fn with_prelude(mut self, prelude: impl Into<String>) -> Self {
+        self.prelude = prelude.into();
+        self
+    }
+
+    pub(crate) fn source(&self) -> String {
+        let signature = format!("pub sample(): {} ->", self.checked_type.source_name());
+        let expression = self
+            .expression
+            .lines()
+            .map(|line| format!("    {line}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        if self.prelude.is_empty() {
+            format!("{signature}\n{expression}.")
+        } else {
+            format!("{}\n\n{signature}\n{expression}.", self.prelude)
         }
     }
 }
@@ -107,9 +129,13 @@ mod tests {
 
     #[test]
     fn generated_body_retains_the_requested_type_and_value() {
-        let body = GeneratedBody::for_type(CheckedType::Int, Value::from(7), "7".into());
+        let body = GeneratedBody::expression(CheckedType::Int, Value::from(7), "7".into());
         assert_eq!(body.checked_type, CheckedType::Int);
         assert_eq!(body.value, Value::from(7));
-        assert_eq!(body.source, "7");
+        assert_eq!(body.source(), "pub sample(): Int ->\n    7.");
+        assert_eq!(
+            body.with_prelude("pub type Number = Int.").source(),
+            "pub type Number = Int.\n\npub sample(): Int ->\n    7."
+        );
     }
 }
