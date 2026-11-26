@@ -163,7 +163,7 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 Two independent runs must produce byte-identical case artifacts.
 
 The generator and bounded executor crate has 100% line, function, and region
-coverage: 2,703 regions, 136 functions, and 1,760 lines. Its 42-test execution
+coverage: 3,530 regions, 180 functions, and 2,298 lines. Its 55-test execution
 is subsecond, and its complete instrumented coverage gate finishes in under 15
 seconds. The executor measures the whole process group, enforces combined
 stdout/stderr limits, and cleans up descendants after success, failure,
@@ -199,7 +199,7 @@ oracle acceptance remains open; generation success alone does not close TF1.
 - [ ] Separate planning, lowering, native compilation, linking, test execution,
   and coverage collection so immediate assertions cannot conceal multi-minute
   compiler planning.
-- [ ] Generate matched narrow/broad dependency graphs and prove unreachable
+- [x] Generate matched narrow/broad dependency graphs and prove unreachable
   native providers add no helpers, monomorphizations, planning work, or RSS.
 - [ ] Compare focused, combined-root, cold-cache, and warm-cache runs with
   explicit progress and cache-invalidation diagnostics.
@@ -224,6 +224,16 @@ RSS and 1.2 CPU-seconds. This establishes the narrow-graph baseline; it does
 not close the broad dependency-graph work, where small application suites have
 previously required minutes and 1--2.3 GiB and full core coverage exceeded
 7 GiB.
+
+The bounded native oracle now also runs matched narrow and broad package graphs.
+The broad graph declares an unreachable native provider whose helper is
+deliberately absent, so successful execution proves the helper was not
+materialized. Both graphs completed in 0.21 seconds; peak RSS changed from
+105,216 KiB to 105,588 KiB. The comparison artifact records per-phase elapsed
+time, generic specialization count, suspension profiles, lowered calls,
+lowering-cache hits, and native unit/function/continuation counts with signed
+deltas. Semantic-type inventory and explicit cache-disposition events remain
+open under the broader metrics item.
 
 ### TF3: JavaScript differential execution
 
