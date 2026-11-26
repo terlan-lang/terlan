@@ -118,6 +118,26 @@ fn generation_is_stable_and_covers_each_initial_family() {
 }
 
 #[test]
+fn every_family_owns_ordered_unique_feature_labels() {
+    for family in family_names() {
+        let features = family_features(&family).expect("registered family features");
+        assert!(features.len() >= 2);
+        assert!(features.windows(2).all(|pair| pair[0] != pair[1]));
+        assert_eq!(
+            features
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len(),
+            features.len()
+        );
+    }
+    assert!(family_features("missing_family")
+        .unwrap_err()
+        .contains("unknown fuzz family"));
+}
+
+#[test]
 fn seed_and_depth_budgets_change_only_their_owned_dimensions() {
     assert_ne!(case(1, 2, 8).expected, case(2, 2, 8).expected);
     for index in 0..12 {

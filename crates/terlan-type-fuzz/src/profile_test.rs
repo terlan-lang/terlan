@@ -100,6 +100,12 @@ fn successful_result_is_revision_bound_and_reusable() {
             .expect("result json");
     assert_eq!(value["status"], "passed");
     assert_eq!(value["runs"], serde_json::json!([]));
+    let metrics: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(root.path().join("metrics.json")).expect("metrics text"),
+    )
+    .expect("metrics json");
+    assert_eq!(metrics["status"], "passed");
+    assert_eq!(metrics["runs"], serde_json::json!([]));
 }
 
 #[test]
@@ -202,6 +208,11 @@ fn profile_and_result_failures_are_attributed() {
     .unwrap_err()
     .contains("oracle ended as infrastructure_error"));
     assert!(!execution.join("result.json").exists());
+    let failed_metrics: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(execution.join("metrics.json")).expect("failed metrics text"),
+    )
+    .expect("failed metrics json");
+    assert_eq!(failed_metrics["status"], "failed");
     assert_eq!(oracle_name(Oracle::None), "none");
 
     let serialization = attributed_serialization(Err(serde_json::Error::io(
@@ -222,4 +233,18 @@ fn profile_and_result_failures_are_attributed() {
     )
     .expect_err("serialized publication failure");
     assert!(publication.contains("serialize fuzz profile result"));
+}
+
+#[test]
+fn profile_completion_preserves_execution_and_metric_failures() {
+    assert!(finish_profile(Err("run".into()), Ok(()))
+        .unwrap_err()
+        .contains("run"));
+    assert!(finish_profile(Ok(()), Err("metric".into()))
+        .unwrap_err()
+        .contains("metric"));
+    let combined = finish_profile(Err("run".into()), Err("metric".into()))
+        .expect_err("both failures remain visible");
+    assert_eq!(combined, "run; metrics: metric");
+    finish_profile(Ok(()), Ok(())).expect("success remains publishable");
 }

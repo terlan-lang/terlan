@@ -50,10 +50,42 @@ pub(crate) fn run(
     let mut runs = plan(request)?;
     fs::create_dir_all(&request.out_dir)
         .map_err(|error| format!("create fuzz profile output: {error}"))?;
-    execute_bounded(&mut runs, &mut |options| {
+    let execution = execute_bounded(&mut runs, &mut |options| {
         timed_run(options, compiler, compiler_revision)
-    })?;
+    });
+    let inputs = runs
+        .iter()
+        .map(|run| crate::metrics::RunInput {
+            label: run.label.clone(),
+            root: run.options.out_dir.clone(),
+        })
+        .collect::<Vec<_>>();
+    let status = if execution.is_ok() {
+        "passed"
+    } else {
+        "failed"
+    };
+    let metrics = crate::metrics::publish(
+        &request.out_dir,
+        request.profile.name(),
+        compiler_revision,
+        status,
+        &inputs,
+    );
+    finish_profile(execution, metrics)?;
     publish_result(request, compiler_revision, &runs)
+}
+
+fn finish_profile(
+    execution: Result<(), String>,
+    metrics: Result<(), String>,
+) -> Result<(), String> {
+    match (execution, metrics) {
+        (Err(run), Err(metric)) => Err(format!("{run}; metrics: {metric}")),
+        (Err(run), Ok(())) => Err(run),
+        (Ok(()), Err(metric)) => Err(metric),
+        (Ok(()), Ok(())) => Ok(()),
+    }
 }
 
 fn timed_run(

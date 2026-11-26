@@ -4,6 +4,7 @@ mod checked;
 mod cli;
 mod executor;
 mod generate;
+mod metrics;
 mod model;
 mod profile;
 

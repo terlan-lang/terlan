@@ -118,6 +118,10 @@ pub(crate) fn javascript_family_names() -> Vec<String> {
         .collect()
 }
 
+pub(crate) fn family_features(name: &str) -> Result<&'static [&'static str], String> {
+    Family::parse(name).map(Family::features)
+}
+
 pub(crate) fn regenerate(
     index: u32,
     config: &GenerationConfig<'_>,
@@ -379,6 +383,42 @@ impl Family {
             Self::SuspensionCapture => "suspension_capture",
             Self::NativeProviderTransport => "native_provider_transport",
             Self::InterfaceCacheTransaction => "interface_cache_transaction",
+        }
+    }
+
+    fn features(self) -> &'static [&'static str] {
+        match self {
+            Self::UnitScalar => &["literal", "unit"],
+            Self::BoolScalar => &["literal", "bool"],
+            Self::IntScalar => &["literal", "int"],
+            Self::FloatScalar => &["literal", "float"],
+            Self::StringScalar => &["literal", "string"],
+            Self::AtomScalar => &["literal", "atom", "singleton"],
+            Self::LexicalProduct => &["let", "lexical_binding", "product"],
+            Self::Record => &["nominal_record", "record_construction"],
+            Self::List => &["list", "collection"],
+            Self::IfProductJoin => &["if", "product", "control_join"],
+            Self::CaseProductJoin => &["case", "product", "destructure", "control_join"],
+            Self::OptionJoin => &["option", "if", "nested_control", "union"],
+            Self::NominalOptionJoin => &["option", "nominal_record", "nested_control", "union"],
+            Self::ResultJoin => &["result", "case", "union"],
+            Self::NestedResultJoin => &["result", "case", "nested_control", "union"],
+            Self::ClosedUnion => &["closed_union", "constructor", "payload"],
+            Self::ClosedUnionEmpty => &["closed_union", "constructor", "nullary"],
+            Self::GenericFieldReceiver => {
+                &["generic", "field_projection", "receiver", "multi_module"]
+            }
+            Self::GenericTraitPackage => &["generic", "trait_dispatch", "multi_module", "package"],
+            Self::SuspensionCapture => &["suspension", "continuation", "closed_union"],
+            Self::NativeProviderTransport => &[
+                "native_provider",
+                "multi_provider",
+                "binary_transport",
+                "package",
+            ],
+            Self::InterfaceCacheTransaction => {
+                &["interface", "cache", "transaction", "multi_module"]
+            }
         }
     }
 

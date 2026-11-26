@@ -426,8 +426,15 @@ missing, malformed, live, zombie, and dead entries. The focused crate passes
   source-to-feature ownership rather than filename guesses.
 - [x] Run the bounded cross-backend corpus on every release compiler candidate.
 - [x] Run rotating and mutation-derived seeds on a schedule.
-- [ ] Publish aggregate seed, feature-pair, oracle, failure, timing, RSS, cache,
+- [x] Publish aggregate seed, feature-pair, oracle, failure, timing, RSS, cache,
   and reduction metrics without content hashes that require manual bumps.
+
+Every profile now publishes deterministic `metrics.json` evidence from its
+actual case, observation, resource, timing, planning, and reduction artifacts.
+The report covers ordered and unordered feature pairs, partial failed runs, and
+cache miss reasons without maintaining a content hash. The focused crate passes
+142 tests with exact 100% coverage across 12,992 regions, 604 functions, and
+8,319 lines.
 
 `terlc fuzz types` now accepts repeatable `--family` selections. Selection is
 validated against the generator-owned family registry, preserves deterministic
