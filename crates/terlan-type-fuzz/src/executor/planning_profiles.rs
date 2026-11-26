@@ -5,6 +5,8 @@ use crate::{executor::oracle, Oracle, RunOptions};
 
 const BROAD_WALL_TOLERANCE_MS: u64 = 1_000;
 const BROAD_RSS_TOLERANCE_BYTES: u64 = 16 * 1024 * 1024;
+const COMBINED_WALL_TOLERANCE_MS: u64 = 5_000;
+const COMBINED_RSS_TOLERANCE_BYTES: u64 = 128 * 1024 * 1024;
 const PLANNING_WALL_LIMIT_MS: u64 = 60_000;
 const PLANNING_RSS_LIMIT_BYTES: u64 = 1024 * 1024 * 1024;
 
@@ -102,6 +104,35 @@ pub(super) fn ensure_broad_regression_absent(
     Ok(())
 }
 
+pub(super) fn ensure_combined_growth_bounded(
+    combined: &oracle::OracleResult,
+    focused: &oracle::OracleResult,
+) -> Result<(), String> {
+    if !metrics::combined_work_is_linear(
+        &metrics::measure(&combined.stderr),
+        &metrics::measure(&focused.stderr),
+    ) {
+        return Err("combined roots added nonlinear compiler work".into());
+    }
+    if !within_scaled_increase(
+        combined.resources.wall_elapsed_ms,
+        focused.resources.wall_elapsed_ms,
+        2,
+        COMBINED_WALL_TOLERANCE_MS,
+    ) {
+        return Err("combined roots exceeded linear wall tolerance".into());
+    }
+    if !within_scaled_increase(
+        combined.resources.peak_rss_bytes,
+        focused.resources.peak_rss_bytes,
+        1,
+        COMBINED_RSS_TOLERANCE_BYTES,
+    ) {
+        return Err("combined roots exceeded additive RSS tolerance".into());
+    }
+    Ok(())
+}
+
 pub(super) fn ensure_passed(profile: &str, result: &oracle::OracleResult) -> Result<(), String> {
     if result.outcome == "passed" {
         Ok(())
@@ -131,6 +162,19 @@ pub(super) fn planning_rss_limit(requested: u64) -> u64 {
 pub(super) fn within_increase(right: Option<u64>, left: Option<u64>, tolerance: u64) -> bool {
     match (right, left) {
         (Some(right), Some(left)) => right <= left.saturating_add(tolerance),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn within_scaled_increase(
+    right: Option<u64>,
+    left: Option<u64>,
+    scale: u64,
+    tolerance: u64,
+) -> bool {
+    match (right, left) {
+        (Some(right), Some(left)) => right <= left.saturating_mul(scale).saturating_add(tolerance),
         (None, None) => true,
         _ => false,
     }

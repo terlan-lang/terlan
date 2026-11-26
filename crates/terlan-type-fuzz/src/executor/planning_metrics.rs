@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Serialize;
 
-#[derive(Debug, Default, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub(super) struct CompilerMetrics {
     timing_events: usize,
     last_phase: Option<String>,
@@ -163,6 +163,44 @@ pub(super) fn attribution_gaps(metrics: &CompilerMetrics) -> Vec<&'static str> {
 
 pub(super) fn has_native_image_cache_hit(metrics: &CompilerMetrics) -> bool {
     metrics.native_image_cache_hits > 0
+}
+
+pub(super) fn combined_work_is_linear(
+    combined: &CompilerMetrics,
+    focused: &CompilerMetrics,
+) -> bool {
+    let bounded =
+        |combined: u64, focused: u64| combined <= focused.saturating_mul(2).saturating_add(2);
+    bounded(
+        combined.generic_specializations,
+        focused.generic_specializations,
+    ) && bounded(combined.call_profiles, focused.call_profiles)
+        && bounded(combined.lowered_calls, focused.lowered_calls)
+        && bounded(combined.native_units_built, focused.native_units_built)
+        && bounded(
+            combined.native_functions_built,
+            focused.native_functions_built,
+        )
+        && bounded(
+            combined.native_continuations_built,
+            focused.native_continuations_built,
+        )
+        && bounded(combined.semantic_types, focused.semantic_types)
+        && bounded(combined.aggregate_layouts, focused.aggregate_layouts)
+        && bounded(combined.collection_layouts, focused.collection_layouts)
+        && bounded(
+            combined.semantic_type_ids.len() as u64,
+            focused.semantic_type_ids.len() as u64,
+        )
+        && combined.native_providers == focused.native_providers
+        && match (
+            combined.reachable_declarations,
+            focused.reachable_declarations,
+        ) {
+            (Some(combined), Some(focused)) => bounded(combined, focused),
+            (None, None) => true,
+            _ => false,
+        }
 }
 
 pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> CompilerMetricDelta {

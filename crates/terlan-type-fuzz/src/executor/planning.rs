@@ -77,6 +77,8 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
     profiles::ensure_warm_reuse("combined warm", &combined_warm)?;
     profiles::ensure_warm_reuse("broad warm", &broad_warm)?;
     profiles::ensure_broad_regression_absent(&broad_cold, &narrow_cold)?;
+    profiles::ensure_combined_growth_bounded(&combined_cold, &narrow_cold)?;
+    profiles::ensure_combined_growth_bounded(&combined_warm, &narrow_warm)?;
     let evidence = serde_json::json!({
         "schema": "terlan.type-fuzz-planning.v1",
         "narrow": {

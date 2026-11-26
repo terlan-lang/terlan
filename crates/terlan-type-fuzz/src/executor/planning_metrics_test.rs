@@ -170,3 +170,97 @@ fn attribution_requires_every_planning_dimension() {
     assert_eq!(inventory_without_identities.semantic_inventory_events, 1);
     assert!(inventory_without_identities.semantic_type_ids.is_empty());
 }
+
+#[test]
+fn combined_work_accepts_linear_growth_only() {
+    let focused = CompilerMetrics {
+        generic_specializations: 1,
+        call_profiles: 1,
+        lowered_calls: 1,
+        native_units_built: 1,
+        native_functions_built: 1,
+        native_continuations_built: 1,
+        semantic_types: 1,
+        aggregate_layouts: 1,
+        collection_layouts: 1,
+        semantic_type_ids: ["one".to_string()].into(),
+        reachable_declarations: Some(1),
+        ..CompilerMetrics::default()
+    };
+    let linear = CompilerMetrics {
+        generic_specializations: 4,
+        call_profiles: 4,
+        lowered_calls: 4,
+        native_units_built: 4,
+        native_functions_built: 4,
+        native_continuations_built: 4,
+        semantic_types: 4,
+        aggregate_layouts: 4,
+        collection_layouts: 4,
+        semantic_type_ids: ["one".to_string(), "two".to_string()].into(),
+        reachable_declarations: Some(4),
+        ..CompilerMetrics::default()
+    };
+    assert!(combined_work_is_linear(&linear, &focused));
+
+    for nonlinear in [
+        CompilerMetrics {
+            generic_specializations: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            call_profiles: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            lowered_calls: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            native_units_built: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            native_functions_built: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            native_continuations_built: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            semantic_types: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            aggregate_layouts: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            collection_layouts: 5,
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            semantic_type_ids: (0..5).map(|value| value.to_string()).collect(),
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            native_providers: ["unexpected".to_string()].into(),
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            reachable_declarations: Some(5),
+            ..linear.clone()
+        },
+        CompilerMetrics {
+            reachable_declarations: None,
+            ..linear.clone()
+        },
+    ] {
+        assert!(!combined_work_is_linear(&nonlinear, &focused));
+    }
+    assert!(combined_work_is_linear(
+        &CompilerMetrics::default(),
+        &CompilerMetrics::default()
+    ));
+}

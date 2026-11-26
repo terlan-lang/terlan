@@ -221,6 +221,112 @@ fn broad_regressions_are_rejected_by_owned_dimension() {
     assert!(!profiles::within_increase(Some(1), None, 1));
 }
 
+#[test]
+fn combined_regressions_are_rejected_by_owned_dimension() {
+    let root = tempfile::tempdir().expect("planning root");
+    let source = root.path().join("CaseTest.terl");
+    fs::write(&source, "module planning.CaseTest.").expect("source");
+    let result = || {
+        oracle::run(
+            Path::new("/bin/true"),
+            Oracle::Native,
+            &source,
+            1_000,
+            1024 * 1024 * 1024,
+            1_000,
+        )
+    };
+    let mut focused = result();
+    focused.resources.wall_elapsed_ms = Some(100);
+    focused.resources.peak_rss_bytes = Some(1_024);
+    let mut combined = result();
+    combined.resources.wall_elapsed_ms = focused.resources.wall_elapsed_ms;
+    combined.resources.peak_rss_bytes = focused.resources.peak_rss_bytes;
+    combined.stderr = (0..3)
+        .map(|index| {
+            format!("terlc native-aot: module-unit.begin.{index} functions=0 continuations=0")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        profiles::ensure_combined_growth_bounded(&combined, &focused)
+            .unwrap_err()
+            .contains("nonlinear compiler work")
+    );
+
+    combined.stderr.clear();
+    combined.resources.wall_elapsed_ms = focused
+        .resources
+        .wall_elapsed_ms
+        .map(|elapsed| elapsed.saturating_mul(2).saturating_add(5_001));
+    combined.resources.peak_rss_bytes = focused.resources.peak_rss_bytes;
+    assert!(
+        profiles::ensure_combined_growth_bounded(&combined, &focused)
+            .unwrap_err()
+            .contains("wall tolerance")
+    );
+
+    combined.resources.wall_elapsed_ms = focused.resources.wall_elapsed_ms;
+    combined.resources.peak_rss_bytes = focused
+        .resources
+        .peak_rss_bytes
+        .map(|rss| rss.saturating_add(128 * 1024 * 1024 + 1));
+    assert!(
+        profiles::ensure_combined_growth_bounded(&combined, &focused)
+            .unwrap_err()
+            .contains("RSS tolerance")
+    );
+
+    combined.resources.peak_rss_bytes = focused.resources.peak_rss_bytes;
+    profiles::ensure_combined_growth_bounded(&combined, &focused).expect("linear combined roots");
+
+    combined.resources.peak_rss_bytes = None;
+    assert!(
+        profiles::ensure_combined_growth_bounded(&combined, &focused)
+            .unwrap_err()
+            .contains("RSS tolerance")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn combined_cold_and_warm_regressions_fail_the_complete_probe() {
+    use std::os::unix::fs::PermissionsExt;
+
+    for (regression_launch, expected) in [(3, "combined roots"), (4, "combined roots")] {
+        let root = tempfile::tempdir().expect("planning root");
+        let launches = root.path().join("launches");
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            attributed_compiler_script(&format!(
+                concat!(
+                    "printf 'launch\\n' >> {}\n",
+                    "if [ $(wc -l < {}) -eq {} ]; then\n",
+                    "  echo 'terlc native-aot: module-unit.begin.one functions=0 continuations=0' >&2\n",
+                    "  echo 'terlc native-aot: module-unit.begin.two functions=0 continuations=0' >&2\n",
+                    "  echo 'terlc native-aot: module-unit.begin.three functions=0 continuations=0' >&2\n",
+                    "fi",
+                ),
+                launches.display(),
+                launches.display(),
+                regression_launch,
+            )),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+        let options = RunOptions {
+            oracle: Oracle::Native,
+            out_dir: root.path().join("cases"),
+            ..RunOptions::default()
+        };
+        assert!(run(&options, &compiler, 2_000)
+            .unwrap_err()
+            .contains(expected));
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn broad_work_regression_fails_the_complete_probe() {
