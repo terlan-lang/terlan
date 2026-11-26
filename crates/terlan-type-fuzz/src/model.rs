@@ -5,8 +5,67 @@ use serde::{Deserialize, Serialize};
 pub const CASE_SCHEMA: &str = "terlan.type-fuzz-case.v1";
 pub const VALUE_SCHEMA: &str = "terlan.typed-value.v1";
 
+/// Bounded continuous-integration profile owned by the fuzz executable.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FuzzProfile {
+    Smoke,
+    Candidate,
+    Scheduled,
+    Impacted,
+}
+
+impl FuzzProfile {
+    /// Parses one stable command-line profile name.
+    pub fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "smoke" => Ok(Self::Smoke),
+            "candidate" => Ok(Self::Candidate),
+            "scheduled" => Ok(Self::Scheduled),
+            "impacted" => Ok(Self::Impacted),
+            _ => {
+                Err("fuzz profile must be `smoke`, `candidate`, `scheduled`, or `impacted`".into())
+            }
+        }
+    }
+
+    /// Returns the stable command-line and result-artifact profile name.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Smoke => "smoke",
+            Self::Candidate => "candidate",
+            Self::Scheduled => "scheduled",
+            Self::Impacted => "impacted",
+        }
+    }
+}
+
+/// Inputs for one deterministic CI profile execution.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProfileRequest {
+    pub profile: FuzzProfile,
+    pub out_dir: PathBuf,
+    pub rotation: u64,
+    pub changed_paths: Vec<String>,
+}
+
+impl ProfileRequest {
+    /// Validates profile-specific rotation and changed-path inputs.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.profile == FuzzProfile::Impacted && self.changed_paths.is_empty() {
+            return Err("impacted fuzz profile requires at least one --changed-path".into());
+        }
+        if self.profile != FuzzProfile::Impacted && !self.changed_paths.is_empty() {
+            return Err("--changed-path is valid only for the impacted fuzz profile".into());
+        }
+        if self.profile != FuzzProfile::Scheduled && self.rotation != 0 {
+            return Err("--rotation is valid only for the scheduled fuzz profile".into());
+        }
+        Ok(())
+    }
+}
+
 /// Optional semantic oracle applied after a generated case type-checks.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Oracle {
     Check,
@@ -173,6 +232,39 @@ mod tests {
             Oracle::parse("Check"),
             Err("--oracle must be `check`, `js`, `native`, or `none`".into())
         );
+    }
+
+    #[test]
+    fn profile_names_and_request_scope_are_exact() {
+        for (name, profile) in [
+            ("smoke", FuzzProfile::Smoke),
+            ("candidate", FuzzProfile::Candidate),
+            ("scheduled", FuzzProfile::Scheduled),
+            ("impacted", FuzzProfile::Impacted),
+        ] {
+            assert_eq!(FuzzProfile::parse(name), Ok(profile));
+            assert_eq!(profile.name(), name);
+        }
+        assert!(FuzzProfile::parse("full")
+            .unwrap_err()
+            .contains("fuzz profile"));
+
+        let mut request = ProfileRequest {
+            profile: FuzzProfile::Impacted,
+            out_dir: PathBuf::from("profile"),
+            rotation: 0,
+            changed_paths: Vec::new(),
+        };
+        assert!(request.validate().unwrap_err().contains("--changed-path"));
+        request.changed_paths.push("source".into());
+        assert_eq!(request.validate(), Ok(()));
+        request.profile = FuzzProfile::Smoke;
+        assert!(request.validate().unwrap_err().contains("valid only"));
+        request.changed_paths.clear();
+        request.rotation = 1;
+        assert!(request.validate().unwrap_err().contains("--rotation"));
+        request.profile = FuzzProfile::Scheduled;
+        assert_eq!(request.validate(), Ok(()));
     }
 
     #[test]

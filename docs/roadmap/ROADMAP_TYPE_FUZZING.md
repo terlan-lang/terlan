@@ -438,6 +438,17 @@ unknown and duplicate selections, and cross-index replay are covered. The
 focused crate passes 126 tests with exact 100% coverage across 10,835 regions,
 503 functions, and 6,959 lines.
 
+The fuzz executable now owns bounded `smoke`, `candidate`, `scheduled`, and
+`impacted` profiles. Candidate and scheduled profiles construct the explicit
+check/native/JavaScript matrix; scheduled seeds rotate and mutate without
+wall-clock input; impacted selection maps changed compiler ownership roots to
+deduplicated family/oracle sets. A successful profile publishes its complete
+plan with the exact compiler revision, and `terlc fuzz result verify` refuses
+failed, malformed, or different-revision results. These are executable
+integration primitives; wiring them ahead of expensive repository gates remains
+open. The focused crate passes 132 tests with exact 100% coverage across 11,769
+regions, 548 functions, and 7,547 lines.
+
 Acceptance: a release candidate consumes the already-successful exact-revision
 fuzz result. Publication does not rerun an unchanged fuzz corpus, and a changed
 compiler cannot reuse evidence from another revision.

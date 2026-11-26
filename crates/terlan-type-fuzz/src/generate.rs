@@ -104,6 +104,20 @@ pub(crate) fn validate_families(families: &[String]) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) fn family_names() -> Vec<String> {
+    Family::ALL
+        .into_iter()
+        .map(|family| family.name().to_string())
+        .collect()
+}
+
+pub(crate) fn javascript_family_names() -> Vec<String> {
+    Family::JAVASCRIPT
+        .into_iter()
+        .map(|family| family.name().to_string())
+        .collect()
+}
+
 pub(crate) fn regenerate(
     index: u32,
     config: &GenerationConfig<'_>,
@@ -255,6 +269,22 @@ impl Family {
         Self::SuspensionCapture,
         Self::NativeProviderTransport,
         Self::InterfaceCacheTransaction,
+    ];
+    const JAVASCRIPT: [Self; 14] = [
+        Self::UnitScalar,
+        Self::BoolScalar,
+        Self::IntScalar,
+        Self::FloatScalar,
+        Self::StringScalar,
+        Self::AtomScalar,
+        Self::LexicalProduct,
+        Self::Record,
+        Self::List,
+        Self::IfProductJoin,
+        Self::CaseProductJoin,
+        Self::OptionJoin,
+        Self::ResultJoin,
+        Self::NestedResultJoin,
     ];
 
     fn parse(name: &str) -> Result<Self, String> {

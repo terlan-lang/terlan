@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::{Oracle, RunOptions};
+use crate::{FuzzProfile, Oracle, ProfileRequest, RunOptions};
 
 /// Validated operation requested by the `terlc fuzz` command line.
 #[derive(Debug, PartialEq, Eq)]
@@ -9,6 +9,8 @@ pub enum Action {
     Replay(PathBuf),
     Reduce(PathBuf),
     CorpusCheck(PathBuf),
+    Profile(ProfileRequest),
+    VerifyResult(PathBuf),
 }
 
 /// Parses a type-generation or replay request without executing it.
@@ -23,7 +25,14 @@ pub fn parse(args: &[String]) -> Result<Action, String> {
             Ok(Action::CorpusCheck(PathBuf::from(&args[2])))
         }
         Some("corpus") => Err("usage: terlc fuzz corpus check <corpus-dir>".into()),
-        _ => Err("expected `types`, `replay`, `reduce`, or `corpus`; run `terlc help fuzz`".into()),
+        Some("profile") => parse_profile(&args[1..]).map(Action::Profile),
+        Some("result")
+            if args.get(1).map(String::as_str) == Some("verify") && args.len() == 3 =>
+        {
+            Ok(Action::VerifyResult(PathBuf::from(&args[2])))
+        }
+        Some("result") => Err("usage: terlc fuzz result verify <result.json>".into()),
+        _ => Err("expected `types`, `replay`, `reduce`, `corpus`, `profile`, or `result`; run `terlc help fuzz`".into()),
     }
 }
 
@@ -34,8 +43,41 @@ pub fn apply_output_directory(action: Action, out_dir: Option<&Path>) -> Action 
             options.out_dir = path.to_path_buf();
             Action::Types(options)
         }
+        (Action::Profile(mut request), Some(path)) => {
+            request.out_dir = path.to_path_buf();
+            Action::Profile(request)
+        }
         (other, _) => other,
     }
+}
+
+fn parse_profile(args: &[String]) -> Result<ProfileRequest, String> {
+    let profile = args
+        .first()
+        .ok_or_else(|| "usage: terlc fuzz profile <smoke|candidate|scheduled|impacted>".to_string())
+        .and_then(|value| FuzzProfile::parse(value))?;
+    let mut request = ProfileRequest {
+        profile,
+        out_dir: PathBuf::from("target/fuzz/profile"),
+        rotation: 0,
+        changed_paths: Vec::new(),
+    };
+    let mut index = 1;
+    while index < args.len() {
+        let flag = args[index].as_str();
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| format!("{flag} requires a value"))?;
+        match flag {
+            "--out-dir" => request.out_dir = PathBuf::from(value),
+            "--rotation" => request.rotation = number(value, flag)?,
+            "--changed-path" => request.changed_paths.push(value.clone()),
+            _ => return Err(format!("unknown fuzz profile option `{flag}`")),
+        }
+        index += 2;
+    }
+    request.validate()?;
+    Ok(request)
 }
 
 fn parse_types(args: &[String]) -> Result<RunOptions, String> {
@@ -142,6 +184,42 @@ mod tests {
             parse(&strings(&["corpus", "check", "cases"])),
             Ok(Action::CorpusCheck(PathBuf::from("cases")))
         );
+        assert_eq!(
+            parse(&strings(&[
+                "profile",
+                "scheduled",
+                "--rotation",
+                "17",
+                "--out-dir",
+                "scheduled",
+            ])),
+            Ok(Action::Profile(ProfileRequest {
+                profile: FuzzProfile::Scheduled,
+                out_dir: PathBuf::from("scheduled"),
+                rotation: 17,
+                changed_paths: Vec::new(),
+            }))
+        );
+        assert_eq!(
+            parse(&strings(&[
+                "profile",
+                "impacted",
+                "--changed-path",
+                "one",
+                "--changed-path",
+                "two",
+            ])),
+            Ok(Action::Profile(ProfileRequest {
+                profile: FuzzProfile::Impacted,
+                out_dir: PathBuf::from("target/fuzz/profile"),
+                rotation: 0,
+                changed_paths: vec!["one".into(), "two".into()],
+            }))
+        );
+        assert_eq!(
+            parse(&strings(&["result", "verify", "result.json"])),
+            Ok(Action::VerifyResult(PathBuf::from("result.json")))
+        );
     }
 
     #[test]
@@ -176,6 +254,26 @@ mod tests {
             apply_output_directory(corpus, Some(Path::new("ignored"))),
             Action::CorpusCheck(PathBuf::from("corpus"))
         );
+        let profile = Action::Profile(ProfileRequest {
+            profile: FuzzProfile::Smoke,
+            out_dir: PathBuf::from("old"),
+            rotation: 0,
+            changed_paths: Vec::new(),
+        });
+        assert_eq!(
+            apply_output_directory(profile, Some(Path::new("new"))),
+            Action::Profile(ProfileRequest {
+                profile: FuzzProfile::Smoke,
+                out_dir: PathBuf::from("new"),
+                rotation: 0,
+                changed_paths: Vec::new(),
+            })
+        );
+        let result = Action::VerifyResult(PathBuf::from("result.json"));
+        assert_eq!(
+            apply_output_directory(result, Some(Path::new("ignored"))),
+            Action::VerifyResult(PathBuf::from("result.json"))
+        );
     }
 
     #[test]
@@ -191,6 +289,27 @@ mod tests {
             (strings(&["corpus", "other", "cases"]), "usage"),
             (strings(&["corpus", "check"]), "usage"),
             (strings(&["corpus", "check", "one", "two"]), "usage"),
+            (strings(&["profile"]), "usage"),
+            (strings(&["profile", "full"]), "fuzz profile"),
+            (
+                strings(&["profile", "impacted"]),
+                "requires at least one --changed-path",
+            ),
+            (
+                strings(&["profile", "smoke", "--rotation"]),
+                "requires a value",
+            ),
+            (
+                strings(&["profile", "smoke", "--rotation", "bad"]),
+                "positive integer",
+            ),
+            (
+                strings(&["profile", "smoke", "--unknown", "x"]),
+                "unknown fuzz profile option",
+            ),
+            (strings(&["result"]), "usage"),
+            (strings(&["result", "verify"]), "usage"),
+            (strings(&["result", "other", "result.json"]), "usage"),
             (strings(&["types", "--seed"]), "requires a value"),
             (strings(&["types", "--seed", "no"]), "positive integer"),
             (strings(&["types", "--surprise", "1"]), "unknown"),
