@@ -80,7 +80,7 @@ fn run_batches(
                     .join(CASE_SOURCE_FILE)
             })
             .collect::<Vec<_>>();
-        let result = oracle::run_batch(
+        let result = oracle::run_formatted_batch(
             compiler,
             options.oracle,
             &options.out_dir,
@@ -179,7 +179,7 @@ pub(super) fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), S
 }
 
 fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Result<(), String> {
-    let result = oracle::run(
+    let result = oracle::run_formatted(
         compiler,
         case.manifest.oracle,
         &directory.join(CASE_SOURCE_FILE),
@@ -732,7 +732,7 @@ mod tests {
         fs::write(
             &compiler,
             format!(
-                "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -eq 1 ]\n",
+                "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -lt 3 ]\n",
                 launches.display(),
                 launches.display(),
             ),
@@ -784,7 +784,7 @@ mod tests {
                 .expect("launch ledger")
                 .lines()
                 .count(),
-            3
+            6
         );
     }
 

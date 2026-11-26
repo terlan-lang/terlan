@@ -150,27 +150,27 @@ impl Family {
                 serde_json::Value::Null,
                 "Unit".into(),
             ),
-            Self::BoolScalar => generated(
+            Self::BoolScalar => generated_inline(
                 CheckedType::Bool,
                 json!(value % 2 == 0),
                 (value % 2 == 0).to_string(),
             ),
-            Self::IntScalar => generated(
+            Self::IntScalar => generated_inline(
                 CheckedType::Int,
                 json!(value),
                 value.to_string(),
             ),
-            Self::FloatScalar => generated(
+            Self::FloatScalar => generated_inline(
                 CheckedType::Float,
                 json!(value as f64 + 0.5),
                 format!("{value}.5"),
             ),
-            Self::StringScalar => generated(
+            Self::StringScalar => generated_inline(
                 CheckedType::String,
                 json!(format!("value-{value}")),
                 format!("\"value-{value}\""),
             ),
-            Self::AtomScalar => generated(
+            Self::AtomScalar => generated_inline(
                 CheckedType::Atom("ready"),
                 json!({"atom": "ready"}),
                 "Atom[\"ready\"]".into(),
@@ -184,10 +184,10 @@ impl Family {
             Self::Record => generated(
                 CheckedType::Nominal("Pair"),
                 json!({"left": value, "right": value + 1}),
-                format!("Pair {{ left: {value}, right: {} }}", value + 1),
+                format!("Pair {{left: {value}, right: {}}}", value + 1),
             )
-            .with_prelude("pub struct Pair { left: Int, right: Int }."),
-            Self::List => generated(
+            .with_prelude("pub struct Pair {\n    left: Int,\n    right: Int,\n}."),
+            Self::List => generated_inline(
                 CheckedType::list(CheckedType::Int),
                 json!([value, value + 1]),
                 format!("[{value}, {}]", value + 1),
@@ -196,7 +196,9 @@ impl Family {
             Self::IfProductJoin => generated_with_expected(
                 product_type(),
                 json!([value, true]),
-                format!("let selected = if {{ false -> {{0, false}}; true -> {{{value}, true}} }};\nselected"),
+                format!(
+                    "let selected =\n    if {{\n        false -> {{0, false}};\n        true -> {{{value}, true}}\n    }};\nselected"
+                ),
                 format!("{{{value}, true}}"),
             ),
             Self::CaseProductJoin => generated_with_expected(
@@ -208,31 +210,39 @@ impl Family {
             Self::OptionJoin => generated_with_expected(
                 CheckedType::option(CheckedType::Int),
                 json!({"variant": "some", "payload": value}),
-                format!("let selected = case true {{\n    false -> None;\n    true -> case false {{ false -> Some({value}); true -> None }}\n}};\nselected"),
+                format!(
+                    "let selected =\n    if {{\n        false -> None;\n        true -> if {{\n            false -> None;\n            true -> Some({value})\n        }}\n    }};\nselected"
+                ),
                 format!("Some({value})"),
             )
             .with_prelude(option_prelude()),
             Self::NominalOptionJoin => generated_with_expected(
                 CheckedType::option(CheckedType::Nominal("Evidence")),
                 json!({"variant": "some", "payload": {"value": value}}),
-                format!("let evidence = case true {{\n    false -> None;\n    true -> case false {{ false -> Some(Evidence {{ value: {value} }}); true -> None }}\n}};\nevidence"),
-                format!("Some(Evidence {{ value: {value} }})"),
+                format!(
+                    "let evidence =\n    if {{\n        false -> None;\n        true -> if {{\n            false -> None;\n            true -> Some(Evidence {{value: {value}}})\n        }}\n    }};\nevidence"
+                ),
+                format!("Some(Evidence {{value: {value}}})"),
             )
             .with_prelude(format!(
-                "{}\n\npub struct Evidence {{ value: Int }}.",
+                "{}\n\npub struct Evidence {{\n    value: Int,\n}}.",
                 option_prelude()
             )),
             Self::ResultJoin => generated_with_expected(
                 CheckedType::result(CheckedType::Int, CheckedType::String),
                 json!({"variant": "ok", "payload": value}),
-                format!("case true {{ false -> Err(\"rejected\"); true -> Ok({value}) }}"),
+                format!(
+                    "case true {{\n    false -> Err(\"rejected\");\n    true -> Ok({value})\n}}"
+                ),
                 format!("Ok({value})"),
             )
             .with_prelude(result_prelude()),
             Self::NestedResultJoin => generated_with_expected(
                 CheckedType::result(CheckedType::Int, CheckedType::String),
                 json!({"variant": "ok", "payload": value}),
-                format!("let selected = case true {{\n    false -> Err(\"outer\");\n    true -> case false {{ false -> Ok({value}); true -> Err(\"inner\") }}\n}};\nselected"),
+                format!(
+                    "let selected =\n    case true {{\n        false -> Err(\"outer\");\n        true ->\n            case false {{\n                false -> Ok({value});\n                true -> Err(\"inner\")\n            }}\n    }};\nselected"
+                ),
                 format!("Ok({value})"),
             )
             .with_prelude(result_prelude()),
@@ -261,6 +271,14 @@ fn generated(checked_type: CheckedType, value: serde_json::Value, source: String
     GeneratedBody::expression(checked_type, value, source, expected)
 }
 
+fn generated_inline(
+    checked_type: CheckedType,
+    value: serde_json::Value,
+    source: String,
+) -> GeneratedBody {
+    generated(checked_type, value, source).inline_body()
+}
+
 fn generated_with_expected(
     checked_type: CheckedType,
     value: serde_json::Value,
@@ -271,20 +289,26 @@ fn generated_with_expected(
 }
 
 fn option_prelude() -> &'static str {
-    "import std.core.Option.{None, Some}.\nimport type std.core.Option.{Option}."
+    "import std.core.Option.{None, Some}.\n\nimport type std.core.Option.{Option}."
 }
 
 fn result_prelude() -> &'static str {
-    "import std.core.Result.{Err, Ok}.\nimport type std.core.Result.{Result}."
+    "import std.core.Result.{Err, Ok}.\n\nimport type std.core.Result.{Result}."
 }
 
 fn choice_declarations() -> &'static str {
     concat!(
-        "pub type ValueTag = Atom[\"value\"].\n",
-        "pub type EmptyTag = Atom[\"empty\"].\n",
-        "pub type Choice = {ValueTag, Int} | EmptyTag.\n",
-        "pub constructor Value { (value: Int): Choice -> {ValueTag, value} }.\n",
-        "pub constructor Empty { (): Choice -> EmptyTag }."
+        "pub type ValueTag = Atom[\"value\"].\n\n",
+        "pub type EmptyTag = Atom[\"empty\"].\n\n",
+        "pub type Choice = {ValueTag, Int} | EmptyTag.\n\n",
+        "pub constructor Value {\n",
+        "    (value: Int): Choice ->\n",
+        "        {ValueTag, value}\n",
+        "}.\n\n",
+        "pub constructor Empty {\n",
+        "    (): Choice ->\n",
+        "        EmptyTag\n",
+        "}."
     )
 }
 

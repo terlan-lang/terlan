@@ -78,6 +78,7 @@ pub(crate) struct GeneratedBody {
     prelude: String,
     expression: String,
     expected_expression: String,
+    inline_body: bool,
 }
 
 impl GeneratedBody {
@@ -93,7 +94,13 @@ impl GeneratedBody {
             prelude: String::new(),
             expression,
             expected_expression,
+            inline_body: false,
         }
+    }
+
+    pub(crate) fn inline_body(mut self) -> Self {
+        self.inline_body = true;
+        self
     }
 
     pub(crate) fn with_prelude(mut self, prelude: impl Into<String>) -> Self {
@@ -103,23 +110,25 @@ impl GeneratedBody {
 
     pub(crate) fn source(&self) -> String {
         let signature = format!("pub sample(): {} ->", self.checked_type.source_name());
-        let expression = self
-            .expression
-            .lines()
-            .map(|line| format!("    {line}"))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let sample = if self.inline_body {
+            format!("{signature} {}.", self.expression)
+        } else {
+            let expression = self
+                .expression
+                .lines()
+                .map(|line| format!("    {line}"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            format!("{signature}\n{expression}.")
+        };
         let semantic_test = format!(
             "@test\npub sample_matches_expected(): Bool ->\n    sample() == {}.",
             self.expected_expression
         );
         if self.prelude.is_empty() {
-            format!("{signature}\n{expression}.\n\n{semantic_test}")
+            format!("{sample}\n\n{semantic_test}")
         } else {
-            format!(
-                "{}\n\n{signature}\n{expression}.\n\n{semantic_test}",
-                self.prelude
-            )
+            format!("{}\n\n{sample}\n\n{semantic_test}", self.prelude)
         }
     }
 }
@@ -161,6 +170,17 @@ mod tests {
         assert_eq!(
             body.source(),
             "pub sample(): Int ->\n    7.\n\n@test\npub sample_matches_expected(): Bool ->\n    sample() == 7."
+        );
+        assert_eq!(
+            GeneratedBody::expression(
+                CheckedType::Int,
+                Value::from(7),
+                "7".into(),
+                "7".into(),
+            )
+            .inline_body()
+            .source(),
+            "pub sample(): Int -> 7.\n\n@test\npub sample_matches_expected(): Bool ->\n    sample() == 7."
         );
         assert_eq!(
             body.with_prelude("pub type Number = Int.").source(),

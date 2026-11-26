@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use terlan_process_owner::{CapturedCommandOutput, ProcessControl};
 
-const OUTPUT_LIMIT: usize = 16 * 1024 * 1024;
+pub(super) const OUTPUT_LIMIT: usize = 16 * 1024 * 1024;
 
 #[derive(Clone, Debug, Serialize)]
 pub(super) struct ResourceEvidence {

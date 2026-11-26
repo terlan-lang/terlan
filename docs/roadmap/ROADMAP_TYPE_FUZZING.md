@@ -163,8 +163,8 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 Two independent runs must produce byte-identical case artifacts.
 
 The generator and bounded executor crate has 100% line, function, and region
-coverage: 5,356 regions, 261 functions, and 3,555 lines. Its 75-test execution
-is subsecond, and its complete instrumented coverage gate finishes in under 15
+coverage: 5,870 regions, 283 functions, and 3,936 lines. Its 79-test execution
+is subsecond, and its complete instrumented coverage gate finishes in under 17
 seconds. The executor measures the whole process group, enforces combined
 stdout/stderr limits, and cleans up descendants after success, failure,
 timeout, cancellation, or resource exhaustion. Reconnecting the crate to the
@@ -189,6 +189,11 @@ Generation-scale acceptance is executable: 10,000 cases cover 17 initial
 families in 0.05 seconds and preserve unique identities, checked result types,
 canonical values, and the no-unjustified-cast invariant. Compiler and runtime
 oracle acceptance remains open; generation success alone does not close TF1.
+Every checked or native case now runs `terlc fmt --check` before its semantic
+oracle. Formatting and execution share one wall, CPU, RSS, and output budget;
+format failure stops before compilation, while native-planning probes remain
+separate so formatter startup cannot contaminate compiler-work measurements.
+All 17 generated families are byte-canonical under the current formatter.
 
 ### TF2: Native differential execution
 
