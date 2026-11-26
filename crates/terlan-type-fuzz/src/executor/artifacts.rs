@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use super::generate_case as generate;
 use super::oracle::{self, OracleResult};
+use super::planning;
 use super::resources::ResourceEvidence;
 use crate::{CaseManifest, GeneratedCase, Oracle, RunOptions, TypedValue, CASE_SCHEMA};
 
@@ -41,6 +42,13 @@ fn generate_run_with_elapsed(
         pending.push((directory, case));
     }
     run_batches(options, compiler, &pending, elapsed)?;
+    let spent_ms = u64::try_from(elapsed().as_millis()).unwrap_or(u64::MAX);
+    let remaining_ms = options
+        .total_timeout_ms
+        .checked_sub(spent_ms)
+        .filter(|remaining| *remaining > 0)
+        .ok_or_else(|| "run exceeded total timeout before planning oracle".to_string())?;
+    planning::run(options, compiler, remaining_ms)?;
     for (_, case) in pending {
         println!("{} {}", case.manifest.case_id, case.manifest.family);
     }
@@ -603,6 +611,66 @@ mod tests {
             &mut elapsed,
         );
         assert!(result.unwrap_err().contains("before compiler oracle"));
+    }
+
+    #[test]
+    fn total_run_deadline_is_enforced_before_planning_probe() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let options = RunOptions {
+            cases: 1,
+            total_timeout_ms: 1,
+            oracle: Oracle::None,
+            out_dir: root.path().to_path_buf(),
+            ..RunOptions::default()
+        };
+        let mut calls = 0;
+        let mut elapsed = || {
+            calls += 1;
+            if calls < 3 {
+                Duration::ZERO
+            } else {
+                Duration::MAX
+            }
+        };
+        let result = generate_run_with_elapsed(
+            &options,
+            Path::new("missing-compiler"),
+            "test",
+            &mut elapsed,
+        );
+        assert!(result.unwrap_err().contains("before planning oracle"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn planning_probe_failure_is_attributed_by_the_run() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let launches = root.path().join("launches");
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            format!(
+                "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -eq 1 ]\n",
+                launches.display(),
+                launches.display(),
+            ),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+        let options = RunOptions {
+            cases: 1,
+            oracle: Oracle::Native,
+            out_dir: root.path().join("cases"),
+            case_timeout_ms: 1_000,
+            total_timeout_ms: 5_000,
+            ..RunOptions::default()
+        };
+        assert!(generate_run(&options, &compiler, "test")
+            .unwrap_err()
+            .contains("narrow native planning probe"));
     }
 
     #[cfg(unix)]

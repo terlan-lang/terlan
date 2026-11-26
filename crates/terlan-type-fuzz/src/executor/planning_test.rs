@@ -1,0 +1,154 @@
+use super::*;
+
+#[test]
+fn disabled_planning_probe_is_inert() {
+    let root = tempfile::tempdir().expect("planning root");
+    let options = RunOptions {
+        oracle: Oracle::Check,
+        out_dir: root.path().join("cases"),
+        ..RunOptions::default()
+    };
+    run(&options, Path::new("missing"), 10).expect("inactive probe");
+    assert!(!options.out_dir.join("planning").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn matched_planning_graphs_record_bounded_evidence() {
+    let root = tempfile::tempdir().expect("planning root");
+    let options = RunOptions {
+        oracle: Oracle::Native,
+        out_dir: root.path().join("cases"),
+        case_timeout_ms: 1_000,
+        total_timeout_ms: 2_000,
+        rss_limit_bytes: 1024 * 1024 * 1024,
+        cpu_limit_ms: 1_000,
+        ..RunOptions::default()
+    };
+    run(&options, Path::new("/bin/true"), 2_000).expect("planning probe");
+    let planning = options.out_dir.join("planning");
+    assert!(planning.join("comparison.json").is_file());
+    assert!(planning.join("narrow").join(NARROW_SOURCE).is_file());
+    assert!(planning.join("broad").join(BROAD_SOURCE).is_file());
+    assert!(planning.join("broad/unused-native/terlan.toml").is_file());
+}
+
+#[cfg(unix)]
+#[test]
+fn planning_failures_and_metrics_are_attributed() {
+    let root = tempfile::tempdir().expect("planning root");
+    let options = RunOptions {
+        oracle: Oracle::Native,
+        out_dir: root.path().join("cases"),
+        ..RunOptions::default()
+    };
+    assert!(run(&options, Path::new("/bin/false"), 2_000)
+        .unwrap_err()
+        .contains("narrow native planning probe"));
+    assert_eq!(signed_delta(Some(9), Some(4)), Some(5));
+    assert_eq!(signed_delta(None, Some(4)), None);
+    assert_eq!(signed_delta(Some(4), None), None);
+    let events = concat!(
+        "terlc timing: frontend.parse: +1ms total=1ms\n",
+        "terlc native-aot: module-unit.begin.demo functions=1 continuations=0\n",
+    );
+    assert_eq!(timing_count(events), 2);
+    assert_eq!(
+        prefix_count(events, "terlc native-aot: module-unit.begin."),
+        1
+    );
+    assert_eq!(signed_count_delta(events, ""), 2);
+    assert_eq!(signed_prefix_delta(events, "", "terlc native-aot:"), 1);
+}
+
+#[test]
+fn every_nested_fixture_write_failure_is_attributed() {
+    for blocked in [
+        NARROW_SOURCE,
+        "unused-native/terlan.toml",
+        "unused-native/src/type_fuzz/unused_native/Unused.terl",
+    ] {
+        let root = tempfile::tempdir().expect("planning root");
+        let path = root.path().join(blocked);
+        fs::create_dir_all(&path).expect("blocking directory");
+        let error = write_fixture(root.path(), blocked != NARROW_SOURCE)
+            .expect_err("fixture write must fail");
+        assert!(error.contains("write"), "{blocked}: {error}");
+    }
+
+    let root = tempfile::tempdir().expect("planning root");
+    let blocked_parent = root.path().join("blocked");
+    fs::write(&blocked_parent, "file").expect("blocking file");
+    assert!(write(blocked_parent.join("value"), "value")
+        .unwrap_err()
+        .contains("create planning fixture"));
+}
+
+#[cfg(unix)]
+#[test]
+fn comparison_publication_failure_is_attributed() {
+    let root = tempfile::tempdir().expect("planning root");
+    let options = RunOptions {
+        oracle: Oracle::Native,
+        out_dir: root.path().join("cases"),
+        ..RunOptions::default()
+    };
+    fs::create_dir_all(options.out_dir.join("planning/comparison.json"))
+        .expect("blocking comparison");
+    assert!(run(&options, Path::new("/bin/true"), 2_000)
+        .unwrap_err()
+        .contains("write planning comparison"));
+}
+
+#[cfg(unix)]
+#[test]
+fn broad_execution_failure_is_attributed() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let root = tempfile::tempdir().expect("planning root");
+    let launches = root.path().join("launches");
+    let compiler = root.path().join("compiler");
+    fs::write(
+        &compiler,
+        format!(
+            "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -eq 1 ]\n",
+            launches.display(),
+            launches.display(),
+        ),
+    )
+    .expect("compiler fixture");
+    fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+        .expect("compiler permissions");
+    let options = RunOptions {
+        oracle: Oracle::Native,
+        out_dir: root.path().join("cases"),
+        ..RunOptions::default()
+    };
+    assert!(run(&options, &compiler, 2_000)
+        .unwrap_err()
+        .contains("broad native planning probe"));
+}
+
+#[test]
+fn fixture_root_failures_are_attributed() {
+    for profile in ["narrow", "broad"] {
+        let root = tempfile::tempdir().expect("planning root");
+        let output = root.path().join("cases");
+        fs::create_dir_all(output.join("planning")).expect("planning directory");
+        fs::write(output.join("planning").join(profile), "file").expect("blocking profile");
+        let options = RunOptions {
+            oracle: Oracle::Native,
+            out_dir: output,
+            ..RunOptions::default()
+        };
+        assert!(run(&options, Path::new("missing"), 2_000)
+            .unwrap_err()
+            .contains("create planning fixture"));
+    }
+
+    let root = tempfile::tempdir().expect("planning root");
+    fs::create_dir(root.path().join("terlan.toml")).expect("blocking manifest");
+    assert!(write_fixture(root.path(), false)
+        .unwrap_err()
+        .contains("write"));
+}
