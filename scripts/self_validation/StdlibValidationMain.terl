@@ -393,3 +393,6 @@ pub run(): Bool ->
         Some(value) -> failure("arguments", String.append("unknown command: ", value));
         None -> failure("arguments", "expected a stdlib validation command")
     }.
+
+pub main(): Bool ->
+    run().

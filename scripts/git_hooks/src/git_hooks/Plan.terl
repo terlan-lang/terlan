@@ -49,7 +49,8 @@ pub negative_api(paths: List[String]): Bool ->
         or affected(paths, "std/io/", "")
         or affected(paths, "std/test/", "")
         or affected(paths, "std/vm/", "")
-        or affected(paths, "scripts/self_validation/StdlibValidation.terls", "").
+        or affected(paths, "scripts/self_validation/StdlibValidation.terls", "")
+        or affected(paths, "scripts/self_validation/StdlibValidationMain.terl", "").
 
 pub artifact_budget(paths: List[String]): Bool ->
     affected(paths, "scripts/self_validation/BuildArtifactBudgetTest.terl", "")

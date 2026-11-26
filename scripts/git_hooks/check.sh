@@ -1018,7 +1018,7 @@ if preflight_has negative-api; then
   echo 'pre-commit: standard-library negative API contracts'
   for contract in negative-api io-negative-api; do
     TERLAN_REPOSITORY_ROOT="$PWD" TERLAN_STDLIB_VALIDATION_TERLC="$terlc" \
-      "$terlc" run scripts/self_validation/StdlibValidation.terls -- "$contract"
+      "$terlc" run scripts/self_validation/StdlibValidationMain.terl -- "$contract"
   done
 fi
 if lane_has native-bindings; then

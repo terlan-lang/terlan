@@ -344,7 +344,7 @@ fi
 test "$TERLAN_REPOSITORY_ROOT" = "$PWD"
 test "$TERLAN_STDLIB_VALIDATION_TERLC" = "$0"
 test "$1" = run
-test "$2" = scripts/self_validation/StdlibValidation.terls
+test "$2" = scripts/self_validation/StdlibValidationMain.terl
 test "$3" = --
 case "$4" in negative-api|io-negative-api) ;; *) exit 98 ;; esac
 if [[ "$4" == "$HOOK_NEGATIVE_FAIL" ]]; then exit 38; fi
@@ -369,7 +369,7 @@ case "$*" in
   'run scripts/git_hooks/scripts/Plan.terls -- changes.txt')
     printf 'preflight:negative-api\ncommands-doctor\nshell\n'
     ;;
-  'run scripts/self_validation/StdlibValidation.terls -- negative-api')
+  'run scripts/self_validation/StdlibValidationMain.terl -- negative-api')
     printf 'late-negative-api\n' >> "$HOOK_ORDER_CALLS"
     exit 43
     ;;
