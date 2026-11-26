@@ -9,14 +9,15 @@ use crate::terlan_typeck::{
 use super::{
     prune_application_to_function_roots, prune_module_to_function_roots,
     prune_unreachable_open_std_functions, resolve_call, resolve_scoped_call, FunctionKey,
+    ProviderIndex,
 };
 
 #[test]
 fn unqualified_call_resolves_only_through_the_callers_imports() {
-    let providers = vec![
+    let providers = provider_index([
         function("std.alpha.Codec", "encode_exact", 2),
         function("std.binary.Binary", "encode_exact", 2),
-    ];
+    ]);
     let imported = HashSet::from(["std.binary.Binary"]);
 
     assert_eq!(
@@ -27,17 +28,23 @@ fn unqualified_call_resolves_only_through_the_callers_imports() {
 
 #[test]
 fn exact_trait_dispatch_precedes_canonical_default_type_path() {
-    let providers = vec![
+    let providers = provider_index([
         function("std.core.Ordering", "compare", 2),
         function("std.core.Ordering.Ordering", "compare", 2),
-    ];
+    ]);
     let syntax = parse_module_as_syntax_output("module app.Main. pub main(): Int -> 0.")
         .expect("parse exact dispatch caller");
     let resolved = resolve_syntax_module_output(&syntax).module;
     let caller = lower_syntax_module_output_to_core(&syntax, &resolved);
 
     assert_eq!(
-        resolve_call(&caller, "std.core.Ordering.Ordering.compare", 2, &providers,),
+        resolve_call(
+            &caller,
+            &HashSet::new(),
+            "std.core.Ordering.Ordering.compare",
+            2,
+            &providers,
+        ),
         Some(function("std.core.Ordering.Ordering", "compare", 2)),
     );
 }
@@ -135,10 +142,10 @@ fn receiver_builder_reachability_preserves_import_scope() {
 
 #[test]
 fn unqualified_call_resolves_through_a_symbol_import() {
-    let providers = vec![
+    let providers = provider_index([
         function("std.alpha.Codec", "encode_exact", 2),
         function("std.binary.Binary", "encode_exact", 2),
-    ];
+    ]);
     let imported = HashSet::from(["std.binary.Binary.encode_exact"]);
 
     assert_eq!(
@@ -149,7 +156,7 @@ fn unqualified_call_resolves_through_a_symbol_import() {
 
 #[test]
 fn qualified_call_resolves_without_an_import() {
-    let providers = vec![function("std.binary.Binary", "encode_exact", 2)];
+    let providers = provider_index([function("std.binary.Binary", "encode_exact", 2)]);
 
     assert_eq!(
         resolve_scoped_call(
@@ -355,6 +362,12 @@ pub router(): Router -> users(Router.new()).
 
 fn function(module: &str, name: &str, arity: usize) -> FunctionKey {
     (module.to_string(), name.to_string(), arity)
+}
+
+fn provider_index(providers: impl IntoIterator<Item = FunctionKey>) -> ProviderIndex {
+    let mut index = ProviderIndex::default();
+    index.extend(providers.into_iter().collect());
+    index
 }
 
 /// Parameter reads must not pull an identically named native placeholder into

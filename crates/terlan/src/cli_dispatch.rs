@@ -100,6 +100,7 @@ where
         "emit-self-hosted-actor-object" => commands::emit_self_hosted_actor_object::run(&cmd.args),
         "repl" => repl(cmd, state),
         "fmt" => commands::fmt::run(&cmd.args),
+        "fuzz" => commands::fuzz::run(&cmd.args),
         "lint" => commands::lint::run(&cmd.args),
         "migrate" => commands::migrate::run(cmd),
         "hover" => commands::hover::run(cmd, state),

@@ -46,6 +46,8 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc semantic query <store> <request.json> | terlc semantic mcp <store> <snapshot-id>",
         "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
         FMT_USAGE,
+        "terlc fuzz types [--seed <u64>] [--cases <count>] [--max-depth <count>] [--oracle check|none] [--out-dir <dir>] [--rss-limit-mib <mib>] [--cpu-limit-ms <ms>]",
+        "terlc fuzz replay <case-dir>",
         "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>...",
         "terlc migrate pattern-head [--write] [--json] <file.terl|file.terli|dir>",
         "terlc version | terlc --version | terlc -V",
@@ -184,6 +186,10 @@ pub(super) fn print_command_usage(command: &str) -> bool {
             println!("Available commands: :help, :quit, :reset, :debug, :load <file.terl|project-dir>");
         }
         "fmt" => println!("{FMT_USAGE}"),
+        "fuzz" => {
+            println!("terlc fuzz types [--seed <u64>] [--cases <count>] [--max-depth <count>] [--oracle check|none] [--out-dir <dir>] [--rss-limit-mib <mib>] [--cpu-limit-ms <ms>]");
+            println!("terlc fuzz replay <case-dir>");
+        }
         "lint" => println!(
             "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>..."
         ),

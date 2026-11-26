@@ -7,6 +7,8 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
+use terlan_native_planning::ProviderIndex;
+
 use super::QualifiedFunctionIdentity as FunctionKey;
 use crate::terlan_typeck::{CoreExport, CoreExportKind, CoreExpr, CoreIntrinsicId, CoreModule};
 
@@ -17,7 +19,7 @@ use crate::terlan_typeck::{CoreExport, CoreExportKind, CoreExpr, CoreIntrinsicId
 /// edges can then be collected one deserialized module at a time.
 #[derive(Default)]
 pub(crate) struct ApplicationReachabilityGraph {
-    providers: Vec<FunctionKey>,
+    providers: ProviderIndex,
     edges: HashMap<FunctionKey, HashSet<FunctionKey>>,
     reachable: Option<HashSet<FunctionKey>>,
 }
@@ -26,7 +28,7 @@ impl ApplicationReachabilityGraph {
     /// Adds callable, constructor, receiver, and trait-dispatch surfaces.
     pub(crate) fn add_module_surface(&mut self, core: &CoreModule) {
         let cores = [core];
-        self.providers.extend(providers(&cores));
+        self.providers.extend(provider_keys(&cores));
         add_constructor_edges(&cores, &mut self.edges);
     }
 
@@ -367,7 +369,7 @@ pub(super) fn prune_unreachable_open_std_functions(cores: &mut [CoreModule]) {
 }
 
 /// Inventories every local and public imported provider used by call lookup.
-fn providers(cores: &[&CoreModule]) -> Vec<FunctionKey> {
+fn provider_keys(cores: &[&CoreModule]) -> Vec<FunctionKey> {
     cores
         .iter()
         .flat_map(|core| {
@@ -385,6 +387,12 @@ fn providers(cores: &[&CoreModule]) -> Vec<FunctionKey> {
         })
         .chain(trait_methods::providers(cores))
         .collect()
+}
+
+fn providers(cores: &[&CoreModule]) -> ProviderIndex {
+    let mut providers = ProviderIndex::default();
+    providers.extend(provider_keys(cores));
+    providers
 }
 
 /// Constructor invocation is a graph node, not a physical-layout dependency.
@@ -437,16 +445,12 @@ fn add_constructor_edges(
 
 fn resolve_call(
     caller: &CoreModule,
+    imported: &HashSet<&str>,
     name: &str,
     arity: usize,
-    providers: &[FunctionKey],
+    providers: &ProviderIndex,
 ) -> Option<FunctionKey> {
-    let imported = caller
-        .imports
-        .iter()
-        .map(|import| import.module.as_str())
-        .collect::<HashSet<_>>();
-    resolve_scoped_call(&caller.module, &imported, name, arity, providers)
+    resolve_scoped_call(&caller.module, imported, name, arity, providers)
 }
 
 fn resolve_scoped_call(
@@ -454,85 +458,18 @@ fn resolve_scoped_call(
     imported: &HashSet<&str>,
     name: &str,
     arity: usize,
-    providers: &[FunctionKey],
+    providers: &ProviderIndex,
 ) -> Option<FunctionKey> {
-    if let Some(local) = providers
-        .iter()
-        .find(|(module, function, candidate_arity)| {
-            module == caller_module && function == name && *candidate_arity == arity
-        })
-    {
-        return Some(local.clone());
-    }
-
-    // A qualified call names exactly one provider. An unqualified call must
-    // remain scoped to explicit imports; resolving it against the first
-    // same-named function in the whole application makes reachability depend
-    // on module ordering and can prune the real imported provider.
-    if name.contains('.') {
-        if let Some(exact) = providers
-            .iter()
-            .find(|(module, function, candidate_arity)| {
-                format!("{module}.{function}") == name && *candidate_arity == arity
-            })
-        {
-            return Some(exact.clone());
-        }
-        return providers
-            .iter()
-            .find(|(module, function, candidate_arity)| {
-                canonical_callable_path(&format!("{module}.{function}"))
-                    == canonical_callable_path(name)
-                    && *candidate_arity == arity
-            })
-            .cloned();
-    }
-
-    let mut matches = providers
-        .iter()
-        .filter(|(module, function, candidate_arity)| {
-            (imported.contains(module.as_str())
-                || imported.contains(format!("{module}.{function}").as_str()))
-                && function == name
-                && *candidate_arity == arity
-        });
-    let first = matches.next()?.clone();
-    matches.next().is_none().then_some(first)
-}
-
-/// Collapses an internal default nominal segment in a callable owner.
-///
-/// A selected import may spell `pkg.Trait.Trait.method` while the public
-/// conformance contract spells `pkg.Trait.method`; both identify one dispatch
-/// node and must therefore retain the same implementation body.
-fn canonical_callable_path(path: &str) -> String {
-    let Some((owner, method)) = path.rsplit_once('.') else {
-        return path.to_string();
-    };
-    let Some((parent, leaf)) = owner.rsplit_once('.') else {
-        return path.to_string();
-    };
-    if parent.rsplit('.').next() == Some(leaf) {
-        format!("{parent}.{method}")
-    } else {
-        path.to_string()
-    }
+    providers.resolve_scoped(caller_module, imported, name, arity)
 }
 
 fn resolve_remote(
     module: &str,
     function: &str,
     arity: usize,
-    providers: &[FunctionKey],
+    providers: &ProviderIndex,
 ) -> Option<FunctionKey> {
-    providers
-        .iter()
-        .find(|(candidate_module, candidate_function, candidate_arity)| {
-            candidate_module == module
-                && candidate_function == function
-                && *candidate_arity == arity
-        })
-        .cloned()
+    providers.resolve_remote(module, function, arity)
 }
 
 /// Collects direct calls and lexically free named callback values. A local
@@ -541,16 +478,21 @@ fn resolve_remote(
 fn collect_function_calls(
     function: &crate::terlan_typeck::CoreFunction,
     caller: &CoreModule,
-    providers: &[FunctionKey],
+    providers: &ProviderIndex,
 ) -> HashSet<FunctionKey> {
     let mut calls = HashSet::new();
+    let imported = caller
+        .imports
+        .iter()
+        .map(|import| import.module.as_str())
+        .collect::<HashSet<_>>();
     for clause in &function.clauses {
         let guard = clause
             .guard
             .as_ref()
             .and_then(|guard| guard.core_expr.as_ref());
         for expr in guard.into_iter().chain(clause.body.core_expr.as_ref()) {
-            collect_calls(expr, caller, providers, &mut calls);
+            collect_calls(expr, caller, &imported, providers, &mut calls);
             let free = super::expression::free_variables_with_bindings(
                 expr,
                 function
@@ -560,7 +502,7 @@ fn collect_function_calls(
                 clause.core_patterns.iter().flatten(),
             );
             for name in free {
-                collect_function_value_candidates(caller, &name, providers, &mut calls);
+                collect_function_value_candidates(caller, &imported, &name, providers, &mut calls);
             }
         }
     }
@@ -570,12 +512,13 @@ fn collect_function_calls(
 fn collect_calls(
     expr: &CoreExpr,
     caller: &CoreModule,
-    providers: &[FunctionKey],
+    imported: &HashSet<&str>,
+    providers: &ProviderIndex,
     calls: &mut HashSet<FunctionKey>,
 ) {
     match expr {
         CoreExpr::Call { function, args, .. } => {
-            if let Some(target) = resolve_call(caller, function, args.len(), providers) {
+            if let Some(target) = resolve_call(caller, imported, function, args.len(), providers) {
                 calls.insert(target);
             } else {
                 // Keep each explicitly selected provider until typed overload
@@ -589,7 +532,7 @@ fn collect_calls(
                     }
                 }
             }
-            collect_many(args, caller, providers, calls);
+            collect_many(args, caller, imported, providers, calls);
         }
         CoreExpr::RemoteCall {
             module,
@@ -601,7 +544,9 @@ fn collect_calls(
                 // Receiver syntax also supports explicitly imported free
                 // functions. Keep that scoped edge until normalization;
                 // declared receiver candidates alone do not include builders.
-                if let Some(provider) = resolve_call(caller, function, args.len(), providers) {
+                if let Some(provider) =
+                    resolve_call(caller, imported, function, args.len(), providers)
+                {
                     calls.insert(provider);
                 }
                 Some((module.clone(), function.clone(), args.len()))
@@ -611,7 +556,7 @@ fn collect_calls(
             if let Some(target) = target {
                 calls.insert(target);
             }
-            collect_many(args, caller, providers, calls);
+            collect_many(args, caller, imported, providers, calls);
         }
         CoreExpr::RemoteFunRef {
             module,
@@ -623,15 +568,15 @@ fn collect_calls(
             }
         }
         CoreExpr::Tuple(items) | CoreExpr::List(items) | CoreExpr::Array(items) => {
-            collect_many(items, caller, providers, calls)
+            collect_many(items, caller, imported, providers, calls)
         }
         CoreExpr::ListCons { head, tail }
         | CoreExpr::Index {
             base: head,
             index: tail,
         } => {
-            collect_calls(head, caller, providers, calls);
-            collect_calls(tail, caller, providers, calls);
+            collect_calls(head, caller, imported, providers, calls);
+            collect_calls(tail, caller, imported, providers, calls);
         }
         CoreExpr::ListComprehension {
             expr,
@@ -639,35 +584,35 @@ fn collect_calls(
             guards,
             ..
         } => {
-            collect_calls(expr, caller, providers, calls);
+            collect_calls(expr, caller, imported, providers, calls);
             for generator in generators {
-                collect_calls(&generator.source, caller, providers, calls);
+                collect_calls(&generator.source, caller, imported, providers, calls);
             }
-            collect_many(guards, caller, providers, calls);
+            collect_many(guards, caller, imported, providers, calls);
         }
         CoreExpr::Let { bindings, body } => {
             for binding in bindings {
-                collect_calls(&binding.value, caller, providers, calls);
+                collect_calls(&binding.value, caller, imported, providers, calls);
             }
-            collect_calls(body, caller, providers, calls);
+            collect_calls(body, caller, imported, providers, calls);
         }
         CoreExpr::Map(fields) => {
             for field in fields {
-                collect_calls(&field.value, caller, providers, calls);
+                collect_calls(&field.value, caller, imported, providers, calls);
             }
         }
         CoreExpr::RecordConstruct { fields, .. } | CoreExpr::TemplateInstantiate { fields, .. } => {
             for field in fields {
-                collect_calls(&field.value, caller, providers, calls);
+                collect_calls(&field.value, caller, imported, providers, calls);
             }
         }
         CoreExpr::FieldAccess { base, .. } | CoreExpr::RecordAccess { base, .. } => {
-            collect_calls(base, caller, providers, calls)
+            collect_calls(base, caller, imported, providers, calls)
         }
         CoreExpr::RecordUpdate { base, fields, .. } => {
-            collect_calls(base, caller, providers, calls);
+            collect_calls(base, caller, imported, providers, calls);
             for field in fields {
-                collect_calls(&field.value, caller, providers, calls);
+                collect_calls(&field.value, caller, imported, providers, calls);
             }
         }
         CoreExpr::ConstructorChain {
@@ -679,14 +624,15 @@ fn collect_calls(
         } => {
             if let Some(target) = resolve_call(
                 caller,
+                imported,
                 &constructor_node(constructor_identity.as_deref().unwrap_or(constructor)),
                 0,
                 providers,
             ) {
                 calls.insert(target);
             }
-            collect_many(args, caller, providers, calls);
-            collect_calls(record, caller, providers, calls);
+            collect_many(args, caller, imported, providers, calls);
+            collect_calls(record, caller, imported, providers, calls);
         }
         CoreExpr::ConstructorCall {
             type_args: _,
@@ -696,13 +642,14 @@ fn collect_calls(
         } => {
             if let Some(target) = resolve_call(
                 caller,
+                imported,
                 &constructor_node(constructor_identity.as_deref().unwrap_or(constructor)),
                 0,
                 providers,
             ) {
                 calls.insert(target);
             }
-            collect_many(args, caller, providers, calls);
+            collect_many(args, caller, imported, providers, calls);
         }
         CoreExpr::MutableReceiverCall {
             receiver,
@@ -711,31 +658,35 @@ fn collect_calls(
             ..
         } => {
             calls.insert(("__receiver__".into(), method.clone(), args.len() + 1));
-            collect_calls(receiver, caller, providers, calls);
-            collect_many(args, caller, providers, calls);
+            collect_calls(receiver, caller, imported, providers, calls);
+            collect_many(args, caller, imported, providers, calls);
         }
         CoreExpr::FunctionCall { callee, args } => {
-            collect_calls(callee, caller, providers, calls);
-            collect_many(args, caller, providers, calls);
+            collect_calls(callee, caller, imported, providers, calls);
+            collect_many(args, caller, imported, providers, calls);
         }
-        CoreExpr::Cast { expr, .. } => collect_calls(expr, caller, providers, calls),
+        CoreExpr::Cast { expr, .. } => collect_calls(expr, caller, imported, providers, calls),
         CoreExpr::Intrinsic(intrinsic) => {
             if matches!(intrinsic.id, CoreIntrinsicId::VmProcessEntry(_)) {
                 if let [CoreExpr::Int(tag)] = intrinsic.args.as_slice() {
                     if *tag > 0 {
                         let function = format!("spawn_{tag}");
-                        if let Some(target) = resolve_call(caller, &function, 0, providers) {
+                        if let Some(target) =
+                            resolve_call(caller, imported, &function, 0, providers)
+                        {
                             calls.insert(target);
                         }
                     }
                 }
             }
-            collect_many(&intrinsic.args, caller, providers, calls);
+            collect_many(&intrinsic.args, caller, imported, providers, calls);
         }
-        CoreExpr::SqlQuery { parameters, .. } => collect_many(parameters, caller, providers, calls),
+        CoreExpr::SqlQuery { parameters, .. } => {
+            collect_many(parameters, caller, imported, providers, calls)
+        }
         CoreExpr::Case { scrutinee, clauses } => {
-            collect_calls(scrutinee, caller, providers, calls);
-            collect_clauses(clauses, caller, providers, calls);
+            collect_calls(scrutinee, caller, imported, providers, calls);
+            collect_clauses(clauses, caller, imported, providers, calls);
         }
         CoreExpr::Try {
             body,
@@ -743,26 +694,26 @@ fn collect_calls(
             catch_clauses,
             after_clause,
         } => {
-            collect_calls(body, caller, providers, calls);
-            collect_clauses(of_clauses, caller, providers, calls);
-            collect_clauses(catch_clauses, caller, providers, calls);
+            collect_calls(body, caller, imported, providers, calls);
+            collect_clauses(of_clauses, caller, imported, providers, calls);
+            collect_clauses(catch_clauses, caller, imported, providers, calls);
             if let Some(after) = after_clause {
-                collect_calls(&after.trigger, caller, providers, calls);
-                collect_calls(&after.body, caller, providers, calls);
+                collect_calls(&after.trigger, caller, imported, providers, calls);
+                collect_calls(&after.body, caller, imported, providers, calls);
             }
         }
         CoreExpr::If { clauses } => {
             for clause in clauses {
-                collect_calls(&clause.condition, caller, providers, calls);
-                collect_calls(&clause.body, caller, providers, calls);
+                collect_calls(&clause.condition, caller, imported, providers, calls);
+                collect_calls(&clause.body, caller, imported, providers, calls);
             }
         }
         CoreExpr::Lam { body, .. } | CoreExpr::UnaryOp { operand: body, .. } => {
-            collect_calls(body, caller, providers, calls)
+            collect_calls(body, caller, imported, providers, calls)
         }
         CoreExpr::BinaryOp { left, right, .. } => {
-            collect_calls(left, caller, providers, calls);
-            collect_calls(right, caller, providers, calls);
+            collect_calls(left, caller, imported, providers, calls);
+            collect_calls(right, caller, imported, providers, calls);
         }
         CoreExpr::Var(_) => {}
         CoreExpr::Int(_) | CoreExpr::Float(_) | CoreExpr::Binary(_) | CoreExpr::Atom(_) => {}
@@ -773,23 +724,18 @@ fn collect_calls(
 /// callback specialization has resolved their checked arity and signature.
 fn collect_function_value_candidates(
     caller: &CoreModule,
+    imported: &HashSet<&str>,
     name: &str,
-    providers: &[FunctionKey],
+    providers: &ProviderIndex,
     calls: &mut HashSet<FunctionKey>,
 ) {
-    let imported = caller
-        .imports
-        .iter()
-        .map(|import| import.module.as_str())
-        .collect::<HashSet<_>>();
     calls.extend(
         providers
-            .iter()
+            .value_candidates(name)
             .filter(|(module, function, _)| {
-                function == name
-                    && (module == &caller.module
-                        || imported.contains(module.as_str())
-                        || imported.contains(format!("{module}.{function}").as_str()))
+                module == &caller.module
+                    || imported.contains(module.as_str())
+                    || imported.contains(format!("{module}.{function}").as_str())
             })
             .cloned(),
     );
@@ -798,24 +744,26 @@ fn collect_function_value_candidates(
 fn collect_many(
     expressions: &[CoreExpr],
     caller: &CoreModule,
-    providers: &[FunctionKey],
+    imported: &HashSet<&str>,
+    providers: &ProviderIndex,
     calls: &mut HashSet<FunctionKey>,
 ) {
     for expression in expressions {
-        collect_calls(expression, caller, providers, calls);
+        collect_calls(expression, caller, imported, providers, calls);
     }
 }
 
 fn collect_clauses(
     clauses: &[crate::terlan_typeck::CoreCaseClause],
     caller: &CoreModule,
-    providers: &[FunctionKey],
+    imported: &HashSet<&str>,
+    providers: &ProviderIndex,
     calls: &mut HashSet<FunctionKey>,
 ) {
     for clause in clauses {
         if let Some(guard) = &clause.guard {
-            collect_calls(guard, caller, providers, calls);
+            collect_calls(guard, caller, imported, providers, calls);
         }
-        collect_calls(&clause.body, caller, providers, calls);
+        collect_calls(&clause.body, caller, imported, providers, calls);
     }
 }

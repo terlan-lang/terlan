@@ -8,6 +8,7 @@ use std::time::Instant;
 use crate::compiler::native_ir::{ApplicationReachabilityGraph, NativeCodegenPolicy};
 use crate::terlan_typeck::{CoreExport, CoreExportKind, CoreImportKind, CoreModule};
 use crate::CliState;
+use terlan_native_planning::ProgressWatch;
 
 use super::super::BuildOneError;
 use super::compile::{compile_vm_module, CompiledVmModule};
@@ -34,6 +35,21 @@ pub(super) fn build_vm_application_artifacts(
     policy: NativeCodegenPolicy,
     entry_module: Option<&str>,
 ) -> Result<(), BuildOneError> {
+    let progress = ProgressWatch::spawn(
+        "vm-application",
+        "frontend",
+        std::time::Duration::from_secs(10),
+        |event| {
+            let rss_mib = event.resident_bytes.map_or_else(
+                || "unknown".to_string(),
+                |bytes| (bytes / 1_048_576).to_string(),
+            );
+            eprintln!(
+                "terlc progress: operation={} phase={} elapsed={}ms rss={}MiB",
+                event.operation, event.phase, event.elapsed_ms, rss_mib
+            );
+        },
+    );
     let mut serialized = match run_indexed_bounded(paths, bounded_worker_limit(), |path| {
         let started = Instant::now();
         let module = compile_vm_module(&path.to_string_lossy(), state)?;
@@ -65,6 +81,8 @@ pub(super) fn build_vm_application_artifacts(
     if state.no_emit {
         return Ok(());
     }
+
+    progress.phase("standard-library-closure");
 
     let active_path = paths
         .first()
@@ -122,6 +140,7 @@ pub(super) fn build_vm_application_artifacts(
     crate::terlan_hir::clear_interface_parse_cache();
     trim_allocator();
 
+    progress.phase("reachability-surfaces");
     let mut graph = ApplicationReachabilityGraph::default();
     for module in &serialized {
         let core = module.decode_core()?;
@@ -163,6 +182,7 @@ pub(super) fn build_vm_application_artifacts(
     };
     let image_stem = entry.module.replace('.', "_");
 
+    progress.phase("reachability-calls");
     let graph_started = Instant::now();
     for module in &serialized {
         let core = module.decode_core()?;
@@ -181,6 +201,7 @@ pub(super) fn build_vm_application_artifacts(
         );
     }
 
+    progress.phase("pruning");
     let prune_started = Instant::now();
     let mut cores = Vec::with_capacity(serialized.len());
     for module in &serialized {
@@ -210,6 +231,7 @@ pub(super) fn build_vm_application_artifacts(
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
+    progress.phase("native-image");
     native_image::compile_owned_rooted_native_application_image(
         &vm_dir,
         &native_cache_root,
