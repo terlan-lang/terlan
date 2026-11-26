@@ -1,6 +1,7 @@
 //! Stable native test-planning facts for bounded performance diagnostics.
 
 use std::path::PathBuf;
+use std::time::Instant;
 
 use crate::terlan_typeck::CoreModule;
 
@@ -9,6 +10,19 @@ pub(super) fn emit(enabled: bool, cores: &[CoreModule], providers: &[(String, Pa
         return;
     };
     eprintln!("{line}");
+}
+
+pub(super) fn timed<R>(enabled: bool, phase: &str, operation: impl FnOnce() -> R) -> R {
+    let started = Instant::now();
+    let result = operation();
+    if let Some(line) = phase_line(enabled, phase, started.elapsed().as_millis()) {
+        eprintln!("{line}");
+    }
+    result
+}
+
+fn phase_line(enabled: bool, phase: &str, elapsed_ms: u128) -> Option<String> {
+    enabled.then(|| format!("terlc timing: test.{phase}: +{elapsed_ms}ms total={elapsed_ms}ms"))
 }
 
 fn reachable_declarations(cores: &[CoreModule]) -> usize {
@@ -82,5 +96,12 @@ mod tests {
                 "terlc native-aot: planning.graph: reachable-declarations=0 native-providers=none"
             )
         );
+        assert_eq!(phase_line(false, "execution", 7), None);
+        assert_eq!(
+            phase_line(true, "execution", 7).as_deref(),
+            Some("terlc timing: test.execution: +7ms total=7ms")
+        );
+        assert_eq!(timed(false, "probe", || 11), 11);
+        assert_eq!(timed(true, "probe", || 13), 13);
     }
 }

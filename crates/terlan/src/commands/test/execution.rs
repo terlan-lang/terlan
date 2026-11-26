@@ -440,15 +440,17 @@ pub(super) fn run_terlan_vm_test_file(
         .clone()
         .unwrap_or_else(|| state.out_dir.join(".terlan"))
         .join("native-aot");
-    let native_image = match compile_test_native_image_owned(
-        &test_aot_workspace,
-        &native_cache_root,
-        &module_stem,
-        application_cores,
-        &test_roots,
-        &debug_inputs,
-        state.incremental,
-    ) {
+    let native_image = match super::planning_facts::timed(state.timings, "native-image", || {
+        compile_test_native_image_owned(
+            &test_aot_workspace,
+            &native_cache_root,
+            &module_stem,
+            application_cores,
+            &test_roots,
+            &debug_inputs,
+            state.incremental,
+        )
+    }) {
         Ok(image) => image,
         Err(message) => {
             eprintln!("{message}");
@@ -456,18 +458,20 @@ pub(super) fn run_terlan_vm_test_file(
         }
     };
 
-    let report = match run_discovered_terlan_vm_tests(
-        module_name.as_str(),
-        &tests,
-        native_image.as_deref(),
-        &native_helper_environment,
-        if args.benchmark {
-            Some((args.benchmark_warmup, args.benchmark_samples))
-        } else {
-            None
-        },
-        args.emit_test_result_manifest.is_some(),
-    ) {
+    let report = match super::planning_facts::timed(state.timings, "execution", || {
+        run_discovered_terlan_vm_tests(
+            module_name.as_str(),
+            &tests,
+            native_image.as_deref(),
+            &native_helper_environment,
+            if args.benchmark {
+                Some((args.benchmark_warmup, args.benchmark_samples))
+            } else {
+                None
+            },
+            args.emit_test_result_manifest.is_some(),
+        )
+    }) {
         Ok(report) => report,
         Err(message) => {
             eprintln!("{message}");
@@ -489,11 +493,13 @@ pub(super) fn run_terlan_vm_test_file(
         } else {
             args.coverage_sources.as_slice()
         };
-        if let Err(message) = coverage.record_image(
-            native_image,
-            coverage_source_roots,
-            &report.covered_callables,
-        ) {
+        if let Err(message) = super::planning_facts::timed(state.timings, "coverage", || {
+            coverage.record_image(
+                native_image,
+                coverage_source_roots,
+                &report.covered_callables,
+            )
+        }) {
             eprintln!("{message}");
             return ExitCode::from(1);
         }
