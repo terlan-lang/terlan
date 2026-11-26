@@ -4,7 +4,9 @@ use std::collections::BTreeSet;
 use std::io;
 use std::path::Path;
 
-use super::{artifacts, generate_case, oracle};
+#[cfg(test)]
+use super::generate_case;
+use super::{artifacts, oracle, regenerate_case};
 use crate::{CaseManifest, GeneratedCase, RunOptions};
 
 const MAX_PROBES: usize = 8;
@@ -55,8 +57,8 @@ fn run_loaded(
             "diagnostic": class.diagnostic,
         },
         "probes": probes,
-        "source_bytes_before": original.source.len(),
-        "source_bytes_after": selected.source.len(),
+        "source_bytes_before": source_bytes(&original),
+        "source_bytes_after": source_bytes(&selected),
     });
     let mut bytes = report.to_string().into_bytes();
     bytes.push(b'\n');
@@ -120,7 +122,7 @@ fn reduction_candidates(original: &GeneratedCase) -> Vec<GeneratedCase> {
             depth,
         ));
     }
-    for index in 0..17 {
+    for index in 0..18 {
         candidates.push(generate(manifest, manifest.seed, index, manifest.max_depth));
     }
     for seed in 0..=128 {
@@ -153,16 +155,31 @@ fn generate(manifest: &CaseManifest, seed: u64, index: u32, max_depth: u8) -> Ge
         cpu_limit_ms: manifest.cpu_limit_ms,
         ..RunOptions::default()
     };
-    generate_case(index, &options, &manifest.compiler_revision)
+    regenerate_case(
+        index,
+        &options,
+        &manifest.compiler_revision,
+        &manifest.generator,
+    )
+    .expect("loaded manifests use supported fuzz generators")
 }
 
 fn score(case: &GeneratedCase) -> (usize, u32, u8, u64) {
     (
-        case.source.len(),
+        source_bytes(case),
         case.manifest.case_index,
         case.manifest.max_depth,
         case.manifest.seed,
     )
+}
+
+fn source_bytes(case: &GeneratedCase) -> usize {
+    case.source.len()
+        + case
+            .support_sources
+            .iter()
+            .map(|source| source.source.len())
+            .sum::<usize>()
 }
 
 #[cfg(test)]
@@ -202,6 +219,18 @@ mod tests {
                 .len(),
             candidates.len()
         );
+
+        let multi_module = case(17, 1, Oracle::Check);
+        assert_eq!(
+            source_bytes(&multi_module),
+            multi_module.source.len()
+                + multi_module
+                    .support_sources
+                    .iter()
+                    .map(|source| source.source.len())
+                    .sum::<usize>()
+        );
+        assert!(source_bytes(&multi_module) > multi_module.source.len());
     }
 
     #[test]
@@ -282,7 +311,7 @@ mod tests {
         .contains("create reduction case"));
         assert!(execute_case_with(&original, Path::new("missing"), || {
             let directory = tempfile::tempdir().expect("temporary case");
-            fs::create_dir(directory.path().join("Cargo.toml.tmp")).expect("artifact blocker");
+            fs::create_dir(directory.path().join("terlan.toml.tmp")).expect("artifact blocker");
             Ok(directory)
         })
         .unwrap_err()
@@ -365,7 +394,7 @@ mod tests {
         .expect("compiler fixture");
         fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
             .expect("compiler permissions");
-        for blocker in ["Cargo.toml.tmp", "observed.json.tmp", "reduction.json.tmp"] {
+        for blocker in ["terlan.toml.tmp", "observed.json.tmp", "reduction.json.tmp"] {
             let directory = root.path().join(blocker.replace('.', "-"));
             fs::create_dir(&directory).expect("case directory");
             let original = case(16, u64::MAX, Oracle::Check);

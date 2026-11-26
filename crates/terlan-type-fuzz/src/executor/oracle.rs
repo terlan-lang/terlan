@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::resources::{self, ResourceEvidence};
@@ -15,6 +15,12 @@ pub(super) struct OracleResult {
     pub(super) stderr: String,
     #[serde(skip)]
     pub(super) resources: ResourceEvidence,
+}
+
+pub(super) struct FormattedBatchInputs<'a> {
+    pub(super) root: &'a Path,
+    pub(super) semantic_sources: &'a [PathBuf],
+    pub(super) formatting_sources: &'a [PathBuf],
 }
 
 pub(super) fn run(
@@ -42,36 +48,10 @@ pub(super) fn run(
     )
 }
 
-pub(super) fn run_formatted(
+pub(super) fn run_formatted_batch_inputs(
     compiler: &Path,
     oracle: Oracle,
-    source: &Path,
-    timeout_ms: u64,
-    rss_limit_bytes: u64,
-    cpu_limit_ms: u64,
-) -> OracleResult {
-    let root = source
-        .parent()
-        .expect("generated case source has a parent directory");
-    let source_name = source
-        .file_name()
-        .expect("generated case source has a file name");
-    run_formatted_batch(
-        compiler,
-        oracle,
-        root,
-        &[source_name.into()],
-        timeout_ms,
-        rss_limit_bytes,
-        cpu_limit_ms,
-    )
-}
-
-pub(super) fn run_formatted_batch(
-    compiler: &Path,
-    oracle: Oracle,
-    root: &Path,
-    sources: &[std::path::PathBuf],
+    inputs: FormattedBatchInputs<'_>,
     timeout_ms: u64,
     rss_limit_bytes: u64,
     cpu_limit_ms: u64,
@@ -80,8 +60,8 @@ pub(super) fn run_formatted_batch(
         return run_batch(
             compiler,
             oracle,
-            root,
-            sources,
+            inputs.root,
+            inputs.semantic_sources,
             timeout_ms,
             rss_limit_bytes,
             cpu_limit_ms,
@@ -91,12 +71,12 @@ pub(super) fn run_formatted_batch(
     command
         .arg("fmt")
         .arg("--check")
-        .args(sources)
-        .current_dir(root);
+        .args(inputs.formatting_sources)
+        .current_dir(inputs.root);
     let formatting = capture_result(
         command,
         oracle,
-        root,
+        inputs.root,
         timeout_ms,
         rss_limit_bytes,
         cpu_limit_ms,
@@ -113,8 +93,8 @@ pub(super) fn run_formatted_batch(
             run_batch(
                 compiler,
                 oracle,
-                root,
-                sources,
+                inputs.root,
+                inputs.semantic_sources,
                 remaining_wall,
                 rss_limit_bytes,
                 remaining_cpu,
@@ -493,6 +473,8 @@ mod tests {
         let root = tempfile::tempdir().expect("case root");
         let source = root.path().join("case.terl");
         std::fs::write(&source, "module case.\n").expect("source");
+        let support = root.path().join("support.terl");
+        std::fs::write(&support, "module support.\n").expect("support source");
         let launches = root.path().join("launches");
         let compiler = root.path().join("compiler");
         std::fs::write(
@@ -513,10 +495,14 @@ mod tests {
         .expect("compiler");
         std::fs::set_permissions(&compiler, std::fs::Permissions::from_mode(0o700))
             .expect("permissions");
-        let result = run_formatted(
+        let result = run_formatted_batch_inputs(
             &compiler,
             Oracle::Check,
-            &source,
+            FormattedBatchInputs {
+                root: root.path(),
+                semantic_sources: &["case.terl".into()],
+                formatting_sources: &["case.terl".into(), "support.terl".into()],
+            },
             1_000,
             1024 * 1024 * 1024,
             1_000,
@@ -527,7 +513,7 @@ mod tests {
         let launches = std::fs::read_to_string(launches).expect("launch ledger");
         let launches = launches.lines().collect::<Vec<_>>();
         assert_eq!(launches.len(), 2);
-        assert!(launches[0].contains(" fmt --check case.terl"));
+        assert!(launches[0].contains(" fmt --check case.terl support.terl"));
         assert!(launches[1].contains(" check case.terl"));
     }
 
@@ -551,10 +537,14 @@ mod tests {
         .expect("compiler");
         std::fs::set_permissions(&compiler, std::fs::Permissions::from_mode(0o700))
             .expect("permissions");
-        let result = run_formatted(
+        let result = run_formatted_batch_inputs(
             &compiler,
             Oracle::Check,
-            &source,
+            FormattedBatchInputs {
+                root: root.path(),
+                semantic_sources: &["case.terl".into()],
+                formatting_sources: &["case.terl".into()],
+            },
             1_000,
             1024 * 1024 * 1024,
             1_000,

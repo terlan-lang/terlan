@@ -34,6 +34,27 @@ fn generate_case(index: u32, options: &RunOptions, compiler_revision: &str) -> G
     )
 }
 
+fn regenerate_case(
+    index: u32,
+    options: &RunOptions,
+    compiler_revision: &str,
+    generator: &str,
+) -> Result<GeneratedCase, String> {
+    crate::generate::regenerate(
+        index,
+        &GenerationConfig {
+            seed: options.seed,
+            max_depth: options.max_depth,
+            oracle: options.oracle,
+            timeout_ms: options.case_timeout_ms,
+            rss_limit_bytes: options.rss_limit_bytes,
+            cpu_limit_ms: options.cpu_limit_ms,
+            compiler_revision,
+        },
+        generator,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

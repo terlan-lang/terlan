@@ -27,8 +27,9 @@ use super::project_context::test_target_profile_options;
 ///
 /// Transformation:
 /// - Indexes module paths without parsing unused sources, prefers an explicit
-///   `.terli` sibling, traverses imports breadth-first, and prepares selected
-///   files grouped by their original source-root order.
+///   `.terli` sibling, expands grouped imports into possible sibling providers,
+///   traverses imports breadth-first, and prepares selected files grouped by
+///   their original source-root order.
 pub(super) fn prepare_project_source_interface_closure(
     context: &TestProjectContext,
     state: &CliState,
@@ -94,7 +95,7 @@ fn syntax_module_imports(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> V
     syntax
         .declarations
         .iter()
-        .filter_map(|declaration| {
+        .flat_map(|declaration| {
             let crate::terlan_syntax::SyntaxDeclarationPayload::Import {
                 import_kind,
                 module_name,
@@ -103,15 +104,24 @@ fn syntax_module_imports(syntax: &crate::terlan_syntax::SyntaxModuleOutput) -> V
                 ..
             } = &declaration.payload
             else {
-                return None;
+                return Vec::new();
             };
-            (*import_kind == crate::terlan_syntax::SyntaxImportKind::Module).then(|| {
-                crate::terlan_syntax::syntax_module_import_identity(
-                    module_name,
-                    items,
-                    *is_selected,
-                )
-            })
+            if *import_kind != crate::terlan_syntax::SyntaxImportKind::Module {
+                return Vec::new();
+            }
+            let mut providers = vec![crate::terlan_syntax::syntax_module_import_identity(
+                module_name,
+                items,
+                *is_selected,
+            )];
+            if *is_selected {
+                providers.extend(
+                    items
+                        .iter()
+                        .map(|item| format!("{module_name}.{}", item.name)),
+                );
+            }
+            providers
         })
         .collect()
 }
@@ -431,5 +441,33 @@ mod tests {
         )
         .expect_err("duplicate module must fail");
         assert!(error.contains("duplicate project source module `app.Shared`"));
+    }
+
+    #[test]
+    fn focused_interface_preparation_expands_grouped_sibling_imports() {
+        let fixture = tempfile::tempdir().expect("grouped import fixture");
+        let root = fixture.path().join("src");
+        let cache = fixture.path().join("cache");
+        fs::create_dir_all(root.join("app")).expect("source layout");
+        fs::write(
+            root.join("app/Child.terl"),
+            "module app.Child.\npub value(): Int -> 7.\n",
+        )
+        .expect("child source");
+        let source = concat!(
+            "module app.FocusedTest.\n",
+            "import app.{Child}.\n",
+            "@test\npub works(): Bool -> Child.value() == 7.\n",
+        );
+
+        prepare_project_source_interface_closure(
+            &context(&root, &cache),
+            &state(&cache),
+            "FocusedTest.terl",
+            source,
+        )
+        .expect("prepare grouped sibling closure");
+
+        assert!(cache.join("app.Child.typi").is_file());
     }
 }

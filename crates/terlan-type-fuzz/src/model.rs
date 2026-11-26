@@ -117,7 +117,15 @@ pub struct GeneratedCase {
     pub manifest: CaseManifest,
     pub project: String,
     pub source: String,
+    pub support_sources: Vec<GeneratedSource>,
     pub expected: TypedValue,
+}
+
+/// One additional module required by a generated multi-module case.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct GeneratedSource {
+    pub path: PathBuf,
+    pub source: String,
 }
 
 #[cfg(test)]

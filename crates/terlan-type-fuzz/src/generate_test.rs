@@ -18,7 +18,7 @@ fn case(seed: u64, index: u32, depth: u8) -> GeneratedCase {
 #[test]
 fn generation_is_stable_and_covers_each_initial_family() {
     assert_eq!(case(17, 3, 8), case(17, 3, 8));
-    let cases = (0..17).map(|index| case(1, index, 8)).collect::<Vec<_>>();
+    let cases = (0..18).map(|index| case(1, index, 8)).collect::<Vec<_>>();
     let families = cases
         .iter()
         .map(|case| case.manifest.family.as_str())
@@ -42,7 +42,8 @@ fn generation_is_stable_and_covers_each_initial_family() {
             "result_join",
             "nested_result_join",
             "closed_union",
-            "closed_union_empty"
+            "closed_union_empty",
+            "generic_field_receiver"
         ]
     );
     for case in cases {
@@ -53,6 +54,19 @@ fn generation_is_stable_and_covers_each_initial_family() {
             .contains("@test\npub sample_matches_expected(): Bool"));
         assert!(case.source.contains("sample() =="));
     }
+    let module_case = &case(1, 17, 8);
+    assert_eq!(module_case.support_sources.len(), 4);
+    assert!(module_case.project.contains("source_roots = [\"src\"]"));
+    assert!(!module_case.project.contains("source_roots = [\".\"]"));
+    assert!(module_case
+        .support_sources
+        .iter()
+        .all(|source| source.path.starts_with("src")));
+    assert!(module_case.source.contains("batch.latest_sequence()"));
+    assert!(module_case.source.contains("Numbers.next("));
+    assert!(module_case.support_sources.iter().any(|source| source
+        .source
+        .contains("batch.state.execution_state().latest_sequence()")));
 }
 
 #[test]
@@ -68,6 +82,7 @@ fn seed_and_depth_budgets_change_only_their_owned_dimensions() {
 fn ten_thousand_cases_preserve_type_and_identity_invariants() {
     let mut identities = std::collections::HashSet::new();
     let mut families = std::collections::HashSet::new();
+    let mut support_paths = std::collections::HashSet::new();
     for index in 0..10_000 {
         let generated = case(17, index, 8);
         assert_eq!(
@@ -75,10 +90,15 @@ fn ten_thousand_cases_preserve_type_and_identity_invariants() {
             generated.expected.type_name
         );
         assert!(!generated.source.contains(" as "));
+        for support in &generated.support_sources {
+            assert!(!support.source.contains(" as "));
+            assert!(support_paths.insert(support.path.clone()));
+        }
         assert!(identities.insert(generated.manifest.case_id));
         families.insert(generated.manifest.family);
     }
-    assert_eq!(families.len(), 17);
+    assert_eq!(families.len(), 18);
+    assert_eq!(support_paths.len(), 4 * (10_000 / 18));
 }
 
 #[test]
@@ -112,6 +132,34 @@ fn checked_oracle_is_encoded_in_identity_and_manifest() {
     );
     assert_eq!(native.manifest.oracle, Oracle::Native);
     assert!(native.manifest.case_id.ends_with("-onative"));
+    assert!(native.manifest.case_id.starts_with("v2-"));
+    assert_eq!(native.manifest.generator, GENERATOR_V2);
+}
+
+#[test]
+fn recorded_generator_versions_retain_their_family_mapping() {
+    let config = GenerationConfig {
+        seed: 1,
+        max_depth: 8,
+        oracle: Oracle::Check,
+        timeout_ms: 2_000,
+        rss_limit_bytes: 1024,
+        cpu_limit_ms: 2_000,
+        compiler_revision: "test",
+    };
+    let legacy = regenerate(17, &config, GENERATOR_V1).expect("legacy generator");
+    assert_eq!(legacy.manifest.family, "scalar_unit");
+    assert!(legacy.manifest.case_id.starts_with("v1-"));
+    assert!(legacy.support_sources.is_empty());
+
+    let current = regenerate(17, &config, GENERATOR_V2).expect("current generator");
+    assert_eq!(current.manifest.family, "generic_field_receiver");
+    assert!(current.manifest.case_id.starts_with("v2-"));
+    assert_eq!(current.support_sources.len(), 4);
+    assert_eq!(
+        regenerate(17, &config, "terlan.type-fuzz-generator.v3").unwrap_err(),
+        "unsupported type fuzz generator `terlan.type-fuzz-generator.v3`"
+    );
 }
 
 #[test]

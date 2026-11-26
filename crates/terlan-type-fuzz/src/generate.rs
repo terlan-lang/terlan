@@ -3,7 +3,40 @@ use serde_json::json;
 use crate::checked::{CheckedType, GeneratedBody};
 use crate::{CaseManifest, GeneratedCase, Oracle, TypedValue, CASE_SCHEMA, VALUE_SCHEMA};
 
-const GENERATOR: &str = "terlan.type-fuzz-generator.v1";
+mod module_cases;
+
+const GENERATOR_V1: &str = "terlan.type-fuzz-generator.v1";
+const GENERATOR_V2: &str = "terlan.type-fuzz-generator.v2";
+
+#[derive(Clone, Copy)]
+enum GeneratorVersion {
+    V1,
+    V2,
+}
+
+impl GeneratorVersion {
+    fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            GENERATOR_V1 => Ok(Self::V1),
+            GENERATOR_V2 => Ok(Self::V2),
+            _ => Err(format!("unsupported type fuzz generator `{value}`")),
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::V1 => GENERATOR_V1,
+            Self::V2 => GENERATOR_V2,
+        }
+    }
+
+    fn identity(self) -> &'static str {
+        match self {
+            Self::V1 => "v1",
+            Self::V2 => "v2",
+        }
+    }
+}
 
 /// Stable inputs shared by every case in one deterministic generation run.
 pub struct GenerationConfig<'a> {
@@ -18,9 +51,29 @@ pub struct GenerationConfig<'a> {
 
 /// Generates one deterministic typed program and its replay manifest.
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
+    generate_version(index, config, GeneratorVersion::V2)
+}
+
+pub(crate) fn regenerate(
+    index: u32,
+    config: &GenerationConfig<'_>,
+    generator: &str,
+) -> Result<GeneratedCase, String> {
+    Ok(generate_version(
+        index,
+        config,
+        GeneratorVersion::parse(generator)?,
+    ))
+}
+
+fn generate_version(
+    index: u32,
+    config: &GenerationConfig<'_>,
+    version: GeneratorVersion,
+) -> GeneratedCase {
     let split_seed = split(config.seed, index);
     let number = (split_seed % 97) as i64 + 1;
-    let family = Family::from_index(index, config.max_depth, config.oracle);
+    let family = Family::from_index(index, config.max_depth, config.oracle, version);
     let oracle_name = match config.oracle {
         Oracle::Check => "check",
         Oracle::JavaScript => "js",
@@ -28,20 +81,22 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
         Oracle::None => "none",
     };
     let case_id = format!(
-        "v1-s{:016x}-c{index:06}-d{:02}-o{oracle_name}",
-        config.seed, config.max_depth
+        "{}-s{:016x}-c{index:06}-d{:02}-o{oracle_name}",
+        version.identity(),
+        config.seed,
+        config.max_depth
     );
     let module = format!("type_fuzz.Case{index:06}");
-    let rendered = family.render(number);
+    let (rendered, support_sources) = family.render(index, number);
     let expected_type = rendered.checked_type.source_name();
     let source = format!("module {module}.\n\n{}\n", rendered.source());
     let project = format!(
-        "[package]\nname = \"type-fuzz-case-{index:06}\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\".\"]\nartifact = \"library\"\n"
+        "[package]\nname = \"type-fuzz-case-{index:06}\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\"src\"]\nartifact = \"library\"\n"
     );
     GeneratedCase {
         manifest: CaseManifest {
             schema: CASE_SCHEMA.into(),
-            generator: GENERATOR.into(),
+            generator: version.name().into(),
             compiler_version: env!("CARGO_PKG_VERSION").into(),
             compiler_revision: config.compiler_revision.into(),
             case_id,
@@ -57,6 +112,7 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
         },
         project,
         source,
+        support_sources,
         expected: TypedValue {
             schema: VALUE_SCHEMA,
             type_name: expected_type,
@@ -92,17 +148,21 @@ enum Family {
     NestedResultJoin,
     ClosedUnion,
     ClosedUnionEmpty,
+    GenericFieldReceiver,
 }
 
 impl Family {
-    fn from_index(index: u32, max_depth: u8, oracle: Oracle) -> Self {
+    fn from_index(index: u32, max_depth: u8, oracle: Oracle, version: GeneratorVersion) -> Self {
         if oracle == Oracle::JavaScript && max_depth > 2 {
             return Self::from_javascript_index(index);
         }
         let family_count = match max_depth {
             1 => 6,
             2 => 10,
-            _ => 17,
+            _ => match version {
+                GeneratorVersion::V1 => 17,
+                GeneratorVersion::V2 => 18,
+            },
         };
         match index % family_count {
             0 => Self::UnitScalar,
@@ -121,7 +181,8 @@ impl Family {
             13 => Self::ResultJoin,
             14 => Self::NestedResultJoin,
             15 => Self::ClosedUnion,
-            _ => Self::ClosedUnionEmpty,
+            16 => Self::ClosedUnionEmpty,
+            _ => Self::GenericFieldReceiver,
         }
     }
 
@@ -163,11 +224,12 @@ impl Family {
             Self::NestedResultJoin => "nested_result_join",
             Self::ClosedUnion => "closed_union",
             Self::ClosedUnionEmpty => "closed_union_empty",
+            Self::GenericFieldReceiver => "generic_field_receiver",
         }
     }
 
-    fn render(self, value: i64) -> GeneratedBody {
-        match self {
+    fn render(self, index: u32, value: i64) -> (GeneratedBody, Vec<crate::GeneratedSource>) {
+        let rendered = match self {
             Self::UnitScalar => generated(
                 CheckedType::Unit,
                 serde_json::Value::Null,
@@ -281,7 +343,9 @@ impl Family {
                 "Empty()".into(),
             )
             .with_prelude(choice_declarations()),
-        }
+            Self::GenericFieldReceiver => return module_cases::generic_field_receiver(index, value),
+        };
+        (rendered, Vec::new())
     }
 }
 

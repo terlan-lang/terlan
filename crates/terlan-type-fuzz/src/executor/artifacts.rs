@@ -1,15 +1,20 @@
+use std::collections::BTreeSet;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use super::generate_case as generate;
 use super::oracle::{self, OracleResult};
 use super::planning;
 use super::resources::ResourceEvidence;
-use crate::{CaseManifest, GeneratedCase, Oracle, RunOptions, TypedValue, CASE_SCHEMA};
+use super::{generate_case as generate, regenerate_case};
+use crate::{
+    CaseManifest, GeneratedCase, GeneratedSource, Oracle, RunOptions, TypedValue, CASE_SCHEMA,
+};
 
 const CHECK_BATCH_SIZE: usize = 32;
 const CASE_SOURCE_FILE: &str = "CaseTest.terl";
+const PROJECT_MANIFEST_FILE: &str = "terlan.toml";
+const PROJECT_SOURCE_ROOT_MARKER: &str = "src/.keep";
 
 pub(super) fn generate_run(
     options: &RunOptions,
@@ -80,11 +85,27 @@ fn run_batches(
                     .join(CASE_SOURCE_FILE)
             })
             .collect::<Vec<_>>();
-        let result = oracle::run_formatted_batch(
+        let formatting_sources = batch
+            .iter()
+            .flat_map(|(directory, case)| {
+                let relative = directory
+                    .strip_prefix(&options.out_dir)
+                    .expect("case directory belongs to fuzz output");
+                std::iter::once(relative.join(CASE_SOURCE_FILE)).chain(
+                    case.support_sources
+                        .iter()
+                        .map(|support| relative.join(&support.path)),
+                )
+            })
+            .collect::<Vec<_>>();
+        let result = oracle::run_formatted_batch_inputs(
             compiler,
             options.oracle,
-            &options.out_dir,
-            &sources,
+            oracle::FormattedBatchInputs {
+                root: &options.out_dir,
+                semantic_sources: &sources,
+                formatting_sources: &formatting_sources,
+            },
             wall_ms,
             options.rss_limit_bytes,
             cpu_ms,
@@ -92,7 +113,7 @@ fn run_batches(
         for (directory, case) in batch {
             record_observation(directory, &result, &case.manifest)?;
         }
-        ensure_success(&batch[0].1, &result)?;
+        ensure_batch_success(batch, &result)?;
     }
     Ok(())
 }
@@ -121,7 +142,12 @@ pub(super) fn load_generated_case(directory: &Path) -> Result<GeneratedCase, Str
         cpu_limit_ms: manifest.cpu_limit_ms,
         ..RunOptions::default()
     };
-    let case = generate(manifest.case_index, &options, &manifest.compiler_revision);
+    let case = regenerate_case(
+        manifest.case_index,
+        &options,
+        &manifest.compiler_revision,
+        &manifest.generator,
+    )?;
     verify_case(directory, &case)?;
     Ok(case)
 }
@@ -160,10 +186,24 @@ fn check_corpus_entries(
 }
 
 pub(super) fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
+    validate_support_sources(&case.support_sources)?;
     fs::create_dir_all(directory).map_err(io_error("create case directory"))?;
-    atomic_write(&directory.join("Cargo.toml"), case.project.as_bytes())?;
+    fs::create_dir_all(directory.join("src")).map_err(io_error("create case source root"))?;
+    atomic_write(&directory.join(PROJECT_SOURCE_ROOT_MARKER), b"")?;
+    atomic_write(
+        &directory.join(PROJECT_MANIFEST_FILE),
+        case.project.as_bytes(),
+    )?;
     atomic_write(&directory.join(CASE_SOURCE_FILE), case.source.as_bytes())?;
     atomic_write(&directory.join("replay.terl"), case.source.as_bytes())?;
+    for support in &case.support_sources {
+        let path = directory.join(&support.path);
+        let parent = path
+            .parent()
+            .expect("validated support source belongs to the source root");
+        fs::create_dir_all(parent).map_err(io_error("create support source directory"))?;
+        atomic_write(&path, support.source.as_bytes())?;
+    }
     let manifest = toml_text(&case.manifest);
     atomic_write(&directory.join("case.toml"), manifest.as_bytes())?;
     atomic_write(
@@ -179,10 +219,22 @@ pub(super) fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), S
 }
 
 fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Result<(), String> {
-    let result = oracle::run_formatted(
+    let semantic_sources = vec![PathBuf::from(CASE_SOURCE_FILE)];
+    let formatting_sources = std::iter::once(PathBuf::from(CASE_SOURCE_FILE))
+        .chain(
+            case.support_sources
+                .iter()
+                .map(|support| support.path.clone()),
+        )
+        .collect::<Vec<_>>();
+    let result = oracle::run_formatted_batch_inputs(
         compiler,
         case.manifest.oracle,
-        &directory.join(CASE_SOURCE_FILE),
+        oracle::FormattedBatchInputs {
+            root: directory,
+            semantic_sources: &semantic_sources,
+            formatting_sources: &formatting_sources,
+        },
         case.manifest.case_timeout_ms,
         case.manifest.rss_limit_bytes,
         case.manifest.cpu_limit_ms,
@@ -249,9 +301,59 @@ fn ensure_success(case: &GeneratedCase, result: &OracleResult) -> Result<(), Str
     Ok(())
 }
 
+fn ensure_batch_success(
+    batch: &[(PathBuf, GeneratedCase)],
+    result: &OracleResult,
+) -> Result<(), String> {
+    if matches!(result.outcome, "passed" | "not_run") {
+        return Ok(());
+    }
+    let diagnostics = format!("{}\n{}", result.stdout, result.stderr)
+        .lines()
+        .filter(|line| !line.starts_with("terlc timing:") && !line.starts_with("terlc native-aot:"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let implicated = batch
+        .iter()
+        .filter_map(|(_, case)| {
+            let index = case.manifest.case_index;
+            (diagnostics.contains(&case.manifest.case_id)
+                || diagnostics.contains(&format!("Case{index:06}"))
+                || diagnostics.contains(&format!("case{index:06}")))
+            .then_some(case.manifest.case_id.as_str())
+        })
+        .collect::<Vec<_>>();
+    let subject = if implicated.is_empty() {
+        format!(
+            "batch {}..{}",
+            batch
+                .first()
+                .expect("non-empty fuzz batch")
+                .1
+                .manifest
+                .case_id,
+            batch
+                .last()
+                .expect("non-empty fuzz batch")
+                .1
+                .manifest
+                .case_id,
+        )
+    } else {
+        format!("case {}", implicated.join(", "))
+    };
+    Err(format!(
+        "{subject} {} oracle ended as {}",
+        oracle_name(batch[0].1.manifest.oracle),
+        result.outcome
+    ))
+}
+
 fn verify_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
+    validate_support_sources(&case.support_sources)?;
     let expected = [
-        ("Cargo.toml", case.project.as_bytes().to_vec()),
+        (PROJECT_MANIFEST_FILE, case.project.as_bytes().to_vec()),
+        (PROJECT_SOURCE_ROOT_MARKER, Vec::new()),
         (CASE_SOURCE_FILE, case.source.as_bytes().to_vec()),
         ("replay.terl", case.source.as_bytes().to_vec()),
         ("case.toml", toml_text(&case.manifest).into_bytes()),
@@ -265,6 +367,54 @@ fn verify_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
         let actual = fs::read(&path).map_err(io_error("read replay artifact"))?;
         if actual != bytes {
             return Err(format!("replay input drifted: {}", path.display()));
+        }
+    }
+    for support in &case.support_sources {
+        let path = directory.join(&support.path);
+        let actual = fs::read(&path).map_err(io_error("read replay support source"))?;
+        if actual != support.source.as_bytes() {
+            return Err(format!("replay input drifted: {}", path.display()));
+        }
+    }
+    Ok(())
+}
+
+fn validate_support_sources(sources: &[GeneratedSource]) -> Result<(), String> {
+    let mut paths = BTreeSet::new();
+    for source in sources {
+        let path = &source.path;
+        let safe = !path.as_os_str().is_empty()
+            && path.extension().and_then(|extension| extension.to_str()) == Some("terl")
+            && path.starts_with("src")
+            && path
+                .components()
+                .all(|component| matches!(component, Component::Normal(_)))
+            && path != Path::new(CASE_SOURCE_FILE)
+            && path != Path::new("replay.terl");
+        if !safe {
+            return Err(format!(
+                "invalid generated support source path `{}`",
+                path.display()
+            ));
+        }
+        if !paths.insert(path.clone()) {
+            return Err(format!(
+                "duplicate generated support source path `{}`",
+                path.display()
+            ));
+        }
+    }
+    for path in &paths {
+        let mut parent = path.parent();
+        while let Some(candidate) = parent {
+            if paths.contains(candidate) {
+                return Err(format!(
+                    "generated support source path `{}` contains source parent `{}`",
+                    path.display(),
+                    candidate.display()
+                ));
+            }
+            parent = candidate.parent();
         }
     }
     Ok(())
@@ -478,6 +628,47 @@ mod tests {
     }
 
     #[test]
+    fn batch_failures_name_implicated_cases_or_the_exact_batch() {
+        let options = test_options(5);
+        let batch = [0, 17]
+            .into_iter()
+            .map(|index| {
+                (
+                    PathBuf::from(index.to_string()),
+                    generate(index, &options, "test"),
+                )
+            })
+            .collect::<Vec<_>>();
+        let result = |outcome: &'static str, stderr: &str| OracleResult {
+            schema: "terlan.type-fuzz-observation.v1",
+            oracle: Oracle::None,
+            outcome,
+            exit_code: Some(1),
+            stdout: String::new(),
+            stderr: stderr.into(),
+            resources: ResourceEvidence::unmeasured(1, 1, 1),
+        };
+        assert_eq!(ensure_batch_success(&batch, &result("passed", "")), Ok(()));
+        let implicated = ensure_batch_success(
+            &batch,
+            &result(
+                "failed",
+                "would reformat src/type_fuzz/case000017/Batch.terl",
+            ),
+        )
+        .expect_err("batch must fail");
+        assert!(implicated.contains(&batch[1].1.manifest.case_id));
+        assert!(!implicated.contains(&batch[0].1.manifest.case_id));
+
+        let unknown = ensure_batch_success(&batch, &result("failed", "unclassified"))
+            .expect_err("batch must fail");
+        assert!(unknown.contains(&format!(
+            "batch {}..{}",
+            batch[0].1.manifest.case_id, batch[1].1.manifest.case_id
+        )));
+    }
+
+    #[test]
     fn native_success_keeps_measured_resources() {
         let root = tempfile::tempdir().expect("temporary fuzz root");
         let mut options = test_options(7);
@@ -527,6 +718,10 @@ mod tests {
         let root = tempfile::tempdir().expect("temporary fuzz root");
         let case = generate(3, &test_options(5), "test");
         write_case(root.path(), &case).expect("first write");
+        assert!(root.path().join(PROJECT_MANIFEST_FILE).is_file());
+        assert!(!root.path().join("Cargo.toml").exists());
+        assert!(root.path().join("src").is_dir());
+        assert!(root.path().join(PROJECT_SOURCE_ROOT_MARKER).is_file());
         let first = fs::read(root.path().join("case.toml")).expect("manifest");
         write_case(root.path(), &case).expect("second write");
         assert_eq!(
@@ -534,6 +729,112 @@ mod tests {
             fs::read(root.path().join("case.toml")).expect("manifest")
         );
         verify_case(root.path(), &case).expect("replay identity");
+    }
+
+    #[test]
+    fn multi_module_artifacts_are_written_and_verified() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let case = generate(17, &test_options(5), "test");
+        assert_eq!(case.support_sources.len(), 4);
+        write_case(root.path(), &case).expect("multi-module artifacts");
+        verify_case(root.path(), &case).expect("multi-module replay identity");
+        for support in &case.support_sources {
+            assert_eq!(
+                fs::read_to_string(root.path().join(&support.path)).expect("support source"),
+                support.source
+            );
+        }
+
+        let changed = &case.support_sources[0];
+        fs::write(root.path().join(&changed.path), "changed").expect("change support source");
+        assert!(verify_case(root.path(), &case)
+            .unwrap_err()
+            .contains("drifted"));
+        fs::remove_file(root.path().join(&changed.path)).expect("remove support source");
+        assert!(verify_case(root.path(), &case)
+            .unwrap_err()
+            .contains("read replay support source"));
+    }
+
+    #[test]
+    fn multi_module_offline_replay_collects_every_source() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let mut options = test_options(5);
+        options.oracle = Oracle::None;
+        let case = generate(17, &options, "test");
+        write_case(root.path(), &case).expect("multi-module artifacts");
+        run_and_record(root.path(), &case, Path::new("missing-compiler"))
+            .expect("offline multi-module replay");
+        assert!(fs::read_to_string(root.path().join("observed.json"))
+            .expect("observation")
+            .contains("not_run"));
+    }
+
+    #[test]
+    fn support_source_paths_are_confined_and_unique() {
+        let replay_root = tempfile::tempdir().expect("temporary fuzz root");
+        let replay_case = generate(0, &test_options(5), "test");
+        write_case(replay_root.path(), &replay_case).expect("valid replay artifacts");
+        let invalid = [
+            "",
+            "Support.txt",
+            "../Support.terl",
+            "/Support.terl",
+            "./Support.terl",
+            "Support.terl",
+            CASE_SOURCE_FILE,
+            "replay.terl",
+        ];
+        for path in invalid {
+            let mut case = generate(0, &test_options(5), "test");
+            case.support_sources = vec![GeneratedSource {
+                path: PathBuf::from(path),
+                source: "module Support.".into(),
+            }];
+            assert!(write_case(Path::new("unused"), &case)
+                .unwrap_err()
+                .contains("invalid generated support source path"));
+            assert!(verify_case(replay_root.path(), &case)
+                .unwrap_err()
+                .contains("invalid generated support source path"));
+        }
+
+        let mut duplicate = generate(0, &test_options(5), "test");
+        let support = GeneratedSource {
+            path: PathBuf::from("src/Support.terl"),
+            source: "module Support.".into(),
+        };
+        duplicate.support_sources = vec![support.clone(), support];
+        assert!(write_case(Path::new("unused"), &duplicate)
+            .unwrap_err()
+            .contains("duplicate generated support source path"));
+
+        let mut nested_below_source = generate(0, &test_options(5), "test");
+        nested_below_source.support_sources = vec![
+            GeneratedSource {
+                path: PathBuf::from("src/Support.terl"),
+                source: "module Support.".into(),
+            },
+            GeneratedSource {
+                path: PathBuf::from("src/Support.terl/Nested.terl"),
+                source: "module Nested.".into(),
+            },
+        ];
+        assert!(write_case(Path::new("unused"), &nested_below_source)
+            .unwrap_err()
+            .contains("contains source parent"));
+    }
+
+    #[test]
+    fn source_root_support_source_is_replayable() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let mut case = generate(0, &test_options(5), "test");
+        case.support_sources = vec![GeneratedSource {
+            path: PathBuf::from("src/Support.terl"),
+            source: "module Support.\n".into(),
+        }];
+        write_case(root.path(), &case).expect("root support source");
+        verify_case(root.path(), &case).expect("root support replay identity");
     }
 
     #[test]
@@ -565,6 +866,18 @@ mod tests {
         assert!(replay(root.path(), Path::new("missing-compiler"))
             .unwrap_err()
             .contains("unsupported case schema"));
+
+        write_case(root.path(), &case).expect("restore supported manifest");
+        let manifest = fs::read_to_string(root.path().join("case.toml"))
+            .expect("manifest")
+            .replace(
+                "terlan.type-fuzz-generator.v2",
+                "terlan.type-fuzz-generator.v3",
+            );
+        fs::write(root.path().join("case.toml"), manifest).expect("future generator");
+        assert!(replay(root.path(), Path::new("missing-compiler"))
+            .unwrap_err()
+            .contains("unsupported type fuzz generator"));
 
         fs::write(root.path().join("case.toml"), "not valid toml = [").expect("invalid manifest");
         assert!(replay(root.path(), Path::new("missing-compiler"))
@@ -627,7 +940,8 @@ mod tests {
         let case = generate(1, &options, "test");
         let directory = root.path().join(case.manifest.case_id);
         let names = [
-            "Cargo.toml",
+            PROJECT_MANIFEST_FILE,
+            PROJECT_SOURCE_ROOT_MARKER,
             CASE_SOURCE_FILE,
             "replay.terl",
             "case.toml",
@@ -890,7 +1204,8 @@ mod tests {
     fn every_case_artifact_publish_failure_is_attributed() {
         let case = generate(0, &test_options(5), "test");
         for name in [
-            "Cargo.toml",
+            PROJECT_MANIFEST_FILE,
+            PROJECT_SOURCE_ROOT_MARKER,
             CASE_SOURCE_FILE,
             "replay.terl",
             "case.toml",
@@ -899,10 +1214,35 @@ mod tests {
         ] {
             let root = tempfile::tempdir().expect("temporary fuzz root");
             let blocker = temporary_path(&root.path().join(name));
+            fs::create_dir_all(blocker.parent().expect("artifact parent"))
+                .expect("artifact parent");
             fs::create_dir(&blocker).expect("temporary path blocker");
             let error = write_case(root.path(), &case).expect_err("publish must fail");
             assert!(error.contains("write temporary"), "{name}: {error}");
         }
+
+        let multi_module = generate(17, &test_options(5), "test");
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let support = root.path().join(&multi_module.support_sources[0].path);
+        fs::create_dir_all(support.parent().expect("support parent")).expect("support parent");
+        fs::create_dir(temporary_path(&support)).expect("support blocker");
+        assert!(write_case(root.path(), &multi_module)
+            .unwrap_err()
+            .contains("write temporary"));
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        fs::write(root.path().join("src"), "source root blocker").expect("source root blocker");
+        assert!(write_case(root.path(), &multi_module)
+            .unwrap_err()
+            .contains("create case source root"));
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        fs::create_dir(root.path().join("src")).expect("source root");
+        fs::write(root.path().join("src/type_fuzz"), "directory blocker")
+            .expect("support directory blocker");
+        assert!(write_case(root.path(), &multi_module)
+            .unwrap_err()
+            .contains("create support source directory"));
     }
 
     #[cfg(unix)]

@@ -297,7 +297,7 @@ open before TF3 can close.
 
 ### TF4: Modules, interfaces, traits, and packages
 
-- [ ] Generate multi-module selected and qualified imports.
+- [x] Generate multi-module selected and qualified imports.
 - [ ] Round-trip generated `.typi` interfaces and compare semantic facts.
 - [ ] Generate generic traits, declaration-site implementations, constructors,
   aliases, exhaustive patterns, and same-named types from distinct providers.
@@ -306,12 +306,27 @@ open before TF3 can close.
 Acceptance: 5,000 package cases pass with no difference between source facts,
 interface facts, qualified dispatch, generic bounds, or constructor coverage.
 
-The first TF4 regression now covers a generic field projection followed by an
+The first TF4 regression covers a generic field projection followed by an
 imported receiver chain across four modules. Source checking completed in 0.56
 seconds, while the pre-fix native path reproduced
 `native_ir.generic_argument` in 0.22 seconds. Nominal field projection now
 substitutes the enclosing generic arguments before receiver specialization; the
-same fixture executes in 0.26 seconds. Multi-module generation remains open.
+same fixture executes in 0.26 seconds.
+
+Generator v2 adds a five-module family with selected constructor imports, a
+qualified provider call, nested generic records, and the exact generic receiver
+chain. Replay artifacts retain and verify every support source while v1 cases
+retain their original family mapping. Its first bounded execution exposed two
+previously hidden orchestration defects: generated projects used a Rust
+manifest name and invalid current-directory source root, and canonical grouped
+imports did not expand to sibling source providers. Generated cases now use a
+valid `terlan.toml` with a confined `src` root, and focused closure preparation
+expands selected imports to candidate child modules. The generated native case
+prepares all four reachable providers and executes in 0.86 seconds; interface
+closure discovery itself takes 75 milliseconds.
+The focused type-fuzz crate now passes 96 tests with exact 100% region,
+function, and line coverage across 7,479 regions, 356 functions, and 4,942
+lines.
 
 ### TF5: Suspension, actors, and native providers
 
