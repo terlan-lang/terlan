@@ -369,7 +369,7 @@ functions, and 5,799 lines.
   union values before and after suspension.
 - [x] Generate cases using two compatible native providers in one package and
   verify helper routing and bounded binary transport.
-- [ ] Verify worker, helper, and compiler processes are cancelled transitively.
+- [x] Verify worker, helper, and compiler processes are cancelled transitively.
 
 Acceptance: no generated case may end in an unclassified suspension profile,
 missing continuation capture, helper protocol mismatch, or orphan process.
@@ -408,6 +408,15 @@ cache-mutation, recovery, filesystem, deadline, and publication failures, and
 both batch and replay paths propagate disagreements immediately. The focused
 crate passes 123 tests with exact 100% coverage across 10,598 regions, 490
 functions, and 6,803 lines.
+
+The executor now verifies its real cancellation boundary with a three-level
+compiler, worker, and native-helper process tree. The helper deliberately
+exceeds the shared CPU budget; the resource monitor cancels the owning process
+group, and the regression requires every recorded process to be absent or in a
+terminal kernel state before returning. Synthetic process observations cover
+missing, malformed, live, zombie, and dead entries. The focused crate passes
+125 tests with exact 100% coverage across 10,694 regions, 495 functions, and
+6,853 lines.
 
 ### TF6: Continuous and release integration
 

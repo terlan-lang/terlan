@@ -436,3 +436,7 @@ mod tests {
         assert_eq!(linux_group_sample_in(root.path(), 9), Some((4096, 3)));
     }
 }
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "resources_process_tree_test.rs"]
+mod process_tree_test;
