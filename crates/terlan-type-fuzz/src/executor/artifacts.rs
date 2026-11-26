@@ -349,6 +349,10 @@ fn resource_evidence_json(evidence: &ResourceEvidence) -> serde_json::Value {
             ),
             ("wall_timeout_ms".into(), evidence.wall_timeout_ms.into()),
             (
+                "wall_elapsed_ms".into(),
+                optional_u64(evidence.wall_elapsed_ms),
+            ),
+            (
                 "output_limit_bytes".into(),
                 evidence.output_limit_bytes.into(),
             ),
@@ -412,6 +416,7 @@ mod tests {
         let mut resources = ResourceEvidence::unmeasured(10, 20, 30);
         resources.peak_rss_bytes = Some(42);
         resources.peak_cpu_ms = Some(7);
+        resources.wall_elapsed_ms = Some(9);
         let result = OracleResult {
             schema: "terlan.type-fuzz-observation.v1",
             oracle: Oracle::Native,
@@ -431,6 +436,7 @@ mod tests {
             fs::read_to_string(root.path().join("resources.json")).expect("resource evidence");
         assert!(recorded.contains("\"peak_rss_bytes\":42"));
         assert!(recorded.contains("\"peak_cpu_ms\":7"));
+        assert!(recorded.contains("\"wall_elapsed_ms\":9"));
         let timings =
             fs::read_to_string(root.path().join("timings.json")).expect("timing evidence");
         assert!(timings.contains("\"measurement\":\"compiler_events\""));

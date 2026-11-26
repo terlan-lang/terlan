@@ -1,7 +1,7 @@
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use terlan_process_owner::{CapturedCommandOutput, ProcessControl};
@@ -13,6 +13,7 @@ pub(super) struct ResourceEvidence {
     pub(super) schema: &'static str,
     pub(super) measurement_supported: bool,
     pub(super) wall_timeout_ms: u64,
+    pub(super) wall_elapsed_ms: Option<u64>,
     pub(super) output_limit_bytes: usize,
     pub(super) rss_limit_bytes: u64,
     pub(super) cpu_limit_ms: u64,
@@ -28,6 +29,7 @@ impl ResourceEvidence {
             schema: "terlan.type-fuzz-resources.v1",
             measurement_supported: cfg!(target_os = "linux"),
             wall_timeout_ms: wall_ms,
+            wall_elapsed_ms: None,
             output_limit_bytes: OUTPUT_LIMIT,
             rss_limit_bytes: rss_bytes,
             cpu_limit_ms: cpu_ms,
@@ -40,6 +42,7 @@ impl ResourceEvidence {
 
     pub(super) fn deterministic_success(&self) -> Self {
         let mut evidence = self.clone();
+        evidence.wall_elapsed_ms = None;
         evidence.peak_rss_bytes = None;
         evidence.peak_cpu_ms = None;
         evidence
@@ -52,6 +55,7 @@ pub(super) struct Capture {
 }
 
 pub(super) fn capture(command: &mut Command, wall_ms: u64, rss_bytes: u64, cpu_ms: u64) -> Capture {
+    let started = Instant::now();
     let evidence = Arc::new(Mutex::new(ResourceEvidence::unmeasured(
         wall_ms, rss_bytes, cpu_ms,
     )));
@@ -77,7 +81,9 @@ pub(super) fn capture(command: &mut Command, wall_ms: u64, rss_bytes: u64, cpu_m
     if let Some(thread) = monitor {
         let _ = thread.join();
     }
-    let resources = clone_evidence(&evidence);
+    let mut resources = clone_evidence(&evidence);
+    resources.wall_elapsed_ms =
+        Some(u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX));
     Capture { output, resources }
 }
 
@@ -248,14 +254,17 @@ mod tests {
     fn unmeasured_evidence_retains_every_limit() {
         let evidence = ResourceEvidence::unmeasured(20, 30, 40);
         assert_eq!(evidence.wall_timeout_ms, 20);
+        assert_eq!(evidence.wall_elapsed_ms, None);
         assert_eq!(evidence.rss_limit_bytes, 30);
         assert_eq!(evidence.cpu_limit_ms, 40);
         assert_eq!(evidence.limit_exceeded, None);
         let mut measured = evidence.clone();
+        measured.wall_elapsed_ms = Some(77);
         measured.peak_rss_bytes = Some(99);
         measured.peak_cpu_ms = Some(88);
         assert_eq!(measured.deterministic_success().peak_rss_bytes, None);
         assert_eq!(measured.deterministic_success().peak_cpu_ms, None);
+        assert_eq!(measured.deterministic_success().wall_elapsed_ms, None);
 
         let poisoned = Mutex::new(evidence);
         let _ = std::panic::catch_unwind(|| {
@@ -332,6 +341,7 @@ mod tests {
         command.args(["-c", "sleep 30 & wait"]);
         let result = capture(&mut command, 20, 1024 * 1024 * 1024, 5_000);
         assert!(result.output.unwrap_err().contains("timed-out"));
+        assert!(result.resources.wall_elapsed_ms.is_some());
     }
 
     #[cfg(target_os = "linux")]
