@@ -8,6 +8,7 @@ use super::resources::ResourceEvidence;
 use crate::{CaseManifest, GeneratedCase, Oracle, RunOptions, TypedValue, CASE_SCHEMA};
 
 const CHECK_BATCH_SIZE: usize = 32;
+const CASE_SOURCE_FILE: &str = "CaseTest.terl";
 
 pub(super) fn generate_run(
     options: &RunOptions,
@@ -68,7 +69,7 @@ fn run_batches(
                 directory
                     .strip_prefix(&options.out_dir)
                     .expect("case directory belongs to fuzz output")
-                    .join("case.terl")
+                    .join(CASE_SOURCE_FILE)
             })
             .collect::<Vec<_>>();
         let result = oracle::run_batch(
@@ -115,7 +116,7 @@ pub(super) fn replay(directory: &Path, compiler: &Path) -> Result<(), String> {
 fn write_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
     fs::create_dir_all(directory).map_err(io_error("create case directory"))?;
     atomic_write(&directory.join("Cargo.toml"), case.project.as_bytes())?;
-    atomic_write(&directory.join("case.terl"), case.source.as_bytes())?;
+    atomic_write(&directory.join(CASE_SOURCE_FILE), case.source.as_bytes())?;
     atomic_write(&directory.join("replay.terl"), case.source.as_bytes())?;
     let manifest = toml_text(&case.manifest);
     atomic_write(&directory.join("case.toml"), manifest.as_bytes())?;
@@ -135,7 +136,7 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
     let result = oracle::run(
         compiler,
         case.manifest.oracle,
-        &directory.join("case.terl"),
+        &directory.join(CASE_SOURCE_FILE),
         case.manifest.case_timeout_ms,
         case.manifest.rss_limit_bytes,
         case.manifest.cpu_limit_ms,
@@ -200,7 +201,7 @@ fn ensure_success(case: &GeneratedCase, result: &OracleResult) -> Result<(), Str
 fn verify_case(directory: &Path, case: &GeneratedCase) -> Result<(), String> {
     let expected = [
         ("Cargo.toml", case.project.as_bytes().to_vec()),
-        ("case.terl", case.source.as_bytes().to_vec()),
+        (CASE_SOURCE_FILE, case.source.as_bytes().to_vec()),
         ("replay.terl", case.source.as_bytes().to_vec()),
         ("case.toml", toml_text(&case.manifest).into_bytes()),
         (
@@ -465,7 +466,7 @@ mod tests {
         let root = tempfile::tempdir().expect("temporary fuzz root");
         let case = generate(0, &test_options(5), "test");
         write_case(root.path(), &case).expect("write");
-        fs::write(root.path().join("case.terl"), "changed").expect("change source");
+        fs::write(root.path().join(CASE_SOURCE_FILE), "changed").expect("change source");
         assert!(verify_case(root.path(), &case)
             .unwrap_err()
             .contains("drifted"));
@@ -502,7 +503,7 @@ mod tests {
         let directory = root.path().join(case.manifest.case_id);
         let names = [
             "Cargo.toml",
-            "case.terl",
+            CASE_SOURCE_FILE,
             "replay.terl",
             "case.toml",
             "expected.json",
@@ -705,7 +706,7 @@ mod tests {
         let case = generate(0, &test_options(5), "test");
         for name in [
             "Cargo.toml",
-            "case.terl",
+            CASE_SOURCE_FILE,
             "replay.terl",
             "case.toml",
             "expected.json",
@@ -763,7 +764,7 @@ mod tests {
 
         let case = generate(0, &test_options(5), "test");
         write_case(root.path(), &case).expect("case artifacts");
-        fs::remove_file(root.path().join("case.terl")).expect("remove replay source");
+        fs::remove_file(root.path().join(CASE_SOURCE_FILE)).expect("remove replay source");
         assert!(verify_case(root.path(), &case)
             .unwrap_err()
             .contains("read replay artifact"));

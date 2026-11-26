@@ -98,7 +98,7 @@ A run is fully determined by the compiler revision, generator schema version,
 seed, case index, target matrix, and budgets. Each failure directory contains:
 
 ```text
-case.terl
+CaseTest.terl
 case.toml
 expected.json
 observed.json
