@@ -17,10 +17,12 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
         "terlc native-aot: image.cache-or-build: +0ms total=1ms ",
         "reachable-declarations=17 native-providers=ndarray,polars ",
         "cache-miss-reason=source_changed\n",
+        "terlc native-aot: image.types: semantic-types=2 aggregate-layouts=2 ",
+        "collection-layouts=1 semantic-type-ids=0101,0202\n",
         "terlc native-aot: rooted.cache: cache-hit=verified_checked_core_image\n",
     );
     let measured = measure(stderr);
-    assert_eq!(measured.timing_events, 11);
+    assert_eq!(measured.timing_events, 12);
     assert_eq!(measured.phase_elapsed_ms["frontend.parse"], 20);
     assert_eq!(
         measured.phase_elapsed_ms["application.generic-specialization"],
@@ -33,6 +35,13 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
     assert_eq!(measured.native_images, 2);
     assert_eq!(measured.native_image_cache_hits, 2);
     assert_eq!(measured.native_image_cache_misses, 1);
+    assert_eq!(measured.semantic_types, 2);
+    assert_eq!(measured.aggregate_layouts, 2);
+    assert_eq!(measured.collection_layouts, 1);
+    assert_eq!(
+        measured.semantic_type_ids,
+        ["0101".to_string(), "0202".to_string()].into()
+    );
     assert_eq!(measured.native_units_built, 2);
     assert_eq!(measured.native_functions_built, 17);
     assert_eq!(measured.native_continuations_built, 3);
@@ -84,6 +93,9 @@ fn comparison_reports_signed_work_deltas() {
         native_images: 1,
         native_image_cache_hits: 0,
         native_image_cache_misses: 1,
+        semantic_types: 2,
+        aggregate_layouts: 3,
+        collection_layouts: 4,
         native_units_built: 1,
         native_functions_built: 9,
         native_continuations_built: 8,
@@ -97,6 +109,9 @@ fn comparison_reports_signed_work_deltas() {
         native_images: 5,
         native_image_cache_hits: 3,
         native_image_cache_misses: 2,
+        semantic_types: 5,
+        aggregate_layouts: 7,
+        collection_layouts: 11,
         native_units_built: 5,
         native_functions_built: 6,
         native_continuations_built: 7,
@@ -112,6 +127,9 @@ fn comparison_reports_signed_work_deltas() {
             native_images: 4,
             native_image_cache_hits: 3,
             native_image_cache_misses: 1,
+            semantic_types: 3,
+            aggregate_layouts: 4,
+            collection_layouts: 7,
             native_units_built: 4,
             native_functions_built: -3,
             native_continuations_built: -1,

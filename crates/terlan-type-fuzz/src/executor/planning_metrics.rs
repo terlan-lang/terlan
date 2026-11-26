@@ -17,6 +17,10 @@ pub(super) struct CompilerMetrics {
     native_images: u64,
     native_image_cache_hits: u64,
     native_image_cache_misses: u64,
+    semantic_types: u64,
+    aggregate_layouts: u64,
+    collection_layouts: u64,
+    semantic_type_ids: BTreeSet<String>,
     native_units_built: u64,
     native_functions_built: u64,
     native_continuations_built: u64,
@@ -31,6 +35,9 @@ pub(super) struct CompilerMetricDelta {
     native_images: i128,
     native_image_cache_hits: i128,
     native_image_cache_misses: i128,
+    semantic_types: i128,
+    aggregate_layouts: i128,
+    collection_layouts: i128,
     native_units_built: i128,
     native_functions_built: i128,
     native_continuations_built: i128,
@@ -107,6 +114,25 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
         if text_field(line, "cache-hit=").is_some() {
             metrics.native_image_cache_hits = metrics.native_image_cache_hits.saturating_add(1);
         }
+        if line.starts_with("terlc native-aot: image.types:") {
+            metrics.semantic_types = metrics
+                .semantic_types
+                .saturating_add(field(line, "semantic-types=").unwrap_or(0));
+            metrics.aggregate_layouts = metrics
+                .aggregate_layouts
+                .saturating_add(field(line, "aggregate-layouts=").unwrap_or(0));
+            metrics.collection_layouts = metrics
+                .collection_layouts
+                .saturating_add(field(line, "collection-layouts=").unwrap_or(0));
+            if let Some(identities) = text_field(line, "semantic-type-ids=") {
+                metrics.semantic_type_ids.extend(
+                    identities
+                        .split(',')
+                        .filter(|identity| !identity.is_empty() && *identity != "none")
+                        .map(str::to_string),
+                );
+            }
+        }
     }
     metrics.native_image_cache_hits = metrics.native_image_cache_hits.saturating_add(
         metrics
@@ -134,6 +160,9 @@ pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> Compiler
             right.native_image_cache_misses,
             left.native_image_cache_misses,
         ),
+        semantic_types: difference(right.semantic_types, left.semantic_types),
+        aggregate_layouts: difference(right.aggregate_layouts, left.aggregate_layouts),
+        collection_layouts: difference(right.collection_layouts, left.collection_layouts),
         native_units_built: difference(right.native_units_built, left.native_units_built),
         native_functions_built: difference(
             right.native_functions_built,
@@ -154,6 +183,10 @@ pub(super) fn same_structural_work(right: &CompilerMetrics, left: &CompilerMetri
         right.native_units_built,
         right.native_functions_built,
         right.native_continuations_built,
+        right.semantic_types,
+        right.aggregate_layouts,
+        right.collection_layouts,
+        &right.semantic_type_ids,
         right.reachable_declarations,
         &right.native_providers,
     ) == (
@@ -163,6 +196,10 @@ pub(super) fn same_structural_work(right: &CompilerMetrics, left: &CompilerMetri
         left.native_units_built,
         left.native_functions_built,
         left.native_continuations_built,
+        left.semantic_types,
+        left.aggregate_layouts,
+        left.collection_layouts,
+        &left.semantic_type_ids,
         left.reachable_declarations,
         &left.native_providers,
     )
