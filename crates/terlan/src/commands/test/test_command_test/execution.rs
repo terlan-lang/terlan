@@ -655,6 +655,22 @@ source_roots = ["src"]
         cache_dir: Some(root.join(".terlan")),
         ..CliState::default()
     };
+    let unused_source = root.join("src/app/Unused.terl");
+    fs::write(
+        &unused_source,
+        "module app.Unused.\npub invalid(): Int -> \"not an int\".\n",
+    )
+    .expect("write invalid unimported project source");
+    assert_eq!(
+        run(command(), state.clone()),
+        ExitCode::from(1),
+        "directory tests must validate every project implementation"
+    );
+    fs::write(
+        &unused_source,
+        "module app.Unused.\npub valid(): Int -> 7.\n",
+    )
+    .expect("repair unimported project source");
     let exit_code = run(command(), state.clone());
     let suite_workspaces = fs::read_dir(root.join("out/test-aot"))
         .expect("shared suite output")

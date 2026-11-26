@@ -470,18 +470,18 @@ fn run_terlan_vm_test_file_group(
     }
 
     let first_path = pending[0].0.to_string_lossy().into_owned();
-    let (project_context, mut state) = match prepare_test_project_context(
-        &first_path,
-        state,
-        TargetProfile::Vm,
-        exhaustive_project,
-    ) {
-        Ok(result) => result,
-        Err(message) => {
-            eprintln!("{message}");
-            return ExitCode::from(1);
-        }
-    };
+    // The complete VM path below compiles every project implementation when
+    // `exhaustive_project` is set. Preparing interfaces here is sufficient;
+    // eagerly checking implementations would compile the same source closure
+    // twice before native planning begins.
+    let (project_context, mut state) =
+        match prepare_test_project_context(&first_path, state, TargetProfile::Vm, false) {
+            Ok(result) => result,
+            Err(message) => {
+                eprintln!("{message}");
+                return ExitCode::from(1);
+            }
+        };
     state.target_profile = TargetProfile::Vm;
 
     let kind = if args.benchmark {
