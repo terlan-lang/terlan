@@ -81,6 +81,7 @@ enum Family {
     AtomScalar,
     LexicalProduct,
     Record,
+    List,
     IfProductJoin,
     CaseProductJoin,
     OptionJoin,
@@ -95,8 +96,8 @@ impl Family {
     fn from_index(index: u32, max_depth: u8) -> Self {
         let family_count = match max_depth {
             1 => 6,
-            2 => 9,
-            _ => 16,
+            2 => 10,
+            _ => 17,
         };
         match index % family_count {
             0 => Self::UnitScalar,
@@ -107,13 +108,14 @@ impl Family {
             5 => Self::AtomScalar,
             6 => Self::LexicalProduct,
             7 => Self::Record,
-            8 => Self::IfProductJoin,
-            9 => Self::CaseProductJoin,
-            10 => Self::OptionJoin,
-            11 => Self::NominalOptionJoin,
-            12 => Self::ResultJoin,
-            13 => Self::NestedResultJoin,
-            14 => Self::ClosedUnion,
+            8 => Self::List,
+            9 => Self::IfProductJoin,
+            10 => Self::CaseProductJoin,
+            11 => Self::OptionJoin,
+            12 => Self::NominalOptionJoin,
+            13 => Self::ResultJoin,
+            14 => Self::NestedResultJoin,
+            15 => Self::ClosedUnion,
             _ => Self::ClosedUnionEmpty,
         }
     }
@@ -128,6 +130,7 @@ impl Family {
             Self::AtomScalar => "scalar_atom",
             Self::LexicalProduct => "lexical_product",
             Self::Record => "record",
+            Self::List => "list",
             Self::IfProductJoin => "if_product_join",
             Self::CaseProductJoin => "case_product_join",
             Self::OptionJoin => "option_join",
@@ -182,6 +185,12 @@ impl Family {
                 format!("Pair {{ left: {value}, right: {} }}", value + 1),
             )
             .with_prelude("pub struct Pair { left: Int, right: Int }."),
+            Self::List => generated(
+                CheckedType::list(CheckedType::Int),
+                json!([value, value + 1]),
+                format!("[{value}, {}]", value + 1),
+            )
+            .with_prelude("import type std.collections.List."),
             Self::IfProductJoin => generated(
                 product_type(),
                 json!([value, true]),
@@ -262,83 +271,5 @@ fn choice_declarations() -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn case(seed: u64, index: u32, depth: u8) -> GeneratedCase {
-        generate(
-            index,
-            &GenerationConfig {
-                seed,
-                max_depth: depth,
-                oracle: Oracle::None,
-                timeout_ms: 2_000,
-                rss_limit_bytes: 1024,
-                cpu_limit_ms: 2_000,
-                compiler_revision: "test",
-            },
-        )
-    }
-
-    #[test]
-    fn generation_is_stable_and_covers_each_initial_family() {
-        assert_eq!(case(17, 3, 8), case(17, 3, 8));
-        let cases = (0..16).map(|index| case(1, index, 8)).collect::<Vec<_>>();
-        let families = cases
-            .iter()
-            .map(|case| case.manifest.family.as_str())
-            .collect::<Vec<_>>();
-        assert_eq!(
-            families,
-            [
-                "scalar_unit",
-                "scalar_bool",
-                "scalar_int",
-                "scalar_float",
-                "scalar_string",
-                "scalar_atom",
-                "lexical_product",
-                "record",
-                "if_product_join",
-                "case_product_join",
-                "option_join",
-                "nominal_option_join",
-                "result_join",
-                "nested_result_join",
-                "closed_union",
-                "closed_union_empty"
-            ]
-        );
-        for case in cases {
-            assert_eq!(case.manifest.expected_type, case.expected.type_name);
-            assert!(!case.source.contains(" as "));
-        }
-    }
-
-    #[test]
-    fn seed_and_depth_budgets_change_only_their_owned_dimensions() {
-        assert_ne!(case(1, 2, 8).expected, case(2, 2, 8).expected);
-        for index in 0..12 {
-            assert!(case(1, index, 1).manifest.family.starts_with("scalar_"));
-        }
-        assert_eq!(case(1, 9, 2).manifest.family, "scalar_unit");
-    }
-
-    #[test]
-    fn checked_oracle_is_encoded_in_identity_and_manifest() {
-        let generated = generate(
-            0,
-            &GenerationConfig {
-                seed: 1,
-                max_depth: 8,
-                oracle: Oracle::Check,
-                timeout_ms: 2_000,
-                rss_limit_bytes: 1024,
-                cpu_limit_ms: 2_000,
-                compiler_revision: "test",
-            },
-        );
-        assert_eq!(generated.manifest.oracle, Oracle::Check);
-        assert!(generated.manifest.case_id.ends_with("-ocheck"));
-    }
-}
+#[path = "generate_test.rs"]
+mod tests;

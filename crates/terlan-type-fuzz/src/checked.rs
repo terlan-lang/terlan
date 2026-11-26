@@ -32,6 +32,13 @@ impl CheckedType {
         }
     }
 
+    pub(crate) fn list(element: Self) -> Self {
+        Self::Applied {
+            constructor: "List",
+            arguments: vec![element],
+        }
+    }
+
     pub(crate) fn source_name(&self) -> String {
         match self {
             Self::Unit => "Unit".into(),
@@ -124,6 +131,10 @@ mod tests {
             CheckedType::option(CheckedType::result(CheckedType::Int, CheckedType::String))
                 .source_name(),
             "Option[Result[Int, String]]"
+        );
+        assert_eq!(
+            CheckedType::list(CheckedType::Float).source_name(),
+            "List[Float]"
         );
     }
 
