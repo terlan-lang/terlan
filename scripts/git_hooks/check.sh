@@ -944,7 +944,12 @@ fi
 # execute each selected Rust lane and remove it from the later broad plan.
 remaining_plan="${plan%.plan}.remaining-plan"
 : > "$remaining_plan"
+deferred_clippy=false
 while IFS= read -r lane; do
+  if [[ "$lane" == clippy && "$candidate_clippy_checked" == false ]]; then
+    deferred_clippy=true
+    continue
+  fi
   affected_rust_lane_supported=true
   if run_cached_affected_rust_lane "$lane"; then
     echo "pre-commit: early affected Rust lane passed: $lane"
@@ -958,6 +963,16 @@ while IFS= read -r lane; do
     fi
   fi
 done < "$plan"
+if [[ "$deferred_clippy" == true ]]; then
+  affected_rust_lane_supported=true
+  if run_cached_affected_rust_lane clippy; then
+    echo 'pre-commit: deferred affected Rust lane passed: clippy'
+  else
+    clippy_status=$?
+    echo 'pre-commit: deferred affected Rust lane failed: clippy' >&2
+    exit "$clippy_status"
+  fi
+fi
 mv "$remaining_plan" "$plan"
 if [[ "$workspace_lane_selected" == true ]] && lane_has native-bindings; then
   echo 'pre-commit: canonical Rust suite owns native binding contracts'

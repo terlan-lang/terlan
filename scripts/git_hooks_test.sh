@@ -698,6 +698,8 @@ grep -Fq "echo 'pre-commit: reuse candidate compiler Clippy result'" "$check_dri
 test "$(grep -Fc 'make --no-print-directory rust-clippy-compiler-precommit-check' "$check_driver")" -eq 2
 test "$(grep -Fc 'make --no-print-directory rust-clippy-precommit-check' "$check_driver")" -eq 1
 grep -Fq 'elif ! lane_has workspace; then' "$check_driver"
+grep -Fq 'deferred affected Rust lane passed: clippy' "$check_driver"
+grep -Fq 'deferred affected Rust lane failed: clippy' "$check_driver"
 if grep -Fq 'make --no-print-directory rust-clippy-check' "$check_driver"; then
   echo 'Pre-commit still invokes the duplicate all-features Clippy owner' >&2
   exit 1
