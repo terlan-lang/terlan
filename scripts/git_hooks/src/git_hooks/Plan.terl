@@ -267,7 +267,7 @@ pub dependency_inputs(paths: List[String]): Bool ->
         or affected(paths, ".cargo/", "").
 
 pub compiler_bootstrap(paths: List[String]): Bool ->
-    RustFormatting.sources(paths) != [] or dependency_inputs(paths).
+    affected(paths, "crates/terlan/", ".rs") or dependency_inputs(paths).
 
 pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").

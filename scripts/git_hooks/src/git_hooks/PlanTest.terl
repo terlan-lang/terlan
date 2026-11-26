@@ -297,7 +297,7 @@ pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
 
 @test
 pub rust_formatting_uses_changed_inputs_unless_configuration_changes(): Bool ->
-    Plan.preflight_lanes(["tools/example.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
+    Plan.preflight_lanes(["tools/example.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
         and Plan.preflight_lanes(["rustfmt.toml"]) == ["rust-format"].
 
 @test
@@ -448,6 +448,12 @@ pub focused_support_crates_do_not_select_the_monolithic_workspace(): Bool ->
         "crates/terlan-type-fuzz/src/lib.rs",
     ],
 ) == ["shell", "clippy", "rust-reports", "native-planning", "process-owner", "type-fuzz"].
+
+@test
+pub focused_support_crates_do_not_rebuild_the_compiler(): Bool ->
+    Plan.preflight_lanes(["crates/terlan-type-fuzz/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan-native-planning/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan-process-owner/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"].
 
 @test
 pub root_cli_sources_use_the_bounded_integration_owner(): Bool ->
