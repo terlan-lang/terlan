@@ -196,7 +196,7 @@ oracle acceptance remains open; generation success alone does not close TF1.
 - [ ] Compare canonical results and structured failures with managed execution.
 - [x] Record native phase timings, monomorphization counts, semantic type IDs,
   generated native units, compiler RSS, and cache disposition.
-- [ ] Separate planning, lowering, native compilation, linking, test execution,
+- [x] Separate planning, lowering, native compilation, linking, test execution,
   and coverage collection so immediate assertions cannot conceal multi-minute
   compiler planning.
 - [x] Generate matched narrow/broad dependency graphs and prove unreachable
@@ -248,7 +248,9 @@ functions, and 3,123 lines. A two-root profile must remain linear in structural
 compiler work, below twice the focused wall time plus five seconds, and below
 128 MiB of additive peak RSS. Its warm instrumented coverage gate finishes in
 under three seconds; a dependency-cold instrumented build remains below 15
-seconds.
+seconds. Focused and grouped test commands now emit independent `test.native-image`,
+`test.execution`, and `test.coverage` timings around the existing native-IR,
+module-unit, object, link, seal, and publication phases.
 
 ### TF3: JavaScript differential execution
 
