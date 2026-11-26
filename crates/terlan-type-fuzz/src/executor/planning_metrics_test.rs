@@ -12,9 +12,12 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
         "lowered=11 cache-hits=5 widest=[]\n",
         "terlc native-aot: module-unit.begin.demo functions=13 continuations=2\n",
         "terlc native-aot: module-unit.begin.more functions=4 continuations=1\n",
+        "terlc native-aot: image.cache-or-build: +4ms total=5ms\n",
+        "terlc native-aot: publish.publish: +1ms total=4ms\n",
+        "terlc native-aot: image.cache-or-build: +0ms total=1ms\n",
     );
     let measured = measure(stderr);
-    assert_eq!(measured.timing_events, 7);
+    assert_eq!(measured.timing_events, 10);
     assert_eq!(measured.phase_elapsed_ms["frontend.parse"], 20);
     assert_eq!(
         measured.phase_elapsed_ms["application.generic-specialization"],
@@ -24,6 +27,9 @@ fn compiler_work_is_aggregated_from_stable_timing_events() {
     assert_eq!(measured.call_profiles, 7);
     assert_eq!(measured.lowered_calls, 11);
     assert_eq!(measured.lowering_cache_hits, 5);
+    assert_eq!(measured.native_images, 2);
+    assert_eq!(measured.native_image_cache_hits, 1);
+    assert_eq!(measured.native_image_cache_misses, 1);
     assert_eq!(measured.native_units_built, 2);
     assert_eq!(measured.native_functions_built, 17);
     assert_eq!(measured.native_continuations_built, 3);
@@ -45,6 +51,9 @@ fn malformed_events_are_counted_without_inventing_work() {
     assert_eq!(measured.call_profiles, 0);
     assert_eq!(measured.lowered_calls, 0);
     assert_eq!(measured.lowering_cache_hits, 0);
+    assert_eq!(measured.native_images, 0);
+    assert_eq!(measured.native_image_cache_hits, 0);
+    assert_eq!(measured.native_image_cache_misses, 0);
     assert_eq!(measured.native_units_built, 1);
     assert_eq!(measured.native_functions_built, 0);
     assert_eq!(measured.native_continuations_built, 0);
@@ -57,6 +66,9 @@ fn comparison_reports_signed_work_deltas() {
         call_profiles: 4,
         lowered_calls: 3,
         lowering_cache_hits: 2,
+        native_images: 1,
+        native_image_cache_hits: 0,
+        native_image_cache_misses: 1,
         native_units_built: 1,
         native_functions_built: 9,
         native_continuations_built: 8,
@@ -67,6 +79,9 @@ fn comparison_reports_signed_work_deltas() {
         call_profiles: 2,
         lowered_calls: 3,
         lowering_cache_hits: 4,
+        native_images: 5,
+        native_image_cache_hits: 3,
+        native_image_cache_misses: 2,
         native_units_built: 5,
         native_functions_built: 6,
         native_continuations_built: 7,
@@ -79,6 +94,9 @@ fn comparison_reports_signed_work_deltas() {
             call_profiles: -2,
             lowered_calls: 0,
             lowering_cache_hits: 2,
+            native_images: 4,
+            native_image_cache_hits: 3,
+            native_image_cache_misses: 1,
             native_units_built: 4,
             native_functions_built: -3,
             native_continuations_built: -1,

@@ -10,6 +10,9 @@ pub(super) struct CompilerMetrics {
     call_profiles: u64,
     lowered_calls: u64,
     lowering_cache_hits: u64,
+    native_images: u64,
+    native_image_cache_hits: u64,
+    native_image_cache_misses: u64,
     native_units_built: u64,
     native_functions_built: u64,
     native_continuations_built: u64,
@@ -21,6 +24,9 @@ pub(super) struct CompilerMetricDelta {
     call_profiles: i128,
     lowered_calls: i128,
     lowering_cache_hits: i128,
+    native_images: i128,
+    native_image_cache_hits: i128,
+    native_image_cache_misses: i128,
     native_units_built: i128,
     native_functions_built: i128,
     native_continuations_built: i128,
@@ -67,7 +73,16 @@ pub(super) fn measure(stderr: &str) -> CompilerMetrics {
                 .native_continuations_built
                 .saturating_add(field(line, "continuations=").unwrap_or(0));
         }
+        if line.starts_with("terlc native-aot: image.cache-or-build:") {
+            metrics.native_images += 1;
+        }
+        if line.starts_with("terlc native-aot: publish.publish:") {
+            metrics.native_image_cache_misses += 1;
+        }
     }
+    metrics.native_image_cache_hits = metrics
+        .native_images
+        .saturating_sub(metrics.native_image_cache_misses);
     metrics
 }
 
@@ -80,6 +95,15 @@ pub(super) fn delta(right: &CompilerMetrics, left: &CompilerMetrics) -> Compiler
         call_profiles: difference(right.call_profiles, left.call_profiles),
         lowered_calls: difference(right.lowered_calls, left.lowered_calls),
         lowering_cache_hits: difference(right.lowering_cache_hits, left.lowering_cache_hits),
+        native_images: difference(right.native_images, left.native_images),
+        native_image_cache_hits: difference(
+            right.native_image_cache_hits,
+            left.native_image_cache_hits,
+        ),
+        native_image_cache_misses: difference(
+            right.native_image_cache_misses,
+            left.native_image_cache_misses,
+        ),
         native_units_built: difference(right.native_units_built, left.native_units_built),
         native_functions_built: difference(
             right.native_functions_built,
