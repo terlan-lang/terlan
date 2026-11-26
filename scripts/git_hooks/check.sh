@@ -91,7 +91,6 @@ if [[ -x "$target_terlc" \
   exact_compiler_inputs=true
 fi
 compiler_build=true
-candidate_clippy_checked=false
 if [[ "$exact_compiler_inputs" == true ]]; then compiler_build=false; fi
 run_plan() {
   local compiler=$1
@@ -181,11 +180,10 @@ if [[ "$compiler_build" == true ]]; then
   trap cleanup_cache_metadata EXIT
   node scripts/git_hooks/invalidate_workspace_cache.cjs \
     "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
-  echo 'pre-commit: lint and check the staged compiler package once'
-  # Building the candidate compiler must not compile unrelated workspace
-  # packages. Their focused lanes remain independently owned below.
-  make --no-print-directory rust-clippy-compiler-precommit-check
-  candidate_clippy_checked=true
+  # The affected Rust test lane compiles the same candidate dependency graph.
+  # Run it first, then let deferred Clippy reuse those artifacts instead of
+  # paying for two cold compiler graphs before reaching one assertion.
+  echo 'pre-commit: defer candidate compiler Clippy until after affected tests'
   terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}
   [[ -x "$terlc" && ! -L "$terlc" ]] || {
     echo 'pre-commit: candidate checking requires a latest working compiler' >&2
@@ -757,9 +755,7 @@ run_affected_rust_lane() {
       echo 'pre-commit: CLI adapters compiled by candidate workspace Clippy'
       ;;
     clippy)
-      if [[ "$candidate_clippy_checked" == true ]] && ! lane_has workspace; then
-        echo 'pre-commit: reuse candidate compiler Clippy result'
-      elif ! lane_has workspace; then
+      if ! lane_has workspace; then
         make --no-print-directory rust-clippy-compiler-precommit-check
       else
         make --no-print-directory rust-clippy-precommit-check
@@ -949,7 +945,7 @@ remaining_plan="${plan%.plan}.remaining-plan"
 : > "$remaining_plan"
 deferred_clippy=false
 while IFS= read -r lane; do
-  if [[ "$lane" == clippy && "$candidate_clippy_checked" == false ]]; then
+  if [[ "$lane" == clippy ]]; then
     deferred_clippy=true
     continue
   fi
