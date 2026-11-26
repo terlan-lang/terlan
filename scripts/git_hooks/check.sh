@@ -9,6 +9,8 @@ hosted_source_preflight=${TERLAN_HOSTED_SOURCE_PREFLIGHT:-0}
 case "$hosted_source_preflight" in 0|1) ;; *) echo "unsupported hosted source-preflight mode: $hosted_source_preflight" >&2; exit 2 ;; esac
 hosted_dependency_audit=${TERLAN_HOSTED_DEPENDENCY_AUDIT:-0}
 case "$hosted_dependency_audit" in 0|1) ;; *) echo "unsupported hosted dependency-audit mode: $hosted_dependency_audit" >&2; exit 2 ;; esac
+test ! -L "$CARGO_TARGET_DIR"
+mkdir -p "$CARGO_TARGET_DIR"
 target_terlc="$CARGO_TARGET_DIR/debug/terlc"
 terlc="$target_terlc"
 export TERLC="$terlc"

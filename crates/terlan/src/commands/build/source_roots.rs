@@ -6,7 +6,7 @@ use crate::commands::artifacts::{fingerprint, read_manifest};
 use crate::commands::source_layout::{
     expected_module_name_for_source_path, validate_module_layout,
 };
-use crate::terlan_hir::{parse_interface_file, syntax_module_output_to_interface};
+use crate::terlan_hir::syntax_module_output_to_interface;
 use crate::terlan_syntax::syntax_contract_identity_matches_current;
 use crate::terlan_typeck::expand_syntax_raw_macros;
 use crate::CliState;
@@ -216,29 +216,42 @@ pub(super) fn cached_interface_is_current(
     source: &str,
     cache_dir: &Path,
 ) -> bool {
+    load_current_cached_interface_syntax(root, file, source, cache_dir).is_some()
+}
+
+/// Loads a generated interface only when it exactly describes the source.
+///
+/// The returned syntax representation lets dependency consumers avoid parsing
+/// implementation bodies while retaining the complete interface graph model.
+pub(crate) fn load_current_cached_interface_syntax(
+    root: &Path,
+    file: &Path,
+    source: &str,
+    cache_dir: &Path,
+) -> Option<crate::terlan_syntax::SyntaxModuleOutput> {
     let Ok(module) = expected_module_name_for_source_path(root, file) else {
-        return false;
+        return None;
     };
     let Some(manifest) = read_manifest(&cache_dir.join(format!("{module}.typi.deps"))) else {
-        return false;
+        return None;
     };
     if manifest.module != module
         || manifest.source_hash != fingerprint(source.as_bytes())
         || !syntax_contract_identity_matches_current(&manifest.syntax_contract_identity)
             .unwrap_or(false)
     {
-        return false;
+        return None;
     }
-    let Some((interface_module, interface)) =
-        parse_interface_file(&cache_dir.join(format!("{module}.typi")))
-    else {
-        return false;
-    };
-    interface_module == module
+    let interface_text = fs::read_to_string(cache_dir.join(format!("{module}.typi"))).ok()?;
+    let syntax =
+        crate::terlan_syntax::parse_interface_module_as_syntax_output(&interface_text).ok()?;
+    let interface = syntax_module_output_to_interface(&syntax);
+    (syntax.module_name == module
         && manifest.interface_hash
             == fingerprint(interface.to_terlan_interface_type_text().as_bytes())
         && manifest.interface_doc_hash
-            == fingerprint(interface.to_terlan_interface_doc_text().as_bytes())
+            == fingerprint(interface.to_terlan_interface_doc_text().as_bytes()))
+    .then_some(syntax)
 }
 
 /// Reports an empty build source root with nested-project guidance.
