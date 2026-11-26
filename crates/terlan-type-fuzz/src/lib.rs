@@ -1,5 +1,6 @@
 //! Deterministic typed-program generation contracts used by `terlc fuzz`.
 
+mod checked;
 mod cli;
 mod executor;
 mod generate;

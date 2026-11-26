@@ -1,5 +1,6 @@
 use serde_json::json;
 
+use crate::checked::{CheckedType, GeneratedBody};
 use crate::{CaseManifest, GeneratedCase, Oracle, TypedValue, CASE_SCHEMA, VALUE_SCHEMA};
 
 const GENERATOR: &str = "terlan.type-fuzz-generator.v1";
@@ -29,8 +30,9 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
         config.seed, config.max_depth
     );
     let module = format!("type_fuzz.Case{index:06}");
-    let (expected_type, value, body) = family.render(number);
-    let source = format!("module {module}.\n\n{body}\n");
+    let rendered = family.render(number);
+    let expected_type = rendered.checked_type.source_name();
+    let source = format!("module {module}.\n\n{}\n", rendered.source);
     let project = format!(
         "[package]\nname = \"type-fuzz-case-{index:06}\"\nversion = \"0.0.0\"\n\n[build]\nsource_roots = [\".\"]\nartifact = \"library\"\n"
     );
@@ -45,7 +47,7 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
             case_index: index,
             max_depth: config.max_depth,
             family: family.name().into(),
-            expected_type: expected_type.into(),
+            expected_type: expected_type.clone(),
             oracle: config.oracle,
             case_timeout_ms: config.timeout_ms,
             rss_limit_bytes: config.rss_limit_bytes,
@@ -55,8 +57,8 @@ pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
         source,
         expected: TypedValue {
             schema: VALUE_SCHEMA,
-            type_name: expected_type.into(),
-            value,
+            type_name: expected_type,
+            value: rendered.value,
         },
     }
 }
@@ -137,66 +139,98 @@ impl Family {
         }
     }
 
-    fn render(self, value: i64) -> (&'static str, serde_json::Value, String) {
+    fn render(self, value: i64) -> GeneratedBody {
         match self {
-            Self::UnitScalar => ("Unit", serde_json::Value::Null, "pub sample(): Unit -> Unit.".into()),
-            Self::BoolScalar => ("Bool", json!(value % 2 == 0), format!("pub sample(): Bool -> {}.", value % 2 == 0)),
-            Self::IntScalar => ("Int", json!(value), format!("pub sample(): Int -> {value}.")),
-            Self::FloatScalar => ("Float", json!(value as f64 + 0.5), format!("pub sample(): Float -> {value}.5.")),
-            Self::StringScalar => ("String", json!(format!("value-{value}")), format!("pub sample(): String -> \"value-{value}\".")),
-            Self::AtomScalar => ("Atom[\"ready\"]", json!({"atom": "ready"}), "pub sample(): Atom[\"ready\"] -> Atom[\"ready\"].".into()),
-            Self::LexicalProduct => (
-                "{Int, Bool}",
+            Self::UnitScalar => generated(
+                CheckedType::Unit,
+                serde_json::Value::Null,
+                "pub sample(): Unit -> Unit.".into(),
+            ),
+            Self::BoolScalar => generated(
+                CheckedType::Bool,
+                json!(value % 2 == 0),
+                format!("pub sample(): Bool -> {}.", value % 2 == 0),
+            ),
+            Self::IntScalar => generated(
+                CheckedType::Int,
+                json!(value),
+                format!("pub sample(): Int -> {value}."),
+            ),
+            Self::FloatScalar => generated(
+                CheckedType::Float,
+                json!(value as f64 + 0.5),
+                format!("pub sample(): Float -> {value}.5."),
+            ),
+            Self::StringScalar => generated(
+                CheckedType::String,
+                json!(format!("value-{value}")),
+                format!("pub sample(): String -> \"value-{value}\"."),
+            ),
+            Self::AtomScalar => generated(
+                CheckedType::Atom("ready"),
+                json!({"atom": "ready"}),
+                "pub sample(): Atom[\"ready\"] -> Atom[\"ready\"].".into(),
+            ),
+            Self::LexicalProduct => generated(
+                product_type(),
                 json!([value, true]),
                 format!("pub sample(): {{Int, Bool}} ->\n    let item = {{{value}, true}};\n    item."),
             ),
-            Self::Record => (
-                "Pair",
+            Self::Record => generated(
+                CheckedType::Nominal("Pair"),
                 json!({"left": value, "right": value + 1}),
                 format!("pub struct Pair {{ left: Int, right: Int }}.\n\npub sample(): Pair -> Pair {{ left: {value}, right: {} }}.", value + 1),
             ),
-            Self::IfProductJoin => (
-                "{Int, Bool}",
+            Self::IfProductJoin => generated(
+                product_type(),
                 json!([value, true]),
                 format!("pub sample(): {{Int, Bool}} ->\n    let selected = if {{ false -> {{0, false}}; true -> {{{value}, true}} }};\n    selected."),
             ),
-            Self::CaseProductJoin => (
-                "{Int, Bool}",
+            Self::CaseProductJoin => generated(
+                product_type(),
                 json!([value, true]),
                 format!("pub sample(): {{Int, Bool}} ->\n    case {{{value}, true}} {{\n        {{left, right}} -> {{left, right}}\n    }}."),
             ),
-            Self::OptionJoin => (
-                "Option[Int]",
+            Self::OptionJoin => generated(
+                CheckedType::option(CheckedType::Int),
                 json!({"variant": "some", "payload": value}),
                 format!("import std.core.Option.{{None, Some}}.\nimport type std.core.Option.{{Option}}.\n\npub sample(): Option[Int] ->\n    let selected = case true {{\n        false -> None;\n        true -> case false {{ false -> Some({value}); true -> None }}\n    }};\n    selected."),
             ),
-            Self::NominalOptionJoin => (
-                "Option[Evidence]",
+            Self::NominalOptionJoin => generated(
+                CheckedType::option(CheckedType::Nominal("Evidence")),
                 json!({"variant": "some", "payload": {"value": value}}),
                 format!("import std.core.Option.{{None, Some}}.\nimport type std.core.Option.{{Option}}.\n\npub struct Evidence {{ value: Int }}.\n\npub sample(): Option[Evidence] ->\n    let evidence = case true {{\n        false -> None;\n        true -> case false {{ false -> Some(Evidence {{ value: {value} }}); true -> None }}\n    }};\n    evidence."),
             ),
-            Self::ResultJoin => (
-                "Result[Int, String]",
+            Self::ResultJoin => generated(
+                CheckedType::result(CheckedType::Int, CheckedType::String),
                 json!({"variant": "ok", "payload": value}),
                 format!("import std.core.Result.{{Err, Ok}}.\nimport type std.core.Result.{{Result}}.\n\npub sample(): Result[Int, String] ->\n    case true {{ false -> Err(\"rejected\"); true -> Ok({value}) }}."),
             ),
-            Self::NestedResultJoin => (
-                "Result[Int, String]",
+            Self::NestedResultJoin => generated(
+                CheckedType::result(CheckedType::Int, CheckedType::String),
                 json!({"variant": "ok", "payload": value}),
                 format!("import std.core.Result.{{Err, Ok}}.\nimport type std.core.Result.{{Result}}.\n\npub sample(): Result[Int, String] ->\n    let selected = case true {{\n        false -> Err(\"outer\");\n        true -> case false {{ false -> Ok({value}); true -> Err(\"inner\") }}\n    }};\n    selected."),
             ),
-            Self::ClosedUnion => (
-                "Choice",
+            Self::ClosedUnion => generated(
+                CheckedType::Nominal("Choice"),
                 json!({"variant": "value", "payload": value}),
                 format!("{}\n\npub sample(): Choice -> Value({value}).", choice_declarations()),
             ),
-            Self::ClosedUnionEmpty => (
-                "Choice",
+            Self::ClosedUnionEmpty => generated(
+                CheckedType::Nominal("Choice"),
                 json!({"variant": "empty"}),
                 format!("{}\n\npub sample(): Choice -> Empty().", choice_declarations()),
             ),
         }
     }
+}
+
+fn product_type() -> CheckedType {
+    CheckedType::Product(vec![CheckedType::Int, CheckedType::Bool])
+}
+
+fn generated(checked_type: CheckedType, value: serde_json::Value, source: String) -> GeneratedBody {
+    GeneratedBody::for_type(checked_type, value, source)
 }
 
 fn choice_declarations() -> &'static str {
@@ -231,8 +265,10 @@ mod tests {
     #[test]
     fn generation_is_stable_and_covers_each_initial_family() {
         assert_eq!(case(17, 3, 8), case(17, 3, 8));
-        let families = (0..16)
-            .map(|index| case(1, index, 8).manifest.family)
+        let cases = (0..16).map(|index| case(1, index, 8)).collect::<Vec<_>>();
+        let families = cases
+            .iter()
+            .map(|case| case.manifest.family.as_str())
             .collect::<Vec<_>>();
         assert_eq!(
             families,
@@ -255,6 +291,10 @@ mod tests {
                 "closed_union_empty"
             ]
         );
+        for case in cases {
+            assert_eq!(case.manifest.expected_type, case.expected.type_name);
+            assert!(!case.source.contains(" as "));
+        }
     }
 
     #[test]
