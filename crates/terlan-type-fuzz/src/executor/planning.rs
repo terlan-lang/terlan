@@ -15,53 +15,91 @@ pub(super) fn run(options: &RunOptions, compiler: &Path, remaining_ms: u64) -> R
         return Ok(());
     }
     let root = options.out_dir.join("planning");
+    reset_root(&root)?;
     let narrow = root.join("narrow");
     let broad = root.join("broad");
-    write_fixture(&narrow, false)?;
-    write_fixture(&broad, true)?;
-    let wall_ms = options.case_timeout_ms.min(remaining_ms / 2).max(1);
-    let narrow_result = oracle::run(
+    write_fixtures(&narrow, &broad)?;
+    let wall_ms = options.case_timeout_ms.min(remaining_ms / 4).max(1);
+    let narrow_cold = run_profile(
+        "narrow cold",
         compiler,
-        Oracle::Native,
         &narrow.join(NARROW_SOURCE),
         wall_ms,
-        options.rss_limit_bytes,
-        options.cpu_limit_ms,
-    );
-    ensure_passed("narrow", &narrow_result)?;
-    let broad_result = oracle::run(
+        options,
+    )?;
+    let narrow_warm = run_profile(
+        "narrow warm",
+        compiler,
+        &narrow.join(NARROW_SOURCE),
+        wall_ms,
+        options,
+    )?;
+    let broad_cold = run_profile(
+        "broad cold",
+        compiler,
+        &broad.join(BROAD_SOURCE),
+        wall_ms,
+        options,
+    )?;
+    let broad_warm = run_profile(
+        "broad warm",
+        compiler,
+        &broad.join(BROAD_SOURCE),
+        wall_ms,
+        options,
+    )?;
+    let evidence = serde_json::json!({
+        "schema": "terlan.type-fuzz-planning.v1",
+        "narrow": {
+            "cold": observation(&narrow_cold),
+            "warm": observation(&narrow_warm),
+        },
+        "broad_unreachable_native": {
+            "cold": observation(&broad_cold),
+            "warm": observation(&broad_warm),
+        },
+        "delta": {
+            "cold_broad_minus_narrow": comparison(&broad_cold, &narrow_cold),
+            "warm_broad_minus_narrow": comparison(&broad_warm, &narrow_warm),
+            "narrow_warm_minus_cold": comparison(&narrow_warm, &narrow_cold),
+            "broad_warm_minus_cold": comparison(&broad_warm, &broad_cold),
+        }
+    });
+    publish(&root, &evidence)
+}
+
+fn write_fixtures(narrow: &Path, broad: &Path) -> Result<(), String> {
+    write_fixture(narrow, false)?;
+    write_fixture(broad, true)
+}
+
+fn reset_root(root: &Path) -> Result<(), String> {
+    if root.exists() {
+        fs::remove_dir_all(root).map_err(|error| format!("reset planning fixtures: {error}"))?;
+    }
+    Ok(())
+}
+
+fn run_profile(
+    profile: &str,
+    compiler: &Path,
+    source: &Path,
+    wall_ms: u64,
+    options: &RunOptions,
+) -> Result<OracleResult, String> {
+    let result = oracle::run(
         compiler,
         Oracle::Native,
-        &broad.join(BROAD_SOURCE),
+        source,
         wall_ms,
         options.rss_limit_bytes,
         options.cpu_limit_ms,
     );
-    ensure_passed("broad", &broad_result)?;
-    let narrow_metrics = metrics::measure(&narrow_result.stderr);
-    let broad_metrics = metrics::measure(&broad_result.stderr);
-    let evidence = serde_json::json!({
-        "schema": "terlan.type-fuzz-planning.v1",
-        "narrow": observation(&narrow_result, &narrow_metrics),
-        "broad_unreachable_native": observation(&broad_result, &broad_metrics),
-        "delta": {
-            "wall_elapsed_ms": signed_delta(
-                broad_result.resources.wall_elapsed_ms,
-                narrow_result.resources.wall_elapsed_ms,
-            ),
-            "peak_rss_bytes": signed_delta(
-                broad_result.resources.peak_rss_bytes,
-                narrow_result.resources.peak_rss_bytes,
-            ),
-            "timing_events": signed_count_delta(&broad_result.stderr, &narrow_result.stderr),
-            "native_units_built": signed_prefix_delta(
-                &broad_result.stderr,
-                &narrow_result.stderr,
-                "terlc native-aot: module-unit.begin.",
-            ),
-            "compiler_work": metrics::delta(&broad_metrics, &narrow_metrics),
-        }
-    });
+    ensure_passed(profile, &result)?;
+    Ok(result)
+}
+
+fn publish(root: &Path, evidence: &serde_json::Value) -> Result<(), String> {
     let bytes = serde_json::to_vec(&evidence).expect("planning evidence JSON serializes");
     fs::write(root.join("comparison.json"), bytes)
         .map_err(|error| format!("write planning comparison: {error}"))
@@ -78,7 +116,8 @@ fn ensure_passed(profile: &str, result: &OracleResult) -> Result<(), String> {
     }
 }
 
-fn observation(result: &OracleResult, compiler: &metrics::CompilerMetrics) -> serde_json::Value {
+fn observation(result: &OracleResult) -> serde_json::Value {
+    let compiler = metrics::measure(&result.stderr);
     serde_json::json!({
         "outcome": result.outcome,
         "wall_elapsed_ms": result.resources.wall_elapsed_ms,
@@ -90,6 +129,29 @@ fn observation(result: &OracleResult, compiler: &metrics::CompilerMetrics) -> se
             "terlc native-aot: module-unit.begin.",
         ),
         "compiler": compiler,
+    })
+}
+
+fn comparison(right: &OracleResult, left: &OracleResult) -> serde_json::Value {
+    serde_json::json!({
+        "wall_elapsed_ms": signed_delta(
+            right.resources.wall_elapsed_ms,
+            left.resources.wall_elapsed_ms,
+        ),
+        "peak_rss_bytes": signed_delta(
+            right.resources.peak_rss_bytes,
+            left.resources.peak_rss_bytes,
+        ),
+        "timing_events": signed_count_delta(&right.stderr, &left.stderr),
+        "native_units_built": signed_prefix_delta(
+            &right.stderr,
+            &left.stderr,
+            "terlc native-aot: module-unit.begin.",
+        ),
+        "compiler_work": metrics::delta(
+            &metrics::measure(&right.stderr),
+            &metrics::measure(&left.stderr),
+        ),
     })
 }
 
@@ -183,3 +245,7 @@ fn write(path: PathBuf, contents: &str) -> Result<(), String> {
 #[cfg(test)]
 #[path = "planning_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "planning_cache_test.rs"]
+mod cache_tests;

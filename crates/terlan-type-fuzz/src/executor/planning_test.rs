@@ -32,9 +32,9 @@ fn matched_planning_graphs_record_bounded_evidence() {
     )
     .expect("planning comparison JSON");
     assert_eq!(comparison["schema"], "terlan.type-fuzz-planning.v1");
-    assert_eq!(comparison["narrow"]["compiler"]["timing_events"], 0);
+    assert_eq!(comparison["narrow"]["cold"]["compiler"]["timing_events"], 0);
     assert_eq!(
-        comparison["delta"]["compiler_work"]["native_units_built"],
+        comparison["delta"]["cold_broad_minus_narrow"]["compiler_work"]["native_units_built"],
         0
     );
     assert!(planning.join("narrow").join(NARROW_SOURCE).is_file());
@@ -53,7 +53,7 @@ fn planning_failures_and_metrics_are_attributed() {
     };
     assert!(run(&options, Path::new("/bin/false"), 2_000)
         .unwrap_err()
-        .contains("narrow native planning probe"));
+        .contains("narrow cold native planning probe"));
     assert_eq!(signed_delta(Some(9), Some(4)), Some(5));
     assert_eq!(signed_delta(None, Some(4)), None);
     assert_eq!(signed_delta(Some(4), None), None);
@@ -97,14 +97,8 @@ fn every_nested_fixture_write_failure_is_attributed() {
 #[test]
 fn comparison_publication_failure_is_attributed() {
     let root = tempfile::tempdir().expect("planning root");
-    let options = RunOptions {
-        oracle: Oracle::Native,
-        out_dir: root.path().join("cases"),
-        ..RunOptions::default()
-    };
-    fs::create_dir_all(options.out_dir.join("planning/comparison.json"))
-        .expect("blocking comparison");
-    assert!(run(&options, Path::new("/bin/true"), 2_000)
+    fs::create_dir(root.path().join("comparison.json")).expect("blocking comparison");
+    assert!(publish(root.path(), &serde_json::json!({}))
         .unwrap_err()
         .contains("write planning comparison"));
 }
@@ -120,7 +114,7 @@ fn broad_execution_failure_is_attributed() {
     fs::write(
         &compiler,
         format!(
-            "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -eq 1 ]\n",
+            "#!/bin/sh\nprintf 'launch\\n' >> {}\n[ $(wc -l < {}) -lt 3 ]\n",
             launches.display(),
             launches.display(),
         ),
@@ -135,25 +129,26 @@ fn broad_execution_failure_is_attributed() {
     };
     assert!(run(&options, &compiler, 2_000)
         .unwrap_err()
-        .contains("broad native planning probe"));
+        .contains("broad cold native planning probe"));
 }
 
 #[test]
 fn fixture_root_failures_are_attributed() {
-    for profile in ["narrow", "broad"] {
-        let root = tempfile::tempdir().expect("planning root");
-        let output = root.path().join("cases");
-        fs::create_dir_all(output.join("planning")).expect("planning directory");
-        fs::write(output.join("planning").join(profile), "file").expect("blocking profile");
-        let options = RunOptions {
-            oracle: Oracle::Native,
-            out_dir: output,
-            ..RunOptions::default()
-        };
-        assert!(run(&options, Path::new("missing"), 2_000)
-            .unwrap_err()
-            .contains("create planning fixture"));
-    }
+    let root = tempfile::tempdir().expect("planning root");
+    let narrow = root.path().join("narrow");
+    let broad = root.path().join("broad");
+    fs::write(&narrow, "file").expect("blocking narrow profile");
+    assert!(write_fixtures(&narrow, &broad)
+        .unwrap_err()
+        .contains("create planning fixture"));
+
+    let root = tempfile::tempdir().expect("planning root");
+    let narrow = root.path().join("narrow");
+    let broad = root.path().join("broad");
+    fs::write(&broad, "file").expect("blocking broad profile");
+    assert!(write_fixtures(&narrow, &broad)
+        .unwrap_err()
+        .contains("create planning fixture"));
 
     let root = tempfile::tempdir().expect("planning root");
     fs::create_dir(root.path().join("terlan.toml")).expect("blocking manifest");

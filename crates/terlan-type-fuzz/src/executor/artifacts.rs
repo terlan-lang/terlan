@@ -670,7 +670,7 @@ mod tests {
         };
         assert!(generate_run(&options, &compiler, "test")
             .unwrap_err()
-            .contains("narrow native planning probe"));
+            .contains("narrow cold native planning probe"));
     }
 
     #[cfg(unix)]
