@@ -694,6 +694,7 @@ pub(super) fn compile_owned_rooted_native_application_image(
         .map_err(|error| BuildOneError::Message(error.to_string()))?;
     crate::compiler::native_ir::prune_application_to_function_roots(&mut cores, roots)
         .map_err(|error| BuildOneError::Message(error.to_string()))?;
+    release_frontend_binding_evidence(&mut cores, crate::compiler_timings::native_enabled());
     let application_identity = roots
         .first()
         .map(|(module, _, _)| module.as_str())
@@ -717,6 +718,27 @@ pub(super) fn compile_owned_rooted_native_application_image(
         reuse.publish(image);
     }
     Ok(image)
+}
+
+/// Releases frontend-only identity evidence after executable-root pruning.
+///
+/// Core expressions already carry their resolved binding identities, while
+/// native debug spans are projected before this boundary. Keeping the complete
+/// declaration/reference inventory here duplicates source paths and binding
+/// names across every module without contributing to native lowering.
+fn release_frontend_binding_evidence(cores: &mut [CoreModule], trace: bool) {
+    let mut bindings = 0_usize;
+    let mut references = 0_usize;
+    for core in cores {
+        bindings = bindings.saturating_add(core.binding_identities.bindings.len());
+        references = references.saturating_add(core.binding_identities.references.len());
+        core.binding_identities = Default::default();
+    }
+    if trace {
+        eprintln!(
+            "terlc native-aot: rooted.release-evidence: bindings={bindings} references={references}"
+        );
+    }
 }
 
 /// Compiles one REPL generation into the shared content-addressed AOT cache.

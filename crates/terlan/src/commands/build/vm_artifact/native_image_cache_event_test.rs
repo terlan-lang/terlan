@@ -29,3 +29,36 @@ fn semantic_inventory_is_sorted_deduplicated_and_explicitly_empty() {
         )
     );
 }
+
+#[test]
+fn rooted_native_input_releases_frontend_binding_evidence() {
+    let state = crate::CliState::default();
+    let source = concat!(
+        "module native_evidence_release.\n",
+        "pub main(value: Int): Int ->\n",
+        "    let next = value + 1;\n",
+        "    next.\n",
+    );
+    let compiled = crate::formal_pipeline::compile_syntax_module_through_phases_with_profile(
+        "native_evidence_release.terl",
+        source,
+        state.diagnostic_format,
+        None,
+        state.native_policy,
+        crate::validation::target_profile::TargetProfile::Vm,
+    )
+    .expect("check binding-evidence fixture");
+    let mut cores = vec![compiled.core];
+    assert!(!cores[0].binding_identities.bindings.is_empty());
+    assert!(!cores[0].binding_identities.references.is_empty());
+
+    release_frontend_binding_evidence(&mut cores, false);
+
+    assert!(cores[0].binding_identities.bindings.is_empty());
+    assert!(cores[0].binding_identities.references.is_empty());
+    cores[0]
+        .binding_identities
+        .validate()
+        .expect("released evidence remains a valid empty inventory");
+    release_frontend_binding_evidence(&mut cores, true);
+}
