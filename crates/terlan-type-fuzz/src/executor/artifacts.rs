@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use super::interface_roundtrip;
 use super::oracle::{self, OracleResult};
 use super::planning;
 use super::resources::ResourceEvidence;
@@ -114,6 +115,30 @@ fn run_batches(
             record_observation(directory, &result, &case.manifest)?;
         }
         ensure_batch_success(batch, &result)?;
+        for (directory, case) in batch {
+            if case.support_sources.is_empty() || case.manifest.oracle == Oracle::None {
+                continue;
+            }
+            let spent_ms = u64::try_from(elapsed().as_millis()).unwrap_or(u64::MAX);
+            let remaining_ms = options
+                .total_timeout_ms
+                .checked_sub(spent_ms)
+                .filter(|remaining| *remaining > 0)
+                .ok_or_else(|| {
+                    format!(
+                        "run exceeded total timeout before interface comparison for {}",
+                        case.manifest.case_id
+                    )
+                })?;
+            interface_roundtrip::run(
+                directory,
+                case,
+                compiler,
+                remaining_ms.min(case.manifest.case_timeout_ms),
+                case.manifest.rss_limit_bytes,
+                case.manifest.cpu_limit_ms,
+            )?;
+        }
     }
     Ok(())
 }
@@ -240,7 +265,18 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
         case.manifest.cpu_limit_ms,
     );
     record_observation(directory, &result, &case.manifest)?;
-    ensure_success(case, &result)
+    ensure_success(case, &result)?;
+    if case.support_sources.is_empty() || case.manifest.oracle == Oracle::None {
+        return Ok(());
+    }
+    interface_roundtrip::run(
+        directory,
+        case,
+        compiler,
+        case.manifest.case_timeout_ms,
+        case.manifest.rss_limit_bytes,
+        case.manifest.cpu_limit_ms,
+    )
 }
 
 pub(super) fn record_observation(
@@ -417,6 +453,7 @@ fn validate_support_sources(sources: &[GeneratedSource]) -> Result<(), String> {
             parent = candidate.parent();
         }
     }
+    interface_roundtrip::support_modules(sources)?;
     Ok(())
 }
 
@@ -770,6 +807,101 @@ mod tests {
             .contains("not_run"));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn checked_multi_module_replay_compares_interface_facts() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let mut options = test_options(5);
+        options.oracle = Oracle::Check;
+        options.case_timeout_ms = 1_000;
+        options.cpu_limit_ms = 1_000;
+        options.rss_limit_bytes = 1 << 30;
+        let case = generate(17, &options, "test");
+        write_case(root.path(), &case).expect("multi-module artifacts");
+        let cache = root.path().join(".terlan");
+        fs::create_dir(&cache).expect("interface cache");
+        for support in &case.support_sources {
+            let module = interface_roundtrip::support_modules(std::slice::from_ref(support))
+                .expect("support module")
+                .remove(0);
+            fs::write(cache.join(format!("{module}.typi")), &support.source)
+                .expect("support interface");
+        }
+        run_and_record(root.path(), &case, Path::new("/bin/true"))
+            .expect("source and interface consumers");
+        assert!(
+            fs::read_to_string(root.path().join("interface-roundtrip.json"))
+                .expect("interface evidence")
+                .contains("source_and_interface_consumers_accepted")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn batched_interface_comparison_honors_deadlines_and_failures() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let options = RunOptions {
+            cases: 1,
+            oracle: Oracle::Check,
+            out_dir: root.path().join("cases"),
+            case_timeout_ms: 1_000,
+            total_timeout_ms: 1_000,
+            rss_limit_bytes: 1 << 30,
+            cpu_limit_ms: 1_000,
+            ..RunOptions::default()
+        };
+        fs::create_dir(&options.out_dir).expect("cases root");
+        let case = generate(17, &options, "test");
+        let directory = options.out_dir.join(&case.manifest.case_id);
+        write_case(&directory, &case).expect("case artifacts");
+        let mut calls = 0;
+        let mut elapsed = || {
+            calls += 1;
+            if calls == 1 {
+                Duration::ZERO
+            } else {
+                Duration::from_millis(1_000)
+            }
+        };
+        assert!(run_batches(
+            &options,
+            Path::new("/bin/true"),
+            &[(directory.clone(), case.clone())],
+            &mut elapsed,
+        )
+        .unwrap_err()
+        .contains("before interface comparison"));
+
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            concat!(
+                "#!/bin/sh\n",
+                "case \"$PWD\" in\n",
+                "  *.interface-roundtrip-*) exit 1 ;;\n",
+                "esac\n",
+                "find . -path '*/src/*' -name '*.terl' -type f | while read -r source; do\n",
+                "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
+                "  [ -n \"$module\" ] || continue\n",
+                "  project=${source%%/src/*}\n",
+                "  mkdir -p \"$project/.terlan\"\n",
+                "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                "done\n",
+            ),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+        let mut elapsed = || Duration::ZERO;
+        assert!(
+            run_batches(&options, &compiler, &[(directory, case)], &mut elapsed,)
+                .unwrap_err()
+                .contains("interface-only semantic comparison ended as failed")
+        );
+    }
+
     #[test]
     fn support_source_paths_are_confined_and_unique() {
         let replay_root = tempfile::tempdir().expect("temporary fuzz root");
@@ -823,6 +955,15 @@ mod tests {
         assert!(write_case(Path::new("unused"), &nested_below_source)
             .unwrap_err()
             .contains("contains source parent"));
+
+        let mut invalid_module = generate(0, &test_options(5), "test");
+        invalid_module.support_sources = vec![GeneratedSource {
+            path: PathBuf::from("src/Invalid.terl"),
+            source: "not a module".into(),
+        }];
+        assert!(write_case(Path::new("unused"), &invalid_module)
+            .unwrap_err()
+            .contains("has no valid module declaration"));
     }
 
     #[test]
@@ -1081,7 +1222,20 @@ mod tests {
         let compiler = root.path().join("compiler");
         fs::write(
             &compiler,
-            format!("#!/bin/sh\nprintf 'launch\\n' >> {}\n", launches.display()),
+            format!(
+                concat!(
+                    "#!/bin/sh\n",
+                    "printf 'launch\\n' >> {}\n",
+                    "find . -path '*/src/*' -name '*.terl' -type f | while read -r source; do\n",
+                    "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
+                    "  [ -n \"$module\" ] || continue\n",
+                    "  project=${{source%%/src/*}}\n",
+                    "  mkdir -p \"$project/.terlan\"\n",
+                    "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                    "done\n",
+                ),
+                launches.display()
+            ),
         )
         .expect("compiler fixture");
         fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
@@ -1102,7 +1256,7 @@ mod tests {
                 .expect("launch ledger")
                 .lines()
                 .count(),
-            6
+            9
         );
     }
 

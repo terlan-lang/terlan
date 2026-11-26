@@ -298,7 +298,7 @@ open before TF3 can close.
 ### TF4: Modules, interfaces, traits, and packages
 
 - [x] Generate multi-module selected and qualified imports.
-- [ ] Round-trip generated `.typi` interfaces and compare semantic facts.
+- [x] Round-trip generated `.typi` interfaces and compare semantic facts.
 - [ ] Generate generic traits, declaration-site implementations, constructors,
   aliases, exhaustive patterns, and same-named types from distinct providers.
 - [ ] Run equivalent in-workspace and external path-dependency layouts.
@@ -324,9 +324,19 @@ valid `terlan.toml` with a confined `src` root, and focused closure preparation
 expands selected imports to candidate child modules. The generated native case
 prepares all four reachable providers and executes in 0.86 seconds; interface
 closure discovery itself takes 75 milliseconds.
-The focused type-fuzz crate now passes 96 tests with exact 100% region,
-function, and line coverage across 7,479 regions, 356 functions, and 4,942
-lines.
+
+Every generated multi-module case now receives a second, isolated semantic
+comparison after its source-backed oracle passes. The comparison copies only
+the emitted `.typi` files and the unchanged consumer into a temporary project;
+it copies no provider implementations, then requires the consumer to pass
+`terlc check`. The first four-interface replay discovered zero source modules
+and accepted the same generic receiver facts in 0.80 seconds. Each case records
+the compared module identities, expected type, diagnostics, and bounded
+resource evidence without proof hashes. Missing or malformed interfaces,
+source/interface disagreement, deadlines, and publication failures are all
+attributed to the originating case. The focused type-fuzz crate now passes 104
+tests with exact 100% region, function, and line coverage across 8,119 regions,
+388 functions, and 5,346 lines.
 
 ### TF5: Suspension, actors, and native providers
 

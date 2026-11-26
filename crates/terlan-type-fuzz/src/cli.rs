@@ -141,8 +141,10 @@ mod tests {
     #[test]
     fn output_override_only_changes_generated_cases() {
         let generated = parse(&strings(&["types"])).expect("type fuzz action");
-        let mut expected = RunOptions::default();
-        expected.out_dir = PathBuf::from("target/fuzz/custom");
+        let expected = RunOptions {
+            out_dir: PathBuf::from("target/fuzz/custom"),
+            ..RunOptions::default()
+        };
         assert_eq!(
             apply_output_directory(generated, Some(Path::new("target/fuzz/custom"))),
             Action::Types(expected)
