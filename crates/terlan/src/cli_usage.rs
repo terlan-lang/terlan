@@ -46,8 +46,10 @@ pub(crate) fn public_usage_lines() -> &'static [&'static str] {
         "terlc semantic query <store> <request.json> | terlc semantic mcp <store> <snapshot-id>",
         "terlc repl [--help] [--debug] [<file.terl|project-dir>]",
         FMT_USAGE,
-        "terlc fuzz types [--seed <u64>] [--cases <count>] [--max-depth <count>] [--oracle check|native|none] [--out-dir <dir>] [--rss-limit-mib <mib>] [--cpu-limit-ms <ms>]",
+        "terlc fuzz types [--seed <u64>] [--cases <count>] [--max-depth <count>] [--oracle check|js|native|none] [--out-dir <dir>] [--rss-limit-mib <mib>] [--cpu-limit-ms <ms>]",
         "terlc fuzz replay <case-dir>",
+        "terlc fuzz reduce <case-dir>",
+        "terlc fuzz corpus check <corpus-dir>",
         "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>...",
         "terlc migrate pattern-head [--write] [--json] <file.terl|file.terli|dir>",
         "terlc version | terlc --version | terlc -V",
@@ -187,8 +189,10 @@ pub(super) fn print_command_usage(command: &str) -> bool {
         }
         "fmt" => println!("{FMT_USAGE}"),
         "fuzz" => {
-            println!("terlc fuzz types [--seed <u64>] [--cases <count>] [--max-depth <count>] [--oracle check|native|none] [--out-dir <dir>] [--rss-limit-mib <mib>] [--cpu-limit-ms <ms>]");
+            println!("terlc fuzz types [--seed <u64>] [--cases <count>] [--max-depth <count>] [--oracle check|js|native|none] [--out-dir <dir>] [--rss-limit-mib <mib>] [--cpu-limit-ms <ms>]");
             println!("terlc fuzz replay <case-dir>");
+            println!("terlc fuzz reduce <case-dir>");
+            println!("terlc fuzz corpus check <corpus-dir>");
         }
         "lint" => println!(
             "terlc lint [--fix] [--only <rule-id>]... <file.terl|file.terli|file.terls|dir>..."

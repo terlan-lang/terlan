@@ -213,7 +213,9 @@ pub(super) fn record_observation(
         &directory.join("timings.json"),
         &json_bytes(&timing_evidence_json(result)),
     )?;
-    let resources = if result.oracle == Oracle::Native && result.outcome == "passed" {
+    let resources = if matches!(result.oracle, Oracle::Native | Oracle::JavaScript)
+        && result.outcome == "passed"
+    {
         result.resources.clone()
     } else if matches!(result.outcome, "passed" | "not_run") {
         ResourceEvidence::unmeasured(
@@ -365,6 +367,7 @@ fn oracle_result_json(result: &OracleResult) -> serde_json::Value {
 fn oracle_name(oracle: Oracle) -> &'static str {
     match oracle {
         Oracle::Check => "check",
+        Oracle::JavaScript => "js",
         Oracle::Native => "native",
         Oracle::None => "none",
     }
@@ -469,6 +472,7 @@ mod tests {
     #[test]
     fn every_oracle_has_stable_artifact_spelling() {
         assert_eq!(oracle_name(Oracle::Check), "check");
+        assert_eq!(oracle_name(Oracle::JavaScript), "js");
         assert_eq!(oracle_name(Oracle::Native), "native");
         assert_eq!(oracle_name(Oracle::None), "none");
     }

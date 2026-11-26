@@ -10,6 +10,7 @@ pub const VALUE_SCHEMA: &str = "terlan.typed-value.v1";
 #[serde(rename_all = "snake_case")]
 pub enum Oracle {
     Check,
+    JavaScript,
     Native,
     None,
 }
@@ -19,9 +20,10 @@ impl Oracle {
     pub fn parse(value: &str) -> Result<Self, String> {
         match value {
             "check" => Ok(Self::Check),
+            "js" => Ok(Self::JavaScript),
             "native" => Ok(Self::Native),
             "none" => Ok(Self::None),
-            _ => Err("--oracle must be `check`, `native`, or `none`".into()),
+            _ => Err("--oracle must be `check`, `js`, `native`, or `none`".into()),
         }
     }
 }
@@ -130,11 +132,12 @@ mod tests {
     #[test]
     fn oracle_names_are_exact() {
         assert_eq!(Oracle::parse("check"), Ok(Oracle::Check));
+        assert_eq!(Oracle::parse("js"), Ok(Oracle::JavaScript));
         assert_eq!(Oracle::parse("native"), Ok(Oracle::Native));
         assert_eq!(Oracle::parse("none"), Ok(Oracle::None));
         assert_eq!(
             Oracle::parse("Check"),
-            Err("--oracle must be `check`, `native`, or `none`".into())
+            Err("--oracle must be `check`, `js`, `native`, or `none`".into())
         );
     }
 

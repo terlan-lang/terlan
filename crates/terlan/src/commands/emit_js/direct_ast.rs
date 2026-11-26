@@ -131,7 +131,9 @@ pub(crate) fn emit_core_module_with_direct_oxc_ast(module: &CoreModule) -> Optio
         ast.vec(),
         statements,
     );
-    Some(oxc_codegen::Codegen::new().build(&program).code)
+    Some(super::equality_runtime::attach(
+        oxc_codegen::Codegen::new().build(&program).code,
+    ))
 }
 
 /// Lowers a tiny CoreIR expression subset into an Oxc expression.
@@ -365,6 +367,13 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             operator,
             left,
             right,
+        } if super::equality_runtime::is_equality(operator) => {
+            core_equality_expr_to_oxc_expression(ast, operator, left, right)
+        }
+        crate::terlan_typeck::CoreExpr::BinaryOp {
+            operator,
+            left,
+            right,
         } => Some(ast.expression_binary(
             SPAN,
             core_expr_to_oxc_expression(ast, left)?,
@@ -372,6 +381,34 @@ pub(super) fn core_expr_to_oxc_expression<'a>(
             core_expr_to_oxc_expression(ast, right)?,
         )),
         _ => None,
+    }
+}
+
+/// Lowers Terlan value equality through the structural JavaScript runtime.
+fn core_equality_expr_to_oxc_expression<'a>(
+    ast: oxc_ast::AstBuilder<'a>,
+    operator: &str,
+    left: &crate::terlan_typeck::CoreExpr,
+    right: &crate::terlan_typeck::CoreExpr,
+) -> Option<oxc_ast::ast::Expression<'a>> {
+    use oxc_ast::ast::Argument;
+    use oxc_span::SPAN;
+    use oxc_syntax::operator::UnaryOperator;
+
+    let equality = ast.expression_call(
+        SPAN,
+        ast.expression_identifier(SPAN, oxc_ident_name(ast, super::equality_runtime::FUNCTION)),
+        oxc_ast::NONE,
+        ast.vec_from_array([
+            Argument::from(core_expr_to_oxc_expression(ast, left)?),
+            Argument::from(core_expr_to_oxc_expression(ast, right)?),
+        ]),
+        false,
+    );
+    if super::equality_runtime::is_inequality(operator) {
+        Some(ast.expression_unary(SPAN, UnaryOperator::LogicalNot, equality))
+    } else {
+        Some(equality)
     }
 }
 

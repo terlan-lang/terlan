@@ -112,9 +112,9 @@ pub concat_pair(): String ->
 /// - Assertions over Oxc-printed JavaScript source.
 ///
 /// Transformation:
-/// - Proves the library body supplies the strict empty-string comparison.
+/// - Proves the library body supplies the Terlan value-equality comparison.
 #[test]
-fn emits_std_core_string_is_empty_as_strict_empty_string_check() {
+fn emits_std_core_string_is_empty_as_value_equality_check() {
     let source = "\
 module js_std_core_string_is_empty.
 
@@ -128,7 +128,7 @@ pub empty(): Bool ->
         js.contains(r#"$library$std$core$String$is_empty$1("")"#),
         "{js}"
     );
-    assert!(js.contains(r#"return value === "";"#), "{js}");
+    assert!(js.contains(r#"return $terlan$equal(value, "");"#), "{js}");
 }
 
 /// Verifies indexed UTF-8 candidate search remains portable on JavaScript.

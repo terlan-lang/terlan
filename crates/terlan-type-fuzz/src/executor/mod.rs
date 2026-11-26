@@ -1,4 +1,5 @@
 mod artifacts;
+mod javascript;
 mod oracle;
 mod planning;
 mod reduce;

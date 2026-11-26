@@ -41,37 +41,44 @@ pub(super) fn core_case_clauses_to_oxc_expression<'a>(
 ) -> Option<oxc_ast::ast::Expression<'a>> {
     use oxc_span::SPAN;
 
-    let crate::terlan_typeck::CoreExpr::Var(scrutinee_name) = scrutinee else {
-        use crate::terlan_typeck::{visit_core_expr_mut, CoreExpr, CorePattern};
-        let mut used = std::collections::HashSet::new();
-        for mut expression in
-            std::iter::once(scrutinee.clone()).chain(clauses.iter().flat_map(|clause| {
-                std::iter::once(clause.body.clone()).chain(clause.guard.clone())
-            }))
+    let scrutinee_name = match scrutinee {
+        crate::terlan_typeck::CoreExpr::Var(name)
+            if !matches!(name.as_str(), "true" | "false" | "Unit") =>
         {
-            visit_core_expr_mut(&mut expression, &mut |expression| {
-                if let CoreExpr::Var(name) = expression {
-                    used.insert(name.clone());
-                }
-            });
+            name
         }
-        let name = (0..)
-            .map(|index| format!("$case$value${index}"))
-            .find(|name| !used.contains(name))?;
-        let body = CoreExpr::Case {
-            scrutinee: Box::new(CoreExpr::Var(name.clone())),
-            clauses: clauses.to_vec(),
-        };
-        let callee = core_lam_expr_to_oxc_expression(ast, &[CorePattern::Var(name)], &body)?;
-        return Some(ast.expression_call(
-            SPAN,
-            callee,
-            oxc_ast::NONE,
-            ast.vec1(oxc_ast::ast::Argument::from(core_expr_to_oxc_expression(
-                ast, scrutinee,
-            )?)),
-            false,
-        ));
+        _ => {
+            use crate::terlan_typeck::{visit_core_expr_mut, CoreExpr, CorePattern};
+            let mut used = std::collections::HashSet::new();
+            for mut expression in
+                std::iter::once(scrutinee.clone()).chain(clauses.iter().flat_map(|clause| {
+                    std::iter::once(clause.body.clone()).chain(clause.guard.clone())
+                }))
+            {
+                visit_core_expr_mut(&mut expression, &mut |expression| {
+                    if let CoreExpr::Var(name) = expression {
+                        used.insert(name.clone());
+                    }
+                });
+            }
+            let name = (0..)
+                .map(|index| format!("$case$value${index}"))
+                .find(|name| !used.contains(name))?;
+            let body = CoreExpr::Case {
+                scrutinee: Box::new(CoreExpr::Var(name.clone())),
+                clauses: clauses.to_vec(),
+            };
+            let callee = core_lam_expr_to_oxc_expression(ast, &[CorePattern::Var(name)], &body)?;
+            return Some(ast.expression_call(
+                SPAN,
+                callee,
+                oxc_ast::NONE,
+                ast.vec1(oxc_ast::ast::Argument::from(core_expr_to_oxc_expression(
+                    ast, scrutinee,
+                )?)),
+                false,
+            ));
+        }
     };
     if !is_direct_oxc_js_identifier(scrutinee_name) {
         return None;

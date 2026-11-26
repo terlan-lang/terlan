@@ -113,3 +113,66 @@ fn checked_oracle_is_encoded_in_identity_and_manifest() {
     assert_eq!(native.manifest.oracle, Oracle::Native);
     assert!(native.manifest.case_id.ends_with("-onative"));
 }
+
+#[test]
+fn javascript_oracle_uses_only_the_explicit_supported_matrix() {
+    let generated = (0..14)
+        .map(|index| {
+            generate(
+                index,
+                &GenerationConfig {
+                    seed: 1,
+                    max_depth: 8,
+                    oracle: Oracle::JavaScript,
+                    timeout_ms: 2_000,
+                    rss_limit_bytes: 1024,
+                    cpu_limit_ms: 2_000,
+                    compiler_revision: "test",
+                },
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        generated
+            .iter()
+            .map(|case| case.manifest.family.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "scalar_unit",
+            "scalar_bool",
+            "scalar_int",
+            "scalar_float",
+            "scalar_string",
+            "scalar_atom",
+            "lexical_product",
+            "record",
+            "list",
+            "if_product_join",
+            "case_product_join",
+            "option_join",
+            "result_join",
+            "nested_result_join",
+        ]
+    );
+    assert!(generated
+        .iter()
+        .all(|case| case.manifest.oracle == Oracle::JavaScript
+            && case.manifest.case_id.ends_with("-ojs")));
+    assert_eq!(
+        generate(
+            13,
+            &GenerationConfig {
+                seed: 1,
+                max_depth: 2,
+                oracle: Oracle::JavaScript,
+                timeout_ms: 2_000,
+                rss_limit_bytes: 1024,
+                cpu_limit_ms: 2_000,
+                compiler_revision: "test",
+            },
+        )
+        .manifest
+        .family,
+        "scalar_float"
+    );
+}

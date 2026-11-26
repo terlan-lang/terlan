@@ -155,8 +155,8 @@ pub(super) fn oxc_binding_name<'a>(ast: oxc_ast::AstBuilder<'a>, name: &str) -> 
 /// - Oxc binary operator for the supported smoke subset, or `None` otherwise.
 ///
 /// Transformation:
-/// - Converts Terlan equality to JavaScript strict equality and preserves
-///   arithmetic/comparison operators with equivalent JavaScript semantics.
+/// - Preserves primitive arithmetic/comparison operators. Structural equality
+///   is handled before this mapping.
 pub(super) fn core_binary_operator_to_oxc(
     operator: &str,
 ) -> Option<oxc_syntax::operator::BinaryOperator> {
@@ -168,10 +168,6 @@ pub(super) fn core_binary_operator_to_oxc(
         "*" => Some(BinaryOperator::Multiplication),
         "/" => Some(BinaryOperator::Division),
         "rem" => Some(BinaryOperator::Remainder),
-        "==" => Some(BinaryOperator::StrictEquality),
-        "=:=" => Some(BinaryOperator::StrictEquality),
-        "!=" | "/=" => Some(BinaryOperator::StrictInequality),
-        "=/=" => Some(BinaryOperator::StrictInequality),
         "<" => Some(BinaryOperator::LessThan),
         "<=" => Some(BinaryOperator::LessEqualThan),
         ">" => Some(BinaryOperator::GreaterThan),

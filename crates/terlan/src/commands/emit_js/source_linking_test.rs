@@ -105,7 +105,7 @@ pub unused(): Int -> 123.
     assert_eq!(linked.functions.len(), 4);
     let js = assert_js_check(&linked);
     assert!(js.contains("combine$2(right, left)"), "{js}");
-    assert!(js.contains("return value !=="), "{js}");
+    assert!(js.contains("return !$terlan$equal(value,"), "{js}");
     assert!(!js.contains("unused"), "{js}");
 }
 

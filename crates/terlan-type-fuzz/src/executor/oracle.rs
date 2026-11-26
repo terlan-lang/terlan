@@ -104,7 +104,7 @@ pub(super) fn run_formatted_batch(
     if formatting.outcome != "passed" {
         return formatting;
     }
-    finish_formatted_oracle(
+    finish_phase(
         formatting,
         timeout_ms,
         rss_limit_bytes,
@@ -136,6 +136,16 @@ pub(super) fn run_batch(
         Oracle::Check => Some("check"),
         Oracle::Native => Some("test"),
         Oracle::None => None,
+        Oracle::JavaScript => {
+            return super::javascript::run(
+                compiler,
+                root,
+                sources,
+                timeout_ms,
+                rss_limit_bytes,
+                cpu_limit_ms,
+            );
+        }
     };
     let Some(operation) = operation else {
         return OracleResult {
@@ -163,7 +173,7 @@ pub(super) fn run_batch(
     )
 }
 
-fn base_command(compiler: &Path) -> Command {
+pub(super) fn base_command(compiler: &Path) -> Command {
     let mut command = Command::new(compiler);
     command
         .arg("--diagnostic-format")
@@ -173,7 +183,7 @@ fn base_command(compiler: &Path) -> Command {
     command
 }
 
-fn capture_result(
+pub(super) fn capture_result(
     mut command: Command,
     oracle: Oracle,
     root: &Path,
@@ -219,7 +229,25 @@ fn capture_result(
     }
 }
 
-fn finish_formatted_oracle(
+pub(super) fn infrastructure_result(
+    oracle: Oracle,
+    message: impl Into<String>,
+    timeout_ms: u64,
+    rss_limit_bytes: u64,
+    cpu_limit_ms: u64,
+) -> OracleResult {
+    OracleResult {
+        schema: "terlan.type-fuzz-observation.v1",
+        oracle,
+        outcome: "infrastructure_error",
+        exit_code: None,
+        stdout: String::new(),
+        stderr: message.into(),
+        resources: ResourceEvidence::unmeasured(timeout_ms, rss_limit_bytes, cpu_limit_ms),
+    }
+}
+
+pub(super) fn finish_phase(
     formatting: OracleResult,
     timeout_ms: u64,
     rss_limit_bytes: u64,
@@ -231,7 +259,7 @@ fn finish_formatted_oracle(
     let remaining_wall = timeout_ms.saturating_sub(elapsed);
     let remaining_cpu = cpu_limit_ms.saturating_sub(cpu);
     if remaining_wall == 0 || remaining_cpu == 0 {
-        return exhausted_after_formatting(
+        return exhausted_after_phase(
             formatting,
             timeout_ms,
             rss_limit_bytes,
@@ -249,7 +277,7 @@ fn finish_formatted_oracle(
     )
 }
 
-fn exhausted_after_formatting(
+fn exhausted_after_phase(
     mut formatting: OracleResult,
     timeout_ms: u64,
     rss_limit_bytes: u64,
@@ -576,14 +604,14 @@ mod tests {
             },
         };
         let formatting = result(Some(10), Some(20), Some(30), "left".into(), "first".into());
-        let combined = finish_formatted_oracle(formatting, 100, 1_000, 100, execution);
+        let combined = finish_phase(formatting, 100, 1_000, 100, execution);
         assert_eq!(combined.resources.wall_elapsed_ms, Some(15));
         assert_eq!(combined.resources.peak_cpu_ms, Some(27));
         assert_eq!(combined.resources.peak_rss_bytes, Some(40));
         assert_eq!(combined.stdout, "left\nright");
         assert_eq!(combined.stderr, "first\nsecond");
 
-        let wall_exhausted = finish_formatted_oracle(
+        let wall_exhausted = finish_phase(
             result(Some(100), Some(1), None, String::new(), String::new()),
             100,
             1_000,
@@ -592,7 +620,7 @@ mod tests {
         );
         assert_eq!(wall_exhausted.outcome, "resource_exhausted");
         assert_eq!(wall_exhausted.resources.limit_exceeded, Some("wall"));
-        let cpu_exhausted = finish_formatted_oracle(
+        let cpu_exhausted = finish_phase(
             result(Some(1), Some(100), None, String::new(), String::new()),
             100,
             1_000,

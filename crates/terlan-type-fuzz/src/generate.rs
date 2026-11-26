@@ -20,9 +20,10 @@ pub struct GenerationConfig<'a> {
 pub fn generate(index: u32, config: &GenerationConfig<'_>) -> GeneratedCase {
     let split_seed = split(config.seed, index);
     let number = (split_seed % 97) as i64 + 1;
-    let family = Family::from_index(index, config.max_depth);
+    let family = Family::from_index(index, config.max_depth, config.oracle);
     let oracle_name = match config.oracle {
         Oracle::Check => "check",
+        Oracle::JavaScript => "js",
         Oracle::Native => "native",
         Oracle::None => "none",
     };
@@ -94,7 +95,10 @@ enum Family {
 }
 
 impl Family {
-    fn from_index(index: u32, max_depth: u8) -> Self {
+    fn from_index(index: u32, max_depth: u8, oracle: Oracle) -> Self {
+        if oracle == Oracle::JavaScript && max_depth > 2 {
+            return Self::from_javascript_index(index);
+        }
         let family_count = match max_depth {
             1 => 6,
             2 => 10,
@@ -118,6 +122,25 @@ impl Family {
             14 => Self::NestedResultJoin,
             15 => Self::ClosedUnion,
             _ => Self::ClosedUnionEmpty,
+        }
+    }
+
+    fn from_javascript_index(index: u32) -> Self {
+        match index % 14 {
+            0 => Self::UnitScalar,
+            1 => Self::BoolScalar,
+            2 => Self::IntScalar,
+            3 => Self::FloatScalar,
+            4 => Self::StringScalar,
+            5 => Self::AtomScalar,
+            6 => Self::LexicalProduct,
+            7 => Self::Record,
+            8 => Self::List,
+            9 => Self::IfProductJoin,
+            10 => Self::CaseProductJoin,
+            11 => Self::OptionJoin,
+            12 => Self::ResultJoin,
+            _ => Self::NestedResultJoin,
         }
     }
 

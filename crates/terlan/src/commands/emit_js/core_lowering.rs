@@ -46,7 +46,7 @@ pub(super) fn emit_core_module_to_js(module: &CoreModule) -> String {
         }
         out.push_str("}\n\n");
     }
-    out
+    super::equality_runtime::attach(out)
 }
 
 /// Lowers one CoreIR function body into JavaScript when it is in the supported subset.
@@ -185,6 +185,19 @@ pub(super) fn core_expr_to_js(expr: &CoreExpr) -> Option<String> {
         } => {
             if operator == "div" {
                 return core_integer_division_expr_to_js(left, right);
+            }
+            if super::equality_runtime::is_equality(operator) {
+                let equality = format!(
+                    "{}({}, {})",
+                    super::equality_runtime::FUNCTION,
+                    core_expr_to_js(left)?,
+                    core_expr_to_js(right)?
+                );
+                return Some(if super::equality_runtime::is_inequality(operator) {
+                    format!("(!{equality})")
+                } else {
+                    equality
+                });
             }
             let operator = js_binary_operator(operator)?;
             Some(format!(
@@ -484,8 +497,8 @@ pub(super) fn core_case_literal_pattern_condition_to_js(
 /// - JavaScript operator spelling, or `None` when unsupported.
 ///
 /// Transformation:
-/// - Preserves arithmetic/comparison operators and lowers Terlan equality to
-///   JavaScript strict equality.
+/// - Preserves arithmetic/comparison operators. Structural equality is handled
+///   before this primitive-operator mapping.
 fn js_binary_operator(operator: &str) -> Option<&'static str> {
     match operator {
         "+" => Some("+"),
@@ -493,10 +506,6 @@ fn js_binary_operator(operator: &str) -> Option<&'static str> {
         "*" => Some("*"),
         "/" => Some("/"),
         "rem" => Some("%"),
-        "==" => Some("==="),
-        "=:=" => Some("==="),
-        "!=" | "/=" => Some("!=="),
-        "=/=" => Some("!=="),
         "<" => Some("<"),
         "<=" => Some("<="),
         ">" => Some(">"),

@@ -94,7 +94,7 @@ pub(super) fn emit_stack_safe_tail_module(module: &CoreModule) -> Option<String>
         }
         output.push_str("}\n\n");
     }
-    Some(output)
+    Some(super::equality_runtime::attach(output))
 }
 
 fn eligible_body(function: &CoreFunction) -> Option<&CoreExpr> {

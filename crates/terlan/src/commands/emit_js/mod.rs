@@ -9,6 +9,7 @@ mod declarations;
 mod direct_ast;
 mod direct_helpers;
 mod direct_reachability;
+mod equality_runtime;
 mod float_format;
 mod js_bindings;
 mod oxc_backend;

@@ -163,9 +163,9 @@ terlc fuzz replay target/fuzz/cases/<case-id>
 Two independent runs must produce byte-identical case artifacts.
 
 The generator and bounded executor crate has 100% line, function, and region
-coverage: 5,870 regions, 283 functions, and 3,936 lines. Its 79-test execution
-is subsecond, and its complete instrumented coverage gate finishes in under 17
-seconds. The executor measures the whole process group, enforces combined
+coverage: 6,771 regions, 327 functions, and 4,492 lines. Its 90-test execution
+is subsecond, and its dependency-cold instrumented coverage gate finishes in
+under six seconds. The executor measures the whole process group, enforces combined
 stdout/stderr limits, and cleans up descendants after success, failure,
 timeout, cancellation, or resource exhaustion. Reconnecting the crate to the
 monolithic compiler library remains the expensive step and is tracked by P11-1
@@ -272,7 +272,7 @@ as compiler reductions.
 
 ### TF3: JavaScript differential execution
 
-- [ ] Select generated cases from an explicit JavaScript capability matrix.
+- [x] Select generated cases from an explicit JavaScript capability matrix.
 - [ ] Compare canonical JavaScript results with managed results.
 - [ ] Exercise lexical and pattern-bound payloads in tuples, options, lists,
   records, lambdas, and call arguments.
@@ -281,6 +281,19 @@ as compiler reductions.
 Acceptance: the corpus includes the lexical `Some(value)` identity-cast shape
 that previously blocked `OperationTimeout.terl`, and its type-preserving
 mutations all emit and execute correctly.
+
+The JavaScript oracle stages generated modules by canonical module identity,
+builds the complete supported batch through `js.shared`, and invokes every
+exported semantic assertion under Node. Formatting, emission, and execution
+share one wall, CPU, RSS, and output budget. The initial explicit matrix covers
+14 scalar, lexical, product, record, list, control-flow, `Option`, and `Result`
+families and completes in 5.97 seconds. Its first executions found two backend
+defects rather than silently excluding the affected families: Terlan structural
+equality had been emitted as JavaScript reference equality, and Boolean case
+scrutinees could be emitted as undefined lexical bindings. Both now have
+domain-neutral regressions. Canonical managed-result comparison, the complete
+binding/payload matrix, and precise unsupported-operation diagnostics remain
+open before TF3 can close.
 
 ### TF4: Modules, interfaces, traits, and packages
 

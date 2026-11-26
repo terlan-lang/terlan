@@ -689,9 +689,12 @@ pub greater_than_or_equal(x: Int, y: Int): Bool ->
     assert!(js.contains("return x / y;"), "{js}");
     assert!(js.contains("return Math.trunc(x / y);"), "{js}");
     assert!(js.contains("return x % y;"), "{js}");
-    assert!(js.contains("return x === y;"), "{js}");
-    assert_eq!(js.matches("return x === y;").count(), 2, "{js}");
-    assert_eq!(js.matches("return x !== y;").count(), 2, "{js}");
+    assert_eq!(js.matches("return $terlan$equal(x, y);").count(), 2, "{js}");
+    assert_eq!(
+        js.matches("return !$terlan$equal(x, y);").count(),
+        2,
+        "{js}"
+    );
     assert!(js.contains("return x < y;"), "{js}");
     assert!(js.contains("return x <= y;"), "{js}");
     assert!(js.contains("return x > y;"), "{js}");
