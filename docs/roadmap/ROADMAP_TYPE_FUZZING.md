@@ -235,6 +235,16 @@ lowering-cache hits, and native unit/function/continuation counts with signed
 deltas. Semantic-type inventory and explicit cache-disposition events remain
 open under the broader metrics item.
 
+The planning probe now executes six bounded profiles in one comparison:
+focused, two-file combined-root, and broad-unreachable graphs, each cold and
+warm. It records cache outcome, phase work, native image shape, CPU, RSS, and
+wall-time deltas without rebuilding the compiler workspace. Unreachable native
+providers are rejected if they add any structural compiler work, more than one
+second of wall time, or more than 16 MiB RSS. The focused implementation has 60
+tests with exact 100% region, function, and line coverage and completes its
+local validation in under four seconds. Compiler-emitted invalidation reasons,
+semantic-type inventory, and strict combined-root bounds remain open.
+
 ### TF3: JavaScript differential execution
 
 - [ ] Select generated cases from an explicit JavaScript capability matrix.
