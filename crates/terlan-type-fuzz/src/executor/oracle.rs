@@ -25,6 +25,32 @@ pub(super) fn run(
     rss_limit_bytes: u64,
     cpu_limit_ms: u64,
 ) -> OracleResult {
+    let root = source
+        .parent()
+        .expect("generated case source has a parent directory");
+    let source_name = source
+        .file_name()
+        .expect("generated case source has a file name");
+    run_batch(
+        compiler,
+        oracle,
+        root,
+        &[source_name.into()],
+        timeout_ms,
+        rss_limit_bytes,
+        cpu_limit_ms,
+    )
+}
+
+pub(super) fn run_batch(
+    compiler: &Path,
+    oracle: Oracle,
+    root: &Path,
+    sources: &[std::path::PathBuf],
+    timeout_ms: u64,
+    rss_limit_bytes: u64,
+    cpu_limit_ms: u64,
+) -> OracleResult {
     if oracle == Oracle::None {
         return OracleResult {
             schema: "terlan.type-fuzz-observation.v1",
@@ -36,12 +62,6 @@ pub(super) fn run(
             resources: ResourceEvidence::unmeasured(timeout_ms, rss_limit_bytes, cpu_limit_ms),
         };
     }
-    let root = source
-        .parent()
-        .expect("generated case source has a parent directory");
-    let source_name = source
-        .file_name()
-        .expect("generated case source has a file name");
     let mut command = Command::new(compiler);
     command
         .arg("--diagnostic-format")
@@ -49,7 +69,7 @@ pub(super) fn run(
         .arg("--color")
         .arg("never")
         .arg("check")
-        .arg(source_name)
+        .args(sources)
         .current_dir(root);
     let resources::Capture { output, resources } =
         resources::capture(&mut command, timeout_ms, rss_limit_bytes, cpu_limit_ms);

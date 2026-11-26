@@ -7,6 +7,8 @@ use super::oracle::{self, OracleResult};
 use super::resources::ResourceEvidence;
 use crate::{CaseManifest, GeneratedCase, Oracle, RunOptions, TypedValue, CASE_SCHEMA};
 
+const CHECK_BATCH_SIZE: usize = 32;
+
 pub(super) fn generate_run(
     options: &RunOptions,
     compiler: &Path,
@@ -24,6 +26,7 @@ fn generate_run_with_elapsed(
     elapsed: &mut dyn FnMut() -> Duration,
 ) -> Result<(), String> {
     fs::create_dir_all(&options.out_dir).map_err(io_error("create fuzz output"))?;
+    let mut pending = Vec::with_capacity(options.cases as usize);
     for index in 0..options.cases {
         if elapsed() >= Duration::from_millis(options.total_timeout_ms) {
             return Err(format!(
@@ -34,8 +37,53 @@ fn generate_run_with_elapsed(
         let case = generate(index, options, compiler_revision);
         let directory = options.out_dir.join(&case.manifest.case_id);
         write_case(&directory, &case)?;
-        run_and_record(&directory, &case, compiler)?;
+        pending.push((directory, case));
+    }
+    run_batches(options, compiler, &pending, elapsed)?;
+    for (_, case) in pending {
         println!("{} {}", case.manifest.case_id, case.manifest.family);
+    }
+    Ok(())
+}
+
+fn run_batches(
+    options: &RunOptions,
+    compiler: &Path,
+    pending: &[(PathBuf, GeneratedCase)],
+    elapsed: &mut dyn FnMut() -> Duration,
+) -> Result<(), String> {
+    for batch in pending.chunks(CHECK_BATCH_SIZE) {
+        let spent_ms = u64::try_from(elapsed().as_millis()).unwrap_or(u64::MAX);
+        let remaining_ms = options
+            .total_timeout_ms
+            .checked_sub(spent_ms)
+            .filter(|remaining| *remaining > 0)
+            .ok_or_else(|| "run exceeded total timeout before compiler oracle".to_string())?;
+        let batch_cases = batch.len() as u64;
+        let wall_ms = remaining_ms.min(options.case_timeout_ms.saturating_mul(batch_cases));
+        let cpu_ms = options.cpu_limit_ms.saturating_mul(batch_cases);
+        let sources = batch
+            .iter()
+            .map(|(directory, _)| {
+                directory
+                    .strip_prefix(&options.out_dir)
+                    .expect("case directory belongs to fuzz output")
+                    .join("case.terl")
+            })
+            .collect::<Vec<_>>();
+        let result = oracle::run_batch(
+            compiler,
+            options.oracle,
+            &options.out_dir,
+            &sources,
+            wall_ms,
+            options.rss_limit_bytes,
+            cpu_ms,
+        );
+        for (directory, case) in batch {
+            record_observation(directory, &result, &case.manifest)?;
+        }
+        ensure_success(&batch[0].1, &result)?;
     }
     Ok(())
 }
@@ -92,9 +140,18 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
         case.manifest.rss_limit_bytes,
         case.manifest.cpu_limit_ms,
     );
+    record_observation(directory, &result, &case.manifest)?;
+    ensure_success(case, &result)
+}
+
+fn record_observation(
+    directory: &Path,
+    result: &OracleResult,
+    manifest: &CaseManifest,
+) -> Result<(), String> {
     atomic_write(
         &directory.join("observed.json"),
-        &json_bytes(&oracle_result_json(&result)),
+        &json_bytes(&oracle_result_json(result)),
     )?;
     let diagnostics = serde_json::json!({
         "schema": "terlan.type-fuzz-diagnostics.v1",
@@ -106,7 +163,12 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
         &json_bytes(&diagnostics),
     )?;
     let resources = if matches!(result.outcome, "passed" | "not_run") {
-        result.resources.deterministic_success()
+        ResourceEvidence::unmeasured(
+            manifest.case_timeout_ms,
+            manifest.rss_limit_bytes,
+            manifest.cpu_limit_ms,
+        )
+        .deterministic_success()
     } else {
         result.resources.clone()
     };
@@ -114,6 +176,10 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
         &directory.join("resources.json"),
         &json_bytes(&resource_evidence_json(&resources)),
     )?;
+    Ok(())
+}
+
+fn ensure_success(case: &GeneratedCase, result: &OracleResult) -> Result<(), String> {
     if !matches!(result.outcome, "passed" | "not_run") {
         return Err(format!(
             "case {} check oracle ended as {}",
@@ -407,6 +473,94 @@ mod tests {
             &mut elapsed,
         );
         assert!(result.unwrap_err().contains("run exceeded"));
+    }
+
+    #[test]
+    fn total_run_deadline_is_enforced_before_oracle_launch() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let options = RunOptions {
+            cases: 1,
+            total_timeout_ms: 1,
+            oracle: Oracle::None,
+            out_dir: root.path().to_path_buf(),
+            ..RunOptions::default()
+        };
+        let mut calls = 0;
+        let mut elapsed = || {
+            calls += 1;
+            if calls == 1 {
+                Duration::ZERO
+            } else {
+                Duration::MAX
+            }
+        };
+        let result = generate_run_with_elapsed(
+            &options,
+            Path::new("missing-compiler"),
+            "test",
+            &mut elapsed,
+        );
+        assert!(result.unwrap_err().contains("before compiler oracle"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn checked_cases_share_bounded_compiler_batches() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let launches = root.path().join("launches");
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            format!("#!/bin/sh\nprintf 'launch\\n' >> {}\n", launches.display()),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+        let options = RunOptions {
+            cases: 65,
+            oracle: Oracle::Check,
+            out_dir: root.path().join("cases"),
+            case_timeout_ms: 1_000,
+            total_timeout_ms: 10_000,
+            rss_limit_bytes: 1024 * 1024 * 1024,
+            cpu_limit_ms: 1_000,
+            ..RunOptions::default()
+        };
+        generate_run(&options, &compiler, "test").expect("batched run");
+        assert_eq!(
+            fs::read_to_string(launches)
+                .expect("launch ledger")
+                .lines()
+                .count(),
+            3
+        );
+    }
+
+    #[test]
+    fn batch_artifact_failure_is_attributed() {
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let options = RunOptions {
+            cases: 1,
+            oracle: Oracle::None,
+            out_dir: root.path().to_path_buf(),
+            ..RunOptions::default()
+        };
+        let case = generate(0, &options, "test");
+        let directory = options.out_dir.join(&case.manifest.case_id);
+        write_case(&directory, &case).expect("case artifacts");
+        fs::create_dir(temporary_path(&directory.join("observed.json")))
+            .expect("observation blocker");
+        let mut elapsed = || Duration::ZERO;
+        let error = run_batches(
+            &options,
+            Path::new("missing-compiler"),
+            &[(directory, case)],
+            &mut elapsed,
+        )
+        .expect_err("artifact publish must fail");
+        assert!(error.contains("write temporary"));
     }
 
     #[cfg(unix)]
