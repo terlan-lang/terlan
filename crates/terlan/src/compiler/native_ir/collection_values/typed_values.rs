@@ -17,6 +17,12 @@ pub(in crate::compiler::native_ir) fn try_lower_typed_value(
     function_types: &HashMap<(String, usize), NativeType>,
     constructors: &NativeConstructorLayouts,
 ) -> Result<Option<NativeExpr>, String> {
+    // Control values need their checked join propagated to terminal branches.
+    // Boxing the outer expression first sends normalized `let + if` shapes
+    // through scalar lowering and loses that context.
+    if super::super::structured_case::contains_case(value) || is_general_control_value(value) {
+        return Ok(None);
+    }
     if super::super::union_values::is_boxed(expected) {
         let cast = CoreExpr::Cast {
             expr: Box::new(value.clone()),
@@ -42,14 +48,6 @@ pub(in crate::compiler::native_ir) fn try_lower_typed_value(
             constructors,
         )
         .map(Some);
-    }
-    // A case nested in a scalar owner still belongs to the structured-control
-    // lowerer. Treating the owner as a concrete typed value recursively sends
-    // the retained case through the scalar profile and loses its join.
-    if super::super::structured_case::contains_case(value)
-        || matches!(value, CoreExpr::If { .. } | CoreExpr::Try { .. })
-    {
-        return Ok(None);
     }
     if let Some(expr) = super::super::expression::collection_cast_source(
         value,
@@ -267,6 +265,12 @@ pub(super) fn transparent_union_accepts_native(
 pub(super) fn is_general_control_value(value: &CoreExpr) -> bool {
     match value {
         CoreExpr::Case { .. } | CoreExpr::If { .. } | CoreExpr::Try { .. } => true,
+        CoreExpr::Let { bindings, body } => {
+            bindings
+                .iter()
+                .any(|binding| is_general_control_value(&binding.value))
+                || is_general_control_value(body)
+        }
         CoreExpr::Cast { expr, .. } => is_general_control_value(expr),
         _ => false,
     }

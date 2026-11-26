@@ -818,6 +818,29 @@ pub make_evidence(accepted: Bool): Result[Evidence, Int] ->
 }
 
 #[test]
+fn contextual_option_identity_survives_nested_cases_and_direct_return() {
+    check_sources(&[
+        r#"
+module contextual_option_direct_return.
+import std.core.Option.{None, Some}.
+import type std.core.Option.{Option}.
+pub struct Evidence { value: Int }.
+sample(): Option[Evidence] ->
+    let evidence = case true {
+        false -> None;
+        true -> case false {
+            false -> Some(Evidence {value: 7});
+            true -> None
+        }
+    };
+    evidence.
+pub check(): Bool -> sample() == Some(Evidence {value: 7}).
+"#,
+        include_str!("../../../../../std/core/Option.terl"),
+    ]);
+}
+
+#[test]
 fn restored_mixed_union_bodies_are_managed_beside_generic_aggregate_results() {
     let modules = check_sources_with_core_mutator(
         &[

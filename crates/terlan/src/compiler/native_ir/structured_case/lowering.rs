@@ -721,21 +721,9 @@ pub(in crate::compiler::native_ir) fn lower_lexical_expr_as(
     core_types: &HashMap<String, CoreType>,
     environment: StructuredCaseEnvironment<'_>,
 ) -> Result<NativeExpr, String> {
-    if let CoreExpr::Case { scrutinee, clauses } = expr {
-        let contextual = CoreExpr::Case {
-            scrutinee: scrutinee.clone(),
-            clauses: clauses
-                .iter()
-                .map(|clause| crate::terlan_typeck::CoreCaseClause {
-                    pattern: clause.pattern.clone(),
-                    guard: clause.guard.clone(),
-                    body: super::super::case_lowering::contextualize_control_result(
-                        clause.body.clone(),
-                        expected,
-                    ),
-                })
-                .collect(),
-        };
+    if matches!(expr, CoreExpr::Case { .. } | CoreExpr::Let { .. }) {
+        let contextual =
+            super::super::case_lowering::contextualize_control_result(expr.clone(), expected);
         return lower_child(&contextual, params, param_types, core_types, environment);
     }
     let CoreExpr::If { clauses } = expr else {
