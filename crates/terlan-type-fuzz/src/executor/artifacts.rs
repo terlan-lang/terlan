@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use super::interface_roundtrip;
 use super::oracle::{self, OracleResult};
+use super::package_roundtrip;
 use super::planning;
 use super::resources::ResourceEvidence;
 use super::{generate_case as generate, regenerate_case};
@@ -131,6 +132,25 @@ fn run_batches(
                     )
                 })?;
             interface_roundtrip::run(
+                directory,
+                case,
+                compiler,
+                remaining_ms.min(case.manifest.case_timeout_ms),
+                case.manifest.rss_limit_bytes,
+                case.manifest.cpu_limit_ms,
+            )?;
+            let spent_ms = u64::try_from(elapsed().as_millis()).unwrap_or(u64::MAX);
+            let remaining_ms = options
+                .total_timeout_ms
+                .checked_sub(spent_ms)
+                .filter(|remaining| *remaining > 0)
+                .ok_or_else(|| {
+                    format!(
+                        "run exceeded total timeout before package comparison for {}",
+                        case.manifest.case_id
+                    )
+                })?;
+            package_roundtrip::run(
                 directory,
                 case,
                 compiler,
@@ -270,6 +290,14 @@ fn run_and_record(directory: &Path, case: &GeneratedCase, compiler: &Path) -> Re
         return Ok(());
     }
     interface_roundtrip::run(
+        directory,
+        case,
+        compiler,
+        case.manifest.case_timeout_ms,
+        case.manifest.rss_limit_bytes,
+        case.manifest.cpu_limit_ms,
+    )?;
+    package_roundtrip::run(
         directory,
         case,
         compiler,
@@ -834,6 +862,13 @@ mod tests {
                 .expect("interface evidence")
                 .contains("source_and_interface_consumers_accepted")
         );
+        let module = interface_roundtrip::support_modules(&case.support_sources)
+            .expect("support modules")
+            .remove(0);
+        fs::remove_file(cache.join(format!("{module}.typi"))).expect("remove interface");
+        assert!(run_and_record(root.path(), &case, Path::new("/bin/true"))
+            .unwrap_err()
+            .contains("copy interface round-trip input"));
     }
 
     #[cfg(unix)]
@@ -899,6 +934,73 @@ mod tests {
             run_batches(&options, &compiler, &[(directory, case)], &mut elapsed,)
                 .unwrap_err()
                 .contains("interface-only semantic comparison ended as failed")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn batched_package_comparison_honors_deadlines_and_failures() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = tempfile::tempdir().expect("temporary fuzz root");
+        let options = RunOptions {
+            cases: 1,
+            oracle: Oracle::Check,
+            out_dir: root.path().join("cases"),
+            case_timeout_ms: 1_000,
+            total_timeout_ms: 1_000,
+            rss_limit_bytes: 1 << 30,
+            cpu_limit_ms: 1_000,
+            ..RunOptions::default()
+        };
+        fs::create_dir(&options.out_dir).expect("cases root");
+        let case = generate(17, &options, "test");
+        let directory = options.out_dir.join(&case.manifest.case_id);
+        write_case(&directory, &case).expect("case artifacts");
+        let compiler = root.path().join("compiler");
+        fs::write(
+            &compiler,
+            concat!(
+                "#!/bin/sh\n",
+                "find . -path '*/src/*' -name '*.terl' -type f | while read -r source; do\n",
+                "  module=$(sed -n 's/^module \\([^ ]*\\)\\.$/\\1/p' \"$source\")\n",
+                "  [ -n \"$module\" ] || continue\n",
+                "  project=${source%%/src/*}\n",
+                "  mkdir -p \"$project/.terlan\"\n",
+                "  cp \"$source\" \"$project/.terlan/$module.typi\"\n",
+                "done\n",
+                "case \"$PWD\" in\n",
+                "  *.package-roundtrip-*/consumer) exit 1 ;;\n",
+                "esac\n",
+            ),
+        )
+        .expect("compiler fixture");
+        fs::set_permissions(&compiler, fs::Permissions::from_mode(0o700))
+            .expect("compiler permissions");
+
+        let mut calls = 0;
+        let mut elapsed = || {
+            calls += 1;
+            if calls < 3 {
+                Duration::ZERO
+            } else {
+                Duration::from_millis(1_000)
+            }
+        };
+        assert!(run_batches(
+            &options,
+            &compiler,
+            &[(directory.clone(), case.clone())],
+            &mut elapsed,
+        )
+        .unwrap_err()
+        .contains("before package comparison"));
+
+        let mut elapsed = || Duration::ZERO;
+        assert!(
+            run_batches(&options, &compiler, &[(directory, case)], &mut elapsed)
+                .unwrap_err()
+                .contains("path-dependency semantic comparison ended as failed")
         );
     }
 
@@ -1256,7 +1358,7 @@ mod tests {
                 .expect("launch ledger")
                 .lines()
                 .count(),
-            12
+            18
         );
     }
 

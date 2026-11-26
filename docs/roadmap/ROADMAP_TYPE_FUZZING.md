@@ -301,7 +301,7 @@ open before TF3 can close.
 - [x] Round-trip generated `.typi` interfaces and compare semantic facts.
 - [x] Generate generic traits, declaration-site implementations, constructors,
   aliases, exhaustive patterns, and same-named types from distinct providers.
-- [ ] Run equivalent in-workspace and external path-dependency layouts.
+- [x] Run equivalent in-workspace and external path-dependency layouts.
 
 Acceptance: 5,000 package cases pass with no difference between source facts,
 interface facts, qualified dispatch, generic bounds, or constructor coverage.
@@ -347,6 +347,20 @@ three reachable providers; an interface-only replay accepted the same facts in
 remain stable. The focused type-fuzz crate now passes 104 tests with exact 100%
 region, function, and line coverage across 8,206 regions, 392 functions, and
 5,412 lines.
+
+Every generated multi-module case now executes a third semantic comparison in
+an isolated consumer package with all provider modules moved into a sibling
+path dependency. The comparison copies only canonical source and fresh
+manifests: it carries no `.terlan` summaries, caches, native objects, or other
+generated state across the boundary. It applies the case's original check,
+native, or JavaScript oracle under the same bounded resource policy and records
+diagnostics and resource evidence in `package-roundtrip.json`. The generated
+generic-trait case discovered exactly three external provider modules, lowered
+31 reachable declarations, and passed its native assertion in 0.35 seconds at
+114.3 MiB peak RSS. Package staging, disagreement, resource deadlines, and
+artifact failures are attributed to the originating case. The focused crate
+now passes 111 tests with exact 100% coverage across 8,834 regions, 417
+functions, and 5,799 lines.
 
 ### TF5: Suspension, actors, and native providers
 

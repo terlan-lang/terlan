@@ -2,6 +2,7 @@ mod artifacts;
 mod interface_roundtrip;
 mod javascript;
 mod oracle;
+mod package_roundtrip;
 mod planning;
 mod reduce;
 mod resources;
