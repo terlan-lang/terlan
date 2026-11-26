@@ -4030,12 +4030,14 @@ dependencies = [
  "terlan-data-native",
  "terlan-http-native",
  "terlan-libpq",
+ "terlan-native-planning",
  "terlan-net-native",
  "terlan-process-owner",
  "terlan-runtime-abi",
  "terlan-service-foundation",
  "terlan-std-native",
  "terlan-storage",
+ "terlan-type-fuzz",
  "time",
  "tokio",
  "toml",
@@ -4151,6 +4153,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "terlan-native-planning"
+version = "0.0.10"
+
+[[package]]
 name = "terlan-net-native"
 version = "0.0.10"
 dependencies = [
@@ -4242,6 +4248,14 @@ name = "terlan-time-native"
 version = "0.0.10"
 dependencies = [
  "terlan-runtime-abi",
+]
+
+[[package]]
+name = "terlan-type-fuzz"
+version = "0.0.10"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

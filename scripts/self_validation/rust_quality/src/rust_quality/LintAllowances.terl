@@ -475,6 +475,25 @@ stale(rows: List[RegistryRow], values: List[Allowance], diagnostics: List[String
     }.
 
 @pure
+selected_rows(
+    rows: List[RegistryRow],
+    paths: List[String],
+    output: List[RegistryRow],
+): List[RegistryRow] ->
+    case rows {
+        [] -> SourceInventory.reverse(output);
+        [row | rest] ->
+            selected_rows(
+                rest,
+                paths,
+                if {
+                    contains_exact(row.path, paths) -> [row | output];
+                    true -> output
+                },
+            )
+    }.
+
+@pure
 validate(values: List[Allowance], registry: Registry): List[String] ->
     let rows_checked =
         validate_rows(
@@ -484,6 +503,18 @@ validate(values: List[Allowance], registry: Registry): List[String] ->
         );
     let actual_checked = unclassified(values, registry.rows, rows_checked);
     SourceInventory.reverse(stale(registry.rows, values, actual_checked)).
+
+@pure
+validate_changed(values: List[Allowance], registry: Registry, paths: List[String]): List[String] ->
+    let rows_checked =
+        validate_rows(
+            registry.rows,
+            List.new[String](),
+            SourceInventory.reverse(registry.diagnostics),
+        );
+    let actual_checked = unclassified(values, registry.rows, rows_checked);
+    let relevant_rows = selected_rows(registry.rows, paths, List.new[RegistryRow]());
+    SourceInventory.reverse(stale(relevant_rows, values, actual_checked)).
 
 @pure
 render_row(value: Allowance): String ->
@@ -531,53 +562,58 @@ print_diagnostics(values: List[String]): Bool ->
             print_diagnostics(rest)
     }.
 
+check_loaded(root: String, loaded: AllowanceLoad, changed_paths: Option[List[String]]): Bool ->
+    if {
+        not loaded.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", loaded.message]));
+        false;
+        true -> case File.read_text(registry_path(root)) {
+            Err(_reason) ->
+                let _printed = eprintln("[rust-lint-allowances] failure: missing lint allowance registry");
+                false;
+            Ok(source) ->
+                let registry = parse_registry(source);
+                if {
+                    not registry.valid_header -> let _printed =
+                        eprintln(
+                            String.concat(
+                                ["[rust-lint-allowances] failure: expected header `", header(), "`"],
+                            ),
+                        );
+                    false;
+                    true -> let diagnostics =
+                        case changed_paths {
+                            None -> validate(loaded.allowances, registry);
+                            Some(paths) -> validate_changed(loaded.allowances, registry, paths)
+                        };
+                    if {
+                        List.length(diagnostics) == 0 -> let _printed =
+                            println(
+                                String.concat(
+                                    [
+                                        "[rust-lint-allowances] ",
+                                        Int.to_string(List.length(loaded.allowances)),
+                                        " justified changed allowances",
+                                    ],
+                                ),
+                            );
+                        true;
+                        true -> let _printed = eprintln("[rust-lint-allowances] failures:");
+                        print_diagnostics(diagnostics)
+                    }
+                }
+        }
+    }.
+
 pub check(root: String): Bool ->
     let discovery = SourceInventory.discover_visible(root, ["*.rs"]);
     if {
         not discovery.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", discovery.message]));
         false;
-        true -> let loaded = all_allowances(root, discovery);
-        if {
-            not loaded.valid -> let _printed = eprintln(String.concat(["[rust-lint-allowances] failure: ", loaded.message]));
-            false;
-            true -> case File.read_text(registry_path(root)) {
-                Err(_reason) ->
-                    let _printed = eprintln("[rust-lint-allowances] failure: missing lint allowance registry");
-                    false;
-                Ok(source) ->
-                    let registry = parse_registry(source);
-                    if {
-                        not registry.valid_header -> let _printed =
-                            eprintln(
-                                String.concat(
-                                    [
-                                        "[rust-lint-allowances] failure: expected header `",
-                                        header(),
-                                        "`",
-                                    ],
-                                ),
-                            );
-                        false;
-                        true -> let diagnostics = validate(loaded.allowances, registry);
-                        if {
-                            List.length(diagnostics) == 0 -> let _printed =
-                                println(
-                                    String.concat(
-                                        [
-                                            "[rust-lint-allowances] ",
-                                            Int.to_string(List.length(loaded.allowances)),
-                                            " justified allowances",
-                                        ],
-                                    ),
-                                );
-                            true;
-                            true -> let _printed = eprintln("[rust-lint-allowances] failures:");
-                            print_diagnostics(diagnostics)
-                        }
-                    }
-            }
-        }
+        true -> check_loaded(root, all_allowances(root, discovery), None)
     }.
+
+pub check_changed(root: String, paths: List[String]): Bool ->
+    check_loaded(root, load_allowances_at(root, paths, List.new[Allowance]()), Some(paths)).
 
 write_registry(path: String, rendered: String, count: Int): Bool ->
     case File.write_text(path, rendered) {
@@ -685,6 +721,10 @@ pub self_test(): Bool ->
             "#[allow(dead_code)] // This rationale is intentionally maintained inline.\nfn value() {}\n",
         );
     let inline_matches = inline_rationale_matches(inline, "This rationale is intentionally maintained inline.");
+    let other_values = RustAllowances.scan_source("src/other.rs", source);
+    let combined_registry = parse_registry(render_registry(List.concat(values, other_values)));
+    let changed_complete = validate_changed(values, combined_registry, ["src/lib.rs"]);
+    let changed_stale = validate_changed([], combined_registry, ["src/lib.rs"]);
     if {
         not RustAllowances.self_test() -> let _printed =
             eprintln(
@@ -694,6 +734,16 @@ pub self_test(): Bool ->
         List.length(complete) != 0 -> let _printed =
             eprintln(
                 "error[rust_quality.lint_allowances.self_test.complete]: complete registry rejected",
+            );
+        false;
+        List.length(changed_complete) != 0 -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.changed_complete]: unchanged paths contaminated incremental validation",
+            );
+        false;
+        not contains_diagnostic(changed_stale, "stale allowance registry row") -> let _printed =
+            eprintln(
+                "error[rust_quality.lint_allowances.self_test.changed_stale]: changed path removal was accepted",
             );
         false;
         not contains_diagnostic(validate(values, empty), "unclassified allowance") -> let _printed =

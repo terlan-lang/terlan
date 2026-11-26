@@ -313,6 +313,8 @@ features_at(values: List[DependencyFeature], output: String): String ->
                     [
                         "{\"default_features\":",
                         json_bool(value.default_features),
+                        ",\"external\":",
+                        json_bool(value.external),
                         ",\"features\":",
                         strings_json(value.features),
                         ",\"kind\":",
@@ -467,12 +469,12 @@ ast_parse_diagnostics(report: Json): List[String] ->
     }.
 
 /**
- * Reviewed on 2026-09-24: local durability adds terlan-storage and Linux
- * rustix filesystem admission to the former 56-dependency envelope.
- * This is a fixed limit, not an automatically growing baseline.
+ * External dependencies drive download and third-party compilation cost.
+ * Repository-local crate extraction must not consume this budget because it
+ * is how Terlan narrows invalidation and decomposes the compiler monolith.
  */
 @pure
-maximum_direct_dependencies(): Int -> 58.
+maximum_direct_dependencies(): Int -> 50.
 
 @pure
 dependency_budget_diagnostics(count: Int, previous: List[String]): List[String] ->
@@ -480,7 +482,7 @@ dependency_budget_diagnostics(count: Int, previous: List[String]): List[String] 
         count <= maximum_direct_dependencies() -> previous;
         true -> [String.concat(
     [
-        "main-package non-optional normal dependency count ",
+        "main-package external non-optional normal dependency count ",
         Int.to_string(count),
         " exceeds ",
         Int.to_string(maximum_direct_dependencies()),
@@ -574,11 +576,11 @@ build_report(
     let fanout_policy =
         String.concat(
             [
-                "{\"maximum_non_optional_normal_dependencies\":",
+                "{\"maximum_external_non_optional_normal_dependencies\":",
                 Int.to_string(maximum_direct_dependencies()),
                 ",\"maximum_resolved_duplicate_families\":34,",
                 "\"milestone\":\"0.0.9\",",
-                "\"non_optional_normal_dependencies\":",
+                "\"external_non_optional_normal_dependencies\":",
                 Int.to_string(cargo.direct_dependency_count),
                 ",\"package\":\"terlan\",",
                 "\"target_non_optional_normal_dependencies\":50,",
@@ -808,9 +810,9 @@ pub record(root: String): Bool ->
     }.
 
 pub self_test(): Bool ->
-    dependency_budget_diagnostics(56, []) == []
-        and dependency_budget_diagnostics(58, ["existing diagnostic"]) == ["existing diagnostic"]
-        and dependency_budget_diagnostics(59, ["existing diagnostic"]) == ["main-package non-optional normal dependency count 59 exceeds 58", "existing diagnostic"]
+    dependency_budget_diagnostics(49, []) == []
+        and dependency_budget_diagnostics(50, ["existing diagnostic"]) == ["existing diagnostic"]
+        and dependency_budget_diagnostics(51, ["existing diagnostic"]) == ["main-package external non-optional normal dependency count 51 exceeds 50", "existing diagnostic"]
         and DependencyClassifications.self_test()
         and DependencyImpactCargo.self_test()
         and DependencyImpactGraph.self_test()

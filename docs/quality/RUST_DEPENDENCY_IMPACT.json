@@ -5,10 +5,10 @@
     "target_dependents": 9
   },
   "dependency_fanout_policy": {
-    "maximum_non_optional_normal_dependencies": 58,
+    "external_non_optional_normal_dependencies": 49,
+    "maximum_external_non_optional_normal_dependencies": 50,
     "maximum_resolved_duplicate_families": 34,
     "milestone": "0.0.9",
-    "non_optional_normal_dependencies": 58,
     "package": "terlan",
     "target_non_optional_normal_dependencies": 50,
     "target_resolved_duplicate_families": 24
@@ -906,7 +906,7 @@
     },
     {
       "name": "compiler",
-      "physical_lines": 190541,
+      "physical_lines": 190533,
       "rust_files": 539
     },
     {
@@ -941,12 +941,12 @@
     },
     {
       "name": "quality",
-      "physical_lines": 49191,
+      "physical_lines": 49189,
       "rust_files": 146
     },
     {
       "name": "root:",
-      "physical_lines": 102001,
+      "physical_lines": 101750,
       "rust_files": 536
     },
     {
@@ -1364,7 +1364,7 @@
     },
     {
       "name": "commands",
-      "physical_lines": 56018,
+      "physical_lines": 56003,
       "rust_files": 245
     },
     {
@@ -1399,7 +1399,7 @@
     },
     {
       "name": "quality",
-      "physical_lines": 27962,
+      "physical_lines": 27963,
       "rust_files": 125
     },
     {
@@ -1479,6 +1479,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -1488,6 +1489,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -1500,6 +1502,7 @@
       "dependencies": [
         {
           "default_features": false,
+          "external": true,
           "features": [],
           "kind": "build",
           "name": "lalrpop",
@@ -1507,6 +1510,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "build",
           "name": "sha2",
@@ -1514,6 +1518,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "cxx",
@@ -1521,6 +1526,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "cxx-build",
@@ -1528,6 +1534,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "httparse",
@@ -1535,6 +1542,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "instant-acme",
@@ -1542,6 +1550,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "std"
           ],
@@ -1551,6 +1560,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "process"
           ],
@@ -1560,6 +1570,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "tar",
@@ -1567,6 +1578,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [
             "acme-issuer"
           ],
@@ -1576,6 +1588,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "io-util",
             "macros",
@@ -1587,6 +1600,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "tungstenite",
@@ -1594,6 +1608,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "zstd",
@@ -1601,6 +1616,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "ammonia",
@@ -1608,6 +1624,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "axum",
@@ -1615,6 +1632,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "base64",
@@ -1622,6 +1640,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "bytes",
@@ -1629,6 +1648,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "comrak",
@@ -1636,6 +1656,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "concurrent-queue",
@@ -1643,6 +1664,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cranelift-codegen",
@@ -1650,6 +1672,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cranelift-frontend",
@@ -1657,6 +1680,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cranelift-module",
@@ -1664,6 +1688,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cranelift-native",
@@ -1671,6 +1696,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cranelift-object",
@@ -1678,6 +1704,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "crossterm",
@@ -1685,6 +1712,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cssparser",
@@ -1692,6 +1720,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "indexmap",
             "norway"
@@ -1702,6 +1731,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "html5ever",
@@ -1709,6 +1739,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "http",
@@ -1716,6 +1747,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "channel",
             "full"
@@ -1726,6 +1758,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "client",
             "http1",
@@ -1738,6 +1771,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "tokio"
           ],
@@ -1747,6 +1781,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "lalrpop-util",
@@ -1754,6 +1789,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "libloading",
@@ -1761,6 +1797,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "mime_guess",
@@ -1768,6 +1805,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "net",
             "os-poll"
@@ -1778,6 +1816,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "notify",
@@ -1785,6 +1824,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "read",
             "std",
@@ -1796,6 +1836,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "openapiv3",
@@ -1803,6 +1844,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_allocator",
@@ -1810,6 +1852,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_ast",
@@ -1817,6 +1860,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_ast_visit",
@@ -1824,6 +1868,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_codegen",
@@ -1831,6 +1876,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_parser",
@@ -1838,6 +1884,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_span",
@@ -1845,6 +1892,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "oxc_syntax",
@@ -1852,6 +1900,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "percent-encoding",
@@ -1859,6 +1908,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "quick-xml",
@@ -1866,6 +1916,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "rand",
@@ -1873,6 +1924,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "rcgen",
@@ -1880,6 +1932,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "regex",
@@ -1887,8 +1940,10 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
-            "fs"
+            "fs",
+            "process"
           ],
           "kind": "normal",
           "name": "rustix",
@@ -1896,6 +1951,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "ring",
             "std",
@@ -1907,6 +1963,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "semver",
@@ -1914,6 +1971,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -1923,6 +1981,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "unbounded_depth"
           ],
@@ -1932,6 +1991,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_yaml",
@@ -1939,6 +1999,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -1946,6 +2007,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "shell-words",
@@ -1953,6 +2015,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "smallvec",
@@ -1960,6 +2023,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "all"
           ],
@@ -1969,6 +2033,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "spdx",
@@ -1976,6 +2041,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sqlparser",
@@ -1983,6 +2049,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "target-lexicon",
@@ -1990,6 +2057,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "tempfile",
@@ -1997,6 +2065,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terl-docs",
@@ -2004,6 +2073,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-archive",
@@ -2011,6 +2081,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-data-native",
@@ -2018,6 +2089,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-http-native",
@@ -2025,6 +2097,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-libpq",
@@ -2032,6 +2105,15 @@
         },
         {
           "default_features": true,
+          "external": false,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-native-planning",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-net-native",
@@ -2039,6 +2121,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-process-owner",
@@ -2046,6 +2129,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [
             "poll-io"
           ],
@@ -2055,6 +2139,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-service-foundation",
@@ -2062,6 +2147,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-std-native",
@@ -2069,6 +2155,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-storage",
@@ -2076,6 +2163,15 @@
         },
         {
           "default_features": true,
+          "external": false,
+          "features": [],
+          "kind": "normal",
+          "name": "terlan-type-fuzz",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "external": true,
           "features": [
             "formatting",
             "parsing"
@@ -2086,6 +2182,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "rt"
           ],
@@ -2095,6 +2192,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "parse",
             "serde"
@@ -2105,6 +2203,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "tower-lsp-server",
@@ -2112,6 +2211,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "rustls"
           ],
@@ -2121,6 +2221,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "url",
@@ -2128,6 +2229,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "wasm-encoder",
@@ -2135,6 +2237,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "wasmparser",
@@ -2147,6 +2250,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "flate2",
@@ -2154,6 +2258,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "tar",
@@ -2161,6 +2266,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "deflate-flate2"
           ],
@@ -2170,6 +2276,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "zstd",
@@ -2182,6 +2289,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [
             "fs"
           ],
@@ -2191,6 +2299,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -2200,6 +2309,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2207,6 +2317,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2214,6 +2325,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-process-owner",
@@ -2221,6 +2333,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-test-orchestrator",
@@ -2233,6 +2346,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "base64",
@@ -2240,6 +2354,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "getrandom",
@@ -2247,6 +2362,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "ring",
             "std"
@@ -2257,6 +2373,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2264,6 +2381,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-runtime-abi",
@@ -2276,6 +2394,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2283,6 +2402,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-runtime-abi",
@@ -2295,6 +2415,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "base64",
@@ -2302,6 +2423,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "md-5",
@@ -2309,6 +2431,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-runtime-abi",
@@ -2321,6 +2444,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -2330,6 +2454,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "metrics",
             "testing"
@@ -2340,6 +2465,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-service-foundation",
@@ -2352,6 +2478,7 @@
       "dependencies": [
         {
           "default_features": false,
+          "external": true,
           "features": [
             "client",
             "http1",
@@ -2363,6 +2490,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "instant-acme",
@@ -2370,6 +2498,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "serde_json",
@@ -2377,6 +2506,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "axum",
@@ -2384,6 +2514,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "base64",
@@ -2391,6 +2522,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "bytes",
@@ -2398,6 +2530,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "cookie",
@@ -2405,6 +2538,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "std"
           ],
@@ -2414,6 +2548,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "getrandom",
@@ -2421,6 +2556,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "http",
@@ -2428,6 +2564,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "http-body-util",
@@ -2435,6 +2572,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "httparse",
@@ -2442,6 +2580,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "http1",
             "http2",
@@ -2453,6 +2592,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "instant-acme",
@@ -2460,6 +2600,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "mime_guess",
@@ -2467,6 +2608,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "percent-encoding",
@@ -2474,6 +2616,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "rcgen",
@@ -2481,6 +2624,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "ring",
             "std",
@@ -2492,6 +2636,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "rustls-webpki",
@@ -2499,6 +2644,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -2508,6 +2654,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2515,6 +2662,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2522,6 +2670,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "tempfile",
@@ -2529,6 +2678,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-data-native",
@@ -2536,6 +2686,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-net-native",
@@ -2543,6 +2694,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-runtime-abi",
@@ -2550,6 +2702,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "formatting",
             "parsing"
@@ -2560,6 +2713,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "parse",
             "serde"
@@ -2570,6 +2724,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "tungstenite",
@@ -2582,6 +2737,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "build",
           "name": "cc",
@@ -2589,6 +2745,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "build",
           "name": "pkg-config",
@@ -2596,6 +2753,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "base64",
@@ -2603,6 +2761,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "getrandom",
@@ -2610,6 +2769,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "polling",
@@ -2619,9 +2779,14 @@
       "package": "terlan-libpq"
     },
     {
+      "dependencies": [],
+      "package": "terlan-native-planning"
+    },
+    {
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "rcgen",
@@ -2629,6 +2794,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "net",
             "os-poll"
@@ -2639,6 +2805,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "ring",
             "std",
@@ -2650,6 +2817,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "all"
           ],
@@ -2659,6 +2827,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [
             "poll-io"
           ],
@@ -2668,6 +2837,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "url",
@@ -2680,6 +2850,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "libproc",
@@ -2687,6 +2858,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "event",
             "fs",
@@ -2698,6 +2870,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2705,6 +2878,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2717,6 +2891,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [
             "os-poll"
           ],
@@ -2731,6 +2906,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [
             "span-locations"
           ],
@@ -2740,6 +2916,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "quote",
@@ -2747,6 +2924,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2754,6 +2932,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2761,6 +2940,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "full",
             "visit"
@@ -2776,6 +2956,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -2785,6 +2966,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2797,6 +2979,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-crypto-native",
@@ -2804,6 +2987,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-data-native",
@@ -2811,6 +2995,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-encoding-native",
@@ -2818,6 +3003,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-http-native",
@@ -2825,6 +3011,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-net-native",
@@ -2832,6 +3019,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-runtime-abi",
@@ -2839,6 +3027,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-time-native",
@@ -2851,6 +3040,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "dev",
           "name": "tempfile",
@@ -2858,6 +3048,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "getrandom",
@@ -2865,6 +3056,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "bundled",
             "limits"
@@ -2875,6 +3067,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2887,6 +3080,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "getrandom",
@@ -2894,6 +3088,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "home",
@@ -2901,6 +3096,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "openssl-probe",
@@ -2908,6 +3104,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "fs"
           ],
@@ -2917,6 +3114,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [
             "derive"
           ],
@@ -2926,6 +3124,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "serde_json",
@@ -2933,6 +3132,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "sha2",
@@ -2940,6 +3140,7 @@
         },
         {
           "default_features": true,
+          "external": true,
           "features": [],
           "kind": "normal",
           "name": "signal-hook",
@@ -2947,6 +3148,7 @@
         },
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-process-owner",
@@ -2954,6 +3156,7 @@
         },
         {
           "default_features": false,
+          "external": true,
           "features": [
             "parse",
             "serde"
@@ -2969,6 +3172,7 @@
       "dependencies": [
         {
           "default_features": true,
+          "external": false,
           "features": [],
           "kind": "normal",
           "name": "terlan-runtime-abi",
@@ -2976,6 +3180,29 @@
         }
       ],
       "package": "terlan-time-native"
+    },
+    {
+      "dependencies": [
+        {
+          "default_features": true,
+          "external": true,
+          "features": [
+            "derive"
+          ],
+          "kind": "normal",
+          "name": "serde",
+          "optional": false
+        },
+        {
+          "default_features": true,
+          "external": true,
+          "features": [],
+          "kind": "normal",
+          "name": "serde_json",
+          "optional": false
+        }
+      ],
+      "package": "terlan-type-fuzz"
     }
   ],
   "workspace_packages": [
@@ -2993,12 +3220,14 @@
         "terlan-data-native",
         "terlan-http-native",
         "terlan-libpq",
+        "terlan-native-planning",
         "terlan-net-native",
         "terlan-process-owner",
         "terlan-runtime-abi",
         "terlan-service-foundation",
         "terlan-std-native",
-        "terlan-storage"
+        "terlan-storage",
+        "terlan-type-fuzz"
       ],
       "name": "terlan",
       "reverse_dependents": []
@@ -3069,6 +3298,13 @@
     {
       "direct_dependencies": [],
       "name": "terlan-libpq",
+      "reverse_dependents": [
+        "terlan"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-native-planning",
       "reverse_dependents": [
         "terlan"
       ]
@@ -3158,6 +3394,13 @@
       "name": "terlan-time-native",
       "reverse_dependents": [
         "terlan-std-native"
+      ]
+    },
+    {
+      "direct_dependencies": [],
+      "name": "terlan-type-fuzz",
+      "reverse_dependents": [
+        "terlan"
       ]
     }
   ]

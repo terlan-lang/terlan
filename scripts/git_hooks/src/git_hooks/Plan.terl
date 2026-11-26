@@ -271,6 +271,12 @@ pub compiler_bootstrap(paths: List[String]): Bool ->
 pub test_orchestrator(paths: List[String]): Bool ->
     affected(paths, "crates/terlan-test-orchestrator/", ".rs").
 
+pub native_planning(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan-native-planning/", ".rs").
+
+pub type_fuzz(paths: List[String]): Bool ->
+    affected(paths, "crates/terlan-type-fuzz/", ".rs").
+
 pub build_support(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/build.rs", "")
         or affected(paths, "crates/terlan/src/compiler/syntax/build_support/", "").
@@ -291,11 +297,15 @@ non_owned_rust(paths: List[String]): Bool ->
             String.ends_with(path, ".rs")
     and not String.starts_with(path, "crates/terlan/src/compiler/")
     and not String.starts_with(path, "crates/terlan/src/commands/")
+    and path != "crates/terlan/src/cli_dispatch.rs"
+    and path != "crates/terlan/src/cli_usage.rs"
     and not String.starts_with(path, "crates/terlan/src/runtime/")
     and path != "crates/terlan/src/runtime.rs"
     and not String.starts_with(path, "crates/terlan/src/vm/")
     and path != "crates/terlan/build.rs"
     and not String.starts_with(path, "crates/terlan-test-orchestrator/")
+    and not String.starts_with(path, "crates/terlan-native-planning/")
+    and not String.starts_with(path, "crates/terlan-type-fuzz/")
     and not String.starts_with(path, "tools/rust_boundary_audit/")
     and not String.starts_with(path, "tree-sitter-terlan/")
     and not String.ends_with(path, ".native_boundary.rs")
@@ -306,7 +316,9 @@ pub rust_boundary_audit(paths: List[String]): Bool ->
     affected(paths, "tools/rust_boundary_audit/", "").
 
 pub commands(paths: List[String]): Bool ->
-    affected(paths, "crates/terlan/src/commands/", ".rs").
+    affected(paths, "crates/terlan/src/commands/", ".rs")
+        or affected(paths, "crates/terlan/src/cli_dispatch.rs", "")
+        or affected(paths, "crates/terlan/src/cli_usage.rs", "").
 
 pub commands_emit_js(paths: List[String]): Bool ->
     affected(paths, "crates/terlan/src/commands/emit_js/", ".rs").
@@ -338,7 +350,9 @@ other_commands(paths: List[String]): Bool ->
     case paths {
         [] -> false;
         [path | rest] ->
-            String.starts_with(path, "crates/terlan/src/commands/")
+            path == "crates/terlan/src/cli_dispatch.rs"
+                or path == "crates/terlan/src/cli_usage.rs"
+                or String.starts_with(path, "crates/terlan/src/commands/")
     and String.ends_with(path, ".rs")
     and not String.starts_with(path, "crates/terlan/src/commands/test/")
     and not String.starts_with(path, "crates/terlan/src/commands/clean/")
@@ -569,6 +583,17 @@ pub lanes(paths: List[String]): List[String] ->
             rust_boundary_audit(paths) -> ["rust-boundary-audit"];
             true -> List.new[String]()
         };
+    let focused_crates =
+        append(
+            if {
+                native_planning(paths) -> ["native-planning"];
+                true -> List.new[String]()
+            },
+            if {
+                type_fuzz(paths) -> ["type-fuzz"];
+                true -> List.new[String]()
+            },
+        );
     let command_rust =
         if {
             commands(paths) -> command_lanes(paths);
@@ -598,7 +623,13 @@ pub lanes(paths: List[String]): List[String] ->
             orchestrator_rust,
             append(
                 boundary_rust,
-                append(command_rust, append(compiler_rust, append(runtime_rust, workspace_rust))),
+                append(
+                    focused_crates,
+                    append(
+                        command_rust,
+                        append(compiler_rust, append(runtime_rust, workspace_rust)),
+                    ),
+                ),
             ),
         );
     let rust =
@@ -763,6 +794,8 @@ test_lane_priority(): List[String] ->
         "phase",
         "runtime",
         "workspace",
+        "native-planning",
+        "type-fuzz",
         "test-orchestrator",
         "rust-boundary-audit",
         "dependencies",

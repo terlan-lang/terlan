@@ -42,6 +42,11 @@ pub struct DependencyFeature {
      * Whether Cargo declares the dependency optional.
      */
     optional: Bool,
+    /**
+     * Whether Cargo resolves this dependency from an external registry or
+     * source instead of a repository-local path.
+     */
+    external: Bool,
 }.
 
 pub struct PackageFanout {
@@ -215,6 +220,7 @@ dependency_at(value: Json): Option[DependencyFeature] ->
         Ok(default_features) <- Json.as_bool(default_value);
         Ok(optional_value) <- Json.get(value, "optional");
         Ok(optional) <- Json.as_bool(optional_value);
+        Ok(source) <- Json.get(value, "source");
         Some(features) <- CargoMetadata.object_string_array(value, "features")
     } else {
         _ -> None
@@ -226,6 +232,7 @@ dependency_at(value: Json): Option[DependencyFeature] ->
             features = CargoMetadata.sort_unique(features),
             kind = kind,
             optional = optional,
+            external = not Json.is_null(source),
         ),
     ).
 
@@ -256,14 +263,14 @@ package_dependencies(package: Json): Option[List[DependencyFeature]] ->
     dependencies_at(values, 0, count, List.new[DependencyFeature]()).
 
 @pure
-normal_dependency_count(values: List[DependencyFeature], count: Int): Int ->
+external_normal_dependency_count(values: List[DependencyFeature], count: Int): Int ->
     case values {
         [] -> count;
         [value | rest] ->
-            normal_dependency_count(
+            external_normal_dependency_count(
                 rest,
                 if {
-                    value.kind == "normal" and not value.optional -> count + 1;
+                    value.kind == "normal" and not value.optional and value.external -> count + 1;
                     true -> count
                 },
             )
@@ -357,7 +364,7 @@ package_state(
                                         state.fanout,
                                     ),
                                     integration_targets = targets,
-                                    direct_dependency_count = normal_dependency_count(dependencies, 0),
+                                    direct_dependency_count = external_normal_dependency_count(dependencies, 0),
                                     found_terlan = true,
                                 ),
                             )
@@ -445,8 +452,24 @@ pub analyze(metadata: Json): CargoAnalysis ->
         }
     }.
 
+dependency_external(source: String): Option[Bool] ->
+    when {
+        Ok(value) <- Json.parse(source);
+        Some(dependency) <- dependency_at(value)
+    } else {
+        _ -> None
+    };
+    Some(dependency.external).
+
 pub self_test(): Bool ->
-    normal_dependency_count(
+    dependency_external(
+    "{\"name\":\"registry\",\"rename\":null,\"kind\":null,\"uses_default_features\":true,\"optional\":false,\"source\":\"registry+https://example.invalid\",\"features\":[]}",
+) == Some(true)
+        and dependency_external(
+    "{\"name\":\"local\",\"rename\":null,\"kind\":null,\"uses_default_features\":true,\"optional\":false,\"source\":null,\"features\":[]}",
+) == Some(false)
+        and dependency_external("{}") == None
+        and external_normal_dependency_count(
     [
         DependencyFeature(
             name = "a",
@@ -454,6 +477,7 @@ pub self_test(): Bool ->
             features = [],
             kind = "normal",
             optional = false,
+            external = true,
         ),
         DependencyFeature(
             name = "b",
@@ -461,6 +485,15 @@ pub self_test(): Bool ->
             features = [],
             kind = "dev",
             optional = false,
+            external = true,
+        ),
+        DependencyFeature(
+            name = "local-extraction",
+            default_features = true,
+            features = [],
+            kind = "normal",
+            optional = false,
+            external = false,
         ),
     ],
     0,

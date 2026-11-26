@@ -1,6 +1,7 @@
 # Rust structural quality, feedback-loop, and recurring measurement ownership.
 
 .PHONY: rust-format-check rust-locked-binary-check rust-clippy-check
+.PHONY: rust-clippy-precommit-check
 .PHONY: rust-lint-allowance-check rust-workspace-policy-check
 .PHONY: rust-code-quality-adversarial-check rust-code-quality-preflight-check
 .PHONY: rust-api-boundary-quality-check rust-api-boundary-quality-record
@@ -32,8 +33,11 @@ rust-format-check:
 rust-locked-binary-check: rust-clippy-check
 	@echo "[rust-locked-binary] clippy compiled every workspace binary in both feature profiles"
 
+rust-clippy-precommit-check:
+	$(CARGO) clippy --workspace --lib --bins -- -D warnings
+
 rust-clippy-check:
-	$(CARGO) clippy --workspace --bins -- -D warnings
+	$(MAKE) --no-print-directory rust-clippy-precommit-check
 	$(CARGO) clippy --workspace --bins --all-features -- -D warnings
 
 ifeq ($(TERLAN_RUST_LINT_ALLOWANCE_PRECHECKED),1)

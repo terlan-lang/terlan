@@ -189,8 +189,10 @@ terlan-std-native = { path = "../../std" }
 terlan-data-native = { path = "../../std/data/native" }
 terlan-http-native = { path = "../../std/http/native" }
 terlan-net-native = { path = "../../std/net/native" }
+terlan-native-planning.workspace = true
 terlan-storage.workspace = true
 terlan-process-owner.workspace = true
+terlan-type-fuzz.workspace = true
 terlan-service-foundation = { workspace = true, optional = true }
 terlan-libpq = { path = "../../std/native/libpq/generated/native/rust", optional = true }
 time = { workspace = true, features = ["formatting", "parsing"] }
@@ -203,7 +205,7 @@ wasm-encoder = "0.263.0"
 wasmparser = "0.263.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-rustix = { version = "1.1.4", features = ["fs"] }
+rustix = { version = "1.1.4", features = ["fs", "process"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dev-dependencies]
 rustix = { version = "1.1.4", features = ["process"] }

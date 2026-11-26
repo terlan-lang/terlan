@@ -9,7 +9,16 @@ import std.collections.List.
 import std.core.Option.{None, Some}.
 import std.core.{Int, String, Unit}.
 import std.io.Console.{eprintln, println}.
-import std.system.Arguments.{get}.
+import std.system.Arguments.{count, get}.
+
+arguments_at(index: Int, total: Int, output: List[String]): List[String] ->
+    if {
+        index == total -> output;
+        true -> case get(index) {
+            None -> arguments_at(index + 1, total, output);
+            Some(value) -> arguments_at(index + 1, total, [value | output])
+        }
+    }.
 
 failure(message: String): Bool ->
     let _printed = eprintln(String.append("error[rust_quality.arguments]: ", message));
@@ -27,6 +36,11 @@ entry(): Bool ->
         Some("file-headroom-milestone-0.0.9") -> FileHeadroom.check(repository_root(), true);
         Some("lint-allowance-self-test") -> LintAllowances.self_test();
         Some("lint-allowance-check") -> LintAllowances.check(repository_root());
+        Some("lint-allowance-changed-check") ->
+            LintAllowances.check_changed(
+                repository_root(),
+                arguments_at(1, count(), List.new[String]()),
+            );
         Some("lint-allowance-record") -> LintAllowances.record_new(repository_root());
         Some("lint-allowance-replace-reviewed-registry") ->
             LintAllowances.replace_reviewed(repository_root());

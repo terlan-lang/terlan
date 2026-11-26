@@ -551,7 +551,9 @@ grep -Fq "$publication_test_pattern" <<< "$bootstrap_body"
 grep -Fq 'ensure_quality_tools' <<< "$release_contract_body"
 grep -Fq 'reuse latest validation quality tool' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'reuse latest test orchestrator' \
+grep -Fq '"$quality_path" rust-docs' \
+  "$(dirname "$driver")/git_hooks/check.sh"
+grep -Fq 'link the exact staged test orchestrator' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body" \
   || grep -Fq 'ensure_release_tools' <<< "$release_contract_body"; then
@@ -603,8 +605,11 @@ grep -Fq 'git ls-files -s -z -- "std/summaries/$module.typi"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq "! grep -Fxq 'preflight:compiler-build'" \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'dirname "$TERLAN_HOOK_VALIDATION_RECEIPT_DIR"' \
+grep -Fq 'defer full Rust inventories to release validation' \
   "$(dirname "$driver")/git_hooks/check.sh"
+if grep -Fq 'run_rust_reports_lane' "$(dirname "$driver")/git_hooks/check.sh"; then
+  echo 'Pre-commit still executes full-repository Rust inventories' >&2; exit 1
+fi
 grep -Fq 'if (( default_report_jobs > 6 ))' \
   "$(dirname "$driver")/git_hooks/rust_reports.sh"
 grep -Fq 'default_report_jobs=${#checks_to_run[@]}' \
@@ -646,7 +651,7 @@ if grep -Fq 'cargo fmt --all' "$(dirname "$driver")/git_hooks/check.sh"; then
 fi
 early_terlan_line=$(grep -n -F 'early terlan ownership and coverage' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-early_rust_reports_line=$(grep -n -F 'early Rust report drift' \
+deferred_rust_reports_line=$(grep -n -F 'defer full Rust inventories to release validation' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_affected_rust_line=$(grep -n -F 'early affected Rust lane passed' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
@@ -654,16 +659,16 @@ early_terlan_format_line=$(grep -n -F 'early Terlan formatting' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
 early_grammar_line=$(grep -n -F 'early canonical grammar and summary' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-compiler_check_line=$(grep -n -F 'check the changed staged compiler' \
+compiler_check_line=$(grep -n -F 'lint and check the changed staged workspace once' \
   "$(dirname "$driver")/git_hooks/check.sh" | cut -d: -f1)
-test -n "$early_rust_reports_line"
+test -n "$deferred_rust_reports_line"
 test -n "$early_affected_rust_line"
 test -n "$early_terlan_format_line"
 test -n "$early_grammar_line"
 test -n "$compiler_check_line"
 test "$early_grammar_line" -lt "$early_terlan_format_line"
-test "$early_terlan_format_line" -lt "$early_rust_reports_line"
-test "$early_rust_reports_line" -lt "$early_terlan_line"
+test "$early_terlan_format_line" -lt "$deferred_rust_reports_line"
+test "$deferred_rust_reports_line" -lt "$early_terlan_line"
 test "$early_terlan_line" -lt "$early_affected_rust_line"
 
 # Proof semantics depend on the exact staged compiler inputs, not Cargo's
@@ -680,7 +685,25 @@ proof_pr_line=$(grep -n -F '"$quality" lean-proof-pr' "$proof_evidence_driver" |
 proof_runtime_line=$(grep -n -F '"$quality" lean-proof-runtime' "$proof_evidence_driver" | cut -d: -f1)
 test "$proof_pr_line" -lt "$proof_runtime_line"
 check_driver="$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'clippy) make --no-print-directory rust-clippy-check ;;' "$check_driver"
+grep -Fq 'make --no-print-directory rust-clippy-precommit-check' "$check_driver"
+grep -Fq "echo 'pre-commit: reuse candidate workspace Clippy result'" "$check_driver"
+test "$(grep -Fc 'make --no-print-directory rust-clippy-precommit-check' "$check_driver")" -eq 2
+if grep -Fq 'make --no-print-directory rust-clippy-check' "$check_driver"; then
+  echo 'Pre-commit still invokes the duplicate all-features Clippy owner' >&2
+  exit 1
+fi
+dependencies_lane=$(sed -n '/^    dependencies)/,/^      ;;/p' "$check_driver")
+grep -Fq 'cargo check --locked --workspace --tests --exclude terlan' \
+  <<< "$dependencies_lane"
+if grep -Fq -- '--all-targets' <<< "$dependencies_lane"; then
+  echo 'Dependency admission still compiles the monolithic Terlan test harness' >&2
+  exit 1
+fi
+profile_manifest="$(dirname "$driver")/../Cargo.toml"
+test "$(sed -n '/^\[profile.dev.package.terlan\]$/,/^$/p' "$profile_manifest" \
+  | grep -Fc 'codegen-units = 256')" -eq 1
+test "$(sed -n '/^\[profile.test.package.terlan\]$/,/^$/p' "$profile_manifest" \
+  | grep -Fc 'codegen-units = 256')" -eq 1
 if grep -Fq "echo 'pre-commit: clippy follows affected Rust lanes'" "$check_driver"; then
   echo 'Clippy remains deferred until after broad Rust suites' >&2
   exit 1
@@ -744,8 +767,9 @@ grep -Fq '.terlan-native-worker-input' \
   "$(dirname "$driver")/git_hooks/check.sh"
 grep -Fq 'build --locked -p terlan --bin terlan-native-worker --features validation-union' \
   "$(dirname "$driver")/git_hooks/check.sh"
-compiler_bootstrap=$(grep -F 'check --locked -p terlan --lib --bin terlc --bin terlan-vm' \
-  "$(dirname "$driver")/git_hooks/check.sh")
+compiler_bootstrap=$(grep -F 'make --no-print-directory rust-clippy-precommit-check' \
+  "$(dirname "$driver")/git_hooks/check.sh" | head -1)
+test -n "$compiler_bootstrap"
 [[ "$compiler_bootstrap" != *'--features validation-union'* ]]
 ! grep -Fq 'build --locked -p terlan --bin terlc --bin terlan-vm' \
   "$(dirname "$driver")/git_hooks/check.sh"
@@ -758,8 +782,10 @@ phase_lane=$(sed -n '/^    phase)/,/^      ;;/p' \
 grep -Fq -- '--features validation-union' <<< "$phase_lane"
 grep -Fq 'TERLAN_HOOK_COMPILER_INPUT_KEY="$compiler_validation_identity"' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq 'generated Rust reports regenerated; return them for staging' \
-  "$(dirname "$driver")/git_hooks/check.sh"
+if grep -Fq 'generated Rust reports regenerated; return them for staging' \
+  "$(dirname "$driver")/git_hooks/check.sh"; then
+  echo 'Pre-commit still rewrites full-repository Rust inventories' >&2; exit 1
+fi
 invalidation_count=$(grep -Fc \
   'node scripts/git_hooks/invalidate_workspace_cache.cjs \' \
   "$(dirname "$driver")/git_hooks/check.sh")
@@ -776,15 +802,6 @@ grep -Fq -- '--cache-dir "$workflow_contract_cache/test-cache"' \
 if grep -Fq -- '--cache-dir "$workflow_contract_cache/self-test-cache"' \
   "$(dirname "$driver")/git_hooks/check.sh"; then
   echo 'Workflow changes still compile the complete platform matrix' >&2
-  exit 1
-fi
-grep -Fq 'TERLAN_RUST_REPORT_MODE:-check' \
-  "$(dirname "$driver")/git_hooks/check.sh"
-reports_lane=$(sed -n '/^run_rust_reports_lane()/,/^}/p' \
-  "$(dirname "$driver")/git_hooks/check.sh")
-grep -Fq 'TERLAN_RUST_REPORT_CACHE_DIR=' <<< "$reports_lane"
-if grep -Eq 'ensure_|TERLAN_HOOK_ARTIFACTS_PREBUILT' <<< "$reports_lane"; then
-  echo 'Rust report tools are provisioned before cache lookup' >&2
   exit 1
 fi
 terlan_lane=$(sed -n '/^if lane_has terlan;/,/^fi$/p' \
@@ -888,6 +905,13 @@ grep -Fq -- '--snapshot-test-programs "$CARGO_TARGET_DIR"' <<< "$snapshot_copy"
 grep -Fq 'TERLAN_RUST_SUITE_TERLC=' <<< "$snapshot_provisioning"
 grep -Fq 'TERLAN_RUST_SUITE_VM=' <<< "$snapshot_provisioning"
 grep -Fq 'TERLAN_RUST_SUITE_NATIVE_WORKER=' <<< "$snapshot_provisioning"
+suite_source_line=$(grep -n -F 'TERLAN_RUST_SUITE_TERLC="$terlc"' \
+  <<< "$snapshot_provisioning" | cut -d: -f1)
+snapshot_line=$(grep -n -F 'directory=$(snapshot_test_programs)' \
+  <<< "$snapshot_provisioning" | cut -d: -f1)
+test -n "$suite_source_line"
+test -n "$snapshot_line"
+test "$suite_source_line" -lt "$snapshot_line"
 grep -Fq 'TERLAN_HOOK_VALIDATION_RECEIPT_DIR="${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-$CARGO_TARGET_DIR/validation-results/terlan}"' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'run_exact_cargo_test.sh' <<< "$workspace_lane"; then
@@ -937,22 +961,14 @@ git -C "$temporary/report-handoff" add .
       ':(exclude)crates/terlan/src/compiler/syntax/terlan_lalrpop.lalrpop'
   } | git hash-object --stdin > cache/.terlan-compiler-input
   : > "$temporary/report-handoff.calls"
-  PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
-    REPORT_HANDOFF_CALLS="$temporary/report-handoff.calls" \
-    TERLAN_RUST_REPORT_MODE=--record-dependency-impact \
-    bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
-    > "$temporary/report-handoff-generated.log" 2>&1
-  test ! -s "$temporary/report-handoff.calls"
-  grep -Fq 'generated Rust reports regenerated; return them for staging' \
-    "$temporary/report-handoff-generated.log"
-  git add docs/quality/RUST_DEPENDENCY_IMPACT.json
   status=0
   PATH="$PWD/bin:$PATH" CARGO_TARGET_DIR="$PWD/cache" \
     REPORT_HANDOFF_CALLS="$temporary/report-handoff.calls" \
-    TERLAN_RUST_REPORT_MODE=--record-dependency-impact \
     bash "$(dirname "$driver")/git_hooks/check.sh" changes.txt unused \
-    > "$temporary/report-handoff-unchanged.log" 2>&1 || status=$?
+    > "$temporary/report-handoff.log" 2>&1 || status=$?
   test "$status" = 44
+  grep -Fq 'defer full Rust inventories to release validation' \
+    "$temporary/report-handoff.log"
   grep -Fq 'cargo:test --profile dev --locked -p terlan --lib commands::doctor::doctor_test' \
     "$temporary/report-handoff.calls"
 )

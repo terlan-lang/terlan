@@ -313,6 +313,14 @@
       ]
     },
     {
+      "name": "terlan-native-planning",
+      "responsibility": "Own indexed callable reachability and bounded native-planning progress telemetry outside the compiler monolith.",
+      "top_level_feature_modules": [
+        "lib",
+        "progress"
+      ]
+    },
+    {
       "name": "terlan-http-native",
       "responsibility": "Own HTTP host request/response adapters, maintained HTTP/cookie codecs, their argument contracts, and shared HTTP errors inside std.http without compiler or VM dependencies.",
       "top_level_feature_modules": [
@@ -348,6 +356,16 @@
       "responsibility": "Own bounded host wall-clock and monotonic-clock observations through package-owned value bindings without compiler or VM dependencies.",
       "top_level_feature_modules": [
         "lib"
+      ]
+    },
+    {
+      "name": "terlan-type-fuzz",
+      "responsibility": "Own deterministic typed-program generation, replay contracts, and bounded fuzz-case manifests outside the compiler monolith.",
+      "top_level_feature_modules": [
+        "cli",
+        "generate",
+        "lib",
+        "model"
       ]
     }
   ],

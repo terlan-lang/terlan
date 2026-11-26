@@ -5,12 +5,14 @@ members = [
   "crates/terlan-archive",
   "crates/terlan-build-cache",
   "crates/terlan-foundations-adapter",
+  "crates/terlan-native-planning",
   "crates/terlan-process-owner",
   "crates/terl-docs",
   "crates/terlan-runtime-abi",
   "crates/terlan-service-foundation",
   "crates/terlan-storage",
   "crates/terlan-test-orchestrator",
+  "crates/terlan-type-fuzz",
   "std",
   "std/native/libpq/generated/native/rust",
   "std/net/native",
@@ -67,10 +69,12 @@ url = "2.5.8"
 terlan-archive = { path = "crates/terlan-archive" }
 terl-docs = { path = "crates/terl-docs" }
 terlan-runtime-abi = { path = "crates/terlan-runtime-abi" }
+terlan-native-planning = { path = "crates/terlan-native-planning" }
 terlan-storage = { path = "crates/terlan-storage" }
 tempfile = "3"
 terlan-process-owner = { path = "crates/terlan-process-owner" }
 terlan-test-orchestrator = { path = "crates/terlan-test-orchestrator" }
+terlan-type-fuzz = { path = "crates/terlan-type-fuzz" }
 terlan-service-foundation = { path = "crates/terlan-service-foundation" }
 zstd = "0.14.3"
 
@@ -95,9 +99,11 @@ debug = "line-tables-only"
 # cache whenever compiler sources change.
 [profile.dev.package.terlan]
 debug = 0
+codegen-units = 256
 
 [profile.test.package.terlan]
 debug = 0
+codegen-units = 256
 
 # Shipped tools do not need static symbol tables. Keep the canonical release
 # executables within their size budget, including the embedded service runtime.

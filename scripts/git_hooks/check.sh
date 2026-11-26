@@ -91,6 +91,7 @@ if [[ -x "$target_terlc" \
   exact_compiler_inputs=true
 fi
 compiler_build=true
+candidate_clippy_checked=false
 if [[ "$exact_compiler_inputs" == true ]]; then compiler_build=false; fi
 run_plan() {
   local compiler=$1
@@ -180,12 +181,12 @@ if [[ "$compiler_build" == true ]]; then
   trap cleanup_cache_metadata EXIT
   node scripts/git_hooks/invalidate_workspace_cache.cjs \
     "$cache_metadata" "$CARGO_TARGET_DIR" "$PWD"
-  echo 'pre-commit: check the changed staged compiler'
-  # Candidate source is compiled here without duplicating code generation for
-  # both CLI binaries. Affected Rust lanes below execute the candidate tests;
-  # release and publication gates own executable construction. Planning and
-  # Terlan-script admission intentionally use the latest working compiler.
-  cargo check --locked -p terlan --lib --bin terlc --bin terlan-vm
+  echo 'pre-commit: lint and check the changed staged workspace once'
+  # One default-feature Clippy build owns candidate checking and Rust linting.
+  # The affected Clippy lane below reuses this result instead of compiling the
+  # workspace again. Release validation owns the all-features profile.
+  make --no-print-directory rust-clippy-precommit-check
+  candidate_clippy_checked=true
   terlc=${TERLAN_HOOK_LATEST_TERLC:-$target_terlc}
   [[ -x "$terlc" && ! -L "$terlc" ]] || {
     echo 'pre-commit: candidate checking requires a latest working compiler' >&2
@@ -478,8 +479,25 @@ if preflight_has rust-lint-allowances; then
       scripts/self_validation/rust_quality/scripts/RustQuality.terls \
       --target terlan-vm --out-dir "$rust_quality_dir"
     test -s "$rust_quality_image"
-    "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
-      --script-eval -- lint-allowance-check
+    rust_allowance_paths=()
+    lint_allowance_registry_changed=false
+    while IFS= read -r path; do
+      case "$path" in
+        docs/quality/RUST_LINT_ALLOWANCES.tsv)
+          lint_allowance_registry_changed=true
+          ;;
+        *.rs)
+          rust_allowance_paths+=("$path")
+          ;;
+      esac
+    done < "$changes"
+    if [[ "$lint_allowance_registry_changed" == true ]]; then
+      "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
+        --script-eval -- lint-allowance-check
+    else
+      "$CARGO_TARGET_DIR/debug/terlan-vm" run "$rust_quality_image" \
+        --script-eval -- lint-allowance-changed-check "${rust_allowance_paths[@]}"
+    fi
     test ! -L "$lint_allowance_receipt_dir"
     mkdir -p "$lint_allowance_receipt_dir"
     temporary_lint_allowance_receipt=$(mktemp "$lint_allowance_receipt_dir/.result.XXXXXX")
@@ -525,15 +543,9 @@ ensure_quality_tools() {
 ensure_orchestrator() {
   if [[ "$orchestrator_ready" == false ]]; then
     local source digest directory temporary
-    source="$(dirname "$terlc")/terlan-test-orchestrator"
-    if [[ "$terlc" != "$target_terlc" \
-      && -x "$source" \
-      && ! -L "$source" ]]; then
-      echo "pre-commit: reuse latest test orchestrator $source"
-    else
-      cargo build --locked -p terlan-test-orchestrator
-      source="$CARGO_TARGET_DIR/debug/terlan-test-orchestrator"
-    fi
+    echo 'pre-commit: link the exact staged test orchestrator'
+    cargo build --locked -p terlan-test-orchestrator
+    source="$CARGO_TARGET_DIR/debug/terlan-test-orchestrator"
     digest=$(sha256sum "$source" | awk '{print $1}')
     directory="$CARGO_TARGET_DIR/validation-tools"
     orchestrator_path="$directory/terlan-test-orchestrator-$digest"
@@ -588,13 +600,17 @@ snapshot_test_programs() {
 }
 ensure_test_program_snapshots() {
   if [[ "$test_program_snapshots_ready" == false ]]; then
-    local directory
+    local directory compiler_directory
     ensure_native_test_companions
     ensure_orchestrator
-    directory=$(snapshot_test_programs)
+    compiler_directory=$(dirname "$terlc")
+    TERLAN_RUST_SUITE_TERLC="$terlc"
+    TERLAN_RUST_SUITE_VM="$compiler_directory/terlan-vm"
+    TERLAN_RUST_SUITE_NATIVE_WORKER="$TERLAN_NATIVE_WORKER"
     export TERLAN_RUST_SUITE_TERLC
     export TERLAN_RUST_SUITE_VM
     export TERLAN_RUST_SUITE_NATIVE_WORKER
+    directory=$(snapshot_test_programs)
     TERLAN_RUST_SUITE_TERLC="$directory/terlc"
     TERLAN_RUST_SUITE_VM="$directory/terlan-vm"
     TERLAN_RUST_SUITE_NATIVE_WORKER="$directory/terlan-native-worker"
@@ -624,16 +640,6 @@ run_commands_test_lane() {
   run_compiler_heavy_rust_tests --locked -p terlan --lib commands::test:: \
     && run_compiler_heavy_rust_tests --locked -p terlan --lib \
     tests::help_test::top_level_usage_hides_internal_scratch_commands -- --exact
-}
-run_rust_reports_lane() {
-  local report_cache_dir="$CARGO_TARGET_DIR/validation-results/rust-reports"
-  if [[ -n ${TERLAN_HOOK_VALIDATION_RECEIPT_DIR:-} ]]; then
-    report_cache_dir="$(dirname "$TERLAN_HOOK_VALIDATION_RECEIPT_DIR")/rust-reports"
-  fi
-  TERLAN_RUST_REPORT_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
-  TERLAN_RUST_REPORT_VM="$CARGO_TARGET_DIR/debug/terlan-vm" \
-  TERLAN_RUST_REPORT_CACHE_DIR="$report_cache_dir" \
-    bash scripts/git_hooks/rust_reports.sh "${TERLAN_RUST_REPORT_MODE:-check}"
 }
 run_summaries_lane() {
   TERLAN_SUMMARY_HOOK_TERLC="$CARGO_TARGET_DIR/debug/terlc" \
@@ -728,8 +734,19 @@ run_affected_rust_lane() {
     workspace)
       run_workspace_suite
       ;;
-    dependencies) cargo check --locked --workspace --all-targets ;;
-    clippy) make --no-print-directory rust-clippy-check ;;
+    dependencies)
+      echo 'pre-commit: Terlan library and binaries reuse candidate Clippy'
+      cargo check --locked --workspace --tests --exclude terlan
+      ;;
+    native-planning) cargo test --profile dev --locked -p terlan-native-planning --lib ;;
+    type-fuzz) cargo test --profile dev --locked -p terlan-type-fuzz --lib ;;
+    clippy)
+      if [[ "$candidate_clippy_checked" == true ]]; then
+        echo 'pre-commit: reuse candidate workspace Clippy result'
+      else
+        make --no-print-directory rust-clippy-precommit-check
+      fi
+      ;;
     test-orchestrator) cargo test --profile dev --locked -p terlan-test-orchestrator ;;
     rust-boundary-audit) cargo test --profile dev --locked -p terlan-rust-boundary-audit ;;
     *) affected_rust_lane_supported=false; return 2 ;;
@@ -819,19 +836,13 @@ run_cached_affected_rust_lane() {
   mv "$temporary" "$receipt"
 }
 
-# Derived Rust inventories are cheap structural inputs compared with affected
-# test suites. Reject their drift before compiling or executing those suites so
-# a stale generated report cannot invalidate a long compiler validation run.
+# Full-repository Rust inventories are release evidence, not commit admission.
+# They scan the entire compiler even when one source changes and previously
+# delayed actual affected tests by minutes. Publication owns their canonical
+# regeneration; pre-commit reaches changed-file checks and executable tests
+# without repeating that repository-wide work.
 if lane_has rust-reports; then
-  echo 'pre-commit: early Rust report drift'
-  run_rust_reports_lane
-  if [[ ${TERLAN_RUST_REPORT_MODE:-check} == --record-dependency-impact ]] \
-    && { ! git diff --quiet -- docs/quality/RUST_STRING_ERROR_INVENTORY.tsv \
-      || ! git diff --quiet -- docs/quality/RUST_DEPENDENCY_IMPACT.json \
-      || ! git diff --quiet -- docs/quality/RUST_FILE_HEADROOM.tsv; }; then
-    echo 'pre-commit: generated Rust reports regenerated; return them for staging'
-    exit 0
-  fi
+  echo 'pre-commit: defer full Rust inventories to release validation'
 fi
 
 # Native representation changes are cross-cutting: validate all bounded VM
@@ -1028,7 +1039,7 @@ fi
 if preflight_has rust-docs; then
   echo 'pre-commit: Rust documentation'
   ensure_quality_tools
-  "$CARGO_TARGET_DIR/debug/terlan-quality" rust-docs
+  "$quality_path" rust-docs
 fi
 if preflight_has preparation; then
   echo 'pre-commit: preparation owner Cargo resource controls'
@@ -1113,7 +1124,7 @@ while IFS= read -r lane; do
         if [[ -f "$path" && ( "$path" == *.sh || "$path" == .githooks/* ) ]]; then bash -n "$path"; fi
       done < "$changes"
       ;;
-    clippy|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|test-orchestrator)
+    clippy|core-contracts|phase|commands|commands-emit-js|commands-test|commands-clean|commands-doctor|commands-init|rust-boundary-audit|native-ir|runtime|syntax|compiler|workspace|dependencies|native-planning|type-fuzz|test-orchestrator)
       echo "pre-commit: duplicate affected Rust lane remained scheduled: $lane" >&2
       exit 1
       ;;
