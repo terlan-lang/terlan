@@ -295,7 +295,7 @@ proof hashes.
 - [x] Compare JavaScript results with generator-owned canonical oracles.
 - [x] Exercise lexical and pattern-bound payloads in tuples, options, lists,
   records, lambdas, and call arguments.
-- [ ] Require precise diagnostics for genuinely unsupported target operations.
+- [x] Require precise diagnostics for genuinely unsupported target operations.
 
 Acceptance: the corpus includes the lexical `Some(value)` identity-cast shape
 that previously blocked `OperationTimeout.terl`, and its type-preserving
@@ -313,7 +313,10 @@ scrutinees could be emitted as undefined lexical bindings. Both now have
 domain-neutral regressions. The binding/payload matrix then found and fixed
 nested constructor patterns that direct JavaScript lowering had rejected even
 after type checking proved the binding irrefutable. Precise
-unsupported-operation diagnostics remain open before TF3 can close.
+unsupported-operation diagnostics now retain the first rejected reachable
+function and its bounded normalized Core expression under the stable
+`js_emit_unsupported` code. A constructor-call probe reports `make` and the
+exact `ConstructorCall` in 0.16 seconds instead of returning only J0.3.
 
 ### TF4: Modules, interfaces, traits, and packages
 
