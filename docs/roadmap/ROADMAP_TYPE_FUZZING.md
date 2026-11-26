@@ -192,7 +192,7 @@ oracle acceptance remains open; generation success alone does not close TF1.
 
 ### TF2: Native differential execution
 
-- [ ] Compile the TF1 corpus through native lowering and execution.
+- [x] Compile the TF1 corpus through native lowering and execution.
 - [ ] Compare canonical results and structured failures with managed execution.
 - [ ] Record native phase timings, monomorphization counts, semantic type IDs,
   generated native units, compiler RSS, and cache disposition.
@@ -217,7 +217,13 @@ typed semantic assertions, native batches invoke `terlc test --timings`, and
 successful runs retain measured CPU and RSS evidence. Its first three-family
 probe immediately found a direct `Option[record]` return losing contextual
 identity after scalar-case normalization. That minimized compiler regression
-must pass before the first TF2 checkbox is closed.
+now passes with its neighboring generated families.
+
+The corrected 17-family native batch passes in 1.7 seconds at 106.8 MiB peak
+RSS and 1.2 CPU-seconds. This establishes the narrow-graph baseline; it does
+not close the broad dependency-graph work, where small application suites have
+previously required minutes and 1--2.3 GiB and full core coverage exceeded
+7 GiB.
 
 ### TF3: JavaScript differential execution
 
