@@ -632,6 +632,8 @@ focused_rust_crate=$(sed -n '/^run_focused_rust_crate()/,/^}/p' \
   "$(dirname "$driver")/git_hooks/check.sh")
 grep -Fq 'cargo clippy --locked -p "$package" --lib --bins -- -D warnings' \
   <<< "$focused_rust_crate"
+grep -Fq 'cargo clippy --locked -p "$package" --lib --bins -- -D warnings || return $?' \
+  <<< "$focused_rust_crate"
 grep -Fq 'cargo test --profile dev --locked -p "$package" --lib' \
   <<< "$focused_rust_crate"
 grep -Fq 'canonical Rust suite failed with status' \

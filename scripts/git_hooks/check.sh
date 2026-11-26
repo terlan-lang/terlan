@@ -695,7 +695,7 @@ run_core_contracts_lane() {
 
 run_focused_rust_crate() {
   local package=$1
-  cargo clippy --locked -p "$package" --lib --bins -- -D warnings
+  cargo clippy --locked -p "$package" --lib --bins -- -D warnings || return $?
   cargo test --profile dev --locked -p "$package" --lib
 }
 
