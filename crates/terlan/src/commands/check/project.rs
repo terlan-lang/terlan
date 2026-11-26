@@ -333,6 +333,7 @@ pub(super) fn run_selected(
                 return ExitCode::from(1);
             }
         };
+        let source_root_cache = root.join(".terlan");
         for file in files {
             let source = match crate::support::read_file(&file.to_string_lossy()) {
                 Ok(source) => source,
@@ -341,10 +342,22 @@ pub(super) fn run_selected(
                     return ExitCode::from(1);
                 }
             };
-            let syntax = match parse_source_as_syntax_output(&file.to_string_lossy(), &source) {
+            let syntax_result = if selected.contains(&file) {
+                parse_source_as_syntax_output(&file.to_string_lossy(), &source).map_err(|error| {
+                    format!("cannot parse project source {}: {error:?}", file.display())
+                })
+            } else {
+                super::dependencies::current_interface_or_source(
+                    &root,
+                    &file,
+                    &source,
+                    [cache_dir.as_path(), source_root_cache.as_path()],
+                )
+            };
+            let syntax = match syntax_result {
                 Ok(syntax) => syntax,
-                Err(error) => {
-                    eprintln!("cannot parse project source {}: {error:?}", file.display());
+                Err(message) => {
+                    eprintln!("{message}");
                     return ExitCode::from(1);
                 }
             };

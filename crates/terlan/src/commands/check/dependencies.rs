@@ -8,6 +8,30 @@ use crate::commands::source_layout::validate_module_layout;
 use crate::formal_pipeline::{parse_source_as_syntax_output, terlan_check_sources_in_dir};
 use crate::terlan_syntax::SyntaxModuleOutput;
 
+/// Loads a current summary from the first matching cache, otherwise parses the
+/// authoritative source implementation.
+pub(super) fn current_interface_or_source<'a>(
+    root: &Path,
+    path: &Path,
+    text: &str,
+    cache_dirs: impl IntoIterator<Item = &'a Path>,
+) -> Result<SyntaxModuleOutput, String> {
+    if path
+        .extension()
+        .is_some_and(|extension| extension == "terl")
+    {
+        for cache_dir in cache_dirs {
+            if let Some(interface) = crate::commands::build::load_current_cached_interface_syntax(
+                root, path, text, cache_dir,
+            ) {
+                return Ok(interface);
+            }
+        }
+    }
+    parse_source_as_syntax_output(&path.to_string_lossy(), text)
+        .map_err(|error| format!("cannot parse source {}: {error:?}", path.display()))
+}
+
 /// Reads dependency APIs using the same package resolution as build and test.
 /// Handwritten interfaces take precedence over their implementations.
 pub(super) fn source_interfaces(
@@ -62,22 +86,12 @@ pub(super) fn interfaces_from_roots(
                 continue;
             }
             let text = crate::support::read_file(&path.to_string_lossy())?;
-            let syntax = if let Some(interface) = path
-                .extension()
-                .is_some_and(|extension| extension == "terl")
-                .then(|| {
-                    crate::commands::build::load_current_cached_interface_syntax(
-                        root, &path, &text, &cache_dir,
-                    )
-                })
-                .flatten()
-            {
-                interface
-            } else {
-                parse_source_as_syntax_output(&path.to_string_lossy(), &text).map_err(|error| {
-                    format!("cannot parse dependency {}: {error:?}", path.display())
-                })?
-            };
+            let syntax = current_interface_or_source(
+                root,
+                &path,
+                &text,
+                std::iter::once(cache_dir.as_path()),
+            )?;
             validate_module_layout(root, &path, &syntax.module_name)?;
             sources.push((path, syntax));
         }
