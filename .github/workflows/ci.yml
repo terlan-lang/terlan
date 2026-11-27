@@ -447,6 +447,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup Terlan script runner
+        id: script-runner
+        if: ${{ needs.changes.outputs.compiler == 'true' }}
+        uses: ./.github/actions/setup-terlan-script-runner
+
       - name: Install native build dependencies
         if: ${{ needs.changes.outputs.compiler == 'true' }}
         uses: ./.github/actions/setup-native-dependencies
@@ -486,6 +491,7 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           BASE_REVISION: ${{ needs.changes.outputs.validation-base }}
+          TERLAN_HOOK_LATEST_TERLC: ${{ steps.script-runner.outputs.terlc }}
           TERLAN_HOSTED_SOURCE_PREFLIGHT: "1"
           # The parallel dependency-audit job is the sole hosted owner. Local
           # full hooks retain both audits, while compiler validation avoids a
