@@ -725,6 +725,8 @@ grep -Fq "echo 'pre-commit: activate exact hosted compiler'" \
 grep -Fq 'latest_compiler_is_exact' <<< "$candidate_activation_block"
 grep -Fq -- '--bin terlc --bin terlan-vm --bin terlan-native-worker' \
   <<< "$candidate_activation_block"
+grep -Fq -- '--bin terlan-quality' <<< "$candidate_activation_block"
+grep -Fq -- '--features quality-tools' <<< "$candidate_activation_block"
 grep -Fq 'mv "$temporary_receipt" "$compiler_input_receipt"' \
   <<< "$candidate_activation_block"
 grep -Fq 'terlc="$candidate_snapshot_terlc"' <<< "$candidate_activation_block"

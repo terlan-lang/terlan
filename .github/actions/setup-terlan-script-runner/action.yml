@@ -112,8 +112,9 @@ runs:
       if: ${{ steps.restored.outputs.usable != 'true' }}
       shell: bash
       run: |
-        cargo build --locked -p terlan --bin terlc --bin terlan-vm --bin terlan-native-worker
-        cargo build --locked -p terlan --bin terlan-quality --features validation-union
+        cargo build --locked -p terlan \
+          --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-quality \
+          --features quality-tools
         install -D -m 0755 target/debug/terlc target/script-runner/terlc
         install -D -m 0755 target/debug/terlan-vm target/script-runner/terlan-vm
         install -D -m 0755 target/debug/terlan-native-worker target/script-runner/terlan-native-worker

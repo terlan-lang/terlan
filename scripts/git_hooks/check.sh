@@ -629,7 +629,8 @@ activate_staged_candidate_compiler() {
   else
     echo 'pre-commit: build and activate exact staged compiler'
     cargo build --locked -p terlan \
-      --bin terlc --bin terlan-vm --bin terlan-native-worker
+      --bin terlc --bin terlan-vm --bin terlan-native-worker --bin terlan-quality \
+      --features quality-tools
     source_directory="$CARGO_TARGET_DIR/debug"
   fi
   [[ -x "$source_directory/terlc" && ! -L "$source_directory/terlc" ]]
@@ -637,12 +638,15 @@ activate_staged_candidate_compiler() {
     && ! -L "$source_directory/terlan-vm" ]]
   [[ -x "$source_directory/terlan-native-worker" \
     && ! -L "$source_directory/terlan-native-worker" ]]
+  [[ -x "$source_directory/terlan-quality" \
+    && ! -L "$source_directory/terlan-quality" ]]
   mkdir -p "$candidate_snapshot_directory"
   local source destination temporary
   for source in \
     "$source_directory/terlc" \
     "$source_directory/terlan-vm" \
-    "$source_directory/terlan-native-worker"; do
+    "$source_directory/terlan-native-worker" \
+    "$source_directory/terlan-quality"; do
     destination="$candidate_snapshot_directory/${source##*/}"
     temporary="$destination.tmp.$$"
     install -m 755 "$source" "$temporary"
