@@ -62,9 +62,6 @@ pub release_manifest(paths: List[String]): Bool ->
         or affected(paths, "scripts/self_validation/release_manifest/", "")
         or affected(paths, "tests/std/RELEASE_API_TESTS.tsv", "").
 
-pub rust_docs(paths: List[String]): Bool ->
-    RustFormatting.sources(paths) != [].
-
 pub rust_lint_allowances(paths: List[String]): Bool ->
     RustFormatting.sources(paths) != []
         or affected(paths, "docs/quality/RUST_LINT_ALLOWANCES.tsv", "")
@@ -152,19 +149,15 @@ pub preflight_lanes(paths: List[String]): List[String] ->
                                                             release_manifest(paths),
                                                             "release-manifest",
                                                             selected(
-                                                                rust_docs(paths),
-                                                                "rust-docs",
+                                                                preparation(paths),
+                                                                "preparation",
                                                                 selected(
-                                                                    preparation(paths),
-                                                                    "preparation",
+                                                                    hook_policy(paths),
+                                                                    "hook-policy",
                                                                     selected(
-                                                                        hook_policy(paths),
-                                                                        "hook-policy",
-                                                                        selected(
-                                                                            terlan_format(paths),
-                                                                            "terlan-format",
-                                                                            List.new[String](),
-                                                                        ),
+                                                                        terlan_format(paths),
+                                                                        "terlan-format",
+                                                                        List.new[String](),
                                                                     ),
                                                                 ),
                                                             ),

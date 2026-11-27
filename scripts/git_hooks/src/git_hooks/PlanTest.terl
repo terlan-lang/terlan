@@ -108,7 +108,7 @@ pub lowering_reports_run_native_and_phase_tests(): Bool ->
 
 @test
 pub lowering_changes_run_candidate_preflight(): Bool ->
-    Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "negative-api", "rust-docs"].
+    Plan.preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "negative-api"].
 
 @test
 pub mixed_construction_changes_run_complete_native_lane(): Bool ->
@@ -222,8 +222,7 @@ pub specialized_integration_tests_require_their_owning_environment(): Bool ->
 pub ordinary_docs_avoid_artifact_workloads(): Bool ->
     Plan.preflight_lanes(["README.md"]) == []
         and not Plan.artifact_budget(["README.md"])
-        and not Plan.release_manifest(["README.md"])
-        and not Plan.rust_docs(["README.md"]).
+        and not Plan.release_manifest(["README.md"]).
 
 @test
 pub workflow_changes_validate_release_contracts_early(): Bool ->
@@ -242,7 +241,7 @@ pub hosted_compiler_validation_omits_parallel_source_duplicates(): Bool ->
         and Plan.hosted_lanes(["scripts/git_hooks_test.sh"]) == ["shell"]
         and Plan.hosted_preflight_lanes(["std/core/Int.terl"]) == ["negative-api", "release-manifest"]
         and Plan.hosted_lanes(["std/core/Int.terl"]) == ["shell", "proofs", "terlan"]
-        and Plan.hosted_preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "negative-api", "rust-docs"]
+        and Plan.hosted_preflight_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["compiler-build", "negative-api"]
         and Plan.hosted_lanes(["crates/terlan/src/compiler/native_ir.rs"]) == ["shell", "vm-contracts", "core-contracts", "clippy", "native-ir", "phase"].
 
 @test
@@ -295,8 +294,8 @@ pub platform_validator_changes_validate_themselves_early(): Bool ->
 @test
 pub command_changes_use_targeted_tests_and_required_artifacts(): Bool ->
     Plan.lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["shell", "clippy", "rust-reports", "commands-doctor"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/test/coverage.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/commands/doctor/mod.rs"]) == ["rust-format", "rust-lint-allowances"]
+        and Plan.preflight_lanes(["crates/terlan/src/commands/test/coverage.rs"]) == ["rust-format", "rust-lint-allowances"].
 
 @test
 pub typed_stylesheet_compiler_changes_run_browser_fixture_early(): Bool ->
@@ -315,18 +314,18 @@ pub build_command_changes_use_owned_tests_without_bootstrap(): Bool ->
         "crates/terlan/src/commands/build/css.rs",
     ],
 ) == ["shell", "clippy", "commands-build", "typed-css", "rust-reports"]
-        and Plan.preflight_lanes(["crates/terlan/src/commands/build/vm_artifact/native_image.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"].
+        and Plan.preflight_lanes(["crates/terlan/src/commands/build/vm_artifact/native_image.rs"]) == ["rust-format", "rust-lint-allowances"].
 
 @test
 pub rust_formatting_uses_changed_inputs_unless_configuration_changes(): Bool ->
-    Plan.preflight_lanes(["tools/example.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
+    Plan.preflight_lanes(["tools/example.rs"]) == ["rust-format", "rust-lint-allowances"]
         and Plan.preflight_lanes(["rustfmt.toml"]) == ["rust-format"].
 
 @test
 pub every_rust_allowance_change_runs_policy_before_expensive_gates(): Bool ->
     Plan.rust_lint_allowances(["crates/terlan/src/lib.rs"])
         and Plan.rust_lint_allowances(["docs/quality/RUST_LINT_ALLOWANCES.tsv"])
-        and Plan.preflight_lanes(["crates/terlan/src/lib.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances", "rust-docs"]
+        and Plan.preflight_lanes(["crates/terlan/src/lib.rs"]) == ["compiler-build", "rust-format", "rust-lint-allowances"]
         and not Plan.rust_lint_allowances(["scripts/git_hooks/check.sh"])
         and not Plan.rust_lint_allowances(["scripts/git_hooks/src/git_hooks/Plan.terl"])
         and not Plan.rust_lint_allowances(["README.md"]).
@@ -494,9 +493,9 @@ pub focused_support_manifests_use_their_owning_crate_lanes(): Bool ->
 
 @test
 pub focused_support_crates_do_not_rebuild_the_compiler(): Bool ->
-    Plan.preflight_lanes(["crates/terlan-type-fuzz/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
-        and Plan.preflight_lanes(["crates/terlan-native-planning/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"]
-        and Plan.preflight_lanes(["crates/terlan-process-owner/src/lib.rs"]) == ["rust-format", "rust-lint-allowances", "rust-docs"].
+    Plan.preflight_lanes(["crates/terlan-type-fuzz/src/lib.rs"]) == ["rust-format", "rust-lint-allowances"]
+        and Plan.preflight_lanes(["crates/terlan-native-planning/src/lib.rs"]) == ["rust-format", "rust-lint-allowances"]
+        and Plan.preflight_lanes(["crates/terlan-process-owner/src/lib.rs"]) == ["rust-format", "rust-lint-allowances"].
 
 @test
 pub focused_support_crates_own_clippy_without_weakening_global_changes(): Bool ->
@@ -585,7 +584,6 @@ pub generated_native_boundaries_use_only_summary_validation(): Bool ->
         and not Plan.workspace(generated)
         and not Plan.compiler_bootstrap(generated)
         and not Plan.clippy(generated)
-        and not Plan.rust_docs(generated)
         and not Plan.proofs(generated).
 
 @test

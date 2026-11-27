@@ -550,8 +550,11 @@ grep -Fq "$publication_test_pattern" <<< "$bootstrap_body"
 grep -Fq 'ensure_quality_tools' <<< "$release_contract_body"
 grep -Fq 'reuse latest validation quality tool' \
   "$(dirname "$driver")/git_hooks/check.sh"
-grep -Fq '"$quality_path" rust-docs' \
-  "$(dirname "$driver")/git_hooks/check.sh"
+if grep -Fq '"$quality_path" rust-docs' \
+  "$(dirname "$driver")/git_hooks/check.sh"; then
+  echo 'Pre-commit still runs repository-wide Rust documentation' >&2; exit 1
+fi
+grep -Fq 'rustdoc-check:' "$(dirname "$driver")/../Makefile"
 grep -Fq 'link the exact staged test orchestrator' \
   "$(dirname "$driver")/git_hooks/check.sh"
 if grep -Fq 'ensure_optimized_compiler' <<< "$release_contract_body" \

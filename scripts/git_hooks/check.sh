@@ -1161,11 +1161,6 @@ if preflight_has release-manifest; then
   TERLAN_RELEASE_MANIFEST_ROOT="$PWD" TERLAN_RELEASE_MANIFEST_TERLC="$terlc" \
     "$terlc" test scripts/self_validation/release_manifest
 fi
-if preflight_has rust-docs; then
-  echo 'pre-commit: Rust documentation'
-  ensure_quality_tools
-  "$quality_path" rust-docs
-fi
 if preflight_has preparation; then
   echo 'pre-commit: preparation owner Cargo resource controls'
   "$terlc" test scripts/self_validation/release_promotion/src/release_promotion/PreparationEnvironmentTest.terl

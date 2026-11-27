@@ -243,7 +243,7 @@ summary generation batches the independent CSS property modules separately.
 | Compiler syntax, grammar, shared syntax corpus | Syntax suite, phase-contract goldens, Tree-sitter checks |
 | Other compiler source | Compiler suite and phase-contract goldens |
 | Phase-contract fixtures alone | Exact phase-contract golden test |
-| Compiler command Rust source | Owning command-module tests (with a `commands::` fallback); artifact size and Rust documentation only when their inputs changed |
+| Compiler command Rust source | Owning command-module tests (with a `commands::` fallback); artifact size only when its inputs changed; repository-wide Rust documentation is release validation |
 | Rust boundary-audit source | Boundary-audit crate tests and report validation |
 | Other Rust source | Workspace tests, including binary and integration targets |
 | Cargo manifests/lockfile, Rust toolchain/config | Compile every workspace target without rerunning unchanged tests or unrelated native-binding suites |
