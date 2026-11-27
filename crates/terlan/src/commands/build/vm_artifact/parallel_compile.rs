@@ -13,6 +13,9 @@ use super::compile::{compile_vm_module, CompiledVmModule};
 /// Maximum number of frontend workers admitted by one application build.
 const MAX_FRONTEND_WORKERS: usize = 8;
 
+/// Stack reserved for recursive syntax and native-lowering visitors.
+const FRONTEND_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
+
 /// Failure produced by one bounded indexed task set.
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum ParallelTaskError<E> {
@@ -113,31 +116,41 @@ where
     let first_failure = AtomicUsize::new(usize::MAX);
     thread::scope(|scope| {
         let mut workers = Vec::with_capacity(worker_count);
+        let mut worker_panicked = false;
         for worker_index in 0..worker_count {
             let operation = &operation;
             let first_failure = &first_failure;
-            workers.push(scope.spawn(move || {
-                let mut outcomes = Vec::new();
-                for index in (worker_index..inputs.len()).step_by(worker_count) {
-                    if index > first_failure.load(Ordering::Acquire) {
-                        break;
+            let worker = thread::Builder::new()
+                .name(format!("terlan-frontend-{worker_index}"))
+                .stack_size(FRONTEND_WORKER_STACK_BYTES)
+                .spawn_scoped(scope, move || {
+                    let mut outcomes = Vec::new();
+                    for index in (worker_index..inputs.len()).step_by(worker_count) {
+                        if index > first_failure.load(Ordering::Acquire) {
+                            break;
+                        }
+                        let outcome = operation(&inputs[index]);
+                        let failed = outcome.is_err();
+                        outcomes.push((index, outcome));
+                        if failed {
+                            first_failure.fetch_min(index, Ordering::AcqRel);
+                            break;
+                        }
                     }
-                    let outcome = operation(&inputs[index]);
-                    let failed = outcome.is_err();
-                    outcomes.push((index, outcome));
-                    if failed {
-                        first_failure.fetch_min(index, Ordering::AcqRel);
-                        break;
-                    }
+                    outcomes
+                });
+            match worker {
+                Ok(worker) => workers.push(worker),
+                Err(_) => {
+                    worker_panicked = true;
+                    break;
                 }
-                outcomes
-            }));
+            }
         }
 
         let mut indexed = std::iter::repeat_with(|| None)
             .take(inputs.len())
             .collect::<Vec<_>>();
-        let mut worker_panicked = false;
         for worker in workers {
             match worker.join() {
                 Ok(outcomes) => {

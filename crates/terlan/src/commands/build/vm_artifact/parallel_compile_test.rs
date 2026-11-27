@@ -5,6 +5,17 @@ use std::sync::Barrier;
 
 use super::parallel_compile::{run_indexed_bounded, ParallelTaskError};
 
+#[inline(never)]
+fn consume_bounded_worker_stack(depth: usize) -> usize {
+    let frame = [depth as u8; 1024];
+    std::hint::black_box(&frame);
+    if depth == 0 {
+        usize::from(frame[0])
+    } else {
+        consume_bounded_worker_stack(depth - 1) + usize::from(frame[0])
+    }
+}
+
 /// Proves bounded workers execute concurrently and restore input order.
 #[test]
 fn indexed_parallel_tasks_are_bounded_and_deterministically_ordered() {
@@ -39,6 +50,24 @@ fn indexed_parallel_tasks_normalize_zero_workers_and_empty_inputs() {
     let empty = run_indexed_bounded::<usize, usize, (), _>(&[], 8, |value| Ok(*value))
         .expect("execute empty task set");
     assert!(empty.is_empty());
+}
+
+/// Proves compiler workers exceed the platform's small default thread stack.
+#[test]
+fn workers_have_named_compiler_stacks_for_recursive_lowering() {
+    let output = run_indexed_bounded(&[4_096_usize], 1, |depth| {
+        Ok::<_, ()>((
+            std::thread::current()
+                .name()
+                .unwrap_or_default()
+                .to_string(),
+            consume_bounded_worker_stack(*depth),
+        ))
+    })
+    .expect("bounded worker");
+
+    assert_eq!(output[0].0, "terlan-frontend-0");
+    assert!(output[0].1 > 0);
 }
 
 /// Proves task failure selection follows source order, not worker join order.
